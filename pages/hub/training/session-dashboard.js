@@ -718,7 +718,6 @@ export default function SessionDashboard() {
       <Head>
         <title>Session Dashboard | Smarter.Poker Training</title>
         <meta name="description" content="Track your poker training progress over time. View accuracy trends, EV loss charts, streaks, and per-game performance." />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet" />
       </Head>
 
       <div

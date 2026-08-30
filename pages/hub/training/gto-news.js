@@ -433,10 +433,6 @@ export default function GtoNewsPage() {
           name="description"
           content="Stay sharp with daily GTO strategy tips covering preflop ranges, postflop play, poker math, and mental game."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <div
         style={{

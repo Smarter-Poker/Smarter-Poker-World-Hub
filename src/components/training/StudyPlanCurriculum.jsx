@@ -196,7 +196,11 @@ export default function StudyPlanCurriculum() {
           }}>
             {/* Level Header */}
             <div
+              role={isLocked ? undefined : 'button'}
+              tabIndex={isLocked ? -1 : 0}
+              aria-expanded={isLocked ? undefined : isExpanded}
               onClick={() => !isLocked && setExpandedLevel(isExpanded ? null : level.level)}
+              onKeyDown={(event) => { if (!isLocked && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setExpandedLevel(isExpanded ? null : level.level); } }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
                 cursor: isLocked ? 'default' : 'pointer',
@@ -242,7 +246,11 @@ export default function StudyPlanCurriculum() {
                     }}>
                       {/* Checkbox */}
                       <div
+                        role="checkbox"
+                        tabIndex={0}
+                        aria-checked={isCompleted}
                         onClick={() => toggleModule(module.id)}
+                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleModule(module.id); } }}
                         style={{
                           width: 20, height: 20, borderRadius: 5, cursor: 'pointer', marginTop: 2,
                           background: isCompleted ? level.color : 'transparent',

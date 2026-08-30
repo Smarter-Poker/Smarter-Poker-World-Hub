@@ -128,7 +128,7 @@ function PresetRangeLibrary() {
         {/* Range List */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, marginBottom: selected ? 16 : 0 }}>
           {filtered.map(r => (
-            <div key={r.id} onClick={() => setSelectedId(selectedId === r.id ? null : r.id)} style={{
+            <div key={r.id} role="button" tabIndex={0} aria-expanded={selectedId === r.id} onClick={() => setSelectedId(selectedId === r.id ? null : r.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(selectedId === r.id ? null : r.id); } }} style={{
               padding: 10, borderRadius: 8, cursor: 'pointer',
               background: selectedId === r.id ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.03)',
               border: `1px solid ${selectedId === r.id ? 'rgba(6,182,212,0.3)' : 'rgba(255,255,255,0.06)'}`,

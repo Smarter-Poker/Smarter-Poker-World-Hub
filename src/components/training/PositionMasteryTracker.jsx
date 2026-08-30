@@ -172,7 +172,7 @@ export default function PositionMasteryTracker() {
                 const d = POSITION_DATA[pos];
                 const isSelected = selectedPos === pos;
                 return (
-                  <div key={pos} onClick={() => setSelectedPos(pos)} style={{
+                  <div key={pos} role="button" tabIndex={0} aria-pressed={isSelected} onClick={() => setSelectedPos(pos)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPos(pos); } }} style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
                     borderRadius: 6, cursor: 'pointer',
                     background: isSelected ? 'rgba(59,130,246,0.1)' : 'rgba(0,0,0,0.1)',

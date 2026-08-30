@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
 
 // ●●● Phase GTO-CLONE: LeakDetector + HandAnalyzer engines ●●●
 import { detectLeaks, analyzeFrequencies, generateDrillRecommendations } from '../../engines/LeakDetector';
@@ -252,13 +252,10 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
         setLoading(true);
         setError(null);
         try {
-            const token = getSessionToken();
             const params = new URLSearchParams({ days: selectedRange.toString(), type: 'full' });
             if (gameId) params.set('gameId', gameId);
 
-            const res = await fetch(`/api/training/analytics?${params}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            });
+            const res = await authedFetch(`/api/training/analytics?${params}`);
             const data = await res.json();
             if (data.success) {
                 setAnalytics(data);
@@ -524,12 +521,9 @@ export function useTrainingAnalytics(gameId, days = 30) {
         let cancelled = false;
         async function load() {
             try {
-                const token = getSessionToken();
                 const params = new URLSearchParams({ days: days.toString(), type: 'full' });
                 if (gameId) params.set('gameId', gameId);
-                const res = await fetch(`/api/training/analytics?${params}`, {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                });
+                const res = await authedFetch(`/api/training/analytics?${params}`);
                 const data = await res.json();
                 if (!cancelled && data.success) setAnalytics(data);
             } catch (e) {

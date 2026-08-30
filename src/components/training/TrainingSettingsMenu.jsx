@@ -60,8 +60,10 @@ export default function TrainingSettingsMenu({ onClose }) {
         <>
             {/* Backdrop */}
             {isOpen && (
-                <div
-                    style={styles.backdrop}
+                <button
+                    type="button"
+                    aria-label="Close Training Settings"
+                    style={{ ...styles.backdrop, border: 'none', padding: 0 }}
                     onClick={handleClose}
                 />
             )}

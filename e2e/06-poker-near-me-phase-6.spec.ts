@@ -49,7 +49,9 @@ test.describe('Poker Near Me phase 6 map and discovery semantics', () => {
     const types = graphBlock['@graph'].map((node: any) => node['@type']);
     expect(types).toEqual(expect.arrayContaining(['CollectionPage', 'BreadcrumbList', 'ItemList']));
     const breadcrumbs = graphBlock['@graph'].find((node: any) => node['@type'] === 'BreadcrumbList');
-    expect(breadcrumbs.itemListElement.some((item: any) => item.item === 'https://smarter.poker/hub/poker-near-me/in/texas')).toBeTruthy();
+    const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+    expect(canonical).toBe('https://smarter.poker/hub/poker-near-me/in/tx');
+    expect(breadcrumbs.itemListElement.some((item: any) => item.item === canonical)).toBeTruthy();
 
     const sectionHead = page.locator('.pnm-location-listing__section-head').first();
     if (await sectionHead.count()) {

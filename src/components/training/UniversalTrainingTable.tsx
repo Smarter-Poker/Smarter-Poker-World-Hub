@@ -814,7 +814,9 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             {/* PROFESSOR FEEDBACK OVERLAY */}
             {showFeedback && (
                 <div
-                    onClick={handleDismissFeedback}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="training-feedback-title"
                     style={{
                         position: 'absolute',
                         bottom: 0,
@@ -825,7 +827,6 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                             : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
                         padding: '40px 20px',
                         borderRadius: '20px 20px 0 0',
-                        cursor: 'pointer',
                         zIndex: 200
                     }}
                 >
@@ -841,7 +842,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         }}>
                             {isCorrect ? '✓': '✕'}
                         </div>
-                        <div style={{
+                        <div id="training-feedback-title" style={{
                             fontSize: 24,
                             fontWeight: 'bold',
                             marginBottom: 8
@@ -864,13 +865,24 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         }}>
                             {explanation}
                         </div>
-                        <div style={{
+                        <button type="button" onClick={handleDismissFeedback} style={{
+                            minWidth: 180,
+                            minHeight: 48,
                             marginTop: 24,
+                            padding: '12px 24px',
+                            border: '1px solid rgba(191, 232, 255, 0.72)',
+                            borderRadius: 0,
+                            background: 'linear-gradient(180deg, #e8f8ff 0%, #57cbea 8%, #086e9d 55%, #032b43 100%)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(0,0,0,0.45)',
+                            color: '#fff',
                             fontSize: 14,
-                            color: 'rgba(255,255,255,0.6)'
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1
                         }}>
-                            Tap anywhere to continue
-                        </div>
+                            Next
+                        </button>
                     </div>
                 </div>
             )}

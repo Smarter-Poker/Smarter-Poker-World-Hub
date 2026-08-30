@@ -217,7 +217,11 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
 
     return (
         <div
+            role={hasData ? 'button' : undefined}
+            tabIndex={hasData ? 0 : -1}
+            aria-label={hasData ? `Inspect ${hand}` : undefined}
             onClick={() => hasData && onClick(hand)}
+            onKeyDown={(event) => { if (hasData && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(hand); } }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{

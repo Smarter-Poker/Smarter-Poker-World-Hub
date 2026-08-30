@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch, getSessionToken } from '../../lib/authUtils';
 
 // ●●● SITE DETECTION PATTERNS ●●●
 const SITE_PATTERNS = [
@@ -223,9 +223,8 @@ export default function HandHistoryImporter() {
       try {
         const token = getSessionToken();
         if (!token) throw new Error('Sign in to run the verified solver audit.');
-        const response = await fetch('/api/training/audit-hand-history', {
+        const response = await authedFetch('/api/training/audit-hand-history', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ handHistoryText: inputText }),
         });
         const payload = await response.json();
@@ -381,7 +380,7 @@ export default function HandHistoryImporter() {
               {parsedHands.map((hand, i) => {
                 const analysis = analyses[i];
                 return (
-                  <div key={i} onClick={() => setSelectedHand(i)} style={{
+                  <div key={i} role="button" tabIndex={0} aria-pressed={selectedHand === i} onClick={() => setSelectedHand(i)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedHand(i); } }} style={{
                     padding: '8px 10px', marginBottom: 4, borderRadius: 6, cursor: 'pointer',
                     background: selectedHand === i ? 'rgba(59,130,246,0.2)' : 'rgba(0,0,0,0.15)',
                     border: selectedHand === i ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',

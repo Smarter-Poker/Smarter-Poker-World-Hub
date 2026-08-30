@@ -128,7 +128,7 @@ function DefenseFrequencyCalc() {
               const alpha = bet / (s.potSize + bet);
               const mdf = Math.round((1 - alpha) * 100);
               return (
-                <div key={i} onClick={() => { setBetPct(s.betPct); setPotSize(s.potSize); }} style={{
+                <div key={i} role="button" tabIndex={0} aria-label={`Use ${s.label} scenario`} onClick={() => { setBetPct(s.betPct); setPotSize(s.potSize); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setBetPct(s.betPct); setPotSize(s.potSize); } }} style={{
                   padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer',
                   border: '1px solid rgba(255,255,255,0.06)',
                 }}>

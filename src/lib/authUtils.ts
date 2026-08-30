@@ -493,14 +493,41 @@ export async function ensureAuthReady(supabaseClient?: any): Promise<any | null>
  */
 export async function authedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = getAccessToken();
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...(options.headers as Record<string, string> || {}),
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    const headers = new Headers(options.headers || {});
+    if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
     }
-    const resp = await fetch(url, { ...options, headers });
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+    let resp = await fetch(url, { ...options, headers });
+
+    // Keep the TypeScript entry point in parity with authUtils.js. Training's
+    // TS/TSX surfaces resolve this file, while JS surfaces resolve the sibling
+    // module; without the same one-shot refresh behavior, a Level Selector or
+    // analytics panel could fail with a stale token even though the arena
+    // recovered successfully moments later.
+    if (resp.status === 401 && token) {
+        try {
+            const { supabase: sb } = await import('./supabase');
+            const { data } = await sb.auth.refreshSession();
+            const refreshedToken = data?.session?.access_token;
+            if (refreshedToken) {
+                const retryHeaders = new Headers(options.headers || {});
+                if (options.body && typeof options.body === 'string' && !retryHeaders.has('Content-Type')) {
+                    retryHeaders.set('Content-Type', 'application/json');
+                }
+                retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
+                resp = await fetch(url, { ...options, headers: retryHeaders });
+            }
+        } catch (error: any) {
+            console.warn('[authedFetch] token refresh failed:', error?.message || error);
+        }
+
+        if (resp.status === 401 && typeof window !== 'undefined') {
+            try { sessionStorage.removeItem('sp_auth_confirmed'); } catch { /* storage unavailable */ }
+        }
+    }
 
     // [2026-07-25] MFA step-up wiring. middleware.ts answers admin write
     // requests without a fresh mfa_session cookie with

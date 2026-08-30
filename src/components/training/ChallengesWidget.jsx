@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function ChallengesWidget({ userId, onChallengeClaimed }) {
     const [challenges, setChallenges] = useState({ weekly: [], monthly: [] });
@@ -21,7 +22,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
 
     const fetchChallenges = async () => {
         try {
-            const res = await fetch(`/api/training/challenges?userId=${userId}`);
+            const res = await authedFetch(`/api/training/challenges?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 setChallenges({
@@ -41,7 +42,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
         setClaiming(challenge.id);
 
         try {
-            const res = await fetch('/api/training/challenges', {
+            const res = await authedFetch('/api/training/challenges', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

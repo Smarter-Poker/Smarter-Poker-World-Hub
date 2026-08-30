@@ -294,10 +294,6 @@ export default function QuizGauntlet({ onExit } = {}) {
           name="description"
           content="10-question timed GTO blitz. Test pot odds, MDF, EV, and range knowledge under pressure."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <div style={C.page}>
         <div style={{ maxWidth: 580, margin: '0 auto' }}>

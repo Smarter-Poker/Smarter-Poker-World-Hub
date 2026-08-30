@@ -177,10 +177,6 @@ export default function StudyGroupFinderPage() {
           name="description"
           content="Find poker study partners by stakes, format, and timezone. Join or create a study group."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <div
         className="sp-training-command sp-training-command--group-finder"

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
 
 const REASONS = [
     ['inaccurate_answer', 'Answer'],
@@ -38,13 +38,8 @@ export default function TrainingQuestionReport({ gameId, question }) {
 
         setState({ open: true, submitting: true, sent: false, error: '' });
         try {
-            const token = getSessionToken();
-            const response = await fetch('/api/training/report-question', {
+            const response = await authedFetch('/api/training/report-question', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
                 body: JSON.stringify({ gameId, questionId, reason }),
             });
             const data = await response.json().catch(() => ({}));

@@ -9,6 +9,7 @@ import {
   heroPositionOf,
   compactHandHistoryEntry,
 } from '../../../lib/training/handHistoryEntry';
+import { authedFetch, getAuthUser } from '../../../lib/authUtils';
 
 /**
  * Save training session data to backend
@@ -57,10 +58,8 @@ export async function saveSession(sessionData) {
   // was ALWAYS undefined and this whole function silent-returned on every session
   // completion. Use getSessionToken() — the canonical token getter that reads
   // `localStorage.getItem('smarter-poker-auth').access_token`.
-  const { getAuthUser, getSessionToken } = await import('../../../lib/authUtils');
   const user = getAuthUser();
-  const accessToken = getSessionToken();
-  if (!user?.id || !accessToken) return;
+  if (!user?.id) return;
 
   // Build position stats from hand history
   const posStats = {};
@@ -122,12 +121,8 @@ export async function saveSession(sessionData) {
   };
 
   try {
-    const res = await fetch('/api/training/save-session', {
+    const res = await authedFetch('/api/training/save-session', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify(payload),
     });
 
@@ -146,8 +141,6 @@ export async function saveSession(sessionData) {
     }
   } catch (e) {
     console.warn('[saveSession] Network save failed, queueing to OfflineSyncQueue:', e.message);
-    await enqueueMutation('/api/training/save-session', payload, {
-      Authorization: `Bearer ${accessToken}`,
-    });
+    await enqueueMutation('/api/training/save-session', payload);
   }
 }

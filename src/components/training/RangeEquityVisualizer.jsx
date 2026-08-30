@@ -116,7 +116,12 @@ const EquityCell = memo(({ hand, equity, inHeroRange, inVilRange, isSelected, on
 
     return (
         <div
+            role="button"
+            tabIndex={0}
+            aria-pressed={isSelected}
+            aria-label={`Inspect ${hand}`}
             onClick={onClick}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); } }}
             style={{
                 width: '100%', aspectRatio: '1/1',
                 display: 'flex', flexDirection: 'column',

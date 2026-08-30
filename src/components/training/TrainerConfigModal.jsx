@@ -11,7 +11,7 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Available configurations based on actual solver data in database
@@ -88,6 +88,46 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const [timerSeconds, setTimerSeconds] = useState(30);
     const [spotType, setSpotType] = useState('any');
     const [boardTexture, setBoardTexture] = useState('any');
+    const modalRef = useRef(null);
+    const closeRef = useRef(null);
+    const previousFocusRef = useRef(null);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        previousFocusRef.current = document.activeElement;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose?.();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = Array.from(modalRef.current?.querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ) || []);
+            if (!focusable.length) {
+                event.preventDefault();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        const focusTimer = window.setTimeout(() => closeRef.current?.focus(), 30);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.clearTimeout(focusTimer);
+            const previous = previousFocusRef.current;
+            if (previous && previous.isConnected && typeof previous.focus === 'function') previous.focus();
+        };
+    }, [isOpen, onClose]);
 
     // Available positions for selected game type
     const availablePositions = useMemo(() => POSITIONS[gameType] || POSITIONS.cash, [gameType]);
@@ -160,6 +200,11 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                 style={styles.overlay}
             >
                 <motion.div
+                    ref={modalRef}
+                    className="sp-trainer-config-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="sp-trainer-config-title"
                     initial={{ scale: 0.9, opacity: 0, y: 30 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 30 }}
@@ -168,8 +213,8 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                 >
                     {/* Header */}
                     <div style={styles.header}>
-                        <button onClick={onClose} style={styles.closeBtn}>✕</button>
-                        <div style={styles.headerTitle}>Configure Trainer</div>
+                        <button ref={closeRef} type="button" aria-label="Close Trainer Configuration" onClick={onClose} style={styles.closeBtn}>✕</button>
+                        <div id="sp-trainer-config-title" style={styles.headerTitle}>Configure Trainer</div>
                         <div style={{ width: 32 }} />
                     </div>
 
@@ -184,6 +229,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                         whileHover={{ scale: 1.03 }}
                                         whileTap={{ scale: 0.97 }}
                                         onClick={() => handleGameTypeChange(gt.id)}
+                                        aria-pressed={gameType === gt.id}
                                         style={{
                                             ...styles.optionCard,
                                             ...(gameType === gt.id ? styles.optionCardActive : {}),
@@ -198,7 +244,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                         </div>
 
                         {/* ROW: Hero & Villain Position */}
-                        <div style={{ display: 'flex', gap: 20 }}>
+                        <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 20 }}>
                             {/* SECTION 2: Hero Position */}
                             <div style={{ ...styles.section, flex: 1 }}>
                                 <div style={styles.sectionLabel}>HERO POSITION</div>
@@ -209,6 +255,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => handleHeroPositionChange(pos)}
+                                            aria-pressed={position === pos}
                                             style={{
                                                 ...styles.chip,
                                                 ...(position === pos ? styles.chipActive : {}),
@@ -230,6 +277,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setVillainPosition(pos)}
+                                            aria-pressed={villainPosition === pos}
                                             style={{
                                                 ...styles.chip,
                                                 ...(villainPosition === pos ? styles.chipActive : {}),
@@ -243,7 +291,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                         </div>
 
                         {/* ROW: Preflop Action & Stack Depth */}
-                        <div style={{ display: 'flex', gap: 20 }}>
+                        <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 20 }}>
                             {/* SECTION 2C: Preflop Action Scenario */}
                             <div style={{ ...styles.section, flex: 1 }}>
                                 <div style={styles.sectionLabel}>ACTION SCENARIO</div>
@@ -259,6 +307,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setActionScenario(act.id)}
+                                            aria-pressed={actionScenario === act.id}
                                             style={{
                                                 ...styles.chip,
                                                 ...(actionScenario === act.id ? styles.chipActive : {}),
@@ -280,6 +329,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setStackDepth(s.value)}
+                                            aria-pressed={stackDepth === s.value}
                                             style={{
                                                 ...styles.stackChip,
                                                 ...(stackDepth === s.value ? styles.chipActive : {}),
@@ -303,6 +353,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                         whileHover={{ scale: 1.08 }}
                                         whileTap={{ scale: 0.92 }}
                                         onClick={() => setStreet(s.id)}
+                                        aria-pressed={street === s.id}
                                         style={{
                                             ...styles.streetChip,
                                             ...(street === s.id ? styles.chipActive : {}),
@@ -325,6 +376,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                         whileHover={{ scale: 1.03 }}
                                         whileTap={{ scale: 0.97 }}
                                         onClick={() => setDifficultyMode(dm.id)}
+                                        aria-pressed={difficultyMode === dm.id}
                                         style={{
                                             ...styles.optionCard,
                                             ...(difficultyMode === dm.id ? styles.optionCardActive : {}),
@@ -354,6 +406,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                         whileHover={{ scale: 1.08 }}
                                         whileTap={{ scale: 0.92 }}
                                         onClick={() => setHandClass(h.id)}
+                                        aria-pressed={handClass === h.id}
                                         style={{
                                             ...styles.chip,
                                             ...(handClass === h.id ? styles.chipActive : {}),
@@ -383,6 +436,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setSpotType(s.id)}
+                                            aria-pressed={spotType === s.id}
                                             style={{
                                                 ...styles.chip,
                                                 ...(spotType === s.id ? styles.chipActive : {}),
@@ -414,6 +468,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setBoardTexture(b.id)}
+                                            aria-pressed={boardTexture === b.id}
                                             style={{
                                                 ...styles.chip,
                                                 ...(boardTexture === b.id ? styles.chipActive : {}),
@@ -436,6 +491,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                         whileHover={{ scale: 1.08 }}
                                         whileTap={{ scale: 0.92 }}
                                         onClick={() => setQuestionsCount(n)}
+                                        aria-pressed={questionsCount === n}
                                         style={{
                                             ...styles.chip,
                                             ...(questionsCount === n ? styles.chipActive : {}),
@@ -454,6 +510,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                 <motion.button
                                     whileTap={{ scale: 0.9 }}
                                     onClick={() => setTimerEnabled(!timerEnabled)}
+                                    aria-pressed={timerEnabled}
                                     style={{
                                         padding: '2px 10px', borderRadius: 12,
                                         fontSize: 10, fontWeight: 700,
@@ -474,6 +531,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             whileHover={{ scale: 1.08 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setTimerSeconds(s)}
+                                            aria-pressed={timerSeconds === s}
                                             style={{
                                                 ...styles.chip,
                                                 ...(timerSeconds === s ? styles.chipActive : {}),
@@ -521,6 +579,29 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             Start Training →
                         </motion.button>
                     </div>
+                    <style jsx global>{`
+                        .sp-trainer-config-modal button:focus-visible {
+                            outline: 3px solid #8feaff !important;
+                            outline-offset: 3px;
+                        }
+                        @media (max-width: 700px) {
+                            .sp-trainer-config-row {
+                                flex-direction: column;
+                                gap: 0 !important;
+                            }
+                            .sp-trainer-config-modal {
+                                border-left: 0 !important;
+                                border-right: 0 !important;
+                            }
+                        }
+                        @media (prefers-reduced-motion: reduce) {
+                            .sp-trainer-config-modal,
+                            .sp-trainer-config-modal * {
+                                scroll-behavior: auto !important;
+                                transition-duration: 0.01ms !important;
+                            }
+                        }
+                    `}</style>
                 </motion.div>
             </motion.div>
         </AnimatePresence>
@@ -534,7 +615,8 @@ const styles = {
     overlay: {
         position: 'fixed',
         inset: 0,
-        background: '#121212',
+        background: 'radial-gradient(circle at 50% 10%, rgba(16, 105, 145, .28), transparent 46%), rgba(0, 5, 10, .94)',
+        backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -543,10 +625,12 @@ const styles = {
     },
     modal: {
         width: '100%',
-        maxWidth: 800,
+        maxWidth: 960,
         height: '100%',
-        background: '#121212',
-        border: 'none',
+        background: 'linear-gradient(145deg, rgba(24, 48, 63, .99), rgba(2, 10, 17, .995) 32%, rgba(7, 24, 34, .995) 75%, rgba(1, 7, 12, .995))',
+        borderLeft: '1px solid rgba(151, 230, 255, .55)',
+        borderRight: '1px solid rgba(151, 230, 255, .34)',
+        boxShadow: '0 30px 90px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 0 rgba(0,0,0,.88)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -556,7 +640,9 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '16px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(137,224,255,.38)',
+        background: 'linear-gradient(180deg, rgba(50,83,101,.88), rgba(5,18,27,.96) 62%, rgba(1,8,14,.98))',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 10px 30px rgba(0,0,0,.38)',
     },
     headerTitle: {
         fontSize: 18,
@@ -566,12 +652,12 @@ const styles = {
         fontFamily: "'Inter', -apple-system, sans-serif",
     },
     closeBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 4,
-        border: 'none',
-        background: 'transparent',
-        color: '#64748b',
+        width: 44,
+        height: 44,
+        borderRadius: 0,
+        border: '1px solid rgba(151,230,255,.35)',
+        background: 'linear-gradient(180deg, rgba(49,78,94,.9), rgba(3,13,20,.98))',
+        color: '#d8f7ff',
         fontSize: 18,
         cursor: 'pointer',
         display: 'flex',
@@ -581,7 +667,7 @@ const styles = {
     scrollArea: {
         flex: 1,
         overflowY: 'auto',
-        padding: '20px 32px',
+        padding: '20px clamp(14px, 4vw, 32px)',
     },
     section: {
         marginBottom: 20,
@@ -601,9 +687,11 @@ const styles = {
     optionCard: {
         flex: 1,
         padding: '14px 10px',
-        borderRadius: 8,
-        border: '1px solid #2a2a35',
-        background: '#1a1a24',
+        borderRadius: 0,
+        border: '1px solid rgba(119,185,211,.32)',
+        background: 'linear-gradient(145deg, rgba(35,61,75,.9), rgba(4,14,21,.98) 62%, rgba(10,29,40,.96))',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.14), inset 0 -2px rgba(0,0,0,.65), 0 10px 22px rgba(0,0,0,.25)',
+        minWidth: 140,
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -612,8 +700,9 @@ const styles = {
         transition: 'all 0.2s ease',
     },
     optionCardActive: {
-        border: '1px solid #22c55e',
-        background: '#22c55e11',
+        border: '1px solid #8feaff',
+        background: 'linear-gradient(180deg, rgba(49,176,218,.48), rgba(4,45,65,.9))',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.32), 0 0 22px rgba(48,200,255,.2)',
     },
     optionIcon: {
         fontSize: 24,
@@ -634,9 +723,10 @@ const styles = {
     },
     chip: {
         padding: '8px 16px',
-        borderRadius: 4,
-        border: '1px solid #2a2a35',
-        background: '#1a1a24',
+        minHeight: 44,
+        borderRadius: 0,
+        border: '1px solid rgba(119,185,211,.3)',
+        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
         color: '#94a3b8',
         fontSize: 13,
         fontWeight: 600,
@@ -644,15 +734,17 @@ const styles = {
         transition: 'all 0.15s ease',
     },
     chipActive: {
-        border: '1px solid #22c55e',
-        background: '#22c55e11',
-        color: '#22c55e',
+        border: '1px solid #8feaff',
+        background: 'linear-gradient(180deg, rgba(45,156,194,.5), rgba(3,45,65,.94))',
+        color: '#e5fbff',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 0 16px rgba(40,198,255,.14)',
     },
     stackChip: {
         padding: '8px 14px',
-        borderRadius: 4,
-        border: '1px solid #2a2a35',
-        background: '#1a1a24',
+        minHeight: 48,
+        borderRadius: 0,
+        border: '1px solid rgba(119,185,211,.3)',
+        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
         color: '#94a3b8',
         cursor: 'pointer',
         display: 'flex',
@@ -672,9 +764,10 @@ const styles = {
     },
     streetChip: {
         padding: '8px 14px',
-        borderRadius: 4,
-        border: '1px solid #2a2a35',
-        background: '#1a1a24',
+        minHeight: 44,
+        borderRadius: 0,
+        border: '1px solid rgba(119,185,211,.3)',
+        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
         color: '#94a3b8',
         cursor: 'pointer',
         display: 'flex',
@@ -688,7 +781,9 @@ const styles = {
     },
     footer: {
         padding: '20px 32px',
-        borderTop: '1px solid #2a2a35',
+        borderTop: '1px solid rgba(137,224,255,.3)',
+        background: 'linear-gradient(180deg, rgba(14,34,46,.98), rgba(2,10,16,.99))',
+        boxShadow: '0 -12px 30px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.1)',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
@@ -710,15 +805,17 @@ const styles = {
     startBtn: {
         width: '100%',
         padding: '16px 24px',
-        borderRadius: 4,
-        border: 'none',
-        background: '#22c55e',
-        color: '#ffffff',
+        borderRadius: 0,
+        border: '1px solid #b9f5ff',
+        background: 'linear-gradient(180deg, #dffbff 0%, #39caef 16%, #087ba4 56%, #02364e 100%)',
+        color: '#00131e',
         fontSize: 16,
         fontWeight: 800,
         cursor: 'pointer',
         letterSpacing: 0.5,
         fontFamily: "'Inter', -apple-system, sans-serif",
         transition: 'all 0.2s ease',
+        boxShadow: 'inset 0 1px #fff, inset 0 -3px rgba(0,0,0,.45), 0 12px 28px rgba(0,163,216,.3)',
+        textShadow: '0 1px rgba(255,255,255,.45)',
     },
 };

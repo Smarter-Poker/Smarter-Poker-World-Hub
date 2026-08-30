@@ -865,7 +865,16 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     >
                         {/* GTO Card Header */}
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={gtoCardExpanded}
                             onClick={() => setGtoCardExpanded(!gtoCardExpanded)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setGtoCardExpanded(!gtoCardExpanded);
+                                }
+                            }}
                             style={{
                                 padding: '14px 20px',
                                 display: 'flex',

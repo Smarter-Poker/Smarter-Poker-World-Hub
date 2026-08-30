@@ -97,10 +97,14 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
           return (
             <div
               key={idx}
+              role="button"
+              tabIndex={0}
+              aria-label={`Select hole card ${idx + 1}`}
               onClick={() => {
                 setSlot(idx);
                 setOpen(true);
               }}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSlot(idx); setOpen(true); } }}
               style={{
                 width: 44,
                 height: 60,
@@ -139,10 +143,14 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                     {SUITS.find((s) => s.char === card[1])?.symbol}
                   </span>
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Remove hole card ${idx + 1}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeCard(idx);
                     }}
+                    onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); removeCard(idx); } }}
                     style={{
                       position: 'absolute',
                       top: -6,
@@ -311,7 +319,11 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
           return (
             <div
               key={idx}
+              role="button"
+              tabIndex={0}
+              aria-label={`Select board card ${idx + 1}`}
               onClick={() => setActiveSlot(idx)}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveSlot(idx); } }}
               style={{
                 width: 36,
                 height: 50,
@@ -352,10 +364,14 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                     {SUITS.find((s) => s.char === card[1])?.symbol}
                   </span>
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Remove board card ${idx + 1}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeCard(idx);
                     }}
+                    onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); removeCard(idx); } }}
                     style={{
                       position: 'absolute',
                       top: -4,
@@ -737,10 +753,6 @@ export default function EquityCalculatorPage() {
         <meta
           name="description"
           content="Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards."
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
         />
       </Head>
 

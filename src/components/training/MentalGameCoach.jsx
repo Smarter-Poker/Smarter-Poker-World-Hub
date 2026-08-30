@@ -71,7 +71,7 @@ export default function MentalGameCoach() {
           const key = `${moduleIdx}-${i}`;
           const checked = checkedItems[key];
           return (
-            <div key={i} onClick={() => toggleCheck(key)}
+            <div key={i} role="checkbox" tabIndex={0} aria-checked={Boolean(checked)} onClick={() => toggleCheck(key)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleCheck(key); } }}
               style={{ background: checked ? `${mod.color}10` : 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12, cursor: 'pointer',
                 border: checked ? `1px solid ${mod.color}30` : '1px solid transparent', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>

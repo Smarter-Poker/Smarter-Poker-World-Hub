@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 const RARITY_COLORS = {
     common: { bg: 'rgba(156, 163, 175, 0.2)', border: '#9ca3af', glow: 'none' },
@@ -25,7 +26,7 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
 
     const fetchAchievements = async () => {
         try {
-            const res = await fetch(`/api/training/achievements?userId=${userId}`);
+            const res = await authedFetch(`/api/training/achievements?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 setAchievements(data.achievements);

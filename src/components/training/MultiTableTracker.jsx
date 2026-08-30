@@ -77,7 +77,11 @@ function TableCard({ table, selected, onClick }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
       onClick={onClick}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); } }}
       style={{
         padding: 14,
         background: selected ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.03)',

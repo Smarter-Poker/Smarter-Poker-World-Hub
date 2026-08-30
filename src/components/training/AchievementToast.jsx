@@ -8,6 +8,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { toast } from '../../stores/toastStore';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function AchievementToast({ achievements = [], onDismiss, userId }) {
     const [visible, setVisible] = useState(achievements.length > 0);
@@ -40,9 +41,8 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
         setSharing(true);
 
         try {
-            const res = await fetch('/api/training/share', {
+            const res = await authedFetch('/api/training/share', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId,
                     shareType: 'achievement',

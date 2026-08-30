@@ -20,7 +20,7 @@ import { getGameById } from '../../data/TRAINING_LIBRARY';
 import TrainingGameArt from './TrainingGameArt';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch, getSessionToken } from '../../lib/authUtils';
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
 
 // ============================================================================
@@ -315,10 +315,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let levelProgress: any = {};
             let highestUnlocked = 1;
             try {
-                const token = getSessionToken();
-                const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
+                const progressRes = await authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`);
                 const progressData = await progressRes.json();
                 levelProgress = progressData?.levels || {};
                 highestUnlocked = progressData?.levels?.highestUnlocked
@@ -397,8 +394,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             if (!authToken) {
                 setStartingLevel(null);
                 await router.push({
-                    pathname: '/login',
-                    query: { next: `/hub/training/arena/${gameId}?level=${level}` },
+                    pathname: '/auth/login',
+                    query: { redirect: `/hub/training/arena/${gameId}?level=${level}` },
                 });
                 return;
             }
@@ -407,12 +404,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let sessionId = `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
             try {
-                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-                headers['Authorization'] = `Bearer ${authToken}`;
-
-                const res = await fetch('/api/session/start', {
+                const res = await authedFetch('/api/session/start', {
                     method: 'POST',
-                    headers,
                     body: JSON.stringify({
                         user_id: userId,
                         game_id: gameId,

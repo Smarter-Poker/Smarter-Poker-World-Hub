@@ -83,7 +83,7 @@ function MultiStreetPlanningGuide() {
           {plan.streets.map((st, i) => {
             const isRevealed = i <= revealedStreet;
             return (
-              <div key={i} onClick={() => { if (i === revealedStreet + 1) setRevealedStreet(i); }}
+              <div key={i} role={i === revealedStreet + 1 ? 'button' : undefined} tabIndex={i === revealedStreet + 1 ? 0 : -1} aria-label={i === revealedStreet + 1 ? `Reveal ${st.street}` : undefined} onClick={() => { if (i === revealedStreet + 1) setRevealedStreet(i); }} onKeyDown={(event) => { if ((event.key === 'Enter' || event.key === ' ') && i === revealedStreet + 1) { event.preventDefault(); setRevealedStreet(i); } }}
                 style={{
                   padding: 12, borderRadius: 8, cursor: i === revealedStreet + 1 ? 'pointer' : 'default',
                   background: isRevealed ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',

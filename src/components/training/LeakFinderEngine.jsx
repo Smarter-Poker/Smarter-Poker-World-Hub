@@ -179,11 +179,11 @@ export default function LeakFinderEngine() {
             const isExpanded = expandedLeak === leak.id;
 
             return (
-              <div key={leak.id} style={{
+              <div key={leak.id} role="button" tabIndex={0} aria-expanded={isExpanded} style={{
                 background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12,
                 border: `1px solid ${isExpanded ? sev.border : 'rgba(255,255,255,0.04)'}`,
                 cursor: 'pointer', transition: 'all 0.2s',
-              }} onClick={() => setExpandedLeak(isExpanded ? null : leak.id)}>
+              }} onClick={() => setExpandedLeak(isExpanded ? null : leak.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedLeak(isExpanded ? null : leak.id); } }}>
                 {/* Leak header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{

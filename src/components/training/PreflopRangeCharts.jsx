@@ -142,7 +142,7 @@ export default function PreflopRangeCharts() {
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 8, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
             {range.map((cell, idx) => (
-              <div key={idx} onClick={() => setSelectedHand(cell)} style={{
+              <div key={idx} role="button" tabIndex={0} aria-label={`${cell.hand}: ${cell.action} ${cell.freq}%`} aria-pressed={selectedHand?.hand === cell.hand} onClick={() => setSelectedHand(cell)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedHand(cell); } }} style={{
                 aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: getFreqColor(cell.freq, cell.action), borderRadius: 2, cursor: 'pointer',
                 border: selectedHand && selectedHand.hand === cell.hand ? '1px solid #fff' : '1px solid transparent',
