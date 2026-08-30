@@ -21,10 +21,9 @@ jobs:
   e2e:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
-    # A clean install + production build consumed ~7 minutes and the 637-test
-    # authenticated browser matrix was still healthy when the old 30-minute
-    # job cap cancelled it. Keep enough room for retries on the single CI
-    # worker so a timeout cannot masquerade as a product regression.
+    # A clean install + production build consumes ~7 minutes. The authenticated
+    # desktop/mobile matrix runs on four bounded workers; keep enough room for
+    # retries without allowing a stalled suite to run indefinitely.
     timeout-minutes: 90
 
     steps:
@@ -138,6 +137,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
           NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
+          PLAYWRIGHT_WORKERS: 4
 
       - name: Stop Next.js server + surface log
         if: always()

@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The authenticated desktop/mobile matrix is too large for one serialized
+  // CI worker (it exceeded a 90-minute job limit). Four workers keep the suite
+  // bounded while leaving enough CPU and memory for the local Next.js server.
+  workers: process.env.CI ? Number(process.env.PLAYWRIGHT_WORKERS || 4) : undefined,
   reporter: [['html', { open: 'never' }], ['list']],
   timeout: 30000,
   use: {
