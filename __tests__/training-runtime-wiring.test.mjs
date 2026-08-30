@@ -143,6 +143,19 @@ test('both poker and psychology feedback expose canonical question reporting', (
   assert.match(reportApi, /user_id,game_id,question_id,reason/);
 });
 
+test('every poker game reaches the shared Club Arena table surface', () => {
+  const arena = fs.readFileSync(path.join(ROOT, 'src/components/training/GodModeArena.jsx'), 'utf8');
+  const router = fs.readFileSync(path.join(ROOT, 'src/components/training/GameUIRouter.jsx'), 'utf8');
+  const table = fs.readFileSync(
+    path.join(ROOT, 'src/components/training/games/UniversalDynamicTable.jsx'),
+    'utf8'
+  );
+
+  assert.doesNotMatch(arena, /gameId === 'adv-011'|gameId === 'quiz-gauntlet'/);
+  assert.match(router, /<UniversalDynamicTable[\s\S]*gameId=\{gameId\}/);
+  assert.match(table, /data-training-ui="club-arena-table"/);
+});
+
 test('offline packs cache real questions and are consumed by the arena', () => {
   const preloader = fs.readFileSync(path.join(ROOT, 'pages/hub/training/gto-preloader.js'), 'utf8');
   const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');

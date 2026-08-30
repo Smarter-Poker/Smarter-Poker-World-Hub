@@ -37,7 +37,11 @@ export default function PsychologyTiltControlUI({ gameId, question, onAnswer, sh
     const currentTilt = tiltLevels[tiltLevel] || tiltLevels['Medium'];
 
     return (
-        <div style={styles.wrapper}>
+        <div
+            data-training-game-id={gameId}
+            data-training-ui="psychology-scenario"
+            style={styles.wrapper}
+        >
             {/* Tilt Meter — only meaningful when the question carries emotional metadata */}
             {hasMetadata && (
             <div style={styles.tiltSection}>

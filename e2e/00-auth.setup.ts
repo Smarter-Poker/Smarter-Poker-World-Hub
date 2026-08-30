@@ -37,7 +37,11 @@ setup('authenticate', async ({ page }) => {
   await page.click('button[type="submit"]');
 
   // Verify successful authentication by waiting for the redirection to the hub landing page
-  await expect(page).toHaveURL(/.*\/hub/, { timeout: 20000 });
+  // Profile, VIP, and trusted-device bootstrap can legitimately cross the old
+  // 20-second ceiling when the backing services are cold. The credentials had
+  // already been accepted, but Playwright closed the page before the session
+  // state could be saved, invalidating every dependent test.
+  await expect(page).toHaveURL(/.*\/hub/, { timeout: 60000 });
 
   // Allow enough time for local storage/cookies to populate and propagate
   await page.waitForTimeout(1000); 

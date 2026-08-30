@@ -24,6 +24,7 @@ const babel = require('@babel/core');
 const sucrase = require('sucrase');
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 
 const ROOT = path.resolve(__dirname, '..');
 const originalJsLoader = Module._extensions['.js'];
@@ -78,24 +79,215 @@ const {
 // the client's error channel before validation begins.
 const PAGE_SIZE = 250;
 const FALLBACK_QUESTION_COUNT = 4;
+const CACHE_READ_CONCURRENCY = Math.max(1, Number(process.env.TRAINING_AUDIT_DB_CONCURRENCY || 3));
+const CACHE_READ_ATTEMPTS = 4;
 
-async function fetchAllCacheRows(supabase) {
-    const rows = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
+const AUDIT_TABLE_COLUMNS = {
+    training_question_cache: new Set([
+        'id', 'question_id', 'game_id', 'level', 'engine_type', 'question_data',
+    ]),
+    solved_spots_gold: new Set([
+        'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
+        'strategy_matrix', 'strategy_matrix_v2',
+    ]),
+    memory_charts_gold: new Set(['stack_depth']),
+};
+
+function assertAuditIdentifier(identifier, allowedColumns) {
+    if (!/^[a-z_][a-z0-9_]*$/i.test(identifier)) {
+        throw new Error(`Unsafe audit identifier: ${identifier}`);
+    }
+    if (allowedColumns && !allowedColumns.has(identifier)) {
+        throw new Error(`Column is not allowlisted for the live audit: ${identifier}`);
+    }
+    return `"${identifier}"`;
+}
+
+class ReadOnlyPgQuery {
+    constructor(pool, table) {
+        if (!Object.prototype.hasOwnProperty.call(AUDIT_TABLE_COLUMNS, table)) {
+            throw new Error(`Table is not allowlisted for the live audit: ${table}`);
+        }
+        this.pool = pool;
+        this.table = table;
+        this.columns = '*';
+        this.filters = [];
+        this.params = [];
+        this.orderBy = null;
+        this.rowLimit = null;
+        this.rowOffset = null;
+        this.countMode = null;
+        this.head = false;
+    }
+
+    select(columns = '*', options = {}) {
+        const allowedColumns = AUDIT_TABLE_COLUMNS[this.table];
+        this.columns = columns === '*'
+            ? '*'
+            : String(columns)
+                .split(',')
+                .map((column) => assertAuditIdentifier(column.trim(), allowedColumns))
+                .join(', ');
+        this.countMode = options.count || null;
+        this.head = options.head === true;
+        return this;
+    }
+
+    addFilter(column, operator, value) {
+        const allowedColumns = AUDIT_TABLE_COLUMNS[this.table];
+        const safeColumn = assertAuditIdentifier(column, allowedColumns);
+        if (value === null && operator === '=') {
+            this.filters.push(`${safeColumn} IS NULL`);
+            return this;
+        }
+        this.params.push(value);
+        this.filters.push(`${safeColumn} ${operator} $${this.params.length}`);
+        return this;
+    }
+
+    eq(column, value) { return this.addFilter(column, '=', value); }
+    lte(column, value) { return this.addFilter(column, '<=', value); }
+    gte(column, value) { return this.addFilter(column, '>=', value); }
+    ilike(column, value) { return this.addFilter(column, 'ILIKE', value); }
+
+    order(column, { ascending = true } = {}) {
+        const allowedColumns = AUDIT_TABLE_COLUMNS[this.table];
+        this.orderBy = `${assertAuditIdentifier(column, allowedColumns)} ${ascending ? 'ASC' : 'DESC'}`;
+        return this;
+    }
+
+    limit(value) {
+        this.rowLimit = Math.max(0, Number(value));
+        return this;
+    }
+
+    range(from, to) {
+        this.rowOffset = Math.max(0, Number(from));
+        this.rowLimit = Math.max(0, Number(to) - this.rowOffset + 1);
+        return this;
+    }
+
+    async execute() {
+        try {
+            const table = assertAuditIdentifier(this.table);
+            const where = this.filters.length > 0 ? ` WHERE ${this.filters.join(' AND ')}` : '';
+            if (this.countMode) {
+                const result = await this.pool.query(
+                    `SELECT count(*)::int AS count FROM ${table}${where}`,
+                    this.params
+                );
+                return {
+                    data: this.head ? null : result.rows,
+                    count: Number(result.rows[0]?.count || 0),
+                    error: null,
+                };
+            }
+
+            let sql = `SELECT ${this.columns} FROM ${table}${where}`;
+            if (this.orderBy) sql += ` ORDER BY ${this.orderBy}`;
+            if (this.rowLimit !== null) sql += ` LIMIT ${Math.floor(this.rowLimit)}`;
+            if (this.rowOffset !== null) sql += ` OFFSET ${Math.floor(this.rowOffset)}`;
+            const result = await this.pool.query(sql, this.params);
+            return { data: result.rows, count: null, error: null };
+        } catch (error) {
+            return { data: null, count: null, error };
+        }
+    }
+
+    then(resolve, reject) {
+        return this.execute().then(resolve, reject);
+    }
+}
+
+function createReadOnlyDatabaseClient() {
+    if (process.env.SUPABASE_DB_PASSWORD) {
+        const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0];
+        const pool = new Pool({
+            host: `db.${projectRef}.supabase.co`,
+            port: 5432,
+            user: 'postgres',
+            password: process.env.SUPABASE_DB_PASSWORD,
+            database: 'postgres',
+            ssl: { rejectUnauthorized: false },
+            max: CACHE_READ_CONCURRENCY,
+            connectionTimeoutMillis: 15000,
+            statement_timeout: 30000,
+            options: '-c default_transaction_read_only=on',
+        });
+        return {
+            client: { from: (table) => new ReadOnlyPgQuery(pool, table) },
+            source: 'read-only-postgres',
+            close: () => pool.end(),
+        };
+    }
+
+    const client = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+    );
+    return { client, source: 'supabase-rest', close: async () => {} };
+}
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function fetchCachePage(supabase, from) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= CACHE_READ_ATTEMPTS; attempt++) {
         const { data, error } = await supabase
             .from('training_question_cache')
             .select('id, question_id, game_id, level, engine_type, question_data')
+            .order('id', { ascending: true })
             .range(from, from + PAGE_SIZE - 1);
-        if (error) throw new Error(`training_question_cache page ${from}: ${error.message}`);
-        rows.push(...(data || []));
-        if (!data || data.length < PAGE_SIZE) break;
+        if (!error) return data || [];
+        lastError = error;
+        if (attempt < CACHE_READ_ATTEMPTS) await wait(500 * attempt);
     }
-    return rows;
+    throw new Error(`training_question_cache page ${from}: ${lastError?.message || 'unknown read error'}`);
+}
+
+async function fetchAllCacheRows(supabase) {
+    let count = null;
+    let countError = null;
+    for (let attempt = 1; attempt <= CACHE_READ_ATTEMPTS; attempt++) {
+        const response = await supabase
+            .from('training_question_cache')
+            .select('id', { count: 'exact', head: true });
+        count = response.count;
+        countError = response.error;
+        if (!countError && Number.isInteger(count)) break;
+        if (attempt < CACHE_READ_ATTEMPTS) await wait(500 * attempt);
+    }
+    const knownPageCount = !countError && Number.isInteger(count)
+        ? Math.ceil(count / PAGE_SIZE)
+        : null;
+    const pages = knownPageCount === null ? [] : new Array(knownPageCount);
+    let nextPage = 0;
+    let terminalPage = knownPageCount;
+    const workerCount = knownPageCount === null
+        ? CACHE_READ_CONCURRENCY
+        : Math.min(CACHE_READ_CONCURRENCY, knownPageCount);
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (terminalPage === null || nextPage < terminalPage) {
+            const pageIndex = nextPage++;
+            if (terminalPage !== null && pageIndex >= terminalPage) break;
+            const page = await fetchCachePage(supabase, pageIndex * PAGE_SIZE);
+            pages[pageIndex] = page;
+            if (knownPageCount === null && page.length < PAGE_SIZE) {
+                terminalPage = Math.min(terminalPage ?? Infinity, pageIndex + 1);
+            }
+        }
+    });
+    await Promise.all(workers);
+    return pages.slice(0, terminalPage ?? pages.length).flat();
 }
 
 async function main() {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_URL is required');
+    }
+    if (!process.env.SUPABASE_DB_PASSWORD && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_DB_PASSWORD or SUPABASE_SERVICE_ROLE_KEY is required');
     }
 
     const {
@@ -106,24 +298,22 @@ async function main() {
         validateTrainingQuestion,
     } = await import(path.join(ROOT, 'src/lib/training/questionContract.mjs'));
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false } }
-    );
+    const database = createReadOnlyDatabaseClient();
+    const supabase = database.client;
     const engine = new DeterministicGTOEngine();
     applyDeterministicEnginePatches(engine);
     engine.setSupabaseClient(supabase);
 
-    const allRows = await fetchAllCacheRows(supabase);
-    const canonicalIds = new Set(TRAINING_LIBRARY.map((game) => game.id));
-    const grouped = new Map();
-    for (const row of allRows) {
-        if (!canonicalIds.has(row.game_id)) continue;
-        const key = `${row.game_id}:${Number(row.level)}`;
-        if (!grouped.has(key)) grouped.set(key, []);
-        grouped.get(key).push(row);
-    }
+    try {
+        const allRows = await fetchAllCacheRows(supabase);
+        const canonicalIds = new Set(TRAINING_LIBRARY.map((game) => game.id));
+        const grouped = new Map();
+        for (const row of allRows) {
+            if (!canonicalIds.has(row.game_id)) continue;
+            const key = `${row.game_id}:${Number(row.level)}`;
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key).push(row);
+        }
 
     const failures = [];
     const totals = {
@@ -202,13 +392,17 @@ async function main() {
         }
     }
 
-    console.log(JSON.stringify({
-        success: failures.length === 0,
-        totals,
-        failures: failures.slice(0, 100),
-        omittedFailureCount: Math.max(0, failures.length - 100),
-    }, null, 2));
-    process.exitCode = failures.length === 0 ? 0 : 1;
+        console.log(JSON.stringify({
+            success: failures.length === 0,
+            databaseSource: database.source,
+            totals,
+            failures: failures.slice(0, 100),
+            omittedFailureCount: Math.max(0, failures.length - 100),
+        }, null, 2));
+        process.exitCode = failures.length === 0 ? 0 : 1;
+    } finally {
+        await database.close();
+    }
 }
 
 main().catch((error) => {
