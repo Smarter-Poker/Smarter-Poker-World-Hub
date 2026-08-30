@@ -515,18 +515,49 @@ export async function auditParsedHands(db, userId, hands, {
   };
 }
 
-async function fetchClubHandsForKey(db, userId, key, limit) {
-  return db.from('hand_history')
-    .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
-    // postgrest-js stringifies primitive arrays but not arrays of objects in
-    // this dependency generation. Passing the object array directly produces
-    // `22P02 invalid input syntax for type json` in production.
-    .contains('players', JSON.stringify([{ [key]: userId }]))
-    // The canonical Hetzner Club Arena recorder uses `manual`; the two other
-    // values belong to the older in-app writers and remain readable.
-    .in('source', ['manual', 'wh-engine', 'engine-api'])
-    .order('created_at', { ascending: false })
-    .limit(limit);
+async function fetchClubHandsForKey(db, userId, key, {
+  pageSize,
+  snapshotAt,
+  cursor = null,
+  done = false,
+}) {
+  if (done) return { data: [], error: null, complete: true, nextCursor: null };
+  const size = Math.max(1, Math.min(1000, Number(pageSize) || 100));
+  let result;
+  try {
+    let query = db.from('hand_history')
+        .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
+        // postgrest-js stringifies primitive arrays but not arrays of objects
+        // in this dependency generation. Passing the object array directly
+        // produces `22P02 invalid input syntax for type json` in production.
+        .contains('players', JSON.stringify([{ [key]: userId }]))
+        // The canonical Hetzner Club Arena recorder uses `manual`; the two
+        // other values belong to older in-app writers and remain readable.
+        .in('source', ['manual', 'wh-engine', 'engine-api'])
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .lte('created_at', snapshotAt);
+    if (cursor?.createdAt && cursor?.id) {
+      query = query.or(
+        `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`,
+      );
+    }
+    // One sentinel row proves whether another bounded continuation is needed.
+    result = await query.range(0, size);
+  } catch (error) {
+    return { data: [], error, complete: false, nextCursor: cursor };
+  }
+  if (result?.error) return { data: [], error: result.error, complete: false, nextCursor: cursor };
+  const fetched = Array.isArray(result?.data) ? result.data : [];
+  const data = fetched.slice(0, size);
+  const hasMore = fetched.length > size;
+  const last = data[data.length - 1];
+  return {
+    data,
+    error: null,
+    complete: !hasMore,
+    nextCursor: hasMore && last ? { createdAt: last.created_at, id: String(last.id) } : null,
+  };
 }
 
 async function fetchExistingAuditRows(db, userId, externalIds) {
@@ -555,22 +586,54 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   maxDecisions = 250,
   retryUnpricedAfterMs = DEFAULT_UNPRICED_RETRY_MS,
   nowMs = Date.now(),
+  cursor = null,
 } = {}) {
+  const snapshotAt = cursor?.snapshotAt || new Date(nowMs).toISOString();
+  const requestedCursor = {
+    snapshotAt,
+    modern: cursor?.modern || null,
+    legacy: cursor?.legacy || null,
+    modernDone: cursor?.modernDone === true,
+    legacyDone: cursor?.legacyDone === true,
+  };
   const [modern, legacy] = await Promise.all([
-    fetchClubHandsForKey(db, userId, 'userId', limit),
-    fetchClubHandsForKey(db, userId, 'id', limit),
+    fetchClubHandsForKey(db, userId, 'userId', {
+      pageSize: limit, snapshotAt, cursor: requestedCursor.modern, done: requestedCursor.modernDone,
+    }),
+    fetchClubHandsForKey(db, userId, 'id', {
+      pageSize: limit, snapshotAt, cursor: requestedCursor.legacy, done: requestedCursor.legacyDone,
+    }),
   ]);
   const errors = [modern.error, legacy.error].filter(Boolean);
   if (errors.length === 2) {
-    return { available: false, handsFound: 0, handsEligible: 0, handsAudited: 0, decisionsAnalyzed: 0, solverVerified: 0, error: errors[0].message };
+    console.warn('[HandAudit] Club Arena hand lookup failed:', errors[0]?.message || errors[0]);
+    return {
+      available: false,
+      handsFound: 0,
+      handsEligible: 0,
+      handsAudited: 0,
+      decisionsAnalyzed: 0,
+      solverVerified: 0,
+      continuation: requestedCursor,
+      error: 'Club Arena hand history is temporarily unavailable.',
+    };
   }
   const byId = new Map();
   for (const row of [...(modern.data || []), ...(legacy.data || [])]) byId.set(String(row.id), row);
-  const handRows = [...byId.values()].slice(0, limit);
+  const sourceIncomplete = modern.complete !== true || legacy.complete !== true;
+  const advancedCursor = {
+    snapshotAt,
+    modern: modern.nextCursor,
+    legacy: legacy.nextCursor,
+    modernDone: modern.complete === true,
+    legacyDone: legacy.complete === true,
+  };
+  const handRows = [...byId.values()];
   const normalized = handRows.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
   if (normalized.length === 0) {
     return {
       available: true,
+      partial: errors.length > 0,
       handsFound: handRows.length,
       handsEligible: 0,
       handsAudited: 0,
@@ -582,7 +645,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       persisted: true,
       evidenceReconciled: true,
       obsoleteDecisionsRemoved: 0,
-      complete: true,
+      complete: errors.length === 0 && !sourceIncomplete,
+      truncated: sourceIncomplete,
+      continuation: errors.length === 0 && sourceIncomplete ? advancedCursor : (errors.length > 0 ? requestedCursor : null),
     };
   }
 
@@ -628,8 +693,10 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     return false;
   });
   const result = await auditParsedHands(db, userId, pending, { maxDecisions, persist: true });
+  const pageSucceeded = errors.length === 0 && result.complete;
   return {
     available: true,
+    partial: errors.length > 0,
     handsFound: handRows.length,
     handsEligible: normalized.length,
     handsAudited: result.handsParsed,
@@ -639,10 +706,15 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     solverVerified: result.solverVerified,
     unpriced: result.unpriced,
     solverLookupFailures: result.solverLookupFailures,
-    complete: result.complete,
+    complete: errors.length === 0 && result.complete && !sourceIncomplete,
     persisted: result.persisted,
     evidenceReconciled: result.evidenceReconciled,
     obsoleteDecisionsRemoved: result.obsoleteDecisionsRemoved,
-    truncated: result.truncated,
+    truncated: result.truncated || sourceIncomplete,
+    // Advance the snapshot cursor only after every hand in this page was
+    // reconciled. A truncated/failed audit retries the same bounded page.
+    continuation: pageSucceeded && sourceIncomplete
+      ? advancedCursor
+      : (!pageSucceeded ? requestedCursor : null),
   };
 }

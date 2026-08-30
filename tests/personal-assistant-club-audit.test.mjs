@@ -229,7 +229,9 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
           contains: (_column, value) => { membership = value; return chain; },
           in: (_column, values) => { sourceFilters.push(values); return chain; },
           order: () => chain,
-          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
+          lte: () => chain,
+          or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }
@@ -281,7 +283,9 @@ await test('skips a complete, current Club Arena audit without repeating solver 
           contains: (_column, value) => { membership = value; return chain; },
           in: () => chain,
           order: () => chain,
-          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
+          lte: () => chain,
+          or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }
@@ -322,6 +326,82 @@ await test('skips a complete, current Club Arena audit without repeating solver 
   assert.equal(writes, 0);
 });
 
+await test('pages beyond 100 reconciled Club Arena hands and reaches a complete audit', async () => {
+  const hands = Array.from({ length: 101 }, (_, index) => ({
+    ...clubRow,
+    id: `hand-${index + 1}`,
+    hand_number: index + 1,
+    created_at: '2026-08-30T12:00:00.000Z',
+  }));
+  let handQueries = 0;
+  const db = {
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        let continued = false;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = JSON.parse(value); return chain; },
+          in: () => chain,
+          order: () => chain,
+          lte: () => chain,
+          or: () => { continued = true; return chain; },
+          range: async () => {
+            handQueries += 1;
+            return {
+              data: membership?.[0]?.userId ? (continued ? hands.slice(100) : hands.slice(0, 101)) : [],
+              error: null,
+            };
+          },
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        let ids = [];
+        const chain = {
+          eq: () => chain,
+          in: (_column, values) => { ids = values; return chain; },
+          limit: async () => ({
+            data: ids.map(handExternalId => ({
+              hand_external_id: handExternalId,
+              solver_verified: true,
+              solver_source: 'DETERMINISTIC_SOLVER|hand-audit-v2',
+              classification: 'best',
+              updated_at: '2026-08-30T12:00:00.000Z',
+            })),
+            error: null,
+          }),
+        };
+        return { select: () => chain };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const first = await syncClubArenaHandsForAudit(db, userId, {
+    limit: 100,
+    nowMs: new Date('2026-08-30T13:00:00.000Z').getTime(),
+  });
+  assert.equal(first.handsFound, 100);
+  assert.equal(first.handsAlreadyCurrent, 100);
+  assert.equal(first.complete, false);
+  assert.ok(first.continuation);
+  assert.equal(handQueries, 2);
+
+  const second = await syncClubArenaHandsForAudit(db, userId, {
+    limit: 100,
+    nowMs: new Date('2026-08-30T13:01:00.000Z').getTime(),
+    cursor: first.continuation,
+  });
+  assert.equal(second.handsFound, 1);
+  assert.equal(second.handsAlreadyCurrent, 1);
+  assert.equal(second.handsAudited, 0);
+  assert.equal(second.truncated, false);
+  assert.equal(second.complete, true);
+  assert.equal(second.continuation, null);
+  assert.equal(handQueries, 3);
+});
+
 await test('retries a stale unpriced Club Arena audit after the solver refresh window', async () => {
   let solverQueries = 0;
   const question = {
@@ -341,7 +421,9 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
           contains: (_column, value) => { membership = value; return chain; },
           in: () => chain,
           order: () => chain,
-          limit: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
+          lte: () => chain,
+          or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [clubRow] : [], error: null }),
         };
         return chain;
       }

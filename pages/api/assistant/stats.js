@@ -12,6 +12,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { readLeakStatsAggregate } from '../../../src/lib/personal-assistant/leakStats';
 
 let _supabase = null;
 function getSupabase() {
@@ -68,17 +69,20 @@ export default async function handler(req, res) {
         getLeakStats(userId),
       ]);
 
-      const stored = storedRes?.data || {};
+      const stored = storedRes?.data || null;
       const failedSources = [];
       if (storedRes?.error) failedSources.push('user_assistant_stats');
       if (sandboxRes?.error) failedSources.push('sandbox_sessions');
+      const storedSandboxCount = stored && Number.isFinite(Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed))
+        ? Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed)
+        : null;
       const sandboxCount = !sandboxRes?.error && typeof sandboxRes?.count === 'number'
         ? sandboxRes.count
-        : Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed) || 0;
-      const handsAnalyzed = Math.max(
-        sandboxCount,
-        Number(stored.total_hands_analyzed) || 0,
-      );
+        : storedSandboxCount;
+      const storedHands = stored && Number.isFinite(Number(stored.total_hands_analyzed))
+        ? Number(stored.total_hands_analyzed)
+        : null;
+      const handsAnalyzed = storedHands;
 
       return res.status(200).json({
         success: true,
@@ -94,18 +98,23 @@ export default async function handler(req, res) {
         partial: failedSources.length > 0,
         failedSources,
         dataSources: {
-          sandboxSessions: sandboxRes?.error ? 'stored_fallback' : 'live_count',
-          handsAnalyzed: handsAnalyzed > sandboxCount ? 'deterministic_audit_total' : 'sandbox_sessions',
+          sandboxSessions: sandboxRes?.error
+            ? (storedSandboxCount === null ? 'unavailable' : 'stored_fallback')
+            : 'live_count',
+          handsAnalyzed: handsAnalyzed === null
+            ? 'unavailable'
+            : 'deterministic_audit_total',
           leaks: 'live_aggregate',
         },
       });
 
     } catch (error) {
       console.warn('Stats error:', error);
-      return res.status(200).json({
-        success: true,
-        stats: getDefaultStats(),
-        isDemo: true
+      return res.status(503).json({
+        success: false,
+        error: 'Assistant statistics are temporarily unavailable.',
+        isDemo: false,
+        unavailable: true,
       });
     }
 
@@ -121,61 +130,21 @@ export default async function handler(req, res) {
  * user_leaks. A failed authoritative read must never masquerade as a genuine
  * zero with isDemo:false.
  * Uses head-count queries so counts never truncate at a row limit.
- * Defensive: returns zeros if the table is missing or queries fail.
+ * Fails closed when the authoritative aggregate is unavailable.
  */
 async function getLeakStats(userId) {
-  const out = { activeLeaks: 0, resolvedLeaks: 0, avgEvLoss: 0 };
-  try {
-    const [activeRes, resolvedRes, evRes, trainingActiveRes, trainingResolvedRes] = await Promise.all([
-      getSupabase()
-        .from('user_leaks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .or('status.neq.resolved,status.is.null'),
-      getSupabase()
-        .from('user_leaks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'resolved'),
-      getSupabase()
-        .from('user_leaks')
-        .select('avg_ev_loss_bb')
-        .eq('user_id', userId)
-        .or('status.neq.resolved,status.is.null')
-        .limit(1000),
-      getSupabase()
-        .from('user_training_leaks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .is('fixed_at', null),
-      getSupabase()
-        .from('user_training_leaks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .not('fixed_at', 'is', null),
-    ]);
-
-    const failed = [activeRes, resolvedRes, evRes, trainingActiveRes, trainingResolvedRes]
-      .find(result => result?.error);
-    if (failed) throw failed.error;
-
-    out.activeLeaks = (activeRes?.count || 0) + (trainingActiveRes?.count || 0);
-    out.resolvedLeaks = (resolvedRes?.count || 0) + (trainingResolvedRes?.count || 0);
-
-    // avg_ev_loss_bb is stored as a positive loss magnitude (BB/100);
-    // the API convention reports EV loss as a negative number.
-    const evValues = (evRes?.data || [])
-      .map(l => Math.abs(Number(l?.avg_ev_loss_bb)))
-      .filter(v => Number.isFinite(v) && v > 0);
-    if (evValues.length > 0) {
-      const mean = evValues.reduce((sum, v) => sum + v, 0) / evValues.length;
-      out.avgEvLoss = -Number(mean.toFixed(2));
-    }
-  } catch (leakErr) {
-    console.warn('Leak stats error:', leakErr?.message || leakErr);
-    throw leakErr;
+  const { data, error } = await readLeakStatsAggregate(getSupabase(), userId);
+  if (error) {
+    console.warn('Leak stats error:', error?.message || error);
+    throw error;
   }
-  return out;
+  return {
+    activeLeaks: data.activeLeaks,
+    resolvedLeaks: data.resolvedLeaks,
+    // avg_ev_loss_bb is a positive loss magnitude; the public stats contract
+    // reports loss as negative and includes only explicitly measured rows.
+    avgEvLoss: data.avgEvLoss > 0 ? -data.avgEvLoss : 0,
+  };
 }
 
 function getDefaultStats() {

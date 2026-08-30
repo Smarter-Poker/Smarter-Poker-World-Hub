@@ -67,7 +67,13 @@ export function useAssistantStats(authState) {
       if (data.success) {
         const demo = !!data.isDemo;
         // Keep the flag on the stats object too — consumers read either.
-        setStats({ ...data.stats, isDemo: demo });
+        setStats({
+          ...data.stats,
+          isDemo: demo,
+          partial: !!data.partial,
+          failedSources: Array.isArray(data.failedSources) ? data.failedSources : [],
+          dataSources: data.dataSources || {},
+        });
         setIsDemo(demo);
         setError(null);
       }
@@ -107,6 +113,8 @@ export function useLeaks(statusFilter = null, authState) {
   const [demoLeaks, setDemoLeaks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [partial, setPartial] = useState(false);
+  const [unavailableSources, setUnavailableSources] = useState([]);
   const requestIdRef = useRef(0);
   const hasExplicitAuth = authState !== undefined;
   const authReady = !hasExplicitAuth || authState?.ready !== false;
@@ -133,12 +141,19 @@ export function useLeaks(statusFilter = null, authState) {
 
       // A 401/500 must not read as "no leaks" — surface it.
       if (!response.ok || data.success === false) {
+        setPartial(false);
+        setUnavailableSources([]);
         setError(data.error || `HTTP ${response.status}`);
         return;
       }
 
       if (data.success) {
         setIsDemo(!!data.isDemo);
+        setPartial(!!data.partial);
+        setUnavailableSources([
+          ...(Array.isArray(data.failedSources) ? data.failedSources : []),
+          ...(Array.isArray(data.truncatedSources) ? data.truncatedSources : []),
+        ]);
         setError(null);
         // Transform API response to match UI format
         setLeaks((data.leaks || []).map(formatLeak));
@@ -192,7 +207,17 @@ export function useLeaks(statusFilter = null, authState) {
     }
   };
 
-  return { leaks, demoLeaks, isDemo, isLoading, error, refetch: fetchLeaks, updateLeakStatus };
+  return {
+    leaks,
+    demoLeaks,
+    isDemo,
+    isLoading,
+    error,
+    partial,
+    unavailableSources,
+    refetch: fetchLeaks,
+    updateLeakStatus,
+  };
 }
 
 /** Map an API leak row onto the shape the Leak Finder UI renders. */
@@ -933,6 +958,7 @@ export function useLeakDetection() {
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
+  const auditCursorRef = useRef(null);
 
   const runDetection = useCallback(async () => {
     abortRef.current?.abort();
@@ -956,7 +982,7 @@ export function useLeakDetection() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ auditCursor: auditCursorRef.current }),
         ...(controller ? { signal: controller.signal } : {}),
       });
 
@@ -964,11 +990,16 @@ export function useLeakDetection() {
       if (requestId !== requestIdRef.current) return { success: false, superseded: true };
 
       if (!response.ok) {
+        if (data?.code === 'invalid_audit_cursor') {
+          auditCursorRef.current = null;
+          setDetectionResult(null);
+        }
         setError(data?.error || `Detection failed (${response.status})`);
-        return { success: false, error: data?.error || `HTTP ${response.status}` };
+        return { success: false, code: data?.code, error: data?.error || `HTTP ${response.status}` };
       }
 
       if (data.success) {
+        auditCursorRef.current = data?.clubArenaSync?.auditCursor || null;
         setDetectionResult(data);
 
         // 📢 Dispatch BUS LISTENER update (Leak finding affects Stats and Leak lists)
@@ -994,6 +1025,7 @@ export function useLeakDetection() {
 
   useEffect(() => () => {
     requestIdRef.current += 1;
+    auditCursorRef.current = null;
     try { abortRef.current?.abort(); } catch (e) { /* already settled */ }
   }, []);
 

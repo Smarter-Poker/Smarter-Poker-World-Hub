@@ -1507,11 +1507,18 @@ export default function LeakFinderPage() {
     demoLeaks: onboardingLeaks,
     isLoading: leaksLoading,
     error: leaksError,
+    partial: leaksPartial,
     refetch: refetchLeaks,
     updateLeakStatus,
     isDemo: leaksDemoFlag,
   } = useLeaks(null, { userId, ready: !authInitializing });
-  const { stats: fetchedStats, isLoading: statsLoading, isDemo: statsDemoFlag } = useAssistantStats({
+  const {
+    stats: fetchedStats,
+    isLoading: statsLoading,
+    isDemo: statsDemoFlag,
+    error: statsError,
+    refetch: refetchStats,
+  } = useAssistantStats({
     userId,
     ready: !authInitializing,
   });
@@ -1535,15 +1542,16 @@ export default function LeakFinderPage() {
     if (typeof fetchedStats?.avgEvLoss === 'number' && fetchedStats.avgEvLoss !== 0 && !statsAreDemo) {
       return fetchedStats.avgEvLoss;
     }
-    if (activeLeaks.length > 0) {
-      return -(activeLeaks.reduce((s, l) => s + Math.abs(num(l.evLossBB)), 0) / activeLeaks.length);
+    const measuredLeaks = activeLeaks.filter(l => l.evLossMeasured === true && hasPricedEv(l));
+    if (measuredLeaks.length > 0) {
+      return -(measuredLeaks.reduce((s, l) => s + Math.abs(num(l.evLossBB)), 0) / measuredLeaks.length);
     }
     return 0;
   }, [fetchedStats, statsAreDemo, activeLeaks]);
 
   const stats = {
-    sessionsReviewed: fetchedStats?.sessionsReviewed ?? 0,
-    handsAnalyzed: fetchedStats?.handsAnalyzed ?? 0,
+    sessionsReviewed: Number.isFinite(fetchedStats?.sessionsReviewed) ? fetchedStats.sessionsReviewed : null,
+    handsAnalyzed: Number.isFinite(fetchedStats?.handsAnalyzed) ? fetchedStats.handsAnalyzed : null,
     leaksFound: activeLeaks.length,
     avgEvLoss,
   };
@@ -2045,16 +2053,9 @@ export default function LeakFinderPage() {
       handlePracticeSandbox(target.leak);
       return;
     }
-    // The leak's CURRENT measured EV cost rides along so the review API can
-    // diff it against the measurement stored at the previous review — that
-    // delta (negative = the leak is costing less in real hands) is the
-    // scheduler's corroborating evDelta signal. Measured by detection, not
-    // estimated here.
-    const evLossBB = Math.abs(num(target.leak.evLossBB));
     setReviewSession({
       leakId: String(target.leakId),
       params,
-      evLossBB: Number.isFinite(evLossBB) && evLossBB > 0 ? evLossBB : null,
     });
   }, [guardAction, reviewQueue, handlePracticeSandbox]);
 
@@ -2156,7 +2157,7 @@ export default function LeakFinderPage() {
       disabled={isDetecting}
     >
       <Activity size={18} strokeWidth={2} aria-hidden="true" />
-      {isDetecting ? 'Analysing…' : 'Run Leak Detection'}
+      {isDetecting ? 'Analysing…' : detectionResult?.clubArenaSync?.auditCursor ? 'Continue Leak Audit' : 'Run Leak Detection'}
     </button>
   );
 
@@ -2236,11 +2237,11 @@ export default function LeakFinderPage() {
           <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
             <StatCell
               label="Sessions reviewed"
-              value={statsLoading ? null : (statsAreDemo ? '—' : String(stats.sessionsReviewed))}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? '—' : String(stats.sessionsReviewed))}
             />
             <StatCell
               label="Hands analysed"
-              value={statsLoading ? null : (statsAreDemo ? '—' : stats.handsAnalyzed.toLocaleString())}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? '—' : stats.handsAnalyzed.toLocaleString())}
             />
             <StatCell
               label="Active leaks"
@@ -2249,7 +2250,7 @@ export default function LeakFinderPage() {
             <StatCell
               label="Avg EV loss"
               tone={T.danger}
-              value={leaksLoading ? null : (stats.avgEvLoss && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '—')}
+              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '—')}
             />
             <StatCell
               label="GTO accuracy"
@@ -2268,6 +2269,20 @@ export default function LeakFinderPage() {
             {statsAreDemo && (
               <div style={{ gridColumn: '1 / -1' }}>
                 <span style={pill('warn')}>Sample stats — not your own data</span>
+              </div>
+            )}
+            {statsError && !statsLoading && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <ErrorState
+                  title="Assistant Stats Unavailable"
+                  body="Your leak history is still available, but its summary totals could not be verified."
+                  onRetry={refetchStats}
+                />
+              </div>
+            )}
+            {!statsError && fetchedStats?.partial && !statsLoading && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={pill('warn')}>Some summary sources are temporarily unavailable</span>
               </div>
             )}
           </section>
@@ -2372,6 +2387,14 @@ export default function LeakFinderPage() {
                     body={friendlyLoadError(leaksError)}
                     onRetry={() => refetchLeaks()}
                   />
+                </div>
+              )}
+              {!leaksError && leaksPartial && !leaksLoading && (
+                <div role="status" style={{ marginBottom: S.md, display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
+                  <span style={pill('warn')}>Leak history is partially loaded — retry to verify every source</span>
+                  <button type="button" className="pa-btn" style={btn('secondary')} onClick={() => refetchLeaks()}>
+                    Retry
+                  </button>
                 </div>
               )}
 
@@ -2655,7 +2678,6 @@ export default function LeakFinderPage() {
             <QuickSpotDrill
               customParams={reviewSession.params}
               reviewLeakId={reviewSession.leakId}
-              reviewEvLossBB={reviewSession.evLossBB ?? null}
               onClose={closeReviewSession}
             />
           </LeakErrorBoundary>
