@@ -117,6 +117,8 @@ failures still fail immediately. The minimal fix was pushed directly to the Phas
 that three full schema timeouts could consume the original four-minute wall-clock
 budget before a fifth recovery attempt. The bounded total budget is now six minutes,
 still below the seven-attempt theoretical maximum and within the 20-minute job cap.
+The enforcing policy-function-grant invariant also now uses the same fail-closed
+transport after a one-shot Cloudflare/Supabase HTTP 520 blocked the Phase 12 PR.
 
 ## Verification record
 

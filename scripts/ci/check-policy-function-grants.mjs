@@ -53,6 +53,8 @@
  * are absent — a fork PR must never fail for a reason its author cannot fix.
  */
 
+import { resilientFetch } from './lib/resilient-fetch.mjs';
+
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -78,24 +80,21 @@ if (!URL_ || !KEY) {
  */
 
 async function main() {
-  const res = await fetch(`${URL_}/rest/v1/rpc/fn_policy_function_grant_gaps`, {
-    method: 'POST',
-    headers: {
-      apikey: KEY,
-      Authorization: `Bearer ${KEY}`,
-      'Content-Type': 'application/json',
+  let rows = await resilientFetch(
+    'check-policy-function-grants',
+    `${URL_}/rest/v1/rpc/fn_policy_function_grant_gaps`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
     },
-    body: '{}',
-  });
+    { parse: 'json', exitCode: 1 },
+  );
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error(`check-policy-function-grants: query failed (${res.status}). ${body.slice(0, 400)}`);
-    // A broken checker must not be mistaken for a clean result.
-    process.exit(1);
-  }
-
-  let rows = await res.json().catch(() => null);
   if (!Array.isArray(rows)) rows = [];
 
   if (rows.length === 0) {

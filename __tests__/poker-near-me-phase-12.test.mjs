@@ -101,10 +101,11 @@ test('four distinct regional WebP visuals are wired with non-deceptive artwork l
 });
 
 test('snapshot refresh and parity checks fail closed on degraded or drifting sources', async () => {
-  const [refresh, check, resilientFetch, manifest] = await Promise.all([
+  const [refresh, check, resilientFetch, policyGrantCheck, manifest] = await Promise.all([
     source('scripts/refresh-pnm-directory-snapshot.mjs'),
     source('scripts/check-pnm-directory-snapshot.mjs'),
     source('scripts/ci/lib/resilient-fetch.mjs'),
+    source('scripts/ci/check-policy-function-grants.mjs'),
     json('data/poker-venue-directory-snapshot.json'),
   ]);
   assert.match(refresh, /refusing to refresh the canonical snapshot/);
@@ -114,6 +115,8 @@ test('snapshot refresh and parity checks fail closed on degraded or drifting sou
   assert.match(resilientFetch, /PGRST303/);
   assert.match(resilientFetch, /jwt issued at future/);
   assert.match(resilientFetch, /TOTAL_BUDGET_MS = 360_000/);
+  assert.match(policyGrantCheck, /resilientFetch/);
+  assert.doesNotMatch(policyGrantCheck, /await fetch\(/);
   assert.equal(manifest.metadata.source_count, manifest.venues.length);
   assert.ok(manifest.metadata.source_candidate_count >= manifest.metadata.source_count);
 });
