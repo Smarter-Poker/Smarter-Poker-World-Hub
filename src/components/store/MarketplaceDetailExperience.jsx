@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ChevronRight, Gem, ShieldCheck, Sparkles, X, ZoomIn } from 'lucide-react';
 
 import UniversalHeader from '../ui/UniversalHeader';
-import BottomNavBar from '../ui/BottomNavBar';
 import PageTransition from '../transitions/PageTransition';
 import MarketplaceCommerceNav from './MarketplaceCommerceNav';
 import styles from './MarketplaceDetailExperience.module.css';
@@ -247,7 +246,6 @@ export default function MarketplaceDetailExperience({
           <section className={styles.detailDeck}>{children}</section>
         </main>
       </PageTransition>
-      <BottomNavBar />
     </>
   );
 }

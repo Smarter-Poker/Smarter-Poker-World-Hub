@@ -1,0 +1,228 @@
+{
+  "fallback": {
+    "id": "global",
+    "label": "Smarter.Poker",
+    "theme": "light",
+    "accent": "#1877f2",
+    "items": [
+      { "href": "/hub/social-media", "label": "Home", "title": "Social Home", "icon": "home" },
+      { "href": "/hub/personal-assistant", "label": "Coach", "title": "Personal Assistant", "icon": "brain" },
+      { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
+      { "href": "/hub/social-pages", "label": "Pages", "title": "Social Pages", "icon": "layout" },
+      { "href": "/hub/notifications", "label": "Alerts", "title": "Notifications", "icon": "bell", "badge": "notifications" },
+      { "href": "/hub/profile", "label": "Profile", "title": "Profile", "icon": "user" }
+    ]
+  },
+  "worlds": [
+    {
+      "id": "personal-assistant",
+      "label": "Personal Assistant",
+      "theme": "dark",
+      "accent": "#4599ff",
+      "routePrefixes": ["/hub/personal-assistant"],
+      "items": [
+        { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain" },
+        { "href": "/hub/personal-assistant/sandbox", "label": "Sandbox", "title": "GTO Sandbox", "icon": "target" },
+        { "href": "/hub/personal-assistant/leaks", "label": "Leaks", "title": "Leak Finder", "icon": "flame" },
+        { "href": "/hub/training", "label": "Train", "title": "Training Games", "icon": "graduation" },
+        { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Charts", "icon": "grid" },
+        { "href": "/hub/poker-tools", "label": "Odds", "title": "Odds Calculator", "icon": "calculator" }
+      ]
+    },
+    {
+      "id": "training",
+      "label": "Training Games",
+      "theme": "dark",
+      "accent": "#22e67a",
+      "routePrefixes": ["/hub/training", "/hub/gto-trainer", "/hub/poker-brain", "/pokerbrain"],
+      "items": [
+        { "href": "/hub/training", "label": "Library", "title": "Training Library", "icon": "graduation" },
+        { "href": "/hub/training/play-mode", "label": "Play", "title": "Play Training Games", "icon": "play" },
+        { "href": "/hub/training/daily-challenge", "label": "Daily", "title": "Daily Challenge", "icon": "zap" },
+        { "href": "/hub/training/progress", "label": "Progress", "title": "My Progress", "icon": "chart" },
+        { "href": "/hub/training/challenges", "label": "Goals", "title": "Training Challenges", "icon": "target" },
+        { "href": "/hub/training/leaderboard", "label": "Ranks", "title": "Training Leaderboard", "icon": "trophy" }
+      ]
+    },
+    {
+      "id": "news",
+      "label": "Poker News",
+      "theme": "dark",
+      "accent": "#ff7a1a",
+      "routePrefixes": ["/hub/news", "/hub/article"],
+      "items": [
+        { "href": "/hub/news", "label": "Latest", "title": "Latest Poker News", "icon": "newspaper" },
+        { "href": "/hub/news?tab=videos", "label": "Videos", "title": "News Videos", "icon": "video" },
+        { "href": "/hub/news?tab=reels", "label": "Reels", "title": "News Reels", "icon": "film" },
+        { "href": "/hub/news?tab=events", "label": "Events", "title": "Poker Events", "icon": "calendar" },
+        { "href": "/hub/news?filter=bookmarks", "label": "Saved", "title": "Saved News", "icon": "bookmark" },
+        { "href": "/hub/news/sources", "label": "Sources", "title": "Manage News Sources", "icon": "rss" }
+      ]
+    },
+    {
+      "id": "trivia",
+      "label": "Poker Trivia",
+      "theme": "dark",
+      "accent": "#20d6ff",
+      "routePrefixes": ["/hub/trivia"],
+      "items": [
+        { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help" },
+        { "href": "/hub/trivia/daily", "label": "Daily", "title": "Daily Challenge", "icon": "calendar" },
+        { "href": "/hub/trivia/arcade", "label": "Arcade", "title": "Quick Play Arcade", "icon": "gamepad" },
+        { "href": "/hub/trivia/pvp", "label": "PvP", "title": "Player versus Player", "icon": "swords" },
+        { "href": "/hub/trivia/stats", "label": "Stats", "title": "Trivia Statistics", "icon": "chart" },
+        { "href": "/hub/trivia/leaderboard", "label": "Ranks", "title": "Trivia Leaderboard", "icon": "trophy" }
+      ]
+    },
+    {
+      "id": "social-media",
+      "label": "Social Media",
+      "theme": "dark",
+      "accent": "#ff5d6c",
+      "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
+      "items": [
+        { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home" },
+        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create a Post", "icon": "compose" },
+        { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
+        { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message" },
+        { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film" },
+        { "href": "/hub/social-pages", "label": "Pages", "title": "Social Pages", "icon": "layout" }
+      ]
+    },
+    {
+      "id": "diamond-arena",
+      "label": "Diamond Arena",
+      "theme": "dark",
+      "accent": "#ffe34d",
+      "routePrefixes": ["/hub/diamond-arena"],
+      "items": [
+        { "href": "/hub/diamond-arena", "label": "Arena", "title": "Diamond Arena", "icon": "gem" },
+        { "href": "/hub/diamond-arena/schedule", "label": "Schedule", "title": "Tournament Schedule", "icon": "calendar" },
+        { "href": "/hub/diamond-arena/leaderboard", "label": "Ranks", "title": "Arena Leaderboard", "icon": "trophy" },
+        { "href": "/hub/diamond-arena/stats", "label": "Stats", "title": "My Arena Statistics", "icon": "chart" },
+        { "href": "/hub/diamond-arena/history", "label": "History", "title": "Arena Hand History", "icon": "history" },
+        { "href": "/hub/diamond-store?category=diamonds", "label": "Store", "title": "Buy Diamonds", "icon": "shopping" }
+      ]
+    },
+    {
+      "id": "my-clubs",
+      "label": "My Clubs",
+      "theme": "dark",
+      "accent": "#28c9ff",
+      "routePrefixes": ["/hub/my-clubs", "/hub/my-venues", "/hub/home-games", "/hub/venues"],
+      "items": [
+        { "href": "/hub/my-clubs", "label": "Clubs", "title": "My Clubs", "icon": "club" },
+        { "href": "/hub/club-arena", "label": "Arena", "title": "Club Arena Lobby", "icon": "spade" },
+        { "href": "/hub/social-pages", "label": "Pages", "title": "Club Social Pages", "icon": "layout" },
+        { "href": "/hub/my-venues", "label": "Venues", "title": "My Venues", "icon": "map" },
+        { "href": "/hub/home-games", "label": "Games", "title": "Home Games", "icon": "cards" },
+        { "href": "/hub", "label": "Hub", "title": "World Hub", "icon": "globe" }
+      ]
+    },
+    {
+      "id": "video-library",
+      "label": "Video Library",
+      "theme": "dark",
+      "accent": "#ff5b5b",
+      "routePrefixes": ["/hub/video-library"],
+      "items": [
+        { "href": "/hub/video-library", "label": "Videos", "title": "All Videos", "icon": "video" },
+        { "href": "/hub/video-library?type=cash", "label": "Cash", "title": "Cash Game Videos", "icon": "coins" },
+        { "href": "/hub/video-library?type=tournament", "label": "Tourneys", "title": "Tournament Videos", "icon": "trophy" },
+        { "href": "/hub/video-library?filter=favorites", "label": "Saved", "title": "Favorite Videos", "icon": "heart" },
+        { "href": "/hub/video-library?filter=history", "label": "History", "title": "Watch History", "icon": "history" },
+        { "href": "/hub/video-library?filter=watchlater", "label": "Later", "title": "Watch Later", "icon": "clock" }
+      ]
+    },
+    {
+      "id": "odds-calculator",
+      "label": "Odds Calculator",
+      "theme": "dark",
+      "accent": "#4e9cff",
+      "routePrefixes": ["/hub/poker-tools"],
+      "items": [
+        { "href": "/hub/poker-tools", "label": "Odds", "title": "Poker Odds Calculator", "icon": "calculator" },
+        { "href": "/hub/training/equity-calculator", "label": "Equity", "title": "Equity Calculator", "icon": "percent" },
+        { "href": "/hub/training/icm-calculator", "label": "ICM", "title": "ICM Calculator", "icon": "sigma" },
+        { "href": "/hub/preflop-charts", "label": "Preflop", "title": "Preflop Charts", "icon": "grid" },
+        { "href": "/hub/training/hand-lab", "label": "Hand Lab", "title": "Hand Lab", "icon": "flask" },
+        { "href": "/hub", "label": "Hub", "title": "World Hub", "icon": "globe" }
+      ]
+    },
+    {
+      "id": "bankroll-manager",
+      "label": "Bankroll Manager",
+      "theme": "dark",
+      "accent": "#f15aff",
+      "routePrefixes": ["/hub/bankroll-manager", "/hub/bankroll"],
+      "items": [
+        { "href": "/hub/bankroll-manager?view=dashboard", "label": "Summary", "title": "Bankroll Dashboard", "icon": "wallet" },
+        { "href": "/hub/bankroll-manager?view=log-session", "label": "Log", "title": "Log a Session", "icon": "plus" },
+        { "href": "/hub/bankroll-manager?view=trips", "label": "Trips", "title": "Trip Tracker", "icon": "route" },
+        { "href": "/hub/bankroll-manager?view=reports", "label": "Reports", "title": "Bankroll Reports", "icon": "chart" },
+        { "href": "/hub/bankroll-manager?view=rules", "label": "Rules", "title": "Bankroll Rules", "icon": "shield" },
+        { "href": "/hub/bankroll-manager/export", "label": "Export", "title": "Export Bankroll Data", "icon": "download" }
+      ]
+    },
+    {
+      "id": "toke-tracker",
+      "label": "Toke Tracker",
+      "theme": "dark",
+      "accent": "#ffb020",
+      "routePrefixes": ["/hub/toke-tracker"],
+      "items": [
+        { "href": "/hub/toke-tracker", "label": "Tokes", "title": "Toke Dashboard", "icon": "coins" },
+        { "href": "/hub/toke-tracker/shift", "label": "Shift", "title": "Shift Tracker", "icon": "timer" },
+        { "href": "/hub/toke-tracker/analytics", "label": "Stats", "title": "Toke Analytics", "icon": "chart" },
+        { "href": "/hub/toke-tracker/vault", "label": "Vault", "title": "Dealer Vault", "icon": "vault" },
+        { "href": "/hub/toke-tracker/vault?tab=tax", "label": "Taxes", "title": "Tax Summary and Export", "icon": "receipt" },
+        { "href": "/hub/toke-tracker/venues", "label": "Venues", "title": "Venue Intelligence", "icon": "map" }
+      ]
+    },
+    {
+      "id": "preflop-charts",
+      "label": "Preflop Charts",
+      "theme": "dark",
+      "accent": "#22e6e6",
+      "routePrefixes": ["/hub/preflop-charts", "/hub/memory-games"],
+      "items": [
+        { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Range Lab", "icon": "grid" },
+        { "href": "/hub/preflop-charts?mode=speed-drill", "label": "Speed", "title": "Speed Drill", "icon": "zap" },
+        { "href": "/hub/preflop-charts/stats", "label": "Stats", "title": "My Preflop Statistics", "icon": "chart" },
+        { "href": "/hub/preflop-charts/leaderboard", "label": "Ranks", "title": "Preflop Leaderboard", "icon": "trophy" },
+        { "href": "/hub/preflop-charts/achievements", "label": "Awards", "title": "Preflop Achievements", "icon": "medal" },
+        { "href": "/hub/preflop-charts/tutorial", "label": "Tutorial", "title": "How to Play", "icon": "book" }
+      ]
+    },
+    {
+      "id": "poker-near-me",
+      "label": "Poker Near Me",
+      "theme": "dark",
+      "accent": "#f4f7fb",
+      "routePrefixes": ["/hub/poker-near-me", "/hub/events-calendar", "/hub/daily-tournaments", "/hub/poker-tours", "/hub/poker-series", "/hub/series", "/hub/tours"],
+      "items": [
+        { "href": "/hub/poker-near-me/lobby", "label": "Nearby", "title": "Poker Near Me Lobby", "icon": "radar" },
+        { "href": "/hub/poker-near-me/venues", "label": "Venues", "title": "Poker Venues", "icon": "map" },
+        { "href": "/hub/poker-near-me/events", "label": "Events", "title": "Nearby Poker Events", "icon": "calendar" },
+        { "href": "/hub/poker-near-me/live-games", "label": "Games", "title": "Live Games", "icon": "cards" },
+        { "href": "/hub/poker-near-me/map", "label": "Map", "title": "Map View", "icon": "mapPinned" },
+        { "href": "/hub/poker-near-me/saved", "label": "Saved", "title": "Saved Places", "icon": "bookmark" }
+      ]
+    },
+    {
+      "id": "marketplace",
+      "label": "Marketplace",
+      "theme": "dark",
+      "accent": "#ffd84a",
+      "routePrefixes": ["/hub/marketplace", "/hub/diamond-store", "/hub/merch-store", "/hub/club-shop", "/hub/vip-membership", "/hub/smarter-rewards"],
+      "items": [
+        { "href": "/hub/marketplace", "label": "Market", "title": "Marketplace Home", "icon": "shopping" },
+        { "href": "/hub/diamond-store", "label": "Diamonds", "title": "Diamond Store", "icon": "gem" },
+        { "href": "/hub/merch-store", "label": "Merch", "title": "Merchandise Store", "icon": "shirt" },
+        { "href": "/hub/club-shop", "label": "Clubs", "title": "Club Marketplace", "icon": "club" },
+        { "href": "/hub/vip-membership", "label": "VIP", "title": "VIP Membership", "icon": "crown" },
+        { "href": "/hub/diamond-store/orders", "label": "Orders", "title": "My Orders", "icon": "package" }
+      ]
+    }
+  ]
+}
