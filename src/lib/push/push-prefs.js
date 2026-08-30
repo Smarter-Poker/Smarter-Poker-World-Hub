@@ -220,6 +220,25 @@ const EVENT_ALIASES = {
     credit_denied: 'cashier',
     settlement_dispute_filed: 'cashier',
     dispute_resolved: 'cashier',
+
+    // ── BLINDING OFF (added 2026-08-30 with #1498's last call site) ────────
+    //
+    // Emitted by trg_notify_blinding_off on table_seats when the engine flags
+    // is_sitting_out / is_away on a LIVE TOURNAMENT seat: the player is paying
+    // blinds and antes to not be there.
+    //
+    // Mapped to `tournament_starting` rather than a key of its own, for the
+    // one reason that outranks tidiness: `tournament_starting` is in
+    // URGENT_TYPES, so this pierces quiet hours and the daily cap. A player
+    // bleeding chips at 3am needs telling at 3am — that is the entire value of
+    // the notification, and an unmapped event can never be urgent (see the
+    // waitlist_seat_open note above, where exactly that was forfeited).
+    //
+    // The trade is that muting "Tournament Starting" also mutes this. That is
+    // the right side of the trade: both say "your tournament needs you now",
+    // and the alternative is a new toggle that is quiet by default at the one
+    // hour it matters.
+    tournament_blinding_off: 'tournament_starting',
 };
 
 // Test pushes are never gated by per-type preferences -- if a user clicks
