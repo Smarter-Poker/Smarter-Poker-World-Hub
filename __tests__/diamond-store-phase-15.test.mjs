@@ -5,6 +5,21 @@ import test from 'node:test';
 const ROOT = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, ROOT), 'utf8');
 
+test('Vercel ships every migration consumed by the marketplace build contract', async () => {
+  const vercelIgnore = await read('.vercelignore');
+  for (const migration of [
+    '20260830040000_atomic_diamond_merch_orders.sql',
+    '20260830100000_card_commerce_settlement_hardening.sql',
+    '20260830120000_commerce_event_ordering_and_subscription_claims.sql',
+    '20260830130000_commerce_refund_replay_guards.sql',
+  ]) {
+    assert.ok(
+      vercelIgnore.includes(`!/supabase/migrations/${migration}`),
+      `${migration} must be present in the Vercel build bundle`
+    );
+  }
+});
+
 test('Diamond merchandise settlement is atomic, replay-bound, and restores only local stock', async () => {
   const [api, migration] = await Promise.all([
     read('pages/api/store/purchase-with-diamonds.js'),

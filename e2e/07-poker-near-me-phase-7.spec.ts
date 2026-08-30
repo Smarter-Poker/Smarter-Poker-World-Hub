@@ -65,11 +65,11 @@ test.describe('Poker Near Me phase 7 map scale and operations', () => {
 
   test('lobby map can search a user-selected area and restore the network view', async ({ page }) => {
     await page.addInitScript(() => window.localStorage.setItem('pnm_lobby_tutorial_seen', '1'));
-    let viewportRequest: URL | null = null;
+    const viewportRequest: { current: URL | null } = { current: null };
     await page.route('**/api/poker/venues?*', async (route) => {
       const url = new URL(route.request().url());
       if (!url.searchParams.has('north')) return route.continue();
-      viewportRequest = url;
+      viewportRequest.current = url;
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -101,8 +101,8 @@ test.describe('Poker Near Me phase 7 map scale and operations', () => {
     await expect(searchArea).toBeVisible({ timeout: 10_000 });
     expect((await searchArea.boundingBox())?.height || 0).toBeGreaterThanOrEqual(44);
     await searchArea.click();
-    await expect.poll(() => viewportRequest?.searchParams.has('north') || false).toBeTruthy();
-    for (const key of ['north', 'south', 'east', 'west']) expect(viewportRequest?.searchParams.has(key)).toBeTruthy();
+    await expect.poll(() => viewportRequest.current?.searchParams.has('north') || false).toBeTruthy();
+    for (const key of ['north', 'south', 'east', 'west']) expect(viewportRequest.current?.searchParams.has(key)).toBeTruthy();
 
     const coverage = page.locator('[data-map-coverage="true"]').first();
     await expect(coverage).toHaveAttribute('data-map-area-scoped', 'true');
