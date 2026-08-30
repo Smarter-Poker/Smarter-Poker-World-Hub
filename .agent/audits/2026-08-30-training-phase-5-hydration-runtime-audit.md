@@ -53,6 +53,8 @@ The PostgreSQL path is constrained to `training_question_cache`, `solved_spots_g
 
 The browser matrix also no longer replays an expired one-time refresh token into the live authentication service. Its disposable contexts mock only the test-user refresh and user reads, while Training endpoints retain their explicit deterministic fixtures. This prevents a 428-surface wiring audit from generating production authentication traffic or reporting a false application failure after the shared saved session expires. Production password sign-in remains a separate, mandatory release check.
 
+The concurrent batch runner now claims each queued game synchronously before awaiting browser-page creation. Previously two workers could both observe the final queued item, one could dequeue `undefined`, and the entire otherwise-valid batch would be replayed. An explicit regression contract locks the dequeue-before-await ordering.
+
 ## Verification Results
 
 ### Live Production-Source Question Matrix
@@ -82,7 +84,7 @@ The browser matrix also no longer replays an expired one-time refresh token into
 
 ### Regression And Build Gates
 
-- 39 focused auth, question-integrity, and runtime-wiring tests passed.
+- 40 focused auth, question-integrity, and runtime-wiring tests passed.
 - All authored Training questions passed the static question contract.
 - Manual Next feedback invariants passed.
 - The authenticated login setup regression passed after the cold-service timeout correction.
