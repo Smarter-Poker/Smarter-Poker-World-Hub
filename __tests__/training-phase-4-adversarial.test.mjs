@@ -50,4 +50,6 @@ test('the browser audit reports exact failing nodes and ignores non-product harn
   assert.match(source, /closest\('#hmr-reconnect-banner'\)/);
   assert.match(source, /const ownsFinalSurface = finalPathname\.startsWith\('\/hub\/training'\)/);
   assert.match(source, /TRAINING_AUDIT_ROUTE_PATTERN/);
+  assert.match(source, /message\.location\(\)\?\.url/);
+  assert.match(source, /\[source: \$\{sourceUrl\}\]/);
 });

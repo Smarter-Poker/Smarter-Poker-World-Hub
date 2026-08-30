@@ -59,6 +59,11 @@ const AUTH_ROUTE_TARGETS = [
 // ═══════════════════════════════════════════════════════════════════════════
 const CONTENT_GUARDS = [
     {
+        file: 'pages/auth/login.js',
+        pattern: /function navigateWithFreshAuth[\s\S]{0,300}window\.location\.assign\(destination\)/,
+        why: 'Post-login navigation must reload with one stable Supabase session snapshot — router.push at the auth-state boundary can strand a valid session on /auth/login or trigger a blank hydration fallback.',
+    },
+    {
         file: 'src/lib/supabase.ts',
         pattern: /NEXT_PUBLIC_SUPABASE_ANON_KEY\?\.trim\(\)/,
         why: 'Anon key must be .trim()ed — the prod Vercel env value ends with a literal \n that breaks fetch headers.',
@@ -128,6 +133,30 @@ test('content-regression guards hold', () => {
             `${file} no longer matches ${pattern} — ${why}`,
         );
     }
+});
+
+test('session-bound login destinations use a fresh document navigation', () => {
+    const login = fs.readFileSync(path.join(REPO_ROOT, 'pages/auth/login.js'), 'utf8');
+    const freshAuthCalls = login.match(/navigateWithFreshAuth\(/g) || [];
+
+    // Helper declaration + existing-session redirect + MFA redirect + normal
+    // password-login redirect. This protects every navigation that occurs
+    // after Supabase has installed a new session in the browser.
+    assert.equal(
+        freshAuthCalls.length,
+        4,
+        'Every session-bound redirect must use navigateWithFreshAuth().',
+    );
+    assert.doesNotMatch(
+        login,
+        /router\.push\(getRedirectUrl\(\)\)/,
+        'Do not restore router.push(getRedirectUrl()) after authentication.',
+    );
+    assert.doesNotMatch(
+        login,
+        /router\.push\(`\/auth\/mfa\?redirect=/,
+        'MFA entry also occurs after session creation and must use a fresh document navigation.',
+    );
 });
 
 test('auth-critical files exist on disk', () => {
