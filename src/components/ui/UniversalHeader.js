@@ -1255,23 +1255,49 @@ export default function UniversalHeader({
                 .approved-global-header__menu { left: 1.7%; width: 7%; }
                 .approved-global-header__back { left: 8%; width: 12%; }
                 .approved-global-header__hub { left: 19.1%; width: 12.9%; }
-                .approved-global-header__profile { left: 66.5%; width: 7.5%; }
+                .approved-global-header__profile {
+                    left: 66.5%;
+                    width: 7.5%;
+                    position: absolute !important;
+                    overflow: hidden;
+                    contain: layout paint;
+                    isolation: isolate;
+                }
                 .approved-global-header__wallet { left: 73.2%; width: 7.1%; }
                 .approved-global-header__vip { left: 79.9%; width: 6.5%; }
                 .approved-global-header__messenger { left: 86%; width: 6.9%; }
                 .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
 
-                .approved-global-header__avatar {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: 56%;
+                .approved-global-header__avatar-slot {
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    z-index: 1;
+                    display: block;
+                    width: 58%;
                     height: auto;
-                    aspect-ratio: 1;
-                    transform: translate(-50%, -50%);
+                    aspect-ratio: .78;
+                    transform: translate(-50%, -50%) !important;
+                    overflow: hidden;
                     border-radius: 50%;
-                    background: #05070a;
-                    object-fit: cover;
+                    background: #020305;
+                    pointer-events: none;
+                }
+
+                .approved-global-header__avatar-slot > .approved-global-header__avatar {
+                    position: absolute !important;
+                    inset: 0 !important;
+                    display: block !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-width: none !important;
+                    aspect-ratio: auto !important;
+                    transform: none !important;
+                    border-radius: inherit !important;
+                    background: #020305;
+                    object-fit: cover !important;
+                    object-position: center !important;
+                    opacity: 1 !important;
                     pointer-events: none;
                 }
 
@@ -1349,15 +1375,16 @@ export default function UniversalHeader({
             onClick={goToProfile}
             aria-label="My Profile"
           >
-            <img
-              src={displayAvatar || '/default-avatar.png'}
-              alt=""
-              className="approved-global-header__avatar"
-              aria-hidden="true"
-              onError={(event) => {
-                event.currentTarget.src = '/default-avatar.png';
-              }}
-            />
+            <span className="approved-global-header__avatar-slot" aria-hidden="true">
+              <img
+                src={displayAvatar || '/default-avatar.png'}
+                alt=""
+                className="approved-global-header__avatar"
+                onError={(event) => {
+                  event.currentTarget.src = '/default-avatar.png';
+                }}
+              />
+            </span>
           </button>
           <button
             type="button"

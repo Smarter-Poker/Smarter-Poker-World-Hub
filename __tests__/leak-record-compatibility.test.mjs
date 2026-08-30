@@ -122,3 +122,13 @@ test('status endpoints fail closed and update both leak stores', () => {
   assert.match(detect, /allSolverEvidenceAvailable/);
   assert.match(detect, /clubArenaSync\.complete === false/);
 });
+
+test('legacy solver zeroes remain visibly unpriced', () => {
+  const page = fs.readFileSync('pages/hub/personal-assistant/leaks.js', 'utf8');
+  assert.match(page, /function hasPricedEv/);
+  assert.match(page, /solverEvidence && value === 0 && leak\?\.evLossMeasured !== true/);
+  assert.match(page, /const priced = hasPricedEv\(leak\)/);
+
+  const engine = fs.readFileSync('src/lib/training/solverDecisionEvidence.js', 'utf8');
+  assert.match(engine, /measuredEVMistakes > 0 \? \+avgMeasuredEV\.toFixed\(3\) : null/);
+});

@@ -130,6 +130,18 @@ function num(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function hasPricedEv(leak) {
+  if (leak?.evLossBB === null || leak?.evLossBB === undefined) return false;
+  const value = Number(leak.evLossBB);
+  if (!Number.isFinite(value)) return false;
+  // Solver leaks created before matcher v2 stored 0 when the source exposed
+  // frequencies but no measured per-action EV. Treat that legacy sentinel as
+  // unpriced; a zero must never be presented as a measured loss claim.
+  const solverEvidence = ['solver_engine', 'training_solver'].includes(String(leak?.sourceSystem || '').toLowerCase());
+  if (solverEvidence && value === 0 && leak?.evLossMeasured !== true) return false;
+  return true;
+}
+
 /** formatLeakTitle() is lossy, but reversible enough to recover the slug. */
 function slugFromTitle(title) {
   if (!title || typeof title !== 'string') return null;
@@ -954,8 +966,7 @@ function LeakCardProgress({ progress }) {
 }
 
 function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
-  const priced = leak.evLossBB !== null && leak.evLossBB !== undefined
-    && Number.isFinite(Number(leak.evLossBB));
+  const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
   const total = ev * occ;
@@ -1207,8 +1218,7 @@ function LeakDetail({
 
   const drill = leak.recommendedDrill || null;
   const situation = leak.situationClass || 'these';
-  const priced = leak.evLossBB !== null && leak.evLossBB !== undefined
-    && Number.isFinite(Number(leak.evLossBB));
+  const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
 

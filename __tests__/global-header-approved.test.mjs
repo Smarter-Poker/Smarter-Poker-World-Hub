@@ -94,14 +94,23 @@ test('World Hub header wires all approved controls and replaces the profile icon
   }
 });
 
+test('World Hub hard-locks the live avatar as an oval inside the profile frame', () => {
+  assert.match(header, /approved-global-header__avatar-slot/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?width: 58%;[\s\S]*?aspect-ratio: \.78;[\s\S]*?border-radius: 50%;/);
+  assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
+  assert.match(header, /contextAvatar\?\.imageUrl \|\| user\?\.avatar/);
+});
+
 test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /global-header-desktop\.png/);
+  assert.match(commander, /cmd-approved-header__avatar-slot/);
   assert.match(commander, /cmd-approved-header__avatar/);
   assert.match(commander, /src=\{profileAvatar\}/);
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
-test('all 254 Hub page modules own the shared header or inherit the app-root fallback', () => {
+test('all 263 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
   const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
   const fallbackBlock = appRoot.match(
@@ -125,7 +134,7 @@ test('all 254 Hub page modules own the shared header or inherit the app-root fal
     .filter((route) => moduleOwnsHeader(filesByRoute.get(route)))
     .sort();
 
-  assert.equal(files.length, 254);
+  assert.equal(files.length, 263);
   assert.deepEqual(uncovered, []);
   assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);
