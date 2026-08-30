@@ -45,7 +45,11 @@ import { showStoreToast } from './StoreToast';
 import useDiamondBalance from '../../hooks/useDiamondBalance';
 import { broadcastSync } from '../../lib/broadcastSync';
 import { busEmit } from '../../engine/EventBus';
-import { captureStoreEvent, createCheckoutRequestId } from '../../lib/store/storeAnalytics';
+import { captureStoreEvent } from '../../lib/store/storeAnalytics';
+import {
+  clearCommerceRequestId,
+  getOrCreateCommerceRequestId,
+} from '../../lib/store/checkoutIntentStore';
 import MerchPurchaseDialog from './MerchPurchaseDialog';
 import { wishlistService } from '../../services/preferences-service';
 import useCartStore from '../../stores/cartStore';
@@ -1232,9 +1236,17 @@ export default function MerchStore({
       }
 
       setStoreBusy(product.key);
-      const checkoutRequestId = createCheckoutRequestId(
-        `merch-${product.catalogId || product.key}`
-      );
+      const commerceIntent = {
+        scope: `merch-${product.catalogId || product.key}`,
+        userId: user.id,
+        paymentMethod: 'card',
+        intent: {
+          productId: product.catalogId || product.key,
+          variantId: variant?.id || null,
+          quantity,
+        },
+      };
+      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
       captureStoreEvent('checkout_started', {
         route: 'merch',
@@ -1295,7 +1307,7 @@ export default function MerchStore({
         if (mountedRef.current) setStoreBusy(null);
       }
     },
-    [requireSignedIn, buildLineItem, setStoreBusy]
+    [requireSignedIn, buildLineItem, setStoreBusy, user?.id]
   );
 
   // ── Diamond checkout ──────────────────────────────────────────────────
@@ -1320,15 +1332,24 @@ export default function MerchStore({
         );
         return;
       }
+      const commerceIntent = {
+        scope: `merch-diamonds-${product.catalogId || product.key}`,
+        userId: user.id,
+        paymentMethod: 'diamonds',
+        intent: {
+          productId: product.catalogId || product.key,
+          variantId: variant?.id || null,
+          quantity,
+        },
+      };
       setPendingDiamondPurchase({
         product,
         variant,
         quantity,
         cost,
         requiresShipping: product.requiresShipping !== false,
-        purchaseRequestId: createCheckoutRequestId(
-          `merch-diamonds-${product.catalogId || product.key}`
-        ),
+        commerceIntent,
+        purchaseRequestId: getOrCreateCommerceRequestId(commerceIntent),
       });
       captureStoreEvent('diamond_purchase_reviewed', {
         route: 'merch',
@@ -1337,7 +1358,7 @@ export default function MerchStore({
         diamonds: cost,
       });
     },
-    [balance, requireSignedIn]
+    [balance, requireSignedIn, user?.id]
   );
 
   const confirmDiamondPurchase = useCallback(
@@ -1410,6 +1431,7 @@ export default function MerchStore({
         }
 
         if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
+        clearCommerceRequestId(pendingDiamondPurchase.commerceIntent);
         if (data.data?.new_balance != null) setBalance(Number(data.data.new_balance));
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
         broadcastSync('smarter_poker_chips_sync', 'refresh');

@@ -123,16 +123,6 @@ export default async function handler(req, res) {
     }
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-    if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > MAX_BODY_BYTES) {
-      return res.status(413).json({ success: false, error: 'Request body too large' });
-    }
-    const clientKey = readPurchaseKey(req);
-    if (!clientKey) {
-      return res.status(400).json({
-        success: false,
-        error: 'A valid X-Idempotency-Key header is required',
-      });
-    }
     if (!req.headers?.authorization?.startsWith('Bearer ')) {
       return res.status(401).json({ success: false, error: 'Authorization required' });
     }
@@ -147,6 +137,17 @@ export default async function handler(req, res) {
       emailGate = await requireEmailVerifiedByUserId(supabase, user.id);
     }
     if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+    if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > MAX_BODY_BYTES) {
+      return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+    const clientKey = readPurchaseKey(req);
+    if (!clientKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid X-Idempotency-Key header is required',
+      });
+    }
 
     const normalized = normalizeLines(req.body?.items);
     if (!normalized.lines) {
