@@ -20,6 +20,15 @@ const {
     itemHasSales,
     HAS_SALES_ERROR,
 } = require('../../../src/lib/club-arena/shopItemRules');
+const {
+    PRIMARY_SHOP_CURRENCY,
+    LEGACY_SHOP_CURRENCY,
+    summarizeShopPurchases,
+    totalsForCurrency,
+} = require('../../../src/lib/club-arena/shopReporting');
+
+const REPORT_PAGE_SIZE = 1000;
+const MAX_REPORT_ROWS = 50000;
 
 /** '' / null => clear (NULL). undefined => leave alone. Else a bounded int. */
 function normalizeOptionalInt(raw, { min = 0, max = 1000000, label = 'value' } = {}) {
@@ -63,12 +72,48 @@ function getSupabase() {
     return _supabase;
 }
 
+async function loadPurchaseLedger(clubId) {
+  const rows = [];
+  let exactCount = null;
+  let exhausted = false;
+
+  while (rows.length < MAX_REPORT_ROWS) {
+    const from = rows.length;
+    const to = Math.min(from + REPORT_PAGE_SIZE - 1, MAX_REPORT_ROWS - 1);
+    const selectOptions = from === 0 ? { count: 'exact' } : undefined;
+    const { data, error, count } = await getSupabase()
+      .from('club_shop_purchases')
+      .select('id, item_id, price_paid, currency, refunded_at, created_at', selectOptions)
+      .eq('club_id', clubId)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    if (from === 0 && Number.isFinite(count)) exactCount = count;
+
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < REPORT_PAGE_SIZE) {
+      exhausted = true;
+      break;
+    }
+  }
+
+  const totalRows = exactCount ?? rows.length;
+  return {
+    rows,
+    totalRows,
+    complete: exhausted || rows.length >= totalRows,
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     } else if (!applyRateLimit(req, res, LIMITS.read)) {
-      // The GET does a select * plus a 10k-row purchase scan; it was unthrottled.
+      // The GET returns items plus a bounded, stable-paged purchase report.
       return;
     }
 
@@ -93,12 +138,14 @@ export default async function handler(req, res) {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
-        const { data: member } = await getSupabase()
+        const { data: member, error: memberError } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
           .maybeSingle();
+
+        if (memberError) throw memberError;
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
           return res.status(403).json({ success: false, error: 'Admin access required' });
@@ -112,44 +159,55 @@ export default async function handler(req, res) {
 
         if (error) throw error;
 
-        // Purchase counts AND real revenue per item. Revenue must come from
-        // price_paid: multiplying today's price by historical sales let an
-        // admin rewrite reported revenue just by editing a price.
-        const { data: purchases } = await getSupabase()
-          .from('club_shop_purchases')
-          .select('item_id, price_paid, refunded_at')
-          .eq('club_id', clubId)
-          .limit(10000);
+        // Read the historical ledger in stable pages. Reporting never uses an
+        // item's current price and never combines legacy chips with Diamonds.
+        const ledger = await loadPurchaseLedger(clubId);
+        const summary = summarizeShopPurchases(ledger.rows);
+        const diamondTotals = totalsForCurrency(summary, PRIMARY_SHOP_CURRENCY);
+        const legacyChipTotals = totalsForCurrency(summary, LEGACY_SHOP_CURRENCY);
 
-        const purchaseCounts = {};
-        const grossRevenueByItem = {};
-        const refundedByItem = {};
-        for (const p of (purchases || [])) {
-          purchaseCounts[p.item_id] = (purchaseCounts[p.item_id] || 0) + 1;
-          const amount = Number(p.price_paid) || 0;
-          grossRevenueByItem[p.item_id] = (grossRevenueByItem[p.item_id] || 0) + amount;
-          if (p.refunded_at) {
-            refundedByItem[p.item_id] = (refundedByItem[p.item_id] || 0) + amount;
-          }
-        }
-
-        const enriched = (items || []).map(item => ({
-          ...item,
-          purchase_count: purchaseCounts[item.id] || 0,
-          gross_revenue: grossRevenueByItem[item.id] || 0,
-          refunded_revenue: refundedByItem[item.id] || 0,
-          revenue: (grossRevenueByItem[item.id] || 0) - (refundedByItem[item.id] || 0),
-        }));
-
-        const grossRevenue = Object.values(grossRevenueByItem).reduce((a, b) => a + b, 0);
-        const refundedRevenue = Object.values(refundedByItem).reduce((a, b) => a + b, 0);
+        const enriched = (items || []).map(item => {
+          const itemCurrencies = summary.byItem[item.id]?.byCurrency || {};
+          const itemDiamonds = itemCurrencies[PRIMARY_SHOP_CURRENCY] || {
+            sales: 0,
+            refundedSales: 0,
+            netSales: 0,
+            gross: 0,
+            refunded: 0,
+            net: 0,
+          };
+          const totalSales = Object.values(itemCurrencies).reduce((sum, value) => sum + value.sales, 0);
+          const refundedSales = Object.values(itemCurrencies).reduce(
+            (sum, value) => sum + value.refundedSales,
+            0
+          );
+          return {
+            ...item,
+            purchase_count: totalSales,
+            refunded_purchase_count: refundedSales,
+            net_purchase_count: totalSales - refundedSales,
+            gross_revenue: itemDiamonds.gross,
+            refunded_revenue: itemDiamonds.refunded,
+            revenue: itemDiamonds.net,
+            revenue_by_currency: itemCurrencies,
+          };
+        });
 
         return res.status(200).json({
           success: true,
           items: enriched,
-          grossRevenue,
-          refundedRevenue,
-          totalRevenue: grossRevenue - refundedRevenue,
+          grossRevenue: diamondTotals.gross,
+          refundedRevenue: diamondTotals.refunded,
+          totalRevenue: diamondTotals.net,
+          report: {
+            primaryCurrency: PRIMARY_SHOP_CURRENCY,
+            complete: ledger.complete,
+            processedRows: ledger.rows.length,
+            totalRows: ledger.totalRows,
+            byCurrency: summary.byCurrency,
+            diamondTotals,
+            legacyChipTotals,
+          },
         });
       }
 
