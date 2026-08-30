@@ -101,7 +101,7 @@ export default async function handler(req, res) {
         // exactly the devices that need it most.
         const { data: rows, error: lookupErr } = await supabase
             .from('push_subscriptions')
-            .select('id, user_id, auth, device_label')
+            .select('id, user_id, auth, device_label, device_id')
             .eq('endpoint', oldEndpoint)
             .eq('is_active', true)
             .order('updated_at', { ascending: false })
@@ -154,22 +154,67 @@ export default async function handler(req, res) {
         // whatever the device was called on the settings screen.
         if (existing.device_label) row.device_label = existing.device_label;
 
-        const { error: upsertErr } = await supabase
-            .from('push_subscriptions')
-            .upsert(row, { onConflict: 'user_id,endpoint' });
-        if (upsertErr) {
-            console.warn('[push/rotate] upsert failed:', upsertErr.message);
-            return res.status(204).end();
-        }
+        /* ═══ CARRY THE DEVICE IDENTITY ACROSS THE ROTATION ═══════════════════
+           device_id is what says "the new row and the old row are the same
+           phone". Dropping it here silently un-deduplicated every rotated
+           device: `push_subscriptions_one_active_per_device_uidx` is
+           `WHERE is_active AND device_id IS NOT NULL`, so a row without one is
+           EXEMPT from the constraint that keeps a device to a single live
+           subscription, and /api/push/subscribe's same-device retire, which
+           matches on `.eq('device_id', ...)`, can never see it either.
+
+           The effect was that this route -- whose entire purpose is to keep a
+           device reachable across an endpoint change -- quietly created a
+           second permanently-undeduplicable row for it. And it fires on
+           exactly the events named in this file's own header (OS update,
+           storage purge, long idle), so it re-broke the duplicate every time
+           the platform healed itself. Measured 2026-08-30 on production: one
+           account, 22 rows, 4 active for 2 physical devices, every one of them
+           device_id = NULL.
+
+           Note what was already here: device_label was preserved deliberately,
+           with a comment explaining why losing it hurt. The field that
+           actually prevents duplicate banners was dropped one line away. */
+        if (existing.device_id) row.device_id = existing.device_id;
+
+        /* ORDER MATTERS, AND IT IS THE OPPOSITE OF WHAT IT WAS.
+           Now that the new row carries device_id, upserting it while the old
+           row is still is_active violates the partial unique index above --
+           two live rows, one user, one device. The retire therefore has to
+           happen FIRST. subscribe.js has the same constraint and the same
+           ordering; see the comment there. */
+        const supersedes = verified && oldEndpoint !== endpoint;
 
         // Retire the superseded row ONLY on a proven rotation. Doing this for an
         // unverified caller is a free, unauthenticated mute button for any
         // endpoint an attacker has learned.
-        if (verified && oldEndpoint !== endpoint) {
+        if (supersedes) {
             await supabase
                 .from('push_subscriptions')
                 .update({ is_active: false, last_failure_reason: 'rotated', updated_at: nowIso })
                 .eq('id', existing.id);
+        }
+
+        const { error: upsertErr } = await supabase
+            .from('push_subscriptions')
+            .upsert(row, { onConflict: 'user_id,endpoint' });
+        if (upsertErr) {
+            // The retire above already ran, so this device currently has NO live
+            // subscription. Put the old row back rather than leaving it dark:
+            // the old endpoint is usually still deliverable, and a silent
+            // unsubscribe is the failure this whole file exists to prevent.
+            if (supersedes) {
+                await supabase
+                    .from('push_subscriptions')
+                    .update({
+                        is_active: true,
+                        last_failure_reason: null,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', existing.id);
+            }
+            console.warn('[push/rotate] upsert failed:', upsertErr.message);
+            return res.status(204).end();
         }
 
         return res.status(204).end();
