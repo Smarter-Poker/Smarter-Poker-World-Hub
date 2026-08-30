@@ -184,6 +184,21 @@ test('mobile arena launch remains tappable above global overlays', () => {
   assert.match(notificationPrompt, /'\/hub\/club-arena'/);
 });
 
+test('campaign level maps fail open when remote enrichment stalls', () => {
+  const levelSelector = fs.readFileSync(
+    path.join(ROOT, 'src/components/training/LevelSelector.tsx'),
+    'utf8'
+  );
+
+  assert.match(levelSelector, /const LEVEL_DATA_TIMEOUT_MS = 8_000/);
+  assert.match(levelSelector, /Promise\.race\(\[request\(controller\.signal\), deadline\]\)/);
+  assert.match(levelSelector, /fetch\(`\/api\/games\/\$\{gameId\}`,[\s\S]*?\{ signal \}/);
+  assert.match(levelSelector, /authedFetch\(`\/api\/training\/progress\?userId=\$\{userId\}&gameId=\$\{gameId\}`,[\s\S]*?\{ signal \}/);
+  assert.match(levelSelector, /getGameById\(gameId\)/);
+  assert.match(levelSelector, /Progress fetch failed, showing default levels/);
+  assert.match(levelSelector, /finally \{\s*setLoading\(false\)/);
+});
+
 test('offline packs cache real questions and are consumed by the arena', () => {
   const preloader = fs.readFileSync(path.join(ROOT, 'pages/hub/training/gto-preloader.js'), 'utf8');
   const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');
