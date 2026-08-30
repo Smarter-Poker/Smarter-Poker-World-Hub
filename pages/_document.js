@@ -136,7 +136,9 @@ export default class MyDocument extends Document {
                     <style dangerouslySetInnerHTML={{
                         __html: `
                         @keyframes forceVisible {
-                            to { visibility: visible !important; opacity: 1 !important; }
+                            /* Priority declarations are invalid inside CSS
+                               keyframes and WebKit discards them entirely. */
+                            to { visibility: visible; opacity: 1; }
                         }
                         #__next > div[style*="visibility:hidden"],
                         #__next > div[style*="visibility: hidden"] {
@@ -145,7 +147,7 @@ export default class MyDocument extends Document {
                         }
                         /* Also override the data-next-hide-fouc body display:none */
                         @keyframes forceDisplay {
-                            to { display: block !important; }
+                            to { display: block; }
                         }
                         body[style*="display:none"],
                         body[style*="display: none"] {

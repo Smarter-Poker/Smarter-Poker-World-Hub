@@ -194,6 +194,7 @@ test('a missing test password fails loudly instead of skipping', () => {
 
 test('the authenticated E2E gate can finish and report without masking test results', () => {
     const workflow = fs.readFileSync(path.join(WORKFLOWS, 'e2e-tests.yml'), 'utf8');
+    const config = fs.readFileSync(path.join(REPO, 'playwright.config.ts'), 'utf8');
 
     const timeout = workflow.match(/timeout-minutes:\s*(\d+)/);
     assert.ok(timeout, 'the E2E workflow has no explicit job timeout');
@@ -201,6 +202,27 @@ test('the authenticated E2E gate can finish and report without masking test resu
         Number(timeout[1]) >= 60,
         `the E2E job timeout is ${timeout[1]} minutes; the authenticated 637-test matrix ` +
             'exceeded the former 30-minute cap before it could publish a result'
+    );
+
+    assert.match(
+        workflow,
+        /PLAYWRIGHT_WORKERS:\s*4/,
+        'the workflow must explicitly budget enough workers for the authenticated desktop/mobile matrix'
+    );
+    assert.match(
+        workflow,
+        /npx playwright test --project=chromium --project=mobile-chrome\s*\n/,
+        'the authenticated gate must not duplicate the separately required global-footer projects'
+    );
+    assert.doesNotMatch(
+        workflow.match(/- name: Run Playwright tests[\s\S]*?\n\s+- name: Stop Next\.js server/)?.[0] || '',
+        /--project=footer-/,
+        'the authenticated gate is competing with the dedicated footer gate for the same local server'
+    );
+    assert.match(
+        config,
+        /process\.env\.PLAYWRIGHT_WORKERS\s*\|\|\s*4/,
+        'the Playwright CI default regressed to a serialized worker and cannot finish before the job timeout'
     );
 
     assert.match(
