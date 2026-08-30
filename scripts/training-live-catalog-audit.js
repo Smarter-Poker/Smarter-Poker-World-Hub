@@ -72,7 +72,11 @@ const {
     applyDeterministicEnginePatches,
 } = require(path.join(ROOT, 'src/engines/deterministicEnginePatches.js'));
 
-const PAGE_SIZE = 1000;
+// `question_data` can carry solver matrices, making 1,000-row responses exceed
+// the production gateway's practical payload ceiling. Smaller pages keep this
+// audit deterministic instead of occasionally receiving the payload through
+// the client's error channel before validation begins.
+const PAGE_SIZE = 250;
 const FALLBACK_QUESTION_COUNT = 4;
 
 async function fetchAllCacheRows(supabase) {
@@ -137,7 +141,10 @@ async function main() {
         const contracted = enforceTrainingQuestionContract(structuredClone(question));
         const result = validateTrainingQuestion(contracted);
         if (!result.valid) {
-            failures.push(`${label}: ${result.issues.join(' | ')}`);
+            const optionSummary = (contracted?.options || [])
+                .map((option) => `${option?.id || 'missing-id'}=${option?.text || 'missing-text'}`)
+                .join(' ; ');
+            failures.push(`${label}: ${result.issues.join(' | ')} [${optionSummary}]`);
             return false;
         }
         return true;

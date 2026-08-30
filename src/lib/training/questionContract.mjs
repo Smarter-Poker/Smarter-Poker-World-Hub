@@ -122,6 +122,16 @@ function optionFamily(option) {
   return optionSignature(option);
 }
 
+function sizingVocabulary(option) {
+  const id = cleanSpaces(option?.id).toLowerCase();
+  const text = cleanSpaces(option?.text).toLowerCase();
+  if (/^grouped_(?:small|medium|large|overbet)$/.test(id)) return 'band';
+  if (/^(?:small|medium|large)\s+(?:bet|raise)\b/.test(text)) return 'band';
+  if (/^(?:bet|raise(?:\s+to)?|overbet)\s+\d+(?:\.\d+)?%\s*(?:pot)?$/.test(text)) return 'exact';
+  if (/^overbet\b/.test(text)) return 'band';
+  return null;
+}
+
 export function getDecisionType(question) {
   const options = (question?.options || []).map(normalizeOption);
   if (options.length !== 2) return 'four-choice';
@@ -151,6 +161,23 @@ function suggestedOptions(question, options) {
   const facesBet = families.has('fold') && (families.has('call') || /faces|bets|raises|3-bet|4-bet/.test(`${spot} ${prompt}`));
 
   if (scenario.isPsychology === true) return [];
+
+  // The middle difficulty tier teaches sizing bands. If a sparse grouped
+  // node has only three choices, fill it with another non-overlapping band.
+  // Falling through to the exact-size candidates below produced ambiguous
+  // live choices such as “Bet 33% Pot” beside “Small Bet”. Both describe the
+  // same action, so the answer list itself hinted at (and obscured) grading.
+  const usesSizingBands = options.some((option) => sizingVocabulary(option) === 'band');
+  if (usesSizingBands) {
+    const usesRaise = options.some((option) => /\braise\b/i.test(option?.text || ''));
+    const verb = usesRaise ? 'Raise' : 'Bet';
+    return [
+      { id: 'grouped_small', text: `Small ${verb} · Up To 40% Pot` },
+      { id: 'grouped_medium', text: `Medium ${verb} · 41–80% Pot` },
+      { id: 'grouped_large', text: `Large ${verb} · 81–100% Pot` },
+      { id: 'grouped_overbet', text: usesRaise ? 'Over-Pot Raise · More Than 100% Pot' : 'Overbet · More Than 100% Pot' },
+    ];
+  }
 
   if (isPreflop) {
     if (/4bet|4-bet/.test(`${spot} ${prompt}`)) {
@@ -247,6 +274,12 @@ export function validateTrainingQuestion(question) {
     signatures.add(signature);
   }
 
+  const hasSizingBand = options.some((option) => sizingVocabulary(option) === 'band');
+  const hasExactSizing = options.some((option) => sizingVocabulary(option) === 'exact');
+  if (hasSizingBand && hasExactSizing) {
+    issues.push('Answer choices mix an exact size with an overlapping sizing band.');
+  }
+
   if (/\b(?:button|btn) opens\b/i.test(prompt)) issues.push('Prompt uses ambiguous “Button opens” wording.');
   if (/\byour in\b/i.test(prompt)) issues.push('Prompt uses “your” instead of “you’re.”');
 
@@ -282,6 +315,23 @@ export function enforceTrainingQuestionContract(question) {
   let options = rawOptions
     .map(normalizeOption)
     .filter((option) => option.text && !GENERIC_OPTION_RE.test(option.text));
+
+  // Some runtime sources combine exact solver sizes with already-grouped
+  // sizing bands. “Bet 33%” and “Small Bet” cannot coexist because both
+  // describe the same action. Preserve the vocabulary containing the answer
+  // key; for a passive answer, retain whichever vocabulary is represented by
+  // more source choices. Four-choice padding then stays within that vocabulary.
+  const exactSizingOptions = options.filter((option) => sizingVocabulary(option) === 'exact');
+  const bandSizingOptions = options.filter((option) => sizingVocabulary(option) === 'band');
+  if (exactSizingOptions.length > 0 && bandSizingOptions.length > 0) {
+    const correctKind = sizingVocabulary(options.find((option) => option.id === correctAnswer));
+    const preferredKind = correctKind
+      || (bandSizingOptions.length > exactSizingOptions.length ? 'band' : 'exact');
+    options = options.filter((option) => {
+      const kind = sizingVocabulary(option);
+      return !kind || kind === preferredKind;
+    });
+  }
   const seen = new Set();
   options = options.filter((option) => {
     const signature = optionSignature(option);
