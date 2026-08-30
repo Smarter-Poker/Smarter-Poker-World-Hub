@@ -481,6 +481,9 @@ export default function DiamondStorePage({ initialTab }) {
   // Admin Manage state
   const [clubShopAdminItems, setClubShopAdminItems] = useState([]);
   const [clubShopAdminLoaded, setClubShopAdminLoaded] = useState(false);
+  const [clubShopAdminLoading, setClubShopAdminLoading] = useState(false);
+  const [clubShopAdminError, setClubShopAdminError] = useState(null);
+  const [clubShopAdminReport, setClubShopAdminReport] = useState(null);
   const [clubShopNewName, setClubShopNewName] = useState('');
   const [clubShopNewPrice, setClubShopNewPrice] = useState('');
   const [clubShopNewDesc, setClubShopNewDesc] = useState('');
@@ -491,6 +494,7 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopAdminActionId, setClubShopAdminActionId] = useState(null);
   const clubShopLoadingRef = useRef(false);
   const clubShopProcessingRef = useRef(false);
+  const clubShopAdminLoadingRef = useRef(false);
   const clubShopAdminActionRef = useRef(null);
   const clubShopSuccessTimerRef = useRef(null);
   const pendingSpendDialogRef = useRef(null);
@@ -1371,36 +1375,51 @@ export default function DiamondStorePage({ initialTab }) {
 
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
-    if (!clubShopClubId) return;
+    if (!clubShopClubId || clubShopAdminLoadingRef.current) return false;
+    clubShopAdminLoadingRef.current = true;
+    setClubShopAdminLoading(true);
+    setClubShopAdminError(null);
     try {
-      const { data } = await supabase
-        .from('club_shop_items')
-        .select('id, club_id, name, description, price, image_url, category, is_active')
-        .eq('club_id', clubShopClubId)
-        .order('created_at', { ascending: false });
-      let itemsWithCounts = (data || []).map((i) => ({
+      const token = getAccessToken();
+      if (!token) throw new Error('Please sign in again to manage the Club Shop.');
+      const response = await fetch(
+        `/api/club-arena/manage-shop?clubId=${encodeURIComponent(clubShopClubId)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `The operator report failed (${response.status}).`);
+      }
+      const itemsWithCounts = (data.items || []).map((i) => ({
         ...i,
         price: Number(i.price) || 0,
-        purchase_count: 0,
+        purchase_count: Number(i.purchase_count) || 0,
+        refunded_purchase_count: Number(i.refunded_purchase_count) || 0,
+        net_purchase_count: Number(i.net_purchase_count) || 0,
+        revenue: Number(i.revenue) || 0,
       }));
-      if (itemsWithCounts.length > 0) {
-        const itemIds = itemsWithCounts.map((i) => i.id);
-        const { data: countRows } = await supabase
-          .from('club_shop_purchases')
-          .select('item_id')
-          .eq('club_id', clubShopClubId)
-          .in('item_id', itemIds);
-        const counts = {};
-        (countRows || []).forEach((r) => {
-          counts[r.item_id] = (counts[r.item_id] || 0) + 1;
-        });
-        itemsWithCounts = itemsWithCounts.map((i) => ({ ...i, purchase_count: counts[i.id] || 0 }));
-      }
       setClubShopAdminItems(itemsWithCounts);
+      setClubShopAdminReport(data.report || null);
       setClubShopAdminLoaded(true);
+      return true;
     } catch (err) {
       console.warn('[Club Shop Admin]', err);
+      setClubShopAdminError(
+        err.message || 'The verified Club Shop sales report could not be loaded.'
+      );
+      setClubShopAdminLoaded(true);
+      return false;
+    } finally {
+      clubShopAdminLoadingRef.current = false;
+      setClubShopAdminLoading(false);
     }
+  }, [clubShopClubId]);
+
+  useEffect(() => {
+    setClubShopAdminLoaded(false);
+    setClubShopAdminItems([]);
+    setClubShopAdminReport(null);
+    setClubShopAdminError(null);
   }, [clubShopClubId]);
 
   const handleClubShopAdminAction = useCallback(
@@ -3906,64 +3925,160 @@ export default function DiamondStorePage({ initialTab }) {
                       {/* Manage Sub-Tab (admin only) */}
                       {clubShopSubTab === 'manage' && clubShopIsAdmin && (
                         <>
+                          {clubShopAdminLoading && !clubShopAdminLoaded && (
+                            <div
+                              role="status"
+                              aria-live="polite"
+                              style={{
+                                minHeight: 44,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: 16,
+                                border: '1px solid rgba(0,212,255,0.22)',
+                                background: 'rgba(0,118,168,0.12)',
+                                color: '#9DE8FF',
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Loading Verified Sales Ledger...
+                            </div>
+                          )}
+
+                          {clubShopAdminError && (
+                            <div
+                              role="alert"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                                marginBottom: 16,
+                                padding: '12px 14px',
+                                border: '1px solid rgba(255,86,112,0.45)',
+                                background: 'rgba(91,16,34,0.38)',
+                                color: '#FFD2DA',
+                              }}
+                            >
+                              <span>
+                                <AlertTriangle
+                                  size={16}
+                                  aria-hidden="true"
+                                  style={{ verticalAlign: 'middle', marginRight: 8 }}
+                                />
+                                {clubShopAdminError}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={loadClubShopAdmin}
+                                disabled={clubShopAdminLoading}
+                                style={{
+                                  minHeight: 44,
+                                  padding: '8px 16px',
+                                  border: '1px solid rgba(255,255,255,0.28)',
+                                  background: 'rgba(255,255,255,0.08)',
+                                  color: '#FFFFFF',
+                                  fontWeight: 800,
+                                  cursor: clubShopAdminLoading ? 'wait' : 'pointer',
+                                }}
+                              >
+                                {clubShopAdminLoading ? 'Retrying...' : 'Retry Report'}
+                              </button>
+                            </div>
+                          )}
+
+                          {clubShopAdminReport && !clubShopAdminReport.complete && (
+                            <div
+                              role="status"
+                              style={{
+                                marginBottom: 16,
+                                padding: '12px 14px',
+                                border: '1px solid rgba(255,196,64,0.42)',
+                                background: 'rgba(83,56,0,0.34)',
+                                color: '#FFE6A6',
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Report Is Partial: {fmt(clubShopAdminReport.processedRows)} Of{' '}
+                              {fmt(clubShopAdminReport.totalRows)} Ledger Rows Were Processed.
+                            </div>
+                          )}
+
                           {/* Admin Stats */}
                           {(() => {
                             const total = clubShopAdminItems.length;
                             const active = clubShopAdminItems.filter((i) => i.is_active).length;
-                            const totalSold = clubShopAdminItems.reduce(
-                              (s, i) => s + (i.purchase_count || 0),
-                              0
-                            );
-                            const totalRev = clubShopAdminItems.reduce(
-                              (s, i) => s + (i.purchase_count || 0) * i.price,
-                              0
-                            );
+                            const diamondTotals = clubShopAdminReport?.diamondTotals || {};
+                            const legacyChipTotals = clubShopAdminReport?.legacyChipTotals || {};
                             return (
-                              <div
-                                style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                  gap: 12,
-                                  marginBottom: 24,
-                                }}
-                              >
-                                {[
-                                  { label: 'Total Items', val: total },
-                                  { label: 'Active', val: active },
-                                  { label: 'Total Sold', val: totalSold },
-                                  {
-                                    label: 'Revenue',
-                                    val: totalRev.toLocaleString() + ' Diamonds',
-                                  },
-                                ].map((s) => (
-                                  <div
-                                    key={s.label}
-                                    style={{
-                                      background: 'rgba(255,255,255,0.05)',
-                                      border: '1px solid rgba(255,255,255,0.08)',
-                                      borderRadius: 12,
-                                      padding: '16px 14px',
-                                      textAlign: 'center',
-                                    }}
-                                  >
+                              <>
+                                <div
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                    gap: 12,
+                                    marginBottom: 12,
+                                  }}
+                                >
+                                  {[
+                                    { label: 'Total Items', val: total },
+                                    { label: 'Active', val: active },
+                                    { label: 'Net Diamond Sales', val: fmt(diamondTotals.netSales) },
+                                    { label: 'Diamonds Burned', val: fmt(diamondTotals.net) },
+                                    { label: 'Diamond Refunds', val: fmt(diamondTotals.refunded) },
+                                  ].map((stat) => (
                                     <div
-                                      style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
-                                    >
-                                      {s.val}
-                                    </div>
-                                    <div
+                                      key={stat.label}
                                       style={{
-                                        fontSize: 11,
-                                        color: 'rgba(255,255,255,0.4)',
-                                        fontWeight: 600,
-                                        marginTop: 4,
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        borderRadius: 12,
+                                        padding: '16px 14px',
+                                        textAlign: 'center',
                                       }}
                                     >
-                                      {s.label}
+                                      <div
+                                        style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
+                                      >
+                                        {stat.val}
+                                      </div>
+                                      <div
+                                        style={{
+                                          fontSize: 11,
+                                          color: 'rgba(255,255,255,0.4)',
+                                          fontWeight: 600,
+                                          marginTop: 4,
+                                        }}
+                                      >
+                                        {stat.label}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
+                                <div
+                                  style={{
+                                    marginBottom: 24,
+                                    padding: '10px 12px',
+                                    borderLeft: '3px solid #00D4FF',
+                                    background: 'rgba(0,118,168,0.09)',
+                                    color: 'rgba(255,255,255,0.68)',
+                                    fontSize: 11,
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  Club Shop Sales Are 100% Platform-Owned Diamond Burns. No Club,
+                                  Owner, Agent, Affiliate, Or Commission Ledger Is Credited.
+                                  {Number(legacyChipTotals.sales || 0) > 0 && (
+                                    <span style={{ display: 'block', color: '#FFE6A6' }}>
+                                      Legacy History: {fmt(legacyChipTotals.netSales)} Net Chip Sales /{' '}
+                                      {fmt(legacyChipTotals.net)} Chips. These Are Kept Separate From
+                                      Diamond Totals.
+                                    </span>
+                                  )}
+                                </div>
+                              </>
                             );
                           })()}
 
@@ -4159,9 +4274,8 @@ export default function DiamondStorePage({ initialTab }) {
                                   setClubShopNewDesc('');
                                   setClubShopNewImage('');
                                   setClubShopNewCategory('Time Banks');
-                                  loadClubShopAdmin();
                                   clubShopLoadingRef.current = false;
-                                  loadClubShop(true);
+                                  await Promise.all([loadClubShopAdmin(), loadClubShop(true)]);
                                 } catch (err) {
                                   showStoreToast('error', err.message);
                                 } finally {
@@ -4238,7 +4352,14 @@ export default function DiamondStorePage({ initialTab }) {
                                       >
                                         {item.category || 'Time Banks'}
                                       </span>{' '}
-                                      • {item.purchase_count || 0} sold
+                                      • {item.net_purchase_count || 0} net sold •{' '}
+                                      {fmt(item.revenue)} Diamonds burned
+                                      {(item.refunded_purchase_count || 0) > 0 && (
+                                        <span style={{ color: '#FFB7C4' }}>
+                                          {' '}
+                                          • {item.refunded_purchase_count} refunded
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <div style={{ display: 'flex', gap: 8 }}>

@@ -23,8 +23,14 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
+const {
+    PRIMARY_SHOP_CURRENCY,
+    normalizeShopCurrency,
+    emptyCurrencyTotals,
+} = require('../../../src/lib/club-arena/shopReporting');
 
-const MAX_ROWS = 10000;
+const PAGE_SIZE = 1000;
+const MAX_ROWS = 50000;
 const DEFAULT_DAYS = 30;
 const MAX_DAYS = 365;
 
@@ -37,6 +43,50 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+async function loadWindowRows({ clubId, since, refundWindow = false }) {
+    const rows = [];
+    let exactCount = null;
+    let exhausted = false;
+
+    while (rows.length < MAX_ROWS) {
+        const from = rows.length;
+        const to = Math.min(from + PAGE_SIZE - 1, MAX_ROWS - 1);
+        const fields = refundWindow
+            ? 'id, item_id, price_paid, currency, refunded_at'
+            : 'id, item_id, buyer_id, price_paid, currency, created_at, club_shop_items(name, category)';
+        let query = getSupabase()
+            .from('club_shop_purchases')
+            .select(fields, from === 0 ? { count: 'exact' } : undefined)
+            .eq('club_id', clubId);
+
+        query = refundWindow
+            ? query.not('refunded_at', 'is', null).gte('refunded_at', since)
+            : query.gte('created_at', since);
+
+        const orderField = refundWindow ? 'refunded_at' : 'created_at';
+        const { data, error, count } = await query
+            .order(orderField, { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to);
+
+        if (error) throw error;
+        if (from === 0 && Number.isFinite(count)) exactCount = count;
+        const page = data || [];
+        rows.push(...page);
+        if (page.length < PAGE_SIZE) {
+            exhausted = true;
+            break;
+        }
+    }
+
+    const totalRows = exactCount ?? rows.length;
+    return {
+        rows,
+        totalRows,
+        complete: exhausted || rows.length >= totalRows,
+    };
 }
 
 export default async function handler(req, res) {
@@ -59,12 +109,14 @@ export default async function handler(req, res) {
         if (!Number.isFinite(days) || days <= 0) days = DEFAULT_DAYS;
         days = Math.min(days, MAX_DAYS);
 
-        const { data: member } = await getSupabase()
+        const { data: member, error: memberError } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', clubId)
             .eq('user_id', user.id)
             .maybeSingle();
+
+        if (memberError) throw memberError;
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
             return res.status(403).json({ success: false, error: 'Admin access required' });
@@ -73,29 +125,16 @@ export default async function handler(req, res) {
         const since = new Date(Date.now() - days * 86400000);
         since.setUTCHours(0, 0, 0, 0);
 
-        const { data: purchases, error: pErr } = await getSupabase()
-            .from('club_shop_purchases')
-            .select('item_id, buyer_id, price_paid, created_at, club_shop_items(name, category)')
-            .eq('club_id', clubId)
-            .gte('created_at', since.toISOString())
-            .order('created_at', { ascending: false })
-            .limit(MAX_ROWS);
-
-        if (pErr) throw pErr;
-
         // Refunded copies, so gross / refunds / net reconcile.
         // Keyed on refunded_at: a refund issued today against a 60-day-old
         // purchase belongs in today's window, not in the purchase's.
-        const { data: refunded } = await getSupabase()
-            .from('club_shop_purchases')
-            .select('item_id, price_paid, refunded_at')
-            .eq('club_id', clubId)
-            .not('refunded_at', 'is', null)
-            .gte('refunded_at', since.toISOString())
-            .limit(MAX_ROWS);
+        const [purchaseWindow, refundWindow] = await Promise.all([
+            loadWindowRows({ clubId, since: since.toISOString() }),
+            loadWindowRows({ clubId, since: since.toISOString(), refundWindow: true }),
+        ]);
 
-        const rows = purchases || [];
-        const refundRows = refunded || [];
+        const rows = purchaseWindow.rows;
+        const refundRows = refundWindow.rows;
 
         // Pre-seed every day so the chart has no holes.
         const series = [];
@@ -103,25 +142,35 @@ export default async function handler(req, res) {
         for (let i = 0; i <= days; i++) {
             const d = new Date(since.getTime() + i * 86400000);
             const key = d.toISOString().slice(0, 10);
-            const entry = { date: key, sales: 0, revenue: 0 };
+            const entry = {
+                date: key,
+                sales: 0,
+                revenue: 0,
+                revenueByCurrency: {},
+                refundedByCurrency: {},
+            };
             byDay.set(key, entry);
             series.push(entry);
         }
 
         const byItem = new Map();
         const byBuyer = new Map();
-        let grossRevenue = 0;
+        const byCurrency = {};
 
         for (const r of rows) {
             const amount = Number(r.price_paid) || 0;
-            grossRevenue += amount;
+            const currency = normalizeShopCurrency(r.currency);
+            if (!byCurrency[currency]) byCurrency[currency] = emptyCurrencyTotals();
+            byCurrency[currency].sales += 1;
+            byCurrency[currency].gross += amount;
 
 
             const key = String(r.created_at).slice(0, 10);
             const day = byDay.get(key);
             if (day) {
                 day.sales += 1;
-                day.revenue += amount;
+                day.revenueByCurrency[currency] = (day.revenueByCurrency[currency] || 0) + amount;
+                if (currency === PRIMARY_SHOP_CURRENCY) day.revenue += amount;
             }
 
             const itemId = r.item_id;
@@ -131,18 +180,44 @@ export default async function handler(req, res) {
                 category: r.club_shop_items?.category || null,
                 sales: 0,
                 revenue: 0,
+                revenueByCurrency: {},
             };
             item.sales += 1;
-            item.revenue += amount;
+            item.revenueByCurrency[currency] = (item.revenueByCurrency[currency] || 0) + amount;
+            if (currency === PRIMARY_SHOP_CURRENCY) item.revenue += amount;
             byItem.set(itemId, item);
 
-            const buyer = byBuyer.get(r.buyer_id) || { userId: r.buyer_id, purchases: 0, spent: 0 };
+            const buyer = byBuyer.get(r.buyer_id) || {
+                userId: r.buyer_id,
+                purchases: 0,
+                spent: 0,
+                spentByCurrency: {},
+            };
             buyer.purchases += 1;
-            buyer.spent += amount;
+            buyer.spentByCurrency[currency] = (buyer.spentByCurrency[currency] || 0) + amount;
+            if (currency === PRIMARY_SHOP_CURRENCY) buyer.spent += amount;
             byBuyer.set(r.buyer_id, buyer);
         }
 
-        const refundedAmount = refundRows.reduce((n, r) => n + (Number(r.price_paid) || 0), 0);
+        for (const r of refundRows) {
+            const currency = normalizeShopCurrency(r.currency);
+            const amount = Number(r.price_paid) || 0;
+            if (!byCurrency[currency]) byCurrency[currency] = emptyCurrencyTotals();
+            byCurrency[currency].refundedSales += 1;
+            byCurrency[currency].refunded += amount;
+            const day = byDay.get(String(r.refunded_at).slice(0, 10));
+            if (day) {
+                day.refundedByCurrency[currency] =
+                    (day.refundedByCurrency[currency] || 0) + amount;
+            }
+        }
+
+        for (const totals of Object.values(byCurrency)) {
+            totals.netSales = totals.sales - totals.refundedSales;
+            totals.net = totals.gross - totals.refunded;
+        }
+
+        const diamondTotals = byCurrency[PRIMARY_SHOP_CURRENCY] || emptyCurrencyTotals();
 
         const topItems = [...byItem.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 20);
         const topBuyers = [...byBuyer.values()].sort((a, b) => b.spent - a.spent).slice(0, 20);
@@ -164,22 +239,43 @@ export default async function handler(req, res) {
             success: true,
             days,
             since: since.toISOString(),
-            truncated: rows.length >= MAX_ROWS,
+            truncated: !purchaseWindow.complete || !refundWindow.complete,
+            completeness: {
+                purchases: {
+                    complete: purchaseWindow.complete,
+                    processedRows: rows.length,
+                    totalRows: purchaseWindow.totalRows,
+                },
+                refunds: {
+                    complete: refundWindow.complete,
+                    processedRows: refundRows.length,
+                    totalRows: refundWindow.totalRows,
+                },
+            },
             totals: {
                 sales: rows.length,
-                grossRevenue,
-                refundedAmount,
-                netRevenue: grossRevenue - refundedAmount,
+                grossRevenue: diamondTotals.gross,
+                refundedAmount: diamondTotals.refunded,
+                netRevenue: diamondTotals.net,
                 uniqueBuyers: byBuyer.size,
                 itemsSold: byItem.size,
-                averageSale: rows.length > 0 ? Math.round(grossRevenue / rows.length) : 0,
+                averageSale:
+                    diamondTotals.sales > 0
+                        ? Math.round(diamondTotals.gross / diamondTotals.sales)
+                        : 0,
+                primaryCurrency: PRIMARY_SHOP_CURRENCY,
+                byCurrency,
             },
             series,
             topItems,
             topBuyers,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { /* sentry optional */ }
+        try {
+            reportApiError(err, req);
+        } catch (reportError) {
+            console.warn('[shop-analytics] error reporting failed:', reportError?.message || reportError);
+        }
         console.warn('[shop-analytics]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

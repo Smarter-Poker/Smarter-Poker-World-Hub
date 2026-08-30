@@ -1394,3 +1394,19 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Current coverage:** 11 discovery routes plus one national, 40 state, and 302 city routes (354 directory-driven URLs), the public directory API, and the cinematic lobby.
 
 **Verification:** 514/514 repository prebuild checks, 18/18 focused Phase 8–12 contracts, 399/399 live parity, TypeScript, 12/12 compiled-production desktop/mobile journeys (including Leaflet runtime), and the exact webpack production build (402 static pages) are green. PR/merge, deployment, and live-production evidence are tracked in `.agent/audits/2026-08-30-poker-near-me-phase-12.md`.
+
+---
+
+## PHASE 62 — Marketplace Completion Phase 1 Of 8: Operator Reporting (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Server-owned Manage report | World Hub operators now load authenticated item and ledger reporting from `/api/club-arena/manage-shop`; the browser no longer scans commerce tables directly. |
+| Historical-price correctness | Gross, refund, and net values use immutable `price_paid`, never an item's editable current price. |
+| Currency isolation | Current Diamond sales and legacy chip history are separate at report, item, time-series, and buyer rollup boundaries. |
+| Honest scale boundary | Stable paging processes up to 50,000 rows and returns exact processed/total completeness metadata; the UI visibly labels partial reports. |
+| Operator recovery | Database/auth failures render a named alert and 44-pixel retry control instead of plausible zero totals. |
+| Platform economics copy | The UI explicitly identifies Club Shop sales as platform-owned Diamond burns with no club, owner, agent, affiliate, or commission credit. |
+| Regression gate | Phase 21 reporting contracts are included in `test:marketplace` and the Vercel source allowlist. |
+
+**Verification:** 4/4 Phase 21 contracts, 33/33 focused Club Shop contracts, 118/118 marketplace contracts, JSX parsing, strict lint, TypeScript, and the optimized Next.js webpack production build (402 static pages) passed. Full evidence: `.agent/audits/2026-08-30-marketplace-completion-phase-1-operator-reporting.md`.
