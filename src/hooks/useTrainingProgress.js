@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getPlayStatus, getRankFromMastery, USER_RANKS } from '../components/training/GameBadge';
 import { eventBus, EventType } from '../engine/EventBus';
+import { authedFetch, getAuthUser } from '../lib/authUtils';
 
 const STORAGE_KEY = 'pokeriq_training_progress';
 
@@ -33,22 +34,16 @@ export default function useTrainingProgress() {
         try {
             // Get user auth via getAuthUser — reliable cross-platform method
             let userId = null;
-            let token = null;
-
             try {
-                const { getAuthUser, getAccessToken } = await import('../lib/authUtils');
                 const authUser = getAuthUser();
                 userId = authUser?.id;
-                token = typeof getAccessToken === 'function' ? getAccessToken() : null;
             } catch (e) {
                 console.warn('[useTrainingProgress] Auth failed:', e.message);
             }
 
             if (userId) {
                 // Fetch from API with auth header
-                const response = await fetch(`/api/training/get-progress?userId=${userId}`, {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                });
+                const response = await authedFetch(`/api/training/get-progress?userId=${userId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.progress) {

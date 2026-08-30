@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
 
 // Generates a map of dates to intensities based on session count
 function buildDateMap(sessionHistory) {
@@ -238,12 +238,9 @@ export function StudyStreakMapAuto({ userId, gameId }) {
     const fetchAllSessions = useCallback(async () => {
         if (!userId) { setLoading(false); return; }
         try {
-            const token = getSessionToken();
             const params = new URLSearchParams({ limit: '500' });
             if (gameId) params.set('gameId', gameId);
-            const res = await fetch(`/api/training/get-sessions?${params}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            });
+            const res = await authedFetch(`/api/training/get-sessions?${params}`);
             const data = await res.json();
             if (data.success && data.sessions) {
                 setSessions(data.sessions);

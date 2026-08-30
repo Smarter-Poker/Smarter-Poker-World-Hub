@@ -144,10 +144,6 @@ export default function AggregateReports() {
           name="description"
           content="See aggregated GTO strategy across all flop textures. Discover which boards favor betting vs checking."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div className="sp-training-intelligence sp-training-intelligence--aggregate" style={styles.page}>

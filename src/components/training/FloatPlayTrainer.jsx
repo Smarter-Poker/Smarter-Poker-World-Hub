@@ -103,7 +103,7 @@ function FloatPlayTrainer() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#0ea5e9', marginBottom: 8 }}>Hand Examples</div>
           {spot.handExamples.map((ex, i) => (
-            <div key={i} onClick={() => setExpandedHand(expandedHand === i ? null : i)} style={{
+            <div key={i} role="button" tabIndex={0} aria-expanded={expandedHand === i} onClick={() => setExpandedHand(expandedHand === i ? null : i)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedHand(expandedHand === i ? null : i); } }} style={{
               padding: 10, marginBottom: 6, borderRadius: 8, cursor: 'pointer',
               background: expandedHand === i ? 'rgba(14,165,233,0.08)' : 'rgba(255,255,255,0.03)',
               border: `1px solid ${expandedHand === i ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.06)'}`,

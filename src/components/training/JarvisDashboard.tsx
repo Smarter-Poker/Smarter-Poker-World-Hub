@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 export function JarvisDashboard({ userId, compact = false }) {
     const [insights, setInsights] = useState<any>(null);
@@ -16,10 +17,7 @@ export function JarvisDashboard({ userId, compact = false }) {
 
     const fetchInsights = async () => {
         try {
-            const token = (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'))?.access_token || '';
-            const res = await fetch(`/api/jarvis/user-insights`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await authedFetch('/api/jarvis/user-insights');
             const data = await res.json();
             if (data.success) {
                 setInsights(data.insights);

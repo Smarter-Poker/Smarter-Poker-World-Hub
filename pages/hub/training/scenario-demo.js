@@ -263,10 +263,6 @@ export default function ScenarioDemoPage() {
           name="description"
           content="Learn how to use the Smarter.Poker GTO training system with this interactive tutorial."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <div
         style={{

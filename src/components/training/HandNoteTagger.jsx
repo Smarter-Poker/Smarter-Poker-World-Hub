@@ -176,7 +176,7 @@ export default function HandNoteTagger() {
                 {hand.tags.map(tagId => {
                   const tag = TAGS.find(t => t.id === tagId);
                   return tag ? (
-                    <span key={tagId} onClick={() => toggleTag(hand.id, tagId)} style={{
+                    <span key={tagId} role="button" tabIndex={0} aria-label={`Remove ${tag.label} tag`} onClick={() => toggleTag(hand.id, tagId)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleTag(hand.id, tagId); } }} style={{
                       padding: '2px 6px', borderRadius: 3, cursor: 'pointer',
                       background: `${tag.color}15`, color: tag.color, fontSize: 9, fontWeight: 600,
                       border: `1px solid ${tag.color}25`,
@@ -217,7 +217,7 @@ export default function HandNoteTagger() {
                   }}>Cancel</button>
                 </div>
               ) : (
-                <div onClick={() => { setEditingNote(hand.id); setEditText(hand.note); }}
+                <div role="button" tabIndex={0} aria-label={`Edit note for ${hand.hand}`} onClick={() => { setEditingNote(hand.id); setEditText(hand.note); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditingNote(hand.id); setEditText(hand.note); } }}
                   style={{ color: '#94a3b8', fontSize: 10, cursor: 'pointer', padding: '4px 0', fontStyle: hand.note ? 'normal' : 'italic' }}>
                   {hand.note || 'Click to add note...'}
                 </div>

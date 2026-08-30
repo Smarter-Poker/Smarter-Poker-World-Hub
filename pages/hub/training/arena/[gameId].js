@@ -115,6 +115,14 @@ export default function TrainingArenaPage() {
     const [userId, setUserId] = useState(null);
     const [ready, setReady] = useState(false);
     const [fetchError, setFetchError] = useState(null);
+    const [resolvedSessionId, setResolvedSessionId] = useState(null);
+
+    useEffect(() => {
+        if (!router.isReady || !gameId) return;
+        setResolvedSessionId(
+            sessionId || `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+        );
+    }, [router.isReady, gameId, sessionId]);
 
     // Resolve user ID.
     // 2026-07-19 AUDIT FIX: previously minted `anon-<ts>` ids for logged-out
@@ -166,7 +174,7 @@ export default function TrainingArenaPage() {
     }, []);
 
     // Wait for router + user resolution
-    if (!router.isReady || !gameId || !ready) {
+    if (!router.isReady || !gameId || !ready || !resolvedSessionId) {
         return (
             <div style={{
                 minHeight: '100vh',
@@ -196,7 +204,7 @@ export default function TrainingArenaPage() {
                     gameId={gameId}
                     gameName={gameName}
                     level={level}
-                    sessionId={sessionId || `session-${Date.now()}`}
+                    sessionId={resolvedSessionId}
                     onComplete={handleComplete}
                     onExit={handleExit}
                 />

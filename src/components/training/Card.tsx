@@ -210,7 +210,14 @@ const Card: React.FC<CardProps> = ({
             style={containerStyle}
             className={className}
             onClick={onClick}
-            role="img"
+            onKeyDown={(event) => {
+                if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onClick();
+                }
+            }}
+            role={onClick ? 'button' : 'img'}
+            tabIndex={onClick ? 0 : undefined}
             aria-label={faceDown ? 'Card (face down)' : `${rank} of ${SUIT_TO_FILENAME[suit] || suit}`}
             initial={anim.initial}
             animate={anim.animate}
@@ -229,7 +236,6 @@ const Card: React.FC<CardProps> = ({
                     display: 'block',
                     pointerEvents: 'none',
                     userSelect: 'none',
-                    draggable: false,
                 } as React.CSSProperties}
                 draggable={false}
                 loading="lazy"

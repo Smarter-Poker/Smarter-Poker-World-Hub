@@ -45,7 +45,7 @@ import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LI
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
-import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import DiamondEngine from '../../src/services/DiamondEngine';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
@@ -145,6 +145,7 @@ export default function TrainingPage() {
   // arena render path below still works identically.
   const [setupGame, setSetupGame] = useState(null);
   const [arenaConfig, setArenaConfig] = useState(null);
+  const [arenaSessionId, setArenaSessionId] = useState(null);
   const startDrill = useCallback((game) => {
     if (!game) return;
     setActiveGame(game);
@@ -237,6 +238,10 @@ export default function TrainingPage() {
       // every session regardless of what the player picked.
       handSelection: prefs.handSelection
     } : null);
+    // Session identity must be stable for the entire run. Rendering Date.now()
+    // directly as a prop regenerated it whenever the hub rerendered, which
+    // could split one player's answers and completion event across identities.
+    setArenaSessionId(`session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
     setSetupGame(null);
     setShowArena(true);
   }, [setShowArena, setupGame, router, authUser?.id]);
@@ -270,9 +275,15 @@ export default function TrainingPage() {
           gameName={activeGame.name}
           level={1}
           initialConfig={arenaConfig}
-          sessionId={`session-${Date.now()}`}
-          onComplete={() => setShowArena(false)}
-          onExit={() => setShowArena(false)}
+          sessionId={arenaSessionId}
+          onComplete={() => {
+            setShowArena(false);
+            setArenaSessionId(null);
+          }}
+          onExit={() => {
+            setShowArena(false);
+            setArenaSessionId(null);
+          }}
         />
       )}
 
@@ -818,11 +829,8 @@ function useLifetimeProgress(authUser) {
         setProgressLoading(false);
         return;
       }
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       try {
-        const r = await fetch('/api/training/get-sessions?limit=10', { headers });
+        const r = await authedFetch('/api/training/get-sessions?limit=10');
         if (!r.ok) throw new Error(`get-sessions ${r.status}`);
         const json = await r.json();
         if (!cancelled && json.success) setLifetimeSessions(json.sessions || []);
@@ -831,7 +839,7 @@ function useLifetimeProgress(authUser) {
       }
 
       try {
-        const r = await fetch('/api/training/analytics?days=365&type=breakdown', { headers });
+        const r = await authedFetch('/api/training/analytics?days=365&type=breakdown');
         if (!r.ok) throw new Error(`analytics ${r.status}`);
         const json = await r.json();
         if (!cancelled && json.success) setPositionAccuracy(json.positionAccuracy || null);
@@ -871,11 +879,8 @@ function useTrainingDashboard(authUser) {
         setRecommendationLoading(false);
         return;
       }
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       try {
-        const r = await fetch('/api/training/weekly-stats', { headers });
+        const r = await authedFetch('/api/training/weekly-stats');
         if (!r.ok) throw new Error(`weekly-stats ${r.status}`);
         const json = await r.json();
         if (!cancelled && json.success) setStats(json.stats);
@@ -886,7 +891,7 @@ function useTrainingDashboard(authUser) {
       }
 
       try {
-        const r = await fetch('/api/training/recommendations', { headers });
+        const r = await authedFetch('/api/training/recommendations');
         if (!r.ok) throw new Error(`recommendations ${r.status}`);
         const json = await r.json();
         const recs = json?.recommendations || json?.games || json?.data || [];

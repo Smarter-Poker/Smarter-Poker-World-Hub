@@ -68,7 +68,11 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
     >
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
         onClick={onToggle}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggle(); } }}
         style={{
           padding: '10px 14px',
           display: 'flex',
@@ -646,10 +650,6 @@ export default function HandAnalyzer() {
         <meta
           name="description"
           content="Upload your poker hand histories and compare every decision against GTO solver data. Find leaks and improve your game."
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
         />
       </Head>
 

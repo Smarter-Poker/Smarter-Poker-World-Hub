@@ -157,6 +157,65 @@ applied. No historical migration row was repaired or rewritten.
   feedback progression, canonical authentication, honest analytics, durable
   storage, Club Arena visual contracts, and shared secondary-page wiring.
 
+## Phase 2 Advanced Audit
+
+The second-pass audit re-ran Round 1 from a hostile runtime perspective and
+added hydrated, dual-viewport coverage for every Training route.
+
+### Additional Defects Resolved
+
+- Training sessions could receive a new ID when the parent rendered again.
+  Hub and direct-arena sessions now keep one stable identity for the complete
+  run.
+- Saved setup preferences were not reloaded when the player opened a different
+  game. Preferences are now sanitized and restored per game.
+- Explicit “No Timer” and zero-second values could be replaced by defaults
+  because the arena used truthiness instead of nullish fallback.
+- Several secondary analytics, history, leaderboard, report, save, and replay
+  requests could retain an expired bearer token. Typed and JavaScript callers
+  now share refresh-and-retry behavior.
+- Offline queued saves persisted the bearer token that existed when a mutation
+  was queued. The queue now stores no credential and resolves authenticated
+  transport only when it drains.
+- Setup and advanced configuration dialogs did not fully trap or restore
+  keyboard focus. Both now implement dialog semantics, Escape, wrapping Tab,
+  opener restoration, and mobile-safe metallic layouts.
+- Analytical grids, cards, expandable rows, heatmaps, checklist items, range
+  cells, and replay controls contained mouse-only interactions. The complete
+  Training component/page tree now has a parser-backed guard requiring keyboard
+  activation for clickable non-semantic elements.
+- The legacy universal table allowed feedback to disappear from a tap anywhere.
+  It now presents an unmistakable Correct/Incorrect dialog with an explicit
+  metallic Next button.
+- Route-local Google font stylesheets produced Next.js rendering warnings and
+  duplicated the global `next/font` installation. They were removed without
+  changing the approved global header.
+- The shared page transition produced server/client style mismatches for users
+  who prefer reduced motion. Its first frame is now hydration-stable and uses a
+  short non-spatial fade.
+- The shared card image placed an HTML `draggable` attribute in its CSS style
+  object, causing another hydration mismatch. The invalid style was removed and
+  clickable cards gained keyboard button behavior.
+
+### Phase 2 Verification
+
+- Focused Training integrity/runtime/adversarial suite: 46 passed, zero failed.
+- TypeScript no-emit compile and patch whitespace validation: passed.
+- Production build: 454 prebuild tests, 46 Training tests, 17 leak-engine tests,
+  63 marketplace tests, 7 trivia-authority tests, and 402/402 static pages.
+- Built-server HTTP audit: 95/95 routes returned HTTP 200.
+- Built-server hydrated browser audit: 95 routes at desktop and mobile widths,
+  190/190 checks passed with zero runtime exceptions, broken visible media,
+  unnamed controls, missing image alternatives, header regressions, or document
+  overflow.
+- Full catalog visual/click audit: 107/107 semantic card destinations, 107
+  unique decoded artwork sets, straight unclipped card frames, all five
+  categories at mobile width, zero unexpected console errors.
+- Live data audit: 107 games × 12 levels = 1,284 cells; 25,918 cache rows and
+  1,020 generated questions checked with zero failures.
+- `scripts/training-browser-route-audit.mjs` now preserves the hydrated
+  two-viewport route audit as a repeatable release gate.
+
 Production deployment is not considered verified by this document. The release
 must separately prove that `origin/main`, `/api/health`, the Build Safety Gate,
 and a real browser session all reference the same merged revision.

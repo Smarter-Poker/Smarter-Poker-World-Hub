@@ -242,7 +242,7 @@ export default function FlopCategoryBrowser() {
             const isExpanded = selectedCategory === cat.id;
             return (
               <div key={cat.id}>
-                <div onClick={() => setSelectedCategory(isExpanded ? null : cat.id)} style={{
+                <div role="button" tabIndex={0} aria-expanded={isExpanded} onClick={() => setSelectedCategory(isExpanded ? null : cat.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCategory(isExpanded ? null : cat.id); } }} style={{
                   padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
                   background: isExpanded ? 'rgba(59,130,246,0.08)' : 'rgba(0,0,0,0.1)',
                   border: isExpanded ? '1px solid rgba(59,130,246,0.2)' : '1px solid transparent',

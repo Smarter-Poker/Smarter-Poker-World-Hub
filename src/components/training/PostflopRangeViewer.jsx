@@ -256,7 +256,11 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
 
     return (
         <div
+            role={hasData ? 'button' : undefined}
+            tabIndex={hasData ? 0 : -1}
+            aria-label={hasData ? `Inspect ${hand}` : undefined}
             onClick={() => hasData && onClick(hand)}
+            onKeyDown={(event) => { if (hasData && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(hand); } }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
@@ -519,7 +523,11 @@ function BoardSelector({ board, onChange }) {
 
     return (
         <div
+            role="button"
+            tabIndex={0}
+            aria-label="Edit board cards"
             onClick={() => setEditing(true)}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditing(true); } }}
             style={{
                 display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer',
                 padding: '4px 8px', borderRadius: 6,

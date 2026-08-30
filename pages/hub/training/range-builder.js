@@ -98,7 +98,11 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
 
   return (
     <div
+      role={isDiffMode ? undefined : 'button'}
+      tabIndex={isDiffMode ? -1 : 0}
+      aria-pressed={isDiffMode ? undefined : isSelected}
       onClick={() => !isDiffMode && onToggle(hand)}
+      onKeyDown={(event) => { if (!isDiffMode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onToggle(hand); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -322,10 +326,6 @@ export default function RangeBuilder() {
         <meta
           name="description"
           content="Build your own preflop range and get graded against GTO solver solutions. Interactive range construction and accuracy analysis."
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
         />
       </Head>
 

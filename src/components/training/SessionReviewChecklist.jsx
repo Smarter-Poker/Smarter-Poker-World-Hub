@@ -83,7 +83,7 @@ function SessionReviewChecklist() {
               {cat.items.map(item => {
                 const state = checks[item.key] || 0;
                 return (
-                  <div key={item.key} onClick={() => toggle(item.key)} style={{
+                  <div key={item.key} role="checkbox" tabIndex={0} aria-checked={state === 1 ? true : state === -1 ? 'mixed' : false} onClick={() => toggle(item.key)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(item.key); } }} style={{
                     padding: '8px 10px', background: state === 1 ? 'rgba(16,185,129,0.06)' : state === -1 ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)',
                     borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                     border: state === 1 ? '1px solid rgba(16,185,129,0.2)' : state === -1 ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.04)',

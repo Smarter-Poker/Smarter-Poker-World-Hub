@@ -74,7 +74,11 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
   return (
     <div style={{ marginLeft: depth * 20 }}>
       <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
         onClick={() => onSelect(node.id)}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(node.id); } }}
         style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
           marginBottom: 2, borderRadius: 6, cursor: 'pointer',

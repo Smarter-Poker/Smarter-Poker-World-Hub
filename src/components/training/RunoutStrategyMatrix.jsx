@@ -212,7 +212,11 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
 
     return (
         <div
+            role={hasData ? 'button' : undefined}
+            tabIndex={hasData ? 0 : -1}
+            aria-label={hasData ? `Inspect ${rank}${suit.code} runout` : undefined}
             onClick={() => hasData && onClick(`${rank}${suit.code}`)}
+            onKeyDown={(event) => { if (hasData && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(`${rank}${suit.code}`); } }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{

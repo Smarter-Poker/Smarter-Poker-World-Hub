@@ -152,6 +152,10 @@ export default function HandLabV2() {
               <h3 style={styles.sectionTitle}>1. Your Hole Cards</h3>
               <div style={styles.heroRow}>
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedSlot === 'hero1'}
+                  aria-label="Select first hole card"
                   style={{
                     ...styles.cardSlot,
                     border:
@@ -160,6 +164,7 @@ export default function HandLabV2() {
                         : '2px dashed rgba(255,255,255,0.2)',
                   }}
                   onClick={() => setSelectedSlot('hero1')}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot('hero1'); } }}
                 >
                   {heroCards[0] ? (
                     <PlayingCard card={heroCards[0]} size="md" priority />
@@ -168,6 +173,10 @@ export default function HandLabV2() {
                   )}
                 </div>
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedSlot === 'hero2'}
+                  aria-label="Select second hole card"
                   style={{
                     ...styles.cardSlot,
                     border:
@@ -176,6 +185,7 @@ export default function HandLabV2() {
                         : '2px dashed rgba(255,255,255,0.2)',
                   }}
                   onClick={() => setSelectedSlot('hero2')}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot('hero2'); } }}
                 >
                   {heroCards[1] ? (
                     <PlayingCard card={heroCards[1]} size="md" priority />
@@ -190,6 +200,10 @@ export default function HandLabV2() {
                 {[0, 1, 2, 3, 4].map((idx) => (
                   <div
                     key={`board${idx + 1}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedSlot === `board${idx + 1}`}
+                    aria-label={`Select board card ${idx + 1}`}
                     style={{
                       ...styles.cardSlot,
                       height: 100,
@@ -199,6 +213,7 @@ export default function HandLabV2() {
                           : '2px dashed rgba(255,255,255,0.2)',
                     }}
                     onClick={() => setSelectedSlot(`board${idx + 1}`)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot(`board${idx + 1}`); } }}
                   >
                     {boardCards[idx] ? (
                       <PlayingCard card={boardCards[idx]} size="md" priority />

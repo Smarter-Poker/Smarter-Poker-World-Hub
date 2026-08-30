@@ -270,7 +270,11 @@ const BuildMatrixCell = React.memo(({ cell, isSelected, solverInRange, rangeChec
 
     return (
         <div
+            role={rangeChecked ? undefined : 'button'}
+            tabIndex={rangeChecked ? -1 : 0}
+            aria-pressed={rangeChecked ? undefined : isSelected}
             onClick={onClick}
+            onKeyDown={(event) => { if (!rangeChecked && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(); } }}
             style={{
                 aspectRatio: '1',
                 background: cellBg,

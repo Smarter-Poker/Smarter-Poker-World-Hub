@@ -165,7 +165,7 @@ export default function PotOddsCalculator() {
               const profitable = equity >= calculations.breakEven;
               const withImplied = equity >= calculations.impliedOdds;
               return (
-                <div key={draw.name} onClick={() => setSelectedDraw(selectedDraw === draw.name ? null : draw.name)} style={{
+                <div key={draw.name} role="button" tabIndex={0} aria-pressed={selectedDraw === draw.name} onClick={() => setSelectedDraw(selectedDraw === draw.name ? null : draw.name)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedDraw(selectedDraw === draw.name ? null : draw.name); } }} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 4, cursor: 'pointer',
                   background: selectedDraw === draw.name ? 'rgba(59,130,246,0.08)' : 'transparent',
                 }}>
