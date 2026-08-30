@@ -1,7 +1,7 @@
 import { applyVenueIntegrity } from './venueIntegrityServer.js';
 import { parsePokerMapBounds, isVenueWithinPokerMapBounds } from './mapBounds.js';
 
-export const VENUE_DIRECTORY_FIELDS = [
+export const VENUE_DIRECTORY_FIELD_LIST = [
   'id', 'name', 'slug', 'venue_type', 'address', 'city', 'state', 'country', 'zip',
   'latitude', 'longitude', 'lat', 'lng', 'phone', 'website',
   'profile_photo_url', 'cover_photo_url', 'logo_url', 'tagline', 'about',
@@ -10,7 +10,9 @@ export const VENUE_DIRECTORY_FIELDS = [
   'data_quality', 'scrape_status', 'scrape_source', 'source', 'last_scraped',
   'last_scraped_at', 'last_verified_at', 'location_integrity_revision',
   'is_claimed', 'follower_count', 'social_links', 'is_active', 'is_suppressed',
-].join(',');
+];
+
+export const VENUE_DIRECTORY_FIELDS = VENUE_DIRECTORY_FIELD_LIST.join(',');
 
 function one(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -23,6 +25,85 @@ function text(value, max = 120) {
 function integer(value, fallback, min, max) {
   const parsed = Number.parseInt(one(value), 10);
   return Number.isFinite(parsed) ? Math.min(Math.max(parsed, min), max) : fallback;
+}
+
+function compareDirectoryVenues(a, b) {
+  return Number(Boolean(b?.is_featured)) - Number(Boolean(a?.is_featured))
+    || (Number(b?.trust_score) || 0) - (Number(a?.trust_score) || 0)
+    || String(a?.name || '').localeCompare(String(b?.name || ''));
+}
+
+function projectDirectoryVenue(venue) {
+  const projected = {};
+  VENUE_DIRECTORY_FIELD_LIST.forEach((field) => {
+    if (venue?.[field] !== undefined) projected[field] = venue[field];
+  });
+  if (venue?.location_quality) projected.location_quality = venue.location_quality;
+  return projected;
+}
+
+function snapshotMatchesSearch(venue, search) {
+  if (!search) return true;
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const haystack = [venue?.name, venue?.address, venue?.city, venue?.state, venue?.country]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
+/**
+ * Build the exact public directory envelope from the checked-in venue snapshot.
+ * This is deliberately projection-only: private/contact and scraper-internal
+ * fields in all-venues.json never cross the API or SSR boundary.
+ */
+export function buildSnapshotVenueDirectory({ params = {}, venues = [] } = {}) {
+  const limit = integer(params.limit, 100, 1, 1000);
+  const offset = integer(params.offset, 0, 0, 1_000_000);
+  const { bounds, error: boundsError } = parsePokerMapBounds(params);
+  if (boundsError) {
+    const error = new Error(boundsError);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const state = text(params.state, 40).toUpperCase();
+  const city = text(params.city, 120).toLowerCase();
+  const type = text(params.type || params.venue_type, 60).toLowerCase();
+  const search = text(params.search, 120);
+  const featuredOnly = text(params.featured, 8).toLowerCase() === 'true';
+  const tournamentsOnly = text(params.tournaments, 8).toLowerCase() === 'true';
+
+  const candidates = (Array.isArray(venues) ? venues : [])
+    .filter((venue) => venue?.is_active === true)
+    .filter((venue) => venue?.is_suppressed !== true)
+    .filter((venue) => venue?.id !== 3109)
+    .filter((venue) => venue?.canonical_venue_id == null)
+    .filter((venue) => !['series', 'tour', 'home_game'].includes(String(venue?.venue_type || '').toLowerCase()))
+    .filter((venue) => !state || String(venue?.state || '').toUpperCase() === state)
+    .filter((venue) => !city || String(venue?.city || '').toLowerCase() === city)
+    .filter((venue) => !type || String(venue?.venue_type || '').toLowerCase() === type)
+    .filter((venue) => !featuredOnly || venue?.is_featured === true)
+    .filter((venue) => !tournamentsOnly || venue?.has_tournaments === true)
+    .filter((venue) => snapshotMatchesSearch(venue, search))
+    .sort(compareDirectoryVenues);
+
+  const integrity = applyVenueIntegrity(candidates);
+  const mappable = integrity.venues.filter((venue) => (
+    venue?.location_quality?.mappable !== false
+    && isVenueWithinPokerMapBounds(venue, bounds)
+  ));
+
+  return {
+    data: mappable.slice(offset, offset + limit).map(projectDirectoryVenue),
+    total: mappable.length,
+    offset,
+    limit,
+    viewport: bounds,
+    data_integrity: integrity.summary,
+    degraded: true,
+    data_source: 'static_snapshot',
+  };
 }
 
 function directoryQuery(supabase, params, { count = 'exact' } = {}) {
@@ -94,8 +175,29 @@ export async function fetchVenueDirectory({ supabase, params = {} }) {
   };
 }
 
+/**
+ * Public-read resilience wrapper. Admin, mutation, auth, and realtime paths do
+ * not use this helper and continue to fail closed when Supabase is unavailable.
+ */
+export async function fetchVenueDirectoryResilient({
+  supabase,
+  params = {},
+  fallbackVenues = [],
+  onFallback,
+} = {}) {
+  try {
+    const directory = await fetchVenueDirectory({ supabase, params });
+    return { ...directory, degraded: false, data_source: 'supabase' };
+  } catch (error) {
+    if (error?.statusCode === 400) throw error;
+    if (typeof onFallback === 'function') onFallback(error);
+    return buildSnapshotVenueDirectory({ params, venues: fallbackVenues });
+  }
+}
+
 export const venueDirectoryServerContract = Object.freeze({
   view: 'directory',
   maximumPageSize: 1000,
   excludesCanonicalAliases: true,
+  publicSnapshotFallback: true,
 });

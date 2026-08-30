@@ -2676,6 +2676,7 @@ export default function PokerNearMeLobby() {
       />
 
       <div className="pnm-lobby-page">
+        <a className="pnm-lobby-skip" href="#pnm-lobby-main">Skip to Poker Near Me choices</a>
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
             block the delivered HTML has no h1 and none of the twelve internal
@@ -2734,48 +2735,50 @@ export default function PokerNearMeLobby() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Layer 1 — Background */}
-        <LobbyCanvas />
+        <main id="pnm-lobby-main" className="pnm-lobby-stage" aria-label="Poker Near Me discovery lobby">
+          {/* Layer 1 — Background */}
+          <LobbyCanvas />
 
-        {/* Layer 2 — UI Overlay */}
-        <LobbyOverlay
-          onPodSelect={handlePodClick}
-          searchQuery={searchQuery}
-          liveData={liveData}
-          showTutorial={showTutorial}
-          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch (e) { console.warn('[App] Handled exception:', e); } }}
-          gpsActive={gpsActive}
-          gpsLoading={gpsLoading}
-          onGpsClick={handleGpsClick}
-          onVoiceClick={() => setShowVoiceSearch(true)}
-          gpsError={gpsError}
-          locationCity={locationCity}
-          locationState={locationState}
-          onManualLocation={() => setShowManualLocation(true)}
-          onShowEnablePopup={() => setShowEnablePopup(true)}
-          savedLocation={preferences?.lastLocation}
-          savedLocationCity={preferences?.lastLocationCity}
-          savedLocationState={preferences?.lastLocationState}
-          onUseSavedLocation={() => {
-            const saved = preferences?.lastLocation;
-            if (saved?.lat && saved?.lng) {
-              setUserLocation(saved);
-              setGpsActive(true);
-              setSortBy('distance');
-              persistSharedGpsLocation(saved);
-              showLocationSuccessToast({
-                city: preferences?.lastLocationCity || '',
-                state: preferences?.lastLocationState || '',
-              });
-              const usedRadius = filters.radius || 50;
-              const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=${usedRadius}`;
-              cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
-                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-            }
-          }}
-          venueCount={totalVenueCount || venues.length}
-          onSearchBarClick={() => setShowGlobalSearch(true)}
-        />
+          {/* Layer 2 — UI Overlay */}
+          <LobbyOverlay
+            onPodSelect={handlePodClick}
+            searchQuery={searchQuery}
+            liveData={liveData}
+            showTutorial={showTutorial}
+            onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch (e) { console.warn('[App] Handled exception:', e); } }}
+            gpsActive={gpsActive}
+            gpsLoading={gpsLoading}
+            onGpsClick={handleGpsClick}
+            onVoiceClick={() => setShowVoiceSearch(true)}
+            gpsError={gpsError}
+            locationCity={locationCity}
+            locationState={locationState}
+            onManualLocation={() => setShowManualLocation(true)}
+            onShowEnablePopup={() => setShowEnablePopup(true)}
+            savedLocation={preferences?.lastLocation}
+            savedLocationCity={preferences?.lastLocationCity}
+            savedLocationState={preferences?.lastLocationState}
+            onUseSavedLocation={() => {
+              const saved = preferences?.lastLocation;
+              if (saved?.lat && saved?.lng) {
+                setUserLocation(saved);
+                setGpsActive(true);
+                setSortBy('distance');
+                persistSharedGpsLocation(saved);
+                showLocationSuccessToast({
+                  city: preferences?.lastLocationCity || '',
+                  state: preferences?.lastLocationState || '',
+                });
+                const usedRadius = filters.radius || 50;
+                const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=${usedRadius}`;
+                cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
+                  .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+              }
+            }}
+            venueCount={totalVenueCount || venues.length}
+            onSearchBarClick={() => setShowGlobalSearch(true)}
+          />
+        </main>
 
 
         {/* Layer 3 — Feature Panel (page level to escape overlay z-index stacking context) */}

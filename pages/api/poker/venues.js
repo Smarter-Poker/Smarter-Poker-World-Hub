@@ -26,7 +26,7 @@ import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
-import { fetchVenueDirectory } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 
 let _supabase = null;
 function getSupabase() {
@@ -716,7 +716,20 @@ export default async function handler(req, res) {
       const requestedView = Array.isArray(req.query.view) ? req.query.view[0] : req.query.view;
       if (requestedView === 'directory') {
           try {
-              const directory = await fetchVenueDirectory({ supabase: getSupabase(), params: req.query });
+              const directory = await fetchVenueDirectoryResilient({
+                  supabase: getSupabase(),
+                  params: req.query,
+                  fallbackVenues: allVenuesData.venues || [],
+                  onFallback: (directoryError) => {
+                      console.warn('[venues] Directory database unavailable; serving projected snapshot:', directoryError?.message || directoryError);
+                      captureError(directoryError, {
+                          tags: { api: 'poker-venues', stage: 'directory-fallback' },
+                          extra: { query: req.query },
+                      });
+                  },
+              });
+              res.setHeader('X-PNM-Data-Source', directory.data_source);
+              if (directory.degraded) res.setHeader('Cache-Control', 'no-store');
               return res.status(200).json({ success: true, ...directory, home_groups: [], total_home_groups: 0 });
           } catch (directoryError) {
               if (directoryError?.statusCode === 400) {

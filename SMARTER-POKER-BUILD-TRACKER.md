@@ -1357,3 +1357,21 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Production data state:** 603 synchronized rows; 573 active public records; 333 actionable signals; 3 conflicts; 80 missing coordinates; 5 boundary-unavailable; 204 incomplete profiles; 255 stale sources; 0 current duplicate rows.
 
 **Verification:** 491 repository prebuild tests, 12 Phase 8–10 contracts, 6 production-artifact desktop/mobile Playwright journeys, ledger verification for both migrations, and the env-backed webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-10.md`.
+
+---
+
+## PHASE 60 — Poker Near Me Degraded-Mode Resilience + Accessibility (2026-08-30)
+
+| Deliverable | Detail |
+|---|---|
+| Shared public snapshot contract | The public API, dynamic discovery SSR, and all location pages now use one projected, integrity-assessed fallback with live-equivalent filters, ordering, pagination, and viewport rules. |
+| Fail-closed boundary | Only public directory reads degrade. Admin, auth, mutations, operator actions, realtime, and database writes retain strict failure behavior. |
+| Honest provenance | Degraded responses are `no-store`, carry `X-PNM-Data-Source`, and render a visible snapshot/cache signal with a 44px live-retry control. |
+| SSR continuity | A transient Supabase auth disturbance no longer removes the server-rendered Featured Poker Rooms rail or turns the optimized directory into a 500. |
+| Location-family deduplication | The index plus 41 state and 376 city pages inherit the shared builder instead of maintaining a second fallback algorithm. |
+| Accessibility hardening | Lobby and dynamic discovery have named main landmarks; the lobby adds first-focus skip navigation and 44×44 voice/GPS controls. |
+| Permanent regression gate | Phase 10 and 11 contracts now run inside repository prebuild, including projection privacy, invalid-input behavior, fallback provenance, landmarks, retry UI, and touch targets. |
+
+**Current coverage:** 429 directory-driven route URLs (11 discovery plus 418 location URLs), the public directory API, and the cinematic lobby.
+
+**Verification:** 508/508 repository prebuild tests, 9/9 focused Phase 10–11 contracts, 4/4 desktop/mobile Playwright journeys, forced no-database API/SSR smoke, client-bundle dataset exclusion, and the exact webpack production build passed. Full evidence: `.agent/audits/2026-08-30-poker-near-me-phase-11.md`.
