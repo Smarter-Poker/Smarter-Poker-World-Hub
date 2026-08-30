@@ -152,6 +152,14 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
   });
 
   test('one Leak Finder action completes every signed audit page and shows cumulative progress', async ({ page }) => {
+    // This case verifies the explicit user action. Leak Finder also performs an
+    // intentional first-visit background audit for eligible empty accounts;
+    // suppress that independent path so an instant route mock cannot finish a
+    // background pass and then count the manual pass as duplicate pagination.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
+    });
+
     const seenCursors: Array<string | null> = [];
     await page.route('**/api/assistant/leaks/detect', async route => {
       const body = route.request().postDataJSON() as { auditCursor?: string | null } | null;
