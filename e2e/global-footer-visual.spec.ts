@@ -10,6 +10,9 @@ const VIEWPORTS = [
   { width: 1920, height: 1080 },
 ];
 
+const expectedClubFooterHeight = (viewportWidth: number) =>
+  Math.min(263, Math.max(44, viewportWidth * 0.1372));
+
 test.describe('global footer route and visual contract', () => {
   test('World Hub keeps one complete footer fixed at every supported width', async ({
     page,
@@ -76,7 +79,9 @@ test.describe('global footer route and visual contract', () => {
     expect(viewport).not.toBeNull();
     expect(box).not.toBeNull();
     expect(Math.abs(box!.y + box!.height - viewport!.height)).toBeLessThan(4);
-    expect(box!.height).toBeLessThanOrEqual(84);
+    expect(
+      Math.abs(box!.height - expectedClubFooterHeight(viewport!.width)),
+    ).toBeLessThanOrEqual(1);
     await probePage.close();
   });
 });
