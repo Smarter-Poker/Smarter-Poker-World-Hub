@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import TourCard from '../../src/components/poker-series/TourCard';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../src/utils/tourGeoUtils';
 
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
@@ -71,15 +72,9 @@ function formatMoney(amount) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
-    // Parse YYYY-MM-DD as local time (not UTC) to avoid timezone shift
-    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (parts) {
-        const date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const date = parseCalendarDate(dateStr);
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 // ═══════════════════════════════════════════════
@@ -299,47 +294,6 @@ export default function PokerToursPage({ initialTours = [] }) {
         };
     }, []);
 
-    // ─── Parse informal date strings from registry (e.g. "Apr 2-13", "Feb 22 - Mar 9") ───
-    const parseStopDates = useCallback((dateStr) => {
-        if (!dateStr) return null;
-        const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
-        const defaultYear = 2026;
-        // Handle "Dec 24, 2025 - Jan 19, 2026" or "Feb 22 - Mar 9" or "Jan 1-12"
-        const parts = dateStr.split(/\s*[-–]\s*/);
-        
-        const parseOne = (s, fallbackMonth) => {
-            if (!s) return null;
-            s = s.trim().replace(',', '');
-            // Try "Mon DD YYYY" or "Mon DD"
-            const m = s.match(/^([A-Z][a-z]{2})\s+(\d{1,2})(?:\s+(\d{4}))?/);
-            if (m) {
-                const month = MONTHS[m[1]];
-                if (month === undefined) return null;
-                return new Date(m[3] ? parseInt(m[3]) : defaultYear, month, parseInt(m[2]));
-            }
-            // Try just a number (day only, use fallback month)
-            const dayOnly = s.match(/^(\d{1,2})$/);
-            if (dayOnly && fallbackMonth !== undefined) {
-                return new Date(defaultYear, fallbackMonth, parseInt(dayOnly[1]));
-            }
-            return null;
-        };
-
-        const startDate = parseOne(parts[0]);
-        if (!startDate) return null;
-        let endDate = null;
-        if (parts.length >= 2) {
-            endDate = parseOne(parts[parts.length - 1], startDate.getMonth());
-            // If end month < start month and same year, it rolled into next year
-            if (endDate && endDate < startDate && !dateStr.includes('2025')) {
-                endDate.setFullYear(endDate.getFullYear() + 1);
-            }
-        } else {
-            endDate = startDate;
-        }
-        return { start: startDate, end: endDate };
-    }, []);
-
     // ─── Fallback city coordinates for common poker tour locations ───
     
     // ─── Find venue coordinates by fuzzy name + city fallback ───
@@ -349,8 +303,7 @@ export default function PokerToursPage({ initialTours = [] }) {
 
     // ─── Compute current/next stop for each tour (used by both map and cards) ───
     const tourCurrentStops = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = pokerCalendarStart();
         const result = {};
 
         tours.forEach(tour => {
@@ -520,8 +473,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     // ─── Date range cutoff computation ───
     const dateRangeCutoff = useMemo(() => {
         if (dateRange === 'all') return null;
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
+        const now = pokerCalendarStart();
         const daysMap = {
             '7d': 7, '14d': 14, '30d': 30, '60d': 60, '90d': 90,
             '6m': 180, '1y': 365,
@@ -529,7 +481,7 @@ export default function PokerToursPage({ initialTours = [] }) {
         const days = daysMap[dateRange];
         if (!days) return null;
         const cutoff = new Date(now);
-        cutoff.setDate(cutoff.getDate() + days);
+        cutoff.setUTCDate(cutoff.getUTCDate() + days);
         return { start: now, end: cutoff };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, nowTick]);
@@ -643,8 +595,9 @@ export default function PokerToursPage({ initialTours = [] }) {
                 const upcomingSeries = t.upcoming_series || [];
                 for (const s of upcomingSeries) {
                     if (s.start_date) {
-                        const sDate = new Date(s.start_date);
-                        const eDate = s.end_date ? new Date(s.end_date) : sDate;
+                        const sDate = parseCalendarDate(s.start_date);
+                        const eDate = parseCalendarDate(s.end_date) || sDate;
+                        if (!sDate) continue;
                         if (eDate >= rangeStart && sDate <= rangeEnd) return true;
                     }
                 }
@@ -713,7 +666,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
                         if (allStops.length === 0) return '9999-12-31';
                         const parsed = allStops.map(s => parseStopDates(s.dates)).filter(Boolean);
-                        const today = new Date(); today.setHours(0,0,0,0);
+                        const today = pokerCalendarStart();
                         const upcoming = parsed.filter(d => d.end >= today).sort((x, y) => x.start - y.start);
                         if (upcoming.length > 0) return upcoming[0].start.toISOString().split('T')[0];
                         return '9999-12-31';
@@ -733,7 +686,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     // ─── Compute total matching stops across filtered tours ───
     const totalMatchingStops = useMemo(() => {
         let count = 0;
-        const today = new Date(); today.setHours(0,0,0,0);
+        const today = pokerCalendarStart();
         filteredTours.forEach(t => {
             const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
             allStops.forEach(s => {
@@ -748,8 +701,9 @@ export default function PokerToursPage({ initialTours = [] }) {
             // Also count upcoming_series
             (t.upcoming_series || []).forEach(s => {
                 if (s.start_date) {
-                    const sDate = new Date(s.start_date);
-                    const eDate = s.end_date ? new Date(s.end_date) : sDate;
+                    const sDate = parseCalendarDate(s.start_date);
+                    const eDate = parseCalendarDate(s.end_date) || sDate;
+                    if (!sDate) return;
                     if (eDate >= today) {
                         if (!dateRangeCutoff || (eDate >= dateRangeCutoff.start && sDate <= dateRangeCutoff.end)) {
                             count++;
@@ -766,7 +720,7 @@ export default function PokerToursPage({ initialTours = [] }) {
         if (!searchQuery.trim() && !dateRangeCutoff) return null;
         const q = searchQuery.toLowerCase().trim();
         const allStops = [...(tour.stops_2026 || []), ...(tour.series_2026 || [])];
-        const today = new Date(); today.setHours(0,0,0,0);
+        const today = pokerCalendarStart();
         const matched = [];
 
         for (const stop of allStops) {

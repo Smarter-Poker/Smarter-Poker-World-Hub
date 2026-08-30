@@ -65,6 +65,38 @@ export function haversineDistance(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const POKER_CALENDAR_TIME_ZONE = 'America/Chicago';
+
+/**
+ * Tour schedules are calendar dates, not UTC instants. Normalize the current
+ * poker day and date-only API values onto UTC midnight so SSR and browsers in
+ * different time zones compare the same day during hydration.
+ */
+export function getPokerCalendarDateKey(value = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: POKER_CALENDAR_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(value);
+    const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
+export function parseCalendarDate(value) {
+    if (!value) return null;
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+    if (match) {
+        return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function pokerCalendarStart(value = new Date()) {
+    return parseCalendarDate(getPokerCalendarDateKey(value));
+}
+
 // ─── Find venue coordinates by fuzzy name + city fallback ───
 export function findVenueCoords(stop, allVenues) {
     const venueName = (stop.venue || stop.name || '').toLowerCase().trim();
@@ -146,11 +178,11 @@ export function parseStopDates(dateStr) {
         if (m) {
             const month = MONTHS[m[1]];
             if (month === undefined) return null;
-            return new Date(m[3] ? parseInt(m[3]) : defaultYear, month, parseInt(m[2]));
+            return new Date(Date.UTC(m[3] ? parseInt(m[3]) : defaultYear, month, parseInt(m[2])));
         }
         const dayOnly = s.match(/^(\d{1,2})$/);
         if (dayOnly && fallbackMonth !== undefined) {
-            return new Date(defaultYear, fallbackMonth, parseInt(dayOnly[1]));
+            return new Date(Date.UTC(defaultYear, fallbackMonth, parseInt(dayOnly[1])));
         }
         return null;
     };
@@ -159,9 +191,9 @@ export function parseStopDates(dateStr) {
     if (!startDate) return null;
     let endDate = null;
     if (parts.length >= 2) {
-        endDate = parseOne(parts[parts.length - 1], startDate.getMonth());
+        endDate = parseOne(parts[parts.length - 1], startDate.getUTCMonth());
         if (endDate && endDate < startDate && !dateStr.includes('2025')) {
-            endDate.setFullYear(endDate.getFullYear() + 1);
+            endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
         }
     } else {
         endDate = startDate;

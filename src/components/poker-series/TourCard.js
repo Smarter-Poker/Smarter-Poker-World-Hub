@@ -1,5 +1,5 @@
 import React from 'react';
-import { parseStopDates } from '../../utils/tourGeoUtils';
+import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../utils/tourGeoUtils';
 import useTrackedTours from '../../hooks/useTrackedTours';
 
 export const TOUR_COLORS = {
@@ -40,14 +40,9 @@ function formatMoney(amount) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
-    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (parts) {
-        const date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const date = parseCalendarDate(dateStr);
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function safeHref(url) {
@@ -80,7 +75,7 @@ export default function TourCard({
     let series = tour.upcoming_series || [];
     if (series.length === 0) {
         const allStops = [...(tour.stops_2026 || []), ...(tour.series_2026 || [])];
-        const today = new Date(); today.setHours(0,0,0,0);
+        const today = pokerCalendarStart();
         series = allStops.map(s => {
             const parsed = parseStopDates(s.dates);
             if (!parsed || parsed.end < today) return null;
