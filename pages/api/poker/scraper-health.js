@@ -134,6 +134,27 @@ export default async function handler(req, res) {
         // scraper failure signal.
         status = 'anomaly';
         issues.push(`${source}: anomaly detected structurally compromised table counts (${records} tables)`);
+      } else {
+        // Completeness floor: alert if venues drop below ~60% of trailing median
+        try {
+          const { data: metricsData } = await supabase
+            .from('scraper_metrics')
+            .select('venues_scraped')
+            .eq('source', source)
+            .not('venues_scraped', 'is', null)
+            .order('cycle_start', { ascending: false })
+            .limit(15);
+          
+          if (metricsData && metricsData.length > 0) {
+            const trailingVenues = metricsData.map(m => m.venues_scraped).sort((a, b) => a - b);
+            const medianVenues = trailingVenues[Math.floor(trailingVenues.length / 2)];
+            const floor = Math.round(medianVenues * 0.6);
+            if (venues < floor) {
+              status = 'anomaly';
+              issues.push(`${source}: anomaly detected poor completeness (${venues} venues vs trailing median ${medianVenues})`);
+            }
+          }
+        } catch (_) { /* ignore metrics failure */ }
       }
 
       health[source] = {
