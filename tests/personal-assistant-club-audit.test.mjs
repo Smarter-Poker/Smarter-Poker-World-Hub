@@ -326,6 +326,106 @@ await test('skips a complete, current Club Arena audit without repeating solver 
   assert.equal(writes, 0);
 });
 
+await test('does not re-audit recorder rows that contain no hero decision', async () => {
+  const noDecisionSummary = JSON.parse(clubRow.summary);
+  noDecisionSummary.streets.preflop.actions = [
+    { playerId: villainId, type: 'fold', amount: 0 },
+  ];
+  const noDecisionRow = { ...clubRow, id: 'no-hero-decision', summary: JSON.stringify(noDecisionSummary) };
+  let solverQueries = 0;
+  let replacements = 0;
+  const db = {
+    rpc: async () => { replacements += 1; return { data: { success: true }, error: null }; },
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain,
+          order: () => chain,
+          lte: () => chain,
+          or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [noDecisionRow] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = {
+          eq: () => chain,
+          in: () => chain,
+          limit: async () => ({ data: [], error: null }),
+        };
+        return { select: () => chain };
+      }
+      if (table === 'training_question_cache') {
+        solverQueries += 1;
+        throw new Error('A hand without a hero decision must not query the solver cache');
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const result = await syncClubArenaHandsForAudit(db, userId);
+  assert.equal(result.handsFound, 1);
+  assert.equal(result.handsEligible, 0);
+  assert.equal(result.handsSkippedNoHeroDecisions, 1);
+  assert.equal(result.handsAudited, 0);
+  assert.equal(result.decisionsAnalyzed, 0);
+  assert.equal(solverQueries, 0);
+  assert.equal(replacements, 0);
+});
+
+await test('reconciles obsolete decision evidence when a corrected hand has no hero action', async () => {
+  const noDecisionSummary = JSON.parse(clubRow.summary);
+  noDecisionSummary.streets.preflop.actions = [];
+  const noDecisionRow = { ...clubRow, id: 'corrected-no-decision', summary: JSON.stringify(noDecisionSummary) };
+  let replacementArgs = null;
+  const db = {
+    rpc: async (_name, args) => {
+      replacementArgs = args;
+      return { data: { success: true, removed: 1 }, error: null };
+    },
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain,
+          order: () => chain,
+          lte: () => chain,
+          or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [noDecisionRow] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = {
+          eq: () => chain,
+          in: () => chain,
+          limit: async () => ({
+            data: [{ hand_external_id: 'club-arena:corrected-no-decision', solver_verified: true }],
+            error: null,
+          }),
+        };
+        return { select: () => chain };
+      }
+      if (table === 'training_question_cache') throw new Error('No solver lookup expected');
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const result = await syncClubArenaHandsForAudit(db, userId);
+  assert.equal(result.handsEligible, 0);
+  assert.equal(result.handsSkippedNoHeroDecisions, 0);
+  assert.equal(result.handsQueuedForRetry, 1);
+  assert.equal(result.handsAudited, 1);
+  assert.equal(result.obsoleteDecisionsRemoved, 1);
+  assert.deepEqual(replacementArgs.p_rows, []);
+  assert.deepEqual(replacementArgs.p_hand_ids, ['club-arena:corrected-no-decision']);
+});
+
 await test('pages beyond 100 reconciled Club Arena hands and reaches a complete audit', async () => {
   const hands = Array.from({ length: 101 }, (_, index) => ({
     ...clubRow,
