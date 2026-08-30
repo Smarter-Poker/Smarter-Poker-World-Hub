@@ -69,6 +69,9 @@ export default async function handler(req, res) {
       ]);
 
       const stored = storedRes?.data || {};
+      const failedSources = [];
+      if (storedRes?.error) failedSources.push('user_assistant_stats');
+      if (sandboxRes?.error) failedSources.push('sandbox_sessions');
       const sandboxCount = !sandboxRes?.error && typeof sandboxRes?.count === 'number'
         ? sandboxRes.count
         : Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed) || 0;
@@ -88,6 +91,8 @@ export default async function handler(req, res) {
           avgEvLoss: leakStats.avgEvLoss,
         },
         isDemo: false,
+        partial: failedSources.length > 0,
+        failedSources,
         dataSources: {
           sandboxSessions: sandboxRes?.error ? 'stored_fallback' : 'live_count',
           handsAnalyzed: handsAnalyzed > sandboxCount ? 'deterministic_audit_total' : 'sandbox_sessions',
@@ -112,19 +117,21 @@ export default async function handler(req, res) {
 }
 
 /**
- * Aggregate leak counts and average EV loss from user_leaks.
+ * Aggregate leak counts across both leak stores and measured EV loss from
+ * user_leaks. A failed authoritative read must never masquerade as a genuine
+ * zero with isDemo:false.
  * Uses head-count queries so counts never truncate at a row limit.
  * Defensive: returns zeros if the table is missing or queries fail.
  */
 async function getLeakStats(userId) {
   const out = { activeLeaks: 0, resolvedLeaks: 0, avgEvLoss: 0 };
   try {
-    const [activeRes, resolvedRes, evRes] = await Promise.all([
+    const [activeRes, resolvedRes, evRes, trainingActiveRes, trainingResolvedRes] = await Promise.all([
       getSupabase()
         .from('user_leaks')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .neq('status', 'resolved'),
+        .or('status.neq.resolved,status.is.null'),
       getSupabase()
         .from('user_leaks')
         .select('*', { count: 'exact', head: true })
@@ -134,12 +141,26 @@ async function getLeakStats(userId) {
         .from('user_leaks')
         .select('avg_ev_loss_bb')
         .eq('user_id', userId)
-        .neq('status', 'resolved')
+        .or('status.neq.resolved,status.is.null')
         .limit(1000),
+      getSupabase()
+        .from('user_training_leaks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('fixed_at', null),
+      getSupabase()
+        .from('user_training_leaks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .not('fixed_at', 'is', null),
     ]);
 
-    out.activeLeaks = activeRes?.count || 0;
-    out.resolvedLeaks = resolvedRes?.count || 0;
+    const failed = [activeRes, resolvedRes, evRes, trainingActiveRes, trainingResolvedRes]
+      .find(result => result?.error);
+    if (failed) throw failed.error;
+
+    out.activeLeaks = (activeRes?.count || 0) + (trainingActiveRes?.count || 0);
+    out.resolvedLeaks = (resolvedRes?.count || 0) + (trainingResolvedRes?.count || 0);
 
     // avg_ev_loss_bb is stored as a positive loss magnitude (BB/100);
     // the API convention reports EV loss as a negative number.
@@ -152,6 +173,7 @@ async function getLeakStats(userId) {
     }
   } catch (leakErr) {
     console.warn('Leak stats error:', leakErr?.message || leakErr);
+    throw leakErr;
   }
   return out;
 }

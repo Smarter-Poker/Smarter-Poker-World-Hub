@@ -38,6 +38,15 @@ export default async function handler(req, res) {
     }
 
     const result = await auditParsedHands(getSupabase(), user.id, hands, { maxDecisions: 250, persist: true });
+    if (result.persisted === false) {
+      return res.status(503).json({
+        success: false,
+        persisted: false,
+        reason: 'write_failed',
+        error: 'The hand audit completed, but its decision evidence could not be saved.',
+        ...result,
+      });
+    }
     return res.status(200).json({ success: true, ...result });
   } catch (error) {
     try { reportApiError(error, req); } catch (_) { /* reporting must not mask response */ }

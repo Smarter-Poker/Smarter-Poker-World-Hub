@@ -3,6 +3,15 @@ import { gradeSolverDecision } from './solverDecisionEvidence.js';
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
+const MATCHER_VERSION = 'hand-audit-v2';
+const LOOKUP_FAILED_SOURCE = `${MATCHER_VERSION}:lookup-failed`;
+const FORCED_ACTIONS = new Set([
+  'ante', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
+  'return', 'returnedbet', 'refund', 'collect', 'collected', 'payout', 'win', 'wins',
+]);
+const HOLDEM_VARIANTS = new Set([
+  'nl', 'nlh', 'nlhe', 'holdem', 'holdemnl', 'texasholdem', 'nolimit', 'nolimitholdem',
+]);
 const POSITION_MAP = {
   2: ['BTN', 'BB'],
   3: ['BTN', 'SB', 'BB'],
@@ -50,12 +59,13 @@ function cards(value) {
 
 function actionName(action) {
   const raw = String(action?.action || action?.type || '').toLowerCase().replace(/[-_\s]/g, '');
+  if (FORCED_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|returned?bet|refund|collect|payout/.test(raw)) return null;
+  if (/allin|shove|jam/.test(raw)) return 'allin';
   if (raw.startsWith('fold')) return 'fold';
   if (raw.startsWith('check')) return 'check';
   if (raw.startsWith('call')) return 'call';
   if (raw.startsWith('bet')) return 'bet';
   if (raw.startsWith('raise')) return 'raise';
-  if (/allin|shove|jam/.test(raw)) return 'allin';
   return raw || null;
 }
 
@@ -64,6 +74,7 @@ function positionedPlayers(rawPlayers, buttonSeat) {
     id: playerId(player),
     name: player.displayName || player.username || player.name || `Seat ${index + 1}`,
     seat: Number(player.seatIndex ?? player.seat ?? index),
+    stack: Number(player.stack ?? player.stackBB ?? player.chips) || null,
     position: '',
     holeCards: cards(player.holeCards || player.heroCards || player.cards),
   }));
@@ -107,8 +118,9 @@ export function normalizeClubArenaHand(row, userId) {
   const summaryStreets = summary.streets || {};
   const topLevelActions = Array.isArray(row?.actions) ? row.actions : [];
   const streetActions = (street) => {
-    const source = Array.isArray(summaryStreets?.[street]?.actions)
-      ? summaryStreets[street].actions
+    const summaryActions = summaryStreets?.[street]?.actions;
+    const source = Array.isArray(summaryActions) && summaryActions.length > 0
+      ? summaryActions
       : topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
     return source.map(action => ({
       player: action.player || action.playerName || action.username || '',
@@ -143,6 +155,7 @@ export function normalizeClubArenaHand(row, userId) {
       name: heroPlayer?.name || heroRaw.displayName || heroRaw.username || 'Hero',
       position: heroPlayer?.position || heroRaw.position || '',
       holeCards: heroCards,
+      stack: heroPlayer?.stack || Number(heroRaw.stack ?? heroRaw.stackBB ?? heroRaw.chips) || null,
     },
     streets: {
       preflop: { actions: streetActions('preflop') },
@@ -167,7 +180,18 @@ function handNotation(value) {
 }
 
 function canonicalBoard(value) {
+  const normalized = cards(value).map(card => card.toLowerCase());
+  // Flop order is immaterial; turn and river order defines a different node.
+  return [...normalized.slice(0, 3).sort(), ...normalized.slice(3)].join('');
+}
+
+function canonicalCombo(value) {
   return cards(value).map(card => card.toLowerCase()).sort().join('');
+}
+
+function isSupportedHoldemHand(hand) {
+  const raw = String(hand?.variant || hand?.gameVariant || hand?.gameType || '').toLowerCase().replace(/[^a-z]/g, '');
+  return HOLDEM_VARIANTS.has(raw) && cards(hand?.hero?.holeCards).length === 2;
 }
 
 function questionBoard(question) {
@@ -189,9 +213,16 @@ function optionAction(option) {
   return null;
 }
 
-function mapPlayedAction(question, playedAction) {
-  const played = actionName({ action: playedAction });
+function mapPlayedAction(question, point) {
+  const played = actionName({ action: point?.action });
   const matches = (question?.options || []).filter(option => optionAction(option) === played);
+  // A recorded amount without the pot/raise-to context cannot prove that a
+  // b16/b50/r150 solver option was actually chosen. Fail closed on sized
+  // actions until the hand parser supplies a normalized percentage.
+  if (played === 'bet' || played === 'raise') {
+    const sized = matches.some(option => /\d/.test(String(option?.id ?? option)) || /\d+\s*%/.test(String(option?.text ?? option?.label ?? '')));
+    if (sized) return null;
+  }
   return matches.length === 1 ? String(matches[0]?.id ?? matches[0]) : null;
 }
 
@@ -201,6 +232,16 @@ function questionNode(question) {
   if (explicit) return explicit;
   if (String(question?.type || '').toUpperCase() === 'CHART') {
     return /shove|push|all-in/i.test(String(scenario.action || '')) ? 'preflop_facing_raise' : 'preflop_open';
+  }
+  // PIO cache rows predate the explicit nodeType field, but their server-owned
+  // action prompt still identifies whether hero is facing aggression. This is
+  // the same prompt served by Training Arena; infer only the two unambiguous
+  // postflop node classes and leave every other legacy prompt unpriced.
+  const street = String(scenario.street || '').toLowerCase();
+  const action = String(scenario.action || '').toLowerCase();
+  if (street && street !== 'preflop') {
+    if (/villain\s+(bets|raises)|facing\s+(a\s+)?(bet|raise)/.test(action)) return 'hero_faces_bet';
+    if (/villain\s+checks|action\s+is\s+on\s+you|first\s+to\s+act/.test(action)) return 'hero_bets_or_checks';
   }
   return '';
 }
@@ -223,9 +264,32 @@ function fingerprint(question) {
   return JSON.stringify({ frequencies, options, correct: String(question?.correctAnswer || '') });
 }
 
+function exactIdentityCompatible(question, hand, point) {
+  if (!isSupportedHoldemHand(hand)) return false;
+  const scenario = question?.scenario || {};
+
+  // Concrete suits/blockers matter postflop. Notation alone (e.g. JTs) is not
+  // sufficient evidence on a board containing those suits.
+  if (point.street !== 'preflop') {
+    const questionCards = question?.heroCards || scenario.heroCards;
+    if (!Array.isArray(questionCards) || canonicalCombo(questionCards) !== canonicalCombo(point.holeCards)) return false;
+  }
+
+  const questionPlayers = Number(scenario.tableSize ?? scenario.playerCount ?? scenario.numPlayers);
+  if (Number.isFinite(questionPlayers) && questionPlayers > 0 && Number(hand?.tableSize) !== questionPlayers) return false;
+
+  const questionStack = Number(scenario.stackDepth ?? scenario.effectiveStack);
+  if (Number.isFinite(questionStack) && questionStack > 0) {
+    const heroStack = Number(hand?.hero?.stack);
+    if (!Number.isFinite(heroStack) || Math.abs(heroStack - questionStack) > 1) return false;
+  }
+
+  return true;
+}
+
 async function findQuestion(db, hand, point) {
   const notation = handNotation(point.holeCards);
-  if (!point.position || !notation) return null;
+  if (!point.position || !notation || !isSupportedHoldemHand(hand)) return null;
   const prefix = hand.format === 'tournament' ? 'mtt-%' : 'cash-%';
   const { data, error } = await db
     .from('training_question_cache')
@@ -242,7 +306,8 @@ async function findQuestion(db, hand, point) {
     return String(heroHand || '').toUpperCase() === notation.toUpperCase() && nodeCompatible(question, point);
   }).map(row => {
     const candidateBoard = questionBoard(row.question_data);
-    const exact = canonicalBoard(candidateBoard) === requestedBoard;
+    const exact = canonicalBoard(candidateBoard) === requestedBoard
+      && exactIdentityCompatible(row.question_data, hand, point);
     const flopMatch = point.board.length > 3 && canonicalBoard(candidateBoard.slice(0, 3)) === canonicalBoard(point.board.slice(0, 3));
     return { ...row, matchTier: exact ? 1 : flopMatch ? 2 : 3 };
   }).sort((a, b) => a.matchTier - b.matchTier || String(a.question_id).localeCompare(String(b.question_id)));
@@ -288,6 +353,7 @@ export async function auditParsedHands(db, userId, hands, {
   const work = [];
   let matched = 0;
   let verified = 0;
+  let solverLookupFailures = 0;
   let truncated = false;
 
   for (const [handIndex, hand] of (hands || []).entries()) {
@@ -295,7 +361,11 @@ export async function auditParsedHands(db, userId, hands, {
     analyses.push(analysis);
     for (const [index, point] of getHeroDecisionPoints(hand).slice(0, 12).entries()) {
       if (work.length >= maxDecisions) { truncated = true; break; }
-      const signature = [hand.format, point.street, point.position, point.nodeClass, handNotation(point.holeCards), canonicalBoard(point.board)].join('|');
+      const signature = [
+        hand.format, hand.gameType, hand.tableSize, hand.hero?.stack,
+        point.street, point.position, point.nodeClass, handNotation(point.holeCards),
+        canonicalCombo(point.holeCards), canonicalBoard(point.board), point.action, point.amount,
+      ].join('|');
       work.push({ hand, handIndex, index, point, signature });
     }
     if (truncated) break;
@@ -310,13 +380,16 @@ export async function auditParsedHands(db, userId, hands, {
     try { candidateCache.set(signature, await findQuestion(db, hand, point) || false); }
     catch (error) {
       console.warn('[HandAudit] Solver question lookup failed:', error.message);
-      candidateCache.set(signature, false);
+      candidateCache.set(signature, LOOKUP_FAILED_SOURCE);
     }
   });
 
   for (const { hand, handIndex, index, point, signature } of work) {
-      const candidate = candidateCache.get(signature) || null;
-      const answer = candidate ? mapPlayedAction(candidate.question_data, point.action) : null;
+      const cached = candidateCache.get(signature);
+      const lookupFailed = cached === LOOKUP_FAILED_SOURCE;
+      const candidate = !lookupFailed && cached ? cached : null;
+      if (lookupFailed) solverLookupFailures += 1;
+      const answer = candidate ? mapPlayedAction(candidate.question_data, point) : null;
       const grade = answer ? gradeSolverDecision(candidate.question_data, answer) : null;
       const solverVerified = !!(grade?.solverVerified && candidate?.matchTier === 1);
       if (candidate) matched++;
@@ -345,7 +418,9 @@ export async function auditParsedHands(db, userId, hands, {
         ev_loss: solverVerified ? grade.evLoss : null,
         ev_loss_measured: solverVerified && !!grade.evLossMeasured,
         solver_verified: solverVerified,
-        solver_source: candidate?.question_data?.source || null,
+        solver_source: lookupFailed
+          ? LOOKUP_FAILED_SOURCE
+          : (solverVerified ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}` : candidate?.question_data?.source || null),
         match_tier: candidate?.matchTier || null,
         audited_at: now,
         updated_at: now,
@@ -376,6 +451,8 @@ export async function auditParsedHands(db, userId, hands, {
     solverMatches: matched,
     solverVerified: verified,
     unpriced: rows.length - verified,
+    solverLookupFailures,
+    complete: solverLookupFailures === 0 && persisted,
     truncated,
     maxDecisions,
     analyses,
@@ -405,7 +482,7 @@ async function fetchExistingAuditRows(db, userId, externalIds) {
   for (let index = 0; index < externalIds.length; index += EXISTING_AUDIT_BATCH_SIZE) {
     const batch = externalIds.slice(index, index + EXISTING_AUDIT_BATCH_SIZE);
     const result = await db.from('hand_audit_decisions')
-      .select('hand_external_id, solver_verified, classification, audited_at, updated_at')
+      .select('hand_external_id, solver_verified, solver_source, classification, audited_at, updated_at')
       .eq('user_id', userId)
       .in('hand_external_id', batch)
       .limit(batch.length * MAX_DECISIONS_PER_HAND);
@@ -483,9 +560,12 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
     const hasUntrustedClassification = rows.some(row =>
       row.solver_verified !== true && row.classification !== 'unpriced');
+    const hasLegacyVerification = rows.some(row =>
+      row.solver_verified === true && !String(row.solver_source || '').includes(`|${MATCHER_VERSION}`));
+    const hasLookupFailure = rows.some(row => row.solver_source === LOOKUP_FAILED_SOURCE);
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
     const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
-    if (partialAudit || hasUntrustedClassification || staleUnpricedAudit) {
+    if (partialAudit || hasUntrustedClassification || hasLegacyVerification || hasLookupFailure || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;
     }
@@ -503,6 +583,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     decisionsAnalyzed: result.decisionsAnalyzed,
     solverVerified: result.solverVerified,
     unpriced: result.unpriced,
+    solverLookupFailures: result.solverLookupFailures,
+    complete: result.complete,
     persisted: result.persisted,
     truncated: result.truncated,
   };
