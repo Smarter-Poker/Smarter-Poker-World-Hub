@@ -113,7 +113,10 @@ The Phase 11 base PR was repeatedly blocked by Supabase's transient
 `PGRST303: JWT issued at future` response. The shared dependency-free CI fetcher
 now retries only that exact clock-skew body. Other 401/PGRST303 authentication
 failures still fail immediately. The minimal fix was pushed directly to the Phase
-11 PR branch before this larger phase continued.
+11 PR branch before this larger phase continued. Phase 12 CI then demonstrated
+that three full schema timeouts could consume the original four-minute wall-clock
+budget before a fifth recovery attempt. The bounded total budget is now six minutes,
+still below the seven-attempt theoretical maximum and within the 20-minute job cap.
 
 ## Verification record
 

@@ -113,6 +113,7 @@ test('snapshot refresh and parity checks fail closed on degraded or drifting sou
   assert.match(check, /drift exceeds budget/);
   assert.match(resilientFetch, /PGRST303/);
   assert.match(resilientFetch, /jwt issued at future/);
+  assert.match(resilientFetch, /TOTAL_BUDGET_MS = 360_000/);
   assert.equal(manifest.metadata.source_count, manifest.venues.length);
   assert.ok(manifest.metadata.source_candidate_count >= manifest.metadata.source_count);
 });

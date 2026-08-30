@@ -1389,7 +1389,7 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Regional rendered system | Four purpose-built fictional Pacific, Southwest, Heartland, and Atlantic #SmarterCasinoRealism WebPs propagate to 342 current state/city routes with route-specific social previews. |
 | Accessibility + mobile | Axe, keyboard skip navigation, 390×844, 200% zoom, zero overflow, and effective 44px tutorial/search/retry targets are permanently covered. |
 | False-empty resilience | A live zero projection degrades only when matching snapshot rows exist, eliminating false state-page 404s without inventing genuinely empty locations. |
-| CI clock-skew unblock | Shared CI transport now retries only `PGRST303` + `JWT issued at future`; other authentication failures remain fail-fast. |
+| CI clock-skew unblock | Shared CI transport retries only `PGRST303` + `JWT issued at future`; other authentication failures remain fail-fast. Its six-minute wall-clock budget now permits recovery after three full schema timeouts without exceeding the release job cap. |
 
 **Current coverage:** 11 discovery routes plus one national, 40 state, and 302 city routes (354 directory-driven URLs), the public directory API, and the cinematic lobby.
 
