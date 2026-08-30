@@ -10,6 +10,7 @@ import { createClient as createServerClient } from '../../../src/lib/supabaseSer
 
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
 const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
+const BUILD_CATALOG_TIMEOUT_MS = 5_000;
 const STATIC_DETAIL_IMAGES = {
   'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.png'],
   'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.png'],
@@ -54,7 +55,7 @@ function staticProduct(product) {
   };
 }
 
-async function catalogProduct(productId) {
+async function catalogProduct(productId, signal) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
@@ -65,6 +66,7 @@ async function catalogProduct(productId) {
     .select('id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata')
     .eq('id', productId)
     .eq('is_active', true)
+    .abortSignal(signal)
     .maybeSingle();
   if (error || !item) return null;
 
@@ -74,6 +76,7 @@ async function catalogProduct(productId) {
         .select('id, sku, size, color, price_usd, price_diamonds, stock, sort_order, metadata')
         .eq('item_id', productId)
         .eq('is_active', true)
+        .abortSignal(signal)
         .order('sort_order', { ascending: true })
     : { data: [], error: null };
   if (variantError) return null;
@@ -272,10 +275,17 @@ export async function getStaticProps({ params }) {
   }
 
   let product = null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), BUILD_CATALOG_TIMEOUT_MS);
   try {
-    product = await catalogProduct(productId);
+    product = await catalogProduct(productId, controller.signal);
   } catch (error) {
-    console.warn('[merch-product-detail] Live catalog lookup failed:', error?.message || error);
+    const reason = error?.name === 'AbortError'
+      ? `exceeded ${BUILD_CATALOG_TIMEOUT_MS}ms`
+      : error?.message || error;
+    console.warn('[merch-product-detail] Live catalog lookup failed:', reason);
+  } finally {
+    clearTimeout(timeout);
   }
   product ||= staticProduct(MERCHANDISE.find((item) => item.id === productId));
   return product
