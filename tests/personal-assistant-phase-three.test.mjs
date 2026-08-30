@@ -64,7 +64,9 @@ test('review and drill routes carry idempotency and exact-game contracts', () =>
   assert.match(reviewApi, /reason: 'review_id_required'/);
   assert.match(reviewApi, /outcome\.reviewId is invalid/);
   assert.match(reviewApi, /idempotent: true/);
-  assert.match(drillApi, /query = query\.eq\('game_id', gameId\)/);
+  assert.match(drillApi, /const gameIds = gameIdAliases\(gameId\)/);
+  assert.match(drillApi, /query = query\.in\('game_id', gameIds\)/);
+  assert.match(drillApi, /matchesExactSolverScope/);
   assert.match(drillUi, /outcome = \{ correct, total, reviewId \}/);
   assert.match(drillUi, /pa-leak-review-v2/);
   assert.match(leaksUi, /pa-leak-review-v2/);
