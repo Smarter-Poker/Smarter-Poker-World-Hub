@@ -23,6 +23,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       expect(html).toContain(`rel="canonical" href="https://smarter.poker${route.path}"`);
       expect(html).toContain(route.heading);
       expect(html).toContain(route.hero);
+      expect(html).toContain('data-marketplace-header-reserve="true"');
     }
   });
 
@@ -632,5 +633,109 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       );
       expect(undersized).toEqual([]);
     }
+  });
+
+  test('Club Shop operators delete through one guarded in-page dialog', async ({ page }) => {
+    const userId = '00000000-0000-4000-8000-000000000020';
+    const clubId = '00000000-0000-4000-8000-000000000021';
+    const itemId = '00000000-0000-4000-8000-000000000022';
+    await page.addInitScript(({ id }) => {
+      const user = { id, email: 'phase20@example.test', role: 'authenticated' };
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'phase-20-access-token',
+        refresh_token: 'phase-20-refresh-token',
+        expires_at: 4102444800,
+        expires_in: 2147483647,
+        token_type: 'bearer',
+        user,
+      }));
+    }, { id: userId });
+
+    await page.route('**/rest/v1/profiles?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        is_vip: false,
+        vip_tier: null,
+        vip_expires_at: null,
+        diamonds: 5000,
+        diamond_multiplier: 1,
+      }),
+    }));
+    await page.route('**/rest/v1/club_members?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ club_id: clubId }),
+    }));
+    await page.route('**/rest/v1/club_shop_items?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        id: itemId,
+        club_id: clubId,
+        name: 'Phase 20 Time Bank',
+        description: 'Operator dialog test item',
+        price: 500,
+        image_url: null,
+        category: 'Time Banks',
+        is_active: true,
+      }]),
+    }));
+    await page.route('**/rest/v1/club_shop_purchases?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.route('**/api/club-arena/marketplace-items?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        role: 'owner',
+        balance: 5000,
+        items: [{
+          id: itemId,
+          name: 'Phase 20 Time Bank',
+          description: 'Operator dialog test item',
+          price: 500,
+          category: 'Time Banks',
+        }],
+        purchases: [],
+      }),
+    }));
+
+    let deleteRequests = 0;
+    await page.route('**/api/club-arena/shop-items', async (route) => {
+      const payload = route.request().postDataJSON();
+      if (payload.action === 'delete') deleteRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 75));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    await page.goto('/hub/club-shop', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Manage' }).click();
+    const deleteButton = page.getByRole('button', { name: 'Delete' });
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+
+    let dialog = page.getByRole('dialog', { name: 'Remove Club Shop Item?' });
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(deleteButton).toBeFocused();
+
+    await deleteButton.click();
+    dialog = page.getByRole('dialog', { name: 'Remove Club Shop Item?' });
+    const removeButton = dialog.getByRole('button', { name: 'Remove Item' });
+    await removeButton.evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    await expect(dialog).toBeHidden();
+    expect(deleteRequests).toBe(1);
   });
 });

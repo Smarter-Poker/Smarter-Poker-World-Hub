@@ -11,6 +11,21 @@
   --store-gold: #d7aa31;
 }
 
+/* The storefront header is intentionally client-only because it reads cached
+   identity state. Reserve and paint its exact approved-art footprint in the
+   server response so hydration never begins with a blank top frame or shifts
+   the entire marketplace down when the header chunk arrives. */
+.globalHeaderReserve {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-sizing: content-box;
+  width: 100%;
+  aspect-ratio: 1648 / 168;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: #000 url('/images/global-header/global-header-desktop.png') center / contain no-repeat;
+}
+
 .loadingPanel {
   min-height: 280px;
   display: grid;
