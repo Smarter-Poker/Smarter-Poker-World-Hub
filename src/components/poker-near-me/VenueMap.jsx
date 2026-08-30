@@ -18,7 +18,9 @@ import React, { useRef, useState, useEffect, useCallback, useId } from 'react';
 import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
+import MapCoverageReadout from './MapCoverageReadout';
 import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
@@ -208,6 +210,7 @@ const LEAFLET_CUSTOM_CSS = `
   max-height: 180px;
   overflow: visible;
 }
+.venue-map-legend--coverage { bottom: 92px; }
 .venue-map-legend-title {
   font-size: 10px;
   font-weight: 700;
@@ -601,8 +604,15 @@ function buildPopupHtml(venue) {
 export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, clusterTourStops = false, isFavorited }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [visibleCount, setVisibleCount] = useState(0);
+  const [viewportCount, setViewportCount] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(0);
+  const [mapLoadMs, setMapLoadMs] = useState(null);
   const mapContainerRef = useRef(null);
   const mountedRef = useRef(true);
+  const venuesRef = useRef(venues || []);
+  const loadStartedAtRef = useRef(Date.now());
+  const telemetrySentRef = useRef(false);
+  venuesRef.current = venues || [];
 
   // Unconditional unmount handler for background polling safety
   useEffect(() => {
@@ -856,8 +866,21 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
     map.on('zoomend', updateCircles);
     map.on('zoomend', updateLabelVisibility);
+    function updateCoverage() {
+      const bounds = map.getBounds();
+      const count = venuesRef.current.filter(function(venue) {
+        const lat = Number(venue && venue.latitude);
+        const lng = Number(venue && venue.longitude);
+        return Number.isFinite(lat) && Number.isFinite(lng) && !venue.hideOnMap && bounds.contains([lat, lng]);
+      }).length;
+      setViewportCount(count);
+      setZoomLevel(map.getZoom());
+    }
+    map.on('moveend', updateCoverage);
+    map.on('zoomend', updateCoverage);
     // Set initial label visibility
     updateLabelVisibility();
+    updateCoverage();
 
     // ═══ SHOW USER LOCATION PIN IMMEDIATELY IF AVAILABLE ═══
     if (userLocation) {
@@ -1063,6 +1086,25 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     });
     addPokerMapLayers(clusterGroup, clusteredMarkers);
     addPokerMapLayers(tourLayer, tourMarkers);
+    const bounds = mapInstanceRef.current.getBounds();
+    setViewportCount(validVenues.filter(function(venue) {
+      return bounds.contains([Number(venue.latitude), Number(venue.longitude)]);
+    }).length);
+    setZoomLevel(mapInstanceRef.current.getZoom());
+    if (!telemetrySentRef.current) {
+      telemetrySentRef.current = true;
+      const duration = Math.max(0, Date.now() - loadStartedAtRef.current);
+      setMapLoadMs(duration);
+      capturePokerNearMeEvent('map_runtime_ready', {
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        surface: 'venue_map',
+        result_count: validVenues.length,
+        duration_ms: duration,
+        clustering: disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback',
+        runtime_source: 'local',
+        zoom_level: mapInstanceRef.current.getZoom(),
+      });
+    }
   // [VM2 FIX] Added isFavorited and userLocation to deps — missing caused:
   //   - Favorites gold ring never appearing after a favorite action
   //   - Distance/nearest venue not recomputing when GPS location resolves
@@ -1195,7 +1237,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         aria-busy={!mapReady}
         data-map-ready={mapReady ? 'true' : 'false'}
         data-map-marker-count={visibleCount}
+        data-map-visible-count={viewportCount}
+        data-map-zoom={Math.round(zoomLevel)}
+        data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={disableClustering ? 'disabled' : clusteringAvailable ? 'available' : 'fallback'}
+        data-map-style-source="local"
         tabIndex={0}
         style={{
           width: '100%',
@@ -1217,7 +1263,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
         // stop and keyboard activation. Kept as a div (not a button) so the existing
         // .venue-map-legend layout and its block-level children stay valid.
-        <div className="venue-map-legend" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+        <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
           role="button"
           tabIndex={0}
           aria-expanded={!legendCollapsed}
@@ -1244,12 +1290,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         <MapPreferenceChooser position="top-right" />
       )}
 
-      {/* Visible venue count badge */}
-      {mapReady && visibleCount > 0 && (
-        <div className="map-venue-count-badge">
-          {visibleCount} Venue{visibleCount !== 1 ? 's' : ''}
-        </div>
-      )}
+      <MapCoverageReadout
+        total={visibleCount}
+        visible={viewportCount}
+        zoom={zoomLevel}
+        ready={mapReady}
+        clustering={!disableClustering && clusteringAvailable && visibleCount >= 20}
+        gps={!!userLocation}
+      />
     </div>
   );
 }

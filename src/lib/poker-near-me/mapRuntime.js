@@ -1,15 +1,15 @@
 const LEAFLET_STYLES = Object.freeze([
   {
     id: 'leaflet',
-    href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+    href: '/vendor/leaflet/leaflet.css',
   },
   {
     id: 'marker-cluster',
-    href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+    href: '/vendor/leaflet/MarkerCluster.css',
   },
   {
     id: 'marker-cluster-default',
-    href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+    href: '/vendor/leaflet/MarkerCluster.Default.css',
   },
 ]);
 
@@ -35,8 +35,8 @@ function ensureStylesheet({ id, href }) {
 
 /**
  * Load the map engine once per browser session from the repository's pinned
- * npm packages. Only CSS remains a remote, cacheable asset; executable map
- * code no longer depends on a third-party CDN being available.
+ * npm packages. Styles and their image assets are vendored under /public, so
+ * the controls and clusters remain usable even when third-party CDNs fail.
  */
 export async function loadPokerMapRuntime() {
   if (typeof window === 'undefined') throw new Error('Poker map runtime is browser-only');
@@ -102,6 +102,7 @@ export function addPokerMapLayers(layer, markers) {
 
 export const pokerMapRuntimeContract = Object.freeze({
   executableSource: 'local-npm',
+  styleSource: 'local-public',
   chunkedLoading: true,
   densityAwareClustering: true,
 });

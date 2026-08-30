@@ -10,6 +10,7 @@
  *   tournaments - if 'true', only venues with has_tournaments=true
  *   search     - search by name, city, address, or state (case-insensitive)
  *   lat + lng + radius (default 100mi) - GPS-based search with Haversine distance
+ *   north + south + east + west - return only mapped venues inside a map viewport
  *   limit      - max results (default: all, no cap)
  *   featured   - if 'true', only featured venues
  */
@@ -23,6 +24,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // emitted raw from this (public, unauthenticated) endpoint.
 import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
+import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 
 let _supabase = null;
 function getSupabase() {
@@ -695,6 +697,7 @@ export default async function handler(req, res) {
   // failure with the entire nationwide list.
   let requestFilters = null;
   let requestMaxResults = 1000;
+  let requestViewportBounds = null;
   try {
     // CDN cache: fresh for 120s, serve stale up to 600s
     if (req.method === 'GET') {
@@ -744,6 +747,11 @@ export default async function handler(req, res) {
           const hasNLH = safeStr(_hasNLH);
           const hasPLO = safeStr(_hasPLO);
           const hasMixed = safeStr(_hasMixed);
+          const { bounds: viewportBounds, error: viewportError } = parsePokerMapBounds(req.query);
+          if (viewportError) {
+              return res.status(400).json({ success: false, error: viewportError });
+          }
+          requestViewportBounds = viewportBounds;
           // user_state: optional 2-letter state code derived from GPS label on client (e.g. 'IL')
           // Used to include no-coordinate venues from the same state when GPS browsing.
           const user_state = safeStr(req.query.user_state);
@@ -1103,6 +1111,18 @@ export default async function handler(req, res) {
                               q = q.or(`name.ilike.%${sanitizedSearch}%,city.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%,state.ilike.%${sanitizedSearch}%`);
                           }
                       }
+                  }
+
+                  // Apply viewport coordinates before pagination so a dense national
+                  // directory cannot consume the 1,000-row window before the selected
+                  // city/region is reached. The in-memory filter below remains the
+                  // canonical guard for JSON, social-page, and home-game merges.
+                  if (viewportBounds) {
+                      q = q.gte('latitude', viewportBounds.south)
+                          .lte('latitude', viewportBounds.north);
+                      q = viewportBounds.east >= viewportBounds.west
+                          ? q.gte('longitude', viewportBounds.west).lte('longitude', viewportBounds.east)
+                          : q.or(`longitude.gte.${viewportBounds.west},longitude.lte.${viewportBounds.east}`);
                   }
 
                   // No artificial cap — return ALL venues
@@ -1759,6 +1779,14 @@ export default async function handler(req, res) {
               }
           }
 
+          // Map-area requests deliberately exclude rows without coordinates: they
+          // cannot be represented inside a viewport. Home-game coordinates have
+          // already passed through the existing stable privacy jitter before this
+          // public filter runs, so the bounds contract never exposes raw addresses.
+          if (viewportBounds) {
+              venues = venues.filter(venue => isVenueWithinPokerMapBounds(venue, viewportBounds));
+          }
+
           // --- Single venue by ID: attach daily tournament schedules + venue news ---
           if (id && venues.length > 0) {
               const venue = venues[0];
@@ -2269,6 +2297,7 @@ export default async function handler(req, res) {
               total,
               total_home_groups: homeGroupsOut.length,
               hasGpsData: hasGps,
+              viewport: viewportBounds,
               offset,
           });
       } catch (error) {
@@ -2290,6 +2319,7 @@ export default async function handler(req, res) {
           let fallbackVenues = [];
           try {
               fallbackVenues = applyFilters(getJsonVenues(), requestFilters || {})
+                  .filter(venue => isVenueWithinPokerMapBounds(venue, requestViewportBounds))
                   .slice(0, requestMaxResults)
                   .map(v => ({ ...v }));
           } catch (fallbackErr) {
@@ -2305,6 +2335,7 @@ export default async function handler(req, res) {
               total: fallbackVenues.length,
               total_home_groups: 0,
               hasGpsData: false,
+              viewport: requestViewportBounds,
           });
       }
 

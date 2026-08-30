@@ -77,6 +77,12 @@ export function capturePokerNearMeEvent(event, properties = {}) {
     metric_label: safeText(properties.metric_label, 40) || undefined,
     metric_rating: safeText(properties.metric_rating, 24) || undefined,
     metric_value: Number.isFinite(Number(properties.metric_value)) ? Number(properties.metric_value) : undefined,
+    duration_ms: Number.isFinite(Number(properties.duration_ms)) ? Math.max(0, Math.round(Number(properties.duration_ms))) : undefined,
+    marker_count: Number.isFinite(Number(properties.marker_count ?? properties.result_count)) ? Math.max(0, Math.round(Number(properties.marker_count ?? properties.result_count))) : undefined,
+    visible_count: Number.isFinite(Number(properties.visible_count)) ? Math.max(0, Math.round(Number(properties.visible_count))) : undefined,
+    zoom_level: Number.isFinite(Number(properties.zoom_level)) ? Math.max(0, Math.round(Number(properties.zoom_level))) : undefined,
+    clustering: safeText(properties.clustering, 24) || undefined,
+    runtime_source: safeText(properties.runtime_source, 24) || undefined,
   };
   capture(`pnm_${safeText(event, 60).replace(/[^a-z0-9_]+/gi, '_').toLowerCase()}`, safeProperties);
 }
