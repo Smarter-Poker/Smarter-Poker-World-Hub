@@ -49,7 +49,7 @@ test('location hierarchy emits CollectionPage, breadcrumbs, and typed venue resu
   const schema = buildLocationDirectorySchema({
     title: 'Poker Rooms in Austin, Texas',
     description: 'Verified poker rooms in Austin.',
-    canonical: 'https://smarter.poker/hub/poker-near-me/in/texas/austin',
+    canonical: 'https://smarter.poker/hub/poker-near-me/in/tx/austin',
     stateCode: 'TX',
     stateName: 'Texas',
     city: 'Austin',
@@ -60,7 +60,7 @@ test('location hierarchy emits CollectionPage, breadcrumbs, and typed venue resu
   const graph = schema['@graph'];
   assert.equal(graph[0]['@type'], 'CollectionPage');
   assert.equal(graph[1]['@type'], 'BreadcrumbList');
-  assert.equal(graph[1].itemListElement[2].item, 'https://smarter.poker/hub/poker-near-me/in/texas');
+  assert.equal(graph[1].itemListElement[2].item, 'https://smarter.poker/hub/poker-near-me/in/tx');
   assert.equal(graph[2]['@type'], 'ItemList');
   assert.equal(graph[2].itemListElement[0].item['@type'], 'SportsActivityLocation');
   assert.equal(graph[2].itemListElement[0].item.address.addressLocality, 'Austin');
