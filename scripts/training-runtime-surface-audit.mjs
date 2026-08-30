@@ -15,6 +15,10 @@ const storedAuth = JSON.parse(readFileSync(AUTH_STATE, 'utf8'));
 const authLocalStorage = storedAuth.origins.find((origin) => (
   new URL(origin.origin).hostname === new URL(BASE_URL).hostname
 ))?.localStorage || storedAuth.origins[0]?.localStorage || [];
+const storedAuthSession = JSON.parse(
+  authLocalStorage.find((item) => item.name === 'smarter-poker-auth')?.value || 'null'
+);
+assert.ok(storedAuthSession?.user?.id, 'runtime audit requires an authenticated test-user storage state');
 const catalogSource = readFileSync(join(ROOT, 'src/data/TRAINING_LIBRARY.js'), 'utf8');
 const catalogBlock = catalogSource.match(/export const TRAINING_LIBRARY = \[([\s\S]*?)\n\];/)?.[1] || '';
 const catalogGames = [...catalogBlock.matchAll(
@@ -98,6 +102,27 @@ function mockQuestions(gameId, count) {
 }
 
 async function installRuntimeMocks(context) {
+  // The checked-in storage state proves the guarded client path, but its
+  // one-time refresh token cannot be replayed across hundreds of disposable
+  // contexts. Keep this audit hermetic: refresh/user reads return the same
+  // test identity with a short-lived, audit-local expiry and never contact the
+  // production auth service. Production sign-in is verified separately by the
+  // authenticated deployment smoke suite.
+  const auditSession = {
+    ...storedAuthSession,
+    expires_in: 60 * 60,
+    expires_at: Math.floor(Date.now() / 1000) + (60 * 60),
+  };
+  await context.route('**/auth/v1/token?grant_type=refresh_token', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(auditSession),
+  }));
+  await context.route('**/auth/v1/user', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(auditSession.user),
+  }));
   await context.route('**/api/games/**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',

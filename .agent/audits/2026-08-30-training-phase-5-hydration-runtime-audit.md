@@ -51,6 +51,8 @@ The new Supabase secret-key gateway intermittently produced `JWT issued at futur
 
 The PostgreSQL path is constrained to `training_question_cache`, `solved_spots_gold`, and `memory_charts_gold`, uses allowlisted identifiers, exposes only SELECT-shaped query methods, and sets `default_transaction_read_only=on`. It cannot mutate production data.
 
+The browser matrix also no longer replays an expired one-time refresh token into the live authentication service. Its disposable contexts mock only the test-user refresh and user reads, while Training endpoints retain their explicit deterministic fixtures. This prevents a 428-surface wiring audit from generating production authentication traffic or reporting a false application failure after the shared saved session expires. Production password sign-in remains a separate, mandatory release check.
+
 ## Verification Results
 
 ### Live Production-Source Question Matrix
@@ -80,7 +82,7 @@ The PostgreSQL path is constrained to `training_question_cache`, `solved_spots_g
 
 ### Regression And Build Gates
 
-- 38 focused auth, question-integrity, and runtime-wiring tests passed.
+- 39 focused auth, question-integrity, and runtime-wiring tests passed.
 - All authored Training questions passed the static question contract.
 - Manual Next feedback invariants passed.
 - The authenticated login setup regression passed after the cold-service timeout correction.
