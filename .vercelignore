@@ -45,14 +45,37 @@ data/pokeratlas-logs/
 .ocr/
 
 # ── Database migrations (executed separately via Supabase) ────
-# The marketplace build contract reads two migrations as deployment evidence.
-# Keep only those inputs; the migration tree remains excluded otherwise.
+# The marketplace build contract reads a handful of migrations as deployment
+# evidence. Keep only those inputs; the migration tree remains excluded
+# otherwise.
+#
+# THIS ALLOWLIST IS PART OF THE BUILD (2026-08-30). It is not a tidiness
+# setting: every file NOT named here is absent from the Vercel upload, so a
+# test that reads one fails with ENOENT on the build machine while passing
+# perfectly on every developer's laptop, where the whole tree exists. That is
+# the least obvious failure mode in this repo.
+#
+# It took down PRODUCTION DEPLOYS FOR THE WHOLE PLATFORM for ~30 minutes
+# today. `__tests__/diamond-store-phase-15.test.mjs` grew two new migration
+# reads; both files were committed, both were applied to Supabase, and
+# neither was added here. Three consecutive production builds went to ERROR:
+#
+#   Error: ENOENT: no such file or directory, open
+#     '/vercel/path0/supabase/migrations/20260830100000_card_commerce_settlement_hardening.sql'
+#
+# Nothing after that could publish - not the marketplace change that caused
+# it, not the Club Arena bundle behind it, not anything.
+#
+# SO: if you add a migration read to a build-time test, ADD THE FILE HERE IN
+# THE SAME COMMIT. The test passing locally proves nothing about the build.
 /supabase/*
 !/supabase/migrations/
 /supabase/migrations/*
 !/supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql
 !/supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql
 !/supabase/migrations/20260830040000_atomic_diamond_merch_orders.sql
+!/supabase/migrations/20260830100000_card_commerce_settlement_hardening.sql
+!/supabase/migrations/20260830130000_commerce_refund_replay_guards.sql
 /database/
 /migrations/
 /sql/
