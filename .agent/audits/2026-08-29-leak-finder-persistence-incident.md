@@ -111,3 +111,10 @@ signals remain visibly unpriced and no longer manufacture `0.00 BB`, pseudo
 frequencies, or total-loss claims. Regression coverage exercises reordered
 boards, Omaha, blockers/suits, ambiguous sizing, forced actions, lookup
 failures, provenance, lifecycle transitions, and both persistence stores.
+
+Authenticated production acceptance found one final backward-compatibility
+case: solver leaks saved before matcher v2 retained `avg_ev_loss_bb = 0` as an
+unmeasured sentinel. New writes correctly use null, but those historical rows
+still rendered `-0.00 BB`. The display contract now treats an unmeasured zero
+from `solver_engine` or `training_solver` as unpriced, while leaving genuinely
+priced live-stat leaks unchanged.
