@@ -191,3 +191,26 @@ test('a missing test password fails loudly instead of skipping', () => {
         'the auth setup skips when it cannot sign in - the suite would then pass without ever being logged in'
     );
 });
+
+test('the authenticated E2E gate can finish and report without masking test results', () => {
+    const workflow = fs.readFileSync(path.join(WORKFLOWS, 'e2e-tests.yml'), 'utf8');
+
+    const timeout = workflow.match(/timeout-minutes:\s*(\d+)/);
+    assert.ok(timeout, 'the E2E workflow has no explicit job timeout');
+    assert.ok(
+        Number(timeout[1]) >= 60,
+        `the E2E job timeout is ${timeout[1]} minutes; the authenticated 637-test matrix ` +
+            'exceeded the former 30-minute cap before it could publish a result'
+    );
+
+    assert.match(
+        workflow,
+        /permissions:\s*\n\s+contents:\s*read\s*\n\s+issues:\s*write/,
+        'the E2E workflow cannot post its PR result with the default read-only token'
+    );
+    assert.match(
+        workflow,
+        /- name: Report results to PR[\s\S]*?continue-on-error:\s*true[\s\S]*?uses: actions\/github-script@v7/,
+        'a PR-comment outage can mask the browser suite result by failing the reporting step'
+    );
+});
