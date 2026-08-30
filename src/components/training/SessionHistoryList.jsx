@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
     const [sessions, setSessions] = useState([]);
@@ -14,11 +14,8 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
     const fetchSessions = useCallback(async () => {
         if (!userId || !gameId) { setLoading(false); return; }
         try {
-            const token = getSessionToken();
             const params = new URLSearchParams({ gameId, limit: limit.toString() });
-            const res = await fetch(`/api/training/get-sessions?${params}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            });
+            const res = await authedFetch(`/api/training/get-sessions?${params}`);
             const data = await res.json();
             if (data.success && data.sessions) {
                 setSessions(data.sessions);

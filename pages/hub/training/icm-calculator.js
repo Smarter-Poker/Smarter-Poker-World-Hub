@@ -463,10 +463,6 @@ export default function ICMCalculatorPage() {
           name="description"
           content="Tournament ICM equity calculator. Convert chip stacks to dollar equity using the Malmuth-Harville model."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div

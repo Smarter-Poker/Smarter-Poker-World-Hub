@@ -501,10 +501,6 @@ export default function HandComparison() {
           name="description"
           content="Compare any two poker hands head-to-head on a custom board with equity analysis and run-outs."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div className="sp-training-tool sp-training-tool--analysis sp-analysis-comparison" style={container}>

@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trainingSounds } from '../../utils/trainingSounds';
 import { busEmit } from '../../engine/EventBus';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function DailyBonusWidget({ userId, onBonusClaimed }) {
     const [bonusData, setBonusData] = useState(null);
@@ -31,7 +32,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
 
     const checkBonus = async () => {
         try {
-            const res = await fetch(`/api/training/daily-bonus?userId=${userId}`);
+            const res = await authedFetch(`/api/training/daily-bonus?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 setBonusData(data);
@@ -74,7 +75,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
     const claimBonus = async () => {
         setClaiming(true);
         try {
-            const res = await fetch('/api/training/daily-bonus', {
+            const res = await authedFetch('/api/training/daily-bonus', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, claimNow: true })

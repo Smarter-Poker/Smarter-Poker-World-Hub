@@ -142,7 +142,7 @@ export default function SessionReplayTimeline() {
             const isSelected = selectedHand === h.id;
             return (
               <div key={h.id}>
-                <div onClick={() => setSelectedHand(isSelected ? null : h.id)} style={{
+                <div role="button" tabIndex={0} aria-expanded={isSelected} onClick={() => setSelectedHand(isSelected ? null : h.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedHand(isSelected ? null : h.id); } }} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
                   borderRadius: 6, cursor: 'pointer',
                   background: isSelected ? cfg.bg : 'rgba(0,0,0,0.1)',

@@ -58,7 +58,12 @@ function getHeatColor(value, maxVal) {
 function HeatCell({ value, maxVal, selected, onClick }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={`Frequency ${value}`}
       onClick={onClick}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); } }}
       style={{
         background: getHeatColor(value, maxVal),
         padding: '8px 4px',
@@ -195,7 +200,12 @@ function PositionFrequencyHeatmap() {
                     return (
                       <div
                         key={pos}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
+                        aria-label={`${pos} ${action} delta ${delta}`}
                         onClick={() => setSelectedCell({ pos, action })}
+                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCell({ pos, action }); } }}
                         style={{
                           padding: '6px 4px',
                           textAlign: 'center',

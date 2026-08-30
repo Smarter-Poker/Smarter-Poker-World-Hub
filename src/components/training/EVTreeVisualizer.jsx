@@ -171,7 +171,11 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
   return (
     <div style={{ marginLeft: depth * 24 }}>
       <div
+        role={hasChildren ? 'button' : undefined}
+        tabIndex={hasChildren ? 0 : -1}
+        aria-expanded={hasChildren ? isExpanded : undefined}
         onClick={() => hasChildren && toggleExpand(node.id)}
+        onKeyDown={(event) => { if (hasChildren && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); toggleExpand(node.id); } }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{

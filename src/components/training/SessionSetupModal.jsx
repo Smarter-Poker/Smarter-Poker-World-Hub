@@ -128,20 +128,37 @@ export default function SessionSetupModal({
   userId,
 }) {
   const gameId = game?.id || game?.slug || '';
-  const saved  = (gameId && readPrefs(gameId)) || {};
-
-  const [difficulty, setDifficulty] = useState(saved.difficulty || 'standard');
-  const [timer,      setTimer]      = useState(saved.timer      || 'standard');
-  const [mode,       setMode]       = useState(saved.mode       || 'standard');
-  const [scope,      setScope]      = useState(saved.scope      || 'full');
-  const [tables,     setTables]     = useState(saved.tables     || '1');
-  const [handSelection, setHandSelection] = useState(saved.handSelection || 'all');
+  const [difficulty, setDifficulty] = useState('standard');
+  const [timer,      setTimer]      = useState('standard');
+  const [mode,       setMode]       = useState('standard');
+  const [scope,      setScope]      = useState('full');
+  const [tables,     setTables]     = useState('1');
+  const [handSelection, setHandSelection] = useState('all');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
   const [loading,     setLoading]     = useState(false);
 
   const closeBtnRef = useRef(null);
+  const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  // The modal stays mounted while users move between all 107 cards. useState's
+  // initializer therefore only ever saw the first render's empty game id and
+  // never loaded the selected game's saved preferences. Rehydrate on each
+  // actual open/game transition and reject stale/out-of-vocabulary values.
+  useEffect(() => {
+    if (!isOpen || !gameId) return;
+    const saved = readPrefs(gameId) || {};
+    const valid = (options, candidate, fallback) =>
+      options.some((option) => option.id === candidate) ? candidate : fallback;
+    setDifficulty(valid(DIFFICULTY_OPTIONS, saved.difficulty, 'standard'));
+    setTimer(valid(TIMER_OPTIONS, saved.timer, 'standard'));
+    setMode(valid(MODE_OPTIONS, saved.mode, 'standard'));
+    setScope(valid(SCOPE_OPTIONS, saved.scope, 'full'));
+    setTables(valid(TABLE_OPTIONS, saved.tables, '1'));
+    setHandSelection(valid(HAND_SELECTION_OPTIONS, saved.handSelection, 'all'));
+  }, [isOpen, gameId]);
 
   // Pull the 30-day stats + last session from the RPCs shipped in PR #303.
   useEffect(() => {
@@ -168,15 +185,46 @@ export default function SessionSetupModal({
     return () => { cancelled = true; };
   }, [isOpen, userId, gameId]);
 
-  // ESC dismisses + initial focus into close button (so tabbing starts inside the modal).
+  // ESC dismisses, Tab is trapped inside the dialog, and focus returns to the
+  // game card that opened it. The old comment promised a focus trap but the
+  // implementation only focused Close once, allowing the next Tab to escape
+  // into the obscured Training Hub.
   useEffect(() => {
     if (!isOpen) return;
-    const handleKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    previousFocusRef.current = document.activeElement;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose?.();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(dialogRef.current?.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) || []).filter((element) => !element.hasAttribute('aria-hidden'));
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener('keydown', handleKey);
     const t = setTimeout(() => { closeBtnRef.current?.focus(); }, 50);
     return () => {
       window.removeEventListener('keydown', handleKey);
       clearTimeout(t);
+      const previous = previousFocusRef.current;
+      if (previous && typeof previous.focus === 'function' && previous.isConnected) {
+        previous.focus();
+      }
     };
   }, [isOpen, onClose]);
 
@@ -209,6 +257,7 @@ export default function SessionSetupModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="sp-setup-title"

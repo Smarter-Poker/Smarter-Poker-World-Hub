@@ -103,7 +103,7 @@ function StackToRatioCalc() {
           {PREFLOP_SCENARIOS.map((s, i) => {
             const zone = SPR_ZONES.find(z => s.spr <= z.max);
             return (
-              <div key={i} onClick={() => { setPot(Math.round(s.pot)); setStack(Math.round(s.stack)); }} style={{
+              <div key={i} role="button" tabIndex={0} aria-label={`Use ${s.name || `scenario ${i + 1}`}`} onClick={() => { setPot(Math.round(s.pot)); setStack(Math.round(s.stack)); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setPot(Math.round(s.pot)); setStack(Math.round(s.stack)); } }} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6,
                 cursor: 'pointer', borderLeft: `3px solid ${zone?.color || '#666'}`,

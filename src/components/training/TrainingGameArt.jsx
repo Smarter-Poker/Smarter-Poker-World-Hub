@@ -20,7 +20,7 @@ export default function TrainingGameArt({
         sizes={sizes}
         loading={loading}
         decoding="async"
-        fetchPriority={fetchPriority}
+        fetchpriority={fetchPriority}
       />
     </picture>
   );

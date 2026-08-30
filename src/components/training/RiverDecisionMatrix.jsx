@@ -67,7 +67,7 @@ function RiverDecisionMatrix() {
         {/* Matrix Rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
           {MATRIX.map((row, i) => (
-            <div key={i} onClick={() => setSelected(selected === i ? null : i)} style={{
+            <div key={i} role="button" tabIndex={0} aria-expanded={selected === i} onClick={() => setSelected(selected === i ? null : i)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(selected === i ? null : i); } }} style={{
               display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: 4, cursor: 'pointer',
               padding: 2, borderRadius: 6, background: selected === i ? `${row.color}10` : 'transparent',
             }}>

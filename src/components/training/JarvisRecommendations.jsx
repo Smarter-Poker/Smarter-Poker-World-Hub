@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function JarvisRecommendations({ userId, onGameClick }) {
     const [recommendations, setRecommendations] = useState([]);
@@ -21,7 +22,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
 
     const fetchRecommendations = async () => {
         try {
-            const res = await fetch(`/api/training/recommendations?userId=${userId}`);
+            const res = await authedFetch(`/api/training/recommendations?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 setRecommendations(data.recommendations || []);

@@ -102,9 +102,14 @@ export const triggerBackgroundSync = async () => {
         for (const item of mutations) {
             try {
                 // Attempt to send
-                const res = await fetch(item.endpoint, {
+                // Resolve authentication when the queue drains, not when the
+                // request is queued. Persisting a Bearer token in IndexedDB
+                // both exposed a credential unnecessarily and guaranteed that
+                // a long-offline mutation would retry with an expired token.
+                const { authedFetch } = await import('../lib/authUtils');
+                const res = await authedFetch(item.endpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...item.headers },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(item.payload)
                 });
 

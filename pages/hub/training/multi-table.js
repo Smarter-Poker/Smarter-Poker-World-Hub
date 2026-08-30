@@ -364,10 +364,6 @@ export default function MultiTablePage() {
           name="description"
           content="Practice GTO decisions across 2-4 tables simultaneously. Build speed and accuracy under pressure."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div

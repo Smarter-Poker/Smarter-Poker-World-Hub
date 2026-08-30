@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSessionToken } from '../../lib/authUtils';
+import { authedFetch } from '../../lib/authUtils';
 
 const PERIODS = [
     { key: 'daily', label: 'Today' },
@@ -99,7 +99,7 @@ export default function LeaderboardPanel({ userId, gameId }) {
             const params = new URLSearchParams({ period, limit: '20' });
             if (gameId) params.set('gameId', gameId);
 
-            const res = await fetch(`/api/training/leaderboard?${params}`);
+            const res = await authedFetch(`/api/training/leaderboard?${params}`);
             const data = await res.json();
 
             if (data.success) {

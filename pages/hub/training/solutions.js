@@ -195,6 +195,9 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
         return (
           <div
             key={g.classification}
+            role="button"
+            tabIndex={0}
+            aria-pressed={Boolean(isLocked)}
             style={{
               marginBottom: 10,
               padding: '8px 10px',
@@ -205,6 +208,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
               transition: 'background 0.15s',
             }}
             onClick={() => onToggleLock && onToggleLock(g.classification)}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggleLock?.(g.classification); } }}
           >
             <div
               style={{
@@ -725,10 +729,6 @@ function SolutionsBrowserInner({ setError }) {
         <meta
           name="description"
           content="Browse pre-solved GTO strategies for every poker spot. View optimal action frequencies for all 1326 hand combos."
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
         />
       </Head>
 

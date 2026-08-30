@@ -19,6 +19,7 @@ import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 // Import engine-specific components
 import ChartGrid from './ChartGrid';
 import MentalGym from './MentalGym';
+import { authedFetch } from '../../lib/authUtils';
 
 // ============================================================================
 // TYPES
@@ -555,7 +556,7 @@ const GameSession: React.FC<GameSessionProps> = ({
         setPhase('LOADING');
 
         try {
-            const response = await fetch('/api/god-mode/fetch-hand', {
+            const response = await authedFetch('/api/god-mode/fetch-hand', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -681,7 +682,7 @@ const GameSession: React.FC<GameSessionProps> = ({
         const selectedHand = typeof sizingOrHand === 'string' ? sizingOrHand : undefined;
 
         try {
-            const response = await fetch('/api/god-mode/submit-action', {
+            const response = await authedFetch('/api/god-mode/submit-action', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -922,7 +923,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             // Push training data to Jarvis with retry logic
             const pushJarvis = async (retryCount = 0, maxRetries = 2) => {
                 try {
-                    const response = await fetch('/api/jarvis/training-session', {
+                    const response = await authedFetch('/api/jarvis/training-session', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -960,7 +961,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             // Update training streak with retry logic
             const updateStreak = async (retryCount = 0, maxRetries = 2) => {
                 try {
-                    const response = await fetch('/api/training/streak', {
+                    const response = await authedFetch('/api/training/streak', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId })
@@ -983,7 +984,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             // Check achievements with retry logic
             const checkAchievements = async (retryCount = 0, maxRetries = 2) => {
                 try {
-                    const response = await fetch('/api/training/achievements', {
+                    const response = await authedFetch('/api/training/achievements', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1016,7 +1017,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             const updateLeaderboard = async (retryCount = 0, maxRetries = 2) => {
                 try {
                     const today = new Date().toISOString().split('T')[0];
-                    const response = await fetch('/api/training/update-leaderboard', {
+                    const response = await authedFetch('/api/training/update-leaderboard', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

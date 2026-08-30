@@ -28,7 +28,7 @@ import MistakePatternPanel from './MistakePatternPanel';
 import { useTrainingAnalytics } from './PerformanceTrends';
 // ●●● PHASE 17: Smart Practice + AI Coaching ●●●
 import SmartPracticeBanner from './SmartPracticeBanner';
-import { getSessionToken } from '../../lib/authUtils';
+import { getSessionToken, authedFetch } from '../../lib/authUtils';
 import { heroPositionOf, streetOf, playerActionOf } from '../../lib/training/handHistoryEntry';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
@@ -1896,7 +1896,12 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
 
       {/* Card */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={flipped}
+        aria-label={flipped ? 'Hide flashcard answer' : 'Reveal flashcard answer'}
         onClick={handleFlip}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleFlip(); } }}
         style={{
           width: '100%',
           maxWidth: 360,
@@ -3823,8 +3828,8 @@ function GodModeArenaInner({
   const resolvedTrainerConfig = useMemo(() => ({
     ...trainerConfig,
     // Merge GodModeArena timer settings if no custom config timer
-    timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
-    timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
+    timerEnabled: trainerConfig?.timerEnabled ?? isTimerEnabled(timerMode),
+    timerSeconds: trainerConfig?.timerSeconds ?? resolveTimerSeconds(timerMode),
     feedbackRule: 'every',
     autoAdvance: false,
     autoAdvanceDelayMs: 0,
@@ -5854,7 +5859,7 @@ function GodModeArenaInner({
                       const token = getSessionToken();
                       const headers = { 'Content-Type': 'application/json' };
                       if (token) headers['Authorization'] = `Bearer ${token}`;
-                      const res = await fetch('/api/training/share', {
+                      const res = await authedFetch('/api/training/share', {
                         method: 'POST',
                         headers,
                         body: JSON.stringify({

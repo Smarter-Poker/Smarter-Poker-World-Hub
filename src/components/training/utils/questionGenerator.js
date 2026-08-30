@@ -3,7 +3,7 @@
  * Handles question generation, shuffling, and preloading for training sessions
  */
 
-import { getSessionToken } from '../../../lib/authUtils';
+import { authedFetch } from '../../../lib/authUtils';
 
 /**
  * Fetch questions in batch from the training API
@@ -21,7 +21,6 @@ export async function fetchQuestionBatch(params) {
         throw new Error('gameId is required');
     }
 
-    const token = getSessionToken();
     let apiUrl;
     let queryParams;
 
@@ -58,9 +57,7 @@ export async function fetchQuestionBatch(params) {
         apiUrl = `/api/training/batch-preload?${queryParams}`;
     }
 
-    const response = await fetch(apiUrl, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    });
+    const response = await authedFetch(apiUrl);
 
     // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
     const textResponse = await response.text();
@@ -94,16 +91,13 @@ export async function fetchSingleQuestion(params) {
         throw new Error('gameId is required');
     }
 
-    const token = getSessionToken();
     const queryParams = new URLSearchParams({
         gameId,
         level: level.toString(),
         count: '1',
     });
 
-    const response = await fetch(`/api/training/batch-preload?${queryParams}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    });
+    const response = await authedFetch(`/api/training/batch-preload?${queryParams}`);
 
     // Safe JSON parsing
     const textResponse = await response.text();
@@ -208,13 +202,8 @@ export async function recordAnsweredQuestion(params) {
     if (!userId || !gameId) return;
 
     try {
-        const token = getSessionToken();
-        await fetch('/api/training/record-question', {
+        await authedFetch('/api/training/record-question', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
             body: JSON.stringify({
                 userId,
                 gameId,

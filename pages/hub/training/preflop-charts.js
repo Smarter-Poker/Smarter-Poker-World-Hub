@@ -194,10 +194,6 @@ export default function PreflopCharts() {
           name="description"
           content="Browse GTO preflop ranges by position, stack depth, and scenario. Study optimal open-raising, 3-bet defense, and push/fold ranges."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div

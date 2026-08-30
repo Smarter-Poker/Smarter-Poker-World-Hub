@@ -157,7 +157,7 @@ export default function QuizModeEngine() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
           {DIFFICULTIES.map(d => (
-            <div key={d.id} onClick={() => setDifficulty(d)} style={{
+            <div key={d.id} role="button" tabIndex={0} aria-pressed={difficulty.id === d.id} onClick={() => setDifficulty(d)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setDifficulty(d); } }} style={{
               padding: 16, borderRadius: 10, cursor: 'pointer', textAlign: 'center',
               background: difficulty.id === d.id ? `${d.color}15` : 'rgba(0,0,0,0.15)',
               border: difficulty.id === d.id ? `2px solid ${d.color}40` : '2px solid transparent',

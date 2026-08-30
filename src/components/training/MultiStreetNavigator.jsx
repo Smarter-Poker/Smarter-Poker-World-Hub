@@ -526,7 +526,11 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                             return (
                                 <div
                                     key={s}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-pressed={s === effectiveActive}
                                     onClick={() => setActiveStreet(s)}
+                                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveStreet(s); } }}
                                     style={{
                                         padding: '6px 4px', borderRadius: 6, textAlign: 'center',
                                         cursor: 'pointer',

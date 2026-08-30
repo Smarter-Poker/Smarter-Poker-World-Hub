@@ -277,10 +277,6 @@ export default function PositionMasteryPage() {
           name="description"
           content="Track your GTO accuracy by position. See which seats you dominate and where you need work."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <div

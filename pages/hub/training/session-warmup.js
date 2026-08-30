@@ -203,10 +203,6 @@ export default function SessionWarmupPage() {
           name="description"
           content="Prepare for your poker session with our interactive warmup protocol. Set goals and stop-losses before playing."
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;700;900&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <div
         style={{

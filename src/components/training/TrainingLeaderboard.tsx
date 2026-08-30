@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 const PERIODS = [
     { key: 'daily', label: 'Today' },
@@ -25,7 +26,7 @@ export function TrainingLeaderboard({ userId, compact = false }) {
     const fetchLeaderboard = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/training/leaderboard?period=${period}&limit=${compact ? 5 : 20}`);
+            const res = await authedFetch(`/api/training/leaderboard?period=${period}&limit=${compact ? 5 : 20}`);
             const data = await res.json();
             if (data.success) {
                 setLeaderboard(data.leaderboard);

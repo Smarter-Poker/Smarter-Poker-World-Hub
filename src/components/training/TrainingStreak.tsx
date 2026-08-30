@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { authedFetch } from '../../lib/authUtils';
 
 export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
     const [streak, setStreak] = useState<any>(null);
@@ -17,7 +18,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
 
     const fetchStreak = async () => {
         try {
-            const res = await fetch(`/api/training/streak?userId=${userId}`);
+            const res = await authedFetch(`/api/training/streak?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 setStreak(data.streak);
@@ -31,7 +32,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
     const claimMilestone = async (days) => {
         setClaiming(days);
         try {
-            const res = await fetch('/api/training/streak', {
+            const res = await authedFetch('/api/training/streak', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, milestoneDays: days })

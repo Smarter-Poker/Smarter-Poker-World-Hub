@@ -71,11 +71,11 @@ function HandReadingTrainer() {
             const visible = i <= revealedStreet;
             const streetColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
             return (
-              <div key={i} style={{
+              <div key={i} role={!visible && i === revealedStreet + 1 ? 'button' : undefined} tabIndex={!visible && i === revealedStreet + 1 ? 0 : -1} aria-label={!visible && i === revealedStreet + 1 ? `Reveal ${s.street}` : undefined} style={{
                 padding: 12, borderRadius: 8, borderLeft: `4px solid ${streetColors[i]}`,
                 background: visible ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)',
                 opacity: visible ? 1 : 0.3, cursor: !visible && i === revealedStreet + 1 ? 'pointer' : 'default',
-              }} onClick={() => { if (i === revealedStreet + 1) setRevealedStreet(i); }}>
+              }} onClick={() => { if (i === revealedStreet + 1) setRevealedStreet(i); }} onKeyDown={(event) => { if ((event.key === 'Enter' || event.key === ' ') && i === revealedStreet + 1) { event.preventDefault(); setRevealedStreet(i); } }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: streetColors[i] }}>{s.street}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.action}</span>

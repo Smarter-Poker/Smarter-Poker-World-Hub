@@ -14,6 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
+import { authedFetch } from '../../lib/authUtils';
 
 // Action colors
 const ACTION_COLORS = {
@@ -82,7 +83,7 @@ export default function GTOAnalysisPanel({
             setError(null);
 
             try {
-                const response = await fetch('/api/gto/gto-analysis', {
+                const response = await authedFetch('/api/gto/gto-analysis', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -287,7 +288,7 @@ function Section({ icon, title, content, children, expanded, onToggle }) {
 
     return (
         <div style={styles.section}>
-            <div style={styles.sectionHeader} onClick={onToggle}>
+            <div style={styles.sectionHeader} role="button" tabIndex={0} aria-expanded={expanded} onClick={onToggle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggle(); } }}>
                 <span style={styles.sectionIcon}>{iconMap[icon] || icon}</span>
                 <span style={styles.sectionTitle}>{title}</span>
                 <span style={styles.expandIcon}>{expanded ? '\u25B2' : '\u25BC'}</span>

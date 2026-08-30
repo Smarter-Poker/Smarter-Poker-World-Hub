@@ -327,7 +327,7 @@ export default function FlopTextureAnalyzer() {
               <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>RANGE HITS</span>
             </div>
             {sortedByIpCbet.map(t => (
-              <div key={t.id} onClick={() => { setSelectedTexture(t); setViewMode('detail'); }} style={{
+              <div key={t.id} role="button" tabIndex={0} aria-label={`Inspect ${t.name || t.id} texture`} onClick={() => { setSelectedTexture(t); setViewMode('detail'); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTexture(t); setViewMode('detail'); } }} style={{
                 display: 'grid', gridTemplateColumns: '120px 60px 60px 60px 60px 1fr', gap: 4,
                 padding: '8px', borderRadius: 6, cursor: 'pointer',
                 background: 'rgba(0,0,0,0.1)', border: '1px solid transparent',

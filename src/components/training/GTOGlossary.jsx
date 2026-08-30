@@ -68,7 +68,7 @@ function GTOGlossary() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 400, overflowY: 'auto' }}>
           {filtered.map((t, i) => (
-            <div key={t.term} onClick={() => setExpanded(expanded === i ? null : i)} style={{
+            <div key={t.term} role="button" tabIndex={0} aria-expanded={expanded === i} onClick={() => setExpanded(expanded === i ? null : i)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpanded(expanded === i ? null : i); } }} style={{
               padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer',
               borderLeft: expanded === i ? '4px solid #06b6d4' : '4px solid transparent',
             }}>
@@ -84,7 +84,7 @@ function GTOGlossary() {
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 6 }}>{t.def}</div>
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {t.related.map(r => (
-                      <span key={r} onClick={e => { e.stopPropagation(); setSearch(r); }} style={{
+                      <span key={r} role="button" tabIndex={0} onClick={e => { e.stopPropagation(); setSearch(r); }} onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSearch(r); } }} style={{
                         fontSize: 9, padding: '2px 6px', borderRadius: 4,
                         background: 'rgba(6,182,212,0.1)', color: '#06b6d4', cursor: 'pointer',
                       }}>→ {r}</span>

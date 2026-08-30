@@ -111,7 +111,7 @@ function PositionProfitGraph() {
             const height = Math.abs(val) / (maxVal || 1) * 120;
             const isPositive = val >= 0;
             return (
-              <div key={pos} onClick={() => setSelectedPos(selectedPos === pos ? null : pos)}
+              <div key={pos} role="button" tabIndex={0} aria-pressed={selectedPos === pos} onClick={() => setSelectedPos(selectedPos === pos ? null : pos)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPos(selectedPos === pos ? null : pos); } }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: isPositive ? '#10b981' : '#ef4444', marginBottom: 4 }}>
                   {metric === 'profit' ? `${isPositive ? '+' : ''}$${val}` : `${isPositive ? '+' : ''}${val}`}

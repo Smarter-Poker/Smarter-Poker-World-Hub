@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { TRAINING_CONFIG } from '../../config/trainingConfig';
+import { authedFetch } from '../../lib/authUtils';
 
 export default function GameIntroSplash({ isVisible, game, onComplete }) {
     const router = useRouter();
@@ -33,7 +34,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
             router.prefetch(`/hub/training/arena/${game.id}`);
 
             // Fetch the first question in the background to warm up the API
-            fetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
+            authedFetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
                 .then(() => console.debug('✓ Question API warmed up'))
                 .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Silently fail
         }

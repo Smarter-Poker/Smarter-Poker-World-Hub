@@ -54,7 +54,7 @@ function PreFlopAllInEquity() {
             const h1Color = m.eq1 > 60 ? '#10b981' : m.eq1 > 50 ? '#f59e0b' : '#ef4444';
             const h2Color = m.eq2 > 60 ? '#10b981' : m.eq2 > 50 ? '#f59e0b' : '#ef4444';
             return (
-              <div key={i} onClick={() => setShowDetail(showDetail === i ? null : i)} style={{
+              <div key={i} role="button" tabIndex={0} aria-expanded={showDetail === i} onClick={() => setShowDetail(showDetail === i ? null : i)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowDetail(showDetail === i ? null : i); } }} style={{
                 padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer',
                 border: showDetail === i ? '1px solid rgba(232,121,249,0.3)' : '1px solid rgba(255,255,255,0.04)',
               }}>

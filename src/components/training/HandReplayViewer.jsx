@@ -15,6 +15,7 @@ import EquityMatchup from './EquityMatchup';
 // ═══ PHASE 21+: Runout Heatmap + Solver Tree ═══
 import RunoutHeatmap from './RunoutHeatmap';
 import SolverTreeViewer from './SolverTreeViewer';
+import { authedFetch } from '../../lib/authUtils';
 
 // Card display helper — renders a poker card (value + suit)
 function MiniCard({ card, size = 'sm' }) {
@@ -75,12 +76,8 @@ export default function HandReplayViewer({ handHistory, onClose }) {
         let cancelled = false;
         (async () => {
             try {
-                const { getSessionToken } = await import('../../lib/authUtils');
-                const token = getSessionToken();
-                if (!token) return;
-                const res = await fetch(
-                    `/api/training/browse-solutions?scenarioHash=${encodeURIComponent(hash)}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
+                const res = await authedFetch(
+                    `/api/training/browse-solutions?scenarioHash=${encodeURIComponent(hash)}`
                 );
                 const data = await res.json();
                 if (cancelled) return;
