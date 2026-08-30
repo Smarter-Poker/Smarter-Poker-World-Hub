@@ -37,12 +37,14 @@ export function buildLocationDirectorySchema({
   const pageUrl = absoluteUrl(canonical);
   const listId = `${pageUrl}#results`;
   const pageId = `${pageUrl}#directory`;
-  const statePath = stateCode ? `/hub/poker-near-me/in/${String(stateName || stateCode).toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : null;
+  const stateUrl = stateCode
+    ? (city ? pageUrl.slice(0, pageUrl.lastIndexOf('/')) : pageUrl)
+    : null;
 
   const breadcrumbs = [
     { name: 'Poker Near Me', url: `${SITE_ORIGIN}/hub/poker-near-me/lobby` },
     { name: 'Locations', url: `${SITE_ORIGIN}/hub/poker-near-me/in` },
-    ...(stateCode ? [{ name: stateName || stateCode, url: absoluteUrl(statePath) }] : []),
+    ...(stateCode ? [{ name: stateName || stateCode, url: stateUrl }] : []),
     ...(city ? [{ name: city, url: pageUrl }] : []),
   ].filter((crumb, index, all) => index === 0 || crumb.url !== all[index - 1].url);
 
