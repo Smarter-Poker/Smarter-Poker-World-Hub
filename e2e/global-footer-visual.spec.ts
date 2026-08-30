@@ -16,7 +16,7 @@ test.describe('global footer route and visual contract', () => {
   }, testInfo) => {
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);
-      await page.goto('/hub/install');
+      await page.goto('/hub/install', { waitUntil: 'domcontentloaded' });
 
       const nav = page.locator('[data-global-bottom-nav="true"]');
       await expect(nav).toHaveCount(1);
@@ -57,21 +57,26 @@ test.describe('global footer route and visual contract', () => {
   });
 
   test('Club Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {
-    await page.goto('/hub/club-arena');
+    await page.goto('/hub/club-arena', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: 'Club Arena' })).toHaveCount(0);
 
-    await page.goto('/hub/club-arena/dev/footer');
-    const clubNav = page.getByRole('navigation', { name: 'Club Arena' });
+    // Club Arena owns a service worker and shell-refresh lifecycle. A fresh
+    // page mirrors the production monitor's direct visit and prevents a lobby
+    // tab's in-flight shell reload from interrupting WebKit's next navigation.
+    const probePage = await page.context().newPage();
+    await probePage.goto('/hub/club-arena/dev/footer', { waitUntil: 'domcontentloaded' });
+    const clubNav = probePage.getByRole('navigation', { name: 'Club Arena' });
     await expect(clubNav).toHaveCount(1);
     await expect(clubNav).toHaveCSS('position', 'fixed');
     await expect(clubNav.locator('[data-footer-control]')).toHaveCount(6);
 
-    const viewport = page.viewportSize();
+    const viewport = probePage.viewportSize();
     const box = await clubNav.boundingBox();
     expect(viewport).not.toBeNull();
     expect(box).not.toBeNull();
     expect(Math.abs(box!.y + box!.height - viewport!.height)).toBeLessThan(4);
     expect(box!.height).toBeLessThanOrEqual(84);
+    await probePage.close();
   });
 });

@@ -789,7 +789,16 @@ export default function App({ Component, pageProps }) {
   // training library has consistent navigation without duplicating headers.
   const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
   const hubPageNeedsHeader = HUB_ROUTES_WITHOUT_SHARED_HEADER.has(router.pathname);
-  const bottomNavConfig = bottomNavRoutes[router.pathname] || null;
+  // `/hub/club-arena` is served by the embedded Club Arena SPA, but Next can
+  // classify it as the dynamic `/hub/[orbId]` page before the static rewrite
+  // takes over. Resolve ownership from the real URL first so the generic orb
+  // footer can never leak onto Club Arena's footerless lobby or double-mount
+  // over its internal routes.
+  const resolvedPath =
+    (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  const isClubArenaRoute =
+    resolvedPath === '/hub/club-arena' || resolvedPath.startsWith('/hub/club-arena/');
+  const bottomNavConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
   const [isEmbedded, setIsEmbedded] = useState(false);
 
   // Two legacy settings surfaces intentionally suppress platform chrome when

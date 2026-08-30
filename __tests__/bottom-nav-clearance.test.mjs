@@ -69,6 +69,9 @@ test('the app shell mounts one footer and one safe-area-aware spacer', () => {
   assert.equal((app.match(/<BottomNavBar\b/g) || []).length, 1);
   assert.equal((app.match(/<BottomNavSpacer\b/g) || []).length, 1);
   assert.match(app, /bottomNavRoutes\[router\.pathname\]/);
+  assert.match(app, /resolvedPath === '\/hub\/club-arena'/);
+  assert.match(app, /resolvedPath\.startsWith\('\/hub\/club-arena\/'\)/);
+  assert.match(app, /isClubArenaRoute \? null : bottomNavRoutes\[router\.pathname\]/);
   assert.match(app, /showBottomNav && <BottomNavSpacer/);
   assert.match(nav, /BOTTOM_NAV_CLEARANCE\s*=\s*'calc\([^']*env\(safe-area-inset-bottom/);
   assert.match(nav, /data-bottom-nav-clearance="true"/);
