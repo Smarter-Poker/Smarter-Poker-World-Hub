@@ -353,10 +353,17 @@ function LiveGamesFeed({
         if (!isRealtimeEvent) setLiveLoading(true);
         if (isRealtimeEvent) setIsRefreshing(true);
         try {
-            const url = isRealtimeEvent 
-                ? `/api/poker/live-tables?_t=${Date.now()}`
-                : '/api/poker/live-tables';
-            const res = await fetch(url);
+            // [2026-08-30 DB-load pass] Realtime-triggered refetches used a
+            // ?_t=Date.now() cache-buster, which made every one of them a CDN
+            // MISS. During a simulator publish, thousands of row events fan out
+            // to every open PNM tab and each tab punched through to the origin
+            // - venue_live_tables was measured at 100+ full queries/min. The
+            // API sets s-maxage=60 + stale-while-revalidate, so letting the
+            // CDN answer keeps the feed at most one minute behind, which is
+            // already the API's own freshness contract. The realtime payloads
+            // themselves still update seat counts instantly; this fetch only
+            // fills in venues the buffer could not map.
+            const res = await fetch('/api/poker/live-tables');
             if (res.ok) {
                 const json = await res.json();
                 const mapping = {};
