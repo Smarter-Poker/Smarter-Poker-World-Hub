@@ -18,7 +18,7 @@ const WORLD_ROUTES = [
   { id: 'trivia', route: '/hub/trivia', childRoute: '/hub/trivia/stats' },
   { id: 'social-media', route: '/hub/social-media', childRoute: '/hub/reels' },
   { id: 'diamond-arena', route: '/hub/diamond-arena', childRoute: '/hub/diamond-arena/stats' },
-  { id: 'my-clubs', route: '/hub/my-clubs', childRoute: '/hub/my-venues' },
+  { id: 'my-clubs', route: '/hub/my-clubs', childRoute: '/hub/home-games' },
   { id: 'video-library', route: '/hub/video-library', childRoute: '/hub/video-library?filter=history' },
   { id: 'odds-calculator', route: '/hub/poker-tools', childRoute: '/hub/poker-tools#results' },
   { id: 'bankroll-manager', route: '/hub/bankroll-manager', childRoute: '/hub/bankroll-manager/export' },
@@ -32,21 +32,29 @@ const expectedClubFooterHeight = (viewportWidth: number) =>
   Math.min(263, Math.max(44, viewportWidth * 0.1372));
 
 const visit = async (page: Page, route: string) => {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
       return;
     } catch (error) {
-      if (attempt === 1 || !/ERR_ABORTED|Frame load interrupted/.test(String(error))) throw error;
+      const isDocumentReplacement =
+        /ERR_ABORTED|Frame load interrupted|is interrupted by another navigation/.test(String(error));
+      if (attempt === 2 || !isDocumentReplacement) throw error;
       // The app updater can intentionally replace the first document after a
-      // fresh production build. Retry the same canonical URL once.
+      // fresh production build. Let that replacement settle, then restore the
+      // requested canonical URL. WebKit reports this as an overlapping
+      // navigation instead of ERR_ABORTED.
+      await page.waitForLoadState('domcontentloaded').catch(() => undefined);
     }
   }
 };
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
   test('all 14 worlds render their own complete, wired footer at 320px', async ({ page }) => {
-    test.setTimeout(60_000);
+    // The first request to each production page can perform SSR/data work on a
+    // cold CI runner. This matrix deliberately visits 28 distinct URLs, so its
+    // budget must cover cold starts without weakening any assertion.
+    test.setTimeout(120_000);
     await page.setViewportSize({ width: 320, height: 568 });
 
     for (const entry of WORLD_ROUTES) {
@@ -98,7 +106,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
   test('footer remains fixed, complete, and non-scrolling at every supported width', async ({
     page,
-  }, testInfo) => {
+  }) => {
+    // Seven full navigations plus WebKit viewport changes can exceed the
+    // project-wide 30s default on a cold shared runner. Geometry assertions
+    // remain strict; only the execution budget is widened.
+    test.setTimeout(120_000);
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);
       await visit(page, '/hub/training');
@@ -111,6 +123,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveCSS('transition-duration', '0s');
 
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      // ServiceWorkerUpdater can replace the document once after a fresh
+      // production build. WebKit may observe the locator during that narrow
+      // replacement window even though the fixed footer is present before and
+      // after it, so wait for the stable visible node before sampling geometry.
+      await expect(nav).toBeVisible();
       const navBox = await nav.boundingBox();
       expect(navBox).not.toBeNull();
       expect(Math.abs(navBox!.x)).toBeLessThanOrEqual(1);
@@ -134,11 +151,6 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const clearanceBox = await clearance.boundingBox();
       expect(clearanceBox).not.toBeNull();
       expect(clearanceBox!.height).toBeGreaterThan(navBox!.height);
-
-      await testInfo.attach(`training-footer-${viewport.width}x${viewport.height}`, {
-        body: await nav.screenshot(),
-        contentType: 'image/png',
-      });
     }
   });
 
