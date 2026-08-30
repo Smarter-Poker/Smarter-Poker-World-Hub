@@ -34,6 +34,7 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
     const response = await page.goto('/hub/poker-series', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
     await expect(page.locator('.tour-card-premium').first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-source-state="live"], [data-source-state="degraded"]')).toBeVisible({ timeout: 20_000 });
 
     await page.route('**/api/poker/series?limit=999', (route) => route.fulfill({
       status: 503,
@@ -41,7 +42,7 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
       body: JSON.stringify({ success: false, error: 'Synthetic audit outage' }),
     }));
     const refresh = page.getByRole('button', { name: 'Refresh' });
-    await expect(refresh).toBeVisible();
+    await expect(refresh).toBeVisible({ timeout: 20_000 });
     await refresh.click();
     await expect(page.locator('[data-source-state="cached"]')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
