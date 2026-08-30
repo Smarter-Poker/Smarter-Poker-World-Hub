@@ -6,293 +6,122 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { useRequireAuth } from '../../../src/lib/authUtils';
+import { authedFetch, useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 
-function safeTrackingUrl(value) {
-  if (!value) return null;
-  try {
-    const url = new URL(String(value));
-    return url.protocol === 'https:' ? url.toString() : null;
-  } catch (_) {
-    return null;
-  }
-}
-
 export default function OrderHistory() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
   useTrainingBus('diamond-store-orders');
-  const [orders, setOrders] = useState([]);
+  const [loadedOrders, setOrders] = useState([]);
+  const [ordersOwnerId, setOrdersOwnerId] = useState(null);
+  const orders = ordersOwnerId === user?.id ? loadedOrders : [];
+  const changingOwner = Boolean(user?.id) && ordersOwnerId !== user.id;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [partialError, setPartialError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [recordLimit, setRecordLimit] = useState(50);
   const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  // Realtime events can arrive while the initial three-source read is still
-  // running. Only the newest snapshot may commit, otherwise an older response
+  // Focus refreshes can arrive while a ledger page is still loading. Only the
+  // newest snapshot may commit, otherwise an older response
   // can roll a just-shipped order back to "processing" on screen.
   const loadRequestRef = useRef(0);
+  const loadAbortRef = useRef(null);
+
+  const loadOrders = useCallback(async ({ append = false, cursor = null } = {}) => {
+    const ownerId = user?.id;
+    if (!ownerId) return;
+    const requestId = ++loadRequestRef.current;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    try {
+      const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
+      const response = await authedFetch(`/api/store/order-ledger?limit=50${cursorQuery}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null);
+      if (requestId !== loadRequestRef.current) return;
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Could not load orders');
+      }
+
+      const data = payload.data || {};
+      const nextOrders = Array.isArray(data.orders) ? data.orders : [];
+      setLoadError(null);
+      setPartialError(
+        data.partial && Array.isArray(data.unavailableSources) && data.unavailableSources.length > 0
+          ? `${data.unavailableSources.join(' And ')} Could Not Be Loaded Right Now.`
+          : null
+      );
+      setOrders((current) => {
+        if (!append) return nextOrders;
+        const byKey = new Map(current.map((order) => [order.key, order]));
+        nextOrders.forEach((order) => byKey.set(order.key, order));
+        return Array.from(byKey.values()).sort(
+          (a, b) =>
+            String(b?.created_at || '').localeCompare(String(a?.created_at || '')) ||
+            String(b?.key || '').localeCompare(String(a?.key || ''))
+        );
+      });
+      setOrdersOwnerId(ownerId);
+      setHasMore(Boolean(data.hasMore));
+      setNextCursor(typeof data.nextCursor === 'string' ? data.nextCursor : null);
+      setLoading(false);
+      setLoadingMore(false);
+    } catch (error) {
+      if (error?.name === 'AbortError' || requestId !== loadRequestRef.current) return;
+      console.warn('Error loading orders:', error);
+      if (append) {
+        setPartialError('Older Marketplace Records Could Not Be Loaded Right Now.');
+      } else {
+        setLoadError(error?.message || 'Could not load orders');
+        setPartialError(null);
+      }
+      setLoading(false);
+      setLoadingMore(false);
+    } finally {
+      if (loadAbortRef.current === controller) loadAbortRef.current = null;
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (authChecking || !user?.id) return;
     loadOrders();
-  }, [authChecking, user?.id, recordLimit]);
-  // Realtime subscription — live updates on both order pipelines
+  }, [authChecking, loadOrders, user?.id]);
+  useEffect(
+    () => () => {
+      loadRequestRef.current += 1;
+      loadAbortRef.current?.abort();
+    },
+    []
+  );
+  // Commerce rows stay behind the private API. Refresh on focus and at a
+  // bounded cadence instead of subscribing the browser to sensitive tables.
   useEffect(() => {
     if (!user?.id) return;
-    const _ch = supabase
-      .channel(`orders:${user?.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'diamond_purchases',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          loadOrders();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'merchandise_orders',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          loadOrders();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'vip_subscriptions',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          loadOrders();
-        }
-      )
-      .subscribe();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadOrders();
+    };
+    const timer = window.setInterval(refreshWhenVisible, 60000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
-      supabase.removeChannel(_ch);
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
-  }, [user?.id]);
-
-  const toCents = (usd) => Math.round((Number(usd) || 0) * 100);
-
-  // Must match DIAMONDS_PER_DOLLAR in pages/api/store/purchase-with-diamonds.js
-  const DIAMONDS_PER_DOLLAR = 100;
-
-  // diamond_purchases: written by create-checkout-session.js (pending) and
-  // completed/refunded by webhooks/stripe.js. price_usd is in DOLLARS.
-  const normalizeDiamondPurchase = (row) => {
-    const packageName = row?.package_name || 'Diamond Package';
-    const diamonds = (Number(row?.diamonds_amount) || 0) + (Number(row?.bonus_diamonds) || 0);
-    return {
-      key: `diamond-${row?.id}`,
-      id: row?.id,
-      source: 'diamonds',
-      title: `${packageName} Diamond Package`,
-      created_at: row?.created_at || row?.completed_at || null,
-      status: row?.status || 'pending',
-      currency: 'usd',
-      amount: toCents(row?.price_usd),
-      items: [
-        {
-          name:
-            diamonds > 0 ? `${packageName} (${diamonds.toLocaleString()} Diamonds)` : packageName,
-          quantity: 1,
-          amount: toCents(row?.price_usd),
-          currency: 'usd',
-        },
-      ],
-    };
-  };
-
-  // merchandise_orders: written by create-checkout-session.js (card, pending →
-  // processing via the webhook) and purchase-with-diamonds.js (diamonds,
-  // completed). total_usd is in DOLLARS; diamond orders carry diamonds_spent.
-  const normalizeMerchandiseOrder = (row) => {
-    const paidWithDiamonds = row?.payment_method === 'diamonds';
-    const rawItems = Array.isArray(row?.items) ? row.items : [];
-    return {
-      key: `merch-${row?.id}`,
-      id: row?.id,
-      source: 'merchandise',
-      title: 'Merchandise Order',
-      created_at: row?.created_at || row?.updated_at || null,
-      status: row?.status || 'pending',
-      currency: paidWithDiamonds ? 'diamonds' : 'usd',
-      amount: paidWithDiamonds ? Number(row?.diamonds_spent) || 0 : toCents(row?.total_usd),
-      trackingNumber: row?.tracking_number || null,
-      trackingUrl: safeTrackingUrl(row?.tracking_url),
-      carrier: row?.carrier || null,
-      shippedAt: row?.shipped_at || row?.metadata?.shipped_at || null,
-      deliveredAt: row?.delivered_at || row?.metadata?.delivered_at || null,
-      fulfillmentStatus: row?.metadata?.fulfillment_status || null,
-      items: rawItems.map((item) => {
-        // create-checkout-session stores `price`; purchase-with-diamonds
-        // stores `priceUsd` (and sometimes a catalog `diamondPrice`)
-        const qty = Number(item?.quantity) || 1;
-        const unitUsd = item?.price ?? item?.priceUsd;
-        const unitDiamonds = item?.diamondPrice;
-        // A diamond-paid order is denominated in diamonds end to end.
-        // purchase-with-diamonds.js charges price_diamonds when the item
-        // is catalogued and ceil(priceUsd * 100) when it is not — mirror
-        // both here so the line items reconcile with the order total.
-        const unitAmount = paidWithDiamonds
-          ? unitDiamonds != null
-            ? Number(unitDiamonds) || 0
-            : Math.ceil((Number(unitUsd) || 0) * DIAMONDS_PER_DOLLAR)
-          : toCents(unitUsd);
-        return {
-          name: item?.name || 'Item',
-          quantity: qty,
-          amount: unitAmount * qty,
-          currency: paidWithDiamonds ? 'diamonds' : 'usd',
-        };
-      }),
-    };
-  };
-
-  const normalizeVipSubscription = (row) => {
-    const tier = String(row?.tier || 'VIP');
-    const titleTier = tier.charAt(0).toUpperCase() + tier.slice(1);
-    return {
-      key: `vip-${row?.id}`,
-      id: row?.id,
-      source: 'vip',
-      title: `${titleTier} VIP Membership`,
-      created_at: row?.created_at || row?.updated_at || null,
-      status: row?.status || 'active',
-      currency: 'usd',
-      amount: toCents(row?.price_usd),
-      items: [
-        {
-          name: `${titleTier} VIP Access`,
-          quantity: 1,
-          amount: toCents(row?.price_usd),
-          currency: 'usd',
-        },
-      ],
-    };
-  };
-
-  const loadOrders = async () => {
-    const requestId = ++loadRequestRef.current;
-    try {
-      // The real pipelines write diamond_purchases and merchandise_orders —
-      // read both and merge client-side into one date-sorted list.
-      const [purchasesRes, merchRes, vipRes] = await Promise.all([
-        supabase
-          .from('diamond_purchases')
-          .select(
-            'id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, created_at, completed_at'
-          )
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(recordLimit),
-        supabase
-          .from('merchandise_orders')
-          .select(
-            'id, items, total_usd, diamonds_spent, payment_method, status, metadata, tracking_number, tracking_url, carrier, created_at, updated_at, shipped_at, delivered_at'
-          )
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(recordLimit),
-        supabase
-          .from('vip_subscriptions')
-          .select(
-            'id, tier, status, price_usd, current_period_start, current_period_end, created_at, updated_at'
-          )
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(recordLimit),
-      ]);
-
-      const failed = [];
-      const merged = [];
-
-      if (purchasesRes?.error) {
-        console.warn('Error fetching diamond purchases:', purchasesRes.error);
-        failed.push('Diamond purchases');
-      } else {
-        (purchasesRes?.data || []).forEach((row) => merged.push(normalizeDiamondPurchase(row)));
-      }
-
-      if (merchRes?.error) {
-        console.warn('Error fetching merchandise orders:', merchRes.error);
-        failed.push('Merchandise orders');
-      } else {
-        (merchRes?.data || []).forEach((row) => merged.push(normalizeMerchandiseOrder(row)));
-      }
-
-      if (vipRes?.error) {
-        console.warn('Error fetching VIP subscriptions:', vipRes.error);
-        failed.push('VIP memberships');
-      } else {
-        (vipRes?.data || []).forEach((row) => merged.push(normalizeVipSubscription(row)));
-      }
-
-      // Every source failed — nothing truthful can be shown.
-      if (requestId !== loadRequestRef.current) return;
-      if (failed.length === 3) {
-        setLoadError(
-          purchasesRes?.error?.message ||
-            merchRes?.error?.message ||
-            vipRes?.error?.message ||
-            'Could not load orders'
-        );
-        setPartialError(null);
-        setOrders([]);
-        setHasMore(false);
-        setLoading(false);
-        setLoadingMore(false);
-        return;
-      }
-
-      merged.sort((a, b) => (Date.parse(b?.created_at) || 0) - (Date.parse(a?.created_at) || 0));
-
-      setLoadError(null);
-      // One side failed — show what we have and say so
-      setPartialError(
-        failed.length > 0 ? `${failed.join(' And ')} Could Not Be Loaded Right Now.` : null
-      );
-      setOrders(merged.slice(0, recordLimit));
-      setHasMore(
-        merged.length > recordLimit ||
-          [purchasesRes, merchRes, vipRes].some(
-            (response) => !response?.error && (response?.data || []).length >= recordLimit
-          )
-      );
-      setLoading(false);
-      setLoadingMore(false);
-    } catch (error) {
-      if (requestId !== loadRequestRef.current) return;
-      console.warn('Error loading orders:', error);
-      setLoadError(error?.message || 'Could not load orders');
-      setPartialError(null);
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
+  }, [loadOrders, user?.id]);
 
   const getStatusBadge = (status) => {
     const statusStyles = {
@@ -346,6 +175,7 @@ export default function OrderHistory() {
   // Normalized rows carry their own currency — diamond-paid orders are not dollars
   const formatAmount = (amount, currency) => {
     if (currency === 'diamonds') return `${(Number(amount) || 0).toLocaleString()} Diamonds`;
+    if (currency === 'chips') return `${(Number(amount) || 0).toLocaleString()} Legacy Chips`;
     return formatPrice(amount);
   };
 
@@ -379,7 +209,7 @@ export default function OrderHistory() {
   const visibleOrders = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return orders.filter((order) => {
-      if (sourceFilter !== 'all' && order.source !== sourceFilter) return false;
+      if (sourceFilter !== 'all' && (order.category || order.source) !== sourceFilter) return false;
       if (statusFilter !== 'all' && order.status !== statusFilter) return false;
       if (!query) return true;
       return [
@@ -396,7 +226,8 @@ export default function OrderHistory() {
     () => ({
       records: orders.length,
       merchandise: orders.filter((order) => order.source === 'merchandise').length,
-      vip: orders.filter((order) => order.source === 'vip').length,
+      vip: orders.filter((order) => (order.category || order.source) === 'vip').length,
+      club: orders.filter((order) => (order.category || order.source) === 'club').length,
       active: orders.filter((order) =>
         ['pending', 'paid', 'processing', 'shipped', 'active', 'trialing'].includes(
           String(order.status || '').toLowerCase()
@@ -431,7 +262,7 @@ export default function OrderHistory() {
           description="Track Diamond Packages, Merchandise Fulfillment, And VIP Membership Activity From One Verified Commerce Record."
           actions={<Link href="/hub/diamond-store">Continue Shopping →</Link>}
         >
-          {loading ? (
+          {loading || changingOwner ? (
             <div style={styles.loadingContainer}>
               <div style={styles.spinner}></div>
               <p style={styles.loadingText}>Loading Orders...</p>
@@ -466,9 +297,13 @@ export default function OrderHistory() {
                   {partialError}
                 </div>
               )}
-              <h2 style={styles.emptyTitle}>No Orders Yet</h2>
+              <h2 style={styles.emptyTitle}>
+                {partialError ? 'Order History Is Temporarily Incomplete' : 'No Orders Yet'}
+              </h2>
               <p style={styles.emptyText}>
-                Your Order History Will Appear Here After Your First Purchase
+                {partialError
+                  ? 'Refresh Shortly. We Will Not Claim Your History Is Empty While A Commerce Source Is Unavailable.'
+                  : 'Your Order History Will Appear Here After Your First Purchase'}
               </p>
               <Link href="/hub/diamond-store" style={styles.shopButton}>
                 Visit Diamond Store
@@ -486,7 +321,7 @@ export default function OrderHistory() {
                   ['Verified Records', ledgerSummary.records],
                   ['Merch Orders', ledgerSummary.merchandise],
                   ['VIP Records', ledgerSummary.vip],
-                  ['Active Signals', ledgerSummary.active],
+                  ['Club Orders', ledgerSummary.club],
                 ].map(([label, value]) => (
                   <div key={label} style={styles.ledgerMetric}>
                     <span style={styles.ledgerMetricLabel}>{label}</span>
@@ -519,6 +354,7 @@ export default function OrderHistory() {
                     <option value="diamonds">Diamond Packages</option>
                     <option value="merchandise">Merchandise</option>
                     <option value="vip">VIP Memberships</option>
+                    <option value="club">Club Shop</option>
                   </select>
                 </label>
                 <label style={styles.filterControl}>
@@ -644,12 +480,25 @@ export default function OrderHistory() {
                       <div style={styles.totalAmount}>
                         {formatAmount(order.amount, order.currency)}
                       </div>
+                      {Number(order.refundAmount) > 0 && (
+                        <div style={styles.refundAmount}>
+                          Refunded {formatAmount(order.refundAmount, order.currency)} · Net{' '}
+                          {formatAmount(order.netAmount, order.currency)}
+                        </div>
+                      )}
+                      {Number(order.refundedDiamonds) > 0 && (
+                        <div style={styles.refundAmount}>
+                          {Number(order.refundedDiamonds).toLocaleString()} Diamonds Reconciled
+                        </div>
+                      )}
                     </div>
                     <Link
                       href={`/hub/diamond-store/orders/${order.id}?source=${order.source}`}
                       style={styles.receiptLink}
                     >
-                      View Receipt →
+                      {order.recordType === 'membership_status'
+                        ? 'View Membership Record →'
+                        : 'View Receipt →'}
                     </Link>
                   </div>
                 </div>
@@ -660,9 +509,9 @@ export default function OrderHistory() {
                     type="button"
                     onClick={() => {
                       setLoadingMore(true);
-                      setRecordLimit((current) => current + 50);
+                      loadOrders({ append: true, cursor: nextCursor });
                     }}
-                    disabled={loadingMore}
+                    disabled={loadingMore || !nextCursor}
                     style={{ ...styles.shopButton, border: 'none', cursor: loadingMore ? 'wait' : 'pointer' }}
                   >
                     {loadingMore ? 'Loading More Orders…' : 'Load 50 More Orders'}
@@ -851,6 +700,7 @@ const styles = {
   },
   totalLabel: { fontSize: '14px', color: '#9ca3af' },
   totalAmount: { fontSize: '18px', fontWeight: 700, color: '#00D4FF' },
+  refundAmount: { marginTop: 4, fontSize: '12px', color: '#fbbf24' },
   fulfillmentPanel: {
     margin: '4px 0 20px',
     padding: '18px',

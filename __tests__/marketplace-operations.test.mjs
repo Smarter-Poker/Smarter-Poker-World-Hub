@@ -228,6 +228,10 @@ test('deployment verifier preserves a non-JSON readiness HTTP status', async (t)
       res.writeHead(401, { 'content-type': 'application/json' });
       return res.end('{"success":false}');
     }
+    if (req.url === '/api/store/order-ledger') {
+      res.writeHead(401, { 'content-type': 'application/json' });
+      return res.end('{"success":false}');
+    }
     if (req.url?.startsWith('/images/')) {
       res.writeHead(200, { 'content-type': 'image/webp' });
       return res.end('image');

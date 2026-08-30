@@ -15,6 +15,7 @@ const SHELL_CSS = read('src/components/store/MarketplaceSubpageShell.module.css'
 const CART_STORE = read('src/stores/cartStore.js');
 const PREFERENCES = read('src/services/preferences-service.js');
 const DIAMOND_PURCHASE = read('pages/api/store/purchase-with-diamonds.js');
+const ORDER_LEDGER = read('pages/api/store/order-ledger.js');
 
 test('legacy marketplace links redirect on the server and preserve their query string', () => {
   assert.match(MARKETPLACE, /export async function getServerSideProps/);
@@ -67,11 +68,13 @@ test('all cart lines obey the API quantity ceiling', () => {
 });
 
 test('order history is allowlisted and includes VIP subscription activity', () => {
-  assert.doesNotMatch(ORDERS, /select\(['"]\*['"]\)/);
-  assert.match(ORDERS, /from\('vip_subscriptions'\)/);
-  assert.match(ORDERS, /normalizeVipSubscription/);
-  assert.match(ORDERS, /vip_subscriptions/);
-  assert.doesNotMatch(ORDERS, /shipping_address/);
+  assert.match(ORDERS, /authedFetch\(`\/api\/store\/order-ledger\?limit=/);
+  assert.doesNotMatch(ORDERS, /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/);
+  assert.match(ORDER_LEDGER, /table: 'vip_subscriptions'/);
+  assert.match(ORDER_LEDGER, /table: 'diamond_purchases'/);
+  assert.match(ORDER_LEDGER, /table: 'merchandise_orders'/);
+  assert.doesNotMatch(ORDER_LEDGER, /select\(['"]\*['"]\)/);
+  assert.doesNotMatch(ORDER_LEDGER, /shipping_address/);
   for (const status of ['paid', 'shipped', 'delivered', 'active', 'trialing', 'past_due']) {
     assert.match(ORDERS, new RegExp(`${status}:`));
   }

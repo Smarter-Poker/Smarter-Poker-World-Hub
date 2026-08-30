@@ -12,11 +12,12 @@ const PREFERENCES = read('src/services/preferences-service.js');
 const MERCH = read('src/components/store/MerchStore.jsx');
 const CART = read('pages/hub/diamond-store/cart.js');
 const PURCHASE = read('pages/api/store/purchase-with-diamonds.js');
+const ORDER_LEDGER = read('pages/api/store/order-ledger.js');
 
 test('merchandise order history exposes safe same-surface shipment tracking', () => {
-  assert.match(ORDERS, /tracking_number, tracking_url, carrier/);
-  assert.match(ORDERS, /function safeTrackingUrl/);
-  assert.match(ORDERS, /url\.protocol === 'https:'/);
+  assert.match(ORDER_LEDGER, /tracking_number, tracking_url, carrier/);
+  assert.match(ORDER_LEDGER, /function safeTrackingUrl/);
+  assert.match(ORDER_LEDGER, /url\.protocol === 'https:'/);
   assert.match(ORDERS, /href=\{order\.trackingUrl\}/);
   assert.doesNotMatch(ORDERS, /target=["']_blank|window\.open/);
   assert.match(ORDERS, /Fulfillment telemetry/);
