@@ -381,17 +381,6 @@ export default function GtoNewsPage() {
     markRead(id);
   };
 
-  // TRAIN-NEWS-A11Y: keyboard activation for the clickable article cards
-  const handleCardKeyDown = (e, id) => {
-    // Ignore keys bubbling up from nested controls (e.g. the bookmark button),
-    // otherwise preventDefault() here cancels their own keyboard activation.
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-      e.preventDefault();
-      handleExpand(id);
-    }
-  };
-
   // Filtered and searched articles
   const filtered = useMemo(() => {
     let list = items;
@@ -676,14 +665,8 @@ export default function GtoNewsPage() {
                 marginBottom: 8,
                 background: readArticles.has(a.id) ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.25)',
                 border: `1px solid ${readArticles.has(a.id) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'}`,
-                cursor: 'pointer',
+                cursor: 'default',
               }}
-              role="button"
-              tabIndex={0}
-              aria-expanded={expanded === a.id}
-              aria-label={`${a.title}${a.isSample ? ' (sample content)' : ''}${readArticles.has(a.id) ? ' (read)' : ''}`}
-              onKeyDown={(e) => handleCardKeyDown(e, a.id)}
-              onClick={() => handleExpand(a.id)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -756,16 +739,27 @@ export default function GtoNewsPage() {
                   </motion.button>
                 </div>
               </div>
-              <div
+              <button
+                type="button"
+                aria-expanded={expanded === a.id}
+                aria-label={`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`}
+                onClick={() => handleExpand(a.id)}
                 style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: 0,
+                  border: 'none',
+                  background: 'transparent',
                   fontSize: 14,
                   fontWeight: 700,
                   color: readArticles.has(a.id) ? 'var(--sp-fg-muted)' : 'var(--sp-fg)',
                   marginBottom: expanded === a.id ? 8 : 0,
+                  textAlign: 'left',
+                  cursor: 'pointer',
                 }}
               >
                 {a.title}
-              </div>
+              </button>
               <AnimatePresence>
                 {expanded === a.id && (
                   <motion.div

@@ -164,6 +164,7 @@ export default function RiskAnalyzerPage() {
                 <span style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{winRate} bb</span>
               </div>
               <input
+                aria-label="Expected Return Percentage"
                 type="range"
                 min="-5"
                 max="25"
@@ -182,6 +183,7 @@ export default function RiskAnalyzerPage() {
                 <span style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{stdDev} bb/100</span>
               </div>
               <input
+                aria-label="Standard Deviation"
                 type="range"
                 min="40"
                 max="180"
@@ -203,6 +205,7 @@ export default function RiskAnalyzerPage() {
                 <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 800 }}>{bankroll} BBs</span>
               </div>
               <input
+                aria-label="Simulation Sample Size"
                 type="range"
                 min="500"
                 max="10000"

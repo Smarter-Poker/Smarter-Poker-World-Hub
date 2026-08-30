@@ -2,13 +2,14 @@
    ACCESS NODE — CANONICAL SIGN-IN PAGE
    URL: /auth/login  (this is the ONLY sign-in page)
    
-   ⚠ AGENTS: The Sign In button URL is /auth/login — NOT /auth/signin
+   AGENTS: The Sign In Button URL Is /auth/login — Not /auth/signin
    A redirect exists at pages/auth/signin.js as a safety net, but the 
    canonical route is THIS FILE. Do NOT change the Sign In URL to /auth/signin.
    Vanguard Silver | Next.js Unified
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -125,13 +126,13 @@ export default function LoginPage() {
   }, [router.isReady]);
 
   // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
-  const getRedirectUrl = () => {
+  const getRedirectUrl = useCallback(() => {
     const r = router.query.redirect;
     // Only allow internal redirects (prevent open redirect attacks).
     // '//evil.com' is protocol-relative and WOULD leave the site — block it.
     if (r && typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r;
     return '/hub';
-  };
+  }, [router.query.redirect]);
 
   // ── [2026-08-04] Server-side error visibility ────────────────────────────
   // Client Sentry is disabled (OOM workaround), so console.warn in these catch
@@ -168,7 +169,7 @@ export default function LoginPage() {
       }
     }
     checkSession();
-  }, [router]);
+  }, [getRedirectUrl, router]);
 
   // Handle switching accounts
   const handleSwitchAccount = async () => {
@@ -438,7 +439,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div
+    <>
+      <Head>
+        <title>Sign In | Smarter.Poker</title>
+        <meta name="description" content="Sign In To Continue To Smarter.Poker." />
+      </Head>
+      <div
       style={{
         position: 'relative',
         width: '100%',
@@ -735,6 +741,7 @@ export default function LoginPage() {
                         replaces the old floating label, which collided with the
                         input at phone sizes. */}
           <input
+            aria-label="Email Address"
             type="email"
             value={email}
             onChange={(e) => {
@@ -762,6 +769,7 @@ export default function LoginPage() {
 
           {/* Password input */}
           <input
+            aria-label="Password"
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => {
@@ -791,6 +799,7 @@ export default function LoginPage() {
           {/* Show/hide password toggle */}
           <button
             type="button"
+            aria-label={showPassword ? 'Hide Password' : 'Show Password'}
             onClick={() => setShowPassword(!showPassword)}
             style={{
               position: 'absolute',
@@ -808,16 +817,20 @@ export default function LoginPage() {
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            tabIndex={-1}
             title={showPassword ? 'Hide Password' : 'Show Password'}
           >
-            {showPassword ? '👁' : '👁‍🗨'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="2.5" />
+              {showPassword && <path d="M4 4 20 20" />}
+            </svg>
           </button>
 
           {mode === 'login' && (
             <>
               {/* Remember Me checkbox (invisible, over baked-in checkbox) */}
               <input
+                aria-label="Remember Me"
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
@@ -926,6 +939,7 @@ export default function LoginPage() {
           title={mode === 'login' ? 'Sign Up' : 'Sign In'}
         />
       </div>
-    </div>
+      </div>
+    </>
   );
 }

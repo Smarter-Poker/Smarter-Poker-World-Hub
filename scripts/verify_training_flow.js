@@ -1,165 +1,126 @@
+#!/usr/bin/env node
 
-const { createClient } = require('@supabase/supabase-js');
+/**
+ * Read-Only Training Deployment Verification
+ *
+ * Usage:
+ *   node scripts/verify_training_flow.js [baseUrl] [expectedBuildSha]
+ *
+ * This script intentionally performs no authentication and no database writes.
+ * It verifies the public Training shell, key secondary pages, deployment health,
+ * and the protected gameplay redirect contract for signed-out visitors.
+ */
 
-// Test configuration
-const TEST_CONFIG = {
-    gameId: 'mtt-001',
-    userId: null, // Will be set from auth
-    leakCategory: 'FOLD_TO_AGGRESSION',
-    leakName: 'Folding to Aggression',
-    errorRate: 0.80, // 80% error rate
-    confidence: 0.85, // 85% confidence
-    totalSamples: 10,
-    mistakeCount: 8,
-    xpAwarded: 250,
-    baseXp: 100,
-    streakMultiplier: 1.5,
-    speedMultiplier: 1.0,
-    remediationMultiplier: 2.5
-};
+const baseUrl = String(
+  process.env.TRAINING_AUDIT_BASE_URL
+  || process.argv[2]
+  || 'https://smarter.poker',
+).replace(/\/$/, '');
+const expectedBuildSha = String(
+  process.env.EXPECTED_BUILD_SHA
+  || process.argv[3]
+  || '',
+).trim().slice(0, 8);
 
-async function runSmokeTest() {
-    console.log('🧪 GTO Training Engine - Smoke Test\n');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+const publicRoutes = [
+  { path: '/hub/training', marker: 'Browse The Training Library' },
+  { path: '/hub/training/coach-mode', marker: 'Coach Mode' },
+  { path: '/hub/training/tournament-prep', marker: 'Tournament Prep Planner' },
+  { path: '/hub/training/solutions', marker: 'GTO Solutions' },
+];
 
-    // Initialize Supabase
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+const protectedRoutes = [
+  '/hub/training/arena/cash-001?level=1',
+  '/hub/training/play/cash-001',
+];
 
-    // Step 1: Get current user
-    console.log('Step 1: Authenticating user...');
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+const results = [];
 
-    if (authError || !user) {
-        console.error('❌ Authentication failed. Please sign in first.');
-        console.error('   Run: await supabase.auth.signInWithPassword({ email, password })');
-        process.exit(1);
-    }
-
-    TEST_CONFIG.userId = user.id;
-    console.log(`✅ Authenticated as: ${user.email}`);
-    console.log(`   User ID: ${user.id}\n`);
-
-    // Step 2: Verify tables exist
-    console.log('Step 2: Verifying database tables...');
-
-    const { count: clinicsCount, error: clinicsError } = await supabase
-        .from('training_clinics')
-        .select('*', { count: 'exact', head: true });
-
-    if (clinicsError) {
-        console.error('❌ training_clinics table not found');
-        console.error('   Run the migration first: npm run migrate:training');
-        process.exit(1);
-    }
-
-    console.log(`✅ training_clinics: ${clinicsCount} rows`);
-
-    const { error: leaksError } = await supabase
-        .from('user_leaks')
-        .select('*', { count: 'exact', head: true });
-
-    if (leaksError) {
-        console.error('❌ user_leaks table not found');
-        process.exit(1);
-    }
-
-    console.log(`✅ user_leaks table exists`);
-
-
-
-
-    // Step 3: Simulate leak detection
-    console.log('Step 3: Simulating leak detection...');
-    console.log(`   Category: ${TEST_CONFIG.leakCategory}`);
-    console.log(`   Error Rate: ${(TEST_CONFIG.errorRate * 100).toFixed(0)}%`);
-    console.log(`   Confidence: ${(TEST_CONFIG.confidence * 100).toFixed(0)}%`);
-
-    const { data: leak, error: leakInsertError } = await supabase
-        .from('user_leaks')
-        .insert({
-            user_id: TEST_CONFIG.userId,
-            leak_category: TEST_CONFIG.leakCategory,
-            leak_name: TEST_CONFIG.leakName,
-            error_rate: TEST_CONFIG.errorRate,
-            confidence: TEST_CONFIG.confidence,
-            total_samples: TEST_CONFIG.totalSamples,
-            mistake_count: TEST_CONFIG.mistakeCount,
-            clinic_id: 'clinic-01', // Iron Wall
-            is_active: true
-        })
-        .select()
-        .maybeSingle();
-
-    if (leakInsertError) {
-        console.error('❌ Failed to insert leak:', leakInsertError.message);
-        process.exit(1);
-    }
-
-    console.log(`✅ Leak detected and saved (ID: ${leak.id})\n`);
-
-    // Step 4: Simulate XP award
-    console.log('Step 4: Simulating XP award...');
-    console.log(`   Base XP: ${TEST_CONFIG.baseXp}`);
-    console.log(`   Streak Multiplier: ${TEST_CONFIG.streakMultiplier}x`);
-    console.log(`   Remediation Multiplier: ${TEST_CONFIG.remediationMultiplier}x`);
-    console.log(`   Total XP: ${TEST_CONFIG.xpAwarded}`);
-
-
-    if (xpInsertError) {
-        console.error('❌ Failed to insert XP log:', xpInsertError.message);
-        process.exit(1);
-    }
-
-    console.log(`✅ XP awarded and logged (ID: ${xpLog.id})\n`);
-
-    // Step 5: Verify data retrieval
-    console.log('Step 5: Verifying data retrieval...');
-
-    const { data: activeLeaks, error: activeLeaksError } = await supabase
-        .rpc('get_active_leaks', { p_user_id: TEST_CONFIG.userId });
-
-    if (activeLeaksError) {
-        console.warn('⚠️  get_active_leaks function not available');
-    } else {
-        console.log(`✅ Active leaks retrieved: ${activeLeaks?.length || 0}`);
-        if (activeLeaks && activeLeaks.length > 0) {
-            console.log(`   - ${activeLeaks[0].leak_name} (${(activeLeaks[0].confidence * 100).toFixed(0)}% confidence)`);
-        }
-    }
-
-    // The XP step was removed on 2026-08-21. XP was dropped as a product
-    // decision months ago and the RPC this called had already been gutted to
-    // return 0, so the check reported a success it had not measured.
-
-    // Step 6: Cleanup test data
-    console.log('Step 6: Cleaning up test data...');
-
-    await supabase
-        .from('user_leaks')
-        .delete()
-        .eq('id', leak.id);
-
-
-    console.log(`✅ Test data cleaned up\n`);
-
-    // Final summary
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log('🎉 SMOKE TEST PASSED');
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log('✅ Database tables exist');
-    console.log('✅ Leak detection works');
-    console.log('✅ XP logging works');
-    console.log('✅ Data retrieval works');
-    console.log('\n🚀 Training Engine is ready for production!\n');
-
-    process.exit(0);
+async function request(path, options = {}) {
+  const startedAt = Date.now();
+  const response = await fetch(`${baseUrl}${path}`, {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(30_000),
+    headers: { 'user-agent': 'SmarterPoker-Training-Deployment-Verification/3' },
+    ...options,
+  });
+  return { response, latencyMs: Date.now() - startedAt };
 }
 
-runSmokeTest().catch(err => {
-    console.error('\n💥 Smoke test failed:', err.message);
-    console.error(err);
-    process.exit(1);
+async function verifyHealth() {
+  const { response, latencyMs } = await request('/api/health');
+  const payload = await response.json().catch(() => null);
+  const failures = [];
+
+  if (response.status !== 200) failures.push(`Expected HTTP 200, Received ${response.status}`);
+  if (payload?.status !== 'ok') failures.push(`Expected Status Ok, Received ${payload?.status || 'Missing'}`);
+  if (payload?.checks?.db?.status !== 'ok') failures.push(`Expected Database Ok, Received ${payload?.checks?.db?.status || 'Missing'}`);
+  if (expectedBuildSha && payload?.version !== expectedBuildSha) {
+    failures.push(`Expected Build ${expectedBuildSha}, Received ${payload?.version || 'Missing'}`);
+  }
+
+  results.push({
+    check: 'Production Health',
+    path: '/api/health',
+    status: response.status,
+    latencyMs,
+    build: payload?.version || null,
+    failures,
+  });
+}
+
+async function verifyPublicRoute({ path, marker }) {
+  const { response, latencyMs } = await request(path);
+  const body = await response.text();
+  const failures = [];
+
+  if (response.status !== 200) failures.push(`Expected HTTP 200, Received ${response.status}`);
+  if (body.length < 1_000) failures.push(`Expected Rendered HTML, Received ${body.length} Characters`);
+  if (!body.toLowerCase().includes(marker.toLowerCase())) failures.push(`Missing Marker: ${marker}`);
+
+  results.push({ check: 'Public Training Route', path, status: response.status, latencyMs, failures });
+}
+
+async function verifyProtectedRoute(path) {
+  const { response, latencyMs } = await request(path);
+  const location = response.headers.get('location') || '';
+  const failures = [];
+  const isRedirect = [301, 302, 303, 307, 308].includes(response.status);
+
+  if (!isRedirect) failures.push(`Expected Authentication Redirect, Received HTTP ${response.status}`);
+  if (!location.startsWith('/auth/login') && !location.startsWith(`${baseUrl}/auth/login`)) {
+    failures.push(`Expected Canonical Login Redirect, Received ${location || 'Missing Location'}`);
+  }
+  if (!location.includes('redirect=')) failures.push('Authentication Redirect Does Not Preserve Destination');
+
+  results.push({
+    check: 'Protected Gameplay Contract',
+    path,
+    status: response.status,
+    latencyMs,
+    location,
+    failures,
+  });
+}
+
+async function main() {
+  await verifyHealth();
+  for (const route of publicRoutes) await verifyPublicRoute(route);
+  for (const route of protectedRoutes) await verifyProtectedRoute(route);
+
+  const failures = results.filter((result) => result.failures.length > 0);
+  process.stdout.write(`${JSON.stringify({
+    success: failures.length === 0,
+    readOnly: true,
+    baseUrl,
+    expectedBuildSha: expectedBuildSha || null,
+    checksRun: results.length,
+    results,
+  }, null, 2)}\n`);
+  process.exitCode = failures.length ? 1 : 0;
+}
+
+main().catch((error) => {
+  process.stderr.write(`Training Verification Failed: ${error?.message || String(error)}\n`);
+  process.exitCode = 1;
 });

@@ -429,12 +429,11 @@ export default function GlossaryPage() {
           />
 
           {/* Category */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }} role="tablist" aria-label="Filter glossary by category">
+          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }} role="group" aria-label="Filter Glossary By Category">
             {CATS.map((c) => (
               <motion.button
                 key={c}
                 type="button"
-                role="tab"
                 aria-pressed={catFilter === c}
                 aria-label={`Filter by ${c} terms`}
                 whileTap={{ scale: 0.95 }}

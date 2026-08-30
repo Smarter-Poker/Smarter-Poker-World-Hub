@@ -434,7 +434,7 @@ export default function TrainingPage() {
                 </label>
               </div>
 
-              <div className="sp-cat-chips" role="tablist" aria-label="Game categories">
+              <div className="sp-cat-chips" role="group" aria-label="Game Categories">
                 <CatChip cat="ALL" active={activeCat==='ALL'} onClick={() => setActiveCat('ALL')} count={TRAINING_LIBRARY.length}>
                   <Grid2x2 size={14} aria-hidden /> All
                 </CatChip>
@@ -546,7 +546,7 @@ function GradeCard({ stats, loading }) {
               ? `${accuracy}% accuracy · ${hands.toLocaleString()} hands (30d)`
               : 'Finish a drill to start your grade.'}
           </p>
-          <div className="sp-progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="sp-progress" role="progressbar" aria-label="Thirty Day GTO Accuracy" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <div className="sp-progress-fill" style={{ width: `${pct}%` }} />
           </div>
           {hasData && next && delta && (
@@ -619,7 +619,7 @@ function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recomme
 
 function CatChip({ children, active, onClick, count }) {
   return (
-    <button className="sp-cat-chip" role="tab" aria-pressed={active} onClick={onClick}>
+    <button className="sp-cat-chip" aria-pressed={active} onClick={onClick}>
       {children} <span className="sp-cat-count">{count}</span>
     </button>
   );
@@ -698,7 +698,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         </div>
         <div className="sp-card-progress">
           <div className="sp-card-progress-head"><span>Training Calibration</span><span>{progress}%</span></div>
-          <div className="sp-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <div className="sp-progress" role="progressbar" aria-label={`${game.name} Training Calibration`} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
             <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>

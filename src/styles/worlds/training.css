@@ -883,6 +883,586 @@ body.world-training [data-focus-custom]:focus-visible {
     }
 }
 
+/* Phase 3: Authored Table Dynamics Instrument Panel */
+body.world-training .sp-dynamics-panel {
+    --dynamics-edge: #5b7482;
+    --dynamics-edge-bright: #b7d4e1;
+    --dynamics-cyan: #38ddff;
+    --dynamics-panel: #0a1119;
+    --dynamics-panel-raised: #111d27;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--dynamics-edge);
+    border-radius: 0;
+    color: #f3f8fb;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.07) 0, transparent 24%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 1px, transparent 1px 4px),
+        linear-gradient(180deg, #101c26 0%, #070c12 48%, #0a1119 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(229,247,255,.65),
+        inset 0 -1px 0 rgba(0,0,0,.9),
+        0 18px 42px rgba(0,0,0,.55),
+        0 0 28px rgba(56,221,255,.08);
+    font-family: var(--font-share-tech-mono, 'Share Tech Mono', monospace);
+}
+
+body.world-training .sp-dynamics-panel::before,
+body.world-training .sp-dynamics-panel::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+}
+
+body.world-training .sp-dynamics-panel::before {
+    inset: 7px;
+    border: 1px solid rgba(117,181,207,.22);
+}
+
+body.world-training .sp-dynamics-panel::after {
+    top: 0;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--dynamics-cyan) 18%, #e8f8ff 50%, var(--dynamics-cyan) 82%, transparent);
+    box-shadow: 0 0 13px rgba(56,221,255,.8);
+}
+
+body.world-training .sp-dynamics-panel--floating {
+    position: fixed;
+    top: 6vh;
+    right: 4vw;
+    z-index: 9999;
+    width: min(920px, 92vw);
+    max-height: 88vh;
+    overflow-y: auto;
+    cursor: grab;
+}
+
+body.world-training .sp-dynamics-header {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 30px 23px;
+    border-bottom: 1px solid #49606d;
+    background:
+        radial-gradient(circle at 18% 0%, rgba(56,221,255,.12), transparent 42%),
+        linear-gradient(180deg, rgba(31,48,60,.94), rgba(10,17,25,.96));
+    box-shadow: inset 0 -10px 22px rgba(0,0,0,.3);
+}
+
+body.world-training .sp-dynamics-heading h3,
+body.world-training .sp-dynamics-instrument h4,
+body.world-training .sp-dynamics-seat-ledger h4,
+body.world-training .sp-dynamics-adjustments h4 {
+    margin: 0;
+    color: #f5fbff;
+    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    text-transform: none;
+    text-shadow: 0 2px 0 #000, 0 0 16px rgba(56,221,255,.18);
+}
+
+body.world-training .sp-dynamics-heading h3 {
+    margin-top: 5px;
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 700;
+    letter-spacing: .015em;
+}
+
+body.world-training .sp-dynamics-heading p {
+    max-width: 650px;
+    margin: 8px 0 0;
+    color: #bdd0d9;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+body.world-training .sp-dynamics-kicker,
+body.world-training .sp-dynamics-instrument header > span,
+body.world-training .sp-dynamics-seat-ledger header > span,
+body.world-training .sp-dynamics-adjustments header > span {
+    color: #7be8ff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-dynamics-header__actions {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+body.world-training .sp-dynamics-source,
+body.world-training .sp-dynamics-dock {
+    min-height: 48px;
+    border: 1px solid #647e8b;
+    border-radius: 0;
+    color: #f1f7fa;
+    background: linear-gradient(180deg, #263a46 0%, #101b24 48%, #071018 100%);
+    box-shadow: inset 0 1px 0 rgba(235,250,255,.48), inset 0 -2px 4px rgba(0,0,0,.7), 0 5px 14px rgba(0,0,0,.4);
+}
+
+body.world-training .sp-dynamics-source {
+    display: grid;
+    min-width: 205px;
+    padding: 8px 12px;
+}
+
+body.world-training .sp-dynamics-source span,
+body.world-training .sp-dynamics-source small {
+    color: #91a7b2;
+    font-size: 8px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-dynamics-source strong {
+    color: #8eeaff;
+    font-size: 11px;
+}
+
+body.world-training .sp-dynamics-dock {
+    min-width: 122px;
+    padding: 0 14px;
+    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+body.world-training .sp-dynamics-dock:hover,
+body.world-training .sp-dynamics-dock:focus-visible,
+body.world-training .sp-dynamics-dock[aria-pressed='true'] {
+    border-color: #8feeff;
+    color: #fff;
+    background: linear-gradient(180deg, #31667a, #102a36 55%, #06131b);
+    box-shadow: inset 0 1px 0 #d8f8ff, 0 0 18px rgba(56,221,255,.3);
+}
+
+body.world-training .sp-dynamics-scenario-rail {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    padding: 0 30px;
+    border-bottom: 1px solid #40535d;
+    background: #03070b;
+}
+
+body.world-training .sp-dynamics-scenario-rail button {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 54px;
+    padding: 8px 14px;
+    border: 0;
+    border-left: 1px solid #263741;
+    border-right: 1px solid #263741;
+    border-radius: 0;
+    color: #a9bbc4;
+    background: linear-gradient(180deg, #101922, #080d13);
+    cursor: pointer;
+}
+
+body.world-training .sp-dynamics-scenario-rail button > span {
+    color: #78909b;
+    font-size: 10px;
+}
+
+body.world-training .sp-dynamics-scenario-rail button > strong {
+    color: inherit;
+    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-size: 10px;
+}
+
+body.world-training .sp-dynamics-scenario-rail button[aria-pressed='true'] {
+    position: relative;
+    color: #f7fdff;
+    background: linear-gradient(180deg, #193443, #0c1a23 64%, #061016);
+    box-shadow: inset 0 -3px 0 var(--dynamics-cyan), inset 0 1px 0 rgba(199,244,255,.28);
+}
+
+body.world-training .sp-dynamics-classification {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 22px 30px 0;
+    padding: 15px 17px;
+    border: 1px solid #3d525e;
+    border-radius: 0;
+    background: linear-gradient(90deg, rgba(12,26,35,.98), rgba(22,34,42,.85));
+    box-shadow: inset 0 1px 0 rgba(216,246,255,.16), 0 10px 22px rgba(0,0,0,.26);
+}
+
+body.world-training .sp-dynamics-classification div {
+    display: grid;
+    gap: 3px;
+}
+
+body.world-training .sp-dynamics-classification div > span {
+    color: #8198a4;
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-dynamics-classification div > strong {
+    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-size: 17px;
+}
+
+body.world-training .sp-dynamics-classification p {
+    margin: 0;
+    color: #c8d8df;
+    font-size: 12px;
+    text-align: right;
+}
+
+body.world-training .sp-dynamics-metrics {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px 30px 0;
+}
+
+body.world-training .sp-dynamics-metric {
+    display: grid;
+    gap: 7px;
+    min-height: 76px;
+    padding: 13px 15px;
+    border: 1px solid #334955;
+    border-radius: 0;
+    background: linear-gradient(145deg, rgba(31,47,58,.92), rgba(6,12,17,.98));
+    box-shadow: inset 0 1px 0 rgba(225,248,255,.18), inset 4px 0 0 currentColor, 0 8px 18px rgba(0,0,0,.3);
+}
+
+body.world-training .sp-dynamics-metric span {
+    color: #a6bbc5;
+    font-size: 9px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-dynamics-metric strong {
+    color: currentColor;
+    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-size: 21px;
+}
+
+body.world-training .sp-dynamics-tone--positive { color: #5df5a7; }
+body.world-training .sp-dynamics-tone--warning { color: #ffc65d; }
+body.world-training .sp-dynamics-tone--danger { color: #ff7777; }
+body.world-training .sp-dynamics-tone--info { color: #64bdff; }
+body.world-training .sp-dynamics-tone--accent { color: #c293ff; }
+
+body.world-training .sp-dynamics-instruments {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 30px 0;
+}
+
+body.world-training .sp-dynamics-instrument,
+body.world-training .sp-dynamics-seat-ledger,
+body.world-training .sp-dynamics-adjustments {
+    border: 1px solid #3b505c;
+    border-radius: 0;
+    background: linear-gradient(150deg, rgba(21,34,43,.94), rgba(5,10,15,.98));
+    box-shadow: inset 0 1px 0 rgba(227,248,255,.14), 0 9px 20px rgba(0,0,0,.3);
+}
+
+body.world-training .sp-dynamics-instrument > header,
+body.world-training .sp-dynamics-seat-ledger > header,
+body.world-training .sp-dynamics-adjustments > header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid #354852;
+    background: linear-gradient(180deg, rgba(50,67,76,.42), rgba(11,18,24,.6));
+}
+
+body.world-training .sp-dynamics-instrument h4,
+body.world-training .sp-dynamics-seat-ledger h4,
+body.world-training .sp-dynamics-adjustments h4 {
+    font-size: 13px;
+}
+
+body.world-training .sp-dynamics-meter-grid {
+    display: grid;
+    gap: 9px;
+    padding: 15px;
+}
+
+body.world-training .sp-dynamics-meter__label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    color: #b8c9d1;
+    font-size: 10px;
+}
+
+body.world-training .sp-dynamics-meter__label strong {
+    color: #f4fbff;
+}
+
+body.world-training .sp-dynamics-meter__track {
+    height: 8px;
+    overflow: hidden;
+    border: 1px solid #354955;
+    background: #020507;
+    box-shadow: inset 0 2px 4px #000;
+}
+
+body.world-training .sp-dynamics-meter__fill {
+    display: block;
+    height: 100%;
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
+}
+
+body.world-training .sp-dynamics-stacks {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    height: 170px;
+    padding: 18px 15px 15px;
+}
+
+body.world-training .sp-dynamics-stack {
+    display: grid;
+    flex: 1;
+    grid-template-rows: 18px 1fr 16px;
+    height: 100%;
+    min-width: 0;
+    color: #718994;
+    text-align: center;
+}
+
+body.world-training .sp-dynamics-stack > span,
+body.world-training .sp-dynamics-stack > strong {
+    overflow: hidden;
+    color: inherit;
+    font-size: 8px;
+    white-space: nowrap;
+}
+
+body.world-training .sp-dynamics-stack__rail {
+    position: relative;
+    width: min(30px, 72%);
+    height: 100%;
+    margin: auto;
+    border: 1px solid #344751;
+    background: #03070a;
+    box-shadow: inset 0 3px 8px #000;
+}
+
+body.world-training .sp-dynamics-stack__rail i {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    left: 2px;
+    background: linear-gradient(90deg, #142f3c, #50839a 48%, #172f3a);
+    box-shadow: inset 0 1px 0 #aad1e1;
+}
+
+body.world-training .sp-dynamics-stack--hero {
+    color: #74eaff;
+}
+
+body.world-training .sp-dynamics-stack--hero .sp-dynamics-stack__rail i {
+    background: linear-gradient(90deg, #075d74, #3ee1ff 48%, #0a5f76);
+    box-shadow: inset 0 1px 0 #e1fbff, 0 0 13px rgba(56,221,255,.48);
+}
+
+body.world-training .sp-dynamics-seat-ledger,
+body.world-training .sp-dynamics-adjustments {
+    position: relative;
+    z-index: 3;
+    margin: 14px 30px 0;
+}
+
+body.world-training .sp-dynamics-table-scroll {
+    overflow-x: auto;
+}
+
+body.world-training .sp-dynamics-table-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #dbe7ec;
+    font-size: 11px;
+}
+
+body.world-training .sp-dynamics-table-scroll th,
+body.world-training .sp-dynamics-table-scroll td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(95,124,137,.28);
+    color: inherit;
+    text-align: right;
+}
+
+body.world-training .sp-dynamics-table-scroll th:first-child,
+body.world-training .sp-dynamics-table-scroll td:first-child {
+    text-align: left;
+}
+
+body.world-training .sp-dynamics-table-scroll thead {
+    color: #8ba3ae;
+    background: rgba(0,0,0,.32);
+}
+
+body.world-training .sp-dynamics-table-scroll tbody th {
+    color: #f0f7fa;
+}
+
+body.world-training .sp-dynamics-table-scroll .sp-dynamics-row--hero {
+    color: #92efff;
+    background: linear-gradient(90deg, rgba(56,221,255,.14), rgba(56,221,255,.025));
+    box-shadow: inset 3px 0 0 var(--dynamics-cyan);
+}
+
+body.world-training .sp-dynamics-adjustments {
+    margin-bottom: 30px;
+}
+
+body.world-training .sp-dynamics-adjustment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 14px;
+}
+
+body.world-training .sp-dynamics-adjustment {
+    min-height: 78px;
+    padding: 12px 13px;
+    border: 1px solid #354b56;
+    border-left: 3px solid currentColor;
+    border-radius: 0;
+    background: linear-gradient(135deg, rgba(31,46,55,.9), rgba(7,13,18,.96));
+    box-shadow: inset 0 1px 0 rgba(222,246,255,.12);
+}
+
+body.world-training .sp-dynamics-adjustment > span {
+    color: currentColor;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+body.world-training .sp-dynamics-adjustment p {
+    margin: 6px 0 0;
+    color: #d2dfe4;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+body.world-training .sp-dynamics-adjustment--positive { color: #5df5a7; }
+body.world-training .sp-dynamics-adjustment--warning { color: #ffc65d; }
+body.world-training .sp-dynamics-adjustment--danger { color: #ff7777; }
+body.world-training .sp-dynamics-adjustment--info { color: #64bdff; }
+body.world-training .sp-dynamics-adjustment--accent { color: #c293ff; }
+
+@media (max-width: 760px) {
+    body.world-training .sp-dynamics-panel--floating {
+        top: 3vh;
+        right: 3vw;
+        width: 94vw;
+        max-height: 94vh;
+    }
+
+    body.world-training .sp-dynamics-header {
+        flex-direction: column;
+        padding: 24px 19px 19px;
+    }
+
+    body.world-training .sp-dynamics-header__actions {
+        width: 100%;
+    }
+
+    body.world-training .sp-dynamics-source {
+        flex: 1;
+        min-width: 0;
+    }
+
+    body.world-training .sp-dynamics-dock {
+        min-height: 48px;
+    }
+
+    body.world-training .sp-dynamics-scenario-rail {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 0 19px;
+    }
+
+    body.world-training .sp-dynamics-scenario-rail button {
+        min-height: 48px;
+    }
+
+    body.world-training .sp-dynamics-classification {
+        align-items: flex-start;
+        flex-direction: column;
+        margin: 18px 19px 0;
+    }
+
+    body.world-training .sp-dynamics-classification p {
+        text-align: left;
+    }
+
+    body.world-training .sp-dynamics-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 12px 19px 0;
+    }
+
+    body.world-training .sp-dynamics-instruments {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px 19px 0;
+    }
+
+    body.world-training .sp-dynamics-seat-ledger,
+    body.world-training .sp-dynamics-adjustments {
+        margin-right: 19px;
+        margin-left: 19px;
+    }
+
+    body.world-training .sp-dynamics-adjustment-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.world-training .sp-dynamics-table-scroll table {
+        min-width: 560px;
+    }
+}
+
+@media (max-width: 430px) {
+    body.world-training .sp-dynamics-header__actions {
+        flex-direction: column;
+    }
+
+    body.world-training .sp-dynamics-dock {
+        width: 100%;
+    }
+
+    body.world-training .sp-dynamics-metrics {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    PHASE 11 — CHALLENGES, COACHING & COMMUNITY COMMAND DECK
    Shared dimensional treatment for goals, the daily solver spot, PvP,

@@ -311,7 +311,7 @@ export default function FamousFinalsPage() {
         },
       ]);
     },
-    [showFeedback, currentSpot, spotIndex]
+    [showFeedback, currentSpot, spotIndex, fb]
   );
 
   const handleNext = useCallback(() => {
@@ -515,7 +515,7 @@ export default function FamousFinalsPage() {
                     </div>
 
                     {/* Players */}
-                    <div data-pills-row style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                       {ft.players.map((p) => (
                         <div
                           key={p.name}

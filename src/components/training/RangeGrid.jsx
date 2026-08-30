@@ -628,7 +628,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications, actionFilter]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications, actionFilter, heldCardsForBlockers, showEVOverlay]);
 
     // Get action legend
     const activeActions = useMemo(() => {

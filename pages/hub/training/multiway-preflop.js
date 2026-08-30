@@ -335,7 +335,7 @@ export default function MultiwayPreflopPage() {
         quizSavedRef.current = false;
       }, 1000);
     }
-  }, [quizScore.total]);
+  }, [quizScore.correct, quizScore.total]);
 
   const scenario = MULTIWAY_SCENARIOS[selectedScenario];
   const posColors = {

@@ -157,7 +157,7 @@ const StreetColors = {
 // ●● Decision Node ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
-    const handData = hand?.handData || hand || {};
+    const handData = useMemo(() => hand?.handData || hand || {}, [hand]);
     const street = handData.street || 'flop';
     const streetStyle = StreetColors[street] || StreetColors.flop;
 

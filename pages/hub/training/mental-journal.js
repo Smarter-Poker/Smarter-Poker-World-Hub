@@ -274,7 +274,7 @@ export default function MentalJournalPage() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); if (view === 'history') fetchHistory(); }} />
           {/* View Toggle */}
           <div
-            role="tablist"
+            role="group"
             aria-label="Switch between new entry and history"
             style={{
               display: 'flex',
@@ -286,7 +286,6 @@ export default function MentalJournalPage() {
           >
             <button
               type="button"
-              role="tab"
               aria-label="New journal entry"
               aria-pressed={view === 'add'}
               onClick={() => setView('add')}
@@ -306,7 +305,6 @@ export default function MentalJournalPage() {
             </button>
             <button
               type="button"
-              role="tab"
               aria-label="Browse journal history"
               aria-pressed={view === 'history'}
               onClick={() => setView('history')}

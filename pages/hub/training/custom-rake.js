@@ -264,6 +264,7 @@ export default function CustomRakePage() {
                   Rake %
                 </label>
                 <input
+                  aria-label="Custom Rake Percentage"
                   type="number"
                   step="0.5"
                   value={customPct}
@@ -292,6 +293,7 @@ export default function CustomRakePage() {
                   Cap ($)
                 </label>
                 <input
+                  aria-label="Custom Rake Cap"
                   type="number"
                   step="0.5"
                   value={customCap}
@@ -319,6 +321,7 @@ export default function CustomRakePage() {
               </span>
             </div>
             <input
+              aria-label="Stack Depth In Big Blinds"
               type="range"
               min="20"
               max="200"

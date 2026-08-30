@@ -233,7 +233,7 @@ export default function QuizGauntlet({ onExit } = {}) {
       setShowFeedback(res);
       recordAnswer({ isCorrect, score: pts, topic: q.topic, res });
     },
-    [q, userAnswer, showFeedback, timeLeft, combo, recordAnswer]
+    [q, userAnswer, showFeedback, timeLeft, combo, recordAnswer, fb]
   );
 
   // Shot clock

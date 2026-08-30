@@ -228,6 +228,7 @@ export default function HandLabV2() {
 
               <h3 style={styles.sectionTitle}>3. Villain Benchmark Hand</h3>
               <select
+                aria-label="Villain Benchmark Hand"
                 style={styles.rangeSelect}
                 value={villainHand}
                 onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}

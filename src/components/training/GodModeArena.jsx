@@ -3214,7 +3214,7 @@ function GodModeArenaInner({
       setIsLoadingCoaching(false);
     }
     fetchCoaching();
-  }, [gameComplete, gameId, crossSessionAnalytics]);
+  }, [gameComplete, gameId, crossSessionAnalytics, bestStreak, gtowScore, handHistory, totalEVLoss]);
 
   // Reset coaching when level changes
   useEffect(() => {
@@ -3599,6 +3599,8 @@ function GodModeArenaInner({
     correctCount,
     bestStreak,
     speedBonusDiamonds,
+    currentLevel,
+    sessionId,
   ]);
 
   // Restart actions (retryLevel/retrainMistakes/startNextLevel) reset gameComplete

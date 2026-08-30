@@ -207,12 +207,11 @@ export default function TrainingAchievements() {
           </div>
 
           {/* Category Filter */}
-          <div className="sp-journey-filter-rail" style={styles.filters} role="tablist" aria-label="Filter achievements by category">
+          <div className="sp-journey-filter-rail" style={styles.filters} role="group" aria-label="Filter Achievements By Category">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
-                role="tab"
                 style={activeCategory === cat ? styles.filterActive : styles.filterBtn}
                 onClick={() => setActiveCategory(cat)}
                 aria-label={`Filter by ${cat === 'all' ? 'all categories' : cat}`}

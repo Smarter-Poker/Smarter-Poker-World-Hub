@@ -98,10 +98,10 @@ const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
 
 const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, heroCards, boardCards, potSize }) => {
     const meta = STREET_META[street] || STREET_META.flop;
-    const boardForStreet = street === 'preflop' ? [] :
+    const boardForStreet = useMemo(() => street === 'preflop' ? [] :
         street === 'flop' ? boardCards.slice(0, 3) :
         street === 'turn' ? boardCards.slice(0, 4) :
-        boardCards.slice(0, 5);
+        boardCards.slice(0, 5), [street, boardCards]);
 
     // Compute strategy at this node
     const strategy = useMemo(() => {

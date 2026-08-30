@@ -655,6 +655,7 @@ export default function ICMCalculatorPage() {
                     {i + 1}
                   </span>
                   <input
+                    aria-label={`Player ${i + 1} Stack`}
                     type="number"
                     value={stack}
                     onChange={(e) => updateStack(i, e.target.value)}
@@ -766,6 +767,7 @@ export default function ICMCalculatorPage() {
                     {i + 1}st
                   </span>
                   <input
+                    aria-label={`Place ${i + 1} Prize Percentage`}
                     type="number"
                     value={prize}
                     onChange={(e) => updatePrize(i, e.target.value)}
@@ -810,6 +812,7 @@ export default function ICMCalculatorPage() {
                 POOL $
               </span>
               <input
+                aria-label="Total Prize Pool"
                 type="number"
                 value={prizePool}
                 onChange={(e) => setPrizePool(Math.max(0, parseInt(e.target.value, 10) || 0))}

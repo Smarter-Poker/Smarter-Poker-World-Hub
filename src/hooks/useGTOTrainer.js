@@ -349,6 +349,19 @@ export default function useGTOTrainer(
   const nextLevelCacheRef = useRef(null); // { level, questions } — prefetched next level
   const prefetchTriggeredRef = useRef(false);
 
+  // Tracks per-position, per-street, per-spotType accuracy for smart targeting.
+  // This must be declared before the preload callback because preload uses the
+  // latest weakness map to request targeted questions.
+  const weakSpotMapRef = useRef({});
+  const getWeakSpots = useCallback(() => {
+    const map = weakSpotMapRef.current;
+    return Object.values(map || {})
+      .filter((spot) => spot.total >= 3)
+      .map((spot) => ({ ...spot, mistakeRate: spot.mistakes / spot.total }))
+      .sort((a, b) => b.mistakeRate - a.mistakeRate)
+      .slice(0, 5);
+  }, []);
+
   // Get user ID for no-repeat tracking
   const userId = getAuthUser()?.id;
 
@@ -626,11 +639,8 @@ export default function useGTOTrainer(
     effectiveQuestionsPerLevel,
     fetchSingleQuestion,
     resolveDifficultyMode,
+    getWeakSpots,
   ]);
-
-  // ═══ PHASE 14: WEAK-SPOT ANALYSIS STATE ═══
-  // Tracks per-position, per-street, per-spotType accuracy for smart targeting
-  const weakSpotMapRef = useRef({});
 
   /**
    * Derive the spot type from scenario context
@@ -684,18 +694,6 @@ export default function useGTOTrainer(
     if (MISTAKE_CLASSES.includes((classification || '').toLowerCase())) {
       map[key].mistakes++;
     }
-  }, []);
-
-  /**
-   * Get the player's weakest spots (sorted by mistake rate, min 3 samples)
-   */
-  const getWeakSpots = useCallback(() => {
-    const map = weakSpotMapRef.current;
-    return Object.values(map || {})
-      .filter((s) => s.total >= 3) // Need min sample
-      .map((s) => ({ ...s, mistakeRate: s.mistakes / s.total }))
-      .sort((a, b) => b.mistakeRate - a.mistakeRate)
-      .slice(0, 5); // Top 5 weak spots
   }, []);
 
   /**
@@ -1413,6 +1411,9 @@ export default function useGTOTrainer(
       effectiveQuestionsPerLevel,
       deriveSpotType,
       updateWeakSpotMap,
+      getWeakSpots,
+      prefetchNextLevel,
+      gameId,
     ]
   );
 
@@ -1510,7 +1511,7 @@ export default function useGTOTrainer(
       setLoading(false);
       return false;
     }
-  }, [gameId]);
+  }, [gameId, trainerConfig]);
 
   /**
    * ═══ PHASE 14: Save mistakes to spaced repetition system ═══
@@ -1798,7 +1799,6 @@ export default function useGTOTrainer(
   }, [
     questionNumber,
     correctCount,
-    level,
     preloadComplete,
     preloadedQuestions,
     saveProgress,
@@ -1807,6 +1807,8 @@ export default function useGTOTrainer(
     advanceToNextStreet,
     lastSelectedAction,
     effectiveQuestionsPerLevel,
+    selectedLevel,
+    trainerConfig,
   ]);
 
   /**

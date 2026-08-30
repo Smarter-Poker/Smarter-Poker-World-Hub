@@ -301,7 +301,7 @@ export default function RangeBuilder() {
     } finally {
       setGrading(false);
     }
-  }, [selectedHands, position]);
+  }, [selectedHands, position, bus]);
 
   // Build grid
   const gridRows = useMemo(() => {

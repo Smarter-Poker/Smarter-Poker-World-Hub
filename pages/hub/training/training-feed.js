@@ -373,8 +373,8 @@ export default function TrainingFeedPage() {
         {/* Filter tabs */}
         <div
           className="sp-command-filter-rail"
-          role="tablist"
-          aria-label="Filter training feed"
+          role="group"
+          aria-label="Filter Training Feed"
           style={{
             display: 'flex',
             gap: 4,
