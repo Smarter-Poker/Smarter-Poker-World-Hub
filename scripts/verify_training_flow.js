@@ -8,7 +8,9 @@
  *
  * This script intentionally performs no authentication and no database writes.
  * It verifies the public Training shell, key secondary pages, deployment health,
- * and the protected gameplay redirect contract for signed-out visitors.
+ * and the protected gameplay redirect contract for signed-out visitors. The
+ * gameplay guard runs after hydration, so the verifier uses a clean browser
+ * context when the server correctly returns the application shell.
  */
 
 const baseUrl = String(
@@ -35,6 +37,7 @@ const protectedRoutes = [
 ];
 
 const results = [];
+let authBrowser = null;
 
 async function request(path, options = {}) {
   const startedAt = Date.now();
@@ -86,27 +89,63 @@ async function verifyProtectedRoute(path) {
   const location = response.headers.get('location') || '';
   const failures = [];
   const isRedirect = [301, 302, 303, 307, 308].includes(response.status);
+  let finalUrl = location;
+  let redirectMode = 'server';
 
-  if (!isRedirect) failures.push(`Expected Authentication Redirect, Received HTTP ${response.status}`);
-  if (!location.startsWith('/auth/login') && !location.startsWith(`${baseUrl}/auth/login`)) {
-    failures.push(`Expected Canonical Login Redirect, Received ${location || 'Missing Location'}`);
+  if (!isRedirect && response.status === 200) {
+    redirectMode = 'client';
+    try {
+      const { chromium } = await import('playwright');
+      authBrowser ||= await chromium.launch({ headless: true });
+      const context = await authBrowser.newContext();
+      const page = await context.newPage();
+      try {
+        await page.goto(`${baseUrl}${path}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        await page.waitForURL((url) => url.pathname === '/auth/login', { timeout: 12_000 });
+        finalUrl = page.url();
+      } finally {
+        await context.close();
+      }
+    } catch (error) {
+      failures.push(`Client Authentication Redirect Failed: ${error?.message || String(error)}`);
+    }
+  } else if (!isRedirect) {
+    failures.push(`Expected Application Shell Or Authentication Redirect, Received HTTP ${response.status}`);
   }
-  if (!location.includes('redirect=')) failures.push('Authentication Redirect Does Not Preserve Destination');
+
+  let redirectUrl = null;
+  try {
+    redirectUrl = new URL(finalUrl, baseUrl);
+  } catch (_) {
+    // The assertions below report the malformed or missing redirect.
+  }
+  if (redirectUrl?.pathname !== '/auth/login') {
+    failures.push(`Expected Canonical Login Redirect, Received ${finalUrl || 'Missing Location'}`);
+  }
+  const preservedDestination = redirectUrl?.searchParams.get('redirect') || '';
+  if (!preservedDestination.startsWith(path.split('?')[0])) {
+    failures.push(`Authentication Redirect Does Not Preserve Destination: ${preservedDestination || 'Missing'}`);
+  }
 
   results.push({
     check: 'Protected Gameplay Contract',
     path,
     status: response.status,
     latencyMs,
-    location,
+    redirectMode,
+    location: finalUrl,
     failures,
   });
 }
 
 async function main() {
-  await verifyHealth();
-  for (const route of publicRoutes) await verifyPublicRoute(route);
-  for (const route of protectedRoutes) await verifyProtectedRoute(route);
+  try {
+    await verifyHealth();
+    for (const route of publicRoutes) await verifyPublicRoute(route);
+    for (const route of protectedRoutes) await verifyProtectedRoute(route);
+  } finally {
+    await authBrowser?.close();
+  }
 
   const failures = results.filter((result) => result.failures.length > 0);
   process.stdout.write(`${JSON.stringify({
