@@ -1,0 +1,249 @@
+#!/usr/bin/env node
+
+/**
+ * Protected production verifier for the complete Personal Assistant pipeline.
+ *
+ * Required: TEST_USER_PASSWORD plus the public Supabase variables in
+ * `.env.local` (or the process environment). No token, password, cards, hand
+ * history, question text, answer text, or leak identifier is printed.
+ *
+ * `--complete-drill` also locks every answer, completes one server-verified
+ * remediation attempt, and verifies answer/review idempotency. That mode
+ * intentionally updates the test account's drill schedule.
+ */
+import { randomUUID } from 'node:crypto';
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+
+dotenv.config({ path: '.env.local', quiet: true });
+
+const baseUrl = String(process.env.VERIFY_BASE_URL || 'https://smarter.poker').replace(/\/$/, '');
+const email = process.env.TEST_USER_EMAIL || 'daniel@bekavactrading.com';
+const password = process.env.TEST_USER_PASSWORD;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const completeDrill = process.argv.includes('--complete-drill');
+const skipAudit = process.argv.includes('--skip-audit');
+const MAX_AUDIT_BATCHES = 12;
+
+if (!password || !supabaseUrl || !anonKey) {
+  throw new Error('Missing TEST_USER_PASSWORD or public Supabase environment variables.');
+}
+
+const supabase = createClient(supabaseUrl, anonKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function requestJson(path, token, options = {}) {
+  const controller = new AbortController();
+  // Local development can pay cold TLS + PostgREST schema-cache latency that
+  // Vercel does not. Keep the verifier patient enough to observe the response;
+  // the route's own 60-second production execution budget remains unchanged.
+  const timer = setTimeout(() => controller.abort(), 120_000);
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    let data = {};
+    try { data = await response.json(); } catch (_) { /* handled below */ }
+    return { response, data };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function assertSuccess(result, label) {
+  if (!result.response.ok || result.data?.success === false) {
+    const code = result.data?.code || result.data?.reason || `http_${result.response.status}`;
+    throw new Error(`${label} failed (${code}).`);
+  }
+}
+
+async function runDetection(token) {
+  let cursor = null;
+  let batches = 0;
+  let handsScanned = 0;
+  let handsAudited = 0;
+  let decisionsAnalyzed = 0;
+  let retriedRateLimit = false;
+  let retriedTransient = false;
+
+  while (batches < MAX_AUDIT_BATCHES) {
+    const result = await requestJson('/api/assistant/leaks/detect', token, {
+      method: 'POST',
+      body: JSON.stringify({ auditCursor: cursor }),
+    });
+    if (result.response.status === 429 && !retriedRateLimit) {
+      retriedRateLimit = true;
+      const retrySeconds = Math.min(60, Math.max(1, Number(result.response.headers.get('retry-after') || 1)));
+      await sleep(retrySeconds * 1000);
+      continue;
+    }
+    retriedRateLimit = false;
+    if ([502, 503, 504].includes(result.response.status)
+      && result.data?.retryable === true
+      && !retriedTransient) {
+      retriedTransient = true;
+      const retrySeconds = Math.min(60, Math.max(1, Number(result.response.headers.get('retry-after') || 1)));
+      await sleep(retrySeconds * 1000);
+      continue;
+    }
+    retriedTransient = false;
+    assertSuccess(result, 'Deterministic audit');
+
+    batches += 1;
+    const sync = result.data?.clubArenaSync || {};
+    handsScanned += Number(sync.handsFound) || 0;
+    handsAudited += Number(sync.handsAudited) || 0;
+    decisionsAnalyzed += Number(sync.decisionsAnalyzed) || 0;
+    cursor = sync.auditCursor || null;
+    if (!cursor) {
+      return {
+        batches,
+        handsScanned,
+        handsAudited,
+        decisionsAnalyzed,
+        leaksDetected: Number(result.data?.leaksDetected) || 0,
+        persisted: result.data?.persisted === true,
+      };
+    }
+  }
+  throw new Error('Deterministic audit exceeded its bounded continuation budget.');
+}
+
+async function findVerifiedDrill(token, leaks) {
+  const diagnostics = { candidates: 0, verified: 0, insufficient: 0, unmapped: 0, missing: 0, other: 0, scopes: [] };
+  const orderedLeaks = [...leaks].sort((a, b) => {
+    const solverRank = leak => leak?.source_system === 'solver_engine' && /^solver_(training|club_arena)_/.test(String(leak?.leak_type || '')) ? 0 : 1;
+    return solverRank(a) - solverRank(b);
+  });
+  for (const leak of orderedLeaks) {
+    if (!leak?.id || leak?.status === 'resolved') continue;
+    diagnostics.candidates += 1;
+    const result = await requestJson(`/api/sandbox/custom-drill?leak=${encodeURIComponent(leak.id)}`, token);
+    if (result.response.status === 422) {
+      const reason = result.data?.reason === 'insufficient_verified_questions' ? 'insufficient' : 'unmapped';
+      diagnostics[reason] += 1;
+      diagnostics.scopes.push({
+        type: leak.leak_type || 'unknown',
+        source: leak.source_system || 'unknown',
+        reason,
+        ...(reason === 'insufficient' ? { available: Number(result.data?.available) || 0 } : {}),
+      });
+      continue;
+    }
+    if (result.response.status === 404) { diagnostics.missing += 1; continue; }
+    if (!result.response.ok || result.data?.success === false) {
+      diagnostics.other += 1;
+      diagnostics.scopes.push({ type: leak.leak_type || 'unknown', source: leak.source_system || 'unknown', reason: `http_${result.response.status}` });
+      continue;
+    }
+    assertSuccess(result, 'Corrective drill load');
+    const questions = Array.isArray(result.data?.pool) ? result.data.pool : [];
+    if (result.data?.serverVerified === true && result.data?.drillToken && questions.length >= 5) {
+      diagnostics.verified += 1;
+      const answerKeysHidden = questions.every(question => (
+        question?.answer_locked === true
+        && question.correct_answer === undefined
+        && question.gto_explanation === undefined
+        && Array.isArray(question.options)
+        && question.options.length >= 2
+      ));
+      if (!answerKeysHidden) throw new Error('Verified drill exposed private grading data.');
+      return { leak, questions, drillToken: result.data.drillToken };
+    }
+    diagnostics.scopes.push({ type: leak.leak_type || 'unknown', source: leak.source_system || 'unknown', reason: 'practice_only' });
+  }
+  throw new Error(`No active leak produced a server-verified corrective drill (${JSON.stringify(diagnostics)}).`);
+}
+
+async function completeVerifiedDrill(token, drill) {
+  let firstLocked = null;
+  for (const question of drill.questions) {
+    const body = {
+      leakId: drill.leak.id,
+      drillToken: drill.drillToken,
+      questionId: String(question.id),
+      selectedAnswer: String(question.options[0]),
+      timedOut: false,
+    };
+    const answer = await requestJson('/api/assistant/leaks/drill-answer', token, {
+      method: 'POST', body: JSON.stringify(body),
+    });
+    assertSuccess(answer, 'Verified answer lock');
+    if (!firstLocked) {
+      firstLocked = { body, result: answer.data?.result };
+      const replayBody = { ...body, selectedAnswer: String(question.options[1]) };
+      const replay = await requestJson('/api/assistant/leaks/drill-answer', token, {
+        method: 'POST', body: JSON.stringify(replayBody),
+      });
+      assertSuccess(replay, 'Verified answer replay');
+      if (replay.data?.idempotent !== true || JSON.stringify(replay.data?.result) !== JSON.stringify(firstLocked.result)) {
+        throw new Error('Answer replay was not immutable and idempotent.');
+      }
+    }
+  }
+
+  const reviewId = `account-flow-${randomUUID()}`;
+  const reviewBody = {
+    leakId: drill.leak.id,
+    drillToken: drill.drillToken,
+    outcome: { reviewId },
+  };
+  const review = await requestJson('/api/assistant/leaks/review', token, {
+    method: 'POST', body: JSON.stringify(reviewBody),
+  });
+  assertSuccess(review, 'Verified drill completion');
+  if (review.data?.persisted !== true) throw new Error('Verified drill schedule was not persisted.');
+
+  const replay = await requestJson('/api/assistant/leaks/review', token, {
+    method: 'POST', body: JSON.stringify(reviewBody),
+  });
+  assertSuccess(replay, 'Verified review replay');
+  if (replay.data?.idempotent !== true) throw new Error('Review replay was not idempotent.');
+  return { questionsCompleted: drill.questions.length, answerReplayIdempotent: true, reviewReplayIdempotent: true };
+}
+
+const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+if (authError || !authData?.session?.access_token) throw new Error('Protected test-account authentication failed.');
+const token = authData.session.access_token;
+
+try {
+  const before = await requestJson('/api/assistant/leaks', token);
+  assertSuccess(before, 'Leak history read before audit');
+  const beforeLeaks = Array.isArray(before.data?.leaks) ? before.data.leaks : [];
+
+  const audit = skipAudit ? { skipped: true } : await runDetection(token);
+
+  const after = await requestJson('/api/assistant/leaks', token);
+  assertSuccess(after, 'Leak history read after audit');
+  const afterLeaks = Array.isArray(after.data?.leaks) ? after.data.leaks : [];
+  const drill = await findVerifiedDrill(token, afterLeaks);
+  const drillResult = completeDrill ? await completeVerifiedDrill(token, drill) : null;
+
+  console.log(JSON.stringify({
+    success: true,
+    baseUrl,
+    leakHistory: { before: beforeLeaks.length, after: afterLeaks.length },
+    deterministicAudit: audit,
+    verifiedDrill: {
+      available: true,
+      questions: drill.questions.length,
+      answerKeysHidden: true,
+      ...(drillResult || {}),
+    },
+  }, null, 2));
+} finally {
+  await supabase.auth.signOut({ scope: 'local' });
+}

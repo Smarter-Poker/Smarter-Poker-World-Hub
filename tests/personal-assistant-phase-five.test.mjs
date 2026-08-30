@@ -14,6 +14,7 @@ const migration = read('../supabase/migrations/20260830193000_verified_leak_dril
 const reviewApi = read('../pages/api/assistant/leaks/review.js');
 const answerApi = read('../pages/api/assistant/leaks/drill-answer.js');
 const drillApi = read('../pages/api/sandbox/_routes/custom-drill.js');
+const recordQuestionApi = read('../pages/api/training/record-question.js');
 const drillUi = read('../src/components/sandbox/QuickSpotDrill.jsx');
 const rewards = read('../src/lib/rewards/eggVerifiers.js');
 const secret = 'phase-five-test-secret-that-is-long-enough';
@@ -69,6 +70,20 @@ test('initial verified payload hides keys and exact solver provenance gates sign
   assert.doesNotMatch(drillApi, /start_verified_leak_drill/);
   assert.match(answerApi, /Session creation is deliberately deferred until the first locked answer/);
   assert.match(answerApi, /start_verified_leak_drill/);
+});
+
+test('corrective drills resolve hyphen and underscore aliases without weakening exact solver scope', () => {
+  assert.match(drillApi, /function gameIdAliases/);
+  assert.match(drillApi, /raw\.replace\(\/-\/g, '_'\)/);
+  assert.match(drillApi, /query\.in\('game_id', gameIds\)/);
+  assert.match(drillApi, /matchesExactSolverScope\(row\.question_data, ownedDrillParams\.leak\)/);
+});
+
+test('verified answer metadata comes from the canonical solver question, not the browser', () => {
+  assert.match(recordQuestionApi, /const canonicalScenario = canonicalQuestion\?\.scenario \|\| \{\}/);
+  assert.match(recordQuestionApi, /hero_position: verified/);
+  assert.match(recordQuestionApi, /street: verified/);
+  assert.match(recordQuestionApi, /spot_type: verified/);
 });
 
 test('answers are immutable, private, token-bound, and revealed only after locking', () => {

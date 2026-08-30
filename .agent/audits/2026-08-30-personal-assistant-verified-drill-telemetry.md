@@ -60,3 +60,52 @@ linked Management API on 2026-08-30. Verified:
   corrective drill.
 - Keep reward verification fail-closed when any proof source is unavailable.
 - Preserve the signed-batch and private-ledger boundary if drill clients change.
+
+## Continuation, Canonical Identity, And Account Verification
+
+The subsequent authenticated audit found two production-scale wiring gaps:
+
+- Accounts above 500 Club Arena hands could not finish the signed continuation
+  sequence because the generic AI rate limit allowed fewer calls than the
+  deterministic hand window required.
+- Verified training answers were server-graded, but their position/street/spot
+  metadata could still fall back to browser values. That created durable leak
+  group identities which no canonical corrective drill could reproduce.
+
+The follow-up build now:
+
+- Processes 200-hand / 500-decision pages and automatically follows signed
+  continuation cursors from one player action.
+- Uses a dedicated authenticated 12-request audit budget, a 60-second route
+  ceiling, one bounded `Retry-After` retry for rate limits, and one retry for
+  explicitly transient 502/503/504 evidence failures.
+- Persists each Club Arena page before advancing and performs the expensive
+  aggregate/persistence pass only after the snapshot is complete.
+- Preserves a resumable signed cursor on cancellation, infrastructure failure,
+  or the client-side batch ceiling.
+- Reads the two leak-history stores concurrently and reports private no-store
+  timing metadata.
+- Builds verified training position, street, and spot identity exclusively
+  from the canonical solver question. New answer rows persist those same
+  server-owned fields.
+- Reconciles legacy browser-derived group keys only when an exact canonical
+  alias and a complete, trustworthy solver scope prove the replacement.
+- Resolves historical hyphen/underscore game-id storage aliases before applying
+  the unchanged exact solver group check.
+
+Protected account verification (with credentials and all hand/question data
+redacted) confirmed:
+
+- Real Club Arena evidence can be paged and persisted through the rebuilt
+  deterministic route.
+- Canonical solver findings are written and stale legacy identities reconcile.
+- An active finding opens a 10-question server-verified corrective drill from
+  the same canonical Training Arena cache.
+- Initial question payloads expose no answer keys or explanations.
+- Ten answers were immutably locked; a changed replay returned the original
+  locked result.
+- Review completion persisted, and replaying the same review operation was
+  idempotent.
+- Focused engine tests pass 78/78, the account-flow continuation tests pass
+  7/7, desktop/mobile Playwright cursor-flow checks pass, and the full Next.js
+  production build passes.
