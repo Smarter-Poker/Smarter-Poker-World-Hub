@@ -78,6 +78,9 @@ export default function RewardDetail({ reward }) {
         { label: reward.name, href: canonical },
       ]}
       diamondPrice={reward.diamonds}
+      diamondLabel="Reward Value"
+      inventoryLabel="Reward Signal"
+      securityCopy="Reward telemetry is verified against your Smarter.Poker account before eligible Diamonds are credited."
       status={reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
       actions={
         <>
