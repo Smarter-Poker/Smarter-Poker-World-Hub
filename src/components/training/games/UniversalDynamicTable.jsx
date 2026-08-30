@@ -3138,7 +3138,12 @@ function UniversalDynamicTable({
     }
 
     return (
-        <div className="gto-trainer-container" style={styles.container}>
+        <div
+            className="gto-trainer-container"
+            data-training-game-id={gameId}
+            data-training-ui="club-arena-table"
+            style={styles.container}
+        >
             {/* ═══ THE QUESTION — first element on the page, pinned to the top ═══
                 This is the single most important thing on screen: it is what the
                 player is being asked. It previously rendered nowhere at all, then

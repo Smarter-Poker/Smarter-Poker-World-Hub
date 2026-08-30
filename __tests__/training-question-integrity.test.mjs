@@ -158,6 +158,122 @@ test('only literal Yes/No and Push/Fold decisions may have two choices', () => {
   assert.equal(illegalBinary.options.length, 4);
 });
 
+test('preflop response labels advance beyond the action already taken', () => {
+  const facingThreeBet = enforceTrainingQuestionContract({
+    question: 'The Button 3-bets to 9 BB. You are in the Cutoff with A♠K♠. What is your best action?',
+    scenario: { street: 'preflop', heroPosition: 'CO', villainPosition: 'BTN' },
+    correctAnswer: 'reraise',
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'reraise', text: '3-Bet To 9 BB' },
+      { id: 'allin', text: '3-Bet All-In' },
+    ],
+  });
+  assert.deepEqual(facingThreeBet.options.map((option) => option.text), [
+    'Fold',
+    'Call',
+    '4-Bet To 22 BB',
+    '4-Bet All-In',
+  ]);
+  assert.equal(validateTrainingQuestion(facingThreeBet).valid, true);
+
+  const facingFourBet = enforceTrainingQuestionContract({
+    question: 'The Small Blind 4-bets to 22 BB. You hold K♠K♦ on the Button. What is your best action?',
+    scenario: { street: 'preflop', heroPosition: 'BTN', villainPosition: 'SB' },
+    correctAnswer: 'allin',
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'raise', text: '4-Bet To 22 BB' },
+      { id: 'allin', text: '4-Bet All-In' },
+    ],
+  });
+  assert.deepEqual(facingFourBet.options.map((option) => option.text), [
+    'Fold',
+    'Call',
+    '5-Bet To 45 BB',
+    '5-Bet All-In',
+  ]);
+  assert.equal(validateTrainingQuestion(facingFourBet).valid, true);
+});
+
+test('postflop choices obey the declared decision node', () => {
+  const checkedToHero = enforceTrainingQuestionContract({
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+    scenario: { street: 'flop', nodeType: 'hero_bets_or_checks' },
+    correctAnswer: 'bet67',
+    options: [
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'check', text: 'Check' },
+      { id: 'bet67', text: 'Bet 67% Pot' },
+    ],
+  });
+  assert.equal(validateTrainingQuestion(checkedToHero).valid, true);
+  assert.deepEqual(checkedToHero.options.map((option) => option.text), [
+    'Check',
+    'Bet 67% Pot',
+    'Bet 33% Pot',
+    'Bet 125% Pot',
+  ]);
+
+  const facingBet = enforceTrainingQuestionContract({
+    question: 'The Cutoff bets 67% pot into you on the river. What is your best action?',
+    scenario: { street: 'river', nodeType: 'hero_faces_bet' },
+    correctAnswer: 'call',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet', text: 'Bet 67% Pot' },
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+    ],
+  });
+  assert.equal(validateTrainingQuestion(facingBet).valid, true);
+  assert.deepEqual(facingBet.options.map((option) => option.text), [
+    'Fold',
+    'Call',
+    'Raise To 2.5x',
+    'Raise All-In',
+  ]);
+
+  const impossibleCorrect = enforceTrainingQuestionContract({
+    question: 'The Cutoff bets 67% pot into you on the river. What is your best action?',
+    scenario: { street: 'river', nodeType: 'hero_faces_bet' },
+    correctAnswer: 'check',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'fold', text: 'Fold' },
+      { id: 'call', text: 'Call' },
+      { id: 'raise', text: 'Raise To 2.5x' },
+    ],
+  });
+  assert.equal(validateTrainingQuestion(impossibleCorrect).valid, false);
+  assert.ok(validateTrainingQuestion(impossibleCorrect).issues.some((issue) => /illegal choices/i.test(issue)));
+});
+
+test('generic option IDs do not override the action described by the label', () => {
+  const result = enforceTrainingQuestionContract({
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+    scenario: { street: 'flop', action: 'The Big Blind checks to you.' },
+    options: [
+      { id: 'a', text: 'Check' },
+      { id: 'b', text: 'Bet 50% Pot' },
+      { id: 'c', text: 'Bet 75% Pot' },
+      { id: 'd', text: 'Bet Pot' },
+    ],
+    correctAnswer: 'c',
+  });
+
+  assert.equal(result.questionContract.valid, true);
+  assert.deepEqual(result.options.map((option) => option.text), [
+    'Check',
+    'Bet 50% Pot',
+    'Bet 75% Pot',
+    'Bet Pot',
+  ]);
+});
+
 test('choice labels cannot disclose grading', () => {
   const question = enforceTrainingQuestionContract({
     question: 'The Cutoff bets 67% pot into you on the river. What is your best action?',

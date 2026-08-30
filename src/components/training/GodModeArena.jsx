@@ -403,13 +403,6 @@ import SessionCoachingEngine from './SessionCoachingEngine';
 // ●●● Phase 3 Engines: Real-time scoring + diamond rewards ●●●
 import { calculateSessionDiamonds, getScoreGrade, getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
-// DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
-// These page-level components are only used for specific gameIds, so lazy-loading is fine
-const SPRTrainer = dynamic(() => import('../../../pages/hub/training/spr-trainer'), { ssr: false });
-const QuizGauntlet = dynamic(() => import('../../../pages/hub/training/quiz-gauntlet'), {
-  ssr: false,
-});
-
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
 import useSpacedRepetition from '../../hooks/useSpacedRepetition';
@@ -14461,11 +14454,6 @@ const styles = {
 };
 
 function GodModeArena(props) {
-  const { gameId, onExit, initialConfig } = props;
-  
-  if (gameId === 'adv-011') return <SPRTrainer onExit={onExit} />;
-  if (gameId === 'quiz-gauntlet') return <QuizGauntlet onExit={onExit} />;
-
   // GTOW parity #10 — the multi-table branch that used to live here has been
   // removed, not relocated. It rendered N copies of GodModeArenaInner with
   // IDENTICAL props: same gameId, same userId, same sessionId. Every copy was a

@@ -492,7 +492,13 @@ export default function LoginPage() {
           boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)',
         }}
       >
-        <style>{`
+        {/* The CSS is static and trusted. Render it as raw style content so React
+            produces byte-identical server and client markup. A normal text child
+            entity-escapes apostrophes and comparison symbols during SSR but not
+            during client hydration, which previously replaced the entire page. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           /* THE ACTUAL CAUSE of the oversized overlapping boxes, found by
              measurement: src/index.css line ~407 applies a global mobile
              touch-target rule - input, button, a { min-height: 44px } -
@@ -573,7 +579,9 @@ export default function LoginPage() {
                         box-shadow: 0 0 10px rgba(0, 212, 255, 0.25) !important;
                         outline: none !important;
                     }
-                `}</style>
+                `,
+          }}
+        />
 
         {/* ── Already-signed-in button row ── */}
         {existingUser && (
