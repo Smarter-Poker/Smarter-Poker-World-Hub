@@ -552,11 +552,56 @@ export default async function handler(req, res) {
 
           // Get or create Stripe customer
           let customerId;
-          const { data: profile } = await getSupabase()
+          const { data: profile, error: profileReadError } = await getSupabase()
               .from('profiles')
               .select('stripe_customer_id, email, username')
               .eq('id', user.id)
               .maybeSingle();
+          if (profileReadError) throw profileReadError;
+
+          if (type === 'subscription') {
+              const { data: activeRows, error: activeReadError } = await getSupabase()
+                  .from('vip_subscriptions')
+                  .select('stripe_subscription_id, status')
+                  .eq('user_id', user.id)
+                  .in('status', ['active', 'trialing', 'past_due', 'unpaid']);
+              if (activeReadError) throw activeReadError;
+              const hasCardSubscription = (activeRows || []).some((row) => (
+                  row.stripe_subscription_id
+                  && !String(row.stripe_subscription_id).startsWith('diamond_')
+              ));
+              if (hasCardSubscription) {
+                  return res.status(409).json({
+                      success: false,
+                      error: {
+                          code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+                          message: 'You already have an active VIP subscription.'
+                      }
+                  });
+              }
+
+              // Stripe is the final authority if a prior webhook has not yet
+              // reached our local ledger.
+              if (profile?.stripe_customer_id) {
+                  const subscriptions = await stripe.subscriptions.list({
+                      customer: profile.stripe_customer_id,
+                      status: 'all',
+                      limit: 100,
+                  });
+                  if (subscriptions.data.some((entry) => (
+                      ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
+                          .includes(entry.status)
+                  ))) {
+                      return res.status(409).json({
+                          success: false,
+                          error: {
+                              code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+                              message: 'You already have an active VIP subscription.'
+                          }
+                      });
+                  }
+              }
+          }
 
           if (profile?.stripe_customer_id) {
               customerId = profile.stripe_customer_id;
@@ -608,6 +653,23 @@ export default async function handler(req, res) {
               }
           }
 
+          if (type === 'subscription') {
+              const openSessions = await stripe.checkout.sessions.list({
+                  customer: customerId,
+                  status: 'open',
+                  limit: 100,
+              });
+              if (openSessions.data.some((entry) => entry.mode === 'subscription')) {
+                  return res.status(409).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTION_CHECKOUT_EXISTS',
+                          message: 'A VIP subscription checkout is already open for this account.'
+                      }
+                  });
+              }
+          }
+
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
           const returnRoute = type === 'subscription'
               ? '/hub/vip-membership'
@@ -631,6 +693,7 @@ export default async function handler(req, res) {
           let sessionConfig = {
               customer: customerId,
               mode: type === 'subscription' ? 'subscription' : 'payment',
+              ...(type !== 'subscription' ? { payment_method_types: ['card'] } : {}),
               success_url: safeSuccessUrl,
               cancel_url: safeCancelUrl,
               metadata: {
@@ -824,9 +887,17 @@ export default async function handler(req, res) {
           // Create checkout session
           let session;
           try {
+              // Preserve the validated client request identity locally, then
+              // namespace it before it reaches Stripe's account-wide keyspace.
+              const stripeRequestOptions = checkoutRequestId
+                  ? { idempotencyKey: checkoutRequestId }
+                  : {};
+              stripeRequestOptions.idempotencyKey = type === 'subscription'
+                  ? `commerce:vip-subscription:${user.id}:${Math.floor(Date.now() / 3600000)}`
+                  : (checkoutRequestId ? `commerce:${type}:${checkoutRequestId}` : undefined);
               session = await stripe.checkout.sessions.create(
                   sessionConfig,
-                  checkoutRequestId ? { idempotencyKey: checkoutRequestId } : undefined
+                  stripeRequestOptions.idempotencyKey ? stripeRequestOptions : undefined
               );
           } catch (sessionError) {
               if (type === 'diamonds' && sessionConfig.metadata.purchase_id) {

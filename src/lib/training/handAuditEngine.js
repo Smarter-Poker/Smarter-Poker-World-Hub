@@ -65,7 +65,7 @@ function positionedPlayers(rawPlayers, buttonSeat) {
     name: player.displayName || player.username || player.name || `Seat ${index + 1}`,
     seat: Number(player.seatIndex ?? player.seat ?? index),
     position: '',
-    holeCards: cards(player.holeCards || player.heroCards),
+    holeCards: cards(player.holeCards || player.heroCards || player.cards),
   }));
   const labels = POSITION_MAP[players.length] || POSITION_MAP[9];
   const ordered = [...players].sort((a, b) => a.seat - b.seat);
@@ -86,9 +86,22 @@ export function normalizeClubArenaHand(row, userId) {
   const heroRaw = rawPlayers.find(player => String(playerId(player)) === String(userId));
   if (!heroRaw) return null;
 
-  const players = positionedPlayers(rawPlayers, summary.buttonSeat ?? summary.button_seat);
+  const players = positionedPlayers(
+    rawPlayers,
+    summary.buttonSeat ?? summary.button_seat ?? row?.button_seat,
+  );
   const heroPlayer = players.find(player => String(player.id) === String(userId));
-  const heroCards = cards(heroRaw.holeCards || heroRaw.heroCards || summary.heroCards);
+  // The Hetzner Club Arena recorder stores showdown holdings in the
+  // top-level hole_cards map, while older/API-engine rows put them on the
+  // player or summary. Pick the first candidate that actually contains two
+  // valid cards; masked `cards: [null, null]` must not hide a valid map entry.
+  const heroCards = [
+    heroRaw.holeCards,
+    heroRaw.heroCards,
+    heroRaw.cards,
+    row?.hole_cards?.[userId],
+    summary.heroCards,
+  ].map(cards).find(candidate => candidate.length >= 2) || [];
   if (heroCards.length < 2) return null;
 
   const summaryStreets = summary.streets || {};
@@ -96,7 +109,7 @@ export function normalizeClubArenaHand(row, userId) {
   const streetActions = (street) => {
     const source = Array.isArray(summaryStreets?.[street]?.actions)
       ? summaryStreets[street].actions
-      : topLevelActions.filter(action => String(action?.street || 'preflop').toLowerCase() === street);
+      : topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
     return source.map(action => ({
       player: action.player || action.playerName || action.username || '',
       playerId: action.playerId ?? action.userId ?? action.player_id,
@@ -110,7 +123,9 @@ export function normalizeClubArenaHand(row, userId) {
   const flop = cards(summaryStreets?.flop?.cards || summaryStreets?.flop?.board);
   const turnCards = cards(summaryStreets?.turn?.cards || [summaryStreets?.turn?.card]);
   const riverCards = cards(summaryStreets?.river?.cards || [summaryStreets?.river?.card]);
-  const fallbackBoard = cards(summary.communityCards || summary.board || row?.board);
+  const fallbackBoard = cards(
+    summary.communityCards || summary.board || row?.community_cards || row?.board,
+  );
   const finalFlop = flop.length >= 3 ? flop.slice(0, 3) : fallbackBoard.slice(0, 3);
   const turn = turnCards[0] || fallbackBoard[3] || '';
   const river = riverCards[0] || fallbackBoard[4] || '';
@@ -121,7 +136,7 @@ export function normalizeClubArenaHand(row, userId) {
     format: summary.format || 'cash',
     gameType: String(row.game_variant || summary.variant || 'nlhe').toLowerCase(),
     tableSize: players.length,
-    buttonSeat: summary.buttonSeat ?? null,
+    buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
     players,
     hero: {
       id: userId,
@@ -320,12 +335,15 @@ export async function auditParsedHands(db, userId, hands, {
         hero_hand: handNotation(point.holeCards),
         board_cards: point.board || [],
         player_action: point.action,
-        solver_action: grade?.optimalAction || null,
-        selected_frequency: grade?.selectedFrequency ?? null,
-        optimal_frequency: grade?.optimalFrequency ?? null,
-        classification: grade?.classification || 'unpriced',
-        ev_loss: grade?.evLoss ?? null,
-        ev_loss_measured: !!grade?.evLossMeasured,
+        // A looser candidate can help explain why a node stayed unpriced, but
+        // it cannot grade the player's action. Persist solver conclusions only
+        // when the hand, board and node matched exactly.
+        solver_action: solverVerified ? grade.optimalAction : null,
+        selected_frequency: solverVerified ? grade.selectedFrequency : null,
+        optimal_frequency: solverVerified ? grade.optimalFrequency : null,
+        classification: solverVerified ? grade.classification : 'unpriced',
+        ev_loss: solverVerified ? grade.evLoss : null,
+        ev_loss_measured: solverVerified && !!grade.evLossMeasured,
         solver_verified: solverVerified,
         solver_source: candidate?.question_data?.source || null,
         match_tier: candidate?.matchTier || null,
@@ -366,9 +384,14 @@ export async function auditParsedHands(db, userId, hands, {
 
 async function fetchClubHandsForKey(db, userId, key, limit) {
   return db.from('hand_history')
-    .select('id, hand_number, game_variant, players, board, actions, summary, source, created_at')
-    .contains('players', [{ [key]: userId }])
-    .in('source', ['wh-engine', 'engine-api'])
+    .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
+    // postgrest-js stringifies primitive arrays but not arrays of objects in
+    // this dependency generation. Passing the object array directly produces
+    // `22P02 invalid input syntax for type json` in production.
+    .contains('players', JSON.stringify([{ [key]: userId }]))
+    // The canonical Hetzner Club Arena recorder uses `manual`; the two other
+    // values belong to the older in-app writers and remain readable.
+    .in('source', ['manual', 'wh-engine', 'engine-api'])
     .order('created_at', { ascending: false })
     .limit(limit);
 }
@@ -382,7 +405,7 @@ async function fetchExistingAuditRows(db, userId, externalIds) {
   for (let index = 0; index < externalIds.length; index += EXISTING_AUDIT_BATCH_SIZE) {
     const batch = externalIds.slice(index, index + EXISTING_AUDIT_BATCH_SIZE);
     const result = await db.from('hand_audit_decisions')
-      .select('hand_external_id, solver_verified, audited_at, updated_at')
+      .select('hand_external_id, solver_verified, classification, audited_at, updated_at')
       .eq('user_id', userId)
       .in('hand_external_id', batch)
       .limit(batch.length * MAX_DECISIONS_PER_HAND);
@@ -458,9 +481,11 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     );
     const partialAudit = rows.length < expectedDecisions;
     const hasUnpricedDecision = rows.some(row => row.solver_verified !== true);
+    const hasUntrustedClassification = rows.some(row =>
+      row.solver_verified !== true && row.classification !== 'unpriced');
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
     const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
-    if (partialAudit || staleUnpricedAudit) {
+    if (partialAudit || hasUntrustedClassification || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;
     }

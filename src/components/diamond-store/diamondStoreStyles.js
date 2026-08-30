@@ -200,7 +200,7 @@ const styles = {
     earnReward: {
         fontSize: 12,
         fontWeight: 600,
-        color: '#00ff88',
+        color: '#00d4ff',
     },
     legalNote: {
         fontSize: 12,
@@ -265,7 +265,7 @@ const styles = {
         fontFamily: 'Rajdhani, sans-serif',
         fontSize: 24,
         fontWeight: 700,
-        color: '#00ff88',
+        color: '#00d4ff',
     },
     multiplierValueGold: {
         fontFamily: 'Rajdhani, sans-serif',
@@ -302,8 +302,8 @@ const styles = {
         borderRadius: 10,
     },
     referralCard: {
-        background: 'rgba(0, 255, 136, 0.1)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
     },
     payoutIcon: {
         fontSize: 24,
@@ -324,7 +324,7 @@ const styles = {
     },
     bypassNote: {
         fontSize: 11,
-        color: '#00ff88',
+        color: '#00d4ff',
         fontWeight: 600,
     },
     payoutReward: {
@@ -335,7 +335,7 @@ const styles = {
     referralReward: {
         fontSize: 14,
         fontWeight: 700,
-        color: '#00ff88',
+        color: '#00d4ff',
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -422,7 +422,7 @@ const styles = {
     quickStatValue: {
         fontSize: 32,
         fontWeight: 700,
-        color: '#00ff88',
+        color: '#00d4ff',
         fontFamily: 'Rajdhani, sans-serif',
     },
     quickStatLabel: {
@@ -486,8 +486,8 @@ const styles = {
         flexShrink: 0,
     },
     referralHighlight: {
-        background: 'rgba(0, 255, 136, 0.1)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
     },
 
     // XP System Section
@@ -508,11 +508,11 @@ const styles = {
     unlockBadge: {
         display: 'inline-block',
         padding: '4px 10px',
-        background: 'rgba(0, 255, 136, 0.15)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 6,
         fontSize: 11,
-        color: '#00ff88',
+        color: '#00d4ff',
         fontWeight: 600,
     },
     noUnlocks: {
@@ -722,7 +722,7 @@ const styles = {
     },
     exDiamondsRare: {
         marginLeft: 'auto',
-        color: '#8a2be2',
+        color: '#83c9e2',
         fontWeight: 600,
     },
     exDiamondsEpic: {
@@ -773,7 +773,7 @@ const styles = {
         fontSize: 18,
         fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 0 30px rgba(138, 43, 226, 0.4)',
+        boxShadow: '0 0 30px rgba(0, 180, 255, 0.32)',
     },
     vipCancelNote: {
         fontSize: 12,
@@ -845,7 +845,7 @@ const styles = {
     benefitValue: {
         fontSize: 12,
         fontWeight: 600,
-        color: '#00ff88',
+        color: '#00d4ff',
         textAlign: 'right',
     },
     valueComparison: {

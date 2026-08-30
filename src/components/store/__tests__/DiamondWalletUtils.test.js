@@ -62,11 +62,11 @@ function persistRecipients(recipients) {
 
 const TX_TYPES = {
     purchase: { label: 'Purchase', color: '#ef4444' },
-    bonus: { label: 'Bonus', color: '#a855f7' },
+    bonus: { label: 'Bonus', color: '#8aa8b8' },
     daily_bonus: { label: 'Daily Bonus', color: '#3b82f6' },
     adjustment: { label: 'Adjustment', color: '#94a3b8' },
     diamond_gift_sent: { label: 'Gift Sent', color: '#ffffff' },
-    diamond_gift_received: { label: 'Gift Received', color: '#22c55e' },
+    diamond_gift_received: { label: 'Gift Received', color: '#00a8e8' },
 };
 
 async function copyReceiptToClipboard(tx) {

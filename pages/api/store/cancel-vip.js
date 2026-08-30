@@ -67,6 +67,15 @@ export default async function handler(req, res) {
               return res.status(404).json({ success: false, error: 'No active VIP subscription found' });
           }
 
+          // A diamond pass is prepaid and does not renew. Never send its
+          // internal ledger reference to Stripe's subscription API.
+          if (String(sub.stripe_subscription_id || '').startsWith('diamond_')) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'Your Diamond VIP pass does not renew and will expire automatically. There is no card subscription to cancel.',
+              });
+          }
+
           // 2. Cancel via Stripe (at end of billing period)
           if (sub.stripe_subscription_id) {
               if (!stripe) {

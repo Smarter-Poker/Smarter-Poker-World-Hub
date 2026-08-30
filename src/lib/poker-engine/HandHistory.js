@@ -319,7 +319,7 @@ class HandHistoryQuery {
       .select('*')
       // 2026-08-15 CHECK 13 fix: containment on the real players jsonb
       // (userId keys), ordered by the real ended_at column.
-      .contains('players', [{ userId: playerId }])
+      .contains('players', JSON.stringify([{ userId: playerId }]))
       .order('ended_at', { ascending: false });
 
     if (options.variant) query = query.eq('game_variant', options.variant);
@@ -383,7 +383,7 @@ class HandHistoryQuery {
     let query = this.supabase
       .from('hand_history')
       .select('summary, rake_amount, pot_size, winners, game_variant, ended_at')
-      .contains('players', [{ userId: playerId }]);
+      .contains('players', JSON.stringify([{ userId: playerId }]));
     
     if (options.variant) query = query.eq('game_variant', options.variant);
     if (options.since) query = query.gte('ended_at', options.since);

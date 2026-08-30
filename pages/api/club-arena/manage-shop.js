@@ -117,27 +117,39 @@ export default async function handler(req, res) {
         // admin rewrite reported revenue just by editing a price.
         const { data: purchases } = await getSupabase()
           .from('club_shop_purchases')
-          .select('item_id, price_paid')
+          .select('item_id, price_paid, refunded_at')
           .eq('club_id', clubId)
           .limit(10000);
 
         const purchaseCounts = {};
-        const revenueByItem = {};
+        const grossRevenueByItem = {};
+        const refundedByItem = {};
         for (const p of (purchases || [])) {
           purchaseCounts[p.item_id] = (purchaseCounts[p.item_id] || 0) + 1;
-          revenueByItem[p.item_id] = (revenueByItem[p.item_id] || 0) + (Number(p.price_paid) || 0);
+          const amount = Number(p.price_paid) || 0;
+          grossRevenueByItem[p.item_id] = (grossRevenueByItem[p.item_id] || 0) + amount;
+          if (p.refunded_at) {
+            refundedByItem[p.item_id] = (refundedByItem[p.item_id] || 0) + amount;
+          }
         }
 
         const enriched = (items || []).map(item => ({
           ...item,
           purchase_count: purchaseCounts[item.id] || 0,
-          revenue: revenueByItem[item.id] || 0,
+          gross_revenue: grossRevenueByItem[item.id] || 0,
+          refunded_revenue: refundedByItem[item.id] || 0,
+          revenue: (grossRevenueByItem[item.id] || 0) - (refundedByItem[item.id] || 0),
         }));
+
+        const grossRevenue = Object.values(grossRevenueByItem).reduce((a, b) => a + b, 0);
+        const refundedRevenue = Object.values(refundedByItem).reduce((a, b) => a + b, 0);
 
         return res.status(200).json({
           success: true,
           items: enriched,
-          totalRevenue: Object.values(revenueByItem).reduce((a, b) => a + b, 0),
+          grossRevenue,
+          refundedRevenue,
+          totalRevenue: grossRevenue - refundedRevenue,
         });
       }
 

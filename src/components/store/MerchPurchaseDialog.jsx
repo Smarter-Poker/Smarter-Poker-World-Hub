@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Gem, ShieldCheck, X } from 'lucide-react';
 
 import { acquireScrollLock } from '../../lib/scrollLock';
@@ -14,6 +14,15 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
   const returnFocusRef = useRef(null);
   const busyRef = useRef(busy);
   const onCancelRef = useRef(onCancel);
+  const [shipping, setShipping] = useState({
+    name: '',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'US',
+  });
 
   useEffect(() => {
     busyRef.current = busy;
@@ -71,6 +80,21 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
   }, [purchase]);
 
   if (!purchase) return null;
+
+  const shippingRequired = purchase.requiresShipping === true;
+  const shippingComplete =
+    !shippingRequired ||
+    [
+      shipping.name,
+      shipping.line1,
+      shipping.city,
+      shipping.state,
+      shipping.postalCode,
+      shipping.country,
+    ].every((value) => String(value || '').trim());
+  const updateShipping = (field) => (event) => {
+    setShipping((current) => ({ ...current, [field]: event.target.value }));
+  };
 
   return (
     <div
@@ -146,8 +170,80 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
           </strong>
         </div>
 
+        {shippingRequired && (
+          <fieldset className={styles.shipping}>
+            <legend>Shipping Destination</legend>
+            <label className={styles.full}>
+              <span>Full Name</span>
+              <input
+                autoComplete="name"
+                value={shipping.name}
+                onChange={updateShipping('name')}
+                required
+              />
+            </label>
+            <label className={styles.full}>
+              <span>Address</span>
+              <input
+                autoComplete="address-line1"
+                value={shipping.line1}
+                onChange={updateShipping('line1')}
+                required
+              />
+            </label>
+            <label className={styles.full}>
+              <span>Apartment / Suite (Optional)</span>
+              <input
+                autoComplete="address-line2"
+                value={shipping.line2}
+                onChange={updateShipping('line2')}
+              />
+            </label>
+            <label>
+              <span>City</span>
+              <input
+                autoComplete="address-level2"
+                value={shipping.city}
+                onChange={updateShipping('city')}
+                required
+              />
+            </label>
+            <label>
+              <span>State / Province</span>
+              <input
+                autoComplete="address-level1"
+                value={shipping.state}
+                onChange={updateShipping('state')}
+                required
+              />
+            </label>
+            <label>
+              <span>Postal Code</span>
+              <input
+                autoComplete="postal-code"
+                value={shipping.postalCode}
+                onChange={updateShipping('postalCode')}
+                required
+              />
+            </label>
+            <label>
+              <span>Country</span>
+              <select
+                autoComplete="country"
+                value={shipping.country}
+                onChange={updateShipping('country')}
+              >
+                <option value="US">United States</option>
+                <option value="CA">Canada</option>
+              </select>
+            </label>
+          </fieldset>
+        )}
+
         <p className={styles.notice}>
-          Confirming Places The Order And Deducts The Diamonds Immediately.
+          {shippingRequired
+            ? 'Confirming Deducts The Diamonds And Sends This Order To Secure Fulfillment.'
+            : 'Confirming Places The Order And Deducts The Diamonds Immediately.'}
         </p>
 
         <footer className={styles.actions}>
@@ -157,11 +253,15 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
           <button
             type="button"
             className={styles.confirm}
-            onClick={onConfirm}
-            disabled={busy}
+            onClick={() => onConfirm(shippingRequired ? shipping : null)}
+            disabled={busy || !shippingComplete}
             aria-busy={busy}
           >
-            {busy ? 'Placing Order...' : `Spend ${fmt(purchase.cost)} Diamonds`}
+            {busy
+              ? 'Placing Order...'
+              : shippingComplete
+                ? `Spend ${fmt(purchase.cost)} Diamonds`
+                : 'Complete Shipping Details'}
           </button>
         </footer>
       </section>

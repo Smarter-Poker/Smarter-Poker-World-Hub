@@ -11,10 +11,10 @@ const SHOWCASE_CSS = read('src/components/diamond-store/SmarterStoreShowcase.mod
 const SHELL_CSS = read('src/components/diamond-store/DiamondStoreShell.module.css');
 const CHECKOUT = read('pages/api/store/create-checkout-session.js');
 
-test('store section navigation is native, addressable, and new-tab safe', () => {
+test('store section navigation is native, addressable, and stays in the current app surface', () => {
   assert.match(SHOWCASE, /const TAB_ROUTES = \{/);
-  assert.match(SHOWCASE, /<a[\s\S]*?href=\{TAB_ROUTES\[id\]\}/);
-  assert.match(SHOWCASE, /target=\{id === activeTab \? undefined : '_blank'\}/);
+  assert.match(SHOWCASE, /<Link[\s\S]*?href=\{TAB_ROUTES\[id\]\}/);
+  assert.doesNotMatch(SHOWCASE, /target=.*_blank|window\.open\(/);
   assert.match(SHOWCASE, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(SHOWCASE_CSS, /\.tab\s*\{[\s\S]*?place-items:\s*center/);
   assert.doesNotMatch(STORE, /function openTab|window\.open\(/);
@@ -39,7 +39,9 @@ test('the route-specific LCP artwork is preloaded and merchandise is code split'
 });
 
 test('checkout shape is rejected before Stripe customer side effects', () => {
-  const typeGuard = CHECKOUT.indexOf("const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise'])");
+  const typeGuard = CHECKOUT.indexOf(
+    "const checkoutTypes = new Set(['diamonds', 'subscription', 'merchandise'])"
+  );
   const sizeGuard = CHECKOUT.indexOf('if (items.length > 50)');
   const customerCreation = CHECKOUT.indexOf('stripe.customers.create');
   assert.ok(typeGuard > -1 && typeGuard < customerCreation);

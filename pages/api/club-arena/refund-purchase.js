@@ -56,7 +56,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        const { proceed } = await beginIdempotent(getSupabase(), req, res, 'refund-purchase');
+        const { proceed } = await beginIdempotent(getSupabase(), req, res, `refund-purchase:${user.id}`);
         if (!proceed) return;
 
         const allowed = new Set(['clubId', 'purchaseId', 'reason']);

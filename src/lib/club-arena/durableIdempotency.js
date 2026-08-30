@@ -19,7 +19,17 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+const { createHash } = require('crypto');
+
 const TTL_SECONDS = 300;
+
+function scopedKey(route, key) {
+    return createHash('sha256')
+        .update(String(route || 'unknown'))
+        .update('\u0000')
+        .update(String(key))
+        .digest('hex');
+}
 
 /**
  * Claim the request's idempotency key.
@@ -34,11 +44,12 @@ async function beginIdempotent(supabase, req, res, route) {
         res.status(400).json({ success: false, error: 'X-Idempotency-Key header required' });
         return { proceed: false };
     }
+    const durableKey = scopedKey(route, key);
 
     let claim;
     try {
         const { data, error } = await supabase.rpc('fn_idempotency_begin', {
-            p_key: key,
+            p_key: durableKey,
             p_route: route,
             p_ttl_seconds: TTL_SECONDS,
         });
@@ -60,7 +71,7 @@ async function beginIdempotent(supabase, req, res, route) {
             // is routinely killed in flight. The row then stays 'processing'
             // until expiry and every retry gets a 409 for the full TTL.
             const done = supabase
-                .rpc('fn_idempotency_finish', { p_key: key, p_status: status, p_body: body })
+                .rpc('fn_idempotency_finish', { p_key: durableKey, p_status: status, p_body: body })
                 .then(({ error }) => {
                     if (error) console.warn('[idempotency] finish failed:', error.message);
                 })
@@ -89,4 +100,4 @@ async function beginIdempotent(supabase, req, res, route) {
     return { proceed: false };
 }
 
-module.exports = { beginIdempotent, TTL_SECONDS };
+module.exports = { beginIdempotent, scopedKey, TTL_SECONDS };

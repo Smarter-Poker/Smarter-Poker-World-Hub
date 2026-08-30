@@ -45,15 +45,10 @@ const SUPPORTED_PLANS = ['monthly', 'annual'];
 // Billing interval -> days of access granted.
 const INTERVAL_DAYS = { day: 1, week: 7, month: 30, year: 365 };
 
-// Tier ranking — a shorter purchase must never clobber a longer active tier.
-const TIER_RANK = { daily: 1, monthly: 2, annual: 3 };
-
 // Sanity band on the derived cost. Guards against a corrupted/edited catalog
 // entry silently selling annual VIP for 1 diamond (or charging 5,000,000).
 const MIN_COST_DIAMONDS = 100;      // $1
 const MAX_COST_DIAMONDS = 100000;   // $1,000
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
  * Resolve the plan definition and derive its diamond cost from the real USD
@@ -210,157 +205,49 @@ export default async function handler(req, res) {
               referenceId = null;
           };
 
-          // ── Read profile ─────────────────────────────────────────────────
-          const { data: profile, error: profileError } = await getSupabase()
-              .from('profiles')
-              .select('diamonds, is_vip, vip_tier, vip_expires_at')
-              .eq('id', user.id)
-              .maybeSingle();
-
-          if (profileError || !profile) {
-              return res.status(500).json({ success: false, error: 'Failed to access profile' });
-          }
-
-          const currentBalance = profile.diamonds ?? 0;
-          if (currentBalance < COST) {
-              const body = {
-                  success: false,
-                  error: 'Insufficient diamonds',
-                  required: COST,
-                  current: currentBalance
-              };
-              // Not cached — the user can top up and retry with the same key.
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(400).json(body);
-          }
-
-          // ── Deduct atomically ────────────────────────────────────────────
-          // add_diamonds_to_balance takes the FOR UPDATE row lock, refuses to
-          // go negative, and — unlike deduct_diamonds — enforces a reference_id
-          // uniqueness check, which is what makes this endpoint idempotent.
-          const { data: deductResult, error: deductError } = await getSupabase().rpc('add_diamonds_to_balance', {
+          // Debit, ledger insert, tier selection and expiry extension share one
+          // database transaction. Concurrent purchases therefore stack rather
+          // than racing two read/modify/write cycles and losing an extension.
+          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic', {
               p_user_id: user.id,
-              p_amount: -COST,
-              p_type: 'vip_membership',
+              p_cost: COST,
+              p_days: plan.days,
+              p_plan: plan.key,
               p_description: `${plan.name} (${COST} diamonds)`,
               p_reference_id: referenceId
           });
 
-          if (deductError) {
-              console.warn('[Purchase VIP Diamonds] Deduction failed:', deductError);
+          if (purchaseError) {
+              console.warn('[Purchase VIP Diamonds] Atomic purchase failed:', purchaseError);
               _submissions.delete(referenceId);
               referenceId = null;
               return res.status(500).json({ success: false, error: 'Failed to process payment' });
           }
-
-          // The RPC reports business failures via its data payload, not a
-          // thrown error — the pre-read balance check above is not atomic.
-          if (deductResult && deductResult.success === false) {
-              if (deductResult.duplicate) {
-                  // This exact purchase already went through. Replay the
-                  // current VIP state instead of charging (or granting) twice.
-                  const body = {
-                      success: true,
-                      idempotent: true,
-                      duplicate: true,
-                      isVip: !!profile.is_vip,
-                      tier: profile.vip_tier || null,
-                      plan: plan.key,
-                      cost: COST,
-                      expiresAt: profile.vip_expires_at || null,
-                      newBalance: currentBalance
-                  };
-                  remember(200, body);
-                  return res.status(200).json(body);
-              }
+          if (!purchaseResult?.success) {
               const body = {
                   success: false,
-                  error: deductResult.error || 'Insufficient diamonds',
+                  error: purchaseResult?.error === 'insufficient_diamonds'
+                      ? 'Insufficient diamonds'
+                      : (purchaseResult?.error || 'Failed to process payment'),
                   required: COST,
-                  current: currentBalance
+                  current: purchaseResult?.new_balance
               };
               _submissions.delete(referenceId);
               referenceId = null;
-              return res.status(400).json(body);
+              return res.status(purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json(body);
           }
-
-          // ── Stack the expiry: extend from the CURRENT expiry when it is in
-          //    the future, otherwise from now. ──────────────────────────────
-          const nowMs = Date.now();
-          const parsedExpiry = profile.vip_expires_at ? new Date(profile.vip_expires_at) : null;
-          const hasActiveVip = !!(parsedExpiry && !Number.isNaN(parsedExpiry.getTime()) && parsedExpiry.getTime() > nowMs);
-          const baseMs = hasActiveVip ? parsedExpiry.getTime() : nowMs;
-          const newExpiresAt = new Date(baseMs + plan.days * MS_PER_DAY);
-
-          // Never downgrade: an active annual tier is not clobbered by a
-          // monthly (or daily) purchase — the expiry still extends.
-          const activeTier = hasActiveVip ? profile.vip_tier : null;
-          const activeRank = TIER_RANK[activeTier] || 0;
-          const newRank = TIER_RANK[plan.key] || 0;
-          const finalTier = activeRank > newRank ? activeTier : plan.key;
-
-          // .select() so a ZERO-ROW match is distinguishable from a real grant.
-          //
-          // The diamonds have ALREADY been deducted at this point -- that is why
-          // the compensation block below exists. But it only fired on
-          // `updateError`, and PostgREST returns { data: null, error: null } when
-          // an UPDATE matches nothing. So a miss here meant: diamonds taken, VIP
-          // not granted, no refund, and a 200 telling the user it worked.
-          const { data: grantedRows, error: rawUpdateError } = await getSupabase()
-              .from('profiles')
-              .update({
-                  is_vip: true,
-                  vip_tier: finalTier,
-                  vip_expires_at: newExpiresAt.toISOString()
-              })
-              .eq('id', user.id)
-              .select('id');
-
-          // A zero-row match is treated as an activation failure, which routes it
-          // into the same refund path a hard error takes. That is the only
-          // outcome that leaves the user whole.
-          const updateError = rawUpdateError
-              || ((!grantedRows || grantedRows.length === 0)
-                  ? new Error(`VIP activation matched zero rows for user ${user.id}`)
-                  : null);
-
-          if (updateError) {
-              console.warn('[Purchase VIP Diamonds] Profile update failed:', updateError);
-              // Compensate: refund the deducted diamonds. The refund needs its
-              // OWN reference id — reusing the purchase id would trip the
-              // duplicate guard and silently drop the refund.
-              const { data: refundResult, error: refundError } = await getSupabase().rpc('add_diamonds_to_balance', {
-                  p_user_id: user.id,
-                  p_amount: COST,
-                  p_type: 'refund',
-                  p_description: `Refund — ${plan.name} activation failed`,
-                  p_reference_id: referenceId + ':refund'
-              });
-              const refundFailed = refundError || (refundResult && refundResult.success === false);
-              // Release the key either way so the user can retry.
-              _submissions.delete(referenceId);
-              referenceId = null;
-              if (refundFailed) {
-                  console.warn('[Purchase VIP Diamonds] Refund after failed activation ALSO failed:', refundError || refundResult);
-                  return res.status(500).json({ success: false, error: 'Payment succeeded, but VIP activation failed. Contact support.' });
-              }
-              return res.status(500).json({ success: false, error: 'VIP activation failed — your diamonds have been refunded. Please try again.' });
-          }
-
-          const newBalance = typeof deductResult?.new_balance === 'number'
-              ? deductResult.new_balance
-              : (typeof deductResult?.balance === 'number' ? deductResult.balance : currentBalance - COST);
 
           const body = {
               success: true,
+              idempotent: !!purchaseResult.duplicate,
+              duplicate: !!purchaseResult.duplicate,
               isVip: true,
               plan: plan.key,
-              tier: finalTier,
+              tier: purchaseResult.tier || plan.key,
               cost: COST,
               daysAdded: plan.days,
-              expiresAt: newExpiresAt.toISOString(),
-              newBalance
+              expiresAt: purchaseResult.expires_at,
+              newBalance: purchaseResult.new_balance
           };
           remember(200, body);
           return res.status(200).json(body);

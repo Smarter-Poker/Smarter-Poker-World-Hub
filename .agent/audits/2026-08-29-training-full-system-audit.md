@@ -99,9 +99,9 @@ applied. No historical migration row was repaired or rewritten.
 
 - Focused Training regression suites: 44 passed, zero failed after the final
   auth/CTA, retired-XP, and fabricated-fixture corrections.
-- Full application build: 439 prebuild tests, 35 Training build tests, 14
-  leak-engine tests, and 7 trivia-authority tests passed; Next generated 275 of
-  275 static pages.
+- Full application build after merging the latest `origin/main`: 454 prebuild
+  tests, 35 Training build tests, 17 leak-engine tests, 63 marketplace tests,
+  and 7 trivia-authority tests passed; Next generated 402 of 402 static pages.
 - Route wiring audit: 94 Training page files, zero missing default exports,
   page routes, or API routes.
 - Built-server HTTP crawl: 95 Training routes, all HTTP 200, no Next error or
