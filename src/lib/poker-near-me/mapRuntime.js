@@ -11,6 +11,10 @@ const LEAFLET_STYLES = Object.freeze([
     id: 'marker-cluster-default',
     href: '/vendor/leaflet/MarkerCluster.Default.css',
   },
+  {
+    id: 'poker-map-controls',
+    href: '/vendor/leaflet/poker-map-controls.css',
+  },
 ]);
 
 let runtimePromise = null;

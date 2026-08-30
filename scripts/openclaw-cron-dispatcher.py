@@ -41,10 +41,13 @@ Auth: Authorization: Bearer <CRON_SECRET>
 import os
 import sys
 import time
+import json
+import hashlib
 import logging
 import subprocess
 import requests
-from datetime import datetime
+from collections import deque
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -97,6 +100,20 @@ _workers_health_state = {'consec_fail': 0, 'alert_sent': False}
 
 # Same shape as above, for the auth-drift watchdog (added 2026-08-17).
 _auth_drift_state = {'consec_fail': 0, 'alert_sent': False}
+
+# Public Poker Near Me directory monitor. This deliberately observes the same
+# API and published snapshot a visitor receives; it never refreshes or mutates
+# either source. Samples remain bounded across the dispatcher process lifetime.
+_pnm_directory_health_state = {
+    'consec_fail': 0,
+    'alert_sent': False,
+    'latencies_ms': deque(maxlen=96),
+}
+PNM_DIRECTORY_WARN_MS = int(os.environ.get('PNM_DIRECTORY_WARN_MS', '3000'))
+PNM_SNAPSHOT_WARN_DAYS = int(os.environ.get('PNM_SNAPSHOT_WARN_DAYS', '21'))
+PNM_SNAPSHOT_MAX_DAYS = int(os.environ.get('PNM_SNAPSHOT_MAX_DAYS', '30'))
+PNM_MAX_DRIFT_COUNT = int(os.environ.get('PNM_MAX_DIRECTORY_DRIFT_COUNT', '5'))
+PNM_MAX_DRIFT_PERCENT = float(os.environ.get('PNM_MAX_DIRECTORY_DRIFT_PERCENT', '2'))
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -477,6 +494,7 @@ ALL_CRONS = [
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
     ('_internal/auth-drift-watchdog',             dict(minute='*/5')),      # every 5 min — catches a rotation that missed this host
+    ('_internal/pnm-directory-health',            dict(minute=35)),         # hourly — live/snapshot parity, age, and latency
     ('_internal/heartbeat',                       dict(minute='*/15')),     # every 15 min
 ]
 
@@ -926,6 +944,134 @@ def _auth_drift_watchdog_job():
         state['alert_sent'] = True
 
 
+def _percentile(values, percentile):
+    """Nearest-rank percentile for the small bounded latency sample."""
+    ordered = sorted(values)
+    if not ordered:
+        return None
+    index = max(0, min(len(ordered) - 1, int((percentile / 100) * len(ordered) + 0.9999) - 1))
+    return ordered[index]
+
+
+def _pnm_directory_health_job():
+    """Observe public directory health without changing production data.
+
+    One hourly request compares the healthy live public projection with the
+    checked-in browser snapshot. Structured logs expose latency, p50/p95,
+    candidate/public counts, revision, drift, and snapshot age. Two consecutive
+    hard failures page once; a successful recovery clears the alert cycle.
+    """
+    state = _pnm_directory_health_state
+    failures = []
+    warnings = []
+    live_url = f'{BASE_URL}/api/poker/venues?view=directory&limit=1000&offset=0'
+    snapshot_url = f'{BASE_URL}/data/poker-venue-directory-snapshot.json'
+    started = time.monotonic()
+
+    try:
+        live_response = requests.get(live_url, headers={'Accept': 'application/json'}, timeout=30)
+        latency_ms = round((time.monotonic() - started) * 1000)
+        state['latencies_ms'].append(latency_ms)
+        if live_response.status_code != 200:
+            raise RuntimeError(f'directory HTTP {live_response.status_code}')
+        live = live_response.json()
+
+        snapshot_response = requests.get(snapshot_url, headers={'Accept': 'application/json'}, timeout=30)
+        if snapshot_response.status_code != 200:
+            raise RuntimeError(f'snapshot HTTP {snapshot_response.status_code}')
+        snapshot = snapshot_response.json()
+
+        live_rows = live.get('data') if isinstance(live, dict) else None
+        snapshot_rows = snapshot.get('venues') if isinstance(snapshot, dict) else None
+        metadata = snapshot.get('metadata') if isinstance(snapshot, dict) else None
+        if not live.get('success') or not isinstance(live_rows, list) or not live_rows:
+            failures.append('live directory projection is empty or invalid')
+        if live.get('degraded') is True or live.get('data_source') == 'static_snapshot':
+            failures.append('live directory is serving degraded snapshot data')
+        if not isinstance(snapshot_rows, list) or not snapshot_rows or not isinstance(metadata, dict):
+            failures.append('published snapshot is empty or invalid')
+
+        live_ids = {str(row.get('id')) for row in (live_rows or []) if row.get('id') is not None}
+        snapshot_ids = {str(row.get('id')) for row in (snapshot_rows or []) if row.get('id') is not None}
+        live_projection_hash = hashlib.sha256(json.dumps(
+            live_rows or [], ensure_ascii=False, separators=(',', ':')
+        ).encode()).hexdigest()
+        snapshot_projection_hash = str((metadata or {}).get('projected_sha256') or '')
+        projection_changed = bool(snapshot_projection_hash and live_projection_hash != snapshot_projection_hash)
+        drift_count = len(live_ids.symmetric_difference(snapshot_ids))
+        denominator = max(len(live_ids), len(snapshot_ids), 1)
+        drift_percent = round((drift_count / denominator) * 100, 2)
+
+        if drift_count > PNM_MAX_DRIFT_COUNT or drift_percent > PNM_MAX_DRIFT_PERCENT:
+            failures.append(f'live/snapshot ID drift {drift_count} ({drift_percent}%) exceeds budget')
+        elif drift_count:
+            warnings.append(f'live/snapshot ID drift is {drift_count} ({drift_percent}%)')
+
+        generated_at = str((metadata or {}).get('generated_at') or '')
+        try:
+            generated = datetime.fromisoformat(generated_at.replace('Z', '+00:00'))
+            snapshot_age_days = round((datetime.now(timezone.utc) - generated).total_seconds() / 86400, 2)
+        except (TypeError, ValueError):
+            snapshot_age_days = None
+            failures.append('published snapshot has no valid generated_at timestamp')
+
+        if snapshot_age_days is not None and snapshot_age_days > PNM_SNAPSHOT_MAX_DAYS:
+            failures.append(f'published snapshot is {snapshot_age_days} days old')
+        elif snapshot_age_days is not None and snapshot_age_days >= PNM_SNAPSHOT_WARN_DAYS:
+            warnings.append(f'published snapshot is {snapshot_age_days} days old')
+
+        manifest_count = int((metadata or {}).get('public_count') or 0)
+        if manifest_count != len(snapshot_ids):
+            failures.append(f'snapshot manifest count {manifest_count} does not match {len(snapshot_ids)} IDs')
+        if latency_ms > PNM_DIRECTORY_WARN_MS:
+            warnings.append(f'directory latency {latency_ms}ms exceeds {PNM_DIRECTORY_WARN_MS}ms target')
+
+        samples = list(state['latencies_ms'])
+        report = {
+            'candidate_count': int(live.get('total') or len(live_ids)),
+            'data_revision': str(live.get('data_revision') or live_response.headers.get('X-PNM-Data-Revision') or '')[:120],
+            'drift_count': drift_count,
+            'drift_percent': drift_percent,
+            'failures': failures,
+            'latency_ms': latency_ms,
+            'latency_p50_ms': _percentile(samples, 50),
+            'latency_p95_ms': _percentile(samples, 95),
+            'public_count': len(live_ids),
+            'projection_changed': projection_changed,
+            'sample_count': len(samples),
+            'snapshot_age_days': snapshot_age_days,
+            'snapshot_count': len(snapshot_ids),
+            'snapshot_projection_hash': snapshot_projection_hash[:12],
+            'status': 'fail' if failures else ('warning' if warnings else 'ok'),
+            'warnings': warnings,
+        }
+        message = '[pnm-directory-health] ' + json.dumps(report, sort_keys=True, separators=(',', ':'))
+        if failures:
+            log.error(message)
+        elif warnings:
+            log.warning(message)
+        else:
+            log.info(message)
+    except Exception as exc:
+        failures.append(f'health probe failed: {type(exc).__name__}: {str(exc)[:160]}')
+        log.error('[pnm-directory-health] ' + json.dumps({
+            'failures': failures,
+            'status': 'fail',
+        }, sort_keys=True, separators=(',', ':')))
+
+    if not failures:
+        if state['alert_sent']:
+            _send_sms('Poker Near Me directory health recovered; live projection and published snapshot are healthy again.')
+        state['consec_fail'] = 0
+        state['alert_sent'] = False
+        return
+
+    state['consec_fail'] += 1
+    if state['consec_fail'] >= 2 and not state['alert_sent']:
+        _send_sms('Poker Near Me directory health failed twice: ' + '; '.join(failures)[:1200])
+        state['alert_sent'] = True
+
+
 def _heartbeat_job():
     """Internal cron — logs ALIVE so journalctl scrapers can detect liveness."""
     routed = len(WORKERS_PREFERRED)
@@ -937,6 +1083,7 @@ def _heartbeat_job():
 INTERNAL_JOBS = {
     '_internal/workers-healthcheck': _workers_healthcheck_job,
     '_internal/auth-drift-watchdog': _auth_drift_watchdog_job,
+    '_internal/pnm-directory-health': _pnm_directory_health_job,
     '_internal/heartbeat':           _heartbeat_job,
 }
 

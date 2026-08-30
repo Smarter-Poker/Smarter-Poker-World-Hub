@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const SOURCE_ORIGIN = process.env.PNM_DIRECTORY_SOURCE_ORIGIN || 'https://smarter.poker';
@@ -8,6 +8,7 @@ const OUTPUTS = [
   'data/poker-venue-directory-snapshot.json',
   'public/data/poker-venue-directory-snapshot.json',
 ];
+const dryRun = process.argv.includes('--dry-run');
 
 function sha(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -71,9 +72,31 @@ const payload = {
 };
 const serialized = `${JSON.stringify(payload, null, 2)}\n`;
 
+if (dryRun) {
+  console.log(JSON.stringify({
+    mode: 'dry-run',
+    source_origin: payload.metadata.source_origin,
+    source_version: payload.metadata.source_version,
+    source_candidate_count: payload.metadata.source_candidate_count,
+    public_count: payload.metadata.public_count,
+    projected_sha256: payload.metadata.projected_sha256,
+    data_revision: payload.metadata.data_revision,
+  }, null, 2));
+  process.exit(0);
+}
+
+const stagedOutputs = [];
 for (const relativePath of OUTPUTS) {
   const absolutePath = resolve(process.cwd(), relativePath);
+  const temporaryPath = `${absolutePath}.${process.pid}.tmp`;
   await mkdir(dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, serialized);
+  await writeFile(temporaryPath, serialized);
+  const staged = await readFile(temporaryPath, 'utf8');
+  if (staged !== serialized) throw new Error(`Atomic snapshot staging failed for ${relativePath}`);
+  stagedOutputs.push({ relativePath, absolutePath, temporaryPath });
+}
+
+for (const { relativePath, absolutePath, temporaryPath } of stagedOutputs) {
+  await rename(temporaryPath, absolutePath);
   console.log(`✓ ${relativePath}: ${venues.length} venues, ${projectedSha256.slice(0, 12)}, source ${sourceVersion || 'unknown'}`);
 }
