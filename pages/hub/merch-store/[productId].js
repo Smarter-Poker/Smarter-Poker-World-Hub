@@ -10,6 +10,11 @@ import { createClient as createServerClient } from '../../../src/lib/supabaseSer
 
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
 const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
+const STATIC_DETAIL_IMAGES = {
+  'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.png'],
+  'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.png'],
+  'hat-diamond': ['/images/merch/neural-steel/print/brain-spade-embroidery.png'],
+};
 
 function publicImage(value) {
   if (typeof value !== 'string' || !value.trim()) return FALLBACK_IMAGE;
@@ -28,11 +33,19 @@ function absoluteImage(value) {
   return /^https:\/\//i.test(value) ? value : `https://smarter.poker${value}`;
 }
 
+function publicGallery(primary, values = []) {
+  const candidates = [primary, ...(Array.isArray(values) ? values : [])]
+    .map(publicImage)
+    .filter(Boolean);
+  return [...new Set(candidates)].slice(0, 8);
+}
+
 function staticProduct(product) {
   if (!product) return null;
   return {
     ...product,
     image: publicImage(product.image),
+    galleryImages: publicGallery(product.image, STATIC_DETAIL_IMAGES[product.id]),
     priceDiamonds: Math.round(Number(product.price || 0) * 100),
     inStock: true,
     fulfillmentReady: true,
@@ -95,6 +108,7 @@ async function catalogProduct(productId) {
     description: item.description || 'Official Smarter.Poker marketplace equipment.',
     category: item.category || 'equipment',
     image: publicImage(item.image_url),
+    galleryImages: publicGallery(item.image_url, metadata.gallery_images),
     price,
     priceDiamonds: Math.max(1, Number(item.price_diamonds) || Math.ceil(price * 100)),
     inStock,
@@ -131,6 +145,7 @@ export default function MerchProductDetail({ product }) {
   const diamondPrice = Number(product.priceDiamonds) || Math.round(Number(product.price) * 100);
   const canonical = `/hub/merch-store/${product.id}`;
   const image = publicImage(product.image);
+  const galleryImages = publicGallery(image, product.galleryImages);
   const available = product.inStock !== false && product.fulfillmentReady === true;
   const inventoryStatus = available
     ? 'Available For Card Or Diamonds'
@@ -142,7 +157,7 @@ export default function MerchProductDetail({ product }) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: [absoluteImage(image)],
+    image: galleryImages.map(absoluteImage),
     description: product.description,
     sku: product.id,
     brand: { '@type': 'Brand', name: 'Smarter.Poker' },
@@ -174,6 +189,7 @@ export default function MerchProductDetail({ product }) {
       description={product.description}
       eyebrow={`${product.category} / neural steel collection`}
       image={image}
+      galleryImages={galleryImages}
       imageAlt={`${product.name} in the Smarter.Poker neural steel collection`}
       breadcrumbs={[
         { label: 'Marketplace', href: '/hub/diamond-store' },

@@ -14,7 +14,7 @@ const {
   resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 30_000;
 let cached = null;
 let inFlight = null;
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
   // The payload contains capability booleans only, so edge caching is safe and
   // prevents a public probe from multiplying Stripe/Supabase health traffic
   // across serverless instances.
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+  res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30');
   try {
     return res.status(200).json(await getMarketplaceReadiness());
   } catch (error) {

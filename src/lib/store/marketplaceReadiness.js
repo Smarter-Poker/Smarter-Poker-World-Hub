@@ -1,4 +1,6 @@
-const DEFAULT_TIMEOUT_MS = 4_000;
+const DEFAULT_TIMEOUT_MS = 6_000;
+const DEFAULT_MAX_ATTEMPTS = 2;
+const DEFAULT_RETRY_DELAY_MS = 125;
 const DEFAULT_PAGE_SIZE = 250;
 const DEFAULT_MAX_ITEMS = 2_500;
 const DEFAULT_MAX_VARIANTS = 10_000;
@@ -29,58 +31,90 @@ async function withTimeout(label, task, timeoutMs = DEFAULT_TIMEOUT_MS) {
   }
 }
 
+function wait(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+async function withTransientRetry(task, {
+  attempts = DEFAULT_MAX_ATTEMPTS,
+  delayMs = DEFAULT_RETRY_DELAY_MS,
+} = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await task(attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) throw error;
+      await wait(delayMs * attempt);
+    }
+  }
+  throw lastError;
+}
+
 async function fetchHealth(url, { fetchImpl, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS }) {
   const startedAt = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetchImpl(url, {
-      method: 'GET',
-      redirect: 'error',
-      headers,
-      signal: controller.signal,
-    });
-    return {
-      reachable: response.ok,
-      status: Number(response.status) || 0,
-      latencyMs: elapsed(startedAt),
-      reason: response.ok ? null : 'provider_rejected_probe',
-    };
-  } catch (error) {
-    return {
-      reachable: false,
-      status: 0,
-      latencyMs: elapsed(startedAt),
-      reason: error?.name === 'AbortError' ? 'provider_timeout' : 'provider_unreachable',
-      error,
-    };
-  } finally {
-    clearTimeout(timer);
+  let lastResult = null;
+
+  for (let attempt = 1; attempt <= DEFAULT_MAX_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetchImpl(url, {
+        method: 'GET',
+        redirect: 'error',
+        headers,
+        signal: controller.signal,
+      });
+      lastResult = {
+        reachable: response.ok,
+        status: Number(response.status) || 0,
+        latencyMs: elapsed(startedAt),
+        reason: response.ok ? null : 'provider_rejected_probe',
+      };
+      if (response.ok || (response.status < 500 && response.status !== 429)) return lastResult;
+    } catch (error) {
+      lastResult = {
+        reachable: false,
+        status: 0,
+        latencyMs: elapsed(startedAt),
+        reason: error?.name === 'AbortError' ? 'provider_timeout' : 'provider_unreachable',
+        error,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+    if (attempt < DEFAULT_MAX_ATTEMPTS) await wait(DEFAULT_RETRY_DELAY_MS * attempt);
   }
+
+  return lastResult;
 }
 
 async function readAllActive(client, table, columns, maxRows, pageSize) {
   const rows = [];
-  let exactCount = null;
 
-  for (let offset = 0; offset < maxRows; offset += pageSize) {
-    const { data, error, count } = await client
+  // Fetch one bounded sentinel row instead of asking PostgreSQL for an exact
+  // count. Exact counts caused cold readiness probes to scan the full table
+  // and occasionally time out even though the storefront query was healthy.
+  for (let offset = 0; offset <= maxRows; offset += pageSize) {
+    const { data, error } = await client
       .from(table)
-      .select(columns, { count: offset === 0 ? 'exact' : undefined })
+      .select(columns)
       .eq('is_active', true)
-      .range(offset, Math.min(offset + pageSize - 1, maxRows - 1));
+      .range(offset, Math.min(offset + pageSize - 1, maxRows));
     if (error) throw error;
-    if (offset === 0 && Number.isFinite(count)) exactCount = Number(count);
     const page = Array.isArray(data) ? data : [];
     rows.push(...page);
+    if (rows.length > maxRows) {
+      return { rows: rows.slice(0, maxRows), count: maxRows + 1, complete: false };
+    }
     if (page.length < pageSize) break;
   }
 
-  const observedCount = exactCount ?? rows.length;
   return {
     rows,
-    count: observedCount,
-    complete: observedCount <= maxRows && rows.length >= observedCount,
+    count: rows.length,
+    complete: true,
   };
 }
 
@@ -93,13 +127,15 @@ async function catalogReadiness(client, {
 } = {}) {
   const startedAt = Date.now();
   try {
-    const [itemResult, variantResult] = await withTimeout(
-      'marketplace catalog',
-      () => Promise.all([
-        readAllActive(client, 'merchandise_items', 'id, has_variants, metadata', maxItems, pageSize),
-        readAllActive(client, 'merchandise_item_variants', 'id, item_id, metadata', maxVariants, pageSize),
-      ]),
-      timeoutMs
+    const [itemResult, variantResult] = await withTransientRetry(
+      () => withTimeout(
+        'marketplace catalog',
+        () => Promise.all([
+          readAllActive(client, 'merchandise_items', 'id, has_variants, metadata', maxItems, pageSize),
+          readAllActive(client, 'merchandise_item_variants', 'id, item_id, metadata', maxVariants, pageSize),
+        ]),
+        timeoutMs
+      )
     );
 
     const variantsByItem = new Map();
@@ -158,10 +194,12 @@ async function catalogReadiness(client, {
 async function rpcReadiness(client, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const startedAt = Date.now();
   try {
-    const { error } = await withTimeout(
-      'reserve_merch_order dry-run RPC',
-      () => client.rpc('reserve_merch_order', { p_items: [], p_dry_run: true }),
-      timeoutMs
+    const { error } = await withTransientRetry(
+      () => withTimeout(
+        'reserve_merch_order dry-run RPC',
+        () => client.rpc('reserve_merch_order', { p_items: [], p_dry_run: true }),
+        timeoutMs
+      )
     );
     if (error) throw error;
     return { reachable: true, signatureReady: true, reason: null, latencyMs: elapsed(startedAt) };
@@ -314,12 +352,15 @@ async function runMarketplaceReadiness({
 }
 
 module.exports = {
+  DEFAULT_MAX_ATTEMPTS,
   DEFAULT_MAX_ITEMS,
+  DEFAULT_RETRY_DELAY_MS,
   DEFAULT_MAX_VARIANTS,
   DEFAULT_PAGE_SIZE,
   DEFAULT_TIMEOUT_MS,
   catalogReadiness,
   rpcReadiness,
   runMarketplaceReadiness,
+  withTransientRetry,
   withTimeout,
 };

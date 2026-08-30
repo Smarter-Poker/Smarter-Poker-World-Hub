@@ -76,6 +76,10 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     if (!applyRateLimit(req, res, LIMITS.read)) return;
+    const { user, error } = await getServerUserWithFallback(req, getSupabase());
+    if (error || !user) {
+      return res.status(401).json({ success: false, error: 'Sign in to verify this purchase' });
+    }
     if (!stripe) {
       return res.status(503).json({ success: false, error: 'Payment status is temporarily unavailable' });
     }
@@ -83,11 +87,6 @@ export default async function handler(req, res) {
     const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id.trim() : '';
     if (!/^cs_(?:test_|live_)?[A-Za-z0-9]{12,}$/.test(sessionId)) {
       return res.status(400).json({ success: false, error: 'Invalid checkout reference' });
-    }
-
-    const { user, error } = await getServerUserWithFallback(req, getSupabase());
-    if (error || !user) {
-      return res.status(401).json({ success: false, error: 'Sign in to verify this purchase' });
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
