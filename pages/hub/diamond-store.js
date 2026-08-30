@@ -32,9 +32,17 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../src/lib/store/checkoutIntentStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), {
   ssr: false,
+  loading: () => (
+    <div
+      className={shellStyles.globalHeaderReserve}
+      data-marketplace-header-reserve="true"
+      aria-hidden="true"
+    />
+  ),
 });
 import {
   Gem,
@@ -58,7 +66,6 @@ import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
-import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
   loading: () => (
@@ -436,7 +443,7 @@ export default function DiamondStorePage({ initialTab }) {
   const [vipTier, setVipTier] = useState(null);
   const [vipExpiresAt, setVipExpiresAt] = useState(null);
   const [diamondBalance, setDiamondBalance] = useState(null);
-  // Replaces window.confirm() on the two paths that spend diamonds. A native
+  // Replaces native confirmation dialogs on the two paths that spend diamonds. A native
   // confirm blocks the whole tab, cannot be styled, and on iOS standalone PWAs
   // is easy to miss entirely. `pending` also carries the idempotency key so a
   // double-tap on Confirm reuses one key instead of minting a second purchase.
@@ -474,26 +481,47 @@ export default function DiamondStorePage({ initialTab }) {
   // Admin Manage state
   const [clubShopAdminItems, setClubShopAdminItems] = useState([]);
   const [clubShopAdminLoaded, setClubShopAdminLoaded] = useState(false);
+  const [clubShopAdminLoading, setClubShopAdminLoading] = useState(false);
+  const [clubShopAdminError, setClubShopAdminError] = useState(null);
+  const [clubShopAdminReport, setClubShopAdminReport] = useState(null);
   const [clubShopNewName, setClubShopNewName] = useState('');
   const [clubShopNewPrice, setClubShopNewPrice] = useState('');
   const [clubShopNewDesc, setClubShopNewDesc] = useState('');
   const [clubShopNewCategory, setClubShopNewCategory] = useState('Time Banks');
   const [clubShopNewImage, setClubShopNewImage] = useState('');
   const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
+  const [clubShopDeleteTarget, setClubShopDeleteTarget] = useState(null);
+  const [clubShopAdminActionId, setClubShopAdminActionId] = useState(null);
   const clubShopLoadingRef = useRef(false);
   const clubShopProcessingRef = useRef(false);
+  const clubShopAdminLoadingRef = useRef(false);
+  const clubShopAdminActionRef = useRef(null);
   const clubShopSuccessTimerRef = useRef(null);
   const pendingSpendDialogRef = useRef(null);
   const clubShopDialogRef = useRef(null);
+  const clubShopDeleteDialogRef = useRef(null);
   const dismissPendingSpend = useCallback(() => setPendingSpend(null), []);
   const dismissClubShopDialog = useCallback(() => setClubShopBuyTarget(null), []);
+  const dismissClubShopDeleteDialog = useCallback(() => {
+    if (!clubShopAdminActionRef.current) setClubShopDeleteTarget(null);
+  }, []);
   const setClubProcessing = useCallback((nextValue) => {
     clubShopProcessingRef.current = nextValue;
     setClubShopProcessing(nextValue);
   }, []);
+  const setClubShopAdminAction = useCallback((itemId) => {
+    clubShopAdminActionRef.current = itemId;
+    setClubShopAdminActionId(itemId);
+  }, []);
 
   useDialogFocus(!!pendingSpend, pendingSpendDialogRef, dismissPendingSpend, isProcessing);
   useDialogFocus(!!clubShopBuyTarget, clubShopDialogRef, dismissClubShopDialog, clubShopProcessing);
+  useDialogFocus(
+    !!clubShopDeleteTarget,
+    clubShopDeleteDialogRef,
+    dismissClubShopDeleteDialog,
+    !!clubShopAdminActionId
+  );
 
   // LEGACY DEEP LINKS: /hub/diamond-store?tab=<tabId>
   //
@@ -1347,37 +1375,88 @@ export default function DiamondStorePage({ initialTab }) {
 
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
-    if (!clubShopClubId) return;
+    if (!clubShopClubId || clubShopAdminLoadingRef.current) return false;
+    clubShopAdminLoadingRef.current = true;
+    setClubShopAdminLoading(true);
+    setClubShopAdminError(null);
     try {
-      const { data } = await supabase
-        .from('club_shop_items')
-        .select('id, club_id, name, description, price, image_url, category, is_active')
-        .eq('club_id', clubShopClubId)
-        .order('created_at', { ascending: false });
-      let itemsWithCounts = (data || []).map((i) => ({
+      const token = getAccessToken();
+      if (!token) throw new Error('Please sign in again to manage the Club Shop.');
+      const response = await fetch(
+        `/api/club-arena/manage-shop?clubId=${encodeURIComponent(clubShopClubId)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `The operator report failed (${response.status}).`);
+      }
+      const itemsWithCounts = (data.items || []).map((i) => ({
         ...i,
         price: Number(i.price) || 0,
-        purchase_count: 0,
+        purchase_count: Number(i.purchase_count) || 0,
+        refunded_purchase_count: Number(i.refunded_purchase_count) || 0,
+        net_purchase_count: Number(i.net_purchase_count) || 0,
+        revenue: Number(i.revenue) || 0,
       }));
-      if (itemsWithCounts.length > 0) {
-        const itemIds = itemsWithCounts.map((i) => i.id);
-        const { data: countRows } = await supabase
-          .from('club_shop_purchases')
-          .select('item_id')
-          .eq('club_id', clubShopClubId)
-          .in('item_id', itemIds);
-        const counts = {};
-        (countRows || []).forEach((r) => {
-          counts[r.item_id] = (counts[r.item_id] || 0) + 1;
-        });
-        itemsWithCounts = itemsWithCounts.map((i) => ({ ...i, purchase_count: counts[i.id] || 0 }));
-      }
       setClubShopAdminItems(itemsWithCounts);
+      setClubShopAdminReport(data.report || null);
       setClubShopAdminLoaded(true);
+      return true;
     } catch (err) {
       console.warn('[Club Shop Admin]', err);
+      setClubShopAdminError(
+        err.message || 'The verified Club Shop sales report could not be loaded.'
+      );
+      setClubShopAdminLoaded(true);
+      return false;
+    } finally {
+      clubShopAdminLoadingRef.current = false;
+      setClubShopAdminLoading(false);
     }
   }, [clubShopClubId]);
+
+  useEffect(() => {
+    setClubShopAdminLoaded(false);
+    setClubShopAdminItems([]);
+    setClubShopAdminReport(null);
+    setClubShopAdminError(null);
+  }, [clubShopClubId]);
+
+  const handleClubShopAdminAction = useCallback(
+    async (action, item) => {
+      if (!item?.id || !item?.club_id || clubShopAdminActionRef.current) return;
+      setClubShopAdminAction(item.id);
+      try {
+        const token = getAccessToken();
+        if (!token) throw new Error('Not authenticated');
+        const response = await fetch('/api/club-arena/shop-items', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action, clubId: item.club_id, itemId: item.id }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          const message = data.hasSales
+            ? 'Items With Purchase History Cannot Be Deleted. Hide This Item Instead.'
+            : data.error || `HTTP ${response.status}`;
+          throw new Error(message);
+        }
+        if (action === 'delete') {
+          setClubShopDeleteTarget(null);
+          showStoreToast('success', `${item.name} Was Removed From The Club Shop.`);
+        }
+        await Promise.all([loadClubShopAdmin(), loadClubShop(true)]);
+      } catch (error) {
+        showStoreToast('error', error.message || 'The Club Shop Item Could Not Be Updated.');
+      } finally {
+        setClubShopAdminAction(null);
+      }
+    },
+    [loadClubShop, loadClubShopAdmin, setClubShopAdminAction]
+  );
 
   const clubShopIsAdmin = ['owner', 'admin'].includes(clubShopRole);
 
@@ -1901,7 +1980,7 @@ export default function DiamondStorePage({ initialTab }) {
                     </div>
                   )}
 
-                  {/* Diamond-spend confirmation. Replaces window.confirm(), which
+                  {/* Diamond-spend confirmation. Replaces the native browser prompt, which
                     blocks the tab, cannot be styled, and is easy to miss inside
                     an installed PWA. Nothing is spent until Confirm is pressed,
                     and the idempotency key is minted when the modal OPENS so a
@@ -3846,64 +3925,160 @@ export default function DiamondStorePage({ initialTab }) {
                       {/* Manage Sub-Tab (admin only) */}
                       {clubShopSubTab === 'manage' && clubShopIsAdmin && (
                         <>
+                          {clubShopAdminLoading && !clubShopAdminLoaded && (
+                            <div
+                              role="status"
+                              aria-live="polite"
+                              style={{
+                                minHeight: 44,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: 16,
+                                border: '1px solid rgba(0,212,255,0.22)',
+                                background: 'rgba(0,118,168,0.12)',
+                                color: '#9DE8FF',
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Loading Verified Sales Ledger...
+                            </div>
+                          )}
+
+                          {clubShopAdminError && (
+                            <div
+                              role="alert"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                                marginBottom: 16,
+                                padding: '12px 14px',
+                                border: '1px solid rgba(255,86,112,0.45)',
+                                background: 'rgba(91,16,34,0.38)',
+                                color: '#FFD2DA',
+                              }}
+                            >
+                              <span>
+                                <AlertTriangle
+                                  size={16}
+                                  aria-hidden="true"
+                                  style={{ verticalAlign: 'middle', marginRight: 8 }}
+                                />
+                                {clubShopAdminError}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={loadClubShopAdmin}
+                                disabled={clubShopAdminLoading}
+                                style={{
+                                  minHeight: 44,
+                                  padding: '8px 16px',
+                                  border: '1px solid rgba(255,255,255,0.28)',
+                                  background: 'rgba(255,255,255,0.08)',
+                                  color: '#FFFFFF',
+                                  fontWeight: 800,
+                                  cursor: clubShopAdminLoading ? 'wait' : 'pointer',
+                                }}
+                              >
+                                {clubShopAdminLoading ? 'Retrying...' : 'Retry Report'}
+                              </button>
+                            </div>
+                          )}
+
+                          {clubShopAdminReport && !clubShopAdminReport.complete && (
+                            <div
+                              role="status"
+                              style={{
+                                marginBottom: 16,
+                                padding: '12px 14px',
+                                border: '1px solid rgba(255,196,64,0.42)',
+                                background: 'rgba(83,56,0,0.34)',
+                                color: '#FFE6A6',
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Report Is Partial: {fmt(clubShopAdminReport.processedRows)} Of{' '}
+                              {fmt(clubShopAdminReport.totalRows)} Ledger Rows Were Processed.
+                            </div>
+                          )}
+
                           {/* Admin Stats */}
                           {(() => {
                             const total = clubShopAdminItems.length;
                             const active = clubShopAdminItems.filter((i) => i.is_active).length;
-                            const totalSold = clubShopAdminItems.reduce(
-                              (s, i) => s + (i.purchase_count || 0),
-                              0
-                            );
-                            const totalRev = clubShopAdminItems.reduce(
-                              (s, i) => s + (i.purchase_count || 0) * i.price,
-                              0
-                            );
+                            const diamondTotals = clubShopAdminReport?.diamondTotals || {};
+                            const legacyChipTotals = clubShopAdminReport?.legacyChipTotals || {};
                             return (
-                              <div
-                                style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                  gap: 12,
-                                  marginBottom: 24,
-                                }}
-                              >
-                                {[
-                                  { label: 'Total Items', val: total },
-                                  { label: 'Active', val: active },
-                                  { label: 'Total Sold', val: totalSold },
-                                  {
-                                    label: 'Revenue',
-                                    val: totalRev.toLocaleString() + ' Diamonds',
-                                  },
-                                ].map((s) => (
-                                  <div
-                                    key={s.label}
-                                    style={{
-                                      background: 'rgba(255,255,255,0.05)',
-                                      border: '1px solid rgba(255,255,255,0.08)',
-                                      borderRadius: 12,
-                                      padding: '16px 14px',
-                                      textAlign: 'center',
-                                    }}
-                                  >
+                              <>
+                                <div
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                    gap: 12,
+                                    marginBottom: 12,
+                                  }}
+                                >
+                                  {[
+                                    { label: 'Total Items', val: total },
+                                    { label: 'Active', val: active },
+                                    { label: 'Net Diamond Sales', val: fmt(diamondTotals.netSales) },
+                                    { label: 'Diamonds Burned', val: fmt(diamondTotals.net) },
+                                    { label: 'Diamond Refunds', val: fmt(diamondTotals.refunded) },
+                                  ].map((stat) => (
                                     <div
-                                      style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
-                                    >
-                                      {s.val}
-                                    </div>
-                                    <div
+                                      key={stat.label}
                                       style={{
-                                        fontSize: 11,
-                                        color: 'rgba(255,255,255,0.4)',
-                                        fontWeight: 600,
-                                        marginTop: 4,
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        borderRadius: 12,
+                                        padding: '16px 14px',
+                                        textAlign: 'center',
                                       }}
                                     >
-                                      {s.label}
+                                      <div
+                                        style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
+                                      >
+                                        {stat.val}
+                                      </div>
+                                      <div
+                                        style={{
+                                          fontSize: 11,
+                                          color: 'rgba(255,255,255,0.4)',
+                                          fontWeight: 600,
+                                          marginTop: 4,
+                                        }}
+                                      >
+                                        {stat.label}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
+                                <div
+                                  style={{
+                                    marginBottom: 24,
+                                    padding: '10px 12px',
+                                    borderLeft: '3px solid #00D4FF',
+                                    background: 'rgba(0,118,168,0.09)',
+                                    color: 'rgba(255,255,255,0.68)',
+                                    fontSize: 11,
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  Club Shop Sales Are 100% Platform-Owned Diamond Burns. No Club,
+                                  Owner, Agent, Affiliate, Or Commission Ledger Is Credited.
+                                  {Number(legacyChipTotals.sales || 0) > 0 && (
+                                    <span style={{ display: 'block', color: '#FFE6A6' }}>
+                                      Legacy History: {fmt(legacyChipTotals.netSales)} Net Chip Sales /{' '}
+                                      {fmt(legacyChipTotals.net)} Chips. These Are Kept Separate From
+                                      Diamond Totals.
+                                    </span>
+                                  )}
+                                </div>
+                              </>
                             );
                           })()}
 
@@ -4099,9 +4274,8 @@ export default function DiamondStorePage({ initialTab }) {
                                   setClubShopNewDesc('');
                                   setClubShopNewImage('');
                                   setClubShopNewCategory('Time Banks');
-                                  loadClubShopAdmin();
                                   clubShopLoadingRef.current = false;
-                                  loadClubShop(true);
+                                  await Promise.all([loadClubShopAdmin(), loadClubShop(true)]);
                                 } catch (err) {
                                   showStoreToast('error', err.message);
                                 } finally {
@@ -4178,43 +4352,29 @@ export default function DiamondStorePage({ initialTab }) {
                                       >
                                         {item.category || 'Time Banks'}
                                       </span>{' '}
-                                      • {item.purchase_count || 0} sold
+                                      • {item.net_purchase_count || 0} net sold •{' '}
+                                      {fmt(item.revenue)} Diamonds burned
+                                      {(item.refunded_purchase_count || 0) > 0 && (
+                                        <span style={{ color: '#FFB7C4' }}>
+                                          {' '}
+                                          • {item.refunded_purchase_count} refunded
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <div style={{ display: 'flex', gap: 8 }}>
                                     <button
-                                      onClick={async () => {
-                                        try {
-                                          const token = getAccessToken();
-                                          if (!token) throw new Error('Not authenticated');
-                                          const resp = await fetch('/api/club-arena/shop-items', {
-                                            method: 'POST',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                              Authorization: `Bearer ${token}`,
-                                            },
-                                            body: JSON.stringify({
-                                              action: 'toggle',
-                                              clubId: item.club_id,
-                                              itemId: item.id,
-                                            }),
-                                          });
-                                          const json = await resp.json().catch(() => ({}));
-                                          if (!resp.ok || !json.success)
-                                            throw new Error(json.error || `HTTP ${resp.status}`);
-                                          loadClubShopAdmin();
-                                          clubShopLoadingRef.current = false;
-                                          loadClubShop(true);
-                                        } catch (err) {
-                                          showStoreToast('error', err.message);
-                                        }
-                                      }}
+                                      type="button"
+                                      onClick={() => handleClubShopAdminAction('toggle', item)}
+                                      disabled={!!clubShopAdminActionId}
+                                      aria-busy={clubShopAdminActionId === item.id}
                                       style={{
                                         padding: '6px 14px',
+                                        minHeight: 44,
                                         borderRadius: 20,
                                         fontSize: 11,
                                         fontWeight: 700,
-                                        cursor: 'pointer',
+                                        cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
                                         background: item.is_active
                                           ? 'rgba(0, 212, 255,0.1)'
                                           : 'rgba(255,255,255,0.05)',
@@ -4241,39 +4401,18 @@ export default function DiamondStorePage({ initialTab }) {
                                       )}
                                     </button>
                                     <button
-                                      onClick={async () => {
-                                        if (!confirm(`Delete "${item.name}"?`)) return;
-                                        try {
-                                          const token = getAccessToken();
-                                          if (!token) throw new Error('Not authenticated');
-                                          const resp = await fetch('/api/club-arena/shop-items', {
-                                            method: 'POST',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                              Authorization: `Bearer ${token}`,
-                                            },
-                                            body: JSON.stringify({
-                                              action: 'delete',
-                                              clubId: item.club_id,
-                                              itemId: item.id,
-                                            }),
-                                          });
-                                          const json = await resp.json().catch(() => ({}));
-                                          if (!resp.ok || !json.success)
-                                            throw new Error(json.error || `HTTP ${resp.status}`);
-                                          loadClubShopAdmin();
-                                          clubShopLoadingRef.current = false;
-                                          loadClubShop(true);
-                                        } catch (err) {
-                                          showStoreToast('error', err.message);
-                                        }
-                                      }}
+                                      type="button"
+                                      onClick={() => setClubShopDeleteTarget(item)}
+                                      disabled={!!clubShopAdminActionId}
+                                      aria-haspopup="dialog"
+                                      aria-expanded={clubShopDeleteTarget?.id === item.id}
                                       style={{
                                         padding: '6px 14px',
+                                        minHeight: 44,
                                         borderRadius: 20,
                                         fontSize: 11,
                                         fontWeight: 700,
-                                        cursor: 'pointer',
+                                        cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
                                         background: 'rgba(255,59,48,0.1)',
                                         border: '1px solid rgba(255,59,48,0.3)',
                                         color: '#ff6b6b',
@@ -4292,6 +4431,99 @@ export default function DiamondStorePage({ initialTab }) {
                                   </div>
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {clubShopDeleteTarget && (
+                            <div
+                              className={shellStyles.dialogBackdrop}
+                              onClick={dismissClubShopDeleteDialog}
+                              style={{
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 9999,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 20,
+                                background: 'rgba(0,0,0,0.78)',
+                              }}
+                            >
+                              <div
+                                ref={clubShopDeleteDialogRef}
+                                className={shellStyles.dialogPanel}
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="club-shop-delete-title"
+                                aria-describedby="club-shop-delete-description"
+                                tabIndex={-1}
+                                onClick={(event) => event.stopPropagation()}
+                                style={{
+                                  width: '100%',
+                                  maxWidth: 460,
+                                  padding: '24px 22px',
+                                  border: '1px solid rgba(255,107,107,0.58)',
+                                  background: '#090d12',
+                                  boxShadow: '0 24px 70px #000',
+                                }}
+                              >
+                                <h4
+                                  id="club-shop-delete-title"
+                                  style={{ margin: 0, color: '#FFB1B1', fontSize: 19 }}
+                                >
+                                  Remove Club Shop Item?
+                                </h4>
+                                <p
+                                  id="club-shop-delete-description"
+                                  style={{ margin: '12px 0 0', color: '#C8D5DD', lineHeight: 1.65 }}
+                                >
+                                  Remove “{clubShopDeleteTarget.name}” From This Club’s Inventory?
+                                  Items With Purchase History Cannot Be Deleted; Hide Them Instead To
+                                  Preserve The Audit Trail.
+                                </p>
+                                <div
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                    gap: 10,
+                                    marginTop: 22,
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={dismissClubShopDeleteDialog}
+                                    disabled={!!clubShopAdminActionId}
+                                    style={{
+                                      minHeight: 44,
+                                      border: '1px solid rgba(255,255,255,0.22)',
+                                      background: '#111820',
+                                      color: '#EAF8FF',
+                                      fontWeight: 800,
+                                    }}
+                                  >
+                                    Keep Item
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleClubShopAdminAction('delete', clubShopDeleteTarget)
+                                    }
+                                    disabled={!!clubShopAdminActionId}
+                                    aria-busy={clubShopAdminActionId === clubShopDeleteTarget.id}
+                                    style={{
+                                      minHeight: 44,
+                                      border: '1px solid rgba(255,107,107,0.72)',
+                                      background: '#2A0B10',
+                                      color: '#FFD5D5',
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    {clubShopAdminActionId === clubShopDeleteTarget.id
+                                      ? 'Removing...'
+                                      : 'Remove Item'}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </>

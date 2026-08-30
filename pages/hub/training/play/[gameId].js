@@ -1,7 +1,7 @@
 /**
  * Training Play Page — Level Selector
  * ====================================
- * Shows the 10-level map for a specific game.
+ * Shows the 12-level map for a specific game.
  * User selects which level to play, then navigates to the Game Arena.
  */
 

@@ -13,12 +13,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
-import { aggregateSolverLeaks, canResolveSolverLeakScope, gradeSolverDecision, summarizeSolverDecisionGroups } from '../../../../src/lib/training/solverDecisionEvidence';
+import { aggregateSolverLeaks, canResolveSolverLeakScope, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups } from '../../../../src/lib/training/solverDecisionEvidence';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
 import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { applyRateLimit } from '../../../../src/lib/apiRateLimit';
+
+export const config = { maxDuration: 60 };
+
+const LEAK_AUDIT_LIMIT = { max: 12, windowMs: 60_000 };
+const AUDIT_HAND_BATCH_SIZE = 200;
+const AUDIT_DECISION_BATCH_SIZE = 500;
 
 let _supabase = null;
 function getSupabase() {
@@ -746,6 +752,7 @@ async function getSolverTrainingEvidence(db, userId) {
 
   const rows = trainingAvailable ? (result.data || []) : [];
   const decisions = [];
+  const canonicalAliases = {};
   let trainingDecisionCount = 0;
   let canonicalMisses = 0;
   if (rows.length > 0) {
@@ -769,14 +776,31 @@ async function getSolverTrainingEvidence(db, userId) {
       const grade = gradeSolverDecision(cached.question, row.answer_id);
       if (!grade.solverVerified) continue;
       const scenario = cached.question.scenario || {};
+      const gameId = cached.gameId || row.game_id;
+      const position = scenario.heroPosition || scenario.position || row.hero_position;
+      const street = scenario.street || row.street;
+      // Verified grouping must be built only from the canonical cache row.
+      // Browser-supplied `spot_type` used to create durable but impossible
+      // groups such as `btn_play`, while the authoritative question belonged
+      // to `general`. Keep a precise alias so the detector can retire those
+      // stale identities after writing the canonical finding.
+      const spotType = canonicalSpotType(cached.question, null);
+      const legacySpotType = canonicalSpotType(cached.question, row.spot_type);
+      const canonicalType = solverDecisionGroupKey({
+        evidenceScope: 'training', gameId, street, position, spotType,
+      });
+      const legacyType = solverDecisionGroupKey({
+        evidenceScope: 'training', gameId, street, position, spotType: legacySpotType,
+      });
+      if (legacyType !== canonicalType) canonicalAliases[legacyType] = canonicalType;
       decisions.push({
         ...row,
         evidence_scope: 'training',
-        game_id: cached.gameId || row.game_id,
-        hero_position: scenario.heroPosition || scenario.position || row.hero_position,
+        game_id: gameId,
+        hero_position: position,
         villain_position: scenario.villainPosition || row.villain_position,
-        street: scenario.street || row.street,
-        spot_type: canonicalSpotType(cached.question, row.spot_type),
+        street,
+        spot_type: spotType,
         classification: grade.classification,
         ev_loss: grade.evLoss,
         solver_verified: true,
@@ -831,6 +855,7 @@ async function getSolverTrainingEvidence(db, userId) {
     decisions,
     groups: summarizeSolverDecisionGroups(decisions),
     leaks: aggregateSolverLeaks(decisions),
+    canonicalAliases,
     canonicalMisses,
   };
 }
@@ -860,7 +885,11 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 
 export default async function handler(req, res) {
   try {
-    if (!applyRateLimit(req, res, LIMITS.ai)) return;
+    // One complete audit may require several signed continuation requests.
+    // The generic AI limit (5/minute) made accounts with >500 hands impossible
+    // to finish, while 12 bounded, authenticated batches still keeps the route
+    // protected at both token and infrastructure-IP levels.
+    if (!applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
 
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
@@ -893,19 +922,47 @@ export default async function handler(req, res) {
     }
 
     try {
-      // Live tendencies and solver-graded training decisions are separate
-      // evidence sets. They must never be blended into one invented frequency.
-      const [stats, clubArenaSync] = await Promise.all([
-        getPlayerStats(getSupabase(), userId),
-        syncClubArenaHandsForAudit(getSupabase(), userId, {
-          limit: 100, maxDecisions: 250, cursor: auditCursor,
-        }),
-      ]);
+      const clubArenaSync = await syncClubArenaHandsForAudit(getSupabase(), userId, {
+        limit: AUDIT_HAND_BATCH_SIZE,
+        maxDecisions: AUDIT_DECISION_BATCH_SIZE,
+        cursor: auditCursor,
+      });
       if (clubArenaSync?.continuation) {
         const continuation = clubArenaSync.continuation;
         delete clubArenaSync.continuation;
         clubArenaSync.auditCursor = sealAuditCursor(continuation, userId);
       }
+
+      if (clubArenaSync?.available === false || clubArenaSync?.persisted === false) {
+        res.setHeader('Retry-After', '2');
+        return res.status(503).json({
+          success: false,
+          code: 'club_arena_audit_unavailable',
+          retryable: true,
+          error: clubArenaSync?.error || 'Club Arena evidence could not be verified. No leak changes were made.',
+          clubArenaSync,
+        });
+      }
+
+      // Persist and advance each bounded Club Arena page first. Re-running the
+      // full leak aggregation for every continuation page multiplied database
+      // reads and writes by the number of pages. The final page performs the
+      // deterministic aggregation exactly once over the now-current evidence.
+      if (clubArenaSync?.available === true && clubArenaSync?.auditCursor) {
+        return res.status(200).json({
+          success: true,
+          auditInProgress: true,
+          message: 'Club Arena evidence batch recorded. Continuing the deterministic audit.',
+          persisted: clubArenaSync.persisted !== false,
+          clubArenaSync,
+          leaksDetected: null,
+          leaks: [],
+        });
+      }
+
+      // Live tendencies and solver-graded training decisions are separate
+      // evidence sets. They must never be blended into one invented frequency.
+      const stats = await getPlayerStats(getSupabase(), userId);
       // Read solver evidence after syncing so newly audited Club Arena
       // decisions are included in this same scan.
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
@@ -1142,11 +1199,20 @@ export default async function handler(req, res) {
         sources: solverEvidence.sources,
         clubArenaSync,
       });
+      const detectedTypes = new Set(detectedLeaks.map(leak => leak.leak_type));
+      const supersededSolverScopeCanResolve = (leakType, existingLeak) => {
+        const canonicalType = solverEvidence.canonicalAliases?.[leakType];
+        if (!canonicalType || existingLeak?.detector_managed !== true || existingResult.complete !== true) return false;
+        if (solverEvidence.sources?.training?.available !== true
+          || solverEvidence.sources?.training?.integrityComplete !== true) return false;
+        return detectedTypes.has(canonicalType) || solverRecoveryByType.get(canonicalType) === true;
+      };
       const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
             (['training_solver', 'solver_engine'].includes(existingLeak.source_system)
-              && solverScopeCanResolve(leakType))) &&
+              && (solverScopeCanResolve(leakType)
+                || supersededSolverScopeCanResolve(leakType, existingLeak)))) &&
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'
         )

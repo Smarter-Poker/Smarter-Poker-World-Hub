@@ -9,6 +9,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
@@ -17,7 +21,10 @@ jobs:
   e2e:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # A clean install + production build consumes ~7 minutes. The authenticated
+    # desktop/mobile matrix runs on four bounded workers; keep enough room for
+    # retries without allowing a stalled suite to run indefinitely.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -115,7 +122,10 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium --project=mobile-chrome --project=footer-chromium --project=footer-webkit
+        # Global footer coverage has its own required, cross-browser workflow.
+        # Running it here as well competes with auth setup for the same local
+        # server and duplicates every footer assertion without adding coverage.
+        run: npx playwright test --project=chromium --project=mobile-chrome
         env:
           CI: true
           # e2e/00-auth.setup.ts signs in as the standing test account and every
@@ -130,6 +140,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
           NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
+          PLAYWRIGHT_WORKERS: 4
 
       - name: Stop Next.js server + surface log
         if: always()
@@ -159,6 +170,9 @@ jobs:
 
       - name: Report results to PR
         if: always() && github.event_name == 'pull_request'
+        # Reporting is telemetry. A temporary GitHub comment outage must not
+        # replace the browser suite's authoritative pass/fail conclusion.
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |

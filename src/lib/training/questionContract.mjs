@@ -110,16 +110,106 @@ function optionSignature(option) {
 }
 
 function optionFamily(option) {
-  const text = `${option?.id || ''} ${option?.text || ''}`.toLowerCase();
-  if (/\byes\b/.test(text)) return 'yes';
-  if (/\bno\b/.test(text)) return 'no';
-  if (/fold|\bf\b/.test(text)) return 'fold';
-  if (/push|shove|jam|all[- ]?in|allin/.test(text)) return 'allin';
-  if (/check|\bx\b/.test(text)) return 'check';
-  if (/call|\bc\b/.test(text)) return 'call';
-  if (/raise|3-bet|4-bet|squeeze/.test(text)) return 'raise';
-  if (/bet|overbet/.test(text)) return 'bet';
+  const id = cleanSpaces(option?.id).toLowerCase();
+  const label = cleanSpaces(option?.text).toLowerCase();
+  if (/\byes\b/.test(label) || id === 'yes') return 'yes';
+  if (/\bno\b/.test(label) || id === 'no') return 'no';
+  if (/\bfold\b/.test(label) || label === 'f' || id === 'fold') return 'fold';
+  if (/\b(?:push|shove|jam|all[- ]?in|allin)\b/.test(label) || /^(?:push|shove|jam|allin)$/.test(id)) return 'allin';
+  if (/\bcheck\b/.test(label) || label === 'x' || id === 'check') return 'check';
+  if (/\bcall\b/.test(label) || label === 'c' || id === 'call') return 'call';
+  if (/\b(?:raise|squeeze)\b|\b[2-9][- ]?bet\b/.test(label) || /^(?:raise|squeeze|[2-9]bet)$/.test(id)) return 'raise';
+  if (/\b(?:bet|overbet)\b/.test(label) || /^(?:bet|overbet)$/.test(id)) return 'bet';
   return optionSignature(option);
+}
+
+function questionContext(question) {
+  return cleanSpaces([
+    question?.question,
+    question?.text,
+    question?.scenario?.action,
+    question?.scenario?.context,
+    question?.scenario?.description,
+  ].filter(Boolean).join(' ')).toLowerCase();
+}
+
+function questionStreet(question) {
+  return cleanSpaces(question?.scenario?.street || question?.street).toLowerCase();
+}
+
+function decisionNode(question) {
+  if (question?.scenario?.isPsychology === true) return null;
+  const street = questionStreet(question);
+  if (street === 'preflop') return null;
+
+  const declared = cleanSpaces(
+    question?.scenario?.nodeType || question?.scenario?.spotType
+  ).toLowerCase().replace(/[\s-]+/g, '_');
+  if (declared === 'hero_faces_bet' || declared === 'facing_bet') return 'faces-bet';
+  if (
+    declared === 'hero_bets_or_checks'
+    || declared === 'checked_to_hero'
+    || declared === 'first_to_act'
+  ) return 'check-or-bet';
+
+  const context = questionContext(question);
+  if (/\bchecks? to you\b|\byou are first to act\b/.test(context)) return 'check-or-bet';
+  if (
+    /\b(?:opponent|villain|button|btn|small blind|sb|big blind|bb|cutoff|co|hijack|hj|under the gun|utg|middle position|mp)\s+(?:bets?|raises?|jams?|shoves?)\b/.test(context)
+    || /\byou (?:face|are facing)\b.{0,48}\b(?:bet|raise|jam|shove|all[- ]?in)\b/.test(context)
+  ) return 'faces-bet';
+  return null;
+}
+
+function preflopResponseBetDepth(question) {
+  if (questionStreet(question) !== 'preflop') return null;
+  const context = questionContext(question);
+  const aggressor = '(?:opponent|villain|button|btn|small blind|sb|big blind|bb|cutoff|co|hijack|hj|under the gun|utg|middle position|mp)';
+
+  if (
+    new RegExp(`\\b${aggressor}\\s+4[- ]?bets?\\b`).test(context)
+    || /\b(?:face|facing|faces)\b.{0,48}\b4[- ]?bet\b/.test(context)
+  ) return 5;
+  if (
+    new RegExp(`\\b${aggressor}\\s+3[- ]?bets?\\b`).test(context)
+    || /\b(?:face|facing|faces)\b.{0,48}\b3[- ]?bet\b/.test(context)
+  ) return 4;
+  if (
+    new RegExp(`\\b${aggressor}\\s+(?:opens?|raises?)\\b`).test(context)
+    || /\baction folds to\b.{0,64}\bwho raises\b/.test(context)
+    || /\b(?:face|facing|faces)\b.{0,48}\b(?:an?\s+)?(?:open|raise)\b/.test(context)
+  ) return 3;
+  return null;
+}
+
+function responseRaiseText(depth, allIn = false) {
+  if (allIn) return `${depth}-Bet All-In`;
+  const size = depth === 3 ? 9 : depth === 4 ? 22 : 45;
+  return `${depth}-Bet To ${size} BB`;
+}
+
+function normalizePreflopResponseOptions(question, options) {
+  const depth = preflopResponseBetDepth(question);
+  if (!depth) return options;
+  return options.map((option) => {
+    const family = optionFamily(option);
+    if (family !== 'raise' && family !== 'allin') return option;
+    return {
+      ...option,
+      text: responseRaiseText(depth, family === 'allin'),
+    };
+  });
+}
+
+function optionLegalForNode(option, node) {
+  const family = optionFamily(option);
+  if (node === 'check-or-bet') {
+    return family === 'check' || family === 'bet' || family === 'allin';
+  }
+  if (node === 'faces-bet') {
+    return family === 'fold' || family === 'call' || family === 'raise' || family === 'allin';
+  }
+  return true;
 }
 
 function sizingVocabulary(option) {
@@ -180,12 +270,21 @@ function suggestedOptions(question, options) {
   }
 
   if (isPreflop) {
-    if (/4bet|4-bet/.test(`${spot} ${prompt}`)) {
+    const responseDepth = preflopResponseBetDepth(question);
+    if (responseDepth === 5) {
       return [
         { id: 'f', text: 'Fold' },
         { id: 'c', text: 'Call' },
-        { id: 'r22', text: '4-Bet To 22 BB' },
-        { id: 'allin', text: '4-Bet All-In' },
+        { id: 'r45', text: responseRaiseText(5) },
+        { id: 'allin', text: responseRaiseText(5, true) },
+      ];
+    }
+    if (responseDepth === 4) {
+      return [
+        { id: 'f', text: 'Fold' },
+        { id: 'c', text: 'Call' },
+        { id: 'r22', text: responseRaiseText(4) },
+        { id: 'allin', text: responseRaiseText(4, true) },
       ];
     }
     if (/squeeze/.test(`${spot} ${prompt}`)) {
@@ -196,7 +295,7 @@ function suggestedOptions(question, options) {
         { id: 'allin', text: 'Squeeze All-In' },
       ];
     }
-    if (facesBet || /3bet|3-bet|defen|facing/.test(`${spot} ${prompt}`)) {
+    if (facesBet || responseDepth === 3 || /defen|facing/.test(`${spot} ${prompt}`)) {
       return [
         { id: 'f', text: 'Fold' },
         { id: 'c', text: 'Call' },
@@ -280,6 +379,29 @@ export function validateTrainingQuestion(question) {
     issues.push('Answer choices mix an exact size with an overlapping sizing band.');
   }
 
+  const node = decisionNode(question);
+  const illegalOptions = node
+    ? options.filter((option) => !optionLegalForNode(option, node))
+    : [];
+  if (illegalOptions.length > 0) {
+    issues.push(
+      `${node === 'faces-bet' ? 'Facing a bet' : 'A check-or-bet node'} includes illegal choices: ${illegalOptions.map((option) => `"${option.text}"`).join(', ')}.`
+    );
+  }
+
+  const correctOption = options.find((option) => option.id === question.correctAnswer);
+  if (correctOption?.contractDistractor === true) {
+    issues.push('The correct answer was synthesized as a contract distractor.');
+  }
+
+  const responseDepth = preflopResponseBetDepth(question);
+  if (responseDepth) {
+    const staleDepth = responseDepth - 1;
+    if (options.some((option) => new RegExp(`\\b${staleDepth}[- ]?Bet\\b`, 'i').test(option.text))) {
+      issues.push(`A response to a ${staleDepth}-bet must be labeled as a ${responseDepth}-bet.`);
+    }
+  }
+
   if (/\b(?:button|btn) opens\b/i.test(prompt)) issues.push('Prompt uses ambiguous “Button opens” wording.');
   if (/\byour in\b/i.test(prompt)) issues.push('Prompt uses “your” instead of “you’re.”');
 
@@ -315,6 +437,18 @@ export function enforceTrainingQuestionContract(question) {
   let options = rawOptions
     .map(normalizeOption)
     .filter((option) => option.text && !GENERIC_OPTION_RE.test(option.text));
+
+  options = normalizePreflopResponseOptions(normalized, options);
+
+  // Remove impossible distractors when the scenario declares a postflop
+  // decision node. Never hide an impossible marked answer: leaving it in
+  // place makes validation fail closed so the API rejects the corrupted row.
+  const node = decisionNode(normalized);
+  if (node) {
+    options = options.filter((option) => (
+      option.id === correctAnswer || optionLegalForNode(option, node)
+    ));
+  }
 
   // Some runtime sources combine exact solver sizes with already-grouped
   // sizing bands. “Bet 33%” and “Small Bet” cannot coexist because both

@@ -98,6 +98,11 @@ import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
+import {
+  getFallbackFooter,
+  isClubArenaOwnedRoute,
+  resolveWorldFooter,
+} from '../src/config/worldFooterNavigation';
 import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
@@ -796,9 +801,11 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
-  const isClubArenaRoute =
-    resolvedPath === '/hub/club-arena' || resolvedPath.startsWith('/hub/club-arena/');
-  const bottomNavConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
+  const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
+  const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
+  const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
+  const bottomNavConfig =
+    worldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
 
   // Two legacy settings surfaces intentionally suppress platform chrome when
@@ -811,7 +818,9 @@ export default function App({ Component, pageProps }) {
     }
   }, []);
 
-  const showBottomNav = Boolean(bottomNavConfig && !(bottomNavConfig.hideInIframe && isEmbedded));
+  const showBottomNav = Boolean(
+    bottomNavConfig && !(bottomNavRouteConfig?.hideInIframe && isEmbedded)
+  );
 
   // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
   const isPokerTool =
@@ -862,6 +871,23 @@ export default function App({ Component, pageProps }) {
               name="viewport"
               content="width=device-width, initial-scale=1, viewport-fit=cover"
             />
+            {/* These defaults must live inside next/head. _document metadata
+                cannot be deduplicated, so route-level SEOHead used to produce
+                two contradictory social previews. */}
+            <meta key="og-site-name" property="og:site_name" content="Smarter.Poker" />
+            <meta key="og-type" property="og:type" content="website" />
+            <meta key="og-locale" property="og:locale" content="en_US" />
+            <meta key="og-url" property="og:url" content="https://smarter.poker" />
+            <meta key="og-title" property="og:title" content="Smarter.Poker | The Future Of The Game" />
+            <meta key="og-description" property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
+            <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-default.png" />
+            <meta key="og-image-width" property="og:image:width" content="1200" />
+            <meta key="og-image-height" property="og:image:height" content="2151" />
+            <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
+            <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
+            <meta key="twitter-title" name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
+            <meta key="twitter-description" name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
+            <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
             {shouldCapitalize && (
               <style
@@ -975,8 +1001,9 @@ export default function App({ Component, pageProps }) {
                               {showBottomNav && <BottomNavSpacer />}
                               {showBottomNav && (
                                 <BottomNavBar
-                                  theme={bottomNavConfig.theme}
-                                  noSafeArea={bottomNavConfig.noSafeArea}
+                                  config={bottomNavConfig}
+                                  theme={bottomNavRouteConfig?.theme || bottomNavConfig.theme}
+                                  noSafeArea={Boolean(bottomNavRouteConfig?.noSafeArea)}
                                 />
                               )}
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>

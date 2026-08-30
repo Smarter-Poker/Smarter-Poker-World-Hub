@@ -6,6 +6,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
+import { loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 
@@ -294,10 +295,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     }, [origin, destination, waypoints, corridorMi, dateRange, venues, dailyTournaments, series]);
 
     // Render Leaflet route map when result is available.
-    // BUG FIX: this used to bail out unless `window.L` existed. Only VenueMap.jsx
-    // ever sets that global (via a CDN script tag) and the lobby renders this pod
-    // without it, so the map silently stayed an empty box. Load the npm `leaflet`
-    // module here instead — the same approach VenueMapPanel.jsx uses.
+    // Use the shared, locally vendored runtime so this secondary map receives
+    // the same Leaflet assets and accessible controls as every discovery map.
     useEffect(() => {
         if (!routeResult || typeof window === 'undefined') return undefined;
 
@@ -306,14 +305,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
         const buildMap = async () => {
             try {
-                if (!document.querySelector('link[href*="leaflet"]')) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-                    document.head.appendChild(link);
-                }
-
-                const L = window.L || (await import('leaflet')).default;
+                const { L } = await loadPokerMapRuntime();
                 if (cancelled || !mapRef.current) return;
 
                 if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
@@ -403,7 +395,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             onChange={e => updateWaypoint(i, e.target.value)}
                             className="rtp-input"
                         />
-                        <button className="rtp-remove-btn" onClick={() => removeWaypoint(i)}>×</button>
+                        <button type="button" className="rtp-remove-btn" onClick={() => removeWaypoint(i)}>×</button>
                     </div>
                 ))}
 
@@ -418,7 +410,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     />
                 </div>
 
-                <button className="rtp-add-waypoint" onClick={addWaypoint}>
+                <button type="button" className="rtp-add-waypoint" onClick={addWaypoint}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     Add Stop
                 </button>
@@ -428,7 +420,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <label>Search Corridor</label>
                         <div className="rtp-chips">
                             {CORRIDOR_OPTIONS.map(mi => (
-                                <button key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} mi</button>
+                                <button type="button" key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} mi</button>
                             ))}
                         </div>
                     </div>
@@ -443,7 +435,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     </div>
                 </div>
 
-                <button className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating}>
+                <button type="button" className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating}>
                     {calculating ? (
                         <><span className="rtp-spinner" /> Calculating...</>
                     ) : (
@@ -460,6 +452,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 {savedTrips.length > 0 && (
                     <div className="rtp-saved-trips">
                         <button
+                            type="button"
                             className="rtp-saved-trips-toggle"
                             onClick={() => setSavedTripsOpen(p => !p)}
                         >
@@ -483,6 +476,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                         </div>
                                         <div className="rtp-saved-trip-actions">
                                             <button
+                                                type="button"
                                                 onClick={() => {
                                                     setOrigin(trip.origin || '');
                                                     setDestination(trip.destination || '');
@@ -496,6 +490,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                                 Load
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => {
                                                     const updated = savedTrips.filter((_, idx) => idx !== i);
                                                     setSavedTrips(updated);
@@ -546,6 +541,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     {/* Save / Share Actions */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                         <button
+                            type="button"
                             onClick={() => {
                                 try {
                                     const trip = { origin, destination, waypoints, corridorMi, dateRange, savedAt: new Date().toISOString() };
@@ -563,6 +559,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             Save Trip
                         </button>
                         <button
+                            type="button"
                             onClick={async () => {
                                 // The planner pod lives on the lobby route, and the
                                 // clipboard write is async — reporting success before
@@ -592,6 +589,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             Share Trip
                         </button>
                         <button
+                            type="button"
                             onClick={() => {
                                 if (!routeResult?.stops?.length || routeResult.stops.length < 2) return;
                                 openMultiStopRoute(routeResult.stops);
@@ -611,7 +609,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
-                        <button className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>
+                        <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
                             </svg>
@@ -651,6 +649,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                         {v.venue_type && <span className="rtp-tag type">{v.venue_type.replace('_', ' ')}</span>}
                                         {v.trust_score && <span className="rtp-tag trust">Trust: {v.trust_score}/5</span>}
                                         <button
+                                            type="button"
                                             className="rtp-tag rtp-nav-btn"
                                             onClick={(e) => {
                                                 e.stopPropagation();

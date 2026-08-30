@@ -97,9 +97,9 @@ const LEAFLET_CUSTOM_CSS = `
   color: #ffffff !important;
   border: none !important;
   border-bottom: 1px solid rgba(255,255,255,0.15) !important;
-  width: 36px !important;
-  height: 36px !important;
-  line-height: 36px !important;
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
   font-size: 18px !important;
   font-weight: 600 !important;
   transition: all 0.2s ease !important;

@@ -37,6 +37,9 @@ export default function ClubShopItemDetail() {
   const router = useRouter();
   const itemId = Array.isArray(router.query.itemId) ? router.query.itemId[0] : router.query.itemId;
   const requestedClubId = Array.isArray(router.query.clubId) ? router.query.clubId[0] : router.query.clubId;
+  const checkoutSessionId = Array.isArray(router.query.session_id)
+    ? router.query.session_id[0]
+    : router.query.session_id;
   const [item, setItem] = useState(null);
   const [clubId, setClubId] = useState(null);
   const [balance, setBalance] = useState(null);
@@ -50,12 +53,14 @@ export default function ClubShopItemDetail() {
   const diamondReviewTitleRef = useRef(null);
   const canonical = itemId ? `/hub/club-shop/${itemId}` : '/hub/club-shop';
 
-  const loadItem = useCallback(async () => {
+  const loadItem = useCallback(async ({ preserveContext = false, completionMessage = '' } = {}) => {
     const requestId = ++loadRequestRef.current;
-    setItem(null);
-    setClubId(null);
-    setBalance(null);
-    setState({ kind: 'loading', message: 'Loading verified club inventory…' });
+    if (!preserveContext) {
+      setItem(null);
+      setClubId(null);
+      setBalance(null);
+      setState({ kind: 'loading', message: 'Loading verified club inventory…' });
+    }
     try {
       const authUser = getAuthUser() || (await ensureAuthReady(supabase));
       const token = getAccessToken();
@@ -93,12 +98,14 @@ export default function ClubShopItemDetail() {
       setClubId(targetClub);
       setBalance(Number(body.balance) || 0);
       setItem({ ...match, price: Number(match.price) || 0 });
-      setState({
-        kind: 'ready',
-        message: router.query.canceled === 'true'
-          ? 'Card checkout canceled. Your diamonds and club inventory were not changed.'
-          : 'Verified live club inventory.',
-      });
+      setState(completionMessage
+        ? { kind: 'complete', message: completionMessage }
+        : {
+            kind: 'ready',
+            message: router.query.canceled === 'true'
+              ? 'Card checkout canceled. Your diamonds and club inventory were not changed.'
+              : 'Verified live club inventory.',
+          });
     } catch (error) {
       if (requestId !== loadRequestRef.current) return;
       setState({ kind: 'error', message: error?.message || 'Club inventory could not be loaded.' });
@@ -219,7 +226,11 @@ export default function ClubShopItemDetail() {
   };
 
   useEffect(() => {
-    if (!router.isReady || router.query.success !== 'true' || !router.query.session_id) return;
+    // Wait for loadItem() to authenticate the user and resolve the verified
+    // club before polling Stripe. This prevents an early return from replacing
+    // the URL with clubId=null or starting a second verification loop when the
+    // club context arrives a moment later.
+    if (!router.isReady || router.query.success !== 'true' || !checkoutSessionId || !clubId) return;
     const token = getAccessToken();
     if (!token) {
       setState({ kind: 'auth', message: 'Sign in again to verify this card settlement.' });
@@ -227,15 +238,34 @@ export default function ClubShopItemDetail() {
     }
     let cancelled = false;
     let retryTimer = null;
+    let wakeRetry = null;
     const verify = async () => {
       setState({ kind: 'processing', message: 'Verifying card settlement before granting the item…' });
       for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
         try {
           const response = await fetch(
-            `/api/store/checkout-status?session_id=${encodeURIComponent(router.query.session_id)}`,
+            `/api/store/checkout-status?session_id=${encodeURIComponent(checkoutSessionId)}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           const body = await response.json().catch(() => null);
+          if (response.ok && body?.data?.status === 'failed') {
+            if (!cancelled) {
+              const authUser = getAuthUser();
+              if (authUser?.id && body.data?.requestId) {
+                clearCommerceRequestById({
+                  userId: authUser.id,
+                  paymentMethod: 'card',
+                  requestId: body.data.requestId,
+                });
+              }
+              setState({
+                kind: 'error',
+                message: 'Card checkout expired or did not complete. No item was granted and your club inventory was not changed.',
+              });
+              await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
+            }
+            return;
+          }
           if (response.ok && body?.data?.status === 'complete') {
             if (!cancelled) {
               const authUser = getAuthUser();
@@ -247,15 +277,19 @@ export default function ClubShopItemDetail() {
                 });
               }
               if (body.data?.redemptionStatus === 'needs_review') {
-                await router.replace(`${canonical}?clubId=${clubId}`, undefined, { shallow: true });
                 setState({
                   kind: 'error',
                   message: 'Your card payment and Diamonds are recorded, but this item was not purchased. Your Diamonds remain available—use Buy With Diamonds to finish without another card payment.',
                 });
+                await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
                 return;
               }
-              await loadItem();
-              await router.replace(`${canonical}?clubId=${clubId}`, undefined, { shallow: true });
+              await loadItem({
+                preserveContext: true,
+                completionMessage: `${item?.name || 'Club Shop item'} purchased successfully. Card settlement and inventory delivery are complete.`,
+              });
+              if (cancelled) return;
+              await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
             }
             return;
           }
@@ -269,7 +303,11 @@ export default function ClubShopItemDetail() {
           }
         }
         await new Promise((resolve) => {
-          retryTimer = window.setTimeout(resolve, 1200);
+          wakeRetry = resolve;
+          retryTimer = window.setTimeout(() => {
+            wakeRetry = null;
+            resolve();
+          }, 1200);
         });
       }
       if (!cancelled) {
@@ -283,8 +321,9 @@ export default function ClubShopItemDetail() {
     return () => {
       cancelled = true;
       if (retryTimer) window.clearTimeout(retryTimer);
+      if (wakeRetry) wakeRetry();
     };
-  }, [canonical, clubId, loadItem, router.isReady, router.query.session_id, router.query.success]);
+  }, [canonical, checkoutSessionId, clubId, item?.name, loadItem, router, router.isReady, router.query.success]);
 
   const name = item?.name || 'Club Shop Equipment Record';
   const description = item?.description || state.message;

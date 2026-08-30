@@ -44,8 +44,8 @@ test('database permissions keep the atomic purchase service-only', () => {
 });
 
 test('admin reporting excludes refunds from net revenue and searches before pagination', () => {
-  assert.match(manageShop, /\.select\('item_id, price_paid, refunded_at'\)/);
-  assert.match(manageShop, /grossRevenue - refundedRevenue/);
+  assert.match(manageShop, /\.select\('id, item_id, price_paid, currency, refunded_at, created_at'/);
+  assert.match(manageShop, /totalRevenue: diamondTotals\.net/);
   assert.match(manageShop, /refunded_revenue/);
   const searchIndex = purchaseLedger.indexOf('if (q) {');
   const rangeIndex = purchaseLedger.indexOf('.range(offset, offset + limit - 1)');

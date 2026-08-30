@@ -197,13 +197,21 @@ export default function DailyTournaments() {
         }
     );
 
-    // [HARDENING] Real-time synchronization for global table/venue changes.
-    // Punches through the 15s S-Maxage Edge Cache securely using a monotonic _rt query parameter
-    // and injects the bypassed result directly into SWR.
+    // [HARDENING] Periodic synchronization for global table/venue changes.
+    // Served through the Edge cache (see the DB-load note below) and the
+    // result is injected directly into SWR.
     // [DT4 FIX] Added retry fallback — if the RT fetch fails, fall back to SWR mutate() to at
     // least invalidate the cache so the next navigation gets fresh data.
     useVenueRealtime(() => {
-        const rtUrl = `/api/poker/daily-tournaments?${swrParams.toString()}&_rt=${Date.now()}`;
+        // [2026-08-30 DB-load pass] This fired with `_rt=Date.now()`, punching
+        // through the Edge cache on every mount and every 5-minute poll tick
+        // from every open tab - the venue_daily_tournaments ILIKE query behind
+        // it runs 1-4s and was one of the top CPU consumers in
+        // pg_stat_statements. useVenueRealtime is a 5-minute POLL, not a push:
+        // data at most s-maxage seconds stale meets the same freshness
+        // contract, so let the CDN collapse the herd. Scraped schedules change
+        // on scraper cadence (hours), not seconds.
+        const rtUrl = `/api/poker/daily-tournaments?${swrParams.toString()}`;
         fetch(rtUrl)
             .then(async r => {
                 const data = await r.json().catch(() => null);

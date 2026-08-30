@@ -60,6 +60,11 @@ const AUTH_ROUTE_TARGETS = [
 const CONTENT_GUARDS = [
     {
         file: 'pages/auth/login.js',
+        pattern: /<style[\s\S]{0,180}dangerouslySetInnerHTML=\{\{[\s\S]{0,80}__html:/,
+        why: 'Login field CSS must render as identical raw style content on the server and client — a style text child escapes prose symbols differently during SSR and causes React to replace the whole Login page during hydration.',
+    },
+    {
+        file: 'pages/auth/login.js',
         pattern: /function navigateWithFreshAuth[\s\S]{0,300}window\.location\.assign\(destination\)/,
         why: 'Post-login navigation must reload with one stable Supabase session snapshot — router.push at the auth-state boundary can strand a valid session on /auth/login or trigger a blank hydration fallback.',
     },

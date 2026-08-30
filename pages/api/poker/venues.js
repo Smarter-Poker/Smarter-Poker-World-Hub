@@ -17,6 +17,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
+import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 // Home-group coordinate privacy. See src/lib/home-games/geoPrivacy.js —
@@ -26,6 +27,7 @@ import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
+import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 
 let _supabase = null;
 function getSupabase() {
@@ -712,6 +714,37 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' } });
       }
 
+      const requestedView = Array.isArray(req.query.view) ? req.query.view[0] : req.query.view;
+      if (requestedView === 'directory') {
+          try {
+              const directory = await fetchVenueDirectoryResilient({
+                  supabase: getSupabase(),
+                  params: req.query,
+                  fallbackVenues: directorySnapshotData.venues || [],
+                  fallbackMetadata: directorySnapshotData.metadata || {},
+                  onFallback: (directoryError) => {
+                      console.warn('[venues] Directory database unavailable; serving projected snapshot:', directoryError?.message || directoryError);
+                      captureError(directoryError, {
+                          tags: { api: 'poker-venues', stage: 'directory-fallback' },
+                          extra: { query: req.query },
+                      });
+                  },
+              });
+              res.setHeader('X-PNM-Data-Source', directory.data_source);
+              if (directory.data_revision) res.setHeader('X-PNM-Data-Revision', directory.data_revision);
+              if (directory.snapshot?.generated_at) {
+                  res.setHeader('X-PNM-Snapshot-Generated-At', directory.snapshot.generated_at);
+              }
+              if (directory.degraded) res.setHeader('Cache-Control', 'no-store');
+              return res.status(200).json({ success: true, ...directory, home_groups: [], total_home_groups: 0 });
+          } catch (directoryError) {
+              if (directoryError?.statusCode === 400) {
+                  return res.status(400).json({ success: false, error: directoryError.message });
+              }
+              throw directoryError;
+          }
+      }
+
       try {
           const {
               id: _id,
@@ -910,10 +943,22 @@ export default async function handler(req, res) {
 
                       if (!error && data) {
                           // Bug #6 Fix: reject suppressed venues even on direct ID lookup
-                          if (data.is_suppressed) {
+                          if (data.is_suppressed && data.canonical_venue_id) {
+                              const { data: canonical, error: canonicalError } = await sb.from('poker_venues')
+                                  .select('*')
+                                  .eq('id', data.canonical_venue_id)
+                                  .eq('is_active', true)
+                                  .maybeSingle();
+                              if (!canonicalError && canonical) {
+                                  venues = [{ ...canonical, canonical_redirect_from: data.id }];
+                              } else {
+                                  return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Canonical venue not found' } });
+                              }
+                          } else if (data.is_suppressed) {
                               return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
+                          } else {
+                              venues = [data];
                           }
-                          venues = [data];
                       } else {
                           throw new Error(error?.message || 'Not found in Supabase');
                       }

@@ -1,39 +1,81 @@
 /**
- * BottomNavBar — Platform-Wide Fixed Bottom Navigation
- * Per Mobile Layout Standard + PA_DESIGN_SPEC v1
+ * BottomNavBar — centralized, route-aware World Hub footer navigation.
  *
- * 56px fixed bar with 6 tabs: Home, Coach, Friends, Pages, Alerts, Profile.
- * Includes env(safe-area-inset-*) for iPhone notch/home-indicator safety.
+ * MOUNTING CONTRACT: pages/_app.js is the only owner. Individual pages and
+ * feature shells must never import or mount this component. The app shell
+ * resolves the active world from src/config/world-footer-navigation.json and
+ * renders one fixed footer plus one clearance spacer.
  *
- * MOUNTING CONTRACT: pages/_app.js is the only place allowed to render this
- * component. src/config/bottom-nav-routes.json controls route visibility and
- * the app shell renders BottomNavSpacer beside it. Individual pages must not
- * mount the footer or guess their own footer clearance.
- *
- * Z-INDEX CONTRACT: this bar sits at BOTTOM_NAV_Z (90) — deliberately LOW.
- * Every fixed overlay (sheets, modals, pickers, tours) must render at >= 900
- * so it paints above the bar. Do not raise the bar to fix an overlay bug.
- *
- * POSITION CONTRACT: the bar never auto-hides, translates, animates, or follows
- * page scroll. It remains welded to the viewport bottom on every route that
- * renders it. Preserve this in the shared component instead of adding
- * route-specific movement.
+ * POSITION CONTRACT: the footer is welded to the viewport bottom. It never
+ * auto-hides, translates, animates, or becomes horizontally scrollable.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Home, Brain, Users, LayoutGrid, Bell, User } from 'lucide-react';
+import {
+  BarChart3,
+  Bell,
+  BookOpen,
+  Bookmark,
+  Brain,
+  Calculator,
+  CalendarDays,
+  CircleHelp,
+  CirclePlus,
+  Clock3,
+  Club,
+  Coins,
+  Crown,
+  Download,
+  Film,
+  Flame,
+  FlaskConical,
+  Gamepad2,
+  Gem,
+  Globe2,
+  GraduationCap,
+  Grid3X3,
+  Heart,
+  History,
+  Home,
+  LayoutGrid,
+  MapPin,
+  MapPinned,
+  Medal,
+  MessageCircle,
+  Newspaper,
+  Package,
+  Pencil,
+  Percent,
+  Play,
+  Radar,
+  ReceiptText,
+  Route,
+  Rss,
+  ShieldCheck,
+  Shirt,
+  ShoppingCart,
+  Sigma,
+  Spade,
+  Swords,
+  Target,
+  Timer,
+  Trophy,
+  User,
+  Users,
+  Vault,
+  Video,
+  WalletCards,
+  Zap,
+} from 'lucide-react';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
-// BUG-FIX-LIVE-6: useUnreadCount now exposes notificationCount + messageCount
-// separately. The "Alerts" tab badge reflects unread NOTIFICATIONS, not
-// messages — keeping it in sync with the global header notification bell.
+import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterNavigation';
 
 export const BOTTOM_NAV_Z = 90;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
-/** App-shell spacer: navigation height + breathing room + device safe area. */
 export const BottomNavSpacer = () => (
   <div
     aria-hidden="true"
@@ -46,85 +88,123 @@ const THEMES = {
   light: {
     bg: '#ffffff',
     border: '#dddfe2',
-    inactive: '#65676b',
+    inactive: '#565b64',
     active: '#1877f2',
     badge: '#f02849',
     badgeText: '#ffffff',
   },
   dark: {
-    bg: '#242526',
-    border: '#3A3B3C',
-    inactive: '#B0B3B8',
-    active: '#4599FF',
-    badge: '#EF4444',
+    bg: '#111318',
+    border: '#343842',
+    inactive: '#c2c7d0',
+    active: '#4599ff',
+    badge: '#ef4444',
     badgeText: '#ffffff',
   },
 };
 
-// Routes that are part of the dark "Neon Slate" Personal Assistant world.
-const DARK_ROUTE_PREFIXES = ['/hub/personal-assistant', '/sandbox'];
+const ICONS = {
+  bell: Bell,
+  book: BookOpen,
+  bookmark: Bookmark,
+  brain: Brain,
+  calculator: Calculator,
+  calendar: CalendarDays,
+  cards: Spade,
+  chart: BarChart3,
+  clock: Clock3,
+  club: Club,
+  coins: Coins,
+  compose: Pencil,
+  crown: Crown,
+  download: Download,
+  film: Film,
+  flame: Flame,
+  flask: FlaskConical,
+  gamepad: Gamepad2,
+  gem: Gem,
+  globe: Globe2,
+  graduation: GraduationCap,
+  grid: Grid3X3,
+  heart: Heart,
+  help: CircleHelp,
+  history: History,
+  home: Home,
+  layout: LayoutGrid,
+  map: MapPin,
+  mapPinned: MapPinned,
+  medal: Medal,
+  message: MessageCircle,
+  newspaper: Newspaper,
+  package: Package,
+  percent: Percent,
+  play: Play,
+  plus: CirclePlus,
+  radar: Radar,
+  receipt: ReceiptText,
+  route: Route,
+  rss: Rss,
+  shield: ShieldCheck,
+  shirt: Shirt,
+  shopping: ShoppingCart,
+  sigma: Sigma,
+  spade: Spade,
+  swords: Swords,
+  target: Target,
+  timer: Timer,
+  trophy: Trophy,
+  user: User,
+  users: Users,
+  vault: Vault,
+  video: Video,
+  wallet: WalletCards,
+  zap: Zap,
+};
 
-const TABS = [
-  { href: '/hub/social-media', label: 'Home', Icon: Home },
-  { href: '/hub/personal-assistant', label: 'Coach', Icon: Brain },
-  { href: '/hub/friends', label: 'Friends', Icon: Users },
-  { href: '/hub/social-pages', label: 'Pages', Icon: LayoutGrid },
-  { href: '/hub/notifications', label: 'Alerts', Icon: Bell },
-  { href: '/hub/profile', label: 'Profile', Icon: User },
-];
+const parseLocation = (value) => {
+  const [pathWithHash, queryWithHash = ''] = String(value || '/').split('?');
+  const path = pathWithHash.split('#')[0].replace(/\/+$/, '') || '/';
+  const query = new URLSearchParams(queryWithHash.split('#')[0]);
+  return { path, query };
+};
 
-function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
+const activeDestination = (items, currentLocation) => {
+  const current = parseLocation(currentLocation);
+  let winner = null;
+
+  for (const item of items) {
+    const target = parseLocation(item.href);
+    const pathMatches =
+      current.path === target.path || current.path.startsWith(`${target.path}/`);
+    if (!pathMatches) continue;
+
+    const expectedQuery = [...target.query.entries()];
+    if (expectedQuery.some(([key, value]) => current.query.get(key) !== value)) continue;
+
+    const score = target.path.length + expectedQuery.length * 1000;
+    if (!winner || score > winner.score) winner = { href: item.href, score };
+  }
+
+  return winner?.href || items[0]?.href;
+};
+
+function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const router = useRouter();
-  const path = router.asPath || '';
+  const path = router.asPath || router.pathname || '/';
   const { notificationCount } = useUnreadCount() || {};
+  const footer = config || resolveWorldFooter(path) || getFallbackFooter();
+  const items = footer.items || [];
+  const resolvedTheme = theme === 'auto' ? footer.theme || 'light' : theme;
+  const base = THEMES[resolvedTheme] || THEMES.light;
+  const c = { ...base, active: footer.accent || base.active };
+  const activeHref = useMemo(() => activeDestination(items, path), [items, path]);
 
-  const isPaSurface = DARK_ROUTE_PREFIXES.some((p) => path.startsWith(p));
-  const resolvedTheme =
-    theme === 'dark' || theme === 'pa'
-      ? 'dark'
-      : theme === 'light'
-        ? 'light'
-        : isPaSurface
-          ? 'dark'
-          : 'light';
-  const c = THEMES[resolvedTheme];
-
-  // Determine which tab is active based on current path
-  const isActive = useCallback(
-    (href) => {
-      // Reels lost its own tab when Coach replaced it. Without this branch
-      // /hub/reels highlighted nothing at all — six inactive tabs and no
-      // aria-current="page" anywhere — so it maps onto the social tab.
-      if (href === '/hub/social-media') {
-        return (
-          path === '/hub/social-media' ||
-          path.startsWith('/hub/social-media/') ||
-          path.startsWith('/hub/social-media?') ||
-          path === '/hub/reels' ||
-          path.startsWith('/hub/reels/') ||
-          path.startsWith('/hub/reels?')
-        );
-      }
-      if (href === '/hub/social-pages') return path.startsWith('/hub/social-pages');
-      if (href === '/hub/personal-assistant')
-        return path.startsWith('/hub/personal-assistant') || path.startsWith('/sandbox');
-      if (href === '/hub/friends') return path.startsWith('/hub/friends');
-      if (href === '/hub/notifications') return path === '/hub/notifications';
-      if (href === '/hub/profile') return path === '/hub/profile';
-      return false;
-    },
-    [path]
-  );
-
-  // Next.js prefetches every in-viewport <Link> in production. Six permanently
-  // visible tabs = six extra route bundles on every page load. Prefetch on
-  // intent instead.
   const warm = useCallback(
     (href) => {
       try {
         router.prefetch(href);
       } catch (_) {
-        /* prefetch is best-effort */
+        // Prefetch is best-effort; navigation itself remains a normal Link.
       }
     },
     [router]
@@ -134,9 +214,10 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={`${footer.label} footer`}
       className="bn-nav"
       data-global-bottom-nav="true"
+      data-footer-world={footer.id}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -148,10 +229,10 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
         overflow: 'hidden',
         boxSizing: 'border-box',
         minHeight: 56,
-        background: c.bg,
+        background: `linear-gradient(180deg, ${c.active}18 0%, ${c.bg} 42%)`,
         borderTop: `1px solid ${c.border}`,
-        display: 'flex',
-        justifyContent: 'space-around',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
         alignItems: 'stretch',
         zIndex: BOTTOM_NAV_Z,
         paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
@@ -161,27 +242,30 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
         translate: 'none',
         transition: 'none',
         animation: 'none',
-        // consumed by the .bn-tab:focus-visible rule in the <style> block below
         ['--bn-active']: c.active,
       }}
     >
-      {TABS.map(({ href, label, Icon }) => {
-        const active = isActive(href);
-        const isAlerts = href === '/hub/notifications';
+      {items.map((item) => {
+        const Icon = ICONS[item.icon] || LayoutGrid;
+        const active = item.href === activeHref;
+        const hasNotificationBadge = item.badge === 'notifications';
         const ariaLabel =
-          isAlerts && count > 0
-            ? `${label}, ${count} unread notification${count === 1 ? '' : 's'}`
-            : label;
+          hasNotificationBadge && count > 0
+            ? `${item.title || item.label}, ${count} unread notification${count === 1 ? '' : 's'}`
+            : item.title || item.label;
+
         return (
           <Link
-            key={href}
-            href={href}
+            key={item.href}
+            href={item.href}
             prefetch={false}
             className="bn-tab"
+            data-footer-destination={item.href}
             aria-label={ariaLabel}
             aria-current={active ? 'page' : undefined}
-            onTouchStart={() => warm(href)}
-            onMouseEnter={() => warm(href)}
+            title={item.title || item.label}
+            onTouchStart={() => warm(item.href)}
+            onMouseEnter={() => warm(item.href)}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -189,79 +273,56 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
               justifyContent: 'center',
               textDecoration: 'none',
               color: active ? c.active : c.inactive,
-              flex: 1,
               minWidth: 0,
               minHeight: 56,
-              padding: '6px 2px',
+              padding: '5px 1px 4px',
               position: 'relative',
+              boxSizing: 'border-box',
             }}
           >
-            {/* Active state must not be colour-only */}
             <span
               aria-hidden="true"
               style={{
                 position: 'absolute',
                 top: 0,
-                left: '22%',
-                right: '22%',
+                left: '20%',
+                right: '20%',
                 height: 3,
                 borderRadius: 999,
                 background: active ? c.active : 'transparent',
               }}
             />
-            <Icon size={24} strokeWidth={2} aria-hidden="true" />
-            {isAlerts && count > 0 && (
+            <Icon className="bn-icon" size={22} strokeWidth={2} aria-hidden="true" />
+            {hasNotificationBadge && count > 0 && (
               <span
                 aria-hidden="true"
                 style={{
                   position: 'absolute',
-                  top: 4,
+                  top: 3,
                   right: 'calc(50% - 20px)',
                   background: c.badge,
                   color: c.badgeText,
                   borderRadius: 999,
-                  minWidth: 18,
-                  height: 18,
-                  fontSize: 12,
-                  lineHeight: '18px',
+                  minWidth: 17,
+                  height: 17,
+                  fontSize: 11,
+                  lineHeight: '17px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 700,
-                  padding: '0 5px',
+                  padding: '0 4px',
+                  boxSizing: 'border-box',
                 }}
               >
                 {count > 99 ? '99+' : count}
               </span>
             )}
-            <span
-              style={{
-                fontSize: 12,
-                marginTop: 2,
-                lineHeight: 1.1,
-                letterSpacing: '-0.01em',
-                fontWeight: active ? 700 : 500,
-                maxWidth: '100%',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {label}
-            </span>
+            <span className="bn-label">{item.label}</span>
           </Link>
         );
       })}
 
-      {/* Raw <style> injection, NOT styled-jsx. A large global styled-jsx block on
-          this surface deadlocked the SWC compiler for 45 minutes and broke production
-          deploys (maintainer fix 17409efc08). Never reintroduce styled-jsx here.
-          The CSS is emitted verbatim and unscoped, exactly as `<style jsx global>`
-          emitted it — but styled-jsx hoisted global styles into <head> and this tag
-          renders inline in the body, so these rules now sit later in the cascade and
-          win same-specificity ties against head stylesheets they used to lose. If a
-          rule ever needs to lose such a tie, bump the other rule's specificity
-          explicitly instead of relying on document order. */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -270,11 +331,34 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
           touch-action: manipulation;
           transition: transform .12s ease, opacity .12s ease;
         }
-        .bn-tab:active { opacity: .6; transform: scale(.94); }
+        .bn-tab:active { opacity: .65; transform: scale(.94); }
         .bn-tab:focus-visible {
           outline: 2px solid var(--bn-active, #1877f2);
           outline-offset: -2px;
           border-radius: 8px;
+        }
+        .bn-icon {
+          display: block;
+          flex: 0 0 auto;
+          width: clamp(18px, 5.8vw, 22px);
+          height: clamp(18px, 5.8vw, 22px);
+        }
+        .bn-label {
+          display: block;
+          width: 100%;
+          margin-top: 2px;
+          padding-inline: 1px;
+          box-sizing: border-box;
+          overflow: visible;
+          white-space: nowrap;
+          text-align: center;
+          font-size: clamp(8.5px, 2.55vw, 12px);
+          line-height: 1;
+          letter-spacing: -.025em;
+          font-weight: 650;
+        }
+        @media (min-width: 640px) {
+          .bn-label { font-size: 12px; letter-spacing: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
           .bn-tab, .bn-nav { transition: none !important; }
@@ -287,5 +371,4 @@ function BottomNavBar({ theme = 'auto', noSafeArea = false }) {
   );
 }
 
-// Depends only on the route + unread count; never needs to re-render with a parent.
 export default memo(BottomNavBar);

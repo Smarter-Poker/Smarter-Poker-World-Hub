@@ -3673,9 +3673,9 @@ function MessengerPage() {
                         max-width: 100%; 
                         margin: 0 auto; 
                         overflow-x: hidden;
-                        /* Account for UniversalHeader height + optional bottom nav padding from parent */
-                        height: ${router.query.hideHeader === 'true' ? '100vh' : 'calc(100vh - 54px)'};
-                        height: ${router.query.hideHeader === 'true' ? '100dvh' : 'calc(100dvh - 54px)'};
+                        /* Keep the full-screen composer above the app-shell footer. */
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
                         padding-bottom: ${router.query.bottomPad ? `${parseInt(router.query.bottomPad, 10)}px` : '0px'};
                         box-sizing: border-box;
                     }
@@ -3683,8 +3683,8 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            height: ${router.query.hideHeader === 'true' ? '100vh' : 'calc(100vh - 54px)'};
-                            height: ${router.query.hideHeader === 'true' ? '100dvh' : 'calc(100dvh - 54px)'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -5243,7 +5243,6 @@ export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">
             <MessengerPage />
-            {/* BottomNavBar intentionally removed — messenger is full-screen chat; the nav bar was overlaying the message input area and blocking user interaction */}
         </HubErrorBoundary>
     );
 }

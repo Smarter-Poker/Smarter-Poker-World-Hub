@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Gem, PackageCheck, RefreshCw, ShieldCheck, Truck } from 'lucide-react';
+import { CheckCircle2, Gem, PackageCheck, RefreshCw, ShieldCheck, Truck, X } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { ensureAuthReady, getAccessToken } from '../../../src/lib/authUtils';
+import { acquireScrollLock } from '../../../src/lib/scrollLock';
 import supabase from '../../../src/lib/supabase';
 import styles from './fulfillment.module.css';
 
@@ -18,7 +19,13 @@ export default function MerchandiseFulfillmentConsole() {
   const [state, setState] = useState({ kind: 'loading', message: 'Loading protected fulfillment queue…' });
   const [busyId, setBusyId] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
+  const [operation, setOperation] = useState(null);
   const requestRef = useRef(0);
+  const ordersRef = useRef([]);
+  const busyIdRef = useRef(null);
+  const operationDialogRef = useRef(null);
+  const operationTitleRef = useRef(null);
+  const operationTriggerRef = useRef(null);
 
   const loadOrders = useCallback(async ({ append = false, cursor = null } = {}) => {
     const requestId = ++requestRef.current;
@@ -27,6 +34,7 @@ export default function MerchandiseFulfillmentConsole() {
     const token = getAccessToken();
     if (requestId !== requestRef.current) return;
     if (!user?.id || !token) {
+      ordersRef.current = [];
       setOrders([]);
       setState({ kind: 'auth', message: 'Sign in with a store-operator account.' });
       return;
@@ -42,17 +50,24 @@ export default function MerchandiseFulfillmentConsole() {
       if (requestId !== requestRef.current) return;
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Queue unavailable');
       const received = body.data?.orders || [];
-      setOrders((current) => append ? [...current, ...received] : received);
+      const merged = append ? [...ordersRef.current, ...received] : received;
+      ordersRef.current = merged;
+      setOrders(merged);
       setNextCursor(body.data?.nextCursor || null);
       setState({
         kind: 'ready',
         message: received.length
-          ? `${append ? orders.length + received.length : received.length} orders loaded for fulfillment attention.`
-          : 'No paid orders are waiting for fulfillment.',
+          ? `${merged.length} orders loaded for fulfillment attention.`
+          : append && merged.length
+            ? `${merged.length} orders loaded. No older exceptions remain.`
+            : 'No paid orders are waiting for fulfillment.',
       });
     } catch (error) {
       if (requestId !== requestRef.current) return;
-      setOrders([]);
+      if (!append) {
+        ordersRef.current = [];
+        setOrders([]);
+      }
       setState({ kind: 'error', message: error?.message || 'Queue unavailable' });
     }
   }, []);
@@ -62,7 +77,49 @@ export default function MerchandiseFulfillmentConsole() {
     return () => { requestRef.current += 1; };
   }, [loadOrders]);
 
-  const transition = async (order, action) => {
+  useEffect(() => {
+    busyIdRef.current = busyId;
+  }, [busyId]);
+
+  const operationOpen = Boolean(operation);
+  useEffect(() => {
+    if (!operationOpen) return undefined;
+    const releaseScrollLock = acquireScrollLock('MerchFulfillmentOperationDialog');
+    operationTitleRef.current?.focus();
+    const handleDialogKey = (event) => {
+      if (event.key === 'Escape' && !busyIdRef.current) {
+        setOperation(null);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(operationDialogRef.current?.querySelectorAll(
+        'button:not(:disabled), input:not(:disabled)'
+      ) || []);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === operationTitleRef.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleDialogKey);
+    return () => {
+      document.removeEventListener('keydown', handleDialogKey);
+      releaseScrollLock();
+      operationTriggerRef.current?.focus?.();
+    };
+  }, [operationOpen]);
+
+  const openOperation = (event, order, action) => {
+    operationTriggerRef.current = event.currentTarget;
+    setOperation({ order, action, trackingNumber: '', carrier: '', trackingUrl: '' });
+  };
+
+  const transition = async (order, action, extraPayload = {}) => {
     if (busyId) return;
     const token = getAccessToken();
     if (!token) return setState({ kind: 'auth', message: 'Your operator session expired.' });
@@ -70,17 +127,8 @@ export default function MerchandiseFulfillmentConsole() {
       orderId: order.id,
       expectedVersion: Number(order.fulfillment_version) || 0,
       action,
+      ...extraPayload,
     };
-    if (action === 'mark_shipped') {
-      const trackingNumber = window.prompt('Tracking number');
-      if (!trackingNumber) return;
-      const carrier = window.prompt('Carrier (for example USPS, UPS, FedEx)') || '';
-      const trackingUrl = window.prompt('HTTPS tracking URL (optional)') || '';
-      Object.assign(payload, { trackingNumber, carrier, ...(trackingUrl ? { trackingUrl } : {}) });
-    }
-    if (action === 'refund' && !window.confirm(
-      `Refund ${Number(order.diamonds_spent || 0).toLocaleString()} Diamonds and return unsent local stock?`
-    )) return;
 
     setBusyId(order.id);
     try {
@@ -91,6 +139,7 @@ export default function MerchandiseFulfillmentConsole() {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Operation failed');
+      setOperation(null);
       await loadOrders();
     } catch (error) {
       setState({ kind: 'error', message: error?.message || 'Operation failed' });
@@ -166,7 +215,7 @@ export default function MerchandiseFulfillmentConsole() {
                     </button>
                   )}
                   {['paid', 'processing'].includes(order.status) && (
-                    <button type="button" disabled={busy} onClick={() => void transition(order, 'mark_shipped')}>
+                    <button type="button" disabled={busy} onClick={(event) => openOperation(event, order, 'mark_shipped')}>
                       <Truck size={15} /> Mark Shipped
                     </button>
                   )}
@@ -176,7 +225,7 @@ export default function MerchandiseFulfillmentConsole() {
                     </button>
                   )}
                   {order.payment_method === 'diamonds' && !['shipped', 'delivered'].includes(order.status) && (
-                    <button className={styles.danger} type="button" disabled={busy} onClick={() => void transition(order, 'refund')}>
+                    <button className={styles.danger} type="button" disabled={busy} onClick={(event) => openOperation(event, order, 'refund')}>
                       Refund Diamonds
                     </button>
                   )}
@@ -197,6 +246,99 @@ export default function MerchandiseFulfillmentConsole() {
             >
               Load Older Exceptions
             </button>
+          </div>
+        )}
+        {operation && (
+          <div
+            className={styles.dialogBackdrop}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !busyId) setOperation(null);
+            }}
+          >
+            <section
+              ref={operationDialogRef}
+              className={styles.dialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="fulfillment-operation-title"
+              aria-describedby="fulfillment-operation-copy"
+            >
+              <button
+                type="button"
+                className={styles.dialogClose}
+                aria-label="Close fulfillment operation"
+                disabled={Boolean(busyId)}
+                onClick={() => setOperation(null)}
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+              <span className={styles.eyebrow}>Verified Operator Action</span>
+              <h2 id="fulfillment-operation-title" ref={operationTitleRef} tabIndex={-1}>
+                {operation.action === 'refund' ? 'Authorize Diamond Refund' : 'Confirm Shipment Handoff'}
+              </h2>
+              <p id="fulfillment-operation-copy">
+                {operation.action === 'refund'
+                  ? `Return ${Number(operation.order.diamonds_spent || 0).toLocaleString()} Diamonds and release unsent local stock for this order.`
+                  : 'Record the shipment only after the package has been handed to the carrier. Tracking is written to the verified order ledger.'}
+              </p>
+              {operation.action === 'mark_shipped' && (
+                <div className={styles.formGrid}>
+                  <label>
+                    Tracking Number
+                    <input
+                      autoFocus
+                      required
+                      maxLength={160}
+                      autoComplete="off"
+                      value={operation.trackingNumber}
+                      onChange={(event) => setOperation((current) => ({ ...current, trackingNumber: event.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    Carrier
+                    <input
+                      maxLength={100}
+                      autoComplete="organization"
+                      placeholder="USPS, UPS, FedEx"
+                      value={operation.carrier}
+                      onChange={(event) => setOperation((current) => ({ ...current, carrier: event.target.value }))}
+                    />
+                  </label>
+                  <label className={styles.fullField}>
+                    HTTPS Tracking URL <span>Optional</span>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      maxLength={500}
+                      placeholder="https://"
+                      value={operation.trackingUrl}
+                      onChange={(event) => setOperation((current) => ({ ...current, trackingUrl: event.target.value }))}
+                    />
+                  </label>
+                </div>
+              )}
+              <div className={styles.dialogActions}>
+                <button type="button" disabled={Boolean(busyId)} onClick={() => setOperation(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={operation.action === 'refund' ? styles.danger : ''}
+                  disabled={Boolean(busyId) || (operation.action === 'mark_shipped' && !operation.trackingNumber.trim())}
+                  onClick={() => void transition(operation.order, operation.action, operation.action === 'mark_shipped' ? {
+                    trackingNumber: operation.trackingNumber.trim(),
+                    carrier: operation.carrier.trim(),
+                    ...(operation.trackingUrl.trim() ? { trackingUrl: operation.trackingUrl.trim() } : {}),
+                  } : {})}
+                >
+                  {busyId
+                    ? 'Authorizing…'
+                    : operation.action === 'refund'
+                      ? 'Confirm Diamond Refund'
+                      : 'Confirm Shipment'}
+                </button>
+              </div>
+            </section>
           </div>
         )}
       </main>

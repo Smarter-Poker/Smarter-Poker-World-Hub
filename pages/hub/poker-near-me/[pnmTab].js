@@ -30,6 +30,10 @@ import useTourMapStops from '../../../src/hooks/useTourMapStops';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
+import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
+import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
   { ssr: false }
@@ -106,6 +110,11 @@ const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
+const DIRECTORY_PAGE_SIZE = 160;
+const snapshotAgeDays = (generatedAt) => {
+  const timestamp = Date.parse(String(generatedAt || ''));
+  return Number.isFinite(timestamp) ? Math.max(0, Math.floor((Date.now() - timestamp) / 86400000)) : undefined;
+};
 // BUG FIX: /api/poker/venues hard-caps the radius at 150mi in BOTH query paths
 // (bounding-box pre-filter and the final distance filter), so 200mi / 500mi /
 // "Any Distance" all returned exactly the 150mi result set while the UI implied
@@ -500,7 +509,7 @@ class TabErrorBoundary extends React.Component {
 }
 
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
-export default function PokerNearMePage() {
+export default function PokerNearMePage({ initialDirectory = null }) {
   const router = useRouter();
   const { user } = useAvatar();
   const bus = eventBus;
@@ -713,13 +722,23 @@ export default function PokerNearMePage() {
   }, [router.isReady, router.query.pnmTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Data states
-  const [venues, setVenues] = useState([]);
-  const [allVenuesForMap, setAllVenuesForMap] = useState([]);
+  const initialVenues = Array.isArray(initialDirectory?.data) ? initialDirectory.data : [];
+  const [venues, setVenues] = useState(initialVenues);
+  const [allVenuesForMap, setAllVenuesForMap] = useState(initialVenues);
+  const [directorySource, setDirectorySource] = useState(
+    initialDirectory?.data_source || (initialDirectory?.degraded ? 'static_snapshot' : 'supabase')
+  );
+  const [directorySnapshot, setDirectorySnapshot] = useState(initialDirectory?.snapshot || null);
+  const [directoryProgress, setDirectoryProgress] = useState({
+    loaded: initialVenues.length,
+    total: Number(initialDirectory?.total) || initialVenues.length,
+    complete: false,
+  });
   const [tours, setTours] = useState([]);
   const [series, setSeries] = useState([]);
   const [dailyTournaments, setDailyTournaments] = useState([]);
   const [dbStats, setDbStats] = useState({
-    total: 0,
+    total: Number(initialDirectory?.total) || initialVenues.length,
     tournaments: 0,
     states: 0,
     // Which day `tournaments` was counted for — the day selector lets the user
@@ -749,6 +768,8 @@ export default function PokerNearMePage() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
   const [selectedCity, setSelectedCity] = useState(null);
+  const selectedCityRef = useRef(null);
+  selectedCityRef.current = selectedCity;
   const [nearestDistance, setNearestDistance] = useState(null);
   const [hasSearched, setHasSearched] = useState(true);
 
@@ -779,7 +800,10 @@ export default function PokerNearMePage() {
     if (reviewStatsInFlightRef.current) return undefined;
     const missing = venues
       .map((v) => v.id)
-      .filter((id) => id && !pnmReviewStatsRef.current[String(id)]);
+      // Social-page discovery entries use synthetic `sp-*` identifiers while
+      // venue_reviews.venue_id is an integer FK. Keep those identities out of
+      // the ratings request rather than asking Postgres to coerce them.
+      .filter((id) => /^\d+$/.test(String(id)) && !pnmReviewStatsRef.current[String(id)]);
     if (missing.length === 0) return undefined;
 
     const CHUNK = 50;
@@ -1540,11 +1564,12 @@ export default function PokerNearMePage() {
   // fallback, but it must never masquerade as boundary-verified data.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const CACHE_KEY = 'sp-offline-venues-integrity-v1';
+    const CACHE_KEY = 'sp-offline-venues-integrity-v2';
     let hadCacheHit = false;
-    let idleHandle = null;
-    let idleTimer = null;
-    let cancelledCacheWrite = false;
+    let cancelled = false;
+    const idleHandles = new Set();
+    const timers = new Set();
+    const controller = new AbortController();
 
     const setGlobalVenues = (activeArr) => {
       setAllVenuesForMap(activeArr);
@@ -1557,23 +1582,42 @@ export default function PokerNearMePage() {
           return { ...prev, total: realPlayableVenues.length };
         });
       }
+      if (!userLocationRef.current && !selectedCityRef.current && !globalSearchModeRef.current) {
+        setVenues(activeArr);
+      }
     };
 
-    const scheduleCacheWrite = (activeArr) => {
-      if (hadCacheHit) return;
+    const scheduleIdle = (task, timeout = 1500) => {
+      if (typeof window.requestIdleCallback === 'function') {
+        const handle = window.requestIdleCallback(() => {
+          idleHandles.delete(handle);
+          if (!cancelled) task();
+        }, { timeout });
+        idleHandles.add(handle);
+      } else {
+        const handle = setTimeout(() => {
+          timers.delete(handle);
+          if (!cancelled) task();
+        }, Math.min(timeout, 300));
+        timers.add(handle);
+      }
+    };
+
+    const scheduleCacheWrite = (activeArr, revision, snapshot) => {
       const writeCache = () => {
-        if (cancelledCacheWrite) return;
+        if (cancelled) return;
         try {
-          safeSetItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
+          safeSetItem(CACHE_KEY, JSON.stringify({
+            venues: activeArr,
+            revision: revision || null,
+            snapshot: snapshot || null,
+            time: Date.now(),
+          }));
         } catch (e) {
           console.warn('[App] Handled exception:', e?.message || e);
         }
       };
-      if (typeof window.requestIdleCallback === 'function') {
-        idleHandle = window.requestIdleCallback(writeCache, { timeout: 5000 });
-      } else {
-        idleTimer = setTimeout(writeCache, 1500);
-      }
+      scheduleIdle(writeCache, 5000);
     };
 
     const activeVenues = (input, fallback = false) => (Array.isArray(input) ? input : [])
@@ -1601,6 +1645,8 @@ export default function PokerNearMePage() {
             (v) => v.is_active !== false && v.id !== 3109
           );
           setGlobalVenues(activeFromCache);
+          setDirectorySnapshot(parsed.snapshot || null);
+          setDirectoryProgress({ loaded: activeFromCache.length, total: activeFromCache.length, complete: true });
           hadCacheHit = true;
         }
       }
@@ -1611,7 +1657,7 @@ export default function PokerNearMePage() {
       // The daily token prevents an old static snapshot from staying frozen
       // indefinitely without destroying Vercel edge-cache reuse.
       const dailyBuster = new Date().toISOString().split('T')[0];
-      return fetch(`/data/all-venues.json?v=${dailyBuster}`)
+      return fetch(`/data/poker-venue-directory-snapshot.json?v=${dailyBuster}`)
         .then(function (response) {
           if (!response.ok) throw new Error(`Static venue snapshot returned ${response.status}`);
           return response.json();
@@ -1619,39 +1665,101 @@ export default function PokerNearMePage() {
         .then(function (json) {
           const snapshot = activeVenues(json.venues || json.data || json || [], true);
           setGlobalVenues(snapshot);
+          setDirectorySnapshot(json.metadata || null);
+          setDirectoryProgress({ loaded: snapshot.length, total: snapshot.length, complete: true });
+          setDirectorySource('static_snapshot');
+          capturePokerNearMeEvent('directory_loaded', {
+            route: window.location.pathname,
+            route_family: 'discovery',
+            source: 'static_snapshot',
+            result_count: snapshot.length,
+            candidate_count: snapshot.length,
+            data_revision: json.metadata?.data_revision,
+            snapshot_age_days: snapshotAgeDays(json.metadata?.generated_at),
+            complete: true,
+          });
         });
     };
 
-    fetch('/api/poker/venues?limit=1000&offset=0')
-      .then(function (r) {
-        if (!r.ok) throw new Error(`Venue directory returned ${r.status}`);
-        return r.json();
-      })
-      .then(function (json) {
+    const mergePages = (current, incoming) => {
+      const byId = new Map(current.map((venue) => [String(venue.id), venue]));
+      incoming.forEach((venue) => byId.set(String(venue.id), venue));
+      return [...byId.values()];
+    };
+
+    const loadDirectoryPage = async (offset = 0, accumulated = []) => {
+      try {
+        const response = await fetch(
+          `/api/poker/venues?view=directory&limit=${DIRECTORY_PAGE_SIZE}&offset=${offset}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) throw new Error(`Venue directory returned ${response.status}`);
+        const json = await response.json();
         const directory = Array.isArray(json.data) ? json.data : [];
-        const carriesIntegrity = directory.length > 0
-          && directory.every((venue) => venue?.location_quality?.status);
+        const carriesIntegrity = directory.every((venue) => venue?.location_quality?.status);
         if (!json.success || !json.data_integrity || !carriesIntegrity) {
           throw new Error('Venue directory did not include signal integrity metadata');
         }
-        const activeArr = activeVenues(directory);
-        setGlobalVenues(activeArr);
-        scheduleCacheWrite(activeArr);
-      })
-      .catch(function (error) {
+        const next = mergePages(accumulated, activeVenues(directory));
+        const candidateTotal = Math.max(Number(json.total) || 0, next.length);
+        const nextOffset = offset + DIRECTORY_PAGE_SIZE;
+        const complete = nextOffset >= candidateTotal;
+        const source = json.degraded ? 'static_snapshot' : 'supabase';
+        setGlobalVenues(next);
+        setDirectorySource(source);
+        setDirectorySnapshot(json.snapshot || null);
+        setDirectoryProgress({ loaded: next.length, total: candidateTotal, complete });
+
+        if (complete) {
+          scheduleCacheWrite(next, json.data_revision, json.snapshot);
+          capturePokerNearMeEvent('directory_loaded', {
+            route: window.location.pathname,
+            route_family: 'discovery',
+            source,
+            result_count: next.length,
+            candidate_count: candidateTotal,
+            data_revision: json.data_revision,
+            snapshot_age_days: snapshotAgeDays(json.snapshot?.generated_at),
+            complete: true,
+          });
+          return;
+        }
+        scheduleIdle(() => loadDirectoryPage(nextOffset, next), 1000);
+      } catch (error) {
+        if (error?.name === 'AbortError' || cancelled) return;
         console.warn('[Poker Near Me] Integrity directory unavailable:', error?.message || error);
-        if (hadCacheHit) return;
+        if (accumulated.length > 0) {
+          setDirectorySource('partial_live');
+          setDirectoryProgress((current) => ({ ...current, loaded: accumulated.length, complete: false }));
+          capturePokerNearMeEvent('directory_load_interrupted', {
+            route: window.location.pathname,
+            route_family: 'discovery',
+            source: 'partial_live',
+            result_count: accumulated.length,
+            complete: false,
+          });
+          return;
+        }
+        if (hadCacheHit) {
+          setDirectorySource('browser_cache');
+          return;
+        }
         loadStaticFallback().catch(function () {
+          setDirectorySource('unavailable');
           setFetchError('Unable to load venue data. Check your connection.');
         });
-      });
+      }
+    };
+
+    loadDirectoryPage();
 
     return () => {
-      cancelledCacheWrite = true;
-      if (idleHandle !== null && typeof window.cancelIdleCallback === 'function') {
-        window.cancelIdleCallback(idleHandle);
+      cancelled = true;
+      controller.abort();
+      if (typeof window.cancelIdleCallback === 'function') {
+        idleHandles.forEach((handle) => window.cancelIdleCallback(handle));
       }
-      if (idleTimer !== null) clearTimeout(idleTimer);
+      timers.forEach((handle) => clearTimeout(handle));
     };
   }, []);
 
@@ -1700,7 +1808,7 @@ export default function PokerNearMePage() {
   // ALWAYS include venues so the page is never blank regardless of GPS state.
   // If GPS restores a location, the useEffect below re-fetches with lat/lng/radius.
   useEffect(() => {
-    fetchAllData({ includeVenues: true });
+    fetchAllData({ includeVenues: initialVenues.length === 0 });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When city or GPS location is set, re-fetch venues with proximity filter
@@ -3901,6 +4009,14 @@ export default function PokerNearMePage() {
       },
     ],
   };
+  const snapshotGeneratedLabel = directorySnapshot?.generated_at
+    ? new Date(directorySnapshot.generated_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })
+    : null;
 
   return (
     <>
@@ -4048,6 +4164,53 @@ export default function PokerNearMePage() {
                 : dbStats.tournamentsDay
             }
           />
+          {(directorySource !== 'supabase' || !directoryProgress.complete) && (
+            <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
+              <span>
+                {directorySource === 'supabase'
+                  ? `Loading live venue registry — ${directoryProgress.loaded} rooms ready.`
+                  : directorySource === 'unavailable'
+                  ? 'The venue registry is temporarily unavailable.'
+                  : directorySource === 'partial_live'
+                    ? `Live registry refresh stopped after ${directoryProgress.loaded} rooms. Existing results remain available.`
+                  : directorySource === 'browser_cache'
+                    ? 'Live registry refresh is unavailable. Showing your most recent verified directory cache.'
+                    : `Live registry refresh is unavailable. Showing the published venue snapshot${snapshotGeneratedLabel ? ` from ${snapshotGeneratedLabel}` : ''}.`}
+              </span>
+              {directorySource !== 'supabase' && (
+                <button type="button" onClick={() => router.reload()}>Retry live registry</button>
+              )}
+            </div>
+          )}
+          {initialVenues.length > 0 && (
+            <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
+              <div className="pnm-ssr-directory-heading">
+                <div>
+                  <span>National room registry</span>
+                  <h2 id="pnm-ssr-directory-title">Featured poker rooms</h2>
+                </div>
+                <a href="/hub/poker-near-me/in">Browse by state</a>
+              </div>
+              <div className="pnm-ssr-directory-grid">
+                {initialVenues.slice(0, 8).map((venue) => (
+                  <a className="pnm-ssr-venue" href={`/hub/venues/${encodeURIComponent(String(venue.id))}`} key={venue.id}>
+                    <span
+                      className="pnm-ssr-venue-art"
+                      style={venue.cover_photo_url || venue.profile_photo_url
+                        ? { backgroundImage: `url(${JSON.stringify(venue.cover_photo_url || venue.profile_photo_url).slice(1, -1)})` }
+                        : undefined}
+                      aria-hidden="true"
+                    />
+                    <span className="pnm-ssr-venue-copy">
+                      <small>{venue.venue_type?.replace(/_/g, ' ') || 'Poker room'}</small>
+                      <strong>{venue.name}</strong>
+                      <span>{[venue.city, venue.state].filter(Boolean).join(', ') || 'Location pending'}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* ═══ PRIMARY TAB STRIP ═══
@@ -4272,7 +4435,7 @@ export default function PokerNearMePage() {
         )}
 
         {/* ═══ MAIN CONTENT — full width, no sidebar ═══ */}
-        <div className="pnm-layout">
+        <main className="pnm-layout" aria-label="Poker Near Me discovery results">
           <div className="pnm-main">
             {/* ─── MAIN CONTENT AREA ─── */}
 
@@ -4375,7 +4538,7 @@ export default function PokerNearMePage() {
             {/* end pnm-content */}
           </div>
           {/* end pnm-main */}
-        </div>
+        </main>
         {/* end pnm-layout */}
 
         {/* Geofence Alert Banner */}
@@ -4553,4 +4716,26 @@ export default function PokerNearMePage() {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ res }) {
+  try {
+    const directory = await fetchVenueDirectoryResilient({
+      supabase: createClient(),
+      params: { limit: 24, offset: 0 },
+      fallbackVenues: directorySnapshotData.venues || [],
+      fallbackMetadata: directorySnapshotData.metadata || {},
+      onFallback: (error) => {
+        console.warn('[poker-near-me] SSR database directory unavailable; using snapshot:', error?.message || error);
+      },
+    });
+    res.setHeader('Cache-Control', directory.degraded
+      ? 'no-store'
+      : 'public, s-maxage=120, stale-while-revalidate=900');
+    return { props: { initialDirectory: directory } };
+  } catch (error) {
+    console.warn('[poker-near-me] SSR directory unavailable:', error?.message || error);
+    res.setHeader('Cache-Control', 'no-store');
+    return { props: { initialDirectory: null } };
+  }
 }

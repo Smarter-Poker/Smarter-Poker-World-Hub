@@ -135,6 +135,12 @@ export default async function handler(req, res) {
         ? gradeSolverDecision(canonicalQuestion, String(answerId))
         : null;
       const verified = canonicalGrade?.solverVerified === true;
+      const canonicalScenario = canonicalQuestion?.scenario || {};
+      const canonicalSpotType = canonicalScenario.spotType
+        || canonicalScenario.nodeType
+        || canonicalScenario.potType
+        || canonicalQuestion?.spotType
+        || 'general';
 
       // The browser's classification is useful for legacy/scenario analytics,
       // but it is never accepted as solver evidence. When a canonical cached
@@ -154,12 +160,20 @@ export default async function handler(req, res) {
         is_correct: verified ? canonicalGrade.isCorrect : !!isCorrect,
         level: Math.min(12, Math.max(1, Number(level) || 1)),
         answered_at: new Date().toISOString(),
-        hero_position: typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null,
-        villain_position: typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null,
-        street: typeof street === 'string' ? street.slice(0, 12) : null,
+        hero_position: verified
+          ? String(canonicalScenario.heroPosition || canonicalScenario.position || '').slice(0, 10) || null
+          : (typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null),
+        villain_position: verified
+          ? String(canonicalScenario.villainPosition || '').slice(0, 10) || null
+          : (typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null),
+        street: verified
+          ? String(canonicalScenario.street || '').slice(0, 12) || null
+          : (typeof street === 'string' ? street.slice(0, 12) : null),
         classification: persistedClassification,
         ev_loss: persistedEVLoss,
-        spot_type: typeof spotType === 'string' ? spotType.slice(0, 40) : null,
+        spot_type: verified
+          ? String(canonicalSpotType).slice(0, 40)
+          : (typeof spotType === 'string' ? spotType.slice(0, 40) : null),
       };
       const evidenceRow = {
         ...baseRow,

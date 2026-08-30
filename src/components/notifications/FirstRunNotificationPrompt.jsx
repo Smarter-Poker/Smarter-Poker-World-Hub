@@ -86,7 +86,15 @@ const SHOW_DELAY_MS = 20_000; // let the user land before asking for anything
 const IOS_KEY_PREFIX = 'sp_firstrun_ios_install_';
 const IOS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
-const SUPPRESSED_ROUTES = ['/', '/login', '/signup', '/onboarding'];
+const SUPPRESSED_ROUTES = [
+    '/',
+    '/login',
+    '/signup',
+    '/onboarding',
+    // Never interrupt a live poker decision or its session-launch control.
+    '/hub/training/arena',
+    '/hub/club-arena',
+];
 
 export default function FirstRunNotificationPrompt({ userId }) {
     const router = useRouter();

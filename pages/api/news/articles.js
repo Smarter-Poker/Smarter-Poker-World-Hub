@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                   );
                   if (countError) throw countError;
 
-                  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+                  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
                   return res.status(200).json({
                       success: true,
                       data: [],
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
                   ? offset + rows.length < total
                   : rows.length >= limit;
 
-              res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+              res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       return res.status(200).json({
           success: true,
           data: slimRows,

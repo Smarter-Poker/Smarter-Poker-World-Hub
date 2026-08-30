@@ -132,13 +132,15 @@ export default async function handler(req, res) {
       }
 
       try {
+        const startedAt = Date.now();
         const failedSources = [];
         const truncatedSources = [];
 
-        // Fetch from legacy user_leaks table
-        let legacyLeaks = [];
-        {
-          const result = await readPaged((from, to) => {
+        // These sources are independent. Reading them serially made a cold
+        // Leak Finder request pay both PostgREST round trips and occasionally
+        // cross the serverless response budget even for a small leak queue.
+        const [legacyResult, trainingResult] = await Promise.all([
+          readPaged((from, to) => {
             let query = getSupabase()
               .from('user_leaks')
               .select('*')
@@ -147,20 +149,8 @@ export default async function handler(req, res) {
               .order('id', { ascending: false });
             if (status) query = query.eq('status', status);
             return query.range(from, to);
-          });
-          const { data, error } = result;
-          if (error) {
-            console.warn('user_leaks query failed:', error.message);
-            failedSources.push('user_leaks');
-          }
-          if (!result.complete) truncatedSources.push('user_leaks');
-          legacyLeaks = (data || []).map(normalizeUserLeakRow);
-        }
-
-        // Also fetch from new user_training_leaks table (Memory Matrix)
-        let trainingLeaks = [];
-        {
-          const result = await readPaged((from, to) => {
+          }),
+          readPaged((from, to) => {
             let query = getSupabase()
               .from('user_training_leaks')
               .select('*')
@@ -173,15 +163,22 @@ export default async function handler(req, res) {
               query = query.is('fixed_at', null);
             }
             return query.range(from, to);
-          });
-          const { data, error } = result;
-          if (error) {
-            console.warn('user_training_leaks query failed:', error.message);
-            failedSources.push('user_training_leaks');
-          }
-          if (!result.complete) truncatedSources.push('user_training_leaks');
-          // Transform to match expected format
-          trainingLeaks = (data || []).map(leak => normalizeUserLeakRow({
+          }),
+        ]);
+
+        if (legacyResult.error) {
+          console.warn('user_leaks query failed:', legacyResult.error.message);
+          failedSources.push('user_leaks');
+        }
+        if (!legacyResult.complete) truncatedSources.push('user_leaks');
+        const legacyLeaks = (legacyResult.data || []).map(normalizeUserLeakRow);
+
+        if (trainingResult.error) {
+          console.warn('user_training_leaks query failed:', trainingResult.error.message);
+          failedSources.push('user_training_leaks');
+        }
+        if (!trainingResult.complete) truncatedSources.push('user_training_leaks');
+        let trainingLeaks = (trainingResult.data || []).map(leak => normalizeUserLeakRow({
             id: leak.id,
             user_id: leak.user_id,
             leak_type: leak.leak_type,
@@ -204,14 +201,16 @@ export default async function handler(req, res) {
             explanation: leak.description,
             why_leaking_ev: `Detected ${leak.count} times during Memory Matrix training. No per-action EV measurement is available for this training signal.`,
             recommended_drill: leak.recommended_drill
-          }));
+        }));
 
-          // Apply the same exact status filter used for legacy rows so the
-          // two sources don't contradict a ?status= request
-          if (status) {
-            trainingLeaks = trainingLeaks.filter(l => l.status === status);
-          }
+        // Apply the same exact status filter used for legacy rows so the two
+        // sources don't contradict a ?status= request.
+        if (status) {
+          trainingLeaks = trainingLeaks.filter(l => l.status === status);
         }
+
+        res.setHeader('Server-Timing', `leak-history;dur=${Date.now() - startedAt}`);
+        res.setHeader('Cache-Control', 'private, no-store');
 
         // Combine both sources
         const allLeaks = [...legacyLeaks, ...trainingLeaks];

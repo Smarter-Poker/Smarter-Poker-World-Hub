@@ -10,12 +10,15 @@ export async function getServerSideProps({ req, res }) {
       resultCount: result.venues.length,
       states: aggregateVenueStates(result.venues),
       degraded: result.degraded,
+      dataSource: result.dataSource,
+      dataRevision: result.dataRevision,
+      snapshot: result.snapshot,
       fetchedAt: result.fetchedAt,
     } };
   } catch (_) {
     res.statusCode = 503;
     res.setHeader('Retry-After', '60');
-    return { props: { venues: [], resultCount: 0, states: [], degraded: true, fetchedAt: null } };
+    return { props: { venues: [], resultCount: 0, states: [], degraded: true, dataSource: 'unavailable', dataRevision: null, snapshot: null, fetchedAt: null } };
   }
 }
 

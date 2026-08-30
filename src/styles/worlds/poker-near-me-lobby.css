@@ -13,6 +13,37 @@
   font-family: var(--font-premium-body);
 }
 
+.pnm-lobby-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.pnm-lobby-skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  min-height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #6ee7ef;
+  border-radius: 3px;
+  background: #03070b;
+  color: #f5fbff;
+  font: 750 12px/1 var(--font-premium-body);
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  transform: translateY(-140%);
+  transition: transform 140ms ease;
+}
+
+.pnm-lobby-skip:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* ─── 3D SCENE CONTAINER ─── */
 .lobby-scene-container {
   position: absolute;
@@ -414,9 +445,10 @@
 }
 
 .pnm-lobby-page :is(.lobby-voice-btn, .lobby-gps-btn) {
-  width: 40px !important;
-  height: 40px !important;
-  min-height: 40px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
   border-radius: 3px !important;
   border-color: rgba(127, 145, 166, 0.26) !important;
   background: #0a1017 !important;
