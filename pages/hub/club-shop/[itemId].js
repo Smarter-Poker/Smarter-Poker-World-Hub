@@ -248,6 +248,24 @@ export default function ClubShopItemDetail() {
             { headers: { Authorization: `Bearer ${token}` } }
           );
           const body = await response.json().catch(() => null);
+          if (response.ok && body?.data?.status === 'failed') {
+            if (!cancelled) {
+              const authUser = getAuthUser();
+              if (authUser?.id && body.data?.requestId) {
+                clearCommerceRequestById({
+                  userId: authUser.id,
+                  paymentMethod: 'card',
+                  requestId: body.data.requestId,
+                });
+              }
+              setState({
+                kind: 'error',
+                message: 'Card checkout expired or did not complete. No item was granted and your club inventory was not changed.',
+              });
+              await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
+            }
+            return;
+          }
           if (response.ok && body?.data?.status === 'complete') {
             if (!cancelled) {
               const authUser = getAuthUser();
