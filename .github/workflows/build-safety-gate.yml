@@ -742,6 +742,7 @@ jobs:
             __tests__/manifest-icons.test.mjs \
             __tests__/fixed-elements-stay-fixed.test.mjs \
             __tests__/cashier-push-types.test.mjs \
+            __tests__/push-title-case.test.mjs \
             __tests__/vercel-build-queue.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
