@@ -43,11 +43,12 @@ test('checked-in venue snapshots carry the live integrity contract', async () =>
 });
 
 test('admin correction surface is role-gated, MFA-gated, atomic, and audit logged', async () => {
-  const [api, page, styles, migration, sync, auditScript] = await Promise.all([
+  const [api, page, styles, migration, revisionMigration, sync, auditScript] = await Promise.all([
     read('pages/api/admin/venue-integrity.js'),
     read('pages/admin/venue-integrity.js'),
     read('styles/VenueIntegrityConsole.module.css'),
     read('supabase/migrations/20260830190000_venue_location_integrity_operations.sql'),
+    read('supabase/migrations/20260830194000_venue_location_integrity_revision.sql'),
     read('scripts/sync_supabase_to_json.js'),
     read('scripts/apply-venue-integrity-to-json.mjs'),
   ]);
@@ -60,7 +61,8 @@ test('admin correction surface is role-gated, MFA-gated, atomic, and audit logge
   assert.match(api, /venue_location_integrity_log/);
   assert.match(api, /recent_corrections/);
   assert.match(page, /Venue integrity operations/);
-  assert.match(page, /expected_updated_at/);
+  assert.match(page, /expected_revision/);
+  assert.match(api, /location_integrity_revision/);
   assert.match(page, /credentials: 'include'/);
   assert.match(page, /minLength=\{12\}/);
   assert.match(page, /process\.env\.NODE_ENV === 'development'/);
@@ -71,6 +73,9 @@ test('admin correction surface is role-gated, MFA-gated, atomic, and audit logge
   assert.match(migration, /venue_location_integrity_log/);
   assert.match(migration, /before_record jsonb NOT NULL/);
   assert.match(migration, /REVOKE ALL ON FUNCTION/);
+  assert.match(revisionMigration, /ADD COLUMN IF NOT EXISTS location_integrity_revision/);
+  assert.match(revisionMigration, /v_before\.location_integrity_revision IS DISTINCT FROM p_expected_updated_at/);
+  assert.doesNotMatch(revisionMigration, /v_before\.updated_at/);
   assert.match(sync, /applyVenueIntegrity\(formattedVenues\)/);
   assert.match(auditScript, /--check/);
 });
