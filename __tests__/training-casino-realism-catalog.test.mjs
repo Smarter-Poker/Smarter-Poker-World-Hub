@@ -38,10 +38,14 @@ test('every catalog surface consumes the canonical artwork contract', () => {
     const category = read('pages/hub/training/category/[categoryId].js');
     const levelSelector = read('src/components/training/LevelSelector.tsx');
     const sessionModal = read('src/components/training/SessionSetupModal.jsx');
+    const responsiveArt = read('src/components/training/TrainingGameArt.jsx');
 
     for (const [name, source] of Object.entries({ hub, category, levelSelector, sessionModal })) {
-        assert.match(source, /getGameImage/, `${name} must use the canonical game render`);
+        assert.match(source, /getGameImage|TrainingGameArt/, `${name} must use the canonical game render`);
     }
+    assert.match(responsiveArt, /getGameImageSources/);
+    assert.match(responsiveArt, /type="image\/avif"/);
+    assert.match(responsiveArt, /type="image\/webp"/);
 });
 
 test('arena preserves the Club Arena table visual contract', () => {
@@ -51,6 +55,8 @@ test('arena preserves the Club Arena table visual contract', () => {
 
     assert.match(table, /hub\/club-arena\/assets\/skin_carbon_ion/);
     assert.match(table, /hub\/club-arena\/cards\/backs\/table\/classic_red\.webp/);
+    assert.match(table, /isHero && !isMobile[\s\S]*Math\.min\(ringSeat\.y, 88\)/);
+    assert.match(table, /!isMobile && ringSeat\.y <= 6 \? 12/);
     assert.match(arena, /GodModeArena/);
     assert.match(globalShell, /\[data-training-art\]:not\(\[data-training-route='\/hub\/training\/arena\/\[gameId\]'\]\)/);
 });

@@ -33,13 +33,13 @@ test('challenge API rows are normalized before rendering progress and rewards', 
   assert.match(source, /Math\.max\(1,\s*challenge\.goal\)/);
 });
 
-test('PvP identifies practice AI and never presents fabricated competitive data as live', () => {
+test('PvP reports unavailable live services honestly and routes to verified practice', () => {
   const source = read('pages/hub/training/pvp-lobby.js');
 
-  assert.match(source, /Training Opponent Ready/);
-  assert.match(source, /Training AI/);
   assert.match(source, /real-player matchmaking/i);
-  assert.match(source, /available:\s*false/);
+  assert.match(source, /Real-Player Matchmaking', 'Not Live/);
+  assert.match(source, /arena\/mtt-015\?level=1/);
+  assert.doesNotMatch(source, /save-session|session-complete/);
   assert.doesNotMatch(source, /237\s*\+\s*Math\.floor\(Math\.random/);
   assert.doesNotMatch(source, /setOnlineCount/);
   assert.doesNotMatch(source, /GTO_Master|PokerShark99|23, losses: 14|Math\.random\(\) \* 400/);
@@ -100,19 +100,29 @@ test('the Phase 11 visual system uses straight dimensional cards and responsive 
   assert.match(css, /\.sp-command-header::after[\s\S]*#ffc65b/);
 });
 
-test('community previews and unavailable creation actions remain honest', () => {
+test('study groups and training feed use persisted, authenticated activity', () => {
   const finder = read('pages/hub/training/study-group-finder.js');
   const room = read('pages/hub/training/study-group.js');
   const feed = read('pages/hub/training/training-feed.js');
+  const groupsApi = read('pages/api/training/study-groups.js');
+  const groupApi = read('pages/api/training/study-groups/[groupId].js');
+  const messagesApi = read('pages/api/training/study-groups/[groupId]/messages.js');
 
-  assert.match(finder, /example groups/);
-  assert.match(finder, /Creating Groups Coming Soon/);
-  assert.match(finder, /Preview Only/);
-  assert.match(finder, /disabled/);
-  assert.doesNotMatch(finder, /study-group-applied|Study Group Application/);
-  assert.match(room, /Invite Link Coming Soon/);
-  assert.match(room, /Local Study Workflow Preview/);
-  assert.doesNotMatch(room, /test-room-123|save-session/);
+  assert.match(finder, /authedFetch\('\/api\/training\/study-groups'/);
+  assert.match(finder, /Create Study Group/);
+  assert.match(finder, /Join Group/);
+  assert.doesNotMatch(finder, /MOCK_GROUPS|Preview Only|Coming Soon/);
+  assert.match(room, /Persistent Member Room/);
+  assert.match(room, /Copy Invite Link/);
+  assert.match(room, /study-groups\/\$\{roomId\}\/messages/);
+  assert.match(room, /Open Hand History Upload/);
+  assert.doesNotMatch(room, /Local Study Workflow Preview|Invite Link Coming Soon|loadDemoHand|local-demo|save-session/);
+  assert.match(groupsApi, /training_study_groups/);
+  assert.match(groupsApi, /rpc\('create_training_study_group'/);
+  assert.match(groupApi, /training_study_group_members/);
+  assert.match(groupApi, /rpc\('join_training_study_group'/);
+  assert.doesNotMatch(groupApi, /select\('\*', \{ count: 'exact', head: true \}\)/);
+  assert.match(messagesApi, /training_study_group_messages/);
   assert.match(feed, /Verified Training Activity/);
   assert.doesNotMatch(feed, /simulated community activity|FRIEND_NAMES|community-\$\{i\}/);
 });

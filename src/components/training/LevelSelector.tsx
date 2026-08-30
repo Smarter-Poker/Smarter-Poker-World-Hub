@@ -17,10 +17,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
-import { getGameImage } from '../../data/GAME_IMAGES';
+import TrainingGameArt from './TrainingGameArt';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
-import { getAuthUser, getSessionToken } from '../../lib/authUtils';
+import { getSessionToken } from '../../lib/authUtils';
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
 
 // ============================================================================
@@ -389,14 +389,18 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             // Get auth token for session start
             let authToken = '';
             try {
-                const authUser = getAuthUser();
-                const storedSession = localStorage.getItem('sb-kuklfnapbkmacvwxktbh-auth-token');
-                if (storedSession) {
-                    const parsed = JSON.parse(storedSession);
-                    authToken = parsed?.access_token || '';
-                }
+                authToken = getSessionToken() || '';
             } catch (e) {
                 console.warn('[LevelSelector] Auth token retrieval failed');
+            }
+
+            if (!authToken) {
+                setStartingLevel(null);
+                await router.push({
+                    pathname: '/login',
+                    query: { next: `/hub/training/arena/${gameId}?level=${level}` },
+                });
+                return;
             }
 
             // Start session via API (with auth token)
@@ -404,7 +408,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             try {
                 const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+                headers['Authorization'] = `Bearer ${authToken}`;
 
                 const res = await fetch('/api/session/start', {
                     method: 'POST',
@@ -417,6 +421,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 });
 
                 const session = await res.json();
+                if (!res.ok) {
+                    throw new Error(session?.error || `Session start failed (${res.status})`);
+                }
                 if (session.session_id) {
                     sessionId = session.session_id;
                 } else {
@@ -453,8 +460,6 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     const categoryLabel = (gameData?.category || 'Training')
         .toLowerCase()
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
-    const gameArt = getGameImage(gameId);
-
     return (
         <div className="sp-level-selector" style={styles.container}>
             {/* Game-specific command deck shared by all catalog games. */}
@@ -493,7 +498,12 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 </div>
 
                 <div className="sp-level-command-art" aria-hidden="true">
-                    <img src={gameArt} alt="" />
+                    <TrainingGameArt
+                        gameId={gameId}
+                        sizes="(max-width: 700px) 100vw, 620px"
+                        loading="eager"
+                        fetchPriority="high"
+                    />
                     <div className="sp-level-command-art-shade" />
                     <div className="sp-level-command-art-label">
                         <span>Live Training System</span>

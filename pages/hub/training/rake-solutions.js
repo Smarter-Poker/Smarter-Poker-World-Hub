@@ -14,8 +14,6 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-21 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -166,35 +164,6 @@ export default function RakeSolutionsPage() {
     return result;
   }, [compareRake]);
 
-  const handleViewInsight = async () => {
-    try {
-      const token = await getAccessToken();
-      if (token) {
-        authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'rake-solutions',
-            questionsAnswered: 1,
-            questionsCorrect: 1,
-            accuracy: 100,
-          }),
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      }
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-        'rake-solutions'
-      );
-      eventBus?.emit?.('training:session-complete', {
-        game_id: 'rake-solutions',
-        accuracy: 100,
-        correct_answers: 1,
-        total_questions: 1,
-        hands_played: 1,
-      });
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-  };
-
   return (
     <>
       <Head>
@@ -266,7 +235,6 @@ export default function RakeSolutionsPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   setActiveRake(rk);
-                  handleViewInsight();
                 }}
                 style={{
                   padding: 16,

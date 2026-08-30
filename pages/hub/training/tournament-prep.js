@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
@@ -49,6 +49,35 @@ export default function TournamentPrepPlanner() {
   const [startStack, setStartStack] = useState(10000);
   const [blindLevelLength, setBlindLevelLength] = useState(15);
   const [currentLevel, setCurrentLevel] = useState(1);
+  const [plannerLoaded, setPlannerLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadPlannerState = async () => {
+      if (!getAccessToken()) {
+        if (active) setPlannerLoaded(true);
+        return;
+      }
+      try {
+        const response = await authedFetch('/api/training/tool-records?toolId=tournament-prep&recordType=planner&limit=1');
+        if (!response.ok) throw new Error(`Planner load failed (${response.status})`);
+        const payload = await response.json();
+        const saved = payload.records?.[0]?.data;
+        if (active && saved) {
+          if (Number.isFinite(Number(saved.buyIn))) setBuyIn(Number(saved.buyIn));
+          if (Number.isFinite(Number(saved.startStack))) setStartStack(Number(saved.startStack));
+          if (Number.isFinite(Number(saved.blindLevelLength))) setBlindLevelLength(Number(saved.blindLevelLength));
+          if (Number.isFinite(Number(saved.currentLevel))) setCurrentLevel(Number(saved.currentLevel));
+        }
+      } catch (error) {
+        console.warn('Failed to load tournament plan:', error?.message || error);
+      } finally {
+        if (active) setPlannerLoaded(true);
+      }
+    };
+    loadPlannerState();
+    return () => { active = false; };
+  }, []);
 
   // Derived states
   const bls = [
@@ -73,29 +102,35 @@ export default function TournamentPrepPlanner() {
 
   const [activeTab, setActiveTab] = useState('structure');
 
-  // Save session payload function standard
-  const saveToSession = async () => {
+  // Planner settings are durable tool state, not a scored training session.
+  const savePlannerState = async () => {
+    if (!getAccessToken()) return;
     try {
-      await authedFetch('/api/training/save-session', {
+      const response = await authedFetch('/api/training/tool-records', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gameId: 'tournament-prep',
-          stats: {
+          toolId: 'tournament-prep',
+          recordType: 'planner',
+          recordKey: 'current-plan',
+          data: {
             buyIn,
             startStack,
+            blindLevelLength,
             currentLevel,
           },
         }),
       });
+      if (!response.ok) throw new Error(`Planner sync failed (${response.status})`);
     } catch (e) {
-      console.warn('Failed to save session:', e);
+      console.warn('Failed to sync tournament plan:', e);
     }
   };
 
   useEffect(() => {
-    saveToSession();
-  }, [buyIn, startStack, currentLevel]);
+    if (!plannerLoaded) return undefined;
+    const timer = setTimeout(savePlannerState, 400);
+    return () => clearTimeout(timer);
+  }, [buyIn, startStack, blindLevelLength, currentLevel, plannerLoaded]);
 
   return (
     <>

@@ -8,6 +8,7 @@ import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { getGameImage } from '../../../../src/data/GAME_IMAGES';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
 
 const CATEGORY_META = {
     MTT: {
@@ -59,7 +60,7 @@ export default function CategoryPage() {
 
     const category = CATEGORY_META[categoryId];
     const games = category ? getGamesByCategory(categoryId) : [];
-    const heroArt = games[0] ? getGameImage(games[0].id) : getGameImage('quiz-gauntlet');
+    const heroArtId = games[0]?.id || 'quiz-gauntlet';
 
     if (!category || games.length === 0) {
         return (
@@ -87,7 +88,13 @@ export default function CategoryPage() {
 
                 <main>
                     <section className="sp-category-hero">
-                        <img className="sp-category-hero-art" src={heroArt} alt="" aria-hidden="true" />
+                        <TrainingGameArt
+                            gameId={heroArtId}
+                            className="sp-category-hero-art"
+                            sizes="(max-width: 700px) 100vw, 1500px"
+                            loading="eager"
+                            fetchPriority="high"
+                        />
                         <div className="sp-category-hero-shade" aria-hidden="true" />
                         <button className="sp-category-back" type="button" onClick={() => router.push('/hub/training')}>
                             <ArrowLeft size={15} aria-hidden="true" /> Training Hub

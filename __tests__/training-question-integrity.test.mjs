@@ -107,6 +107,21 @@ test('choice labels cannot disclose grading', () => {
   assert.equal(validateTrainingQuestion(question).valid, true);
 });
 
+test('ordinary strategy prose is not mistaken for a grading label', () => {
+  const question = enforceTrainingQuestionContract({
+    question: 'After a difficult hand, which reset routine should you use?',
+    correctAnswer: 'reset',
+    scenario: { isPsychology: true },
+    options: [
+      { id: 'reset', text: 'Take a breath and refocus on making the best decisions available.' },
+      { id: 'chase', text: 'Chase the loss because you believe the earlier read was correct.' },
+      { id: 'quit', text: 'End the session immediately without reviewing your state.' },
+      { id: 'argue', text: 'Argue in chat until the opponent acknowledges the hand.' },
+    ],
+  });
+  assert.equal(validateTrainingQuestion(question).valid, true);
+});
+
 const propertyName = (property) => property?.key?.name || property?.key?.value;
 const literalValue = (node) => {
   if (node?.type === 'StringLiteral' || node?.type === 'NumericLiteral') return node.value;
@@ -214,7 +229,6 @@ test('feedback remains until an explicit Next click', () => {
     ['src/games/PressureCookerGame.js', /setTimeout\([\s\S]{0,200}nextHand/, /Next Hand →/],
     ['src/games/SpeedDrillGame.js', /setTimeout\([\s\S]{0,200}nextHand/, /Next Hand →/],
     ['pages/hub/training/spot-trainer.js', /autoNextTimer|Next spot in/, /This Result Will Stay Open Until You Click Next/],
-    ['pages/hub/training/blind-defense.js', /setTimeout\([\s\S]{0,200}generateScenario/, /Next Question →/],
     ['pages/hub/training/quiz-gauntlet.js', /setTimeout\([\s\S]{0,200}setQIdx/, /Next Question →/],
   ];
   for (const [file, forbidden, required] of manualDrills) {
@@ -226,7 +240,9 @@ test('feedback remains until an explicit Next click', () => {
   assert.match(read('src/games/PatternRecognitionGame.js'), /\['fold', 'call', 'raise', 'mixed'\]/);
   assert.match(read('src/games/PressureCookerGame.js'), /action: 'allin'/);
   assert.match(read('src/games/SpeedDrillGame.js'), /action: 'allin'/);
-  assert.match(read('pages/hub/training/blind-defense.js'), /label="3-Bet All-In"/);
+  const blindDefense = read('pages/hub/training/blind-defense.js');
+  assert.match(blindDefense, /arena\/cash-003\?level=1/);
+  assert.doesNotMatch(blindDefense, /Math\.random|save-session|session-complete/);
   assert.match(read('pages/hub/training/quiz-gauntlet.js'), /q\.options\.map/);
 
   const positionQuiz = read('src/components/training/PositionAwarenessQuiz.jsx');

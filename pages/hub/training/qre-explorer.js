@@ -14,8 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-6 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -139,27 +137,6 @@ export default function QREExplorerPage() {
   const handlePreset = (preset) => {
     setActivePreset(preset.id);
     setLambda(preset.lambda);
-    (async () => {
-      try {
-        const token = await getAccessToken();
-        if (token) {
-          authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
-              gameId: 'qre-explorer',
-              questionsAnswered: 1,
-              questionsCorrect: 1,
-              accuracy: 100,
-            }),
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        }
-        eventBus?.emit?.(
-          EventType?.SESSION_END || 'session:end',
-          { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-          'qre-explorer'
-        );
-      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-    })();
   };
 
   return (

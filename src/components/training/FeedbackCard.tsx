@@ -915,37 +915,4 @@ function getActionIcon(action: string): string {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DEMO DATA GENERATOR
-// ═══════════════════════════════════════════════════════════════════════════
-
-export function generateDemoSolverResult(isCorrect: boolean = false): SolverResult {
-    if (isCorrect) {
-        return {
-            explanation: "Excellent read! With this board texture and villain's betting pattern, folding achieves 0 EV and avoids getting trapped. The pot odds don't justify calling with your marginal showdown value.",
-            gtoLine: { action: 'Fold', ev: 0, frequency: 100 },
-            altLines: [
-                { action: 'Call', ev: -2.5, frequency: 0 },
-                { action: 'Raise', ev: -8.0, frequency: 0 }
-            ],
-            userAction: { action: 'Fold', ev: 0 },
-            isCorrect: true,
-            evDiff: 0
-        };
-    }
-
-    return {
-        explanation: "You are bleeding chips in this spot. Against a standard range on this texture, GTO calls here approximately 65% of the time. Your fold frequency is too high, allowing villains to over-bluff profitably.",
-        gtoLine: { action: 'Call', ev: 1.2, frequency: 65 },
-        altLines: [
-            { action: 'Fold', ev: 0, frequency: 35 },
-            { action: 'Raise', ev: -1.8, frequency: 0 }
-        ],
-        userAction: { action: 'Fold', ev: 0 },
-        isCorrect: false,
-        evDiff: -1.2,
-        leakCategory: 'River Bluff Catch'
-    };
-}
-
 export default FeedbackCard;

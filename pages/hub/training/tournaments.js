@@ -21,6 +21,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
@@ -187,7 +188,7 @@ export default function TournamentsPage() {
 
   const registerForTournament = async (tournamentId) => {
     if (!user) {
-      alert('Please sign in to register');
+      toast.warning('Please Sign In To Register.');
       return;
     }
 
@@ -206,17 +207,18 @@ export default function TournamentsPage() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
-        alert('Registered successfully!');
+        toast.success('Tournament Registration Confirmed!');
         refreshTournaments(); // Refresh
         // Emit bus event if tournament had an entry fee
         if (data.entryFee > 0) {
           busEmit.diamondsSpent(data.entryFee, 'Training Tournament Entry');
         }
       } else {
-        alert(data.error || 'Registration failed');
+        toast.error(data.error || 'Tournament Registration Failed.');
       }
     } catch (error) {
       console.warn('Register error:', error);
+      toast.error('Tournament Registration Failed. Please Try Again.');
     } finally {
       setRegistering(null);
     }

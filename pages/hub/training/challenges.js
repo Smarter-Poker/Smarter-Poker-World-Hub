@@ -21,6 +21,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { toast } from '../../../src/stores/toastStore';
 
 // TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -150,10 +151,13 @@ export default function ChallengesPage() {
         const diamondsAwarded = data.claimed?.diamondsAwarded ?? 0;
         busEmit.diamondsEarned(diamondsAwarded, `Challenge: ${challenge.title}`);
         busEmit.celebration('confetti');
-        alert(`+${diamondsAwarded} diamonds claimed!`);
+        toast.success(`+${diamondsAwarded} Diamonds Claimed!`);
+      } else {
+        toast.error(data.error || 'Challenge Reward Could Not Be Claimed.');
       }
     } catch (error) {
       console.warn('Claim error:', error);
+      toast.error('Challenge Reward Could Not Be Claimed. Please Try Again.');
     } finally {
       setClaiming(null);
     }

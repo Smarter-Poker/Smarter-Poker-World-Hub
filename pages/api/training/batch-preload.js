@@ -17,7 +17,7 @@ applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
-import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
+import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
           // rows per level, 25 > the 20 a session asks for, and the engine
           // branch below never ran. Games that declare no street are untouched.
           const declaredCfg = pioQueryService.getGameConfig(gameId);
-          const rows = filterRowsToDeclaredStreet(
+          const rows = filterCachedRowsForGame(
               (questions || []).slice(0, questionCount * 3),
               declaredCfg,
           );

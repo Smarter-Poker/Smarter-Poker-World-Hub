@@ -9,67 +9,12 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-25 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-21 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-
-// Simple exact ICM calculation for up to 6 players
-function calculateICM(stacks, payouts) {
-  const n = stacks.length;
-  let equities = new Array(n).fill(0);
-  const totalChips = stacks.reduce((a, b) => a + b, 0);
-  if (totalChips === 0) return equities;
-
-  // Helper for combinations
-  function getPermutations(arr) {
-    if (arr.length <= 1) return [arr];
-    let perms = [];
-    for (let i = 0; i < arr.length; i++) {
-      const first = arr[i];
-      const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
-      getPermutations(rest).forEach((subPerm) => perms.push([first, ...subPerm]));
-    }
-    return perms;
-  }
-
-  // Limit to top 3 payouts for performance in UI mock if needed, but exact handles 6!
-  const numPayouts = Math.min(n, payouts.length);
-  const validPayouts = payouts.slice(0, numPayouts);
-
-  if (n <= 6) {
-    // Exact Malmuth-Weitzman via Permutations for small sets
-    const indices = stacks.map((_, i) => i);
-    const perms = getPermutations(indices);
-
-    perms.forEach((perm) => {
-      let prob = 1.0;
-      let currentTotal = totalChips;
-      let pEquity = new Array(n).fill(0);
-
-      for (let place = 0; place < numPayouts; place++) {
-        const playerIdx = perm[place];
-        const p = stacks[playerIdx] / currentTotal;
-        prob *= p;
-        currentTotal -= stacks[playerIdx];
-        pEquity[playerIdx] += validPayouts[place];
-      }
-
-      pEquity.forEach((e, idx) => {
-        equities[idx] += prob * e;
-      });
-    });
-  } else {
-    // Fallback for N>6 (not used in this UI, but safeguards) - using chip EV
-    stacks.forEach((s, i) => {
-      equities[i] = (s / totalChips) * validPayouts.reduce((a, b) => a + b, 0);
-    });
-  }
-
-  return equities;
-}
+import { authedFetch } from '../../../src/lib/authUtils';
 
 export default function IcmSimulatorPage() {
   const router = useRouter();
@@ -85,27 +30,31 @@ export default function IcmSimulatorPage() {
   const [payouts, setPayouts] = useState([5000, 3000, 1500, 500]);
   const [equities, setEquities] = useState([]);
   const [calculating, setCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState('');
 
 
 
-  const runSim = () => {
+  const runSim = async () => {
     setCalculating(true);
-    setTimeout(() => {
+    setCalculationError('');
+    try {
       const stacks = players.map((p) => Number(p.stack) || 0);
       const pays = payouts.map((p) => Number(p) || 0);
-      const res = calculateICM(stacks, pays);
-      setEquities(res);
-      setCalculating(false);
-
-      // Persist session with auth
-      const token = getAccessToken();
-      if (token) {
-        authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({ game_id: 'icm-simulator', hands_played: 1, accuracy: 100 }),
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      const response = await authedFetch('/api/training/icm-calc', {
+        method: 'POST',
+        body: JSON.stringify({ stacks, prizes: pays }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || `Calculation Failed (${response.status})`);
       }
-    }, 500);
+      setEquities(payload.results.map((result) => result.icmDollars));
+    } catch (error) {
+      setEquities([]);
+      setCalculationError(error.message || 'ICM Calculation Failed');
+    } finally {
+      setCalculating(false);
+    }
   };
 
   const totalPrizePool = payouts.reduce((a, b) => a + (Number(b) || 0), 0);
@@ -341,8 +290,13 @@ export default function IcmSimulatorPage() {
                   boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
                 }}
               >
-                {calculating ? 'CALCULATING (N!)...' : 'RUN ICM SOLVER'}
+                {calculating ? 'Calculating…' : 'Run ICM Calculator'}
               </motion.button>
+              {calculationError && (
+                <div role="alert" style={{ marginTop: 12, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5 }}>
+                  {calculationError}
+                </div>
+              )}
             </div>
           </div>
 

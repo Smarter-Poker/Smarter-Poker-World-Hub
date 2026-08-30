@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-FX-4d — adoption: feedback hook for daily-challenge.fresh.js
 
 /**
@@ -164,10 +165,12 @@ export default function DailyChallengePage() {
   const answerStartRef = useRef(Date.now());
 
   const [challenge, setChallenge] = useState(null);
+  const [dailyId, setDailyId] = useState(null);
   const [expiresAt, setExpiresAt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [persistedCorrect, setPersistedCorrect] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
   const [completedDays, setCompletedDays] = useState([]);
@@ -185,24 +188,34 @@ export default function DailyChallengePage() {
       const data = await res.json();
       if (data.success) {
         setChallenge(data.question);
+        setDailyId(data.dailyId);
         setExpiresAt(data.expiresAt);
         answerStartRef.current = Date.now(); // Reset timer when challenge loads
 
         // Check local storage for prior completion today
-        const today = new Date().toISOString().split('T')[0];
+        const today = String(data.dailyId || '').replace(/^daily-/, '');
         const todayKey = `daily-challenge-${today}`;
         const prior = localStorage.getItem(todayKey);
-        if (prior) {
+        if (data.completion) {
+          setAlreadyCompleted(true);
+          setSelected(data.completion.selected_action || null);
+          setPersistedCorrect(Number(data.completion.score) >= 100);
+          setShowResult(true);
+          answered.current = true;
+        } else if (prior) {
           const parsed = JSON.parse(prior);
           setAlreadyCompleted(true);
           setSelected(parsed.selected);
+          setPersistedCorrect(Boolean(parsed.isCorrect));
           setShowResult(true);
           answered.current = true;
         }
 
         // Load streak data from local storage
-        let streakData = [];
-        try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[daily-challenge] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
+        let streakData = Array.isArray(data.completedDays) ? data.completedDays : [];
+        if (streakData.length === 0) {
+          try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[daily-challenge] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
+        }
         setLoading(false);
         setCompletedDays(streakData);
 
@@ -241,7 +254,7 @@ export default function DailyChallengePage() {
 
   // Handle answer
   const handleAnswer = useCallback(
-    (action) => {
+    async (action) => {
       if (answered.current || !challenge) return;
       answered.current = true;
       setSelected(action);
@@ -249,10 +262,11 @@ export default function DailyChallengePage() {
 
       const correctAction = challenge.correct_answer || challenge.gto_action;
       const isCorrect = action === correctAction;
+      setPersistedCorrect(isCorrect);
       if (isCorrect) fb.correct(); else fb.incorrect();
 
       // Save to local storage
-      const today = new Date().toISOString().split('T')[0];
+      const today = String(dailyId || '').replace(/^daily-/, '');
       localStorage.setItem(
         `daily-challenge-${today}`,
         JSON.stringify({
@@ -271,22 +285,30 @@ export default function DailyChallengePage() {
         setCompletedDays([...streakData]);
       }
 
-      // Record on server (fire and forget)
+      // Record on server and surface persistence failures.
       try {
         const user = getAuthUser();
         const userId = user?.id;
         if (userId) {
-          authedFetch('/api/training/hand-of-the-day', {
+          const saveResponse = await authedFetch('/api/training/hand-of-the-day', {
             method: 'POST',
             body: JSON.stringify({
               userId,
-              dailyId: `daily-${today}`,
+              dailyId: dailyId || `daily-${today}`,
               score: isCorrect ? 100 : 0,
               evLoss: isCorrect ? 0 : 1,
+              selectedAction: action,
             }),
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+          });
+          const saved = await saveResponse.json().catch(() => null);
+          if (!saveResponse.ok || saved?.success === false) {
+            throw new Error(saved?.error || 'Daily result could not be saved');
+          }
         }
-      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+      } catch (saveError) {
+        console.warn('[DailyChallenge] Save failed:', saveError?.message || saveError);
+        setError('Your answer is shown, but it could not be saved. Please retry from this page.');
+      }
 
       // Emit bus events
       try {
@@ -313,7 +335,7 @@ export default function DailyChallengePage() {
         busEmit.sessionEnd('DailyChallenge');
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     },
-    [challenge, bus]
+    [challenge, bus, dailyId, fb]
   );
 
   // Derive question data
@@ -326,6 +348,7 @@ export default function DailyChallengePage() {
   const frequencies = challenge?.action_breakdown || challenge?.gto_frequencies || null;
   const position = challenge?.hero_position || challenge?.position || '';
   const street = challenge?.street || '';
+  const resultIsCorrect = persistedCorrect ?? (selected === correctAnswer);
 
   return (
     <>
@@ -754,8 +777,8 @@ export default function DailyChallengePage() {
                     animate={{ opacity: 1, y: 0 }}
                     style={{
                       background:
-                        selected === correctAnswer ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                      border: `1px solid ${selected === correctAnswer ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                        resultIsCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                      border: `1px solid ${resultIsCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                       borderRadius: 10,
                       padding: '12px 16px',
                       marginBottom: 14,
@@ -764,11 +787,11 @@ export default function DailyChallengePage() {
                     {/* TRAIN-WIRE-FEEDBACK-V2-6 — verdict via FeedbackCard compact */}
                     <div style={{ marginBottom: 6 }}>
                       <FeedbackCard
-                        verdict={selected === correctAnswer ? 'correct' : 'incorrect'}
+                        verdict={resultIsCorrect ? 'correct' : 'incorrect'}
                         userAction={selected || ''}
                         solverAction={correctAnswer}
                         evLoss={0}
-                        whyShort={selected === correctAnswer ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
+                        whyShort={resultIsCorrect ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
                         compact
                       />
                     </div>
@@ -843,7 +866,7 @@ export default function DailyChallengePage() {
                     {/* Share Result + Perfect Score Celebration */}
                     {!alreadyCompleted && (
                       <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {selected === correctAnswer && (
+                        {resultIsCorrect && (
                           <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -880,12 +903,13 @@ export default function DailyChallengePage() {
                                   shareType: 'session_complete',
                                   data: {
                                     gameName: 'Daily GTO Challenge',
-                                    accuracy: selected === correctAnswer ? 100 : 0,
+                                    accuracy: resultIsCorrect ? 100 : 0,
                                   },
                                 }),
                               });
                               const d = await res.json();
-                              if (d.success) alert('Result shared to your feed!');
+                              if (d.success) toast.success('Result Shared To Your Feed!');
+                              else toast.error(d.error || 'Failed To Share Result.');
                             } catch (err) {
                               console.warn('Share error:', err);
                             } finally {

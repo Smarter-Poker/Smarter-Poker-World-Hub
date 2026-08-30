@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-57 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -8,6 +8,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import { authedFetch } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-STUDYGROUP-A11Y-1): SVG icon components replacing the
@@ -28,16 +30,8 @@ function _Svg({ size=16, vb='0 0 24 24', children }) {
 }
 function CrownIcon({ size=12 })    { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
 function UploadIcon({ size=48 })   { return <_Svg size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></_Svg>; }
-function CloseIcon({ size=16 })    { return <_Svg size={size}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
 function SendIcon({ size=16 })     { return <_Svg size={size}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></_Svg>; }
 function BackArrowIcon({ size=14 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
-function StarIcon({ size=14 })     {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" aria-hidden>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  );
-}
 
 
 export default function StudyGroupRoom() {
@@ -46,72 +40,75 @@ export default function StudyGroupRoom() {
 
   useTrainingBus('study-group');
 
-  const [isCreating, setIsCreating] = useState(!roomId);
-  const [roomName, setRoomName] = useState('');
+  const [group, setGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMsg, setInputMsg] = useState('');
-  const [activeHandInfo, setActiveHandInfo] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState(null);
 
-  // Explicit local-preview participants. No network presence is implied.
-  const [participants] = useState([
-    { id: 1, name: 'You', role: 'Admin' },
-    { id: 2, name: 'Example Solver', role: 'Preview' },
-    { id: 3, name: 'Example Reviewer', role: 'Preview' },
-  ]);
+  const loadRoom = useCallback(async ({ quiet = false } = {}) => {
+    if (!roomId) return;
+    if (!quiet) setLoading(true);
+    try {
+      const [roomResponse, messageResponse] = await Promise.all([
+        authedFetch(`/api/training/study-groups/${roomId}`),
+        authedFetch(`/api/training/study-groups/${roomId}/messages`),
+      ]);
+      const roomPayload = await roomResponse.json().catch(() => null);
+      const messagePayload = await messageResponse.json().catch(() => null);
+      if (!roomResponse.ok || !roomPayload?.group) throw new Error(roomPayload?.error || 'Study room could not be loaded');
+      if (!messageResponse.ok || !messagePayload?.success) throw new Error(messagePayload?.error || 'Study room discussion could not be loaded');
+      setGroup(roomPayload.group);
+      setParticipants(roomPayload.members || []);
+      setMessages(messagePayload.messages || []);
+      setError(null);
+    } catch (loadError) {
+      setError(loadError?.message || 'Study room could not be loaded');
+    } finally {
+      if (!quiet) setLoading(false);
+    }
+  }, [roomId]);
 
-  const handleCreateRoom = () => {
-    if (!roomName) return;
-    setIsCreating(false);
-    router.push(`/hub/training/study-group?roomId=local-preview`, undefined, { shallow: true });
+  useEffect(() => {
+    if (!roomId) return undefined;
+    loadRoom();
+    const timer = setInterval(() => loadRoom({ quiet: true }), 5000);
+    return () => clearInterval(timer);
+  }, [roomId, loadRoom]);
 
-    setMessages([
-      {
-        id: 1,
-        sender: 'System',
-        text: `Local preview "${roomName}" opened. Messages and hand reviews stay in this browser session.`,
-        isSystem: true,
-        time: new Date().toLocaleTimeString(),
-      },
-    ]);
-  };
-
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMsg.trim()) return;
-
-    setMessages([
-      ...messages,
-      {
-        id: Date.now(),
-        sender: 'You',
-        text: inputMsg,
-        isSystem: false,
-        time: new Date().toLocaleTimeString(),
-      },
-    ]);
-    setInputMsg('');
+    const body = inputMsg.trim();
+    if (!body || sending || !roomId) return;
+    setSending(true);
+    try {
+      const response = await authedFetch(`/api/training/study-groups/${roomId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.message) throw new Error(payload?.error || 'Message could not be sent');
+      setMessages((current) => [...current, payload.message]);
+      setInputMsg('');
+      setError(null);
+    } catch (sendError) {
+      setError(sendError?.message || 'Message could not be sent');
+    } finally {
+      setSending(false);
+    }
   };
 
-  const loadDemoHand = () => {
-    setActiveHandInfo({
-      id: 'hand_772A',
-      hero: 'A♠ K♠',
-      villain: 'J♥ T♥',
-      board: 'K♦ T♠ 4♣ 2♥ J♠',
-      actionSummary: 'Villain jammed river, Hero called. Villain won two pair.',
-      solverEval: 'Solver says: CALL is +1.2 EV. Hero played perfectly, just got coolered.',
-    });
-
-    setMessages([
-      ...messages,
-      {
-        id: Date.now(),
-        sender: 'System',
-        text: 'Example Solver loaded "Big River Call vs JTs" to the preview hand viewer.',
-        isSystem: true,
-        time: new Date().toLocaleTimeString(),
-      },
-    ]);
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/hub/training/study-group-finder?join=${roomId}`);
+      setInviteStatus('Invite Link Copied');
+    } catch {
+      setInviteStatus('Copy Failed');
+    }
   };
 
   return (
@@ -136,45 +133,42 @@ export default function StudyGroupRoom() {
             </span>
           </button>
           <div>
-            <h1 style={styles.title}>COLLABORATIVE STUDY ROOM</h1>
-            <p style={styles.subtitle}>Local Study Workflow Preview · Live Collaboration Coming Soon</p>
+            <h1 style={styles.title}>{group?.name || 'COLLABORATIVE STUDY ROOM'}</h1>
+            <p style={styles.subtitle}>Persistent Member Room · Live Discussion Sync</p>
           </div>
         </div>
 
-        {isCreating ? (
+        <ErrorBanner message={error} onRetry={() => loadRoom()} />
+
+        {!roomId ? (
           <motion.div
             className="sp-command-main sp-command-card-stage"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={styles.createBox}
           >
-            <h2>Open A Local Study Room Preview</h2>
+            <h2>Choose A Study Group</h2>
             <p style={{ color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-              Preview messaging and hand review in this browser. Invitations, shared rooms, and live member presence are not connected yet.
+              Join an existing room or create a new persistent study group from the finder.
             </p>
-
-            <input
-              type="text"
-              placeholder="Enter Room Name (e.g. Sunday Million Review)..."
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              aria-label="Study room name"
-              style={styles.roomInput}
-            />
-            <button type="button" aria-label="Open local study room preview" onClick={handleCreateRoom} style={styles.createBtn}>
-              Open Local Preview
+            <button type="button" aria-label="Open study group finder" onClick={() => router.push('/hub/training/study-group-finder')} style={styles.createBtn}>
+              Open Study Group Finder
             </button>
           </motion.div>
+        ) : loading && !group ? (
+          <div className="sp-command-main" style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>
+            Loading Study Room...
+          </div>
         ) : (
           <div className="sp-command-main sp-command-room-layout" style={styles.roomLayout}>
             {/* Left: Participants & Hand Viewer */}
             <div style={styles.mainCol}>
               <div style={styles.participantsBar}>
                 <div style={{ fontWeight: 700, color: 'var(--sp-fg-muted)', fontSize: 12, marginRight: 16 }}>
-                  PREVIEW PARTICIPANTS (3)
+                  MEMBERS ({participants.length})
                 </div>
                 {participants.map((p) => (
-                  <div key={p.id} style={styles.participantChip}>
+                  <div key={p.user_id} style={styles.participantChip}>
                     <div
                       style={{
                         width: 8,
@@ -184,86 +178,37 @@ export default function StudyGroupRoom() {
                         marginRight: 8,
                       }}
                     />
-                    {p.name}{' '}
+                    {p.profile?.display_name || p.profile?.username || 'Member'}{' '}
                     {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
-                    {p.role === 'Admin' ? (
+                    {p.role === 'owner' ? (
                       <span style={{ color: 'var(--sp-accent-amber)', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
                     ) : null}
                   </div>
                 ))}
-                {/* 2026-08-27: had no onClick, and it is the ONLY way to add someone
-                    to a study group - so the group feature was unusable in its
-                    central action while looking complete. */}
                 <button
                   type="button"
-                  disabled
-                  aria-label="Invite links are not available yet"
-                  title="Invite Links Are Not Available Yet"
-                  style={{ ...styles.inviteBtn, opacity: 0.5, cursor: 'not-allowed' }}
+                  onClick={copyInvite}
+                  aria-label="Copy study group invite link"
+                  style={styles.inviteBtn}
                 >
-                  Invite Link Coming Soon
+                  {inviteStatus || 'Copy Invite Link'}
                 </button>
               </div>
 
               <div style={styles.handViewer}>
-                {activeHandInfo ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={styles.activeHand}
-                  >
-                    <div style={styles.handHeader}>
-                      <h3 style={{ margin: 0 }}>{activeHandInfo.id} Overview</h3>
-                      <button
-                        type="button"
-                        aria-label="Close active hand viewer"
-                        style={styles.closeBtn}
-                        onClick={() => setActiveHandInfo(null)}
-                      >
-                        {/* TRAIN-STUDYGROUP-A11Y-1: SVG close replaces glyph */}
-                        <CloseIcon size={16} />
-                      </button>
-                    </div>
-
-                    <div style={styles.cardsDisplay}>
-                      <div style={styles.playerBlock}>
-                        <div style={styles.playerLabel}>HERO</div>
-                        <div style={{ fontSize: 28 }}>{activeHandInfo.hero}</div>
-                      </div>
-                      <div style={styles.boardBlock}>
-                        <div style={styles.playerLabel}>RUNOUT</div>
-                        <div style={{ fontSize: 32, letterSpacing: 4 }}>{activeHandInfo.board}</div>
-                      </div>
-                      <div style={styles.playerBlock}>
-                        <div style={styles.playerLabel}>VILLAIN</div>
-                        <div style={{ fontSize: 28 }}>{activeHandInfo.villain}</div>
-                      </div>
-                    </div>
-
-                    <div style={styles.actionLog}>
-                      <strong>Action:</strong> {activeHandInfo.actionSummary}
-                    </div>
-
-                    <div style={styles.solverEval}>
-                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG star replaces glyph */}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--sp-accent-amber)' }} aria-hidden>
-                        <StarIcon size={14} />
-                        {activeHandInfo.solverEval}
-                      </span>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div style={styles.emptyHandViewer}>
-                    <TrainerEmptyState
-                      variant="no-data"
-                      title="No hand active"
-                      message="Upload a hand history or load a saved bookmark to begin group analysis."
-                      cta={{ label: 'Load Demo Hand', onClick: loadDemoHand }}
-                    />
-                  </div>
-                )}
+                <div style={styles.emptyHandViewer}>
+                  <TrainerEmptyState
+                    variant="no-data"
+                    title="Verified Hand Review"
+                    message="Import and validate a real hand before discussing it with the group. This room never inserts a demo hand or fabricated solver result."
+                    cta={{
+                      label: 'Open Hand History Upload',
+                      onClick: () => router.push('/hub/training/hand-history-upload'),
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -276,21 +221,21 @@ export default function StudyGroupRoom() {
                     key={m.id}
                     style={{
                       ...styles.messageWrapper,
-                      alignSelf: m.sender === 'You' ? 'flex-end' : 'flex-start',
+                      alignSelf: m.mine ? 'flex-end' : 'flex-start',
                     }}
                   >
                     {m.isSystem ? (
-                      <div style={styles.systemMsg}>{m.text}</div>
+                      <div style={styles.systemMsg}>{m.body}</div>
                     ) : (
                       <div
                         style={{
                           ...styles.msgBubble,
                           background:
-                            m.sender === 'You'
+                            m.mine
                               ? 'rgba(0, 212, 255, 0.2)'
                               : 'rgba(255,255,255,0.05)',
                           border:
-                            m.sender === 'You'
+                            m.mine
                               ? '1px solid rgba(0, 212, 255, 0.4)'
                               : '1px solid rgba(255,255,255,0.1)',
                         }}
@@ -304,10 +249,10 @@ export default function StudyGroupRoom() {
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span>{m.sender}</span>
-                          <span>{m.time}</span>
+                          <span>{m.mine ? 'You' : m.profile?.display_name || m.profile?.username || 'Member'}</span>
+                          <span>{new Date(m.created_at).toLocaleTimeString()}</span>
                         </div>
-                        <div style={{ fontSize: 14 }}>{m.text}</div>
+                        <div style={{ fontSize: 14 }}>{m.body}</div>
                       </div>
                     )}
                   </div>
@@ -320,9 +265,10 @@ export default function StudyGroupRoom() {
                   onChange={(e) => setInputMsg(e.target.value)}
                   placeholder="Type your strategic thoughts..."
                   aria-label="Chat message"
+                  disabled={sending}
                   style={styles.chatInput}
                 />
-                <button type="submit" aria-label="Send chat message" style={styles.sendBtn}>
+                <button type="submit" aria-label="Send chat message" disabled={sending || !inputMsg.trim()} style={styles.sendBtn}>
                   {/* TRAIN-STUDYGROUP-A11Y-1: SVG send replaces glyph */}
                   <SendIcon size={16} />
                 </button>

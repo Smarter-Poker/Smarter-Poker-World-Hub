@@ -467,13 +467,6 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {sorted.map(([action, freq], index) => {
-                    // Calculate a pseudo-EV delta for visual GTOW parity when mixed
-                    let evDelta = null;
-                    if (isMixed && handEV !== undefined && handEV !== null && index > 0) {
-                        const diff = bestAction[1] - freq;
-                        evDelta = -((diff / 100) * 0.15); // scaled mock EV loss
-                    }
-
                     return (
                         <div key={action} style={{ position: 'relative' }}>
                             <FrequencyBar
@@ -481,15 +474,6 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                                 frequency={freq}
                                 color={ACTION_COLORS[action] || '#888'}
                             />
-                            {evDelta !== null && (
-                                <div style={{
-                                    position: 'absolute', right: 58, top: 4,
-                                    fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-red)',
-                                    background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 4,
-                                }}>
-                                    {evDelta.toFixed(2)} BB
-                                </div>
-                            )}
                             {index === 0 && handEV !== undefined && handEV !== null && sorted.length > 1 && (
                                 <div style={{
                                     position: 'absolute', right: 58, top: 4,

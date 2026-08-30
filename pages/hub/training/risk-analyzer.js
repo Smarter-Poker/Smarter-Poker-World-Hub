@@ -15,8 +15,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function RiskAnalyzerPage() {
@@ -85,28 +83,8 @@ export default function RiskAnalyzerPage() {
     setChartData(paths);
     setSimulating(false);
 
-    // Save session & Emit Global Event
-    try {
-      const token = getAccessToken();
-      if (token) {
-        await authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'risk-analyzer',
-            questionsAnswered: 1,
-            questionsCorrect: 1,
-            accuracy: 100,
-          }),
-        });
-      }
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-        'risk-analyzer'
-      );
-    } catch (e) {
-      console.warn(e);
-    }
+    // Simulation output is an estimate, not a graded poker decision. It must
+    // never create a perfect session or affect streak and leaderboard data.
   };
 
   return (

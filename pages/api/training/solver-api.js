@@ -3,7 +3,9 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * SOLVER API — GTO Solver Query Foundation
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * API endpoint accepting custom spot definitions. Checks pre-computed
- * solutions DB first (instant), queues unknown spots for remote solving.
+ * solutions DB first (instant) and returns an explicitly labelled modeled
+ * baseline when the exact board is not present. It never claims that an
+ * unconfigured remote worker will solve a queued request.
  * Rate limited: 10 requests/minute per user.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
@@ -97,6 +99,68 @@ function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameTy
     return `spot_${Math.abs(hash).toString(36)}`;
 }
 
+const GAME_TYPE_MAP = {
+    cash: 'hu_cash',
+    mtt: 'mtt_hu_chipev',
+    tournament: 'mtt_hu_chipev',
+    sng: 'sng_hu',
+};
+
+function aggregateSolverActions(strategyMatrix) {
+    const actions = Array.isArray(strategyMatrix?.actions) ? strategyMatrix.actions : [];
+    const frequencies = strategyMatrix?.frequencies || {};
+    const totals = Object.fromEntries(actions.map((actionName) => [actionName, 0]));
+    let hands = 0;
+
+    const handNames = new Set();
+    actions.forEach((actionName) => {
+        Object.keys(frequencies[actionName] || {}).forEach((hand) => handNames.add(hand));
+    });
+
+    handNames.forEach((hand) => {
+        const raw = actions.map((actionName) => Number(frequencies[actionName]?.[hand]) || 0);
+        const total = raw.reduce((sum, value) => sum + Math.max(0, value), 0);
+        if (total <= 0) return;
+        actions.forEach((actionName, index) => {
+            totals[actionName] += Math.max(0, raw[index]) / total;
+        });
+        hands += 1;
+    });
+
+    if (hands === 0) return null;
+    const result = {};
+    Object.entries(totals).forEach(([actionName, total]) => {
+        result[actionName.toLowerCase()] = Math.round((total / hands) * 1000) / 10;
+    });
+    return result;
+}
+
+async function findExactSolverStrategy({ board, heroPosition, stackDepth, gameType, street }) {
+    const boardString = board.join('').toLowerCase();
+    const pioGameType = GAME_TYPE_MAP[String(gameType || 'cash').toLowerCase()] || 'hu_cash';
+    let query = getSupabase()
+        .from('solved_spots_gold')
+        .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix')
+        .eq('game_type', pioGameType)
+        .eq('street', street)
+        .ilike('scenario_hash', `%${boardString}%`)
+        .limit(25);
+    if (Number(stackDepth) > 0) query = query.eq('stack_depth', Number(stackDepth));
+    const { data, error } = await query;
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+
+    const positionToken = `_${String(heroPosition || '').toUpperCase()}_`;
+    const ordered = [
+        ...data.filter((row) => String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
+        ...data.filter((row) => !String(row.scenario_hash || '').toUpperCase().includes(positionToken)),
+    ];
+    for (const row of ordered) {
+        const actions = aggregateSolverActions(row.strategy_matrix);
+        if (actions && Object.keys(actions).length > 0) return { row, actions };
+    }
+    return null;
+}
+
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // API HANDLER
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -151,51 +215,44 @@ export default async function handler(req, res) {
 
           const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
 
-          // 2026-08-15 CHECK 13 fix: the "pre-computed solutions" lookup queried
-          // training_scenarios for gto_strategy/actions/frequencies/ev_data/
-          // scenario_hash — NONE of which exist on that table (real schema is a
-          // simple content table with scenario_data jsonb; the table also has 0
-          // rows). The select 42703'd on every call, so the branch never fired
-          // and every request fell through to the queue+baseline path — which is
-          // therefore the real, working behavior and now the only path. The
-          // actual precomputed corpus is solved_spots_gold, but its scenario
-          // hashes are human-readable (street_family_pos_stack_board) while this
-          // endpoint's hashScenario() is a numeric JS hash — integrating the two
-          // is a feature project, not a phantom-column repoint.
-          const supabase = getSupabase();
-
-          // Queue for solving (stub for remote PIO node)
-          const queueEntry = {
-              scenario_hash: scenarioHash,
-              board: board.join(','),
-              hero_position: heroPosition,
-              villain_position: villainPosition || 'BB',
-              stack_depth: stackDepth || 100,
-              game_type: gameType || 'cash',
-              street: street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river'),
-              status: 'queued',
-              requested_by: user.id,
-              requested_at: new Date().toISOString(),
-          };
-
-          // Try to insert into solver_queue (will succeed if table exists)
-          try {
-              const { error: err_solver_queue_diso4 } = await supabase.from('solver_queue').insert([queueEntry]);
-              if (err_solver_queue_diso4) console.warn('[Supabase] Silent mutation failed in solver_queue:', err_solver_queue_diso4.message);
-          } catch {
-              // Table may not exist yet — that's OK for foundation phase
+          const resolvedStreet = street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river');
+          const exact = await findExactSolverStrategy({
+              board,
+              heroPosition,
+              stackDepth: stackDepth || 100,
+              gameType: gameType || 'cash',
+              street: resolvedStreet,
+          });
+          if (exact) {
+              return res.status(200).json({
+                  success: true,
+                  status: 'solved',
+                  source: 'solved_spots_gold',
+                  matchQuality: 'exact_board',
+                  scenarioHash: exact.row.scenario_hash,
+                  message: 'Aggregated frequencies from the matching solved board node.',
+                  solution: {
+                      actions: exact.actions,
+                      board,
+                      heroPosition,
+                      villainPosition: villainPosition || 'BB',
+                      stackDepth: exact.row.stack_depth,
+                      gameType: exact.row.game_type,
+                      street: exact.row.street,
+                      isEstimate: false,
+                  },
+              });
           }
 
-          // 3) Return queued response with GTO baseline estimate
           const baselineStrategy = generateBaselineStrategy(board, heroPosition, action, villainPosition || 'BB');
 
-          return res.status(202).json({
+          return res.status(200).json({
               success: true,
-              status: 'queued',
-              source: 'baseline_estimate',
+              status: 'estimate',
+              source: 'modeled_baseline',
+              matchQuality: 'no_exact_board',
               scenarioHash,
-              estimatedTime: '2-5 minutes (when solver node is connected)',
-              message: 'Spot queued for precise solving. Showing GTO baseline estimate.',
+              message: 'No exact solved board was found. Showing a clearly labelled positional baseline, not solver output.',
               solution: {
                   actions: baselineStrategy.actions,
                   frequencies: baselineStrategy.frequencies,
@@ -205,6 +262,7 @@ export default async function handler(req, res) {
                   villainPosition: villainPosition || 'BB',
                   stackDepth: stackDepth || 100,
                   gameType: gameType || 'cash',
+                  street: resolvedStreet,
                   isEstimate: true,
               },
           });

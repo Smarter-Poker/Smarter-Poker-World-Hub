@@ -18,6 +18,7 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // ── Phase 3 Engines: Session trends + scoring for GTO proximity report ──
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import { getScoreGrade, getScoreColor } from '../../../src/engines/GTOScoreEngine';
@@ -352,17 +353,7 @@ export default function GTOReportsPage() {
   // Compute aggregate user stats from sessions
   const userStats = useMemo(() => {
     if (sessions.length === 0) {
-      // Demo data for illustration
-      return {
-        vpip: 28.3,
-        pfr: 21.5,
-        threeBet: 6.2,
-        foldTo3Bet: 62.1,
-        cBet: 58.4,
-        foldToCBet: 38.7,
-        wtsd: 29.1,
-        wwsf: 44.3,
-      };
+      return Object.fromEntries(Object.keys(GTO_BASELINES.overall).map((key) => [key, 0]));
     }
 
     let totalHands = 0,
@@ -529,6 +520,13 @@ export default function GTOReportsPage() {
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--sp-fg-dim)' }}>
               Loading session data...
             </div>
+          ) : sessions.length === 0 ? (
+            <TrainerEmptyState
+              variant="no-data"
+              title="No GTO Report Data Yet"
+              message="Complete a training session to generate your first frequency report. No sample or estimated player statistics are shown here."
+              cta={{ label: 'Start Training', onClick: () => router.push('/hub/training') }}
+            />
           ) : (
             <>
               {/* GTO Proximity Score */}
@@ -568,7 +566,7 @@ export default function GTOReportsPage() {
                   {gtoProximity}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
-                  Based on {sessions.length > 0 ? sessions.length : 'sample'} training sessions
+                  Based on {sessions.length} training sessions
                 </div>
                 {/* Progress bar */}
                 <div
@@ -661,13 +659,7 @@ export default function GTOReportsPage() {
                           Close
                         </button>
                       </div>
-                      {sessions.length === 0 ? (
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', padding: '10px 0' }}>
-                          No session data yet. Complete training sessions to see drill-down details.
-                          Sample data is being displayed above.
-                        </div>
-                      ) : (
-                        <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                      <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                           {sessions.slice(0, 20).map((s, i) => {
                             const acc = s.accuracy || 0;
                             const hands = s.hands_played || s.handsPlayed || 0;
@@ -707,8 +699,7 @@ export default function GTOReportsPage() {
                               </div>
                             );
                           })}
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -745,7 +736,7 @@ export default function GTOReportsPage() {
                       cBet: { label: 'C-Bet Frequency', href: '/hub/training?drill=cbet-practice' },
                       foldToCBet: { label: 'C-Bet Defense', href: '/hub/training?drill=cbet-defense' },
                       wtsd: { label: 'Showdown Value', href: '/hub/training/bluff-catcher' },
-                      wwsf: { label: 'Postflop Play', href: '/hub/training/play-mode' },
+                      wwsf: { label: 'Postflop Play', href: '/hub/training/arena/cash-012?level=1' },
                     };
                     const drill = DRILL_MAP[key];
                     return (
@@ -819,13 +810,13 @@ export default function GTOReportsPage() {
 
                     const DRILL_PAGES = {
                       vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-builder', icon: ''},
-                      pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: ''},
+                      pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/arena/cash-001?level=1', icon: ''},
                       threeBet: { name: '3-Bet Scenarios', desc: 'Practice 3-bet and squeeze spots', href: '/hub/training/blind-defense', icon: '▲'},
                       foldTo3Bet: { name: '3-Bet Defense', desc: 'Learn when to call, 4-bet, or fold', href: '/hub/training/blind-defense', icon: ''},
-                      cBet: { name: 'C-Bet Practice', desc: 'Optimize continuation betting', href: '/hub/training/play-mode', icon: ''},
+                      cBet: { name: 'C-Bet Practice', desc: 'Optimize continuation betting', href: '/hub/training/arena/cash-012?level=1', icon: ''},
                       foldToCBet: { name: 'Facing C-Bets', desc: 'Defend correctly vs c-bets', href: '/hub/training/bluff-catcher', icon: ''},
                       wtsd: { name: 'Showdown Decisions', desc: 'Hero call vs value bet spots', href: '/hub/training/bluff-catcher', icon: ''},
-                      wwsf: { name: 'Postflop Play', desc: 'Full hand simulation practice', href: '/hub/training/play-mode', icon: ''},
+                      wwsf: { name: 'Postflop Play', desc: 'Practice authored postflop decisions', href: '/hub/training/arena/cash-012?level=1', icon: ''},
                     };
 
                     if (weakStats.length === 0) {

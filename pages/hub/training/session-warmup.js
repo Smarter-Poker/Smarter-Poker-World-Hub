@@ -2,7 +2,7 @@
  * SESSION WARMUP PROTOCOL — Pre-Session Readiness System
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive 6-step protocol with mental check, strategy focus,
- * bankroll stop-loss, warmup timer, and Supabase completion logging.
+ * bankroll stop-loss, warmup timer, and device-local completion logging.
  *
  * Route: /hub/training/session-warmup
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -15,8 +15,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-8 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -148,13 +146,6 @@ export default function SessionWarmupPage() {
   }, []);
 
   // EventBus listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'SessionWarmup') return;
-    });
-    return unsub;
-  }, []);
-
   const currentStep = PROTOCOL_STEPS[step];
   const progress = ((step + 1) / PROTOCOL_STEPS.length) * 100;
 
@@ -188,7 +179,8 @@ export default function SessionWarmupPage() {
     [submitInput]
   );
 
-  // Save completion to Supabase
+  // Record completion locally. Readiness responses are not correct/incorrect
+  // poker decisions and must not create perfect training sessions.
   useEffect(() => {
     if (completed && !savedRef.current) {
       savedRef.current = true;
@@ -197,43 +189,6 @@ export default function SessionWarmupPage() {
       try {
         localStorage.setItem('warmup-count', String(newCount));
       } catch (e) { console.warn('[App] Handled exception:', e); }
-
-      const save = async () => {
-        try {
-          const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-          if (!token) return;
-          await authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
-              gameId: 'session-warmup',
-              gameName: `Session Warmup #${newCount}`,
-              gtowScore: 100,
-              totalEVLoss: 0,
-              handsPlayed: PROTOCOL_STEPS.length,
-              mistakeCount: 0,
-              accuracy: 100,
-              correctCount: PROTOCOL_STEPS.length,
-              bestStreak: 0,
-              levelPassed: true,
-              level: 1,
-              handHistory: [{ type: 'warmup', answers, timestamp: new Date().toISOString() }],
-            }),
-          });
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            {
-              gameId: 'session-warmup',
-              completed: true,
-              focus: answers.strategy || 'general',
-              stopLoss: answers.br || '3',
-            },
-            'SessionWarmup'
-          );
-        } catch (err) {
-          console.warn('[Warmup] Save error:', err.message);
-        }
-      };
-      save();
     }
   }, [completed]);
 

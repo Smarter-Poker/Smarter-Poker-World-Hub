@@ -18,7 +18,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
@@ -276,20 +275,22 @@ export default function RangeBuilder() {
       const data = await res.json();
       if (data.success) {
         setResult(data);
+        const passed = Number(data.grade?.score) >= 80;
         // Emit bus events based on grade
-        if (data.grade?.score >= 80) {
+        if (passed) {
           bus.emitDecisionCorrect();
         } else {
           bus.emitDecisionIncorrect();
-          // Persist to Supabase
-          saveSession({
-            game_id: 'range-builder',
-            hands_played: 1,
-            accuracy: data.score || 0,
-            correct_answers: data.correctCount || 0,
-            total_questions: data.totalCount || 1,
-          });
         }
+        // Range construction is one graded decision. Persist both passes and
+        // misses so history does not become a biased set of failures.
+        saveSession({
+          game_id: 'range-builder',
+          hands_played: 1,
+          accuracy: Number(data.grade?.score) || 0,
+          correct_answers: passed ? 1 : 0,
+          total_questions: 1,
+        });
       }
     } catch (err) {
       console.warn('[RangeBuilder] Grade error:', err);

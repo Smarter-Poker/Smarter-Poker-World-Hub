@@ -1,8 +1,8 @@
 /**
  * GTO PRELOADER — Offline Cache Manager
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Settings UI to "download" specific game trees for offline use.
- * Now integrated with actual IndexedDB via idbCacheStore to write binary blobs.
+ * Downloads real training question packs for offline use. The arena reads
+ * the same IndexedDB entries whenever a network request cannot complete.
  *
  * Route: /hub/training/gto-preloader
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -16,81 +16,78 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 import { idbSet, idbDelete, idbGet } from '../../../src/lib/idbCacheStore';
+import {
+  deleteOfflineQuestions,
+  estimateQuestionBytes,
+  getOfflineQuestions,
+  setOfflineQuestions,
+} from '../../../src/lib/training/offlineQuestionCache';
 
 const TREES = [
   {
     id: '100bb-6max',
+    gameId: 'cash-001',
     label: '100BB 6-Max Cash',
-    size: '1.2 GB',
-    desc: 'Core solver paths for standard online 6-max.',
-    time: 'Complete',
+    desc: 'All 12 Preflop Blueprint levels for standard 100BB cash play.',
   },
   {
     id: '20bb-mtt',
+    gameId: 'mtt-001',
     label: '20BB MTT Push/Fold',
-    size: '450 MB',
-    desc: 'Short stack tournament ranges and reshoves.',
-    time: 'Complete',
+    desc: 'All 12 Push/Fold levels for short-stack tournament decisions.',
   },
   {
     id: 'hu-40bb',
+    gameId: 'cash-010',
     label: 'Head-Up 40BB',
-    size: '800 MB',
-    desc: 'Deep HU SNGs and late stage tournament HU.',
-    time: 'Complete',
+    desc: 'All 12 Short Stack levels backed by the 40BB heads-up corpus.',
   },
   {
     id: 'live-200bb',
+    gameId: 'cash-009',
     label: 'Live 200BB Deep',
-    size: '2.4 GB',
-    desc: 'Exploitative deep stack mapping for live $2/$5.',
-    time: 'Complete',
+    desc: 'All 12 Deep Stack levels for 200BB postflop study.',
   },
 ];
 
-// Offline Cache TTL (10 years to simulate permanent pinning)
-const PERMANENT_TTL = 10 * 365 * 24 * 60 * 60 * 1000;
+const LEVELS = Array.from({ length: 12 }, (_, index) => index + 1);
+const PACK_TTL = 30 * 24 * 60 * 60 * 1000;
 
 export default function GtoPreloaderPage() {
   const router = useRouter();
   useTrainingBus('gto-preloader');
 
-  // Listen for session events from other training modules
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
-      const source = event?.source;
-      if (source === 'gto-preloader') return; // Ignore own emits
-    });
-    return unsub;
-  }, []);
-
-  const [downloads, setDownloads] = useState({}); // { id: { progress: number, status: 'idle'|'downloading'|'done' } }
+  const [downloads, setDownloads] = useState({});
   const [idbReady, setIdbReady] = useState(false);
 
-  // Boot: Verify which trees are truly in IndexedDB vs LocalStorage Sync state
+  // Boot: verify every level, rather than trusting a display-only local flag.
   useEffect(() => {
     const verifyStorage = async () => {
       const init = {};
-      let localMeta = {};
-      try {
-        const saved = localStorage.getItem('gto-offline-trees');
-        if (saved) localMeta = JSON.parse(saved);
-      } catch (e) { console.warn('[App] Handled exception:', e); }
-
       for (const t of TREES) {
-        // Cross-check IndexedDB
-        const cachedBin = await idbGet(`gto_tree_${t.id}`);
-        if (cachedBin) {
-          init[t.id] = { progress: 100, status: 'done' };
-        } else if (localMeta[t.id] && localMeta[t.id].status === 'downloading') {
-          // It was interrupted
-          init[t.id] = { progress: 0, status: 'idle' };
-        } else {
-          init[t.id] = { progress: 0, status: 'idle' };
+        const manifest = await idbGet(`training_pack:${t.id}`);
+        let cachedLevels = 0;
+        let questionCount = 0;
+        let bytes = 0;
+        for (const level of LEVELS) {
+          const questions = await getOfflineQuestions(t.gameId, level);
+          if (questions.length > 0) {
+            cachedLevels += 1;
+            questionCount += questions.length;
+            bytes += estimateQuestionBytes(questions);
+          }
         }
+        const complete = cachedLevels === LEVELS.length && manifest?.version === 1;
+        init[t.id] = {
+          progress: complete ? 100 : Math.round((cachedLevels / LEVELS.length) * 100),
+          status: complete ? 'done' : 'idle',
+          cachedLevels,
+          questionCount,
+          bytes,
+          error: null,
+        };
       }
       setDownloads(init);
       setIdbReady(true);
@@ -98,79 +95,77 @@ export default function GtoPreloaderPage() {
     verifyStorage();
   }, []);
 
-  const startDownload = (id) => {
-    setDownloads((prev) => ({ ...prev, [id]: { progress: 0, status: 'downloading' } }));
+  const startDownload = async (id) => {
+    const tree = TREES.find((entry) => entry.id === id);
+    if (!tree) return;
+    setDownloads((prev) => ({
+      ...prev,
+      [id]: { progress: 0, status: 'downloading', cachedLevels: 0, questionCount: 0, bytes: 0, error: null },
+    }));
 
-    let p = 0;
-    const interval = setInterval(async () => {
-      p += Math.random() * 8; // Random increments
-      if (p >= 100) {
-        p = 100;
-        clearInterval(interval);
-
-        // Write a functional blob stub to IndexedDB to commit disk usage
-        const binaryStub = new Float32Array(100000); // Emulating a small structured tree
-        await idbSet(`gto_tree_${id}`, binaryStub, PERMANENT_TTL);
-
-        setDownloads((prev) => {
-          const next = { ...prev, [id]: { progress: 100, status: 'done' } };
-          try {
-            localStorage.setItem('gto-offline-trees', JSON.stringify(next));
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-          return next;
-        });
-
-        // Track the Cache Action via DB & EventBus
-        logCacheEvent(id, 'downloaded');
-      } else {
-        setDownloads((prev) => ({ ...prev, [id]: { progress: p, status: 'downloading' } }));
+    let questionCount = 0;
+    let bytes = 0;
+    try {
+      for (const level of LEVELS) {
+        const response = await authedFetch(
+          `/api/training/batch-preload?gameId=${encodeURIComponent(tree.gameId)}&level=${level}&count=20`,
+        );
+        let payload = null;
+        try { payload = await response.json(); } catch { /* handled below */ }
+        if (!response.ok || !Array.isArray(payload?.questions) || payload.questions.length === 0) {
+          throw new Error(payload?.error || `Level ${level} could not be downloaded`);
+        }
+        await setOfflineQuestions(tree.gameId, level, payload.questions);
+        questionCount += payload.questions.length;
+        bytes += estimateQuestionBytes(payload.questions);
+        setDownloads((prev) => ({
+          ...prev,
+          [id]: {
+            progress: Math.round((level / LEVELS.length) * 100),
+            status: 'downloading',
+            cachedLevels: level,
+            questionCount,
+            bytes,
+            error: null,
+          },
+        }));
       }
-    }, 150);
+
+      await idbSet(
+        `training_pack:${id}`,
+        { version: 1, gameId: tree.gameId, levels: LEVELS, questionCount, bytes, savedAt: new Date().toISOString() },
+        PACK_TTL,
+      );
+      setDownloads((prev) => ({
+        ...prev,
+        [id]: { progress: 100, status: 'done', cachedLevels: 12, questionCount, bytes, error: null },
+      }));
+    } catch (error) {
+      setDownloads((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], status: 'error', error: error?.message || 'Download failed' },
+      }));
+    }
   };
 
   const deleteTree = async (id) => {
-    await idbDelete(`gto_tree_${id}`);
-    setDownloads((prev) => {
-      const next = { ...prev, [id]: { progress: 0, status: 'idle' } };
-      try {
-        localStorage.setItem('gto-offline-trees', JSON.stringify(next));
-      } catch (e) { console.warn('[App] Handled exception:', e); }
-      return next;
-    });
-    logCacheEvent(id, 'deleted');
-  };
-
-  const logCacheEvent = async (treeId, action) => {
-    try {
-      const token = getAccessToken();
-      if (token) {
-        await authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'gto-preloader',
-            questionsAnswered: 1,
-            questionsCorrect: 1,
-            accuracy: 100,
-          }),
-        });
-      }
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-        'gto-preloader'
-      );
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    const tree = TREES.find((entry) => entry.id === id);
+    if (!tree) return;
+    await Promise.all(LEVELS.map((level) => deleteOfflineQuestions(tree.gameId, level)));
+    await idbDelete(`training_pack:${id}`);
+    setDownloads((prev) => ({
+      ...prev,
+      [id]: { progress: 0, status: 'idle', cachedLevels: 0, questionCount: 0, bytes: 0, error: null },
+    }));
   };
 
   const getDiskUsage = () => {
-    if (!idbReady) return '0.00';
-    const sizes = { '100bb-6max': 1200, '20bb-mtt': 450, 'hu-40bb': 800, 'live-200bb': 2400 };
-    let total = 0;
-    Object.entries(downloads || {}).forEach(([id, data]) => {
-      if (data.status === 'done') total += sizes[id];
-      else if (data.status === 'downloading') total += sizes[id] * (data.progress / 100);
-    });
-    return (Number.isFinite(Number(total / 1024)) ? Number(total / 1024) : 0).toFixed(2);
+    const bytes = Object.values(downloads || {}).reduce(
+      (total, data) => total + (Number(data?.bytes) || 0),
+      0,
+    );
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
   return (
@@ -217,7 +212,7 @@ export default function GtoPreloaderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Offline IndexedDB Cache Sync</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Real Offline Question Pack Sync</div>
             </div>
           </div>
         </div>
@@ -265,10 +260,10 @@ export default function GtoPreloaderPage() {
                 IDB Cache Used
               </div>
               <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>
-                {getDiskUsage()} <span style={{ fontSize: 16, color: 'var(--sp-accent-blue)' }}>GB</span>
+                {getDiskUsage()}
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                Available on device layout API: ~45.0 GB
+                Verified question payloads currently stored on this device
               </div>
             </div>
           </div>
@@ -283,7 +278,7 @@ export default function GtoPreloaderPage() {
               marginBottom: 16,
             }}
           >
-            Available Solver Trees
+            Available Training Packs
           </div>
 
           <div
@@ -344,7 +339,10 @@ export default function GtoPreloaderPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
-                        {tree.size}
+                        {state.cachedLevels || 0}/12 Levels
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                        {state.questionCount || 0} Questions
                       </div>
                     </div>
                   </div>
@@ -365,7 +363,7 @@ export default function GtoPreloaderPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      ↓ Download to Device Memory
+                      ↓ Cache All 12 Levels
                     </button>
                   )}
 
@@ -381,7 +379,7 @@ export default function GtoPreloaderPage() {
                           marginBottom: 6,
                         }}
                       >
-                        <span>Syncing nodes via IDB...</span>
+                        <span>Downloading Verified Questions...</span>
                         <span style={{ color: 'var(--sp-accent-cyan)' }}>{Math.round(state.progress)}%</span>
                       </div>
                       <div
@@ -419,7 +417,7 @@ export default function GtoPreloaderPage() {
                           cursor: 'not-allowed',
                         }}
                       >
-                        ✓ IndexedDB Saved
+                        ✓ Offline Pack Ready
                       </button>
                       <button
                         onClick={() => deleteTree(tree.id)}
@@ -434,7 +432,32 @@ export default function GtoPreloaderPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        Delete ArrayBuffer
+                        Delete Pack
+                      </button>
+                    </div>
+                  )}
+
+                  {state.status === 'error' && (
+                    <div role="alert" style={{ marginTop: 10 }}>
+                      <div style={{ color: 'var(--sp-accent-red)', fontSize: 11, marginBottom: 8 }}>
+                        {state.error || 'The pack could not be downloaded.'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => startDownload(tree.id)}
+                        style={{
+                          width: '100%',
+                          padding: 12,
+                          borderRadius: 8,
+                          background: 'rgba(59,130,246,0.1)',
+                          border: '1px solid rgba(59,130,246,0.3)',
+                          color: 'var(--sp-accent-blue)',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Retry Download
                       </button>
                     </div>
                   )}

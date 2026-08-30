@@ -11,26 +11,20 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
 
 // TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
 // prefers-reduced-motion via the body.world-training override.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
-
-function saveSession(payload) {
-  authedFetch('/api/training/save-session', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-}
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONSTANTS
@@ -374,8 +368,6 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
 export default function ICMCalculatorPage() {
   const router = useRouter();
   useTrainingBus('icm-calculator');
-  const calcCountRef = useRef(0);
-
   const [stacks, setStacks] = useState([25000, 20000, 15000, 10000]);
   const [prizes, setPrizes] = useState([40, 30, 20, 10]);
   const [prizePool, setPrizePool] = useState(1000);
@@ -383,7 +375,6 @@ export default function ICMCalculatorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [icmView, setIcmView] = useState('calculator');
-  const [bountyFormat, setBountyFormat] = useState('Regular');
 
   // Update a single stack
   const updateStack = useCallback((idx, val) => {
@@ -446,15 +437,7 @@ export default function ICMCalculatorPage() {
       const data = await res.json();
       if (data.success) {
         setResults(data);
-        calcCountRef.current += 1;
-        // Standard session-complete + legacy icm-calculated events
-        eventBus?.emit?.('training:session-complete', {
-          game_id: 'icm-calculator',
-          accuracy: 100,
-          hands_played: calcCountRef.current,
-          correct_answers: calcCountRef.current,
-          total_questions: calcCountRef.current,
-        });
+        // Calculator use is analytics, not a graded training completion.
         busEmit?.('training:icm-calculated', {
           players: stacks.length,
           prizePool,
@@ -1202,28 +1185,6 @@ export default function ICMCalculatorPage() {
                 </button>
               ))}
 
-              {/* Bounty Format Toggle */}
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-                {['Regular', 'KO', 'PKO'].map((fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={() => setBountyFormat(fmt)}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: 6,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: 'none',
-                      background:
-                        bountyFormat === fmt ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
-                      color: bountyFormat === fmt ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
-                    }}
-                  >
-                    {fmt}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <AnimatePresence mode="wait">
@@ -1234,7 +1195,14 @@ export default function ICMCalculatorPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  <ICMPreflopRanges playerCount={stacks.length || 6} bountyFormat={bountyFormat} />
+                  <VerifiedToolGateway
+                    eyebrow="Graded Tournament Training"
+                    title="Practice ICM Push Or Fold"
+                    description="Open the Club Arena drill for authored tournament decisions, explicit feedback, and manual Next controls. The calculator does not manufacture a push range from a percentage threshold."
+                    href="/hub/training/arena/mtt-002?level=1"
+                    action="Open Push Or Fold Training"
+                    source="Versioned Tournament Corpus"
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

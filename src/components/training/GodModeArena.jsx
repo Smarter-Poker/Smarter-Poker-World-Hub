@@ -16,6 +16,7 @@ import { shareResult } from '../../utils/shareCard';
 import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
+import VerifiedToolGateway from './VerifiedToolGateway';
 import PositionStatsPanel from './PositionStatsPanel';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
@@ -60,7 +61,6 @@ import OpponentProfiler from './OpponentProfiler';
 import ThreeBetTrainer from './ThreeBetTrainer';
 // ●●● PHASE 6: Solutions Browser, Custom Drills, HH Import, Tournament ●●●
 import PreflopSolutionsBrowser from './PreflopSolutionsBrowser';
-import CustomSpotDrillBuilder from './CustomSpotDrillBuilder';
 import HandHistoryImporter from './HandHistoryImporter';
 import TournamentTrainer from './TournamentTrainer';
 // ●●● PHASE 7: Postflop Solutions, Sizing, Study Plan, Reports ●●●
@@ -79,7 +79,6 @@ import EVTreeVisualizer from './EVTreeVisualizer';
 import BankrollTracker from './BankrollTracker';
 import SpotFilterTrainer from './SpotFilterTrainer';
 // ●●● PHASE 10: HUD, Hand Notes, Leak Finder, Table Dynamics ●●●
-import PopupHUDOverlay from './PopupHUDOverlay';
 import HandNoteTagger from './HandNoteTagger';
 import LeakFinderEngine from './LeakFinderEngine';
 import TableDynamicsPanel from './TableDynamicsPanel';
@@ -155,7 +154,6 @@ import BubbleFactorCalc from './BubbleFactorCalc';
 import HandReadingTrainer from './HandReadingTrainer';
 // ●●● PHASE 25: Geometric Sizing, Mass Data, River Matrix, Pay Jumps ●●●
 import GeometricSizingCalc from './GeometricSizingCalc';
-import MassDataAnalysis from './MassDataAnalysis';
 import RiverDecisionMatrix from './RiverDecisionMatrix';
 import TournamentPayJumpCalc from './TournamentPayJumpCalc';
 // ●●● PHASE 26: X-Raise Sizing, C-Bet Matrix, Turn Impact, Bluff Ratio ●●●
@@ -389,13 +387,9 @@ import HandHistoryAnalysis from './HandHistoryAnalysis';
 import WarmUpRoutine from './WarmUpRoutine';
 
 // ●●● GAP CLOSERS: GTO Wizard Feature Parity ●●●
-import GTOReportsDashboard from './GTOReportsDashboard';
-import EVComparisonTool from './EVComparisonTool';
 import SimplifiedSolutions from './SimplifiedSolutions';
 import CustomSolutionBuilder from './CustomSolutionBuilder';
-import AggregatedFlopReport from './AggregatedFlopReport';
 import PokerArenaMode from './PokerArenaMode';
-import ActionFilterAnalyzer from './ActionFilterAnalyzer';
 import PKOSolverGuide from './PKOSolverGuide';
 import MultiwaySolver from './MultiwaySolver';
 import DeepStackSolutions from './DeepStackSolutions';
@@ -403,11 +397,9 @@ import DeepStackSolutions from './DeepStackSolutions';
 import HandMatrixViewer from './HandMatrixViewer';
 import AdaptiveAIOpponent from './AdaptiveAIOpponent';
 import DailyPersonalQuiz from './DailyPersonalQuiz';
-import MarkTheSpot from './MarkTheSpot';
 import StraddleAnteSolver from './StraddleAnteSolver';
 import HUSNGSolver from './HUSNGSolver';
 import SessionCoachingEngine from './SessionCoachingEngine';
-import StrategyNodeInspector from './StrategyNodeInspector';
 // ●●● Phase 3 Engines: Real-time scoring + diamond rewards ●●●
 import { calculateSessionDiamonds, getScoreGrade, getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
@@ -2889,7 +2881,6 @@ function GodModeArenaInner({
     correctCount,
     streak,
     bestStreak,
-    totalXP, // legacy stub (always 0) — diamonds are the only currency
     requiredCorrect,
     passThreshold,
     totalLevels,
@@ -4342,7 +4333,6 @@ function GodModeArenaInner({
               { id: 'concepts', label: 'Concepts' },
               { id: 'hands', label: 'Hands' },
               { id: 'solver', label: 'Solver' },
-              { id: 'gametree', label: 'Game Tree' },
               { id: 'analysis', label: 'Deep Analysis' },
             ].map((tab) => (
               <button
@@ -6989,27 +6979,14 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: SOLVER COMPARISON ●●● */}
           {reviewTab === 'solver' && (
-            <>
-              <div style={{ marginBottom: 16 }}>
-                <MultiStreetNavigator handHistory={handHistory} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <SolverComparisonReplay handHistory={handHistory} />
-              </div>
-              {/* Range vs Range Equity for last hand's board */}
-              {handHistory.length > 0 &&
-                (() => {
-                  const lastHand = handHistory[handHistory.length - 1];
-                  const hd = lastHand?.handData || lastHand || {};
-                  const board = hd.board;
-                  if (!board) return null;
-                  return (
-                    <div style={{ marginTop: 8 }}>
-                      <RangeEquityVisualizer board={board} />
-                    </div>
-                  );
-                })()}
-            </>
+            <VerifiedToolGateway
+              eyebrow="Verified Solver Workspace"
+              title="Inspect Solver-Backed Solutions"
+              description="Open the solutions browser for versioned corpus results and explicit data provenance. The session review does not extrapolate missing street actions, opponent responses, range equity, or game-tree branches."
+              href="/hub/training/solutions"
+              action="Open Solutions Browser"
+              source="Training Corpus And Solver APIs"
+            />
           )}
 
           {/* ●●● TAB: ANALYSIS ●●● */}
@@ -11228,7 +11205,7 @@ function GodModeArenaInner({
           )}
 
           {/* ●●● GAME TREE TAB ●●● */}
-          {reviewTab === 'gametree' && (
+          {reviewTab === 'verified-gametree-disabled' && (
             <>
               <div
                 style={{
@@ -11359,7 +11336,7 @@ function GodModeArenaInner({
 
           {/* ●●● TAB: RANGES — Postflop Range Viewer ●●● */}
           {/* merged into Solver during the 278-tab consolidation */}
-          {reviewTab === 'solver' && (
+          {reviewTab === 'legacy-solver-range-disabled' && (
             <>
               <div
                 style={{
@@ -11474,7 +11451,14 @@ function GodModeArenaInner({
           {/* ●●● TAB: CUSTOM SPOT DRILL BUILDER ●●● */}
           {reviewTab === 'drills' && (
             <>
-              <CustomSpotDrillBuilder />
+              <VerifiedToolGateway
+                eyebrow="Verified Drill Builder"
+                title="Build A Custom Training Run"
+                description="Configure a real authored drill through the canonical builder. Saved filters launch into the same graded Club Arena question contract as the catalog."
+                href="/hub/training/drill-builder"
+                action="Open Drill Builder"
+                source="Authored Training Catalog"
+              />
             </>
           )}
 
@@ -11579,7 +11563,14 @@ function GodModeArenaInner({
           {/* ●●● TAB: POPUP HUD OVERLAY ●●● */}
           {reviewTab === 'hud' && (
             <>
-              <PopupHUDOverlay />
+              <VerifiedToolGateway
+                eyebrow="Live Integration Status"
+                title="Live HUD Sync"
+                description="Open the production integration status. The training review never invents nearby tables, player identities, device state, or HUD statistics."
+                href="/hub/training/live-hud-sync"
+                action="Open Live HUD Sync"
+                source="Production Integration State"
+              />
             </>
           )}
 
@@ -12006,7 +11997,14 @@ function GodModeArenaInner({
           {/* ●●● TAB: MASS DATA ANALYSIS ●●● */}
           {reviewTab === 'massdata' && (
             <>
-              <MassDataAnalysis />
+              <VerifiedToolGateway
+                eyebrow="Verified Player Analytics"
+                title="Cross-Session Performance"
+                description="Review aggregates computed from your authenticated training sessions. No sample hand counts, accuracy curves, or position results are displayed."
+                href="/hub/training/gto-reports"
+                action="Open GTO Reports"
+                source="Authenticated Training Sessions"
+              />
             </>
           )}
 
@@ -12965,13 +12963,27 @@ function GodModeArenaInner({
 
           {reviewTab === 'gtoreport' && (
             <>
-              <GTOReportsDashboard />
+              <VerifiedToolGateway
+                eyebrow="Verified Player Report"
+                title="Your GTO Training Report"
+                description="Review actual recorded decisions, accuracy, classifications, format splits, and EV loss without inferred or generated player statistics."
+                href="/hub/training/gto-reports"
+                action="Open GTO Reports"
+                source="Authenticated Training Sessions"
+              />
             </>
           )}
 
           {reviewTab === 'evcompare' && (
             <>
-              <EVComparisonTool />
+              <VerifiedToolGateway
+                eyebrow="Verified Solver Evidence"
+                title="Compare Decision EV"
+                description="Query a supported solved spot and compare only action values returned by the solver corpus. Fixed sample nodes are never presented as live analysis."
+                href="/hub/training/custom-solve"
+                action="Open Custom Solve"
+                source="Solved Spots Gold"
+              />
             </>
           )}
 
@@ -12989,7 +13001,14 @@ function GodModeArenaInner({
 
           {reviewTab === 'aggflop' && (
             <>
-              <AggregatedFlopReport />
+              <VerifiedToolGateway
+                eyebrow="Verified Solver Aggregate"
+                title="Aggregate Flop Strategy"
+                description="Inspect board-texture frequencies computed from the solved-spots corpus. No fixed sample percentages or decorative solver claims are shown."
+                href="/hub/training/aggregate"
+                action="Open Aggregate Report"
+                source="Solved Spots Gold"
+              />
             </>
           )}
 
@@ -13001,7 +13020,14 @@ function GodModeArenaInner({
 
           {reviewTab === 'actfilter' && (
             <>
-              <ActionFilterAnalyzer />
+              <VerifiedToolGateway
+                eyebrow="Recorded Hand History"
+                title="Filter And Review Real Decisions"
+                description="Open Replay Theater to inspect decisions preserved in detailed hand histories. Decorative example hands and invented EV loss are excluded."
+                href="/hub/training/replay-theater"
+                action="Open Replay Theater"
+                source="Authenticated Hand History"
+              />
             </>
           )}
 
@@ -13043,7 +13069,14 @@ function GodModeArenaInner({
 
           {reviewTab === 'bookmark' && (
             <>
-              <MarkTheSpot />
+              <VerifiedToolGateway
+                eyebrow="Recorded Hand Review"
+                title="Review Saved Training Hands"
+                description="Open Replay Theater for recorded hands that can be verified against session history. The review drawer never shows fictional bookmarks or fabricated results."
+                href="/hub/training/replay-theater"
+                action="Open Replay Theater"
+                source="Authenticated Hand History"
+              />
             </>
           )}
 
@@ -13062,13 +13095,6 @@ function GodModeArenaInner({
           {reviewTab === 'coach' && (
             <>
               <SessionCoachingEngine />
-            </>
-          )}
-
-          {/* merged into Solver during the 278-tab consolidation */}
-          {reviewTab === 'solver' && (
-            <>
-              <StrategyNodeInspector />
             </>
           )}
 

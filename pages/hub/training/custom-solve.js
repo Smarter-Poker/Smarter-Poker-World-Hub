@@ -1,21 +1,20 @@
 /**
  * CUSTOM SOLVE — Configure & Query Custom GTO Spots
  * ═══════════════════════════════════════════════════════════════════════════
- * Input custom parameters (stake/rake, ante, straddle, stack sizes)
- * and query the solver API for GTO strategies.
+ * Configure positions, stack depth, and board cards, then query the verified
+ * preflop range service or exact-board solver corpus.
  *
  * Route: /hub/training/custom-solve
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-3 — hex sweep batch 4: literals routed to --sp-* tokens
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-11 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -29,33 +28,6 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
-const RAKE_PRESETS = {
-  micro: { label: 'Micro (NL2-NL10)', rake: 5, cap: 0.5 },
-  low: { label: 'Low (NL25-NL50)', rake: 5, cap: 1.0 },
-  mid: { label: 'Mid (NL100-NL200)', rake: 4.5, cap: 3.0 },
-  high: { label: 'High (NL500+)', rake: 3, cap: 3.0 },
-  live: { label: 'Live ($1/$2-$5/$10)', rake: 10, cap: 7.0 },
-  norake: { label: 'No Rake', rake: 0, cap: 0 },
-};
-
-const FORMAT_OPTIONS = [
-  { id: 'cash', label: 'Cash Game', icon: ''},
-  { id: 'mtt', label: 'MTT', icon: ''},
-  { id: 'sng', label: 'Sit & Go', icon: ''},
-];
-
-const ANTE_OPTIONS = ['None', '10% Ante', '12.5% Ante', 'BB Ante (1BB)', 'Straddle (2BB)'];
-
-const BOARD_TEXTURES = [
-  { id: 'any', label: 'Any Board' },
-  { id: 'dry', label: 'Dry (K72r)' },
-  { id: 'wet', label: 'Wet (JT8ss)' },
-  { id: 'monotone', label: 'Monotone' },
-  { id: 'paired', label: 'Paired' },
-  { id: 'broadway', label: 'Broadway' },
-  { id: 'low', label: 'Low Board' },
-];
-
 const ALL_CARD_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const ALL_CARD_SUITS = [
   { s: 'h', symbol: '♥', color: 'var(--sp-accent-red)' },
@@ -63,34 +35,6 @@ const ALL_CARD_SUITS = [
   { s: 'c', symbol: '♣', color: 'var(--sp-accent-green)' },
   { s: 's', symbol: '♠', color: 'var(--sp-fg-muted)' },
 ];
-
-function classifyBoardTexture(cards) {
-  if (!Array.isArray(cards) || cards.length < 3) return 'any';
-  // HARDENED: validate each card is a 2-char string with valid rank + suit
-  const validRanks = new Set(ALL_CARD_RANKS);
-  const validSuits = new Set(['h', 'd', 'c', 's']);
-  const validCards = cards.filter(
-    (c) => typeof c === 'string' && c.length === 2 && validRanks.has(c[0]) && validSuits.has(c[1])
-  );
-  if (validCards.length < 3) return 'any';
-
-  const suits = validCards.map((c) => c[1]);
-  const ranks = validCards.map((c) => ALL_CARD_RANKS.indexOf(c[0]));
-  const uniqueSuits = new Set(suits).size;
-  const hasPair = ranks.length !== new Set(ranks).size;
-  const broadways = ranks.filter((r) => r <= 4).length;
-  const isMonotone = uniqueSuits === 1;
-  const isRainbow = uniqueSuits === validCards.length;
-  const maxGap = Math.max(...ranks) - Math.min(...ranks);
-
-  if (isMonotone) return 'monotone';
-  if (hasPair) return 'paired';
-  if (broadways >= 2 && validCards.length <= 3) return 'broadway';
-  if (Math.max(...ranks) >= 8 && isRainbow) return 'low';
-  if (maxGap <= 4 && !isRainbow) return 'wet';
-  if (isRainbow && maxGap >= 6) return 'dry';
-  return 'any';
-}
 
 // HARDENED: Deterministic hash for stable runout values (no flickering)
 function deterministicShift(rank, baseFreq) {
@@ -493,7 +437,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             {heroPos} vs {villainPos}
           </div>
           <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-            {config.format} · {config.stackDepth}bb · {config.rakePreset}
+            6-Max Cash · {config.stackDepth}BB · {config.boardCards?.filter(Boolean).length ? 'Exact Board Query' : 'Preflop Range Query'}
           </div>
         </div>
         <div
@@ -507,9 +451,15 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             color: 'var(--sp-accent-green)',
           }}
         >
-          {result.source === 'precomputed' ? 'Pre-Solved' : 'Estimated'}
+          {result.isEstimate ? 'Modeled Baseline' : 'Solved Corpus'}
         </div>
       </div>
+
+      {result.message && (
+        <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 12 }}>
+          {result.message}
+        </div>
+      )}
 
       {/* Strategy */}
       <div style={{ marginBottom: 12 }}>
@@ -595,9 +545,6 @@ function SolveResult({ heroPos, villainPos, config, result }) {
         ))}
       </div>
 
-      {/* Range Grid Visualization */}
-      <RangeGridVisual rangeStr={result.range} actions={result.actions} />
-
       {/* Range Text */}
       {result.range && (
         <div
@@ -634,64 +581,6 @@ function SolveResult({ heroPos, villainPos, config, result }) {
         </div>
       )}
 
-      {/* Runout Analysis */}
-      {Array.isArray(config?.boardCards) && config.boardCards.filter(Boolean).length >= 3 && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: '12px',
-            borderRadius: 10,
-            background: 'rgba(0,0,0,0.15)',
-            border: '1px solid rgba(255,255,255,0.04)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              marginBottom: 8,
-            }}
-          >
-            ◆ Runout Strategy Shift
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-            {['A', 'K', 'Q', 'J', 'T', '8', '5', '2'].map((rank) => {
-              const baseFreq = result?.actions?.find((a) => a?.action === 'Raise')?.freq || 30;
-              // HARDENED: deterministic values (no Math.random — prevents flickering)
-              const betShift = deterministicShift(rank, baseFreq);
-              return (
-                <div
-                  key={rank}
-                  style={{
-                    padding: '8px 6px',
-                    borderRadius: 6,
-                    textAlign: 'center',
-                    background: betShift > 50 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                    border: `1px solid ${betShift > 50 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)' }}>{rank}x</div>
-                  <div
-                    style={{
-                      fontSize: 9,
-                      color: betShift > 50 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Bet {betShift}%
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 6, textAlign: 'center' }}>
-            Shows how betting frequency changes on different turn/river cards
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 }
@@ -704,38 +593,11 @@ export default function CustomSolvePage() {
   const router = useRouter();
   useTrainingBus('custom-solve');
 
-  // Bus listener — only clear on explicit PAGE_NAVIGATE events, not all session ends
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
-      const source = event?.source;
-      // Don't clear our own result when other pages end sessions
-      if (source === 'CustomSolve') return;
-    });
-    return unsub;
-  }, []);
-
   // Configuration state
   const [heroPos, setHeroPos] = useState('BTN');
   const [villainPos, setVillainPos] = useState('BB');
-  const [format, setFormat] = useState('cash');
-  const [rakePreset, setRakePreset] = useState('low');
-  const [ante, setAnte] = useState('None');
   const [stackDepth, setStackDepth] = useState(100);
-  const [boardTexture, setBoardTexture] = useState('any');
   const [boardCards, setBoardCards] = useState([null, null, null, null, null]);
-
-  // Auto-classify board texture from selected cards
-  useEffect(() => {
-    const selected = boardCards.filter(Boolean);
-    if (selected.length >= 3) {
-      setBoardTexture(classifyBoardTexture(selected));
-    }
-  }, [boardCards]);
-
-  // Per-position custom stacks
-  const [customStacks, setCustomStacks] = useState(
-    Object.fromEntries(POSITIONS.map((p) => [p, 100]))
-  );
 
   // Results state
   const [result, setResult] = useState(null);
@@ -746,85 +608,60 @@ export default function CustomSolvePage() {
     setLoading(true);
     setError(null);
 
-    const config = {
-      heroPos,
-      villainPos,
-      format,
-      rakePreset,
-      ante,
-      stackDepth,
-      boardTexture,
-      stacks: customStacks,
-    };
-
     try {
-      const token = getAccessToken();
-      const res = await authedFetch('/api/training/solver-api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          heroPosition: heroPos,
-          villainPosition: villainPos,
-          board: boardCards.filter(Boolean),
-          stacks: customStacks,
-          gameType: format,
-        }),
-      });
+      const selectedBoard = boardCards.filter(Boolean);
+      if (selectedBoard.length < 3) {
+        const res = await authedFetch(
+          `/api/training/preflop-ranges?gameType=cash_6max&stackDepth=${stackDepth}&position=${heroPos}&scenario=rfi`,
+        );
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.range) throw new Error(data?.error || `Request failed (${res.status})`);
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-
-      if (data.strategy) {
+        const totals = {};
+        let populatedHands = 0;
+        Object.values(data.range.gridData || {}).forEach((entry) => {
+          if (!entry) return;
+          populatedHands += 1;
+          Object.entries(entry).forEach(([actionName, frequency]) => {
+            totals[actionName] = (totals[actionName] || 0) + (Number(frequency) || 0);
+          });
+        });
         setResult({
-          source: data.source || 'precomputed',
-          actions: data.strategy?.actions || [
-            {
-              action: 'Raise',
-              freq: Math.round((PRECOMPUTED_RANGES[heroPos]?.openRange || 25) * 0.7),
-            },
-            {
-              action: 'Call',
-              freq: Math.round((PRECOMPUTED_RANGES[heroPos]?.openRange || 25) * 0.3),
-            },
-            {
-              action: 'Fold',
-              freq: Math.round(100 - (PRECOMPUTED_RANGES[heroPos]?.openRange || 25)),
-            },
-          ],
-          range: PRECOMPUTED_RANGES[heroPos]?.hands || 'N/A',
-          rangePercent: PRECOMPUTED_RANGES[heroPos]?.openRange || 'N/A',
+          source: data.range.source,
+          isEstimate: data.range.source === 'derived_from_rfi',
+          message: `${data.range.spotLabel}. Frequencies are aggregated from the returned 169-hand range grid.`,
+          actions: Object.entries(totals).map(([actionName, total]) => ({
+            action: actionName,
+            freq: Math.round(total / Math.max(1, populatedHands)),
+          })),
+          range: null,
+          rangePercent: data.range.stats?.rfiPct || 0,
         });
       } else {
-        // Fallback to local pre-computed
-        const heroRange = PRECOMPUTED_RANGES[heroPos] || PRECOMPUTED_RANGES.BTN;
-        const rakeAdjustment =
-          RAKE_PRESETS[rakePreset]?.rake > 5 ? -3 : RAKE_PRESETS[rakePreset]?.rake === 0 ? 4 : 0;
-        const stackAdjustment = stackDepth < 50 ? -5 : stackDepth > 150 ? 3 : 0;
-        const adjustedRange =
-          typeof heroRange.openRange === 'number'
-            ? Math.max(5, Math.min(60, heroRange.openRange + rakeAdjustment + stackAdjustment))
-            : heroRange.openRange;
-
+        const res = await authedFetch('/api/training/solver-api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            heroPosition: heroPos,
+            villainPosition: villainPos,
+            board: selectedBoard,
+            stackDepth,
+            gameType: 'cash',
+            street: selectedBoard.length === 3 ? 'flop' : selectedBoard.length === 4 ? 'turn' : 'river',
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.solution?.actions) throw new Error(data?.error || `Request failed (${res.status})`);
         setResult({
-          source: 'precomputed',
-          actions: [
-            {
-              action: 'Raise',
-              freq: Math.round(typeof adjustedRange === 'number' ? adjustedRange * 0.65 : 20),
-            },
-            {
-              action: 'Call',
-              freq: Math.round(typeof adjustedRange === 'number' ? adjustedRange * 0.35 : 10),
-            },
-            {
-              action: 'Fold',
-              freq: Math.round(typeof adjustedRange === 'number' ? 100 - adjustedRange : 70),
-            },
-          ],
-          range: heroRange.hands,
-          rangePercent: adjustedRange,
+          source: data.source,
+          isEstimate: Boolean(data.solution.isEstimate),
+          message: data.message,
+          actions: Object.entries(data.solution.actions).map(([actionName, frequency]) => ({
+            action: actionName.charAt(0).toUpperCase() + actionName.slice(1),
+            freq: Math.round(Number(frequency) || 0),
+          })),
+          range: null,
+          rangePercent: 0,
         });
       }
     } catch (e) {
@@ -833,62 +670,7 @@ export default function CustomSolvePage() {
     }
 
     setLoading(false);
-  }, [heroPos, villainPos, format, rakePreset, ante, stackDepth, boardTexture, customStacks]);
-
-  // Save solve result to Supabase + emit EventBus
-  useEffect(() => {
-    if (!result) return;
-    const saveSolveSession = async () => {
-      try {
-        const token = getAccessToken();
-        if (!token) return;
-        await authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'custom-solve',
-            gameName: `Custom Solve: ${heroPos} vs ${villainPos}`,
-            gtowScore: 100,
-            totalEVLoss: 0,
-            handsPlayed: 1,
-            mistakeCount: 0,
-            accuracy: 100,
-            correctCount: 1,
-            bestStreak: 1,
-            levelPassed: true,
-            level: 1,
-            handHistory: [],
-            trainerConfig: {
-              heroPos,
-              villainPos,
-              format,
-              rakePreset,
-              ante,
-              stackDepth,
-              boardTexture,
-              boardCards: boardCards.filter(Boolean),
-            },
-          }),
-        });
-      } catch (err) {
-        console.warn('[CustomSolve] Save error (non-blocking):', err.message);
-      }
-    };
-    saveSolveSession();
-    eventBus?.emit?.(
-      EventType?.SESSION_END || 'session:end',
-      {
-        gameId: 'custom-solve',
-        handsPlayed: 1,
-        accuracy: 100,
-      },
-      'CustomSolve'
-    );
-  }, [result]);
-
-  const updateStack = (pos, value) => {
-    const num = parseInt(value, 10) || 0;
-    setCustomStacks((prev) => ({ ...prev, [pos]: Math.min(500, Math.max(1, num)) }));
-  };
+  }, [heroPos, villainPos, stackDepth, boardCards]);
 
   return (
     <>
@@ -943,14 +725,14 @@ export default function CustomSolvePage() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Solve</div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Configure parameters & query GTO solutions
+              Query Verified Preflop And Exact-Board Data
             </div>
           </div>
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          {/* Format Selector */}
-          <div style={{ marginBottom: 16 }}>
+          {/* Supported corpus — variants are not offered as no-op controls. */}
+          <div style={{ marginBottom: 16, padding: '12px 14px', border: '1px solid rgba(0,212,255,.16)', background: 'rgba(0,212,255,.04)' }}>
             <div
               style={{
                 fontSize: 10,
@@ -962,32 +744,10 @@ export default function CustomSolvePage() {
                 padding: '0 4px',
               }}
             >
-              Game Format
+              Supported Corpus
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {FORMAT_OPTIONS.map((opt) => (
-                <motion.button
-                  key={opt.id}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setFormat(opt.id)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: `1px solid ${format === opt.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
-                    background: format === opt.id ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: format === opt.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 18, marginBottom: 2 }}>{opt.icon}</div>
-                  {opt.label}
-                </motion.button>
-              ))}
-            </div>
+            <div style={{ color: 'var(--sp-fg)', fontSize: 13, fontWeight: 800 }}>6-Max Cash</div>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>Position, effective stack, and concrete board cards are applied to every request.</div>
           </div>
 
           {/* Positions */}
@@ -1074,90 +834,6 @@ export default function CustomSolvePage() {
             </div>
           </div>
 
-          {/* Rake Preset */}
-          <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
-            >
-              Rake Structure
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {Object.entries(RAKE_PRESETS || {}).map(([key, preset]) => (
-                <motion.button
-                  key={key}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setRakePreset(key)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${rakePreset === key ? 'rgba(168,85,247,0.3)' : 'transparent'}`,
-                    background: rakePreset === key ? 'rgba(168,85,247,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: rakePreset === key ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {preset.label}
-                </motion.button>
-              ))}
-            </div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 4, padding: '0 4px' }}>
-              {(RAKE_PRESETS[rakePreset] || {}).rake || 0}% / $
-              {(Number.isFinite(RAKE_PRESETS[rakePreset]?.cap)
-                ? RAKE_PRESETS[rakePreset].cap
-                : 0
-              ).toFixed(2)}{' '}
-              cap
-            </div>
-          </div>
-
-          {/* Ante / Straddle */}
-          <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
-            >
-              Ante / Straddle
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {ANTE_OPTIONS.map((opt) => (
-                <motion.button
-                  key={opt}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setAnte(opt)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${ante === opt ? 'rgba(251,191,36,0.3)' : 'transparent'}`,
-                    background: ante === opt ? 'rgba(251,191,36,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: ante === opt ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {opt}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
           {/* Stack Depth */}
           <div style={{ marginBottom: 16 }}>
             <div
@@ -1178,10 +854,7 @@ export default function CustomSolvePage() {
                 <motion.button
                   key={sd}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setStackDepth(sd);
-                    setCustomStacks(Object.fromEntries(POSITIONS.map((p) => [p, sd])));
-                  }}
+                  onClick={() => setStackDepth(sd)}
                   style={{
                     padding: '6px 10px',
                     borderRadius: 6,
@@ -1199,89 +872,8 @@ export default function CustomSolvePage() {
             </div>
           </div>
 
-          {/* Per-Position Stacks */}
-          <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
-            >
-              Per-Position Stacks (BB)
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
-              {POSITIONS.map((p) => (
-                <div key={p} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-muted)', marginBottom: 2 }}>
-                    {p}
-                  </div>
-                  <input
-                    type="number"
-                    value={customStacks[p]}
-                    onChange={(e) => updateStack(p, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px 4px',
-                      borderRadius: 6,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(0,0,0,0.3)',
-                      color: 'var(--sp-fg)',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textAlign: 'center',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Board Card Selector */}
           <BoardCardSelector boardCards={boardCards} setBoardCards={setBoardCards} />
-
-          {/* Board Texture */}
-          <div style={{ marginBottom: 20 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
-            >
-              Board Texture Filter
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {BOARD_TEXTURES.map((bt) => (
-                <motion.button
-                  key={bt.id}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setBoardTexture(bt.id)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${boardTexture === bt.id ? 'rgba(59,130,246,0.3)' : 'transparent'}`,
-                    background:
-                      boardTexture === bt.id ? 'rgba(59,130,246,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: boardTexture === bt.id ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {bt.label}
-                </motion.button>
-              ))}
-            </div>
-          </div>
 
           {/* Solve Button */}
           <motion.button
@@ -1353,7 +945,7 @@ export default function CustomSolvePage() {
             <SolveResult
               heroPos={heroPos}
               villainPos={villainPos}
-              config={{ format, stackDepth, rakePreset, boardCards }}
+              config={{ stackDepth, boardCards }}
               result={result}
             />
           )}

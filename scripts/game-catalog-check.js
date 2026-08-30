@@ -3,13 +3,13 @@
  * ---------------------------------------------------------------------------
  *   node scripts/game-catalog-check.js [categorySubstring]
  *
- * Iterates EVERY game id in TRAINING_LIBRARY across representative levels
- * (1, 5, 8, and the registry max 12) and drives the REAL local generation
+ * Iterates EVERY game id in TRAINING_LIBRARY across all 12 registry levels
+ * and drives the REAL local generation
  * path each game routes to in production (batch-preload.js -> generateBatch):
  *
  *   SCENARIO   (psy-001..psy-020, cash-020)  -> psychologyQuestionBank
  *   preflop    (cash-001, pioStreet flag)    -> generateFromLocalSolverRanges
- *   ICMIZER    (mtt-001, mtt-016, cash-010)  -> generateFromCharts, driven
+ *   ICMIZER    (mtt-001, mtt-016)  -> generateFromCharts, driven
  *              with synthetic memory_charts_gold rows (the REAL chart code,
  *              lift-and-evaluate; live rows are DB) -- counted CHART-SYNTH
  *   PioSOLVER  level >= 8                    -> PostflopScenarioGenerator
@@ -30,6 +30,10 @@
  * Loads project ESM/TS through Babel + sucrase require hooks (no build step).
  */
 'use strict';
+
+// This exhaustive audit generates thousands of questions. Keep CI output
+// focused on contract failures unless verbose engine traces are requested.
+if (process.env.TRAINING_AUDIT_VERBOSE !== '1') console.debug = () => {};
 
 const path = require('path');
 const fs = require('fs');
@@ -91,8 +95,8 @@ function ok(cond, label, detail) {
 }
 
 const QUESTIONS_PER_CELL = 12;
-const LEVELS = [1, 5, 8, 12];
 const REGISTRY_MAX = Math.max(...Object.keys(LEVEL_REGISTRY).map(Number));
+const LEVELS = Array.from({ length: REGISTRY_MAX }, (_, index) => index + 1);
 
 const KNOWN_PIO_GAME_TYPES = new Set([
     'hu_cash', 'postflop_complete',

@@ -16,7 +16,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 
 // BUG FIX (TRAIN-COACH-A11Y-1): SVG icon components replacing the
@@ -393,12 +392,6 @@ export default function CoachModePage() {
       const saved = localStorage.getItem('coach-completed');
       if (saved) setCompleted(new Set(JSON.parse(saved)));
     } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
-
-  useEffect(() => {
-    const h = () => {};
-    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => unsub();
   }, []);
 
   const startLesson = (lesson) => {

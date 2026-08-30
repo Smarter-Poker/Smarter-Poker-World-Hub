@@ -11,135 +11,15 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-56 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-17 — hex sweep batch 6: extended palette literals routed
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import { authedFetch } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
-
-const MOCK_GROUPS = [
-  {
-    id: 1,
-    name: '200NL Crushers',
-    format: 'Cash',
-    stakes: '200NL-500NL',
-    tz: 'EST',
-    members: 4,
-    max: 6,
-    tool: 'PioSolver',
-    focus: 'Postflop spots review',
-    schedule: 'Mon/Wed 7PM',
-    level: 'Advanced',
-    avatarKind: 'shark',
-    avatar: '▲',
-  },
-  {
-    id: 2,
-    name: 'MTT Final Tablists',
-    format: 'Tournament',
-    stakes: 'Mid/High',
-    tz: 'CET',
-    members: 8,
-    max: 10,
-    tool: 'ICMIZER',
-    focus: 'ICM deep dives',
-    schedule: 'Tue/Thu 8PM',
-    level: 'Advanced',
-    avatarKind: 'trophy',
-    avatar: '★',
-  },
-  {
-    id: 3,
-    name: 'Live 2/5 Grinders',
-    format: 'Live Cash',
-    stakes: '$2/$5+',
-    tz: 'PST',
-    members: 3,
-    max: 5,
-    tool: 'Smarter.Poker',
-    focus: 'Hand history review',
-    schedule: 'Sat 2PM',
-    level: 'Intermediate',
-    avatar: '◇',
-  },
-  {
-    id: 4,
-    name: 'PLO Degens Anonymous',
-    format: 'PLO',
-    stakes: 'Micro',
-    tz: 'GMT',
-    members: 5,
-    max: 8,
-    tool: 'Vision',
-    focus: 'Equity realization',
-    schedule: 'Daily 6PM',
-    level: 'Any',
-    avatar: '◇',
-  },
-  {
-    id: 5,
-    name: 'Micro Grind Academy',
-    format: 'Cash',
-    stakes: '2NL-25NL',
-    tz: 'EST',
-    members: 6,
-    max: 8,
-    tool: 'Smarter.Poker',
-    focus: 'Fundamentals & leaks',
-    schedule: 'Mon/Fri 8PM',
-    level: 'Beginner',
-    avatarKind: 'book',
-    avatar: '□',
-  },
-  {
-    id: 6,
-    name: 'Spin & Go Warriors',
-    format: 'Spins',
-    stakes: '$5-$25',
-    tz: 'CET',
-    members: 3,
-    max: 6,
-    tool: 'ICMIZER',
-    focus: '3-max push/fold charts',
-    schedule: 'Wed/Sun 4PM',
-    level: 'Intermediate',
-    avatarKind: 'bolt',
-    avatar: '⌁',
-  },
-  {
-    id: 7,
-    name: 'Sunday Major Prep',
-    format: 'Tournament',
-    stakes: 'All Stakes',
-    tz: 'EST',
-    members: 7,
-    max: 10,
-    tool: 'PioSolver',
-    focus: 'Weekly tournament prep',
-    schedule: 'Sat 12PM',
-    level: 'Any',
-    avatarKind: 'target',
-    avatar: '◆',
-  },
-  {
-    id: 8,
-    name: 'Heads-Up Specialists',
-    format: 'Cash',
-    stakes: '100NL+',
-    tz: 'PST',
-    members: 2,
-    max: 4,
-    tool: 'PioSolver',
-    focus: 'HU solver work',
-    schedule: 'Tue/Thu 9PM',
-    level: 'Advanced',
-    avatarKind: 'swords',
-    avatar: '»',
-  },
-];
 
 const FORMATS = ['All', 'Cash', 'Tournament', 'Live Cash', 'PLO', 'Spins'];
 const LEVELS = ['Any', 'Beginner', 'Intermediate', 'Advanced'];
@@ -189,17 +69,85 @@ export default function StudyGroupFinderPage() {
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [sortBy, setSortBy] = useState('slots'); // 'slots' | 'members' | 'name'
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [inviteHandled, setInviteHandled] = useState(false);
+  const [form, setForm] = useState({
+    name: '', format: 'Cash', stakes: '', timezone: '', focus: '', schedule: '', level: 'Any', maxMembers: 8,
+  });
 
-  // EventBus listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'StudyGroupFinder') return;
-    });
-    return unsub;
+  const loadGroups = useCallback(async () => {
+    setError(null);
+    try {
+      const response = await authedFetch('/api/training/study-groups');
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Study groups could not be loaded');
+      setGroups(payload.groups || []);
+    } catch (loadError) {
+      setError(loadError?.message || 'Study groups could not be loaded');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => { loadGroups(); }, [loadGroups]);
+
+  const createGroup = async () => {
+    if (busy) return;
+    setBusy('create');
+    setNotice(null);
+    try {
+      const response = await authedFetch('/api/training/study-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.group) throw new Error(payload?.error || 'Study group could not be created');
+      setShowCreate(false);
+      setForm({ name: '', format: 'Cash', stakes: '', timezone: '', focus: '', schedule: '', level: 'Any', maxMembers: 8 });
+      await loadGroups();
+      router.push(`/hub/training/study-group?roomId=${payload.group.id}`);
+    } catch (createError) {
+      setNotice({ type: 'error', text: createError?.message || 'Study group could not be created' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const joinGroup = async (group) => {
+    if (busy) return;
+    if (group.joined) {
+      router.push(`/hub/training/study-group?roomId=${group.id}`);
+      return;
+    }
+    setBusy(group.id);
+    setNotice(null);
+    try {
+      const response = await authedFetch(`/api/training/study-groups/${group.id}`, { method: 'POST' });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Study group could not be joined');
+      router.push(`/hub/training/study-group?roomId=${group.id}`);
+    } catch (joinError) {
+      setNotice({ type: 'error', text: joinError?.message || 'Study group could not be joined' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!router.isReady || inviteHandled || groups.length === 0 || !router.query.join) return;
+    const invited = groups.find((group) => group.id === router.query.join);
+    setInviteHandled(true);
+    if (invited) joinGroup(invited);
+    else setNotice({ type: 'error', text: 'That study group invite is no longer available.' });
+  }, [router.isReady, router.query.join, inviteHandled, groups]); // joinGroup intentionally uses current state
+
   const filtered = useMemo(() => {
-    let list = MOCK_GROUPS;
+    let list = groups;
     if (filterFmt !== 'All')
       list = list.filter((g) => g.format === filterFmt || g.format.includes(filterFmt));
     if (filterLevel !== 'Any')
@@ -210,7 +158,7 @@ export default function StudyGroupFinderPage() {
         (g) =>
           g.name.toLowerCase().includes(s) ||
           g.focus.toLowerCase().includes(s) ||
-          g.tool.toLowerCase().includes(s)
+          String(g.tool || '').toLowerCase().includes(s)
       );
     }
     // Sort
@@ -219,7 +167,7 @@ export default function StudyGroupFinderPage() {
     if (sortBy === 'members') list = [...list].sort((a, b) => b.members - a.members);
     if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     return list;
-  }, [filterFmt, filterLevel, search, sortBy]);
+  }, [groups, filterFmt, filterLevel, search, sortBy]);
 
   return (
     <>
@@ -274,11 +222,8 @@ export default function StudyGroupFinderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
-              {/* Says "example groups", not "groups". MOCK_GROUPS is a hardcoded
-                  array; rendering its length beside a live "applied" count read as
-                  a real population of study groups a player could join. */}
               <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                {MOCK_GROUPS.length} Example Groups · Preview Catalog
+                {groups.length} Live {groups.length === 1 ? 'Group' : 'Groups'}
               </div>
             </div>
           </div>
@@ -302,6 +247,12 @@ export default function StudyGroupFinderPage() {
         </div>
 
         <div className="sp-command-main" style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
+          <ErrorBanner message={error} onRetry={() => { setLoading(true); loadGroups(); }} />
+          {notice && (
+            <div role="status" style={{ marginBottom: 12, color: notice.type === 'error' ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)', fontSize: 12 }}>
+              {notice.text}
+            </div>
+          )}
           {/* Create Group Form */}
           <AnimatePresence>
             {showCreate && (
@@ -327,12 +278,14 @@ export default function StudyGroupFinderPage() {
                   <div
                     style={{ fontSize: 11, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
                   >
-                    Group creation connects to your Discord account. Once created, members can apply
-                    to join through this page. You'll receive a notification when someone applies.
+                    Create a persistent Smarter.Poker room. Members can join from this finder and
+                    participate in the room discussion.
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <input
                       placeholder="Group Name"
+                      value={form.name}
+                      onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                       style={{
                         padding: '10px',
                         borderRadius: 8,
@@ -344,6 +297,8 @@ export default function StudyGroupFinderPage() {
                       }}
                     />
                     <select
+                      value={form.format}
+                      onChange={(event) => setForm((current) => ({ ...current, format: event.target.value }))}
                       style={{
                         padding: '10px',
                         borderRadius: 8,
@@ -360,6 +315,8 @@ export default function StudyGroupFinderPage() {
                     </select>
                     <input
                       placeholder="Stakes Range"
+                      value={form.stakes}
+                      onChange={(event) => setForm((current) => ({ ...current, stakes: event.target.value }))}
                       style={{
                         padding: '10px',
                         borderRadius: 8,
@@ -372,6 +329,8 @@ export default function StudyGroupFinderPage() {
                     />
                     <input
                       placeholder="Timezone (e.g., EST)"
+                      value={form.timezone}
+                      onChange={(event) => setForm((current) => ({ ...current, timezone: event.target.value }))}
                       style={{
                         padding: '10px',
                         borderRadius: 8,
@@ -383,13 +342,27 @@ export default function StudyGroupFinderPage() {
                       }}
                     />
                   </div>
-                  {/* 2026-08-27: had no onClick. A user could fill in every field of
-                      this form, press Create Group, and lose the lot with no error
-                      and no group. Disabled until there is somewhere to persist it. */}
+                  <input
+                    placeholder="Study Focus"
+                    value={form.focus}
+                    onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px',
+                      borderRadius: 8,
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'var(--sp-fg)',
+                      fontSize: 12,
+                      outline: 'none',
+                    }}
+                  />
                   <button
                     type="button"
-                    disabled
-                    title="Creating Groups Is Not Available Yet"
+                    onClick={createGroup}
+                    disabled={busy === 'create' || form.name.trim().length < 3}
                     style={{
                       marginTop: 12,
                       padding: '10px 20px',
@@ -399,11 +372,11 @@ export default function StudyGroupFinderPage() {
                       color: 'var(--sp-fg-dim)',
                       fontSize: 12,
                       fontWeight: 700,
-                      cursor: 'not-allowed',
+                      cursor: busy === 'create' || form.name.trim().length < 3 ? 'not-allowed' : 'pointer',
                       width: '100%',
                     }}
                   >
-                    Creating Groups Coming Soon
+                    {busy === 'create' ? 'Creating Group...' : 'Create Study Group'}
                   </button>
                 </div>
               </motion.div>
@@ -500,11 +473,14 @@ export default function StudyGroupFinderPage() {
           </div>
 
           {/* Group Cards */}
-          {filtered.length === 0 && (
+          {loading && (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading Study Groups...</div>
+          )}
+          {!loading && filtered.length === 0 && (
             <TrainerEmptyState
               variant="no-data"
-              title="No groups match"
-              message="Try a different filter combination to find study groups."
+              title="No Study Groups Match"
+              message={groups.length === 0 ? 'Create the first live study group for this community.' : 'Try a different filter combination to find study groups.'}
               compact
             />
           )}
@@ -588,21 +564,22 @@ export default function StudyGroupFinderPage() {
                         </div>
                       </div>
                       <motion.button
-                        disabled
-                        aria-label={`${g.name}: Preview Only`}
+                        onClick={() => joinGroup(g)}
+                        disabled={isFull && !g.joined || busy === g.id}
+                        aria-label={`${g.joined ? 'Open' : 'Join'} ${g.name}`}
                         style={{
                           padding: '10px 20px',
                           borderRadius: 8,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          color: 'var(--sp-fg-muted)',
+                          background: g.joined ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+                          border: `1px solid ${g.joined ? 'rgba(34,197,94,0.35)' : 'rgba(59,130,246,0.35)'}`,
+                          color: g.joined ? 'var(--sp-accent-green)' : 'var(--sp-accent-blue)',
                           fontSize: 12,
                           fontWeight: 700,
-                          cursor: 'not-allowed',
+                          cursor: isFull && !g.joined || busy === g.id ? 'not-allowed' : 'pointer',
                           minWidth: 120,
                         }}
                       >
-                        Preview Only
+                        {busy === g.id ? 'Joining...' : g.joined ? 'Open Room' : isFull ? 'Group Full' : 'Join Group'}
                       </motion.button>
                     </div>
                   </div>

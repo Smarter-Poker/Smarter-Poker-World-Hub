@@ -26,6 +26,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { buildQuestionConfusion } from '../../../src/lib/training/questionAnalytics.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -330,7 +331,7 @@ export default async function handler(req, res) {
             // ●●● Fetch individual answers ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
             let ansQuery = getSupabase()
                 .from('training_answers')
-                .select('question_id, answer_id, is_correct, level, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at')
+                .select('game_id, question_id, answer_id, is_correct, level, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, evidence_metadata')
                 .eq('user_id', user.id)
                 .gte('answered_at', sinceDate)
                 .order('answered_at', { ascending: false })
@@ -363,6 +364,7 @@ export default async function handler(req, res) {
 
             if (type === 'mistakes' || type === 'full') {
                 result.mistakePatterns = extractMistakePatterns(safeAnswers);
+                result.questionConfusion = buildQuestionConfusion(safeAnswers);
             }
 
             if (type === 'full') {

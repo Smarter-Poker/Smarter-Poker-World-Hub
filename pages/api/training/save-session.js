@@ -83,12 +83,30 @@ export default async function handler(req, res) {
       try {
           // Accept both camelCase (new standard) and snake_case (legacy/existing pages)
           const parsedGameId = req.body.gameId || req.body.game_id;
-          const parsedHandsPlayed = req.body.handsPlayed ?? req.body.hands_played ?? 0;
-          const parsedCorrectCount = req.body.correctCount ?? req.body.correct_answers ?? 0;
-          const parsedTotalEVLoss = req.body.totalEVLoss ?? req.body.ev_loss ?? 0;
-          const parsedAccuracy = req.body.accuracy ?? req.body.score ?? 0;
-          const parsedMistakeCount = req.body.mistakeCount ?? (parsedHandsPlayed - parsedCorrectCount) ?? 0;
-          const parsedGtowScore = req.body.gtowScore ?? req.body.accuracy ?? 100;
+          const rawHandsPlayed = req.body.handsPlayed
+              ?? req.body.hands_played
+              ?? req.body.questionsAnswered
+              ?? req.body.total_questions
+              ?? 0;
+          const rawCorrectCount = req.body.correctCount
+              ?? req.body.correct_answers
+              ?? req.body.questionsCorrect
+              ?? 0;
+          const parsedHandsPlayed = Math.max(0, Math.min(1000, Math.trunc(Number(rawHandsPlayed) || 0)));
+          const parsedCorrectCount = Math.max(0, Math.min(parsedHandsPlayed, Math.trunc(Number(rawCorrectCount) || 0)));
+          const parsedTotalEVLoss = Number.isFinite(Number(req.body.totalEVLoss ?? req.body.ev_loss))
+              ? Number(req.body.totalEVLoss ?? req.body.ev_loss)
+              : 0;
+          const derivedAccuracy = parsedHandsPlayed > 0
+              ? Math.round((parsedCorrectCount / parsedHandsPlayed) * 10000) / 100
+              : 0;
+          const rawAccuracy = req.body.accuracy ?? req.body.score ?? derivedAccuracy;
+          const parsedAccuracy = Math.max(0, Math.min(100, Number(rawAccuracy) || 0));
+          const rawMistakes = req.body.mistakeCount ?? (parsedHandsPlayed - parsedCorrectCount);
+          const parsedMistakeCount = Math.max(0, Math.min(parsedHandsPlayed, Math.trunc(Number(rawMistakes) || 0)));
+          const parsedGtowScore = Number.isFinite(Number(req.body.gtowScore))
+              ? Math.max(-100, Math.min(100, Number(req.body.gtowScore)))
+              : parsedAccuracy;
 
           const {
               gameName,
@@ -110,6 +128,9 @@ export default async function handler(req, res) {
 
           if (!parsedGameId) {
               return res.status(400).json({ success: false, error: 'gameId or game_id required' });
+          }
+          if (parsedHandsPlayed < 1) {
+              return res.status(400).json({ success: false, error: 'A graded session must contain at least one answered decision' });
           }
 
           const userId = user.id;
@@ -166,9 +187,8 @@ export default async function handler(req, res) {
           );
 
           if (sessErr) {
-              // Table might not exist yet — gracefully degrade
-              console.warn('[SaveSession] training_sessions insert failed (table may not exist):', sessErr.message);
-              // Still return success since we saved to training_progress and training_level_history
+              console.warn('[SaveSession] training_sessions insert failed:', sessErr.message);
+              return res.status(500).json({ success: false, error: 'Training session could not be saved' });
           }
 
           // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance

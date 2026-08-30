@@ -23,22 +23,13 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-import { authedFetch } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-3 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
 // prefers-reduced-motion via the body.world-training override.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
-
-function saveSession(payload) {
-  authedFetch('/api/training/save-session', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND EVALUATOR ENGINE — Best 5 From N Cards
@@ -481,21 +472,8 @@ export default function HandComparison() {
       setResult(res);
       setIsRunning(false);
 
-      // Emit to training event bus
-      eventBus?.emit?.('training:session-complete', {
-        game_id: 'hand-comparison',
-        winner: eq.equityA > eq.equityB ? 'A' : eq.equityB > eq.equityA ? 'B' : 'TIE',
-        equityA: eq.equityA,
-        equityB: eq.equityB,
-      });
-      // Persist to Supabase
-      saveSession({
-        game_id: 'hand-comparison',
-        hands_played: 1,
-        accuracy: eq.equityA > eq.equityB ? 100 : 0,
-        correct_answers: 1,
-        total_questions: 1,
-      });
+      // This is a calculator result, not a user answer. It must not be written
+      // as a correct or incorrect training decision.
     }, 50);
   }, [handA, handB, board]); // FIX: removed `canRun` from deps — guard is direct check
 

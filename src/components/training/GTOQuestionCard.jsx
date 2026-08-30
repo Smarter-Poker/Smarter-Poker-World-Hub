@@ -12,6 +12,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 import { formatScenario } from '../../utils/formatScenario';
+import TrainingQuestionReport from './TrainingQuestionReport';
 
 const styles = {
     container: {
@@ -206,6 +207,7 @@ const styles = {
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 export default function GTOQuestionCard({
+    gameId,
     question,
     level = 1,
     questionNumber = 1,
@@ -385,16 +387,22 @@ export default function GTOQuestionCard({
                             <div style={{ color: '#9db0bb', fontSize: 10, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
                                 This Result Will Stay Open Until You Click Next.
                             </div>
-                            {onNextHand && (
-                                <button style={{
-                                    ...styles.nextButton,
-                                    minHeight: 52,
-                                    background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
-                                    boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
-                                }} onClick={onNextHand}>
-                                    Next Question →
-                                </button>
-                            )}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+                                {onNextHand && (
+                                    <button style={{
+                                        ...styles.nextButton,
+                                        minHeight: 52,
+                                        marginTop: 20,
+                                        background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
+                                        boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
+                                    }} onClick={onNextHand}>
+                                        Next Question →
+                                    </button>
+                                )}
+                                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+                                    <TrainingQuestionReport gameId={gameId} question={question} />
+                                </div>
+                            </div>
                         </motion.div>
                     );
                 })()}

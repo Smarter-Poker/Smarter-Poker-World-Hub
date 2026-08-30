@@ -7,6 +7,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { toast } from '../../stores/toastStore';
 
 export default function AchievementToast({ achievements = [], onDismiss, userId }) {
     const [visible, setVisible] = useState(achievements.length > 0);
@@ -56,11 +57,13 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
 
             const data = await res.json();
             if (data.success) {
-                // Show confirmation
-                alert('Shared to your feed!');
+                toast.success('Achievement Shared To Your Feed!');
+            } else {
+                toast.error(data.error || 'Failed To Share Achievement.');
             }
         } catch (error) {
             console.warn('Share error:', error);
+            toast.error('Failed To Share Achievement. Please Try Again.');
         } finally {
             setSharing(false);
         }
@@ -186,4 +189,3 @@ const styles = {
         padding: 4,
     }
 };
-

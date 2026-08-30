@@ -1345,13 +1345,6 @@ export default function HandHistoryUploadPage() {
     } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[hand-history-upload] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
   }, []);
 
-  // Bus Listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
-    });
-    return unsub;
-  }, []);
-
   // Save session to Supabase and localStorage
   const saveAnalyzedSession = useCallback(async (hands) => {
     if (!hands || hands.length === 0) return;
@@ -1391,8 +1384,8 @@ export default function HandHistoryUploadPage() {
     // Save to Supabase
     try {
       const token = await getAccessToken();
-      if (token) {
-        await authedFetch('/api/training/save-session', {
+      if (token && verifiedDecisions.length > 0) {
+        const response = await authedFetch('/api/training/save-session', {
           method: 'POST',
           body: JSON.stringify({
             gameId: 'hand-history-review',
@@ -1409,11 +1402,12 @@ export default function HandHistoryUploadPage() {
             handHistory: auditedDecisions.slice(0, 500),
           }),
         });
+        if (!response.ok) throw new Error(`Verified review save failed (${response.status})`);
       }
     } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[hand-history-upload] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
 
     // EventBus emit
-    if (typeof eventBus !== 'undefined' && eventBus.emit) {
+    if (verifiedDecisions.length > 0 && typeof eventBus !== 'undefined' && eventBus.emit) {
       eventBus?.emit?.(
         EventType?.TRAINING_SESSION_COMPLETE || 'training:session-complete',
         sessionData

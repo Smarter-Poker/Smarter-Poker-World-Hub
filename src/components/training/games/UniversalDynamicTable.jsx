@@ -31,6 +31,8 @@ import { buildRangeGridData, rangeGridActions, handNotationFromCards } from '../
 import { aggregateByHandClass, buildClassificationData } from '../../../lib/training/handClassStrategy';
 import { committedFor, computeDisplayPot } from './potMath';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../../lib/tableAvatars';
+import TrainingQuestionReport from '../TrainingQuestionReport';
+import { isVerifiedSolverQuestion } from '../../../lib/training/solverDecisionEvidence';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -1489,6 +1491,7 @@ function InfoPanelShell({
 // ═══════════════════════════════════════════════════════════════════════════
 
 function UniversalDynamicTable({
+    gameId = '',
     question,
     questionNumber,
     totalQuestions,
@@ -2297,7 +2300,9 @@ function UniversalDynamicTable({
             if (e.key === 'm' || e.key === 'M') {
                 if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
                 setActiveMode(prev => {
-                    const ids = MODE_TABS.map(t => t.id);
+                    const ids = MODE_TABS
+                        .filter(t => showFeedback || (t.id !== 'range' && t.id !== 'strategy'))
+                        .map(t => t.id);
                     const idx = ids.indexOf(prev);
                     return ids[(idx + 1) % ids.length];
                 });
@@ -2305,7 +2310,7 @@ function UniversalDynamicTable({
         };
         window.addEventListener('keydown', handleModeKey);
         return () => window.removeEventListener('keydown', handleModeKey);
-    }, [MODE_TABS]);
+    }, [MODE_TABS, showFeedback]);
 
     // Determine player count based on game type.
     //
@@ -2496,6 +2501,11 @@ function UniversalDynamicTable({
     const infoPanelQuestion = showFeedback
         ? (lastQuestionRef.current || question)
         : question;
+    const solverFrequencyVerified = isVerifiedSolverQuestion(infoPanelQuestion);
+
+    useEffect(() => {
+        if (!solverFrequencyVerified && rngMode) setRngMode(false);
+    }, [solverFrequencyVerified, rngMode]);
 
     const rangeModeGrid = useMemo(() => {
         const raw = infoPanelQuestion?.rawFrequencies
@@ -2598,8 +2608,9 @@ function UniversalDynamicTable({
         // heuristics, and hand_history_import is the player's own hand with no
         // solve behind it at all. Both were showing as though PioSOLVER had
         // produced them.
-        const MODELLED_SOURCES = ['POSTFLOP_ENGINE', 'hand_history_import'];
+        const MODELLED_SOURCES = ['POSTFLOP_ENGINE', 'hand_history_import', 'CACHED_LEGACY', 'GROK_GTO'];
         const isModelled =
+            !isVerifiedSolverQuestion(q) ||
             q?.dataQuality === 'SIMULATED' ||
             MODELLED_SOURCES.includes(q?.source) ||
             !solverMix;
@@ -2738,6 +2749,7 @@ function UniversalDynamicTable({
     // the player a number with no instruction attached, which is worse than a
     // rounding error of one point on a boundary.
     const rngRanges = useMemo(() => {
+        if (!solverFrequencyVerified) return [];
         const entries = [];
         (displayOptions || []).slice(0, 9).forEach(opt => {
             const id = opt.id || opt;
@@ -2770,7 +2782,7 @@ function UniversalDynamicTable({
             if (last) last.end = 100;
         }
         return ranges.filter(r => r.end >= r.start);
-    }, [displayOptions, displayFrequencies, computedFrequencies, rngHighLow]);
+    }, [displayOptions, displayFrequencies, computedFrequencies, rngHighLow, solverFrequencyVerified]);
 
     // GTOW parity #38 — the action the dice actually selected. The roadmap's
     // pass condition is that "the best action changes with the roll and the
@@ -2818,13 +2830,13 @@ function UniversalDynamicTable({
         // ignored entirely when RNG mode is off, so the default grading path is
         // untouched; when RNG mode is on it is the difference between the
         // banner agreeing with the dice and flatly contradicting it.
-        const rngMeta = rngMode && rngTargetAction
+        const rngMeta = solverFrequencyVerified && rngMode && rngTargetAction
             ? { rngRoll, rngMode: rngHighLow, rngTargetActionId: rngTargetAction.id }
             : null;
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}), ...(extraMeta || {}) });
         const gradedAgainst = rngMeta ? rngMeta.rngTargetActionId : correctAnswer;
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
+    }, [showFeedback, selectedAnswer, groupingMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction, solverFrequencyVerified]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED answer handler (1-9, F/C/R).
     // Advancing is deliberately button-only so feedback can never disappear
@@ -2890,7 +2902,7 @@ function UniversalDynamicTable({
     // read `correctAnswer` reads this instead, so the chip that says the roll
     // points at Bet 75% and the banner that names the best action can no
     // longer disagree. Off, it is exactly `correctAnswer`.
-    const effectiveCorrectAnswer = (rngMode && rngTargetAction)
+    const effectiveCorrectAnswer = (solverFrequencyVerified && rngMode && rngTargetAction)
         ? rngTargetAction.id
         : correctAnswer;
 
@@ -2898,21 +2910,25 @@ function UniversalDynamicTable({
     const computedClassification = useMemo(() => {
         if (moveClassification) {
             // PHASE 9: Simplified Mode override — if user's selected action has <5% freq, upgrade inaccuracies to 'correct'
-            if (simplifiedMode && (moveClassification === 'inaccuracy') && selectedAnswer && computedFrequencies) {
+            if (solverFrequencyVerified && simplifiedMode && (moveClassification === 'inaccuracy') && selectedAnswer && computedFrequencies) {
                 const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
                 if (userFreq > 0 && userFreq < 5) return 'correct';
             }
             return moveClassification;
         }
         if (!showFeedback || !selectedAnswer) return null;
-        let result = classifyMove(selectedAnswer, effectiveCorrectAnswer, computedFrequencies);
+        let result = classifyMove(
+            selectedAnswer,
+            effectiveCorrectAnswer,
+            solverFrequencyVerified ? computedFrequencies : {}
+        );
         // PHASE 9: Simplified Mode override for computed classification
-        if (simplifiedMode && result.classification === 'inaccuracy') {
+        if (solverFrequencyVerified && simplifiedMode && result.classification === 'inaccuracy') {
             const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
             if (userFreq > 0 && userFreq < 5) return 'correct';
         }
         return result.classification;
-    }, [moveClassification, showFeedback, selectedAnswer, effectiveCorrectAnswer, computedFrequencies, simplifiedMode]);
+    }, [moveClassification, showFeedback, selectedAnswer, effectiveCorrectAnswer, computedFrequencies, simplifiedMode, solverFrequencyVerified]);
 
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
@@ -3439,10 +3455,13 @@ function UniversalDynamicTable({
                     <div style={styles.modeGroup} role="group" aria-label="Session modes">
                         <button
                             data-compact
-                            onClick={() => setRngMode(v => !v)}
+                            disabled={!solverFrequencyVerified}
+                            onClick={() => {
+                                if (solverFrequencyVerified) setRngMode(v => !v);
+                            }}
                             aria-pressed={rngMode}
-                            title={rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off'}
-                            style={{ ...styles.modeButton, ...(rngMode ? styles.modeButtonRng : null) }}
+                            title={!solverFrequencyVerified ? 'RNG Requires A Verified Solver Distribution' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')}
+                            style={{ ...styles.modeButton, ...(rngMode ? styles.modeButtonRng : null), opacity: solverFrequencyVerified ? 1 : .4, cursor: solverFrequencyVerified ? 'pointer' : 'not-allowed' }}
                         >
                             RNG
                         </button>
@@ -3520,11 +3539,9 @@ function UniversalDynamicTable({
                             })}
                         </motion.div>
                     )}
-                    {/* GOLD PILL — the template's XP slot. This component is
-                        handed no XP or diamond balance (GodModeArena keeps
-                        totalXP as a permanent 0 stub and never passes the
-                        diamond count down), so rather than print a fabricated
-                        currency the two pills carry the real session numbers in
+                    {/* GOLD PILL — the template's former XP slot. XP has been
+                        removed from Training because diamonds are the platform's
+                        only reward currency. The two pills carry real session numbers in
                         the template's treatment: score in gold, accuracy in
                         cyan. */}
                     <div style={styles.xpPill}>
@@ -3873,7 +3890,17 @@ function UniversalDynamicTable({
                         // blocks below).
                         const ringSeat = seats[seatRel] || seat;
                         const seatX = ringSeat.x;
-                        const seatY = ringSeat.y;
+                        // The Club Arena phone layout reserves a rail beneath
+                        // the felt, but desktop uses the full table-area height.
+                        // Leaving the hero at y=100 therefore placed half of
+                        // the avatar/nameplate behind the action bar, while the
+                        // top opponent at y=5 touched the global header. Pull
+                        // only those two desktop anchors into the safe visual
+                        // field; phone/tablet retain the production Club Arena
+                        // edge placement and its dedicated lower rail.
+                        const seatY = isHero && !isMobile
+                            ? Math.min(ringSeat.y, 88)
+                            : (!isMobile && ringSeat.y <= 6 ? 12 : ringSeat.y);
                         const clubSeatTier = scaleFactor <= (380 / DESIGN_WIDTH)
                             ? { villain: { width: 72, height: 79 }, hero: { width: 79, height: 96 } }
                             : isNarrow
@@ -4848,12 +4875,19 @@ function UniversalDynamicTable({
                 {MODE_TABS.map(mode => (
                     <button
                         key={mode.id}
-                        onClick={() => setActiveMode(mode.id)}
+                        disabled={!showFeedback && (mode.id === 'range' || mode.id === 'strategy')}
+                        title={!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined}
+                        onClick={() => {
+                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;
+                            setActiveMode(mode.id);
+                        }}
                         style={{
                             ...styles.modeBarBtn,
                             color: activeMode === mode.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                             borderTop: activeMode === mode.id ? '2px solid #00d4ff' : '2px solid transparent',
                             background: activeMode === mode.id ? 'rgba(0,212,255,0.06)' : 'transparent',
+                            opacity: !showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 0.42 : 1,
+                            cursor: !showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'not-allowed' : 'pointer',
                         }}
                     >
                         <span style={{ fontSize: 16 }}>{mode.icon}</span>
@@ -4868,7 +4902,7 @@ function UniversalDynamicTable({
             {/* F4: RANGE MODE — Show range grid when mode is active */}
             {/* GTOW parity #36: no `!showFeedback` gate. The info panel is most
                 useful immediately after you act. */}
-            {activeMode === 'range' && (() => {
+            {showFeedback && activeMode === 'range' && (() => {
                 try {
                     return (
                         <InfoPanelShell
@@ -4918,7 +4952,7 @@ function UniversalDynamicTable({
             })()}
 
             {/* F4: STRATEGY MODE — Show full strategy analysis */}
-            {activeMode === 'strategy' && panelStrategy.frequencies && Array.isArray(panelStrategy.options) && panelStrategy.options.length > 0 && (() => {
+            {showFeedback && activeMode === 'strategy' && panelStrategy.frequencies && Array.isArray(panelStrategy.options) && panelStrategy.options.length > 0 && (() => {
                 try {
                     return (
                         <InfoPanelShell
@@ -5047,8 +5081,8 @@ function UniversalDynamicTable({
                             style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
-                                    {rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF'}
+                                <button disabled={!solverFrequencyVerified} onClick={() => solverFrequencyVerified && setRngMode(!rngMode)} style={{ ...styles.settingsBtn, opacity: solverFrequencyVerified ? 1 : .45 }}>
+                                    {!solverFrequencyVerified ? 'RNG Requires Verified Solver Data' : (rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF')}
                                 </button>
                                 {rngMode && (
                                     <button
@@ -6298,6 +6332,7 @@ function UniversalDynamicTable({
                         className="sp-training-next-bar"
                         style={{
                             display: 'flex',
+                            flexWrap: 'wrap',
                             gap: 8,
                             alignItems: 'center',
                             marginTop: 6,
@@ -6381,6 +6416,10 @@ function UniversalDynamicTable({
                                 >
                                     {isCurrentBookmarked ? '★ Saved' : '☆ Save'}
                                 </motion.button>
+                                <TrainingQuestionReport
+                                    gameId={gameId}
+                                    question={getFeedbackQuestion()}
+                                />
                             </>
                         ) : (
                             /* PHASE 5: Post-Session Summary Dashboard */
