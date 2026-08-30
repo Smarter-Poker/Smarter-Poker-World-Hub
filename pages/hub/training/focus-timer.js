@@ -2,7 +2,7 @@
  * FOCUS TIMER — Pomodoro Training
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * 25-minute focus blocks with break timers, session logging,
- * and Supabase persistence.
+ * and device-local persistence.
  *
  * Route: /hub/training/focus-timer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -14,8 +14,6 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
@@ -95,13 +93,6 @@ export default function FocusTimerPage() {
   }, []);
 
   useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'FocusTimer') return;
-    });
-    return unsub;
-  }, []);
-
-  useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     } else if (timeLeft === 0) {
@@ -125,32 +116,8 @@ export default function FocusTimerPage() {
         try {
           localStorage.setItem('focus-timer-log', JSON.stringify(newLog));
         } catch (e) { console.warn('[App] Handled exception:', e); }
-        // Save to Supabase
-        const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-        if (token) {
-          authedFetch('/api/training/save-session', {
-            method: 'POST',
-            body: JSON.stringify({
-              gameId: 'focus-timer',
-              gameName: `Focus Block #${next} (${phase.mins}min)`,
-              gtowScore: 100,
-              totalEVLoss: 0,
-              handsPlayed: next,
-              mistakeCount: 0,
-              accuracy: 100,
-              correctCount: next,
-              bestStreak: next,
-              levelPassed: true,
-              level: 1,
-              handHistory: [],
-            }),
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-          eventBus?.emit?.(
-            EventType?.SESSION_END || 'session:end',
-            { gameId: 'focus-timer', blocks: next, totalMinutes: next * phase.mins },
-            'FocusTimer'
-          );
-        }
+        // A focus block is productivity history, not a graded poker decision.
+        // Keep it out of training sessions, streaks, accuracy, and leaderboards.
         setTimeout(() => {
           savedRef.current = false;
         }, 1000);

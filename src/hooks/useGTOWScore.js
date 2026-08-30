@@ -358,9 +358,10 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         }
     }
 
-    if (!isRealData) {
-        evLoss = simulateEVLoss(classification, effectivePot);
-    }
+    // A frequency can prove that an action is rarely/never played, but it
+    // cannot prove a BB loss. Without exact per-action EV, store zero and mark
+    // the value unmeasured instead of manufacturing a pot-scaled loss.
+    if (!isRealData) evLoss = 0;
 
     return {
         classification,

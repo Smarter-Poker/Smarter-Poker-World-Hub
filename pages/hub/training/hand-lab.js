@@ -9,8 +9,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
@@ -19,17 +18,22 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const SUIT_CODES = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
+const BENCHMARK_HANDS = [
+  { value: '9c8d', label: '9♣ 8♦ — Connected Hand' },
+  { value: 'QhJd', label: 'Q♥ J♦ — Broadway Hand' },
+  { value: 'KhKd', label: 'K♥ K♦ — Premium Pair' },
+  { value: 'AhAd', label: 'A♥ A♦ — Pocket Aces' },
+];
+
+function cardToAscii(card) {
+  return card ? `${card[0]}${SUIT_CODES[card[1]] || card[1]}` : '';
+}
 
 export default function HandLabV2() {
   const router = useRouter();
   useTrainingBus('hand-lab');
   const fb = useTrainingFeedback();
-
-  useEffect(() => {
-    const h = () => {};
-    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => unsub();
-  }, []);
 
   // UI States
   const [selectedSlot, setSelectedSlot] = useState(null); // 'hero1', 'hero2', 'board1', etc
@@ -37,12 +41,13 @@ export default function HandLabV2() {
   // Hand State
   const [heroCards, setHeroCards] = useState(['', '']);
   const [boardCards, setBoardCards] = useState(['', '', '', '', '']);
-  const [villainRange, setVillainRange] = useState('Top 15%');
+  const [villainHand, setVillainHand] = useState('QhJd');
 
   // Analysis State
   const [analyzing, setAnalyzing] = useState(false);
   const [equity, setEquity] = useState(null);
   const [results, setResults] = useState(null);
+  const [analysisError, setAnalysisError] = useState('');
 
   const handleCardSelect = (rank, suit) => {
     fb.click();
@@ -74,58 +79,40 @@ export default function HandLabV2() {
     }
   };
 
-  const runAnalysis = () => {
+  const runAnalysis = async () => {
     fb.click();
     if (!heroCards[0] || !heroCards[1]) return;
 
     setAnalyzing(true);
-    // Simulate Monte Carlo solver duration
-    setTimeout(() => {
-      // Fake equity generation based on inputs for UI demo
-      let generatedEquity = 50;
-      if (heroCards[0][0] === 'A' || heroCards[1][0] === 'A') generatedEquity += 15;
-      if (heroCards[0][0] === heroCards[1][0]) generatedEquity += 18; // Pocket pair
-      if (heroCards[0][1] === heroCards[1][1]) generatedEquity += 5; // Suited
-
-      // Random jitter
-      generatedEquity += Math.random() * 10 - 5;
-
-      // Constrain 10-90%
-      generatedEquity = Math.max(10, Math.min(90, generatedEquity));
-
-      setEquity((Number.isFinite(Number(generatedEquity)) ? Number(generatedEquity) : 0).toFixed(1));
-      setAnalyzing(false);
-
-      // Simulate new results structure
-      setResults({
-        position: 'BTN',
-        street: 'Flop',
-        board: 'AhKcQd',
-        actions: [
-          { action: 'Bet 1/2 Pot', ev: 12.5 },
-          { action: 'Check', ev: 8.2 },
-          { action: 'Fold', ev: -5.0 },
-        ],
-      });
-
-      // Save via session protocol
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      if (!token) return;
-      authedFetch('/api/training/save-session', {
+    setAnalysisError('');
+    try {
+      const response = await authedFetch('/api/training/equity', {
         method: 'POST',
         body: JSON.stringify({
-          gameId: 'hand-lab',
-          stats: {
-            handsBuilt: 1,
-            avgEquityAnalyzed: parseFloat((Number.isFinite(Number(generatedEquity)) ? Number(generatedEquity) : 0).toFixed(1)),
-          },
+          hands: [heroCards.map(cardToAscii).join(''), villainHand],
+          board: boardCards.filter(Boolean).map(cardToAscii),
+          variant: 'holdem',
+          iterations: 10000,
         }),
-      }).catch((e) => console.warn(e)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    }, 1500);
-  };
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success || payload.results?.length < 2) {
+        throw new Error(payload.error || `Equity Request Failed (${response.status})`);
+      }
 
-  const saveScenario = () => {
-    // Implement actual save logic here
+      setEquity(Number(payload.results[0].equity).toFixed(1));
+      setResults({
+        opponentEquity: Number(payload.results[1].equity).toFixed(1),
+        iterations: payload.totalIterations,
+        boardSize: payload.boardSize,
+      });
+    } catch (error) {
+      setEquity(null);
+      setResults(null);
+      setAnalysisError(error.message || 'Unable To Analyze This Hand.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const clearAll = () => {
@@ -133,6 +120,7 @@ export default function HandLabV2() {
     setBoardCards(['', '', '', '', '']);
     setEquity(null);
     setResults(null); // Clear results on clearAll
+    setAnalysisError('');
     setSelectedSlot('hero1');
   };
 
@@ -223,18 +211,15 @@ export default function HandLabV2() {
                 ))}
               </div>
 
-              <h3 style={styles.sectionTitle}>3. Villain's Range</h3>
+              <h3 style={styles.sectionTitle}>3. Villain Benchmark Hand</h3>
               <select
                 style={styles.rangeSelect}
-                value={villainRange}
-                onChange={(e) => setVillainRange(e.target.value)}
+                value={villainHand}
+                onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
               >
-                <option>Any Two Cards (100%)</option>
-                <option>Top 50% (Loose)</option>
-                <option>Top 25% (Standard Open)</option>
-                <option>Top 15% (Tight Open)</option>
-                <option>Top 5% (Premium Only)</option>
+                {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
               </select>
+              <div style={{ margin: '-28px 0 28px', color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Equity — Not A Range Estimate</div>
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -246,6 +231,8 @@ export default function HandLabV2() {
                 {analyzing ? 'RUNNING MONTE CARLO (10k Iterations)...' : 'ANALYZE EQUITY'}
               </motion.button>
 
+              {analysisError && <div role="alert" style={{ marginTop: 14, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5 }}>{analysisError}</div>}
+
               {/* Results */}
               {equity && !analyzing && (
                 <motion.div
@@ -254,7 +241,7 @@ export default function HandLabV2() {
                   style={styles.resultsBox}
                 >
                   <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>
-                    HERO EQUITY VS {villainRange.toUpperCase()}
+                    Hero Equity Vs {BENCHMARK_HANDS.find((hand) => hand.value === villainHand)?.label || villainHand}
                   </div>
                   <div
                     style={{
@@ -285,70 +272,11 @@ export default function HandLabV2() {
 
               {results && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>
-                      EV Analysis: {results.position} | {results.street} | {results.board}
-                    </div>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={saveScenario}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        background: 'rgba(251,191,36,0.08)',
-                        border: '1px solid rgba(251,191,36,0.2)',
-                        color: 'var(--sp-accent-amber)',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Save
-                    </motion.button>
+                  <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid rgba(255,255,255,.08)', background: 'rgba(0,0,0,.18)', color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.7 }}>
+                    <div>Opponent Equity: <strong style={{ color: 'var(--sp-fg)' }}>{results.opponentEquity}%</strong></div>
+                    <div>Board Cards Locked: <strong style={{ color: 'var(--sp-fg)' }}>{results.boardSize}</strong></div>
+                    <div>Monte Carlo Iterations: <strong style={{ color: 'var(--sp-fg)' }}>{Number(results.iterations || 0).toLocaleString()}</strong></div>
                   </div>
-                  {results.actions.map((a, i) => (
-                    <div
-                      key={a.action}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        marginBottom: 4,
-                        background: i === 0 ? 'rgba(34,197,94,0.06)' : 'rgba(0,0,0,0.15)',
-                        border: `1px solid ${i === 0 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.03)'}`,
-                      }}
-                    >
-                      {i === 0 && <span style={{ fontSize: 12, marginRight: 8 }}>★</span>}
-                      <div
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: i === 0 ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
-                        }}
-                      >
-                        {a.action}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: a.ev > 0 ? 'var(--sp-accent-green)' : a.ev < 0 ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                        }}
-                      >
-                        {a.ev > 0 ? '+' : ''}
-                        {a.ev}
-                      </div>
-                    </div>
-                  ))}
                 </motion.div>
               )}
             </div>

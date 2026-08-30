@@ -239,11 +239,18 @@ export default function GTOReports() {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await authedFetch(
-        `/api/training/gto-reports?userId=${userId}&period=${period}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
-      );
+      const analyticsDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
+      const [res, analyticsRes] = await Promise.all([
+        authedFetch(
+          `/api/training/gto-reports?userId=${userId}&period=${period}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
+        ),
+        authedFetch(
+          `/api/training/analytics?type=mistakes&days=${analyticsDays}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
+        ),
+      ]);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
+      const analytics = analyticsRes.ok ? await analyticsRes.json() : null;
       if (data.success) {
         // Engine enrichment: add trends + leak detection to report
         let enrichedReport = data.report;
@@ -264,6 +271,12 @@ export default function GTOReports() {
         } catch (e) {
           console.warn('[Reports] Engine enrichment failed:', e.message);
         }
+        enrichedReport = {
+          ...enrichedReport,
+          questionConfusion: Array.isArray(analytics?.questionConfusion)
+            ? analytics.questionConfusion
+            : [],
+        };
         setReport(enrichedReport);
       }
     } catch (err) {
@@ -562,6 +575,78 @@ export default function GTOReports() {
                   total={report.totalQuestions}
                 />
               </div>
+
+              {Array.isArray(report.questionConfusion) && report.questionConfusion.length > 0 && (
+                <section
+                  aria-labelledby="question-confusion-title"
+                  style={{
+                    background: 'linear-gradient(145deg, rgba(27,48,62,.96), rgba(3,12,20,.98) 52%, rgba(8,28,40,.98))',
+                    border: '1px solid rgba(139,234,255,.42)',
+                    boxShadow: '0 18px 38px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.8)',
+                    padding: 16,
+                    marginBottom: 20,
+                  }}
+                >
+                  <div id="question-confusion-title" style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)', letterSpacing: 1 }}>
+                    Questions Creating The Most Confusion
+                  </div>
+                  <p style={{ margin: '5px 0 12px', color: 'var(--sp-fg-dim)', fontSize: 11 }}>
+                    Ranked by repeated incorrect choices, confusion rate, and EV surrendered.
+                  </p>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {report.questionConfusion.slice(0, 8).map((item) => (
+                      <div
+                        key={`${item.gameId}:${item.questionId}`}
+                        className="sp-question-confusion-row"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(0,1fr) repeat(3, auto)',
+                          gap: 12,
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          background: 'rgba(0,0,0,.28)',
+                          border: '1px solid rgba(255,255,255,.08)',
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <strong style={{ display: 'block', color: 'var(--sp-fg)', fontSize: 12 }}>
+                            {item.gameId} · Level {item.lastLevel || 1}
+                          </strong>
+                          <span
+                            title={item.questionId}
+                            style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--sp-fg-faint)', fontSize: 9 }}
+                          >
+                            {item.questionId}
+                          </span>
+                          {item.mostCommonWrongAnswer && (
+                            <span style={{ color: '#fca5a5', fontSize: 10 }}>
+                              Common Miss: {item.mostCommonWrongAnswer.answerId}
+                              {item.optimalAction ? ` · Solver: ${item.optimalAction}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ color: '#fca5a5', fontSize: 11, fontWeight: 800 }}>{item.confusionRate}% Confused</div>
+                        <div style={{ color: 'var(--sp-fg-muted)', fontSize: 11 }}>{item.attempts} Attempts</div>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/hub/training/arena/${item.gameId}?level=${item.lastLevel || 1}`)}
+                          style={{
+                            padding: '7px 10px',
+                            border: '1px solid rgba(95,219,255,.4)',
+                            background: 'linear-gradient(180deg, rgba(66,169,204,.36), rgba(5,45,66,.8))',
+                            color: '#e8fbff',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Practice
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* Position Deviation Matrix */}
               <div
@@ -1018,6 +1103,16 @@ export default function GTOReports() {
           )}
         </div>
       </div>
+      <style jsx global>{`
+        @media (max-width: 640px) {
+          .sp-question-confusion-row {
+            grid-template-columns: minmax(0, 1fr) auto !important;
+          }
+          .sp-question-confusion-row > div:first-child {
+            grid-column: 1 / -1;
+          }
+        }
+      `}</style>
       <ConnectionToast />
     </>
   );

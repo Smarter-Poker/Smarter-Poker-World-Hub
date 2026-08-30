@@ -37,7 +37,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { getGameImage } from '../../data/GAME_IMAGES';
+import TrainingGameArt from './TrainingGameArt';
 
 const DIFFICULTY_OPTIONS = [
   { id: 'beginner', label: 'Beginner', desc: 'Generous tolerances' },
@@ -250,7 +250,11 @@ export default function SessionSetupModal({
         <div className="sp-setup-layout">
           <aside className="sp-setup-identity">
             <div className="sp-setup-art" aria-hidden="true">
-              <img src={getGameImage(gameId)} alt="" />
+              <TrainingGameArt
+                gameId={gameId}
+                sizes="(max-width: 700px) 92vw, 420px"
+                loading="eager"
+              />
               <div className="sp-setup-art-shade" />
               <div className="sp-setup-live"><span /> Live Training System</div>
             </div>

@@ -23,7 +23,6 @@ import {
   CLASSIFICATION_CONFIG,
   MOVE_CLASSIFICATIONS,
 } from '../../../src/hooks/useGTOWScore';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -608,14 +607,7 @@ export default function HandAnalyzer() {
     setIsParsed(true);
     if (hands.length > 0) setExpandedHand(0);
 
-    // Notify other pages via EventBus
-    if (typeof eventBus !== 'undefined' && eventBus.emit) {
-      eventBus?.emit?.(EventType?.TRAINING_SESSION_COMPLETE || 'training:session-complete', {
-        game_id: 'hand-analyzer',
-        hands_played: hands.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    // Parsing hand text is an analysis action, not a graded training session.
   }, [rawText]);
 
   const handleFileUpload = useCallback(async (e) => {

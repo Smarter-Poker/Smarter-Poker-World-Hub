@@ -23,6 +23,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { toast } from '../../../src/stores/toastStore';
 
 // TRAIN-CSS-MOTION-ADOPT-26 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -472,11 +473,11 @@ export default function StreaksPage() {
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
-                      alert('Streak shared to your feed!');
+                      toast.success('Streak Shared To Your Feed!');
                     }
                   } catch (e) {
                     console.warn('Share error:', e);
-                    alert('Failed to share streak. Please try again.');
+                    toast.error('Failed To Share Streak. Please Try Again.');
                   } finally {
                     setSharing(false);
                   }

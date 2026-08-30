@@ -18,7 +18,7 @@ test('all catalog games inherit the same dynamic secondary-page path', () => {
 });
 
 test('campaign selector carries game-specific art and has no inner corner frame', () => {
-  assert.match(levelSelector, /getGameImage\(gameId\)/);
+  assert.match(levelSelector, /<TrainingGameArt[\s\S]*gameId=\{gameId\}/);
   assert.match(levelSelector, /className="sp-level-command-art"/);
   assert.match(levelSelector, /className="sp-level-stats"/);
   assert.doesNotMatch(levelSelector, /\.sp-level-card::before/);
@@ -39,4 +39,3 @@ test('post-session review is themed as part of the Club Arena flow', () => {
   assert.match(trainingCss, /\.sp-arena-review__score\s*\{/);
   assert.match(trainingCss, /\.sp-arena-review__summary\s*\{/);
 });
-

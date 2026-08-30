@@ -248,28 +248,13 @@ export default function PositionMasteryPage() {
       data[p.id] = { accuracy, totalQ, totalC, streak, mastery, drills: relevant.length };
     });
 
-    // If no position-specific data, generate sample from overall progress
-    const hasAnyData = Object.values(data || {}).some((d) => d.totalQ > 0);
-    if (!hasAnyData && progress.length > 0) {
-      const totalQ = progress.reduce((s, r) => s + (r.total_questions_answered || 0), 0);
-      const totalC = progress.reduce((s, r) => s + (r.total_correct || 0), 0);
-      const overallAcc = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
-      // Distribute overall accuracy with realistic position variance
-      const variance = { BTN: 8, CO: 5, HJ: 2, MP: -2, UTG: -5, SB: -8, BB: -3 };
-      POSITIONS.forEach((p) => {
-        const adj = overallAcc + (variance[p.id] || 0);
-        data[p.id] = {
-          accuracy: Math.max(0, Math.min(100, adj)),
-          totalQ: Math.round(totalQ / 7),
-          totalC: Math.round(totalC / 7),
-          streak: Math.max(0, ...progress.map((r) => r.best_streak || 0)),
-          mastery: Math.max(0, Math.min(100, adj)),
-          drills: Math.round(progress.length / 7),
-        };
-      });
-    }
     return data;
   }, [progress]);
+
+  const hasPositionData = useMemo(
+    () => Object.values(positionData).some((entry) => entry.totalQ > 0),
+    [positionData]
+  );
 
   // Find weakest and strongest
   const sortedPositions = useMemo(() => {
@@ -412,6 +397,25 @@ export default function PositionMasteryPage() {
 
           {!loading && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {!hasPositionData && (
+                <div
+                  role="status"
+                  style={{
+                    padding: '16px 18px',
+                    marginBottom: 14,
+                    background: 'rgba(68,211,255,0.06)',
+                    border: '1px solid rgba(68,211,255,0.24)',
+                    borderRadius: 10,
+                    color: 'var(--sp-fg-muted)',
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  No position-tagged decisions have been recorded yet. Complete a position-specific
+                  drill to populate this map; overall results are never redistributed into invented
+                  seat statistics.
+                </div>
+              )}
               {/* Visual Table Heatmap */}
               <div
                 style={{

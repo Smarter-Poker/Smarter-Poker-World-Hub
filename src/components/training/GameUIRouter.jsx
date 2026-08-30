@@ -147,6 +147,7 @@ export default function GameUIRouter({
     if (isPsychologyGame) {
         return (
             <PsychologyTiltControlUI
+                gameId={gameId}
                 question={question}
                 level={level}
                 questionNumber={questionNumber}
@@ -163,6 +164,7 @@ export default function GameUIRouter({
     // ALL poker games use GTO Wizard-style dynamic table
     return (
         <UniversalDynamicTable
+            gameId={gameId}
             question={question}
             level={level}
             questionNumber={questionNumber}

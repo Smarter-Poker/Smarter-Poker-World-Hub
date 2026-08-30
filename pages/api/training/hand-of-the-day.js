@@ -38,6 +38,26 @@ function dateHash(dateStr) {
   return Math.abs(hash);
 }
 
+async function getUserDailyState(req, dailyId) {
+  if (!req.headers.authorization?.startsWith('Bearer ')) {
+    return { completion: null, completedDays: [] };
+  }
+  const { user, error } = await getServerUserWithFallback(req, getSupabase());
+  if (error || !user) return { completion: null, completedDays: [] };
+  const { data } = await getSupabase()
+    .from('training_daily_challenge')
+    .select('daily_id, score, ev_loss, selected_action, completed_at')
+    .eq('user_id', user.id)
+    .like('daily_id', 'daily-%')
+    .order('completed_at', { ascending: false })
+    .limit(365);
+  const rows = Array.isArray(data) ? data : [];
+  return {
+    completion: rows.find((row) => row.daily_id === dailyId) || null,
+    completedDays: rows.map((row) => String(row.daily_id).replace(/^daily-/, '')),
+  };
+}
+
 export default async function handler(req, res) {
   try {
     withTiming(res);
@@ -184,11 +204,14 @@ export default async function handler(req, res) {
         const tzOffset = tzAbbr === 'CDT' ? '-05:00' : '-06:00';
         const tomorrowMidnightCST = new Date(`${tYear}-${tMonth}-${tDate}T00:00:00${tzOffset}`);
 
+        const dailyState = await getUserDailyState(req, dailyId);
         return res.status(200).json({
           success: true,
           dailyId,
           question,
           expiresAt: tomorrowMidnightCST.toISOString(),
+          completion: dailyState.completion,
+          completedDays: dailyState.completedDays,
         });
       } catch (error) {
         console.warn('[HandOfTheDay] Error:', error.message);
@@ -209,7 +232,7 @@ export default async function handler(req, res) {
 
       try {
         const userId = user.id; // From JWT, NOT from req.body
-        const { dailyId, score, evLoss } = req.body;
+        const { dailyId, score, evLoss, selectedAction } = req.body;
 
         if (!dailyId) {
           return res.status(400).json({ success: false, error: 'dailyId required' });
@@ -233,6 +256,7 @@ export default async function handler(req, res) {
               daily_id: dailyId,
               score: score || 0,
               ev_loss: evLoss || 0,
+              selected_action: typeof selectedAction === 'string' ? selectedAction.slice(0, 80) : null,
               completed_at: new Date().toISOString(),
             },
             {

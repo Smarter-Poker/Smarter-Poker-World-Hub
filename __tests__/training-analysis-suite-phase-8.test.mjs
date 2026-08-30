@@ -45,7 +45,8 @@ test('comparison panels and upload state use straight metallic surfaces', () => 
 
 test('pressed analysis filters are accessible and carry the cyan instrument state', () => {
   assert.match(sources['equity-calculator'], /aria-pressed=\{numPlayers === n\}/);
-  assert.match(sources['performance-heatmap'], /aria-pressed=\{timeFilter === f\.id\}/);
+  assert.match(sources['performance-heatmap'], /href="\/hub\/training\/gto-reports"/);
+  assert.doesNotMatch(sources['performance-heatmap'], /derivePositions|deriveStreets|generateMistakePatterns/);
   assert.match(trainingCss, /button\[aria-pressed='true'\][\s\S]*?#a7f2ff/);
   assert.match(sources['risk-analyzer'], /className="sp-analysis-primary-action"/);
   assert.match(sources['icm-calculator'], /className="sp-analysis-primary-action"/);

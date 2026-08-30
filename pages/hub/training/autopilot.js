@@ -23,6 +23,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-EMPTY-2a — adoption: shared empty-state primitive
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -545,11 +546,11 @@ export default function AutopilotPage() {
                           data: { spotsTrailed: results.length, accuracy: avgAcc, spots: results.map(r => r.spot.name) },
                         }),
                       });
-                      if (res.ok) alert('Autopilot results shared to your feed!');
-                      else alert('Share failed — please try again.');
+                      if (res.ok) toast.success('Autopilot Results Shared To Your Feed!');
+                      else toast.error('Share Failed — Please Try Again.');
                     } catch (e) {
                       console.warn('Share error:', e);
-                      alert('Share failed — please try again.');
+                      toast.error('Share Failed — Please Try Again.');
                     } finally {
                       setSharing(false);
                     }

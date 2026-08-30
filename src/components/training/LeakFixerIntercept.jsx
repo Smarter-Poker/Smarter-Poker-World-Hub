@@ -54,12 +54,11 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
     // Handle accept - route to clinic
     const handleAccept = () => {
         if (clinic) {
-            // Clear the leak so we don't show again
-            localStorage.removeItem(STORAGE_KEY);
-
             if (onAccept) onAccept(clinic);
 
-            // Route to clinic page
+            // Do not clear a detected leak merely because the player accepted
+            // the recommendation. It remains until real training history shows
+            // the leak was corrected.
             router.push(`/hub/training/clinic/${clinic.id}`);
         }
     };

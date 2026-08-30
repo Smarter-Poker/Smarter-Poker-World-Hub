@@ -3,6 +3,7 @@ import { ArrowRight, Check, Lock } from 'lucide-react';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
 import { getGameImage } from '../../data/GAME_IMAGES';
+import TrainingGameArt from './TrainingGameArt';
 
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels;
 
@@ -41,7 +42,11 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
         >
             <span className="sp-casino-game-rail" aria-hidden="true" />
             <span className="sp-casino-game-visual">
-                <img src={artwork} alt="" loading="lazy" decoding="async" />
+                {artwork === getGameImage(game.id) ? (
+                    <TrainingGameArt gameId={game.id} />
+                ) : (
+                    <img src={artwork} alt="" loading="lazy" decoding="async" />
+                )}
                 <span className="sp-casino-game-vignette" aria-hidden="true" />
                 <span className="sp-casino-game-topline">
                     <span>{meta.label}</span>

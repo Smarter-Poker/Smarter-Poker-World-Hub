@@ -29,6 +29,9 @@ import { simplifyActions, DIFFICULTY, toEngineDifficulty } from '../engines/Diff
 // ═══ Phase GTO-CLONE: ActionTreeEngine for GTO action mapping + scoring ═══
 import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
 import { enforceTrainingQuestionContract } from '../lib/training/questionContract.mjs';
+import { isCustomTrainerConfig } from '../lib/training/trainerConfigMode.mjs';
+import { getOfflineQuestions, setOfflineQuestions } from '../lib/training/offlineQuestionCache';
+import { isVerifiedSolverQuestion } from '../lib/training/solverDecisionEvidence';
 
 /**
  * Apply difficulty-based option simplification (GTO Wizard Simple/Grouped/Standard)
@@ -310,8 +313,6 @@ export default function useGTOTrainer(
   const [correctCount, setCorrectCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-  // XP system removed — diamonds are the only reward currency
-  const totalXP = 0; // legacy compatibility stub
 
   // Feedback state
   const [showFeedback, setShowFeedback] = useState(false);
@@ -359,7 +360,7 @@ export default function useGTOTrainer(
   const prefetchNextLevel = useCallback(async () => {
     if (prefetchTriggeredRef.current) return;
     if (level >= TOTAL_LEVELS) return; // Max level, nothing to prefetch
-    if (trainerConfig) return; // Custom trainers don't auto-advance
+    if (isCustomTrainerConfig(trainerConfig)) return; // Custom trainers don't auto-advance
 
     prefetchTriggeredRef.current = true;
     const nextLevel = level + 1;
@@ -464,7 +465,7 @@ export default function useGTOTrainer(
       let apiUrl;
       let params;
 
-      if (trainerConfig) {
+      if (isCustomTrainerConfig(trainerConfig)) {
         // CUSTOM TRAINER MODE — use custom-train API with detailed config
         params = new URLSearchParams({
           gameType: trainerConfig.gameType || 'cash',
@@ -536,26 +537,44 @@ export default function useGTOTrainer(
         );
       }
 
-      const response = await fetch(apiUrl, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
       let data;
-      const textResponse = await response.text();
-      try {
-        data = JSON.parse(textResponse);
-      } catch (e) {
-        console.warn('[GTOTrainer] Non-JSON response:', textResponse.substring(0, 100));
-        if (response.status === 401) throw new Error('Auth required');
-        throw new Error(`Server error (${response.status})`);
+      let response = null;
+      const isStandardSession = !isCustomTrainerConfig(trainerConfig);
+      const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+      if (isStandardSession && browserIsOffline) {
+        const cachedQuestions = await getOfflineQuestions(gameId, effectiveLevel);
+        if (cachedQuestions.length > 0) {
+          data = { success: true, questions: cachedQuestions, offline: true };
+          console.debug(`[GTOTrainer] Loaded ${cachedQuestions.length} offline questions`);
+        }
       }
 
-      if (!response.ok || !data.questions || data.questions.length === 0) {
+      if (!data) {
+        response = await fetch(apiUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
+        const textResponse = await response.text();
+        try {
+          data = JSON.parse(textResponse);
+        } catch (e) {
+          console.warn('[GTOTrainer] Non-JSON response:', textResponse.substring(0, 100));
+          if (response.status === 401) throw new Error('Auth required');
+          throw new Error(`Server error (${response.status})`);
+        }
+      }
+
+      if ((response && !response.ok) || !data.questions || data.questions.length === 0) {
         console.warn('[GTOTrainer] Pre-load failed, using single-question mode');
         setPreloadComplete(false);
         setLoading(false);
         return fetchSingleQuestion(effectiveLevel);
+      }
+
+      if (isStandardSession && !data.offline) {
+        await setOfflineQuestions(gameId, effectiveLevel, data.questions);
       }
 
       console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
@@ -587,6 +606,24 @@ export default function useGTOTrainer(
       setLoading(false);
     } catch (err) {
       console.warn('[GTOTrainer] Pre-load error:', err);
+      if (!isCustomTrainerConfig(trainerConfig)) {
+        const cachedQuestions = await getOfflineQuestions(gameId, effectiveLevel);
+        if (cachedQuestions.length > 0) {
+          const selected = applyStreetFilter(
+            applyHandSelection(cachedQuestions, trainerConfig?.handSelection),
+            trainerConfig?.gameMode,
+            trainerConfig?.targetStreet,
+          );
+          if (selected.length > 0) {
+            setPreloadedQuestions(selected);
+            setPreloadComplete(true);
+            setCurrentQuestion(applyDifficultyToQuestion(selected[0], resolveDifficultyMode()));
+            setEffectiveQuestionsPerLevel(Math.min(effectiveQuestionsPerLevel, selected.length));
+            setLoading(false);
+            return;
+          }
+        }
+      }
       setPreloadComplete(false);
       setLoading(false);
       return fetchSingleQuestion(effectiveLevel);
@@ -736,17 +773,21 @@ export default function useGTOTrainer(
       const scenario = currentQuestion.scenario || {};
       const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
 
-      // ═══ PREFER REAL PIO DATA, FALL BACK TO SIMULATED ═══
-      const hasPIOData =
+      // Only verified solver distributions may make a second action grade as
+      // correct. Modelled/backfilled percentages are coaching context, never
+      // grading evidence.
+      const solverVerified = isVerifiedSolverQuestion(currentQuestion);
+      const hasDisplayedFrequencies =
         currentQuestion.gtoFrequencies &&
         Object.keys(currentQuestion.gtoFrequencies || {}).length > 0;
       // ORDERING MATTERS: the simulated distribution must be seeded from the
       // SOLVER's answer, never the dice's. The table built its 1-100 bands from
       // this exact distribution before the player acted; reseeding it here would
       // shift the bands out from under a roll that has already been shown.
-      const frequencies = hasPIOData
-        ? currentQuestion.gtoFrequencies // Real PIO solver frequencies (0-100%)
+      const frequencies = hasDisplayedFrequencies
+        ? currentQuestion.gtoFrequencies
         : simulateGTOFrequencies(options, solverCorrectAnswer, level);
+      const gradingFrequencies = solverVerified ? frequencies : {};
 
       // GTOW parity #38 — with the randomiser live, the action the dice landed
       // on is what "Best" means for this hand; that is the entire point of the
@@ -765,10 +806,10 @@ export default function useGTOTrainer(
       const moveResult = classifyMove(
         selectedOptionId,
         correctAnswer,
-        frequencies,
+        gradingFrequencies,
         level,
-        hasPIOData ? currentQuestion.evData : null, // Real EV data (or null)
-        hasPIOData ? currentQuestion.rawFrequencies : null, // Full PIO frequency matrix
+        solverVerified ? currentQuestion.evData : null,
+        solverVerified ? currentQuestion.rawFrequencies : null,
         currentQuestion.heroHand || scenario.heroHand, // Hero hand for EV lookup
         scenario.pot // Pot size for scaling
       );
@@ -783,8 +824,8 @@ export default function useGTOTrainer(
       // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
       let actionTreeScore = null;
       try {
-        if (frequencies && Object.keys(frequencies || {}).length > 0) {
-          const gtoStrategy = Object.entries(frequencies || {}).map(([id, freq]) => ({
+        if (solverVerified && gradingFrequencies && Object.keys(gradingFrequencies || {}).length > 0) {
+          const gtoStrategy = Object.entries(gradingFrequencies || {}).map(([id, freq]) => ({
             id,
             text: options.find((o) => o.id === id)?.text || id,
             frequency: freq,
@@ -837,6 +878,9 @@ export default function useGTOTrainer(
           question: currentQuestion.question || currentQuestion.text,
           source: currentQuestion.source || 'UNKNOWN',
           gtoFrequencies: frequencies || {},
+          solverVerified,
+          dataQuality: currentQuestion.dataQuality || null,
+          evLossMeasured: Boolean(moveResult.isRealData),
           // ═══ PHASE 20: Raw solver matrix for RangeGrid display ═══
           rawFrequencies: currentQuestion.rawFrequencies || null,
           heroHand: currentQuestion.heroHand || scenario.heroHand || null,
@@ -1270,9 +1314,9 @@ export default function useGTOTrainer(
         ).length;
         const recentAccuracy = (recentCorrect / windowSize) * 100;
 
-        if (recentAccuracy >= 90 && level < 10) {
+        if (recentAccuracy >= 90 && level < TOTAL_LEVELS) {
           // Player is crushing it → increase difficulty
-          const newLevel = Math.min(10, level + 1);
+          const newLevel = Math.min(TOTAL_LEVELS, level + 1);
           setLevel(newLevel);
           setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
           try {
@@ -1574,26 +1618,30 @@ export default function useGTOTrainer(
         });
 
         // ═══ MASTERY GATE: Handle server-verified mastery response ═══
+        let data;
         try {
-          const data = await response.json();
-          if (data.mastery) {
-            setMasteryStatus(data.mastery);
-            if (data.mastery.masteryToken) {
-              setMasteryToken(data.mastery.masteryToken);
-              console.debug(
-                `[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`
-              );
-            }
-            // Server overrides client pass/fail
-            if (data.mastery.passed !== passed) {
-              console.debug(
-                `[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`
-              );
-              setLevelPassed(data.mastery.passed);
-            }
+          data = await response.json();
+        } catch (_parseErr) {
+          throw new Error(`Progress persistence returned invalid JSON (${response.status})`);
+        }
+        if (!response.ok || data?.success === false) {
+          throw new Error(data?.error || `Progress persistence failed (${response.status})`);
+        }
+        if (data.mastery) {
+          setMasteryStatus(data.mastery);
+          if (data.mastery.masteryToken) {
+            setMasteryToken(data.mastery.masteryToken);
+            console.debug(
+              `[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`
+            );
           }
-        } catch (parseErr) {
-          console.warn('[App] Handled exception:', parseErr?.message || parseErr);
+          // Server overrides client pass/fail
+          if (data.mastery.passed !== passed) {
+            console.debug(
+              `[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`
+            );
+            setLevelPassed(data.mastery.passed);
+          }
         }
 
         // ═══ PHASE 14: Save mistakes to spaced repetition ═══
@@ -1621,7 +1669,7 @@ export default function useGTOTrainer(
             const sessionRecord = createSessionRecord({
               userId,
               gameId,
-              level,
+              level: selectedLevel,
               summary,
             });
             const moveRecords = createMoveRecords(
@@ -1658,7 +1706,7 @@ export default function useGTOTrainer(
     [
       userId,
       gameId,
-      level,
+      selectedLevel,
       correctCount,
       bestStreak,
       gtowScoring,
@@ -1946,7 +1994,6 @@ export default function useGTOTrainer(
     correctCount,
     streak,
     bestStreak,
-    totalXP,
     requiredCorrect: getRequiredCorrect(selectedLevel, effectiveQuestionsPerLevel),
     passThreshold: TRAINING_CONFIG.passThresholds[selectedLevel],
     totalLevels: TOTAL_LEVELS,

@@ -2,7 +2,8 @@
  * MENTAL GAME JOURNAL — Tilt & Trigger Tracking
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tracks sleep quality, caffeine, states, and tilt triggers.
- * Now fully backed by Supabase training_sessions to retain historical data.
+ * Backed by dedicated non-graded tool records so journal entries never affect
+ * accuracy, streaks, rewards, or leaderboards.
  *
  * Route: /hub/training/mental-journal
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -15,7 +16,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -76,6 +76,17 @@ const TRIGGERS = [
   'Distracted',
 ];
 
+const LOCAL_JOURNAL_KEY = 'training-mental-journal-v2';
+
+function readLocalEntries() {
+  try {
+    const value = JSON.parse(localStorage.getItem(LOCAL_JOURNAL_KEY) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function MentalJournalPage() {
   const router = useRouter();
   useTrainingBus('mental-journal');
@@ -94,12 +105,6 @@ export default function MentalJournalPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState(null);
 
-  useEffect(() => {
-    const h = () => {};
-    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => unsub();
-  }, []);
-
   // Fetch history on mount or when switching to 'history'
   useEffect(() => {
     if (view === 'history') {
@@ -112,34 +117,36 @@ export default function MentalJournalPage() {
     setFetchError(null);
     try {
       const token = getAccessToken();
-      if (!token) return;
-      const res = await authedFetch('/api/training/get-sessions?gameId=mental-journal&limit=50', {
-      });
+      if (!token) {
+        setEntries(readLocalEntries());
+        return;
+      }
+      const res = await authedFetch('/api/training/tool-records?toolId=mental-journal&recordType=entry&limit=50');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) {
-        // Map the JSONB trainer_config into our UI entries
-        const parsed = data.sessions
-          .filter((s) => s.trainer_config && s.trainer_config.mindState)
-          .map((s) => ({
-            id: s.id || s.created_at,
-            date: new Date(s.created_at).toLocaleDateString('en-US', {
+      if (data.success && Array.isArray(data.records)) {
+        const parsed = data.records
+          .filter((record) => record.data?.mindState)
+          .map((record) => ({
+            id: record.record_key,
+            date: new Date(record.data.clientCreatedAt || record.created_at).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
             }),
-            sleep: s.trainer_config.sleep || 7,
-            caffeine: s.trainer_config.caffeine || 0,
-            mindState: s.trainer_config.mindState || 'zone',
-            triggers: s.trainer_config.triggers || [],
-            notes: s.trainer_config.notes || '',
+            sleep: record.data.sleep ?? 7,
+            caffeine: record.data.caffeine ?? 0,
+            mindState: record.data.mindState || 'zone',
+            triggers: record.data.triggers || [],
+            notes: record.data.notes || '',
           }));
         setEntries(parsed);
       }
     } catch (e) {
       console.warn('Failed to fetch journal history:', e);
-      setFetchError('Unable to load journal history. Please try again.');
+      setEntries(readLocalEntries());
+      setFetchError('Cloud history could not load. Showing entries saved on this device.');
     } finally {
       setLoadingHistory(false);
     }
@@ -159,28 +166,39 @@ export default function MentalJournalPage() {
       mindState,
       triggers: selectedTriggers,
       notes,
+      clientCreatedAt: new Date().toISOString(),
     };
+
+    const recordKey = `entry-${Date.now()}`;
+    const localEntry = {
+      id: recordKey,
+      date: new Date(payload.clientCreatedAt).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      }),
+      ...payload,
+    };
+
+    const localEntries = [localEntry, ...readLocalEntries()].slice(0, 50);
+    try {
+      localStorage.setItem(LOCAL_JOURNAL_KEY, JSON.stringify(localEntries));
+    } catch (error) {
+      console.warn('[MentalJournal] Local save failed:', error?.message || error);
+    }
 
     try {
       const token = getAccessToken();
       if (token) {
-        await authedFetch('/api/training/save-session', {
+        const response = await authedFetch('/api/training/tool-records', {
           method: 'POST',
           body: JSON.stringify({
-            gameId: 'mental-journal',
-            questionsAnswered: 1,
-            questionsCorrect: 1,
-            accuracy: 100,
-            trainerConfig: payload, // Hijack trainerConfig JSONB to store diary state
+            toolId: 'mental-journal',
+            recordType: 'entry',
+            recordKey,
+            data: payload,
           }),
         });
+        if (!response.ok) throw new Error(`Cloud save failed (${response.status})`);
       }
-
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-        'mental-journal'
-      );
 
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2000);
@@ -190,7 +208,10 @@ export default function MentalJournalPage() {
       setNotes('');
       setView('history'); // Switch to history to see the new entry
     } catch (e) {
-      console.warn(e);
+      console.warn('[MentalJournal] Cloud save failed:', e?.message || e);
+      setEntries(localEntries);
+      setFetchError('Saved on this device. Cloud sync is temporarily unavailable.');
+      setView('history');
     } finally {
       setIsSaving(false);
     }

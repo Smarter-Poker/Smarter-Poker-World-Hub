@@ -44,61 +44,49 @@ export default function FinalTableSimulator() {
   ]);
 
   const [payouts, setPayouts] = useState([5000, 3000, 2000, 1500, 1000]);
+  const [icmResults, setIcmResults] = useState([]);
+  const [calculating, setCalculating] = useState(true);
+  const [calculationError, setCalculationError] = useState('');
+  const [showDealProposal, setShowDealProposal] = useState(false);
 
   const totalChips = players.reduce((sum, p) => sum + (Number(p.stack) || 0), 0) || 1;
 
-  // Naive ICM calculation implementation details (Independent Chip Model approximation)
-  const calculateICM = () => {
-    // This is a simplified ICM approximation for UI demonstration
-    // Actual Malmuth-Harville requires deep permutation recursion
-    let updated = players.map((p) => {
-      const equityShare = p.stack / totalChips;
-      // First place probability is roughly their chip percentage
-      const p1 = equityShare;
-      // Very rough approximation of total $ equity
-      const icmValue = p1 * payouts[0] + (1 - p1) * (equityShare * payouts[1] * 2);
-      return {
-        ...p,
-        icmValue: Math.max(0, icmValue),
-      };
-    });
-
-    // Normalize to pool
-    const totalPayout = payouts.reduce((a, b) => a + b, 0);
-    const calcTotal = updated.reduce((a, p) => a + p.icmValue, 0);
-    if (calcTotal > 0) {
-      updated = updated.map((p) => ({
-        ...p,
-        icmValue: (p.icmValue / calcTotal) * totalPayout,
-      }));
-    }
-
-    return updated;
-  };
-
-  const icmResults = calculateICM();
-
-  const handleSaveSession = async () => {
-    try {
-      await authedFetch('/api/training/save-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameId: 'final-table-sim',
-          stats: {
-            players: players.length,
-            totalChips,
-          },
-        }),
-      });
-    } catch (e) {
-      console.warn('Failed to save session:', e);
-    }
-  };
-
   useEffect(() => {
-    const t = setTimeout(handleSaveSession, 1000);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setCalculating(true);
+      setCalculationError('');
+      setShowDealProposal(false);
+      try {
+        const response = await authedFetch('/api/training/icm-calc', {
+          method: 'POST',
+          body: JSON.stringify({ stacks: players.map((p) => p.stack), prizes: payouts }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success || !Array.isArray(payload.results)) {
+          throw new Error(payload.error || `ICM Request Failed (${response.status})`);
+        }
+        if (!cancelled) {
+          setIcmResults(players.map((player, index) => ({
+            ...player,
+            chipPct: payload.results[index]?.chipPct || 0,
+            icmValue: payload.results[index]?.icmDollars || 0,
+            icmDifference: payload.results[index]?.difference || 0,
+          })));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setIcmResults([]);
+          setCalculationError(error.message || 'Unable To Calculate ICM Equity.');
+        }
+      } finally {
+        if (!cancelled) setCalculating(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [players, payouts]);
 
   const updateStack = (id, newStack) => {
@@ -197,6 +185,9 @@ export default function FinalTableSimulator() {
                 ICM $Equity Results
               </h2>
 
+              {calculating && <div style={{ color: 'var(--sp-accent-cyan)', fontSize: 12, marginBottom: 14 }}>Calculating Exact Malmuth-Harville ICM…</div>}
+              {calculationError && <div role="alert" style={{ color: 'var(--sp-accent-red)', fontSize: 12, marginBottom: 14 }}>{calculationError}</div>}
+
               <table style={styles.resultsTable}>
                 <thead>
                   <tr>
@@ -206,7 +197,7 @@ export default function FinalTableSimulator() {
                   </tr>
                 </thead>
                 <tbody>
-                  {icmResults
+                  {[...icmResults]
                     .sort((a, b) => b.stack - a.stack)
                     .map((p) => (
                       <tr
@@ -228,7 +219,7 @@ export default function FinalTableSimulator() {
                           </div>
                         </td>
                         <td style={styles.td}>
-                          {totalChips > 0 ? ((p.stack / totalChips) * 100).toFixed(1) : '0.0'}%
+                          {Number(p.chipPct || 0).toFixed(1)}%
                         </td>
                         <td
                           style={{
@@ -251,20 +242,25 @@ export default function FinalTableSimulator() {
                   Players often make deals using ICM numbers. If everyone agreed to chop the prize
                   pool right now based on skill equity:
                 </p>
-                {/* 2026-08-27: had no onClick. A chop proposal is a real number a
-                    player might act on at a real final table, so an inert button is
-                    worse here than in most places. Disabled and labelled until the
-                    ICM chop is actually computed from the stacks and payout ladder
-                    already on this page. */}
                 <button
                   type="button"
-                  disabled
-                  aria-label="Chip-chop deal proposal is not available yet"
-                  title="Deal Proposals Are Not Available Yet"
-                  style={{ ...styles.dealBtn, opacity: 0.5, cursor: 'not-allowed' }}
+                  onClick={() => setShowDealProposal((visible) => !visible)}
+                  disabled={calculating || icmResults.length === 0}
+                  style={{ ...styles.dealBtn, opacity: calculating || icmResults.length === 0 ? 0.5 : 1, cursor: calculating || icmResults.length === 0 ? 'not-allowed' : 'pointer' }}
                 >
-                  Deal Proposal Coming Soon
+                  {showDealProposal ? 'Hide ICM Deal Proposal' : 'Generate ICM Deal Proposal'}
                 </button>
+                {showDealProposal && (
+                  <div style={{ marginTop: 14, border: '1px solid rgba(251,191,36,.22)', background: 'rgba(0,0,0,.22)', padding: 14 }}>
+                    {[...icmResults].sort((a, b) => b.icmValue - a.icmValue).map((player) => (
+                      <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '6px 0', color: 'var(--sp-fg-muted)', fontSize: 12 }}>
+                        <span>{player.name}</span>
+                        <strong style={{ color: 'var(--sp-accent-green)' }}>{formatCurrency(player.icmValue)}</strong>
+                      </div>
+                    ))}
+                    <div style={{ marginTop: 8, color: 'var(--sp-fg-faint)', fontSize: 10, lineHeight: 1.5 }}>Strategic training output only. A real deal requires every player’s agreement and tournament approval.</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

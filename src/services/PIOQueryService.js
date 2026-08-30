@@ -270,7 +270,7 @@ export class PIOQueryService {
             // the generator's pool to the game's actual subject.
             'cash-008': { id: 'cash-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop', pioSpotTypes: ['4bet'] }, // 4-Bet Wars
             'cash-009': { id: 'cash-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 200 }, // Deep Stack
-            'cash-010': { id: 'cash-010', sourceOfTruth: 'ICMIZER', pioStackDepth: 40 }, // Short Stack (CHART)
+            'cash-010': { id: 'cash-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 40 }, // 40BB Short Stack
             'cash-011': { id: 'cash-011', sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 }, // Donk Defense
             // Subject-match sweep 2026-08-14: "River Decisions -- Final street
             // mastery" was serving 102 flop / 85 turn / 63 river. pioStreet

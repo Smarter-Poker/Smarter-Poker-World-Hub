@@ -82,7 +82,7 @@ async function getAverageAccuracy(supabase, userId, periodKey, isWeekly) {
     }
 
     const { data: sessions } = await supabase
-        .from('jarvis_training_sessions')
+        .from('training_sessions')
         .select('accuracy')
         .eq('user_id', userId)
         .gte('created_at', startDate.toISOString())
@@ -110,7 +110,7 @@ async function getUniqueCategoriesPlayed(supabase, userId, periodKey, isWeekly) 
     }
 
     const { data: sessions } = await supabase
-        .from('jarvis_training_sessions')
+        .from('training_sessions')
         .select('game_id')
         .eq('user_id', userId)
         .gte('created_at', startDate.toISOString())

@@ -9,7 +9,12 @@
  */
 
 const GENERIC_OPTION_RE = /^(?:option|choice|answer)\s*[a-d0-9]+$/i;
-const LEAK_MARKER_RE = /(?:\bcorrect\b|\bbest\b|\boptimal\b|\brecommended\b|\bgto\b|✓|✔)/i;
+// Detect presentation-layer grading labels, not ordinary strategy prose.
+// Words such as “best” and “correct” can legitimately occur inside a full
+// psychology answer (“hope for the best”, “believe the read was correct”).
+// Treating every occurrence as a grading leak rejected hundreds of otherwise
+// valid questions. A leak is an explicit prefix/suffix/checkmark annotation.
+const LEAK_MARKER_RE = /(?:^[✓✔]|^(?:correct|best|optimal|recommended|gto)\s*[-:—]|\((?:correct|best|optimal|recommended|gto)\)\s*$|[✓✔]\s*$)/i;
 const POSITION_LABELS = {
   BTN: 'Button',
   SB: 'Small Blind',

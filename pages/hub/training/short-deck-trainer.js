@@ -58,41 +58,15 @@ function buildDeck() {
   return deck;
 }
 
-// Simple Short Deck equity estimation (enhanced)
-function estimateEquity(heroCards, villainRange, boardCards = []) {
-  const r1 = heroCards[0][0],
-    r2 = heroCards[1][0];
-  const s1 = heroCards[0][1],
-    s2 = heroCards[1][1];
-  const isSuited = s1 === s2;
-  const isPair = r1 === r2;
-  const rankIdx = (r) => SHORT_RANKS.indexOf(r);
+const BENCHMARK_HANDS = [
+  { value: '9c8d', label: '9♣ 8♦ — Connected Benchmark' },
+  { value: 'QhJd', label: 'Q♥ J♦ — Broadway Benchmark' },
+  { value: 'KhKd', label: 'K♥ K♦ — Premium Pair' },
+  { value: 'AhAd', label: 'A♥ A♦ — Top Pair Benchmark' },
+];
 
-  let eq = 50;
-  // Suitedness is HUGE in short deck
-  if (isSuited) eq += 10;
-  // Pairs: adjusted for short deck (sets are easier)
-  if (isPair) eq += 12 + (8 - rankIdx(r1));
-  // High cards
-  const highCardBonus = (8 - Math.min(rankIdx(r1), rankIdx(r2))) * 2;
-  eq += highCardBonus;
-  // Connected: straights are more common
-  const gap = Math.abs(rankIdx(r1) - rankIdx(r2));
-  if (gap === 1) eq += 6;
-  else if (gap === 2) eq += 3;
-
-  // Villain range adjustment
-  const rangeMultiplier = {
-    'Top 100% (Any 2)': 1.0,
-    'Top 50% (Loose)': 0.92,
-    'Top 20% (Standard)': 0.82,
-    'Top 10% (Tight)': 0.72,
-  };
-  eq *= rangeMultiplier[villainRange] || 0.9;
-
-  // Small randomness for realism
-  eq += Math.random() * 6 - 3;
-  return Math.min(92, Math.max(8, eq)).toFixed(1);
+function unicodeHandToAscii(cards) {
+  return cards.map((card) => `${card[0]}${UNICODE_TO_SUIT[card[1]] || card[1]}`).join('');
 }
 
 // Generate a quiz question
@@ -112,16 +86,16 @@ function generateQuiz(round) {
   // Pick a random question type
   const types = [
     {
-      q: `Is ${hero[0]}${hero[1]} stronger in Short Deck than in Hold'em?`,
-      correct: isSuited || isPair ? 'yes' : Math.random() > 0.4 ? 'yes' : 'no',
-      options: ['yes', 'no'],
+      q: 'Are Flushes Harder To Make In Short Deck Than In Hold’em?',
+      correct: 'Yes',
+      options: ['Yes', 'No'],
     },
     {
       q: `Can you make a flush with ${hero[0]}${hero[1]}?`,
-      correct: isSuited ? 'yes' : 'no',
-      options: ['yes', 'no'],
+      correct: isSuited ? 'Yes' : 'No',
+      options: ['Yes', 'No'],
     },
-    { q: `Does Flush beat Full House in Short Deck?`, correct: 'yes', options: ['yes', 'no'] },
+    { q: 'Does A Flush Beat A Full House In Short Deck?', correct: 'Yes', options: ['Yes', 'No'] },
     {
       q: `What is the lowest possible straight in Short Deck?`,
       correct: 'A-6-7-8-9',
@@ -146,9 +120,10 @@ export default function ShortDeckTrainerPage() {
 
   // Equity Calculator State
   const [heroCards, setHeroCards] = useState(['A♠', 'K♠']);
-  const [villainRange, setVillainRange] = useState('Top 20% (Standard)');
+  const [villainHand, setVillainHand] = useState('QhJd');
   const [equity, setEquity] = useState(null);
   const [simulating, setSimulating] = useState(false);
+  const [simulationError, setSimulationError] = useState('');
   const [showRules, setShowRules] = useState(false);
 
   // Quiz State
@@ -172,14 +147,31 @@ export default function ShortDeckTrainerPage() {
   }, []);
 
   // Equity simulation
-  const runSim = useCallback(() => {
+  const runSim = useCallback(async () => {
     setSimulating(true);
-    setTimeout(() => {
-      const eq = estimateEquity(heroCards, villainRange);
-      setEquity(eq);
+    setSimulationError('');
+    try {
+      const response = await authedFetch('/api/training/equity', {
+        method: 'POST',
+        body: JSON.stringify({
+          hands: [unicodeHandToAscii(heroCards), villainHand],
+          board: [],
+          variant: 'short_deck',
+          iterations: 10000,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success || !payload.results?.[0]) {
+        throw new Error(payload.error || `Equity Request Failed (${response.status})`);
+      }
+      setEquity(Number(payload.results[0].equity).toFixed(1));
+    } catch (error) {
+      setEquity(null);
+      setSimulationError(error.message || 'Unable To Calculate Equity.');
+    } finally {
       setSimulating(false);
-    }, 800);
-  }, [heroCards, villainRange]);
+    }
+  }, [heroCards, villainHand]);
 
   // Quiz mode
   const startQuiz = useCallback(() => {
@@ -456,7 +448,7 @@ export default function ShortDeckTrainerPage() {
                 </button>
               </div>
 
-              {/* Villain Range */}
+              {/* Explicit Opponent Hand — the API calculates hand-vs-hand equity. */}
               <div style={{ marginBottom: 24, textAlign: 'center' }}>
                 <label
                   style={{
@@ -467,11 +459,11 @@ export default function ShortDeckTrainerPage() {
                     letterSpacing: 1,
                   }}
                 >
-                  Villain Range
+                  Villain Benchmark Hand
                 </label>
                 <select
-                  value={villainRange}
-                  onChange={(e) => setVillainRange(e.target.value)}
+                  value={villainHand}
+                  onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setSimulationError(''); }}
                   style={{
                     display: 'block',
                     width: '100%',
@@ -486,11 +478,9 @@ export default function ShortDeckTrainerPage() {
                     outline: 'none',
                   }}
                 >
-                  <option>Top 100% (Any 2)</option>
-                  <option>Top 50% (Loose)</option>
-                  <option>Top 20% (Standard)</option>
-                  <option>Top 10% (Tight)</option>
+                  {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
                 </select>
+                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Calculation — Not A Range Estimate</div>
               </div>
 
               {/* Run Button */}
@@ -518,6 +508,12 @@ export default function ShortDeckTrainerPage() {
                 </motion.button>
               </div>
 
+              {simulationError && (
+                <div role="alert" style={{ margin: '0 auto 18px', maxWidth: 420, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5, textAlign: 'center' }}>
+                  {simulationError}
+                </div>
+              )}
+
               {/* Equity Result */}
               <AnimatePresence>
                 {equity && !simulating && (
@@ -543,7 +539,7 @@ export default function ShortDeckTrainerPage() {
                         marginBottom: 8,
                       }}
                     >
-                      Hero Equity vs {villainRange}
+                      Hero Equity Vs {BENCHMARK_HANDS.find((hand) => hand.value === villainHand)?.label || villainHand}
                     </div>
                     <div
                       style={{

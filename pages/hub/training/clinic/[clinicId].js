@@ -1,320 +1,80 @@
-/**
- * CLINIC PLAY PAGE — Remediation Drills
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Runs specialized training clinics for leak remediation.
- * - Loads clinic configuration from TRAINING_CLINICS
- * - Uses same template/iframe as regular training
- * - Awards 2.5x XP multiplier for remediation mode
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import Head from 'next/head';
-import { motion } from 'framer-motion';
-import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/TRAINING_CLINICS';
-import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
-import feedback, { EFFECT_STYLES } from '../../../../src/engine/HapticsFeedback';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { getClinicById } from '../../../../src/data/TRAINING_CLINICS';
 
-// Constants
-const TIME_PER_QUESTION = 21;
-const QUESTIONS_PER_CLINIC = 10;
+// Each remediation clinic now launches a real catalog drill whose answers are
+// graded by the same deterministic engine as the 107-game training library.
+// The former clinic page fabricated every question and randomly decided
+// whether a selected answer was correct.
+const CLINIC_GAME_MAP = {
+  'clinic-01': 'cash-003',
+  'clinic-02': 'cash-004',
+  'clinic-03': 'adv-012',
+  'clinic-04': 'cash-006',
+  'clinic-05': 'cash-002',
+  'clinic-06': 'psy-002',
+  'clinic-07': 'psy-001',
+  'clinic-08': 'psy-007',
+  'clinic-09': 'adv-016',
+  'clinic-10': 'adv-015',
+  'clinic-11': 'adv-017',
+  'clinic-12': 'adv-011',
+  'clinic-13': 'mtt-002',
+  'clinic-14': 'mtt-005',
+  'clinic-15': 'mtt-006',
+  'clinic-16': 'mtt-012',
+  'clinic-17': 'mtt-011',
+  'clinic-18': 'mtt-013',
+  'clinic-19': 'mtt-004',
+  'clinic-20': 'mtt-015',
+  'clinic-21': 'mtt-008',
+  'clinic-22': 'mtt-007',
+  'clinic-23': 'cash-018',
+  'clinic-24': 'cash-016',
+  'clinic-25': 'cash-012',
+  'clinic-26': 'cash-015',
+  'clinic-27': 'cash-014',
+  'clinic-28': 'cash-021',
+};
 
 export default function ClinicPlayPage() {
-    const router = useRouter();
-    const { clinicId } = router.query;
-    const bus = useTrainingBus('clinic', { clinicId });
-    const { recordSession } = useTrainingProgress();
-    const iframeRef = useRef(null);
+  const router = useRouter();
+  const clinicId = typeof router.query.clinicId === 'string' ? router.query.clinicId : '';
+  const clinic = useMemo(() => (clinicId ? getClinicById(clinicId) : null), [clinicId]);
+  const gameId = CLINIC_GAME_MAP[clinicId];
 
-    // State
-    const [clinic, setClinic] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [questionIndex, setQuestionIndex] = useState(0);
-    const [correctCount, setCorrectCount] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-    const [showResult, setShowResult] = useState(false);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [isComplete, setIsComplete] = useState(false);
-    const [streak, setStreak] = useState(0);
-    const [xpEarned, setXpEarned] = useState(0);
+  useEffect(() => {
+    if (!router.isReady || !clinic || !gameId) return;
+    router.replace({
+      pathname: '/hub/training/arena/[gameId]',
+      query: { gameId, level: '1', clinic: clinic.id, remediation: '1' },
+    });
+  }, [router.isReady, clinic, gameId, router]);
 
-    const timerRef = useRef(null);
-    const xpMultiplier = clinic ? getRemediationXPMultiplier(clinic.id) : 2.5;
+  const href = clinic && gameId
+    ? `/hub/training/arena/${gameId}?level=1&clinic=${encodeURIComponent(clinic.id)}&remediation=1`
+    : '/hub/training';
 
-    // Load clinic on mount
-    useEffect(() => {
-        if (!clinicId) return;
-
-        const foundClinic = getClinicById(clinicId);
-        if (foundClinic) {
-            setClinic(foundClinic);
-            setLoading(false);
-        } else {
-            setLoading(false);
-        }
-    }, [clinicId, xpMultiplier]);
-
-    // Timer
-    useEffect(() => {
-        if (showResult || isComplete || loading || !clinic) return;
-
-        // Use clinic-specific time limit if available
-        const timeLimit = clinic.timeLimit || TIME_PER_QUESTION;
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 0.1) {
-                    handleAnswer(null);
-                    return 0;
-                }
-                return prev - 0.1;
-            });
-        }, 100);
-
-        return () => clearInterval(timerRef.current);
-    }, [questionIndex, showResult, isComplete, loading, clinic]);
-
-    // Handle answer
-    const handleAnswer = useCallback((optionId) => {
-        if (showResult) return;
-        clearInterval(timerRef.current);
-        feedback.tap();
-
-        // For clinic mode, we need clinic-specific question generation
-        // For now, simulate with random correct/incorrect
-        const isCorrect = optionId && Math.random() > 0.3;
-
-        setSelectedAnswer(optionId);
-        setShowResult(true);
-
-        if (isCorrect) {
-            feedback.correct();
-            setCorrectCount(prev => prev + 1);
-            setStreak(prev => prev + 1);
-
-            // Apply clinic XP multiplier
-            const baseXP = 100;
-            const earned = Math.round(baseXP * xpMultiplier);
-            setXpEarned(prev => prev + earned);
-        } else {
-            feedback.incorrect();
-            setStreak(0);
-        }
-    }, [showResult, xpMultiplier]);
-
-    // Next question
-    const handleNext = useCallback(() => {
-        feedback.tap();
-
-        if (questionIndex + 1 >= QUESTIONS_PER_CLINIC) {
-            setIsComplete(true);
-            const accuracy = Math.round((correctCount / QUESTIONS_PER_CLINIC) * 100);
-            const passed = accuracy >= (clinic?.passThreshold || 85);
-
-            if (passed) {
-                feedback.levelUp();
-                // Clear the leak after successful remediation
-                try {
-                    localStorage.removeItem('pokeriq_detected_leaks');
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            }
-
-            // Record with clinic ID
-            recordSession(`clinic-${clinicId}`, {
-                accuracy,
-                score: correctCount,
-                xpEarned,
-                passed,
-                level: 1,
-                isRemediation: true,
-            });
-        } else {
-            setQuestionIndex(prev => prev + 1);
-            setShowResult(false);
-            setSelectedAnswer(null);
-            setTimeLeft(clinic?.timeLimit || TIME_PER_QUESTION);
-        }
-    }, [questionIndex, correctCount, xpEarned, clinicId, clinic, recordSession]);
-
-    const handleExit = useCallback(() => {
-        feedback.tap();
-        router.push('/hub/training');
-    }, [router]);
-
-    // PostMessage handler for iframe
-    useEffect(() => {
-        function handleMessage(event) {
-            if (!event.data || typeof event.data !== 'object') return;
-            const { type, data } = event.data;
-
-            switch (type) {
-                case 'TEMPLATE_READY':
-                    sendClinicDataToIframe();
-                    break;
-                case 'ANSWER_SELECTED':
-                    handleAnswer(data.answerId);
-                    break;
-                case 'NEXT_QUESTION':
-                    handleNext();
-                    break;
-                case 'EXIT_GAME':
-                    handleExit();
-                    break;
-            }
-        }
-
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, [handleAnswer, handleNext, handleExit]);
-
-    // Send clinic data to iframe
-    const sendClinicDataToIframe = useCallback(() => {
-        if (!iframeRef.current?.contentWindow || !clinic) return;
-
-        // Generate a clinic-specific question
-        const question = {
-            id: `clinic-q-${questionIndex}`,
-            title: `${clinic.name} - Question ${questionIndex + 1}`,
-            scenario: clinic.description,
-            situation: `Remediation Drill - ${clinic.subtitle}`,
-            heroCards: ['Ah', 'Kh'],
-            board: [],
-            potSize: 12,
-            heroPosition: 'BTN',
-            heroStack: 40,
-            options: [
-                { id: 'fold', text: 'FOLD', isCorrect: Math.random() > 0.7 },
-                { id: 'call', text: 'CALL', isCorrect: Math.random() > 0.7 },
-                { id: 'raise', text: 'RAISE', isCorrect: Math.random() > 0.5 },
-                { id: 'all-in', text: 'ALL-IN', isCorrect: Math.random() > 0.8 },
-            ],
-            explanation: `${clinic.name}: ${clinic.description}`,
-        };
-
-        iframeRef.current.contentWindow.postMessage({
-            type: 'GAME_DATA',
-            data: {
-                question,
-                questionIndex,
-                totalQuestions: QUESTIONS_PER_CLINIC,
-                timeLimit: clinic.timeLimit || TIME_PER_QUESTION,
-                gameName: `${clinic.icon} ${clinic.name}`,
-                streak,
-                xpEarned,
-                showResult,
-                selectedAnswer,
-                isComplete,
-                isRemediation: true,
-                xpMultiplier,
-            }
-        }, '*');
-    }, [clinic, questionIndex, streak, xpEarned, showResult, selectedAnswer, isComplete, xpMultiplier]);
-
-    // Update iframe when state changes
-    useEffect(() => {
-        if (clinic && iframeRef.current?.contentWindow) {
-            sendClinicDataToIframe();
-        }
-    }, [clinic, questionIndex, showResult, selectedAnswer, isComplete, sendClinicDataToIframe]);
-
-    // Loading state
-    if (!router.isReady || loading || !clinic) {
-        return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)', flexDirection: 'column' }}>
-                <style>{`@keyframes clinic-spin{to{transform:rotate(360deg)}}`}</style>
-                <div style={{ width: 44, height: 44, border: '3px solid rgba(255,107,53,0.15)', borderTopColor: '#FF6B35', borderRadius: '50%', animation: 'clinic-spin 0.8s linear infinite', marginBottom: 14 }} />
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#FF6B35', letterSpacing: 1, fontFamily: "'Inter', -apple-system, sans-serif" }}>Loading Clinic...</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6, fontFamily: "'Inter', -apple-system, sans-serif" }}>Preparing remediation drill</div>
-            </div>
-        );
-    }
-
-    // Completion screen
-    if (isComplete) {
-        const accuracy = Math.round((correctCount / QUESTIONS_PER_CLINIC) * 100);
-        const passed = accuracy >= (clinic.passThreshold || 85);
-
-        return (
-            <>
-                <SEOHead
-                    title="Training Clinic"
-                    description="Smarter.Poker — The Future Of The Game."
-                    noindex={true}
-                />
-                <style>{EFFECT_STYLES}</style>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? 'Trophy' : '↻'}</div>
-                        <h1 style={{ fontSize: 32, color: passed ? '#4CAF50' : '#fff' }}>
-                            {passed ? 'LEAK FIXED!' : 'KEEP TRYING'}
-                        </h1>
-                        {passed && (
-                            <div style={{
-                                display: 'inline-block',
-                                padding: '8px 16px',
-                                background: 'linear-gradient(135deg, #FFD700, #FF6B35)',
-                                borderRadius: 20,
-                                marginBottom: 16
-                            }}>
-                                {clinic.badge}
-                            </div>
-                        )}
-                        <div style={{ fontSize: 56, fontWeight: 800, color: passed ? '#4CAF50' : '#FF6B35' }}>{accuracy}%</div>
-                        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 24 }}>
-                            {correctCount}/{QUESTIONS_PER_CLINIC} • {xpEarned.toLocaleString()} XP ({xpMultiplier}x Bonus!)
-                        </p>
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            {!passed && (
-                                <motion.button
-                                    style={{ padding: '16px 32px', background: '#FF6B35', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}
-                                    onClick={() => {
-                                        setQuestionIndex(0);
-                                        setCorrectCount(0);
-                                        setStreak(0);
-                                        setXpEarned(0);
-                                        setIsComplete(false);
-                                        setShowResult(false);
-                                        setTimeLeft(clinic.timeLimit || TIME_PER_QUESTION);
-                                    }}
-                                    whileHover={{ scale: 1.05 }}
-                                >RETRY</motion.button>
-                            )}
-                            <motion.button
-                                style={{ padding: '16px 32px', background: '#2563EB', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}
-                                onClick={handleExit}
-                                whileHover={{ scale: 1.05 }}
-                            >{passed ? 'CONTINUE' : 'BACK'}</motion.button>
-                        </div>
-                    </motion.div>
-                </div>
-            </>
-        );
-    }
-
-    // Use iframe template for clinic
-    return (
-        <>
-            <Head>
-                <title>{clinic.name} — PokerIQ Clinic</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
-            <style>{`
-                html, body { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; }
-            `}</style>
-            {/* Standard Hub Header - DO NOT MODIFY */}
-            <UniversalHeader pageDepth={2} />
-            <iframe
-                ref={iframeRef}
-                src={`/templates/training_game_template.html?clinicId=${clinicId}&clinicName=${encodeURIComponent(clinic.name)}&v=clinic`}
-                title={clinic.name}
-                style={{ border: 'none', width: '100%', height: 'calc(100vh - 60px)', display: 'block' }}
-                onLoad={() => {
-                    setTimeout(sendClinicDataToIframe, 100);
-                }}
-            />
-        </>
-    );
+  return (
+    <>
+      <SEOHead title="Training Clinic — Smarter.Poker" description="Verified remediation training." noindex />
+      <UniversalHeader pageDepth={2} />
+      <main style={{ minHeight: 'calc(100vh - 70px)', padding: 'clamp(26px, 7vw, 80px) 18px', background: 'radial-gradient(circle at 50% 20%, #11324b 0, #050910 48%, #020407 100%)', color: '#fff' }}>
+        <section style={{ position: 'relative', maxWidth: 720, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px)', border: '1px solid rgba(145,229,255,.45)', background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)' }}>
+          <div aria-hidden style={{ position: 'absolute', inset: 7, border: '1px solid rgba(105,207,244,.14)' }} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ color: '#79e6ff', fontSize: 10, fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Verified Remediation Path</div>
+            <h1 style={{ margin: '12px 0 10px', fontSize: 'clamp(28px, 6vw, 52px)', lineHeight: 1, textTransform: 'capitalize' }}>{clinic?.name || 'Training Clinic'}</h1>
+            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>{clinic?.description || 'That clinic could not be found.'}</p>
+            <p style={{ margin: '18px 0 0', color: '#7893a6', fontSize: 12 }}>Opening the data-backed Club Arena training table. Progress is only recorded from completed, graded hands.</p>
+            <a href={href} style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 24, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
+              {clinic && gameId ? 'Continue To Verified Drill →' : 'Return To Training Hub →'}
+            </a>
+          </div>
+        </section>
+      </main>
+    </>
+  );
 }

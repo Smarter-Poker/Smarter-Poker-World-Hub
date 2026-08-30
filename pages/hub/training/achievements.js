@@ -18,6 +18,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-EMPTY-2c — adoption: shared empty-state primitive
 
 const RARITY_COLORS = {
@@ -295,10 +296,11 @@ export default function TrainingAchievements() {
                                 }),
                               });
                               const d = await res.json();
-                              if (d.success) alert('Achievement shared to your feed!');
+                              if (d.success) toast.success('Achievement Shared To Your Feed!');
+                              else toast.error(d.error || 'Failed To Share Achievement.');
                             } catch (err) {
                               console.warn('Share error:', err);
-                              alert('Failed to share. Try again.');
+                              toast.error('Failed To Share Achievement. Try Again.');
                             } finally {
                               setSharingId(null);
                             }

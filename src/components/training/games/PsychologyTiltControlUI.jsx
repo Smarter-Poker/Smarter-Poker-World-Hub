@@ -15,7 +15,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import GTOQuestionCard from '../GTOQuestionCard';
 
-export default function PsychologyTiltControlUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level, onNextHand }) {
+export default function PsychologyTiltControlUI({ gameId, question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level, onNextHand }) {
     if (!question) return null;
 
     const hasMetadata = Boolean(question?.metadata);
@@ -72,6 +72,7 @@ export default function PsychologyTiltControlUI({ question, onAnswer, showFeedba
 
             {/* Standard Millionaire Question UI */}
             <GTOQuestionCard
+                gameId={gameId}
                 question={question}
                 level={level}
                 questionNumber={questionNumber}

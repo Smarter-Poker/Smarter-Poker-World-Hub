@@ -14,12 +14,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-3b — adoption: shared empty-state primitive
 
 const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
+
+async function syncPlaybook(plays) {
+  if (!getAccessToken()) return;
+  const response = await authedFetch('/api/training/tool-records', {
+    method: 'POST',
+    body: JSON.stringify({
+      toolId: 'my-playbook',
+      recordType: 'library',
+      recordKey: 'library',
+      data: { plays },
+    }),
+  });
+  if (!response.ok) throw new Error(`Playbook sync failed (${response.status})`);
+}
 
 // BUG FIX (TRAIN-PLAYBOOK-A11Y-1): SVG icon components replacing the
 // emojis on the my-playbook surface (□ empty state, ● pin marker + pin
@@ -90,18 +103,29 @@ export default function MyPlaybookPage() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    let active = true;
     try {
       const stored = localStorage.getItem('my-playbook');
       if (stored) setPlays(JSON.parse(stored));
     } catch (e) { console.warn('[App] Handled exception:', e); }
-  }, []);
 
-  // EventBus listener
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'MyPlaybook') return;
-    });
-    return unsub;
+    const loadCloud = async () => {
+      if (!getAccessToken()) return;
+      try {
+        const response = await authedFetch('/api/training/tool-records?toolId=my-playbook&recordType=library&limit=1');
+        if (!response.ok) throw new Error(`Playbook load failed (${response.status})`);
+        const payload = await response.json();
+        const cloudPlays = payload.records?.[0]?.data?.plays;
+        if (active && Array.isArray(cloudPlays)) {
+          setPlays(cloudPlays);
+          localStorage.setItem('my-playbook', JSON.stringify(cloudPlays));
+        }
+      } catch (error) {
+        console.warn('[MyPlaybook] Cloud load failed:', error?.message || error);
+      }
+    };
+    loadCloud();
+    return () => { active = false; };
   }, []);
 
   const savePlay = () => {
@@ -112,33 +136,7 @@ export default function MyPlaybookPage() {
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
     } catch (e) { console.warn('[App] Handled exception:', e); }
-
-    // Save to Supabase
-    const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-    if (token) {
-      authedFetch('/api/training/save-session', {
-        method: 'POST',
-        body: JSON.stringify({
-          gameId: 'my-playbook',
-          gameName: `Playbook: ${title}`,
-          gtowScore: 100,
-          totalEVLoss: 0,
-          handsPlayed: next.length,
-          mistakeCount: 0,
-          accuracy: 100,
-          correctCount: next.length,
-          bestStreak: 0,
-          levelPassed: true,
-          level: 1,
-          handHistory: [],
-        }),
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { gameId: 'my-playbook', plays: next.length, newPlay: title },
-        'MyPlaybook'
-      );
-    }
+    syncPlaybook(next).catch((error) => console.warn('[MyPlaybook] Cloud sync failed:', error?.message || error));
 
     // Reset
     setTitle('');
@@ -154,6 +152,7 @@ export default function MyPlaybookPage() {
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    syncPlaybook(next).catch((error) => console.warn('[MyPlaybook] Cloud sync failed:', error?.message || error));
   };
 
   const togglePin = (id) => {
@@ -162,6 +161,7 @@ export default function MyPlaybookPage() {
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    syncPlaybook(next).catch((error) => console.warn('[MyPlaybook] Cloud sync failed:', error?.message || error));
   };
 
   // Sort: pinned first, then search

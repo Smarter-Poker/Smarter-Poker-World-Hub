@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
 import PreflopChartStats from '../../../src/components/training/PreflopChartStats';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ●● Phase 2 Engine: Difficulty modes for chart simplification ●●●●●●●●●●●
@@ -31,13 +30,6 @@ import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-CSS-MOBILE-ADOPT-2 — adoption of mobile data-attr patterns from TRAIN-CSS-MOBILE-1
-
-function saveSession(payload) {
-  authedFetch('/api/training/save-session', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-}
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONSTANTS
@@ -160,19 +152,6 @@ export default function PreflopCharts() {
             setCompareActions(Array.isArray(data.range.actions) ? data.range.actions : []);
           } else {
             setRangeData(data.range.gridData || null);
-            try {
-              eventBus?.emit?.(EventType.SESSION_END, {
-                game_id: 'preflop-charts',
-                hands_played: 1,
-              });
-            } catch (e) { console.warn('[App] Handled exception:', e); }
-            saveSession({
-              game_id: 'preflop-charts',
-              hands_played: 1,
-              accuracy: 100,
-              correct_answers: 1,
-              total_questions: 1,
-            });
             setStats(data.range.stats || null);
             setActions(Array.isArray(data.range.actions) ? data.range.actions : []);
           }

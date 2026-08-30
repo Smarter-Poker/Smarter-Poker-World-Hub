@@ -51,7 +51,7 @@ export const GAME_CONFIGS = {
     'cash-007': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // 3-bet pots
     'cash-008': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // 4-bet wars
     'cash-009': { players: 6, format: '6-Max Cash', stackDepth: '200BB', gameType: 'cash', engine: 'PIO' }, // Deep stack
-    'cash-010': { players: 6, format: '6-Max Cash', stackDepth: '40BB', gameType: 'cash', engine: 'CHART' }, // Short stack
+    'cash-010': { players: 6, format: '6-Max Cash', stackDepth: '40BB', gameType: 'cash', engine: 'PIO' }, // Short stack
     'cash-011': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Donk defense
     'cash-012': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // River decisions
     'cash-013': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Probe betting

@@ -20,10 +20,13 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ── Phase 3+5 Engines: EV analysis + move classification for replay ─────
-import { calculateEVLoss, calculateActionEVs } from '../../../src/engines/EVCalculator';
-import { classifyMove } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import {
+  handFieldOf,
+  heroPositionOf,
+  playerActionOf,
+  streetOf,
+} from '../../../src/lib/training/handHistoryEntry';
 
 // TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -36,52 +39,54 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 const POSITION_LABELS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const STREET_LABELS = ['Preflop', 'Flop', 'Turn', 'River'];
-const ACTION_LABELS = ['Fold', 'Call', 'Raise', 'Check', 'Bet', 'All-In'];
+const MISTAKE_CLASSES = new Set(['inaccuracy', 'wrong', 'blunder', 'mistake']);
 
-function reconstructMistakes(sessions) {
+function displayAction(action) {
+  if (typeof action !== 'string' || !action.trim()) return 'Not Recorded';
+  return action
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function mistakesFromSessions(sessions) {
   const mistakes = [];
   if (!sessions) return mistakes;
 
-  sessions.forEach((s, sIdx) => {
-    const hands = s.hands_played || s.total_questions || 0;
-    const correct = s.correct_count || s.correct_answers || 0;
-    const mistakeCount = Math.max(0, hands - correct);
+  sessions.forEach((s) => {
     const gameLabel = (s.game_id || 'unknown')
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (l) => l.toUpperCase());
-    const ts = new Date(s.created_at).getTime();
+    const history = Array.isArray(s.hand_history) ? s.hand_history : [];
 
-    // Reconstruct approximate mistakes from session stats
-    for (let i = 0; i < Math.min(mistakeCount, 5); i++) {
-      const seed = sIdx * 100 + i;
-      const pos = POSITION_LABELS[seed % 6];
-      const street = STREET_LABELS[(seed + sIdx) % 4];
-      const yourAction = ACTION_LABELS[seed % 4];
-      const correctAction = ACTION_LABELS[(seed + 2) % 4];
-      if (yourAction === correctAction) continue;
+    history.forEach((entry, index) => {
+      const classification = String(handFieldOf(entry, 'classification') || '').toLowerCase();
+      const yourAction = playerActionOf(entry) || handFieldOf(entry, 'selectedAction');
+      const correctAction = handFieldOf(entry, 'correctAction')
+        || handFieldOf(entry, 'correctAnswer')
+        || handFieldOf(entry, 'optimalAction');
+      const actionsDisagree = yourAction && correctAction
+        && displayAction(yourAction) !== displayAction(correctAction);
+      if (!MISTAKE_CLASSES.has(classification) && !actionsDisagree) return;
 
-      // Engine enrichment: classify severity and compute EV loss
-      const rawEVLoss = parseFloat(((s.total_ev_loss || 0) / Math.max(mistakeCount, 1)).toFixed(2));
-      let classification = 'mistake';
-      try {
-        const moveResult = classifyMove(rawEVLoss);
-        classification = moveResult?.classification || moveResult || 'mistake';
-      } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[replay-theater] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
+      const rawEVLoss = Number(handFieldOf(entry, 'evLoss'));
+      const recordedAt = handFieldOf(entry, 'timestamp') || s.created_at;
+      const street = streetOf(entry);
 
       mistakes.push({
-        id: `${s.id || sIdx}-${i}`,
+        id: `${s.id}-${handFieldOf(entry, 'handNumber') || index}`,
         gameId: s.game_id || 'unknown',
         gameName: gameLabel,
-        position: pos,
-        street: street,
-        yourAction,
-        correctAction,
-        evLoss: rawEVLoss,
-        classification,
-        timestamp: ts,
+        position: heroPositionOf(entry),
+        street: street ? displayAction(street) : 'Unknown',
+        yourAction: displayAction(yourAction),
+        correctAction: displayAction(correctAction),
+        evLoss: Number.isFinite(rawEVLoss) ? Math.max(0, rawEVLoss) : 0,
+        classification: classification || 'mistake',
+        timestamp: new Date(recordedAt).getTime() || new Date(s.created_at).getTime(),
         sessionId: s.id,
       });
-    }
+    });
   });
 
   return mistakes.sort((a, b) => b.timestamp - a.timestamp);
@@ -314,7 +319,16 @@ export default function ReplayTheaterPage() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) {
-        setMistakes(reconstructMistakes(data.sessions));
+        const mistakeSessions = data.sessions
+          .filter((session) => Number(session.mistake_count) > 0)
+          .slice(0, 50);
+        const details = await Promise.all(mistakeSessions.map(async (session) => {
+          const detailRes = await authedFetch(`/api/training/get-sessions?sessionId=${encodeURIComponent(session.id)}`);
+          if (!detailRes.ok) return null;
+          const detail = await detailRes.json();
+          return detail.success ? detail.session : null;
+        }));
+        setMistakes(mistakesFromSessions(details.filter(Boolean)));
       }
     } catch (e) {
       console.warn('[ReplayTheater] Error:', e);

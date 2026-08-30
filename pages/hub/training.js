@@ -69,9 +69,9 @@ const t = {
 
 const CATEGORY_META = {
   MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
-  CASH:       { label: 'Cash games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
+  CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
   SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#FACC15', glow: 'rgba(250,204,21,0.22)' },
-  PSYCHOLOGY: { label: 'Mental game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
+  PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
   ADVANCED:   { label: 'Advanced',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
@@ -174,6 +174,14 @@ export default function TrainingPage() {
   }, [showArena]);
 
   const handleSetupStart = useCallback((prefs) => {
+    if (!authUser?.id) {
+      setSetupGame(null);
+      router.push({
+        pathname: '/auth/login',
+        query: { redirect: '/hub/training' },
+      });
+      return;
+    }
     // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
     // used to be handed to GodModeArena's wrapper, which rendered N copies of
     // the arena with IDENTICAL props — same drill, same userId, same sessionId.
@@ -231,7 +239,7 @@ export default function TrainingPage() {
     } : null);
     setSetupGame(null);
     setShowArena(true);
-  }, [setShowArena, setupGame, router]);
+  }, [setShowArena, setupGame, router, authUser?.id]);
 
   return (
     <PageTransition>
@@ -255,9 +263,9 @@ export default function TrainingPage() {
         onStart={handleSetupStart}
       />
 
-      {showArena && activeGame && (
+      {showArena && activeGame && authUser?.id && (
         <GodModeArena
-          userId={authUser?.id || `anon-${Date.now()}`}
+          userId={authUser.id}
           gameId={activeGame.id}
           gameName={activeGame.name}
           level={1}
@@ -300,11 +308,11 @@ export default function TrainingPage() {
                 <div className="sp-cta-row">
                   <button
                     className="sp-cta sp-cta-primary"
-                    onClick={() => jarvisPick && startDrill(jarvisPick)}
-                    disabled={!jarvisPick}
-                    aria-disabled={!jarvisPick}
+                    onClick={() => startDrill(jarvisPick || TRAINING_LIBRARY[0])}
+                    disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
+                    aria-disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
                   >
-                    <Play size={18} aria-hidden /> Start Today's Drill
+                    <Play size={18} aria-hidden /> {jarvisPick ? "Start Today's Drill" : 'Start First Drill'}
                   </button>
                   <button className="sp-cta sp-cta-secondary" onClick={() => setActiveCat('ALL')}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
@@ -576,7 +584,9 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
  *   4) no recommendation                          → "Browse the library to pick your first drill."
  */
 function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading }) {
-  const greet = `Welcome back${authUser?.name ? `, ${authUser.name}` : ''}.`;
+  const greet = authUser
+    ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
+    : 'Build Better Decisions, One Hand At A Time.';
   if (statsLoading || recommendationLoading) {
     return <>{greet} Loading your daily plan…</>;
   }

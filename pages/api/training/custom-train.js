@@ -21,6 +21,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY } from '../../../src/engines/BoardTextureEngine';
+import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -325,8 +326,11 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
             question.scenario.heroStack = stackDepth;
             question.scenario.villainStack = stackDepth;
 
-            questions.push(question);
-            usedIds.add(question.id);
+            const contractedQuestion = enforceTrainingQuestionContract(question);
+            if (isTrainingQuestionValid(contractedQuestion)) {
+                questions.push(contractedQuestion);
+                usedIds.add(contractedQuestion.id);
+            }
         }
 
         if (questions.length >= count) break;

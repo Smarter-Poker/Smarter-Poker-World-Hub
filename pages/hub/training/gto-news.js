@@ -16,8 +16,6 @@ import useSWR from 'swr';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
@@ -370,41 +368,8 @@ export default function GtoNewsPage() {
       localStorage.setItem('gto-news-read', JSON.stringify([...next]));
     } catch (e) { console.warn('[App] Handled exception:', e); }
 
-    // Save read progress to Supabase every 5 articles
-    if (next.size % 5 === 0) {
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
-      if (token) {
-        authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'gto-news',
-            gameName: `GTO News (${next.size} articles read)`,
-            // Tag so stats aggregators can exclude reading progress from
-            // real training accuracy/leaderboard numbers.
-            sessionType: 'reading',
-            // Denominator is the list actually on screen (live feed, or the
-            // sample set when the feed is empty); guarded so an empty list
-            // can never divide by zero, and capped because `next.size` counts
-            // every article ever read, including ones since rotated out.
-            gtowScore: Math.min(100, Math.round((next.size / (items.length || ARTICLES.length)) * 100)),
-            totalEVLoss: 0,
-            handsPlayed: next.size,
-            mistakeCount: 0,
-            accuracy: 100,
-            correctCount: next.size,
-            bestStreak: 0,
-            levelPassed: true,
-            level: 1,
-            handHistory: [],
-          }),
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        eventBus?.emit?.(
-          EventType?.SESSION_END || 'session:end',
-          { gameId: 'gto-news', articlesRead: next.size },
-          'GtoNews'
-        );
-      }
-    }
+    // Reading progress stays separate from graded sessions, streaks, accuracy,
+    // and leaderboard calculations.
   };
 
   const handleExpand = (id) => {
