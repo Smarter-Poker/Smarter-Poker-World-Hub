@@ -16,3 +16,12 @@ test('production health surfaces use the immutable build stamp as their fallback
   assert.match(healthRoute, versionFallback);
   assert.match(signupHealthRoute, versionFallback);
 });
+
+test('production health cannot hang indefinitely on its database probe', () => {
+  assert.match(healthRoute, /const DB_HEALTH_TIMEOUT_MS = 3000/);
+  assert.match(healthRoute, /new AbortController\(\)/);
+  assert.match(healthRoute, /\.abortSignal\(controller\.signal\)/);
+  assert.match(healthRoute, /Promise\.race\(\[query, timeout\]\)/);
+  assert.match(healthRoute, /clearTimeout\(timeoutId\)/);
+  assert.match(healthRoute, /HEALTH_DB_TIMEOUT/);
+});
