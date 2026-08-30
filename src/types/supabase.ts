@@ -2964,6 +2964,8 @@ export type Database = {
           situation_class: string | null
           status: string | null
           avg_ev_loss_bb: number | null
+          ev_loss_measured: boolean
+          detector_managed: boolean
           occurrence_count: number | null
           optimal_frequency: number | null
           current_frequency: number | null
@@ -2975,6 +2977,7 @@ export type Database = {
           recommended_drill: string | null
           source_system: string | null
           resolved_at: string | null
+          resolution_source: string | null
           suggested_fix: string | null
           notes: string | null
         }
@@ -2995,6 +2998,8 @@ export type Database = {
           situation_class?: string | null
           status?: string | null
           avg_ev_loss_bb?: number | null
+          ev_loss_measured?: boolean
+          detector_managed?: boolean
           occurrence_count?: number | null
           optimal_frequency?: number | null
           current_frequency?: number | null
@@ -3006,6 +3011,7 @@ export type Database = {
           recommended_drill?: string | null
           source_system?: string | null
           resolved_at?: string | null
+          resolution_source?: string | null
           suggested_fix?: string | null
           notes?: string | null
         }
@@ -3026,6 +3032,8 @@ export type Database = {
           situation_class?: string | null
           status?: string | null
           avg_ev_loss_bb?: number | null
+          ev_loss_measured?: boolean
+          detector_managed?: boolean
           occurrence_count?: number | null
           optimal_frequency?: number | null
           current_frequency?: number | null
@@ -3037,6 +3045,7 @@ export type Database = {
           recommended_drill?: string | null
           source_system?: string | null
           resolved_at?: string | null
+          resolution_source?: string | null
           suggested_fix?: string | null
           notes?: string | null
         }

@@ -5,7 +5,7 @@
  *
  * POST /api/assistant/leaks/review
  *   Records a drill outcome and persists the next review schedule.
- *   Body: { leakId, outcome: { correct, total, evDelta? } }
+ *   Body: { leakId, outcome: { correct, total, reviewId } }
  *
  * The next state is computed SERVER-SIDE (src/lib/sandbox/leakReview) so a
  * client cannot post an arbitrary due date and hand itself an easy schedule.
@@ -283,13 +283,8 @@ function readLeakId(value) {
 
 /**
  * Returns { ok, outcome } — outcome is the sanitised, storable version.
- *
- * `evLossBB` is the leak's CURRENT measured EV cost (from detection), sent by
- * the client so THIS endpoint can diff it against the measurement stored at
- * the previous review. A client-supplied `evDelta` is deliberately ignored:
- * the delta is computed server-side in handlePost, because a chosen delta is
- * a chosen ease nudge, and the whole point of computing schedules here is
- * that the client cannot hand itself an easier one.
+ * EV provenance is deliberately absent here: the endpoint reads the current
+ * measured value from the caller's owned leak row after validation.
  */
 function readOutcome(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false };
@@ -310,12 +305,6 @@ function readOutcome(raw) {
     }
     if (reviewId) outcome.reviewId = reviewId;
 
-    if (raw.evLossBB !== undefined && raw.evLossBB !== null) {
-        const ev = Number(raw.evLossBB);
-        // A measured per-spot EV cost is non-negative and small; the clamp is
-        // a sanity ceiling, not a real bound anyone should hit.
-        if (Number.isFinite(ev) && ev >= 0) outcome.evLossBB = Math.round(Math.min(1000, ev) * 100) / 100;
-    }
     outcome.at = new Date().toISOString();
     return { ok: true, outcome };
 }
@@ -336,20 +325,36 @@ function readOutcome(raw) {
  */
 async function verifyLeakOwnership(supabase, userId, leakId) {
     const sources = [
-        { table: 'user_leaks', idCol: 'id' },
-        { table: 'user_training_leaks', idCol: 'id' },
+        { table: 'user_leaks', idCol: 'id', evidence: true },
+        { table: 'user_training_leaks', idCol: 'id', evidence: false },
     ];
     let anyTableExists = false;
     let hadError = false;
 
     for (const source of sources) {
         try {
-            const { data, error } = await supabase
+            let result = await supabase
                 .from(source.table)
-                .select('id')
+                .select(source.evidence ? 'id, avg_ev_loss_bb, ev_loss_measured' : 'id')
                 .eq(source.idCol, leakId)
                 .eq('user_id', userId)
                 .maybeSingle();
+            // During a rolling deployment, the provenance column may not yet
+            // be visible in PostgREST. Ownership still works, but EV remains
+            // unmeasured until the migration is available.
+            if (source.evidence && result.error && (
+                result.error.code === '42703'
+                || result.error.code === 'PGRST204'
+                || /ev_loss_measured/i.test(result.error.message || '')
+            )) {
+                result = await supabase
+                    .from(source.table)
+                    .select('id')
+                    .eq(source.idCol, leakId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+            }
+            const { data, error } = result;
 
             if (error) {
                 if (isMissingSchema(error)) continue;      // table absent — try the next source
@@ -361,15 +366,25 @@ async function verifyLeakOwnership(supabase, userId, leakId) {
                 continue;
             }
             anyTableExists = true;
-            if (data) return { owned: true, checked: true };
+            if (data) {
+                const measured = data.ev_loss_measured === true;
+                const loss = Number(data.avg_ev_loss_bb);
+                return {
+                    owned: true,
+                    checked: true,
+                    measuredEvLossBB: measured && Number.isFinite(loss) && loss >= 0
+                        ? Math.round(Math.min(1000, Math.abs(loss)) * 100) / 100
+                        : null,
+                };
+            }
         } catch (err) {
             console.warn(`[leaks/review] ${source.table} ownership check threw:`, err?.message || err);
             hadError = true;
         }
     }
 
-    if (hadError) return { owned: false, checked: false };
-    return { owned: false, checked: anyTableExists };
+    if (hadError) return { owned: false, checked: false, measuredEvLossBB: null };
+    return { owned: false, checked: anyTableExists, measuredEvLossBB: null };
 }
 
 // ─── handler ──────────────────────────────────────────────────────────────────
@@ -546,8 +561,16 @@ async function handlePost(req, res, userId) {
         });
     }
 
-    // 1.5 evDelta — computed HERE, from two detection measurements: the EV
-    // cost the client reports now vs the one stored at the previous review.
+    // 1.5 Ownership and server-authoritative EV evidence. Accuracy comes from
+    // the completed drill, but EV can change the scheduler's ease and must not
+    // be accepted from the browser.
+    const ownership = await verifyLeakOwnership(supabase, userId, leakId);
+    if (Number.isFinite(ownership.measuredEvLossBB)) {
+        outcome.evLossBB = ownership.measuredEvLossBB;
+    }
+
+    // evDelta is computed from two server-owned detection measurements: the
+    // leak's current measured EV cost vs the previous review's snapshot.
     // Negative means the leak is measurably costing less in real hands since
     // last time — corroboration that the drilling is working. When detection
     // has not re-run between reviews the two measurements are equal, the
@@ -601,7 +624,7 @@ async function handlePost(req, res, userId) {
     }
 
     // 3. Ownership. Unknown or foreign leaks are computed but never written.
-    const { owned, checked } = await verifyLeakOwnership(supabase, userId, leakId);
+    const { owned, checked } = ownership;
     if (!owned) {
         if (checked && UUID_RE.test(leakId)) {
             // A real-looking id that is not this user's — refuse outright. Same

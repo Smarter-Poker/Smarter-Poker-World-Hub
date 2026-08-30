@@ -8,6 +8,8 @@ const {
   classifyFrequencyDecision,
   gradeSolverDecision,
   isVerifiedSolverQuestion,
+  summarizeSolverDecisionGroups,
+  canResolveSolverLeakScope,
   aggregateSolverLeaks,
 } = await import(moduleUrl);
 
@@ -76,4 +78,63 @@ test('aggregation is deterministic and reruns do not inflate counts', () => {
   }));
   assert.deepEqual(aggregateSolverLeaks(rows), aggregateSolverLeaks(rows));
   assert.equal(aggregateSolverLeaks(rows)[0].occurrence_count, 3);
+});
+
+test('recovery requires the exact prior solver group and sufficient healthy evidence', () => {
+  const healthy = Array.from({ length: 8 }, (_, index) => ({
+    solver_verified: true,
+    game_id: 'cash-bb-defense', street: 'preflop', hero_position: 'BB', spot_type: 'facing_raise',
+    classification: index === 0 ? 'wrong' : 'best',
+  }));
+  const [summary] = summarizeSolverDecisionGroups(healthy);
+  assert.equal(summary.recoveryEligible, true);
+  assert.equal(summary.leakType, 'solver_training_cash_bb_defense_preflop_bb_facing_raise');
+
+  const insufficient = summarizeSolverDecisionGroups(healthy.slice(0, 7))[0];
+  assert.equal(insufficient.recoveryEligible, false);
+  assert.deepEqual(summarizeSolverDecisionGroups([]), []);
+});
+
+test('healthy training drills cannot dilute a persistent Club Arena leak', () => {
+  const clubArena = Array.from({ length: 8 }, (_, index) => ({
+    evidence_scope: 'club_arena',
+    solver_verified: true,
+    game_id: 'cash-bb-defense', street: 'preflop', hero_position: 'BB', spot_type: 'facing_raise',
+    classification: index < 4 ? 'wrong' : 'best',
+  }));
+  const training = Array.from({ length: 100 }, () => ({
+    evidence_scope: 'training',
+    solver_verified: true,
+    game_id: 'cash-bb-defense', street: 'preflop', hero_position: 'BB', spot_type: 'facing_raise',
+    classification: 'best',
+  }));
+
+  const summaries = summarizeSolverDecisionGroups([...clubArena, ...training]);
+  assert.equal(summaries.length, 2);
+  const liveSummary = summaries.find(group => group.evidenceScope === 'club_arena');
+  const trainingSummary = summaries.find(group => group.evidenceScope === 'training');
+  assert.equal(liveSummary.errorRate, 50);
+  assert.equal(liveSummary.recoveryEligible, false);
+  assert.equal(trainingSummary.errorRate, 0);
+  assert.equal(trainingSummary.recoveryEligible, true);
+
+  const [leak] = aggregateSolverLeaks([...clubArena, ...training]);
+  assert.equal(leak.leak_type, 'solver_club_arena_cash_bb_defense_preflop_bb_facing_raise');
+  assert.equal(leak.occurrence_count, 4);
+});
+
+test('canonical misses block training recovery without treating window truncation as failure', () => {
+  const leakType = 'solver_training_cash_bb_defense_preflop_bb_facing_raise';
+  const base = {
+    recoveryEligible: true,
+    existingHistoryComplete: true,
+    sources: {
+      training: { available: true, integrityComplete: true, complete: false, truncated: true },
+    },
+  };
+  assert.equal(canResolveSolverLeakScope(leakType, base), true);
+  assert.equal(canResolveSolverLeakScope(leakType, {
+    ...base,
+    sources: { training: { ...base.sources.training, integrityComplete: false } },
+  }), false);
 });

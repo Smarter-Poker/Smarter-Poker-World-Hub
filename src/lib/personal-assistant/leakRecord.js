@@ -60,13 +60,30 @@ const ACTIVE_STATUSES = new Set(['emerging', 'persistent', 'improving']);
  * Keep the hybrid user_leaks lifecycle fields in lockstep. Modern readers use
  * status/resolved_at while the training accountant still uses is_active.
  */
-export function leakStatusPersistenceFields(status, { resolvedAt = null, now = new Date().toISOString() } = {}) {
+export function leakStatusPersistenceFields(status, {
+  resolvedAt = null,
+  resolutionSource = null,
+  now = new Date().toISOString(),
+} = {}) {
   const normalized = String(status || 'emerging').trim().toLowerCase();
   if (normalized === 'resolved') {
-    return { status: 'resolved', resolved_at: resolvedAt || now, is_active: false };
+    const completedAt = resolvedAt || now;
+    return {
+      status: 'resolved',
+      resolved_at: completedAt,
+      remediation_completed_at: completedAt,
+      resolution_source: resolutionSource,
+      is_active: false,
+    };
   }
   const activeStatus = ACTIVE_STATUSES.has(normalized) ? normalized : 'emerging';
-  return { status: activeStatus, resolved_at: null, is_active: true };
+  return {
+    status: activeStatus,
+    resolved_at: null,
+    remediation_completed_at: null,
+    resolution_source: null,
+    is_active: true,
+  };
 }
 
 /**
@@ -121,7 +138,10 @@ export function toUserLeakPersistenceRow(leak = {}, options = {}) {
 
   return {
     ...publicFields,
-    ...leakStatusPersistenceFields(leak.status, { resolvedAt: leak.resolved_at }),
+    ...leakStatusPersistenceFields(leak.status, {
+      resolvedAt: leak.resolved_at,
+      resolutionSource: leak.resolution_source,
+    }),
     user_id: userId,
     leak_type: leakType,
     leak_name: leak.leak_name || leak.situation_class || leakTypeTitle(leakType),

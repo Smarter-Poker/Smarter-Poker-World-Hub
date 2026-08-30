@@ -568,28 +568,6 @@ export const EGG_VERIFIERS = {
         return tables.size >= 3;
     },
 
-    /** Close out a Leak Signal on your very first corrective attempt. */
-    the_optimizer: async (ctx) => {
-        const { data: resolved } = await ctx.supabase
-            .from('user_leaks')
-            .select('id')
-            .eq('user_id', ctx.userId)
-            .not('resolved_at', 'is', null)
-            .limit(ROW_LIMIT);
-        const ids = (resolved || []).map((r) => String(r.id)).filter(Boolean);
-        if (!ids.length) return false;
-
-        // "First attempt" = the scheduler recorded at most one review session
-        // for that leak before it was resolved. leak_review_state.leak_id is
-        // text precisely because leaks arrive from several id spaces.
-        const { data: reviews } = await ctx.supabase
-            .from('leak_review_state')
-            .select('leak_id, reps')
-            .eq('user_id', ctx.userId)
-            .in('leak_id', ids.slice(0, 200))
-            .lte('reps', 1);
-        return (reviews || []).length > 0;
-    },
 };
 
 /**
@@ -624,6 +602,7 @@ export const UNVERIFIABLE_EGGS = {
     indifference_point: 'needs per-line indifference solve',
     small_baller: 'needs per-decision sizing log',
     zero_leak: 'needs hands-since-last-leak counter',
+    the_optimizer: 'needs server-verified per-question drill telemetry',
     deep_diver: 'needs time-on-page telemetry for Charts',
     window_shopper: 'needs store page-view telemetry',
     data_miner: 'needs hand-history export logging',

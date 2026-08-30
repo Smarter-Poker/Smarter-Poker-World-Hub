@@ -52,7 +52,6 @@ export const VERIFIED_EGG_KEYS = [
     'the_librarian',
     'road_tripper',
     'the_collector',
-    'the_optimizer',
 ];
 
 /** How many hidden achievements a player can actually unlock today. */
