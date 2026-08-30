@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phase 1 In Progress
+Status: Phase 1 Complete; Phase 2 Ready
 
 ## Objective
 
@@ -183,13 +183,27 @@ complete.
 - Repeating the unmocked production smoke exposed an intermittent campaign
   deadlock: `/api/games/:id` had no deadline, so an upstream stall could leave
   `LevelSelector` on `Loading Levels...` forever instead of using its complete
-  client catalog. The candidate fix applies an eight-second fail-open deadline
-  to both game and progress enrichment, retains the real 12-level fallback,
-  and adds a production smoke harness plus a focused regression contract.
-- The corrected candidate passes 45 focused tests, TypeScript compilation, and
-  the complete 428-surface mobile/desktop matrix with zero failures. Its
-  protected merge, deployment stamp, and repeat production smoke are still
-  required before Phase 1 can close.
+  client catalog. The final fix applies an eight-second fail-open deadline to
+  both game and progress enrichment, retains the real 12-level fallback, and
+  adds a focused regression contract.
+- The corrected release passed 45 focused tests, TypeScript compilation, and
+  the complete 428-surface mobile/desktop matrix with zero failures.
+- Release-certification PR 1038 merged through the protected pipeline as
+  `09eb5bdfc392cc16b4affd54b13d49b3fbaa159b`. Production reported that exact
+  build at `/api/health` with HTTP 200, `status: ok`, an 88ms database check,
+  and an 89ms server response.
+- The real-account production certification harness now waits for the lobby's
+  settled visual state before asserting mobile footer clearance, records a
+  screenshot plus DOM diagnostics when gameplay fails to mount, and retries a
+  lazy-image sweep only when the browser explicitly replaces its document. A
+  retry must remain on `/hub/training` with all 107 cards or it fails.
+- Two consecutive fresh-session production certifications passed after that
+  harness hardening. Each covered signed-out login, authenticated mobile and
+  desktop hubs, all 107 lazy card images, three campaign families, four arena
+  families, Club Arena poker gameplay, psychology gameplay, four-answer
+  contracts, explicit feedback, persistent manual Next, footer clearance,
+  scanline removal, and broken-image, overflow, console, hydration, and page
+  error guards. Both runs recorded zero failures.
 - Repository instructions reference `.memory/WORKING-RULES.md` and
   `.memory/REALIGN-PROTOCOL.md`, but neither file exists in this worktree. The
   current playbook, binding rules, operations guide, and audit history were used
@@ -197,10 +211,4 @@ complete.
 
 ## Phase 1 Remaining Exit Items
 
-- Publish the deadline fix and production smoke harness through the protected
-  pull-request pipeline without bypass.
-- Confirm production serves the final merge commit.
-- Repeat signed-out login, real authenticated mobile/desktop campaigns,
-  gameplay, feedback, card-image, scanline, overflow, and console checks against
-  that exact production deployment.
-- Mark Phase 1 complete only after all four items above pass.
+None. Phase 2 may begin from the published `09eb5bdf` production baseline.
