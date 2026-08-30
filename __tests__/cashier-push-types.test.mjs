@@ -24,7 +24,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { eventToTypeKey, PUSH_TYPE_KEYS, PUSH_TYPES } from '../src/lib/push/push-prefs.js';
+import { eventToTypeKey, isUrgentType, PUSH_TYPE_KEYS, PUSH_TYPES } from '../src/lib/push/push-prefs.js';
 
 /** Exactly the strings the triggers write into notifications.type. */
 const TRIGGER_EVENTS = [
@@ -78,4 +78,21 @@ test('cashier is distinct from system', () => {
       `'${event}' is a money event; it must not share a switch with security notices`
     );
   }
+});
+
+test('blinding off is registered AND urgent', () => {
+  // trg_notify_blinding_off fires when the engine flags a live tournament seat
+  // is_sitting_out / is_away: the player is paying blinds and antes to not be
+  // there. The value of this notification is entirely in arriving NOW, so it
+  // has to survive quiet hours and the daily cap.
+  //
+  // An unmapped event can never be urgent, so this asserts both halves: that
+  // the gate can name it, and that naming it bought the urgency.
+  const key = eventToTypeKey('tournament_blinding_off');
+  assert.equal(key, 'tournament_starting', 'blinding off must map to a real, urgent key');
+  assert.ok(
+    isUrgentType(key),
+    'tournament_blinding_off maps to a key that is not in URGENT_TYPES, so a player ' +
+      'bleeding chips inside quiet hours will not be told until it is over'
+  );
 });
