@@ -54,6 +54,12 @@ Repair:
 - scope the tokens in `training.css` to `.sp-main`, the setup dialog, and the arena shell;
 - leave `UniversalHeader` and every approved header selector untouched.
 
+### Shared Footer Could Be Mounted Twice
+
+Current `main` moved `BottomNavBar` ownership into the app shell while this
+phase was in progress. Release-gate reconciliation removed the stale Training
+page import and mount, so the shell remains the single footer owner.
+
 Browser proof:
 
 - document root `--sp-primary`: empty;
@@ -145,3 +151,5 @@ Every accepted question passed the same deterministic question contract used by 
 - Phase 4 adversarial contract: included in the mandatory build command;
 - diff whitespace validation: passed;
 - generated-file and global-header drift: none.
+- current-main shared-footer contract: passed after release reconciliation;
+- concurrent marketplace and venue-integrity build gates: preserved unchanged.

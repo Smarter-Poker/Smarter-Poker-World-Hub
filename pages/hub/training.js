@@ -20,7 +20,7 @@
  *   - useTrainingStore                       (src/stores/trainingStore)
  *   - LeakService                            (src/services/LeakService)
  *   - GodModeArena (lazy)                    (src/components/training/GodModeArena)
- *   - UniversalHeader                       (src/components/ui)
+ *   - UniversalHeader                        (src/components/ui)
  *   - SEOHead, PageTransition                (existing)
  *
  * Author: redesign generated 2026-05-06
