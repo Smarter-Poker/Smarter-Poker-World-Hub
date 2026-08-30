@@ -70,6 +70,23 @@ Browser proof:
 
 Orbitron made a standalone `D` resemble `0` in the hero sentence. The copy now says `Grade D`, retaining the real grade while removing ambiguity.
 
+### Successful Login Could Stall Before Training
+
+The authenticated E2E setup exposed a cross-surface defect after the Training
+release: Supabase accepted the password and persisted the browser session, but
+the immediate Next.js client transition could race app-wide auth listeners. The
+browser remained on `/auth/login` or entered a blank hydration fallback even
+though the session was valid.
+
+Repair:
+
+- reload session-bound destinations as full documents after password login;
+- apply the same stable-session transition to existing-session redirects and
+  MFA entry;
+- retain client-side routing for ordinary, pre-authentication navigation;
+- add a mandatory auth regression contract that rejects restoring the racy
+  post-session `router.push` calls.
+
 ## Browser Audit Hardening
 
 The route audit now:
@@ -153,3 +170,16 @@ Every accepted question passed the same deterministic question contract used by 
 - generated-file and global-header drift: none.
 - current-main shared-footer contract: passed after release reconciliation;
 - concurrent marketplace and venue-integrity build gates: preserved unchanged.
+
+## Production Verification
+
+- Phase 4 reconciliation release: `62bc1454dbe6f2968d690816c3720c6a5c52d6a9`;
+- production health endpoint reported the exact release and healthy database;
+- deployment verifier: 7 of 7 public and protected Training flow checks passed;
+- full remote sweeps: 192 desktop/mobile views completed twice;
+- one transient anonymous `500` console resource message appeared on GTO News
+  in each sweep, once per sweep on different viewports;
+- targeted GTO News/Leaderboard rerun: 4 of 4 passed;
+- additional GTO News stress trace: 20 of 20 document loads returned `200` with
+  no `5xx` response; unrelated Sentry ingestion throttling (`429`) remained
+  observable and is not presented as a Training application success.

@@ -32,6 +32,20 @@ import {
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
 
+// A successful Supabase sign-in updates the auth store before React finishes
+// rendering this page. A Next.js client transition at that exact boundary can
+// race the app-wide auth listeners and leave the browser stranded on /auth/login
+// (or render a blank hydration fallback) even though the session was persisted.
+// Reloading the destination as a document gives _app and every auth consumer one
+// consistent session snapshot. Keep ordinary, pre-auth navigation on router.push.
+function navigateWithFreshAuth(destination, router) {
+  if (typeof window !== 'undefined') {
+    window.location.assign(destination);
+    return;
+  }
+  router.push(destination);
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -161,7 +175,7 @@ export default function LoginPage() {
         // If they explicitly navigated to /auth/login, let them see the form
         if (router.query.redirect) {
           sessionStorage.setItem('just_authenticated', 'true');
-          router.push(getRedirectUrl());
+          navigateWithFreshAuth(getRedirectUrl(), router);
         } else {
           // Show "already signed in" banner instead of auto-redirecting
           setExistingUser(user?.email || 'your account');
@@ -270,13 +284,13 @@ export default function LoginPage() {
       // ── Step 2: second factor, if this browser isn't already trusted ──
       if (await needsMfaChallenge(data?.session?.access_token)) {
         const dest = getRedirectUrl();
-        router.push(`/auth/mfa?redirect=${encodeURIComponent(dest)}`);
+        navigateWithFreshAuth(`/auth/mfa?redirect=${encodeURIComponent(dest)}`, router);
         return;
       }
 
       // Set flag so hub plays intro animation
       sessionStorage.setItem('just_authenticated', 'true');
-      router.push(getRedirectUrl());
+      navigateWithFreshAuth(getRedirectUrl(), router);
     } catch (err) {
       console.warn('Login error:', err);
       reportAuthError('login_form_submit', err);
