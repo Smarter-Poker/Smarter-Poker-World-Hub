@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ArrowLeft, BarChart3, BookOpen, Grid3X3, Medal, Trophy } from 'lucide-react';
 import UniversalHeader from '../ui/UniversalHeader';
-import BottomNavBar from '../ui/BottomNavBar';
 import PageTransition from '../transitions/PageTransition';
 
 const NAV_ITEMS = [
@@ -56,7 +55,6 @@ export default function PreflopSubpageShell({ eyebrow, title, description, metri
 
           {children}
         </main>
-        <BottomNavBar />
       </div>
     </PageTransition>
   );
