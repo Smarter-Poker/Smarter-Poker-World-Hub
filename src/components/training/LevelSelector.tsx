@@ -86,6 +86,29 @@ const LEVEL_COLORS = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).leng
     return reg?.accentColor || '#00D4FF';
 });
 
+// The campaign map is fully derivable from the checked-in catalog and level
+// registry. Remote game/progress reads enrich that map, but they must never
+// leave the page on "Loading Levels..." when an upstream request stalls.
+const LEVEL_DATA_TIMEOUT_MS = 8_000;
+
+async function withLevelDataDeadline<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error(`Training level data timed out after ${LEVEL_DATA_TIMEOUT_MS}ms`));
+        }, LEVEL_DATA_TIMEOUT_MS);
+    });
+
+    try {
+        return await Promise.race([request(controller.signal), deadline]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+        controller.abort();
+    }
+}
+
 // ============================================================================
 // LEVEL CARD COMPONENT
 // ============================================================================
@@ -267,7 +290,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let gameInfo: any = null;
 
             try {
-                const gameRes = await fetch(`/api/games/${gameId}`);
+                const gameRes = await withLevelDataDeadline((signal) => (
+                    fetch(`/api/games/${gameId}`, { signal })
+                ));
                 const game = await gameRes.json();
                 if (!game.error) {
                     gameInfo = game;
@@ -315,7 +340,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let levelProgress: any = {};
             let highestUnlocked = 1;
             try {
-                const progressRes = await authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`);
+                const progressRes = await withLevelDataDeadline((signal) => (
+                    authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, { signal })
+                ));
                 const progressData = await progressRes.json();
                 levelProgress = progressData?.levels || {};
                 highestUnlocked = progressData?.levels?.highestUnlocked
