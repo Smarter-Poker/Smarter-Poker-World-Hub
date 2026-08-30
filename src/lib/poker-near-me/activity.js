@@ -83,6 +83,9 @@ export function capturePokerNearMeEvent(event, properties = {}) {
     zoom_level: Number.isFinite(Number(properties.zoom_level)) ? Math.max(0, Math.round(Number(properties.zoom_level))) : undefined,
     clustering: safeText(properties.clustering, 24) || undefined,
     runtime_source: safeText(properties.runtime_source, 24) || undefined,
+    verified_count: Number.isFinite(Number(properties.verified_count)) ? Math.max(0, Math.round(Number(properties.verified_count))) : undefined,
+    approximate_count: Number.isFinite(Number(properties.approximate_count)) ? Math.max(0, Math.round(Number(properties.approximate_count))) : undefined,
+    held_count: Number.isFinite(Number(properties.held_count)) ? Math.max(0, Math.round(Number(properties.held_count))) : undefined,
   };
   capture(`pnm_${safeText(event, 60).replace(/[^a-z0-9_]+/gi, '_').toLowerCase()}`, safeProperties);
 }

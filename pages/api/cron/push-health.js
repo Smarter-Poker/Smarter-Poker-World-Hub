@@ -116,6 +116,80 @@ async function handler(req, res) {
         );
         report.zombies = zombies.length;
 
+        /* ═══ RETIRE A ZOMBIE ONLY WHEN A SIBLING PROVES THE DEVICE IS FINE ═══
+         *
+         * Dan 2026-08-30. This check has always ALERTED and never retired, so a
+         * dead endpoint stays `is_active` forever and every send pays for it.
+         * Measured 2026-08-29: one account held eleven active subscriptions of
+         * which nine were redundant, and a single seat offer was delivered to
+         * the same iPhone twice.
+         *
+         * Retiring on "no receipt" ALONE would be a guess, and the wrong kind:
+         * a receipt can be missing because the device is genuinely dead, or
+         * because the beacon is blocked, or because the user simply has not
+         * unlocked their phone. Acting on that would silence a working device
+         * and the owner would have no way to tell why. That is why this block
+         * only alerted, and alerting-only was the right call in the absence of
+         * a second signal.
+         *
+         * THE SECOND SIGNAL. If the SAME USER has another active endpoint that
+         * IS confirming receipts inside the same window, then delivery to that
+         * person demonstrably works — so a silent endpoint beside a talking one
+         * is dead, not merely quiet. That is evidence rather than a guess, and
+         * it is exactly the shape of the leftover pair on Dan's iPhone.
+         *
+         * Deliberately conservative in three ways:
+         *   - a user with NO confirming endpoint is never touched, so nobody is
+         *     ever left unreachable by this code (the alert above still fires
+         *     for them, which is the correct outcome);
+         *   - the newest endpoint per user is never retired, because a device
+         *     enrolled moments ago has not had time to confirm anything;
+         *   - `is_active` is scoped in the UPDATE, so a row another process has
+         *     already retired is not counted twice.
+         */
+        const confirmingByUser = new Set(
+            (subs || [])
+                .filter((s) => s.last_receipt_at && Date.parse(s.last_receipt_at) >= zombieCutoffMs)
+                .map((s) => s.user_id)
+        );
+        const newestByUser = new Map();
+        for (const s of subs || []) {
+            const prev = newestByUser.get(s.user_id);
+            if (!prev || Date.parse(s.created_at || 0) > Date.parse(prev.created_at || 0)) {
+                newestByUser.set(s.user_id, s);
+            }
+        }
+        const retirable = zombies.filter(
+            (z) => confirmingByUser.has(z.user_id) && newestByUser.get(z.user_id)?.id !== z.id
+        );
+
+        report.zombiesRetired = 0;
+        if (retirable.length > 0) {
+            try {
+                const { error: retireErr } = await supabase
+                    .from('push_subscriptions')
+                    .update({
+                        is_active: false,
+                        last_failure_reason: 'no_receipt_while_sibling_confirmed',
+                        updated_at: new Date().toISOString(),
+                    })
+                    .in('id', retirable.map((z) => z.id))
+                    .eq('is_active', true);
+                if (retireErr) throw new Error(retireErr.message);
+                report.zombiesRetired = retirable.length;
+            } catch (e) {
+                /* Never fail the health run over a cleanup — the alert below is
+                   the part that must not be lost.
+
+                   Reported on the report object rather than pushed onto a
+                   `report.errors` array: this report has no such array, and
+                   inventing one inside a catch is how a cleanup failure turns
+                   into a TypeError that takes down the health check it was
+                   attached to. */
+                report.zombieRetireError = String(e?.message || e).slice(0, 200);
+            }
+        }
+
         // One alert per user, not per endpoint. Capped: this loop does a
         // notifications insert plus a full enqueuePush per user, and an
         // unbounded serial loop will blow the function timeout at any real

@@ -514,22 +514,12 @@ describe('discovery eggs (database-joined)', () => {
         assert.equal(await EGG_VERIFIERS.the_collector({ supabase: three, userId: 'u1' }), true);
     });
 
-    test('the_optimizer needs a resolved leak AND a first-attempt review', async () => {
-        const noResolved = tableStub({ user_leaks: [], leak_review_state: [] });
-        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: noResolved, userId: 'u1' }), false);
-
-        // Resolved, but the scheduler recorded no qualifying (reps <= 1) review.
-        const resolvedButSlow = tableStub({
-            user_leaks: [{ id: 'leak-1' }],
-            leak_review_state: [],
-        });
-        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: resolvedButSlow, userId: 'u1' }), false);
-
-        const firstTry = tableStub({
-            user_leaks: [{ id: 'leak-1' }],
-            leak_review_state: [{ leak_id: 'leak-1', reps: 1 }],
-        });
-        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: firstTry, userId: 'u1' }), true);
+    test('the_optimizer stays unclaimable until drill answers are server-verified', async () => {
+        assert.equal(hasVerifier('the_optimizer'), false);
+        assert.match(UNVERIFIABLE_EGGS.the_optimizer, /server-verified/i);
+        const result = await verifyEgg('the_optimizer', ctxOf());
+        assert.equal(result.verified, false);
+        assert.equal(result.reason, 'no_verifier');
     });
 });
 

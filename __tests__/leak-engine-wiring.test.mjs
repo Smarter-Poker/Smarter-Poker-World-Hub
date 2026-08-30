@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { auditParsedHands, normalizeClubArenaHand } from '../src/lib/training/handAuditEngine.js';
+import { auditParsedHands, normalizeClubArenaHand, syncClubArenaHandsForAudit } from '../src/lib/training/handAuditEngine.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
@@ -153,6 +153,30 @@ test('Club Arena hand filters use valid JSON containment and include the live re
     assert.match(source, /\.contains\('players', JSON\.stringify\(\[\{/, `${name} must serialize JSON containment`);
   }
   assert.match(auditEngine, /\['manual', 'wh-engine', 'engine-api'\]/);
+});
+
+test('one failed Club Arena identity lookup keeps usable evidence partial and incomplete', async () => {
+  let call = 0;
+  const db = {
+    from(table) {
+      assert.equal(table, 'hand_history');
+      const index = call++;
+      const query = {
+        select() { return query; }, contains() { return query; }, in() { return query; },
+        order() { return query; }, lte() { return query; }, or() { return query; },
+        async range() {
+          return index === 0
+            ? { data: null, error: { message: 'one ownership shape unavailable' } }
+            : { data: [], error: null };
+        },
+      };
+      return query;
+    },
+  };
+  const result = await syncClubArenaHandsForAudit(db, 'hero', { limit: 10 });
+  assert.equal(result.available, true);
+  assert.equal(result.partial, true);
+  assert.equal(result.complete, false);
 });
 
 test('Club Arena live rows normalize stages, board, button and revealed hero cards', () => {

@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 /**
  * POST /api/assistant/leaks/detect
  * Runs leak detection analysis on user's hand history
@@ -12,7 +13,8 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
-import { aggregateSolverLeaks, gradeSolverDecision } from '../../../../src/lib/training/solverDecisionEvidence';
+import { aggregateSolverLeaks, canResolveSolverLeakScope, gradeSolverDecision, summarizeSolverDecisionGroups } from '../../../../src/lib/training/solverDecisionEvidence';
+import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
 import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
@@ -26,6 +28,45 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+const AUDIT_CURSOR_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function auditCursorSecret() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET || '';
+}
+
+function sealAuditCursor(state, userId) {
+  const secret = auditCursorSecret();
+  if (!secret || !state) return null;
+  const payload = Buffer.from(JSON.stringify({
+    ...state,
+    userId,
+    expiresAt: Date.now() + AUDIT_CURSOR_MAX_AGE_MS,
+  })).toString('base64url');
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function openAuditCursor(token, userId) {
+  if (!token) return null;
+  if (typeof token !== 'string' || token.length > 4096) throw new Error('invalid_cursor');
+  const [payload, suppliedSignature, extra] = token.split('.');
+  const secret = auditCursorSecret();
+  if (!payload || !suppliedSignature || extra || !secret) throw new Error('invalid_cursor');
+  const expectedSignature = createHmac('sha256', secret).update(payload).digest('base64url');
+  const supplied = Buffer.from(suppliedSignature);
+  const expected = Buffer.from(expectedSignature);
+  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) throw new Error('invalid_cursor');
+  let decoded;
+  try { decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')); }
+  catch (_) { throw new Error('invalid_cursor'); }
+  if (decoded?.userId !== userId || !Number.isFinite(decoded?.expiresAt) || decoded.expiresAt < Date.now()) {
+    throw new Error('invalid_cursor');
+  }
+  const snapshotMs = new Date(decoded.snapshotAt).getTime();
+  if (!Number.isFinite(snapshotMs) || snapshotMs > Date.now() + 60_000) throw new Error('invalid_cursor');
+  return decoded;
 }
 
 /**
@@ -661,27 +702,44 @@ async function fetchCanonicalQuestionMap(db, rows) {
   return map;
 }
 
+async function fetchPagedRows(buildQuery, { pageSize = 1000, maxRows = 10000 } = {}) {
+  const rows = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    let result;
+    try {
+      result = await buildQuery(from, Math.min(maxRows, from + pageSize) - 1);
+    } catch (error) {
+      return { data: rows, error, complete: false };
+    }
+    if (result?.error) return { data: rows, error: result.error, complete: false };
+    const page = Array.isArray(result?.data) ? result.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { data: rows, error: null, complete: true };
+  }
+  return { data: rows, error: null, complete: false };
+}
+
 async function getSolverTrainingEvidence(db, userId) {
+  const evidenceSnapshot = new Date().toISOString();
   const modernColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured';
   const legacyColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at';
-  let result = await db
-    .from('training_answers')
-    .select(modernColumns)
-    .eq('user_id', userId)
-    .order('answered_at', { ascending: false })
-    .limit(2000);
+  const readTraining = columns => fetchPagedRows((from, to) => db
+      .from('training_answers')
+      .select(columns)
+      .eq('user_id', userId)
+      .lte('answered_at', evidenceSnapshot)
+      .order('answered_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to));
+  let result = await readTraining(modernColumns);
 
   // Safe during a rolling migration. Legacy rows are regraded from canonical
   // cache data below; no client-provided classification becomes solver proof.
   if (result.error?.code === '42703' || /column .* does not exist/i.test(result.error?.message || '')) {
-    result = await db
-      .from('training_answers')
-      .select(legacyColumns)
-      .eq('user_id', userId)
-      .order('answered_at', { ascending: false })
-      .limit(2000);
+    result = await readTraining(legacyColumns);
   }
   let trainingAvailable = !result.error;
+  let trainingComplete = trainingAvailable && result.complete === true;
   if (result.error) {
     console.warn('[LeakDetect] training_answers evidence query failed:', result.error.message);
   }
@@ -689,6 +747,7 @@ async function getSolverTrainingEvidence(db, userId) {
   const rows = trainingAvailable ? (result.data || []) : [];
   const decisions = [];
   let trainingDecisionCount = 0;
+  let canonicalMisses = 0;
   if (rows.length > 0) {
     let canonical;
     try {
@@ -696,17 +755,23 @@ async function getSolverTrainingEvidence(db, userId) {
     } catch (error) {
       console.warn('[LeakDetect] canonical question lookup failed:', error.message);
       trainingAvailable = false;
+      trainingComplete = false;
       canonical = new Map();
     }
 
     for (const row of rows) {
       const cached = canonical.get(String(row.question_id));
-      if (!cached?.question) continue;
+      if (!cached?.question) {
+        canonicalMisses += 1;
+        trainingComplete = false;
+        continue;
+      }
       const grade = gradeSolverDecision(cached.question, row.answer_id);
       if (!grade.solverVerified) continue;
       const scenario = cached.question.scenario || {};
       decisions.push({
         ...row,
+        evidence_scope: 'training',
         game_id: cached.gameId || row.game_id,
         hero_position: scenario.heroPosition || scenario.position || row.hero_position,
         villain_position: scenario.villainPosition || row.villain_position,
@@ -724,24 +789,27 @@ async function getSolverTrainingEvidence(db, userId) {
     }
   }
 
-  const auditResult = await db
-    .from('hand_audit_decisions')
-    .select('game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
-    .eq('user_id', userId)
-    .eq('solver_verified', true)
-    // Matcher v2 proves street order, concrete postflop combos, variant,
-    // stack/table identity and action sizing. Legacy rows are deliberately
-    // excluded until the idempotent Club Arena sync re-audits their hands.
-    .like('solver_source', '%|hand-audit-v2')
-    .order('audited_at', { ascending: false })
-    .limit(2000);
+  const auditResult = await fetchPagedRows((from, to) => db
+      .from('hand_audit_decisions')
+      .select('game_id, question_id, hero_position, villain_position, street, classification, ev_loss, spot_type, audited_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured')
+      .eq('user_id', userId)
+      .eq('solver_verified', true)
+      // Matcher v2 proves street order, concrete postflop combos, variant,
+      // stack/table identity and action sizing. Legacy rows are deliberately
+      // excluded until the idempotent Club Arena sync re-audits their hands.
+      .like('solver_source', '%|hand-audit-v2')
+      .lte('audited_at', evidenceSnapshot)
+      .order('audited_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to));
   const auditAvailable = !auditResult.error;
+  const auditComplete = auditAvailable && auditResult.complete === true;
   if (auditResult.error && auditResult.error.code !== '42P01') {
     console.warn('[LeakDetect] hand_audit_decisions query failed:', auditResult.error.message);
   }
   let handAuditDecisionCount = 0;
   for (const row of auditResult.data || []) {
-    decisions.push({ ...row, answered_at: row.audited_at });
+    decisions.push({ ...row, evidence_scope: 'club_arena', answered_at: row.audited_at });
     handAuditDecisionCount += 1;
   }
 
@@ -751,11 +819,19 @@ async function getSolverTrainingEvidence(db, userId) {
     // degraded, and vice versa.
     available: trainingAvailable || auditAvailable,
     sources: {
-      training: { available: trainingAvailable, decisions: trainingDecisionCount },
-      handAudit: { available: auditAvailable, decisions: handAuditDecisionCount },
+      training: {
+        available: trainingAvailable,
+        complete: trainingComplete,
+        integrityComplete: trainingAvailable && canonicalMisses === 0,
+        truncated: trainingAvailable && result.complete !== true,
+        decisions: trainingDecisionCount,
+      },
+      handAudit: { available: auditAvailable, complete: auditComplete, decisions: handAuditDecisionCount },
     },
     decisions,
+    groups: summarizeSolverDecisionGroups(decisions),
     leaks: aggregateSolverLeaks(decisions),
+    canonicalMisses,
   };
 }
 
@@ -805,13 +881,31 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId required' });
     }
 
+    let auditCursor = null;
+    try {
+      auditCursor = openAuditCursor(req.body.auditCursor, userId);
+    } catch (_) {
+      return res.status(400).json({
+        success: false,
+        code: 'invalid_audit_cursor',
+        error: 'Audit continuation must be restarted. Run the audit again.',
+      });
+    }
+
     try {
       // Live tendencies and solver-graded training decisions are separate
       // evidence sets. They must never be blended into one invented frequency.
       const [stats, clubArenaSync] = await Promise.all([
         getPlayerStats(getSupabase(), userId),
-        syncClubArenaHandsForAudit(getSupabase(), userId, { limit: 100, maxDecisions: 250 }),
+        syncClubArenaHandsForAudit(getSupabase(), userId, {
+          limit: 100, maxDecisions: 250, cursor: auditCursor,
+        }),
       ]);
+      if (clubArenaSync?.continuation) {
+        const continuation = clubArenaSync.continuation;
+        delete clubArenaSync.continuation;
+        clubArenaSync.auditCursor = sealAuditCursor(continuation, userId);
+      }
       // Read solver evidence after syncing so newly audited Club Arena
       // decisions are included in this same scan.
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
@@ -840,11 +934,14 @@ export default async function handler(req, res) {
       }
 
       // Get existing leaks
-      const { data: existingLeaks, error: existingErr } = await getSupabase()
+      const existingResult = await fetchPagedRows((from, to) => getSupabase()
         .from('user_leaks')
         .select('*')
         .eq('user_id', userId)
-        .limit(100);
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to));
+      const { data: existingLeaks, error: existingErr } = existingResult;
       if (existingErr) {
         console.warn('[LeakDetect] existing user_leaks query failed:', existingErr.message);
         return res.status(503).json({ success: false, error: 'Leak history is temporarily unavailable. No changes were made.' });
@@ -886,6 +983,7 @@ export default async function handler(req, res) {
             source_system: 'live_play',
             confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
             avg_ev_loss_bb: scaledEvLoss,
+            ev_loss_measured: false,
             // Aggregate patterns do not expose individual mistake rows. Keep
             // the actual opportunity window stable rather than incrementing on
             // every rerun of the same data.
@@ -938,19 +1036,21 @@ export default async function handler(req, res) {
         suggestionsPersisted: true,
       };
       if (detectedLeaks.length > 0) {
-        const persistenceRows = detectedLeaks.map(leak => toUserLeakPersistenceRow(leak, {
-          userId,
-          ...(persistenceEvidence.get(leak.leak_type) || {}),
+        const persistenceRows = detectedLeaks.map(leak => ({
+          ...toUserLeakPersistenceRow(leak, {
+            userId,
+            ...(persistenceEvidence.get(leak.leak_type) || {}),
+          }),
+          detector_managed: true,
+          updated_at: now,
         }));
         // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
-        const { data: upsertedLeaks, error: upsertErr } = await getSupabase()
+        const { error: upsertErr } = await getSupabase()
           .from('user_leaks')
           .upsert(
             persistenceRows,
             { onConflict: 'user_id,leak_type', ignoreDuplicates: false }
-          )
-          .select('id, leak_type')
-          .limit(100);
+          );
 
         if (upsertErr) {
           console.warn('[LeakDetect] Failed to persist detected leaks:', upsertErr.message);
@@ -966,7 +1066,23 @@ export default async function handler(req, res) {
         }
 
         // Merge DB ids back into the response objects so clients can deep-link
-        const idMap = Object.fromEntries((upsertedLeaks || []).map(r => [r.leak_type, r.id]));
+        const savedIdentityRows = [];
+        let identitiesComplete = true;
+        const detectedTypes = detectedLeaks.map(leak => leak.leak_type);
+        for (let i = 0; i < detectedTypes.length; i += 100) {
+          const identityResult = await getSupabase()
+            .from('user_leaks')
+            .select('id, leak_type')
+            .eq('user_id', userId)
+            .in('leak_type', detectedTypes.slice(i, i + 100));
+          if (identityResult.error) {
+            console.warn('[LeakDetect] Failed to reload saved leak identities:', identityResult.error.message);
+            identitiesComplete = false;
+            break;
+          }
+          savedIdentityRows.push(...(identityResult.data || []));
+        }
+        const idMap = Object.fromEntries(savedIdentityRows.map(r => [r.leak_type, r.id]));
         detectedLeaks.forEach(l => {
           if (idMap[l.leak_type]) l.id = idMap[l.leak_type];
         });
@@ -974,7 +1090,9 @@ export default async function handler(req, res) {
         // Link hand examples (single hand-history fetch, batch save)
         const leaksWithIds = detectedLeaks.filter(l => l.id);
         let handExamplesSync = { persisted: true, linked: 0 };
-        if (leaksWithIds.length > 0) {
+        if (!identitiesComplete) {
+          handExamplesSync = { persisted: false, linked: 0, reason: 'identity_read_failed' };
+        } else if (leaksWithIds.length > 0) {
           handExamplesSync = await linkHandExamples(userId, leaksWithIds);
         }
 
@@ -1010,44 +1128,60 @@ export default async function handler(req, res) {
       // Only resolve leak types this engine owns (LEAK_PATTERNS) AND whose
       // inputs were measured this run — never touch POSTed/training/custom
       // leak types, and never resolve a leak we simply couldn't measure.
-      const allSolverEvidenceAvailable = solverEvidence.sources?.training?.available === true
-        && solverEvidence.sources?.handAudit?.available === true;
-      const resolvedIds = Object.entries(existingLeakMap || {})
+      const solverRecoveryByType = new Map(
+        (solverEvidence.groups || []).map(group => [group.leakType, group.recoveryEligible === true]),
+      );
+      // Recovery uses a bounded recent evidence window per scoped group. It
+      // does not require a lifetime table export (which would permanently
+      // block accounts above the 10k read window). Club Arena groups add the
+      // stronger requirement that the signed hand-history snapshot reached
+      // its end and every page was reconciled before resolution.
+      const solverScopeCanResolve = leakType => canResolveSolverLeakScope(leakType, {
+        recoveryEligible: solverRecoveryByType.get(leakType) === true,
+        existingHistoryComplete: existingResult.complete === true,
+        sources: solverEvidence.sources,
+        clubArenaSync,
+      });
+      const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
-            (['training_solver', 'solver_engine'].includes(existingLeak.source_system) && allSolverEvidenceAvailable)) &&
+            (['training_solver', 'solver_engine'].includes(existingLeak.source_system)
+              && solverScopeCanResolve(leakType))) &&
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'
         )
-        .map(([, existingLeak]) => existingLeak.id);
+        .map(([, existingLeak]) => ({
+          id: existingLeak.id,
+          expected_updated_at: existingLeak.updated_at || null,
+        }));
 
       let resolutionsSynced = true;
-      if (resolvedIds.length > 0) {
-        const { error: err_user_leaks_fs60f } = await getSupabase()
-          .from('user_leaks')
-          .update({ status: 'resolved', resolved_at: now, is_active: false, updated_at: now })
-          .eq('user_id', userId)
-          .in('id', resolvedIds);
-        if (err_user_leaks_fs60f) {
+      if (resolutionCandidates.length > 0) {
+        const { data: resolutionResult, error: resolutionError } = await getSupabase()
+          .rpc('resolve_user_leaks_if_unchanged', {
+            p_user_id: userId,
+            p_candidates: resolutionCandidates,
+            p_resolved_at: now,
+          });
+        if (resolutionError || resolutionResult?.success === false) {
           resolutionsSynced = false;
-          console.warn('[LeakDetect] Failed to sync resolved leaks:', err_user_leaks_fs60f.message);
+          console.warn('[LeakDetect] Failed to sync resolved leaks:', resolutionError?.message || resolutionResult?.error);
+        } else if (Number(resolutionResult?.conflicts) > 0) {
+          resolutionsSynced = false;
+          console.warn('[LeakDetect] Retained concurrently changed leaks during resolution reconciliation.');
         }
       }
 
       // 🚀 NEW BUG #11 FIX: Update Global PA Stats
       // Recalculate active/resolved leaks
-      const { data: updatedLeaks, error: updatedLeaksErr } = await getSupabase()
-        .from('user_leaks')
-        .select('status')
-        .eq('user_id', userId)
-        .limit(100);
+      const { data: leakStats, error: updatedLeaksErr } = await readLeakStatsAggregate(getSupabase(), userId);
 
       let statsSynced = !updatedLeaksErr;
       if (updatedLeaksErr) {
         console.warn('[LeakDetect] Refusing to overwrite assistant stats after leak-count read failed:', updatedLeaksErr.message);
       } else {
-        const activeLeaks = updatedLeaks.filter(l => l.status !== 'resolved').length;
-        const resolvedLeaksCount = updatedLeaks.filter(l => l.status === 'resolved').length;
+        const activeLeaks = leakStats.activeLeaks;
+        const resolvedLeaksCount = leakStats.resolvedLeaks;
 
         // Fetch existing stats. A failed read must not be converted to zero and
         // written back over a real lifetime total.
@@ -1084,6 +1218,9 @@ export default async function handler(req, res) {
 
       const partial = !resolutionsSynced || !statsSynced ||
         clubArenaSync.persisted === false || clubArenaSync.complete === false ||
+        solverEvidence.sources?.training?.complete !== true ||
+        solverEvidence.sources?.handAudit?.complete !== true ||
+        existingResult.complete !== true ||
         secondarySync.handExamples?.persisted === false || !secondarySync.suggestionsPersisted;
 
       return res.status(200).json({
@@ -1108,7 +1245,7 @@ export default async function handler(req, res) {
       console.warn('Leak detection error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message,
+        error: 'Leak detection could not be completed. No unverified result was applied.',
       });
     }
 

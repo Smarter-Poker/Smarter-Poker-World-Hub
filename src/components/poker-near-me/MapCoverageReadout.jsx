@@ -14,10 +14,16 @@ export default function MapCoverageReadout({
   onSearchArea,
   onReset,
   overlay = true,
+  verified = 0,
+  approximate = 0,
+  held = 0,
 }) {
   const safeTotal = Math.max(0, Number(total) || 0);
   const safeVisible = Math.min(safeTotal, Math.max(0, Number(visible) || 0));
   const zoomLabel = Number.isFinite(Number(zoom)) ? Math.round(Number(zoom)) : 0;
+  const safeVerified = Math.max(0, Number(verified) || 0);
+  const safeApproximate = Math.max(0, Number(approximate) || 0);
+  const safeHeld = Math.max(0, Number(held) || 0);
 
   return (
     <aside
@@ -28,11 +34,21 @@ export default function MapCoverageReadout({
       data-map-total-count={safeTotal}
       data-map-zoom={zoomLabel}
       data-map-area-scoped={areaScoped ? 'true' : 'false'}
+      data-map-verified-count={safeVerified}
+      data-map-approximate-count={safeApproximate}
+      data-map-integrity-held={safeHeld}
     >
       <div className="pnm-map-coverage__signal" aria-hidden="true"><span /></div>
       <div className="pnm-map-coverage__copy">
         <span>{ready ? (areaScoped ? 'Area coverage' : 'Live coverage') : 'Calibrating map'}</span>
         <div><strong>{safeVisible}</strong> in frame <small>of {safeTotal} mapped · Z{zoomLabel}</small></div>
+        {(safeVerified > 0 || safeApproximate > 0 || safeHeld > 0) && (
+          <div className="pnm-map-coverage__integrity" aria-label="Map signal integrity">
+            {safeVerified > 0 && <span>{safeVerified} verified</span>}
+            {safeApproximate > 0 && <span>{safeApproximate} privacy-safe</span>}
+            {safeHeld > 0 && <span className="pnm-map-coverage__held">{safeHeld} held for review</span>}
+          </div>
+        )}
         <p role="status" aria-live="polite">
           {error || (busy ? 'Scanning this map area' : clustering ? 'Nearby rooms grouped at this zoom' : gps ? 'Your location is active' : 'Venue signals ready')}
         </p>

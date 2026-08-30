@@ -14,7 +14,8 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
-import { leakStatusPersistenceFields, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
+import { leakStatusPersistenceFields, leakTypeSlug, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
+import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
 
 let _supabase = null;
 function getSupabase() {
@@ -29,28 +30,58 @@ function getSupabase() {
 // Columns a client is allowed to supply when creating a leak via POST.
 // user_id and id are NEVER accepted from the client (IDOR protection).
 const POST_ALLOWED_FIELDS = [
-  'leak_type', 'leak_category', 'situation_class', 'status', 'confidence',
-  'avg_ev_loss_bb', 'occurrence_count', 'optimal_frequency', 'current_frequency',
-  'trend_data', 'explanation', 'why_leaking_ev',
+  'leak_type', 'leak_category', 'situation_class',
+  'explanation', 'why_leaking_ev',
 ];
 
 // Columns a client is allowed to update via PATCH.
 const PATCH_ALLOWED_FIELDS = ['status', 'notes'];
 const PATCH_STATUSES = new Set(['emerging', 'persistent', 'improving', 'resolved']);
+const TEXT_LIMITS = {
+  leak_type: 160,
+  leak_category: 80,
+  situation_class: 240,
+  explanation: 4000,
+  why_leaking_ev: 4000,
+  notes: 4000,
+};
+
+function boundedText(value, field, { required = false } = {}) {
+  if (value === undefined || value === null) {
+    if (required) throw new TypeError(`${field} required`);
+    return undefined;
+  }
+  if (typeof value !== 'string') throw new TypeError(`${field} must be text`);
+  const normalized = value.trim();
+  if (required && !normalized) throw new TypeError(`${field} required`);
+  if (normalized.length > TEXT_LIMITS[field]) throw new RangeError(`${field} is too long`);
+  return normalized;
+}
+
+async function readPaged(buildQuery, { pageSize = 500, maxRows = 5000 } = {}) {
+  const rows = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    const to = Math.min(maxRows, from + pageSize) - 1;
+    let result;
+    try {
+      result = await buildQuery(from, to);
+    } catch (error) {
+      return { data: rows, error, complete: false };
+    }
+    if (result?.error) return { data: rows, error: result.error, complete: false };
+    const page = Array.isArray(result?.data) ? result.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { data: rows, error: null, complete: true };
+  }
+  return { data: rows, error: null, complete: false };
+}
 
 async function readCombinedLeakCounts(userId) {
-  const [modernActive, modernResolved, trainingActive, trainingResolved] = await Promise.all([
-    getSupabase().from('user_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).or('status.neq.resolved,status.is.null'),
-    getSupabase().from('user_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'resolved'),
-    getSupabase().from('user_training_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).is('fixed_at', null),
-    getSupabase().from('user_training_leaks').select('*', { count: 'exact', head: true }).eq('user_id', userId).not('fixed_at', 'is', null),
-  ]);
-  const results = [modernActive, modernResolved, trainingActive, trainingResolved];
-  const failed = results.find(result => result?.error);
-  if (failed) return { error: failed.error };
+  const { data, error } = await readLeakStatsAggregate(getSupabase(), userId);
+  if (error) return { error };
   return {
-    active: (modernActive.count || 0) + (trainingActive.count || 0),
-    resolved: (modernResolved.count || 0) + (trainingResolved.count || 0),
+    active: data.activeLeaks,
+    resolved: data.resolvedLeaks,
     error: null,
   };
 }
@@ -68,6 +99,9 @@ export default async function handler(req, res) {
     // userId MUST come from JWT only. The global fetch interceptor auto-injects JWT.
     let userId = null;
     const { status } = req.query;
+    if (status && !PATCH_STATUSES.has(String(status).trim().toLowerCase())) {
+      return res.status(400).json({ success: false, error: 'Unsupported leak status' });
+    }
 
     // Extract userId from JWT — this is the ONLY trusted source
     const authHeader = req.headers.authorization;
@@ -99,51 +133,53 @@ export default async function handler(req, res) {
 
       try {
         const failedSources = [];
+        const truncatedSources = [];
 
         // Fetch from legacy user_leaks table
         let legacyLeaks = [];
         {
-          let query = getSupabase()
-            .from('user_leaks')
-            .select('*')
-            .eq('user_id', userId)
-            .order('last_detected_at', { ascending: false })
-            .limit(100);
-
-          if (status) {
-            query = query.eq('status', status).limit(100);
-          }
-
-          const { data, error } = await query;
+          const result = await readPaged((from, to) => {
+            let query = getSupabase()
+              .from('user_leaks')
+              .select('*')
+              .eq('user_id', userId)
+              .order('last_detected_at', { ascending: false })
+              .order('id', { ascending: false });
+            if (status) query = query.eq('status', status);
+            return query.range(from, to);
+          });
+          const { data, error } = result;
           if (error) {
             console.warn('user_leaks query failed:', error.message);
             failedSources.push('user_leaks');
           }
+          if (!result.complete) truncatedSources.push('user_leaks');
           legacyLeaks = (data || []).map(normalizeUserLeakRow);
         }
 
         // Also fetch from new user_training_leaks table (Memory Matrix)
         let trainingLeaks = [];
         {
-          let query = getSupabase()
-            .from('user_training_leaks')
-            .select('*')
-            .eq('user_id', userId)
-            .order('detected_at', { ascending: false })
-            .limit(100);
-
-          if (status === 'resolved') {
-            query = query.not('fixed_at', 'is', null).limit(100);
-          } else if (status) {
-            // Coarse prefilter: any non-resolved status implies still active
-            query = query.is('fixed_at', null);
-          }
-
-          const { data, error } = await query;
+          const result = await readPaged((from, to) => {
+            let query = getSupabase()
+              .from('user_training_leaks')
+              .select('*')
+              .eq('user_id', userId)
+              .order('detected_at', { ascending: false })
+              .order('id', { ascending: false });
+            if (status === 'resolved') {
+              query = query.not('fixed_at', 'is', null);
+            } else if (status) {
+              query = query.is('fixed_at', null);
+            }
+            return query.range(from, to);
+          });
+          const { data, error } = result;
           if (error) {
             console.warn('user_training_leaks query failed:', error.message);
             failedSources.push('user_training_leaks');
           }
+          if (!result.complete) truncatedSources.push('user_training_leaks');
           // Transform to match expected format
           trainingLeaks = (data || []).map(leak => normalizeUserLeakRow({
             id: leak.id,
@@ -186,8 +222,8 @@ export default async function handler(req, res) {
             { failedSources },
           ));
         }
-        const partialFlags = failedSources.length > 0
-          ? { partial: true, failedSources }
+        const partialFlags = failedSources.length > 0 || truncatedSources.length > 0
+          ? { partial: true, failedSources, truncatedSources }
           : {};
 
         // No real leaks: return an explicit empty state. Demo leaks are
@@ -214,7 +250,7 @@ export default async function handler(req, res) {
         console.warn('Fetch leaks error:', error);
         return res.status(500).json({
           success: false,
-          error: error.message
+          error: 'Leak history could not be loaded.'
         });
       }
     }
@@ -223,15 +259,35 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = (req.body && typeof req.body === 'object') ? req.body : {};
 
-      if (!body.leak_type) {
-        return res.status(400).json({ success: false, error: 'leak_type required' });
-      }
-
       // Build the row from a whitelist — ownership is forced from the JWT,
       // client-supplied user_id / id are ignored
       const leak = { user_id: userId };
-      POST_ALLOWED_FIELDS.forEach(field => {
-        if (body[field] !== undefined) leak[field] = body[field];
+      try {
+        POST_ALLOWED_FIELDS.forEach(field => {
+          const value = boundedText(body[field], field, { required: field === 'leak_type' });
+          if (value !== undefined) leak[field] = value;
+        });
+      } catch (error) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
+      const reportedType = leakTypeSlug(leak.leak_type);
+      if (!reportedType) {
+        return res.status(400).json({ success: false, error: 'leak_type must include letters or numbers' });
+      }
+      // This public endpoint records a user's observation, not deterministic
+      // solver proof. Never let client-supplied confidence, frequencies, or EV
+      // enter the measured Leak Finder aggregate.
+      Object.assign(leak, {
+        leak_type: `user_reported_${reportedType}`.slice(0, 180),
+        status: 'emerging',
+        source_system: 'user_reported',
+        confidence: 'low',
+        avg_ev_loss_bb: null,
+        ev_loss_measured: false,
+        occurrence_count: 1,
+        optimal_frequency: null,
+        current_frequency: null,
+        trend_data: [],
       });
       leak.last_detected_at = new Date().toISOString();
       const persistenceRow = toUserLeakPersistenceRow(leak, { userId });
@@ -279,7 +335,7 @@ export default async function handler(req, res) {
         console.warn('Save leak error:', error);
         return res.status(500).json({
           success: false,
-          error: error.message
+          error: 'The leak report could not be saved.'
         });
       }
     }
@@ -297,6 +353,13 @@ export default async function handler(req, res) {
       PATCH_ALLOWED_FIELDS.forEach(field => {
         if (body[field] !== undefined) updates[field] = body[field];
       });
+      if (updates.notes !== undefined) {
+        try {
+          updates.notes = boundedText(updates.notes, 'notes');
+        } catch (error) {
+          return res.status(400).json({ success: false, error: error.message });
+        }
+      }
       if (updates.status !== undefined) {
         updates.status = String(updates.status).trim().toLowerCase();
         if (!PATCH_STATUSES.has(updates.status)) {
@@ -310,7 +373,10 @@ export default async function handler(req, res) {
 
       try {
         const now = new Date().toISOString();
-        if (updates.status) Object.assign(updates, leakStatusPersistenceFields(updates.status, { now }));
+        if (updates.status) Object.assign(updates, leakStatusPersistenceFields(updates.status, {
+          now,
+          resolutionSource: updates.status === 'resolved' ? 'manual' : null,
+        }));
 
         // Ownership enforced: only rows belonging to the JWT user can change
         let { data, error } = await getSupabase()
@@ -397,7 +463,7 @@ export default async function handler(req, res) {
         console.warn('Update leak error:', error);
         return res.status(500).json({
           success: false,
-          error: error.message
+          error: 'The leak could not be updated.'
         });
       }
     }

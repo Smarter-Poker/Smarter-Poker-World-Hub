@@ -48,10 +48,10 @@ test('deterministic leaks include every required legacy persistence field', () =
 test('leak lifecycle transitions keep modern and legacy activity fields synchronized', () => {
   const at = '2026-08-29T12:00:00.000Z';
   assert.deepEqual(leakStatusPersistenceFields('resolved', { now: at }), {
-    status: 'resolved', resolved_at: at, is_active: false,
+    status: 'resolved', resolved_at: at, remediation_completed_at: at, resolution_source: null, is_active: false,
   });
   assert.deepEqual(leakStatusPersistenceFields('persistent', { resolvedAt: at, now: at }), {
-    status: 'persistent', resolved_at: null, is_active: true,
+    status: 'persistent', resolved_at: null, remediation_completed_at: null, resolution_source: null, is_active: true,
   });
 
   const reemerged = toUserLeakPersistenceRow({
@@ -118,8 +118,11 @@ test('status endpoints fail closed and update both leak stores', () => {
   assert.match(route, /statsSynced/);
 
   const detect = fs.readFileSync('pages/api/assistant/leaks/detect.js', 'utf8');
-  assert.match(detect, /is_active: false/);
-  assert.match(detect, /allSolverEvidenceAvailable/);
+  assert.match(detect, /resolve_user_leaks_if_unchanged/);
+  assert.match(detect, /solverScopeCanResolve/);
+  assert.match(detect, /solverRecoveryByType/);
+  assert.match(detect, /detector_managed: true/);
+  assert.match(detect, /updated_at: now/);
   assert.match(detect, /clubArenaSync\.complete === false/);
 });
 
@@ -130,5 +133,5 @@ test('legacy solver zeroes remain visibly unpriced', () => {
   assert.match(page, /const priced = hasPricedEv\(leak\)/);
 
   const engine = fs.readFileSync('src/lib/training/solverDecisionEvidence.js', 'utf8');
-  assert.match(engine, /measuredEVMistakes > 0 \? \+avgMeasuredEV\.toFixed\(3\) : null/);
+  assert.match(engine, /fullyMeasuredEV \? \+avgMeasuredEV\.toFixed\(3\) : null/);
 });

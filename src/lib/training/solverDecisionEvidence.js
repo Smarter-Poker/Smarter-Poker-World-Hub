@@ -153,12 +153,7 @@ function displayToken(value, fallback) {
   return text.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/**
- * Aggregate server-verified solver decisions into stable, opportunity-based
- * leaks. Every group is one situation class; rerunning the endpoint with the
- * same rows produces the same occurrence count and EV result.
- */
-export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, targetErrorRate = 15 } = {}) {
+export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErrorRate = 15 } = {}) {
   const groups = new Map();
 
   for (const row of rows || []) {
@@ -169,10 +164,14 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     const street = safeSlug(row.street, 'all_streets');
     const position = safeSlug(row.hero_position, 'all_positions');
     const spotType = safeSlug(row.spot_type, 'general');
-    const key = `${gameId}|${street}|${position}|${spotType}`;
+    // Training drills and audited Club Arena hands answer different product
+    // questions. Keep them in separate evidence groups so a strong drill run
+    // cannot dilute (or resolve) a leak that still exists in real hands.
+    const evidenceScope = safeSlug(row.evidence_scope, 'training');
+    const key = `${evidenceScope}|${gameId}|${street}|${position}|${spotType}`;
     if (!groups.has(key)) {
       groups.set(key, {
-        gameId, street, position, spotType,
+        evidenceScope, gameId, street, position, spotType,
         samples: 0, mistakes: 0, totalMeasuredEV: 0, measuredEVMistakes: 0,
         newestAt: null,
       });
@@ -192,18 +191,58 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     }
   }
 
-  return [...groups.values()]
+  return [...groups.values()].map(group => {
+    const errorRate = group.samples > 0 ? (group.mistakes / group.samples) * 100 : 0;
+    return {
+      ...group,
+      leakType: `solver_${group.evidenceScope}_${group.gameId}_${group.street}_${group.position}_${group.spotType}`.slice(0, 180),
+      errorRate,
+      recoveryEligible: group.samples >= minSamples && errorRate < targetErrorRate + 10,
+    };
+  });
+}
+
+export function canResolveSolverLeakScope(leakType, {
+  recoveryEligible = false,
+  existingHistoryComplete = false,
+  sources = {},
+  clubArenaSync = {},
+} = {}) {
+  if (!recoveryEligible || !existingHistoryComplete) return false;
+  if (String(leakType).startsWith('solver_training_')) {
+    // Window truncation is intentional, but missing/ungradeable canonical
+    // questions make that window untrustworthy for recovery.
+    return sources.training?.available === true
+      && sources.training?.integrityComplete === true;
+  }
+  if (String(leakType).startsWith('solver_club_arena_')) {
+    return sources.handAudit?.available === true
+      && clubArenaSync?.complete === true
+      && clubArenaSync?.persisted !== false
+      && clubArenaSync?.evidenceReconciled !== false;
+  }
+  return false;
+}
+
+/**
+ * Aggregate server-verified solver decisions into stable, opportunity-based
+ * leaks. Every group is one situation class; rerunning the endpoint with the
+ * same rows produces the same occurrence count and EV result.
+ */
+export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, targetErrorRate = 15 } = {}) {
+  return summarizeSolverDecisionGroups(rows, { minSamples, targetErrorRate })
     .filter(g => g.samples >= minSamples && g.mistakes >= minMistakes)
     .map(group => {
-      const errorRate = (group.mistakes / group.samples) * 100;
+      const errorRate = group.errorRate;
       if (errorRate < targetErrorRate + 10) return null;
-      const avgMeasuredEV = group.measuredEVMistakes > 0
+      const fullyMeasuredEV = group.mistakes > 0 && group.measuredEVMistakes === group.mistakes;
+      const avgMeasuredEV = fullyMeasuredEV
         ? group.totalMeasuredEV / group.measuredEVMistakes
         : 0;
       const confidence = group.samples >= 40 ? 'high' : group.samples >= 20 ? 'medium' : 'low';
       const context = `${displayToken(group.position)} ${displayToken(group.street)} ${displayToken(group.spotType)}`;
       return {
-        leak_type: `solver_${group.gameId}_${group.street}_${group.position}_${group.spotType}`.slice(0, 180),
+        leak_type: group.leakType,
         leak_category: group.street === 'all_streets' ? 'training' : group.street,
         situation_class: `${context} Decisions`,
         status: errorRate >= 50 ? 'persistent' : 'emerging',
@@ -212,15 +251,18 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
         // A solver frequency can prove an action error without proving its BB
         // cost. Null keeps that distinction intact all the way through the
         // existing user_leaks schema and the Leak Finder UI.
-        avg_ev_loss_bb: group.measuredEVMistakes > 0 ? +avgMeasuredEV.toFixed(3) : null,
+        avg_ev_loss_bb: fullyMeasuredEV ? +avgMeasuredEV.toFixed(3) : null,
+        ev_loss_measured: fullyMeasuredEV,
         occurrence_count: group.mistakes,
         optimal_frequency: targetErrorRate,
         current_frequency: +errorRate.toFixed(1),
         last_detected_at: group.newestAt,
         explanation: `You made a solver-graded error in ${group.mistakes} of ${group.samples} ${context.toLowerCase()} decisions (${errorRate.toFixed(1)}%).`,
-        why_leaking_ev: group.measuredEVMistakes > 0
+        why_leaking_ev: fullyMeasuredEV
           ? `${group.measuredEVMistakes} mistakes include exact per-action solver EV; average measured loss is ${avgMeasuredEV.toFixed(2)} BB.`
-          : 'The shared solver range rejects these actions, but the source rows do not expose complete per-action EVs, so no BB loss is invented.',
+          : group.measuredEVMistakes > 0
+            ? `Only ${group.measuredEVMistakes} of ${group.mistakes} mistakes expose exact per-action solver EV. Coverage is incomplete, so no aggregate BB loss is claimed.`
+            : 'The shared solver range rejects these actions, but the source rows do not expose complete per-action EVs, so no BB loss is invented.',
         recommended_drill: group.gameId.replace(/_/g, '-'),
         _sample_count: group.samples,
         _mistake_count: group.mistakes,
@@ -231,4 +273,4 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     .sort((a, b) => b.current_frequency - a.current_frequency || b._sample_count - a._sample_count);
 }
 
-export default { isVerifiedSolverQuestion, classifyFrequencyDecision, gradeSolverDecision, aggregateSolverLeaks };
+export default { isVerifiedSolverQuestion, classifyFrequencyDecision, gradeSolverDecision, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };
