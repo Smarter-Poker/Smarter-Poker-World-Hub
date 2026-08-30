@@ -26,6 +26,17 @@ test('every Poker Near Me map uses the local shared Leaflet runtime and control 
   assert.match(primaryMap, /height:\s*44px !important/);
 });
 
+test('road-trip planner controls cannot submit an ancestor form', async () => {
+  const planner = await source('src/components/poker-near-me/RoadTripPlanner.jsx');
+  const buttons = [...planner.matchAll(/<button\b([^>]*)>/g)].map((match) => match[1]);
+
+  assert.ok(buttons.length >= 10, 'expected the complete planner control set');
+  for (const attributes of buttons) {
+    assert.match(attributes, /\btype="button"/);
+  }
+  assert.match(planner, /<button type="button" className="rtp-calculate-btn"/);
+});
+
 test('snapshot refresh has a read-only audit mode and atomically promotes validated files', async () => {
   const [refresh, pkg] = await Promise.all([
     source('scripts/refresh-pnm-directory-snapshot.mjs'),
