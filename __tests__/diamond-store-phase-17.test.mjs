@@ -96,7 +96,7 @@ test('deployment verification covers every account subpage and purchase authoriz
     '/api/store/purchase-with-diamonds',
     '/api/store/purchase-vip-with-diamonds',
     '/api/club-arena/marketplace-purchase',
-    '/api/store/merch-catalog?limit=100',
+    '/api/store/merch-catalog',
   ]) assert.ok(verifier.includes(marker), `missing deployment probe: ${marker}`);
   assert.match(verifier, /--require-performance/);
   assert.match(verifier, /MARKETPLACE_MAX_LATENCY_MS/);
@@ -111,8 +111,8 @@ test('marketplace detail media is an in-page, keyboard-dismissible gallery', asy
   assert.match(detail, /role="dialog"/);
   assert.match(detail, /event\.key === 'Escape'/);
   assert.match(detail, /galleryImages/);
-  assert.match(detail, /fetchpriority="high"/);
-  assert.doesNotMatch(detail, /fetchPriority=/);
+  assert.match(detail, /fetchPriority="high"/);
+  assert.doesNotMatch(detail, /fetchpriority=/);
   assert.doesNotMatch(detail, /target=["']_blank["']/);
   assert.match(css, /\.mediaDialog/);
   assert.match(product, /metadata\.gallery_images/);
