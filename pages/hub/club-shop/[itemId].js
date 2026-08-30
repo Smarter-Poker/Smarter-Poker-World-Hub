@@ -6,7 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
 import { ensureAuthReady, getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
-import { createCheckoutRequestId } from '../../../src/lib/store/storeAnalytics';
+import {
+  clearCommerceRequestId,
+  clearCommerceRequestById,
+  getOrCreateCommerceRequestId,
+} from '../../../src/lib/store/checkoutIntentStore';
 import supabase from '../../../src/lib/supabase';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 
@@ -39,6 +43,7 @@ export default function ClubShopItemDetail() {
   const [state, setState] = useState({ kind: 'loading', message: 'Loading verified club inventory…' });
   const [diamondReviewOpen, setDiamondReviewOpen] = useState(false);
   const [diamondPurchaseRequestId, setDiamondPurchaseRequestId] = useState(null);
+  const [diamondCommerceIntent, setDiamondCommerceIntent] = useState(null);
   const loadRequestRef = useRef(0);
   const processingRef = useRef(false);
   const diamondReviewTriggerRef = useRef(null);
@@ -142,8 +147,10 @@ export default function ClubShopItemDetail() {
         return false;
       }
       setBalance(Number(body.newBalance) || 0);
+      clearCommerceRequestId(diamondCommerceIntent);
       setDiamondReviewOpen(false);
       setDiamondPurchaseRequestId(null);
+      setDiamondCommerceIntent(null);
       window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
         detail: { balance: Number(body.newBalance) || 0, userId: getAuthUser()?.id, source: 'club-shop' },
       }));
@@ -156,13 +163,14 @@ export default function ClubShopItemDetail() {
     } finally {
       processingRef.current = false;
     }
-  }, [clubId, diamondPurchaseRequestId, item]);
+  }, [clubId, diamondCommerceIntent, diamondPurchaseRequestId, item]);
 
   const purchaseWithCard = async () => {
     if (processingRef.current) return;
     const token = getAccessToken();
+    const authUser = getAuthUser();
     const topUp = cardTopUpFor(item?.price);
-    if (!token) {
+    if (!token || !authUser?.id) {
       setState({ kind: 'auth', message: 'Sign in again before opening secure card checkout.' });
       return;
     }
@@ -183,7 +191,12 @@ export default function ClubShopItemDetail() {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-Checkout-Request-ID': createCheckoutRequestId(`club-detail-card-${item.id}`),
+          'X-Checkout-Request-ID': getOrCreateCommerceRequestId({
+            scope: `club-detail-card-${item.id}`,
+            userId: authUser?.id,
+            paymentMethod: 'card',
+            intent: { clubId, itemId: item.id },
+          }),
         },
         body: JSON.stringify({
           type: 'diamonds',
@@ -225,6 +238,14 @@ export default function ClubShopItemDetail() {
           const body = await response.json().catch(() => null);
           if (response.ok && body?.data?.status === 'complete') {
             if (!cancelled) {
+              const authUser = getAuthUser();
+              if (authUser?.id && body.data?.requestId) {
+                clearCommerceRequestById({
+                  userId: authUser.id,
+                  paymentMethod: 'card',
+                  requestId: body.data.requestId,
+                });
+              }
               if (body.data?.redemptionStatus === 'needs_review') {
                 await router.replace(`${canonical}?clubId=${clubId}`, undefined, { shallow: true });
                 setState({
@@ -302,7 +323,19 @@ export default function ClubShopItemDetail() {
             ref={diamondReviewTriggerRef}
             type="button"
             onClick={() => {
-              setDiamondPurchaseRequestId(createCheckoutRequestId(`club-detail-${item.id}`));
+              const authUser = getAuthUser();
+              if (!authUser?.id) {
+                setState({ kind: 'auth', message: 'Sign in again before authorizing a diamond purchase.' });
+                return;
+              }
+              const commerceIntent = {
+                scope: `club-detail-${item.id}`,
+                userId: authUser.id,
+                paymentMethod: 'diamonds',
+                intent: { clubId, itemId: item.id },
+              };
+              setDiamondCommerceIntent(commerceIntent);
+              setDiamondPurchaseRequestId(getOrCreateCommerceRequestId(commerceIntent));
               setDiamondReviewOpen(true);
             }}
             disabled={state.kind === 'processing'}

@@ -25,7 +25,12 @@ import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { ensureAuthReady, getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
-import { captureStoreEvent, createCheckoutRequestId } from '../../src/lib/store/storeAnalytics';
+import { captureStoreEvent } from '../../src/lib/store/storeAnalytics';
+import {
+  clearCommerceRequestId,
+  clearCommerceRequestById,
+  getOrCreateCommerceRequestId,
+} from '../../src/lib/store/checkoutIntentStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), {
@@ -655,6 +660,16 @@ export default function DiamondStorePage({ initialTab }) {
     captureStoreEvent('viewed', { route: activeTab });
   }, [activeTab]);
 
+  useEffect(() => {
+    if (checkoutReturn?.status === 'complete' && user?.id && checkoutReturn.receipt?.requestId) {
+      clearCommerceRequestById({
+        userId: user.id,
+        paymentMethod: 'card',
+        requestId: checkoutReturn.receipt.requestId,
+      });
+    }
+  }, [checkoutReturn?.receipt?.requestId, checkoutReturn?.status, user?.id]);
+
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
     () => () => {
@@ -766,12 +781,17 @@ export default function DiamondStorePage({ initialTab }) {
     setStoreProcessing(true);
     try {
       const token = getAccessToken();
-      if (!token) {
+      if (!token || !user?.id) {
         showStoreToast('error', 'Please sign in to complete your purchase');
         setStoreProcessing(false);
         return;
       }
-      const checkoutRequestId = createCheckoutRequestId(`diamonds-${pkg.id}`);
+      const checkoutRequestId = getOrCreateCommerceRequestId({
+        scope: `diamonds-${pkg.id}`,
+        userId: user.id,
+        paymentMethod: 'card',
+        intent: { packageId: pkg.id, quantity: 1 },
+      });
       captureStoreEvent('checkout_started', {
         route: 'diamonds',
         type: 'diamonds',
@@ -840,13 +860,20 @@ export default function DiamondStorePage({ initialTab }) {
       }
       // Ask in the page, not in a native dialog. runDailyPassPurchase is what
       // the modal's Confirm calls.
+      const commerceIntent = {
+        scope: 'vip-daily',
+        userId: user.id,
+        paymentMethod: 'diamonds',
+        intent: { plan: 'daily' },
+      };
       setPendingSpend({
         kind: 'daily',
         title: 'Activate The 1-Day VIP Pass',
         cost: plan.price,
         detail:
           'Twenty-Four Hours Of Full VIP Access. If You Already Have VIP, This Adds A Day To The End Of It Rather Than Replacing It.',
-        idempotencyKey: createCheckoutRequestId('vip-daily'),
+        commerceIntent,
+        idempotencyKey: getOrCreateCommerceRequestId(commerceIntent),
       });
       return;
     }
@@ -854,9 +881,10 @@ export default function DiamondStorePage({ initialTab }) {
   };
 
   /** The daily pass, once the in-page confirmation has been accepted. */
-  const runDailyPassPurchase = async (idempotencyKey) => {
+  const runDailyPassPurchase = async (idempotencyKey, commerceIntent) => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
+      clearCommerceRequestId(commerceIntent);
       showStoreToast('success', 'Lifetime VIP Already Includes The Daily Pass.');
       return true;
     }
@@ -892,6 +920,7 @@ export default function DiamondStorePage({ initialTab }) {
         throw new Error(`${data?.error || `Request Failed (${res.status})`}.${detail}`);
       }
       if (data?.success) {
+        clearCommerceRequestId(commerceIntent);
         captureStoreEvent('diamond_purchase_complete', {
           route: 'vip',
           product: 'vip-daily',
@@ -946,7 +975,12 @@ export default function DiamondStorePage({ initialTab }) {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-Checkout-Request-ID': createCheckoutRequestId('vip-daily-card'),
+          'X-Checkout-Request-ID': getOrCreateCommerceRequestId({
+            scope: 'vip-daily-card',
+            userId: user.id,
+            paymentMethod: 'card',
+            intent: { plan: 'daily', packageId: topUp.packageId, quantity: topUp.quantity },
+          }),
         },
         body: JSON.stringify({
           type: 'diamonds',
@@ -983,9 +1017,10 @@ export default function DiamondStorePage({ initialTab }) {
    * called it, so a member holding 2,000 diamonds had no way to spend them on
    * a membership. The FAQ said they could. Now they can.
    */
-  const runDiamondPlanPurchase = async (planKey, idempotencyKey) => {
+  const runDiamondPlanPurchase = async (planKey, idempotencyKey, commerceIntent) => {
     if (processingRef.current) return;
     if (vipTier === 'lifetime') {
+      clearCommerceRequestId(commerceIntent);
       showStoreToast('success', 'Lifetime VIP Already Includes This Membership.');
       return true;
     }
@@ -1020,6 +1055,7 @@ export default function DiamondStorePage({ initialTab }) {
         throw new Error(`${data?.error || `Request Failed (${res.status})`}.${short}`);
       }
       if (data?.success) {
+        clearCommerceRequestId(commerceIntent);
         captureStoreEvent('diamond_purchase_complete', {
           route: 'vip',
           product: planKey,
@@ -1057,14 +1093,19 @@ export default function DiamondStorePage({ initialTab }) {
     // Only the plan key is sent; the server resolves the Stripe price ID from
     // its own env config, so the price is never client-controlled.
     const token = getAccessToken();
-    if (!token) {
+    if (!token || !user?.id) {
       showStoreToast('error', 'Please sign in to subscribe to VIP.');
       return;
     }
 
     setStoreProcessing(true);
     try {
-      const checkoutRequestId = createCheckoutRequestId(`vip-${plan.id}`);
+      const checkoutRequestId = getOrCreateCommerceRequestId({
+        scope: `vip-${plan.id}`,
+        userId: user.id,
+        paymentMethod: 'card',
+        intent: { plan: plan.id },
+      });
       captureStoreEvent('checkout_started', {
         route: 'vip',
         type: 'subscription',
@@ -1219,6 +1260,7 @@ export default function DiamondStorePage({ initialTab }) {
       if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
 
       const pricePaid = Number(responseData.pricePaid ?? purchaseTarget.price) || 0;
+      clearCommerceRequestId(purchaseTarget.commerceIntent);
       captureStoreEvent('club_purchase_complete', {
         route: 'club-shop',
         product: purchaseTarget.id,
@@ -1257,7 +1299,12 @@ export default function DiamondStorePage({ initialTab }) {
       showStoreToast('error', 'This Item Is Above The Current Card Checkout Limit.');
       return;
     }
-    const checkoutRequestId = createCheckoutRequestId(`club-card-${item.id}`);
+    const checkoutRequestId = getOrCreateCommerceRequestId({
+      scope: `club-card-${item.id}`,
+      userId: user.id,
+      paymentMethod: 'card',
+      intent: { clubId: clubShopClubId, itemId: item.id },
+    });
     setClubShopCardProcessingId(item.id);
     try {
       captureStoreEvent('checkout_started', {
@@ -1799,16 +1846,27 @@ export default function DiamondStorePage({ initialTab }) {
                             <button
                               type="button"
                               disabled={isProcessing || !canAfford}
-                              onClick={() =>
+                              onClick={() => {
+                                if (!user?.id) {
+                                  showStoreToast('error', 'Please Sign In To Purchase VIP.');
+                                  return;
+                                }
+                                const commerceIntent = {
+                                  scope: `vip-${planKey}`,
+                                  userId: user.id,
+                                  paymentMethod: 'diamonds',
+                                  intent: { plan: planKey },
+                                };
                                 setPendingSpend({
                                   kind: 'plan',
                                   planKey,
                                   title: `Pay For ${selectedVIPPlan.name} With Diamonds`,
                                   cost,
                                   detail: `${Number(cost).toLocaleString()} Diamonds For ${planKey === 'annual' ? '365' : '30'} Days Of VIP. This Extends Any Membership You Already Have Rather Than Replacing It.`,
-                                  idempotencyKey: `vip-${planKey}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-                                })
-                              }
+                                  commerceIntent,
+                                  idempotencyKey: getOrCreateCommerceRequestId(commerceIntent),
+                                });
+                              }}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1938,9 +1996,16 @@ export default function DiamondStorePage({ initialTab }) {
                               const spend = pendingSpend;
                               let applied = false;
                               if (spend.kind === 'daily') {
-                                applied = await runDailyPassPurchase(spend.idempotencyKey);
+                                applied = await runDailyPassPurchase(
+                                  spend.idempotencyKey,
+                                  spend.commerceIntent
+                                );
                               } else
-                                applied = await runDiamondPlanPurchase(spend.planKey, spend.idempotencyKey);
+                                applied = await runDiamondPlanPurchase(
+                                  spend.planKey,
+                                  spend.idempotencyKey,
+                                  spend.commerceIntent
+                                );
                               // Keep the same operation identity through an
                               // ambiguous response or retryable failure.
                               if (applied) setPendingSpend(null);
@@ -3536,11 +3601,24 @@ export default function DiamondStorePage({ initialTab }) {
                                               type="button"
                                               onClick={() => {
                                                 if (blocked) return;
+                                                if (!user?.id) {
+                                                  showStoreToast('error', 'Please Sign In To Buy Club Shop Items.');
+                                                  return;
+                                                }
+                                                const commerceIntent = {
+                                                  scope: `club-${item.id}`,
+                                                  userId: user.id,
+                                                  paymentMethod: 'diamonds',
+                                                  intent: {
+                                                    clubId: clubShopClubId,
+                                                    itemId: item.id,
+                                                  },
+                                                };
                                                 setClubShopBuyTarget({
                                                   ...item,
-                                                  purchaseRequestId: createCheckoutRequestId(
-                                                    `club-${item.id}`
-                                                  ),
+                                                  commerceIntent,
+                                                  purchaseRequestId:
+                                                    getOrCreateCommerceRequestId(commerceIntent),
                                                 });
                                               }}
                                               disabled={
