@@ -197,6 +197,84 @@ test('exact Club Arena matches are stamped with matcher v2 provenance', async ()
   assert.match(result.analyses[0].decisions[0].solverSource, /\|hand-audit-v2$/);
 });
 
+test('solver lookup filters by indexed hero hand before applying its candidate cap', async () => {
+  const filters = [];
+  const db = {
+    from(table) {
+      assert.equal(table, 'training_question_cache');
+      const query = {
+        select() { return query; },
+        like() { return query; },
+        eq(column, value) { filters.push([column, value]); return query; },
+        async limit() { return { data: [cachedQuestion(solverQuestion())], error: null }; },
+      };
+      return query;
+    },
+  };
+  const result = await auditParsedHands(db, 'hero', [parsedHand()], { persist: false });
+  assert.equal(result.solverVerified, 1);
+  assert.deepEqual(
+    filters.find(([column]) => column === 'question_data->scenario->>heroHand'),
+    ['question_data->scenario->>heroHand', 'JTs'],
+  );
+});
+
+test('reauditing a corrected hand removes obsolete persisted decisions', async () => {
+  const calls = [];
+  const db = {
+    async rpc(name, args) {
+      calls.push([name, args]);
+      return { data: { success: true, upserted: 1, removed: 1 }, error: null };
+    },
+    from(table) {
+      if (table === 'training_question_cache') {
+        const query = {
+          select() { return query; }, like() { return query; }, eq() { return query; },
+          async limit() { return { data: [cachedQuestion(solverQuestion())], error: null }; },
+        };
+        return query;
+      }
+      if (table === 'hand_audit_decisions') {
+        throw new Error('atomic replacement must not use separate table writes');
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const result = await auditParsedHands(db, 'hero', [parsedHand()]);
+  assert.equal(result.complete, true);
+  assert.equal(result.evidenceReconciled, true);
+  assert.equal(result.obsoleteDecisionsRemoved, 1);
+  assert.equal(calls[0][0], 'replace_hand_audit_decisions');
+  assert.deepEqual(calls[0][1].p_hand_ids, ['test-hand']);
+  assert.equal(calls[0][1].p_rows.length, 1);
+});
+
+test('a cap boundary never partially replaces or reconciles a hand', async () => {
+  const hand = parsedHand({
+    streets: {
+      preflop: { actions: [] },
+      flop: { board: ['2c', '7d', 'Th'], actions: [
+        { isHero: true, action: 'check', amount: 0 },
+        { isHero: true, action: 'call', amount: 1 },
+      ] },
+      turn: null,
+      river: null,
+    },
+  });
+  let rpcCalls = 0;
+  const db = {
+    rpc: async () => { rpcCalls++; return { data: { success: true }, error: null }; },
+    from() { throw new Error('truncated boundary hand must not query or persist'); },
+  };
+  const result = await auditParsedHands(db, 'hero', [hand], { maxDecisions: 1 });
+  assert.equal(result.truncated, true);
+  assert.equal(result.complete, false);
+  assert.equal(result.handsParsed, 0);
+  assert.equal(result.decisionsAnalyzed, 0);
+  assert.equal(rpcCalls, 0);
+});
+
 test('legacy PIO cache prompts infer only an unambiguous postflop node', async () => {
   const question = solverQuestion({
     type: 'PIO',

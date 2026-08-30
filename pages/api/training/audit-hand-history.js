@@ -38,13 +38,17 @@ export default async function handler(req, res) {
     }
 
     const result = await auditParsedHands(getSupabase(), user.id, hands, { maxDecisions: 250, persist: true });
-    if (result.persisted === false) {
+    if (result.persisted === false || result.evidenceReconciled === false) {
       return res.status(503).json({
+        ...result,
         success: false,
         persisted: false,
-        reason: 'write_failed',
-        error: 'The hand audit completed, but its decision evidence could not be saved.',
-        ...result,
+        decisionEvidencePersisted: result.persisted !== false,
+        evidenceReconciled: result.evidenceReconciled !== false,
+        reason: result.persisted === false ? 'write_failed' : 'reconciliation_failed',
+        error: result.persisted === false
+          ? 'The hand audit completed, but its decision evidence could not be saved.'
+          : 'The hand audit was saved, but obsolete decision evidence could not be reconciled. Please retry.',
       });
     }
     return res.status(200).json({ success: true, ...result });

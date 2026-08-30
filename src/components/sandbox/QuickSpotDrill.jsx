@@ -44,9 +44,11 @@ const LEVEL_KEY = 'sandbox-drill-level';
 // the feature still works. leaks.js reads this same key and merges it with the
 // server records, SERVER WINNING on conflict.
 //
-// The key is versioned with the record schema: a schema bump starts a clean
-// store instead of feeding stale shapes to the scheduler.
+// The key is versioned with the record schema. Older keys are migrated through
+// migrateRecord so a schema bump never resets a player's review history.
 const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
+const LEGACY_REVIEW_STORE_KEYS = ['pa-leak-review-v2', 'pa-leak-review-v1']
+    .filter(key => key !== REVIEW_STORE_KEY);
 const REVIEW_STORE_LIMIT = 200;
 
 function parseTime(value) {
@@ -57,19 +59,31 @@ function parseTime(value) {
 
 /** Always returns a plain object map { [leakId]: record }; never throws. */
 function readReviewStore() {
-    try {
-        const raw = safeStorage.get(REVIEW_STORE_KEY, null);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        const records = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
-            ? parsed.records
-            : parsed;
-        return (records && typeof records === 'object' && !Array.isArray(records)) ? records : {};
-    } catch (e) {
-        console.warn('[QuickSpotDrill] review store unreadable:', e?.message || e);
-        return {};
+    const merged = {};
+    // Oldest first, current last. One malformed legacy key must not hide a
+    // valid current schedule, so every blob has its own error boundary.
+    for (const key of [...LEGACY_REVIEW_STORE_KEYS].reverse().concat(REVIEW_STORE_KEY)) {
+        try {
+            const raw = safeStorage.get(key, null);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+            const records = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
+                ? parsed.records
+                : parsed;
+            if (records && typeof records === 'object' && !Array.isArray(records)) Object.assign(merged, records);
+        } catch (e) {
+            console.warn(`[QuickSpotDrill] review store ${key} unreadable:`, e?.message || e);
+        }
     }
+    return merged;
+}
+
+function createReviewId() {
+    try {
+        if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    } catch (e) { /* fall through */ }
+    return `review-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
 }
 
 /**
@@ -110,7 +124,11 @@ function writeReviewRecord(leakId, record) {
             keys.sort((a, b) => parseTime(store[a]?.lastReviewedAt) - parseTime(store[b]?.lastReviewedAt));
             for (const k of keys.slice(0, keys.length - REVIEW_STORE_LIMIT)) delete store[k];
         }
-        return safeStorage.set(REVIEW_STORE_KEY, JSON.stringify({ v: REVIEW_SCHEMA_VERSION, records: store }));
+        const written = safeStorage.set(REVIEW_STORE_KEY, JSON.stringify({ v: REVIEW_SCHEMA_VERSION, records: store }));
+        // Retire old keys only after the merged v3 write succeeds. Otherwise
+        // capped/evicted legacy rows are resurrected on every subsequent read.
+        if (written) LEGACY_REVIEW_STORE_KEYS.forEach(key => safeStorage.remove(key));
+        return written;
     } catch (e) {
         console.warn('[QuickSpotDrill] review store write failed:', e?.message || e);
         return false;
@@ -339,7 +357,11 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
      */
     const submitReview = useCallback(async (correct, total) => {
         if (!reviewLeakId || !(total > 0)) return;
-        lastOutcomeRef.current = { correct, total };
+        const priorAttempt = lastOutcomeRef.current;
+        const reviewId = priorAttempt?.correct === correct && priorAttempt?.total === total && priorAttempt?.reviewId
+            ? priorAttempt.reviewId
+            : createReviewId();
+        lastOutcomeRef.current = { correct, total, reviewId };
         setReview({ status: 'saving', intervalDays: null, persisted: false });
 
         let serverState = null;
@@ -355,7 +377,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             // the measurement stored at the previous review to produce
             // evDelta — the client never computes or sends a delta itself.
             const evLossBB = Number(reviewEvLossBB);
-            const outcome = { correct, total };
+            const outcome = { correct, total, reviewId };
             if (Number.isFinite(evLossBB) && evLossBB >= 0) outcome.evLossBB = evLossBB;
             const res = await fetch('/api/assistant/leaks/review', {
                 method: 'POST',
@@ -386,7 +408,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         // leak would be re-queued every cycle, forever.
         let record = null;
         try {
-            record = gradeReview(readReviewRecord(reviewLeakId), { correct, total }, new Date());
+            record = gradeReview(readReviewRecord(reviewLeakId), { correct, total, reviewId }, new Date());
             if (serverState) {
                 const merged = migrateRecord({
                     ...(record || {}),

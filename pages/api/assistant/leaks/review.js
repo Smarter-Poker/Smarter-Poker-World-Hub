@@ -73,6 +73,7 @@ const MAX_DRILL_QUESTIONS = 500;
 // Anything outside this shape is rejected before it reaches a query.
 const LEAK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,63}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REVIEW_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,95}$/;
 
 // ─── schema-drift detection ───────────────────────────────────────────────────
 
@@ -303,6 +304,12 @@ function readOutcome(raw) {
 
     const outcome = { correct, total, accuracy: Math.round((correct / total) * 1000) / 1000 };
 
+    const reviewId = typeof raw.reviewId === 'string' ? raw.reviewId.trim() : '';
+    if (raw.reviewId !== undefined && (!reviewId || !REVIEW_ID_RE.test(reviewId))) {
+        return { ok: false, reason: 'invalid_review_id' };
+    }
+    if (reviewId) outcome.reviewId = reviewId;
+
     if (raw.evLossBB !== undefined && raw.evLossBB !== null) {
         const ev = Number(raw.evLossBB);
         // A measured per-spot EV cost is non-negative and small; the clamp is
@@ -472,9 +479,14 @@ async function handlePost(req, res, userId) {
         return res.status(400).json({ success: false, error: 'leakId required' });
     }
 
-    const { ok, outcome } = readOutcome(body.outcome);
+    const { ok, outcome, reason: outcomeReason } = readOutcome(body.outcome);
     if (!ok) {
-        return res.status(400).json({ success: false, error: 'outcome { correct, total } required' });
+        return res.status(400).json({
+            success: false,
+            error: outcomeReason === 'invalid_review_id'
+                ? 'outcome.reviewId is invalid'
+                : 'outcome { correct, total } required',
+        });
     }
 
     const supabase = getSupabase();
@@ -519,6 +531,21 @@ async function handlePost(req, res, userId) {
         });
     }
 
+    // Sequential replay after a lost response: return the authoritative row
+    // unchanged instead of growing reps, history, or the interval again.
+    if (outcome.reviewId && (
+        prev?.lastOutcome?.reviewId === outcome.reviewId
+        || prev?.history?.some(entry => entry?.reviewId === outcome.reviewId)
+    )) {
+        return res.status(200).json({
+            success: true,
+            persisted: true,
+            idempotent: true,
+            state: prev,
+            record: prev,
+        });
+    }
+
     // 1.5 evDelta — computed HERE, from two detection measurements: the EV
     // cost the client reports now vs the one stored at the previous review.
     // Negative means the leak is measurably costing less in real hands since
@@ -557,6 +584,17 @@ async function handlePost(req, res, userId) {
     // write is a no-op.
     const responseState = { ...state, leakId, lastOutcome: outcome };
 
+    // Older clients did not send an operation id. Preserve their completed
+    // drill locally, but never perform a non-idempotent server mutation.
+    if (!outcome.reviewId) {
+        return res.status(200).json({
+            success: true,
+            persisted: false,
+            reason: 'review_id_required',
+            state: responseState,
+        });
+    }
+
     if (!tableAvailable) {
         console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
         return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
@@ -581,91 +619,41 @@ async function handlePost(req, res, userId) {
         });
     }
 
-    // 4. Persist. user_id is forced from the JWT.
-    // Split in two: the columns every deployed version of the table has, and
-    // the mastery columns added by 20260805000000. If the migration has not run
-    // yet the second write 42703s, so we retry with the base row rather than
-    // losing the whole schedule — degrade to doing less, never to a 500.
-    const baseRow = {
-        user_id: userId,
-        leak_id: leakId,
-        ease: state.ease,
-        interval_days: state.intervalDays,
-        due_at: state.dueAt,
-        reps: state.reps,
-        lapses: state.lapses,
-        last_outcome: outcome,
-        schema_version: state.schemaVersion,
-        updated_at: now.toISOString(),
-    };
-    const row = {
-        ...baseRow,
-        strong_streak: state.strongStreak,
-        retired: state.retired,
-        last_score: state.lastScore,
-        history: state.history,
-    };
-
-    /** upsert with a select -> update-or-insert fallback for a missing unique index. */
-    async function writeRow(candidate) {
-        let { data, error } = await supabase
-            .from(TABLE)
-            .upsert(candidate, { onConflict: 'user_id,leak_id' })
-            .select()
-            .maybeSingle();
-
-        if (error && !isMissingSchema(error)) {
-            // Unique index absent (42P10 / no matching ON CONFLICT target):
-            // fall back to select -> update-or-insert, still scoped to this user.
-            const { data: existing, error: findErr } = await supabase
-                .from(TABLE)
-                .select('id')
-                .eq('user_id', userId)
-                .eq('leak_id', leakId)
-                .maybeSingle();
-
-            if (!findErr) {
-                if (existing && existing.id) {
-                    ({ data, error } = await supabase
-                        .from(TABLE)
-                        .update(candidate)
-                        .eq('id', existing.id)
-                        .eq('user_id', userId)
-                        .select()
-                        .maybeSingle());
-                } else {
-                    ({ data, error } = await supabase
-                        .from(TABLE)
-                        .insert({ ...candidate, created_at: now.toISOString() })
-                        .select()
-                        .maybeSingle());
-                }
-            }
-        }
-        return { data, error };
+    // 4. Persist exactly once. The RPC owns the transaction, operation ledger,
+    // row lock, and compare-and-swap check. On a competing different review,
+    // recompute from the winner's row and retry once.
+    function rpcCandidate(state, outcome) {
+        return {
+            ease: state.ease,
+            interval_days: state.intervalDays,
+            due_at: state.dueAt,
+            reps: state.reps,
+            lapses: state.lapses,
+            strong_streak: state.strongStreak,
+            retired: state.retired,
+            last_score: state.lastScore,
+            history: state.history,
+            last_outcome: outcome,
+            schema_version: state.schemaVersion,
+        };
     }
 
-    let masteryColumns = true;
+    async function commit(expectedUpdatedAt, nextState, nextOutcome) {
+        return supabase.rpc('commit_leak_review_state', {
+            p_user_id: userId,
+            p_leak_id: leakId,
+            p_review_id: nextOutcome.reviewId,
+            p_expected_updated_at: expectedUpdatedAt || null,
+            p_candidate: rpcCandidate(nextState, nextOutcome),
+        });
+    }
 
     try {
-        let { data, error } = await writeRow(row);
-
-        if (error && isMissingSchema(error)) {
-            // Could be the whole table, or just the mastery columns. Try the
-            // base shape once: if that succeeds the table is there and only the
-            // new columns are missing.
-            const retry = await writeRow(baseRow);
-            if (!retry.error) {
-                console.warn(`[leaks/review] ${TABLE} missing mastery columns — persisted base schedule only`);
-                masteryColumns = false;
-                data = retry.data;
-                error = null;
-            }
-        }
+        let { data, error } = await commit(prev?.updatedAt, state, outcome);
 
         if (error) {
             if (isMissingSchema(error)) {
-                console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
+                console.warn('[leaks/review] atomic review RPC not deployed — returning computed state unpersisted');
                 return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
             }
             console.warn('[leaks/review] persist failed:', error.message);
@@ -673,14 +661,43 @@ async function handlePost(req, res, userId) {
             return res.status(200).json({ success: true, persisted: false, reason: 'write_failed', state: responseState });
         }
 
-        // When the mastery columns are absent, mapRow simply omits them and the
-        // client keeps its own copy — better than echoing a zeroed streak the
-        // client would then adopt as truth.
-        const record = mapRow(data, now.getTime());
+        if (data?.success === false) {
+            return res.status(200).json({ success: true, persisted: false, reason: data.error || 'write_failed', state: responseState });
+        }
+
+        if (data?.conflict) {
+            const winner = mapRow(data.row, Date.now());
+            const retryNow = new Date();
+            const retryOutcome = { ...outcome, at: retryNow.toISOString() };
+            if (Number.isFinite(retryOutcome.evLossBB)) {
+                const winnerEv = Number(winner?.lastOutcome?.evLossBB);
+                if (Number.isFinite(winnerEv)) retryOutcome.evDelta = Math.round((retryOutcome.evLossBB - winnerEv) * 100) / 100;
+                else delete retryOutcome.evDelta;
+            }
+            const retryScheduler = resolveScheduler();
+            let retryComputed = null;
+            try { retryComputed = retryScheduler?.(winner, retryOutcome, retryNow); } catch (_) { /* fallback below */ }
+            if (!retryComputed || typeof retryComputed !== 'object') {
+                retryComputed = fallbackComputeNextReview(winner, retryOutcome, retryNow);
+            }
+            const retryState = normalizeState(retryComputed, winner, retryNow);
+            ({ data, error } = await commit(winner?.updatedAt, retryState, retryOutcome));
+            if (error || data?.conflict || data?.success === false) {
+                console.warn('[leaks/review] atomic conflict retry failed:', error?.message || data?.error || 'conflict');
+                return res.status(200).json({
+                    success: true,
+                    persisted: false,
+                    reason: error && isMissingSchema(error) ? 'storage_unavailable' : 'write_conflict',
+                    state: { ...retryState, leakId, lastOutcome: retryOutcome },
+                });
+            }
+        }
+
+        const record = mapRow(data?.row, Date.now());
         return res.status(200).json({
             success: true,
             persisted: true,
-            partialColumns: !masteryColumns || undefined,
+            idempotent: data?.idempotent === true || undefined,
             state: record || responseState,
             record: record || responseState,
         });

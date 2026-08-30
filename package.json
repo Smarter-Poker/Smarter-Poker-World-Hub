@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "scripts": {
-    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs",
+    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs tests/personal-assistant-phase-three.test.mjs",
     "test:store-phase-7": "node --test __tests__/diamond-store-phase-7.test.mjs",
     "test:store-phase-8": "node --test __tests__/diamond-store-phase-8.test.mjs",
     "test:store-phase-9": "node --test __tests__/diamond-store-phase-9.test.mjs",

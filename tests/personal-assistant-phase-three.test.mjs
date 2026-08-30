@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+
+import {
+  SCHEMA_VERSION,
+  gradeReview,
+  initialReview,
+  leakToDrill,
+} from '../src/lib/sandbox/leakReview.js';
+
+test('review schema v3 preserves an operation id and rejects duplicate grading', () => {
+  assert.equal(SCHEMA_VERSION, 3);
+  const now = new Date('2026-08-30T12:00:00.000Z');
+  const initial = initialReview({ id: 'leak-1', leakType: 'solver_cash_rfi' }, now);
+  const once = gradeReview(initial, { correct: 9, total: 10, reviewId: 'review-operation-001' }, now);
+  const replay = gradeReview(once, { correct: 9, total: 10, reviewId: 'review-operation-001' }, new Date(now.getTime() + 1000));
+  const next = gradeReview(replay, { correct: 9, total: 10, reviewId: 'review-operation-002' }, new Date(now.getTime() + 2000));
+
+  assert.equal(once.history.at(-1).reviewId, 'review-operation-001');
+  assert.deepEqual(replay, once);
+  assert.equal(next.history.length, once.history.length + 1);
+  assert.equal(next.reps, once.reps + 1);
+
+  const delayedReplay = gradeReview(next, { correct: 9, total: 10, reviewId: 'review-operation-001' }, new Date(now.getTime() + 3000));
+  assert.deepEqual(delayedReplay, next);
+});
+
+test('solver leak drill handoff preserves its exact Training Arena game', () => {
+  const drill = leakToDrill({
+    sourceSystem: 'solver_engine',
+    recommendedDrill: 'cash-rfi',
+    leakCategory: 'preflop',
+    situationClass: 'BTN Preflop Open Decisions',
+    occurrenceCount: 12,
+  });
+  assert.equal(drill.street, 'Preflop');
+  assert.equal(drill.position, 'BTN');
+  assert.equal(drill.game, 'cash-rfi');
+
+  const live = leakToDrill({
+    sourceSystem: 'live_play',
+    recommendedDrill: 'cash-rfi',
+    leakCategory: 'preflop',
+  });
+  assert.equal(live.game, undefined);
+
+  const spins = leakToDrill({
+    sourceSystem: 'solver_engine',
+    recommendedDrill: 'spins-003',
+    leakCategory: 'preflop',
+    situationClass: 'BTN Preflop Decisions',
+  });
+  assert.equal(spins.game, 'spins-003');
+});
+
+test('review and drill routes carry idempotency and exact-game contracts', () => {
+  const reviewApi = fs.readFileSync(new URL('../pages/api/assistant/leaks/review.js', import.meta.url), 'utf8');
+  const drillApi = fs.readFileSync(new URL('../pages/api/sandbox/_routes/custom-drill.js', import.meta.url), 'utf8');
+  const drillUi = fs.readFileSync(new URL('../src/components/sandbox/QuickSpotDrill.jsx', import.meta.url), 'utf8');
+  const leaksUi = fs.readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
+
+  assert.match(reviewApi, /commit_leak_review_state/);
+  assert.match(reviewApi, /reason: 'review_id_required'/);
+  assert.match(reviewApi, /outcome\.reviewId is invalid/);
+  assert.match(reviewApi, /idempotent: true/);
+  assert.match(drillApi, /query = query\.eq\('game_id', gameId\)/);
+  assert.match(drillUi, /outcome = \{ correct, total, reviewId \}/);
+  assert.match(drillUi, /pa-leak-review-v2/);
+  assert.match(leaksUi, /pa-leak-review-v2/);
+  assert.match(drillUi, /LEGACY_REVIEW_STORE_KEYS\.forEach\(key => safeStorage\.remove\(key\)\)/);
+});
+
+test('phase-three migration atomically replaces audits and commits review operations', () => {
+  const migration = fs.readFileSync(new URL('../supabase/migrations/20260830090000_personal_assistant_phase_three_atomic_state.sql', import.meta.url), 'utf8');
+  assert.match(migration, /replace_hand_audit_decisions/);
+  assert.match(migration, /pg_advisory_xact_lock/);
+  assert.match(migration, /leak_review_operations_unique/);
+  assert.match(migration, /commit_leak_review_state/);
+  assert.match(migration, /FOR UPDATE/);
+  assert.match(migration, /p_expected_updated_at/);
+});
+
+test('manual audit failure response cannot claim persistence after reconciliation failure', () => {
+  const route = fs.readFileSync(new URL('../pages/api/training/audit-hand-history.js', import.meta.url), 'utf8');
+  const spreadAt = route.indexOf('...result');
+  const explicitAt = route.indexOf('persisted: false', spreadAt);
+  assert.ok(spreadAt >= 0 && explicitAt > spreadAt);
+  assert.match(route, /decisionEvidencePersisted/);
+});

@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
       try {
           const supabase = getSupabase();
-          const { street, position, limit } = req.query;
+          const { street, position, game, limit } = req.query;
 
           // parseInt('abc') is NaN — slice(0, NaN) silently returns [].
           // Upper bound is 50 (the drill builder's longest set); the 200-row
@@ -121,6 +121,13 @@ export default async function handler(req, res) {
           }
           if (position && position !== 'Any') {
               query = query.ilike('question_data->scenario->>heroPosition', `${String(position).slice(0, 20)}%`);
+          }
+          // A solver leak knows which Training Arena game produced it. Keep
+          // that identity through the review handoff instead of serving an
+          // unrelated question that only shares street and position.
+          const gameId = String(Array.isArray(game) ? game[0] : (game || '')).trim().toLowerCase();
+          if (gameId && /^[a-z0-9][a-z0-9-]{1,64}$/.test(gameId)) {
+              query = query.eq('game_id', gameId);
           }
 
           // Random sampling from a bounded candidate window, not the whole table.

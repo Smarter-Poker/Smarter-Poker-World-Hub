@@ -44,10 +44,10 @@
  *
  *   v1 — the unversioned prototype shape (no `v` key) that used SM-2 field
  *        names: { interval, easiness, due | nextReview, repetitions }.
- *   v2 — current: explicit *Days / *At suffixes, strongStreak, retired,
- *        bounded history.
+ *   v2 — explicit *Days / *At suffixes, strongStreak, retired, bounded history.
+ *   v3 — reviewId on history entries, making completion retries idempotent.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 // ── tuning constants (exported so the UI can explain itself honestly) ──────
 export const MIN_EASE = 1.3;
@@ -183,8 +183,9 @@ function isPlainRecordish(value) {
 //              (matches sandbox.js POSITIONS / stored metadata->>hero_position;
 //              'EP' and 'HJ' match nothing in the pool, so we never emit them.)
 //   limit    — 1..20 (the route clamps to 20; QuickSpotDrill clamps again).
+//   game     — optional canonical Training Arena game id for solver leaks.
 //
-// Only these three keys are emitted. URLSearchParams stringifies undefined as
+// Only these keys are emitted. URLSearchParams stringifies undefined as
 // the literal "undefined", which would filter the pool down to nothing — so no
 // key is ever emitted with a non-string-safe value.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -320,11 +321,21 @@ export function leakToDrill(leak) {
         || positionFromHint(leak.recommendedDrill)
         || 'Any';
 
-    return {
+    const drill = {
         street,
         position,
         limit: clamp(drillLength(leak), 1, 20),
     };
+    // Solver-derived leaks already carry the exact Training Arena game that
+    // produced their evidence. Preserve it so a cash-rfi leak cannot open an
+    // arbitrary preflop quiz merely because street and position also match.
+    const source = str(leak.sourceSystem || leak.source_system).trim().toLowerCase();
+    const game = str(leak.recommendedDrill || leak.recommended_drill).trim().toLowerCase();
+    if (['solver_engine', 'training_solver'].includes(source)
+        && /^[a-z0-9][a-z0-9-]{1,64}$/.test(game)) {
+        drill.game = game;
+    }
+    return drill;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -356,6 +367,7 @@ function blankRecord(leakId, nowMs, leakType) {
 function normaliseHistoryEntry(entry) {
     if (!isPlainRecordish(entry)) return null;
     const total = int(entry.total, 0, 0, 1000);
+    const reviewId = str(entry.reviewId || entry.review_id).trim().slice(0, 96);
     return {
         at: toIso(toMs(entry.at)),
         correct: int(entry.correct, 0, 0, total),
@@ -364,6 +376,7 @@ function normaliseHistoryEntry(entry) {
         band: str(entry.band) || null,
         intervalDays: clamp(num(entry.intervalDays, 0), 0, MAX_INTERVAL_DAYS),
         evDelta: Number.isFinite(num(entry.evDelta, NaN)) ? round1(num(entry.evDelta, 0)) : null,
+        ...(reviewId ? { reviewId } : {}),
     };
 }
 
@@ -519,10 +532,15 @@ export function gradeReview(record, outcome, now) {
 
     const total = int(outcome && outcome.total, 0, 0, 1000);
     const correct = int(outcome && outcome.correct, 0, 0, total);
+    const reviewId = str(outcome && (outcome.reviewId || outcome.review_id)).trim().slice(0, 96);
 
     // An abandoned or empty session is not evidence. Return the normalised
     // record untouched so a stray call can never wipe someone's schedule.
     if (total <= 0) return prev;
+
+    // A completion POST can be retried after the write succeeds but its
+    // response is lost. Never advance the same review operation twice.
+    if (reviewId && prev.history.some(entry => entry?.reviewId === reviewId)) return prev;
 
     const score = clamp(correct / total, 0, 1);
     const band = bandFor(score);
@@ -571,6 +589,7 @@ export function gradeReview(record, outcome, now) {
         band,
         intervalDays,
         evDelta: hasEvDelta ? evDeltaRaw : null,
+        reviewId: reviewId || null,
     });
 
     return {
