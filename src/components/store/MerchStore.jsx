@@ -376,6 +376,7 @@ function MerchProductCard({
   product,
   balance,
   hasUser,
+  cartReady,
   busyKey,
   wishlistBusyKey,
   isWishlisted,
@@ -781,7 +782,7 @@ function MerchProductCard({
             <button
               type="button"
               onClick={() => onAddToCart(product, variant, clampedQty)}
-              disabled={soldOut || busy}
+              disabled={!cartReady || soldOut || busy}
               aria-label={`Add ${product.name} To Cart`}
               style={{
                 minHeight: 44,
@@ -790,11 +791,11 @@ function MerchProductCard({
                 justifyContent: 'center',
                 gap: 6,
                 border: '1px solid rgba(255,215,0,0.54)',
-                color: soldOut || busy ? 'rgba(255,255,255,0.45)' : '#ffe87a',
+                color: !cartReady || soldOut || busy ? 'rgba(255,255,255,0.45)' : '#ffe87a',
                 background: 'rgba(95,75,0,0.2)',
                 fontSize: 12,
                 fontWeight: 800,
-                cursor: soldOut || busy ? 'not-allowed' : 'pointer',
+                cursor: !cartReady || soldOut || busy ? 'not-allowed' : 'pointer',
               }}
             >
               <ShoppingCart size={15} aria-hidden="true" /> Add To Cart
@@ -1145,6 +1146,12 @@ export default function MerchStore({
 
   const handleAddToCart = useCallback(
     (product, variant, quantity) => {
+      // Authentication and Zustand persistence hydrate independently. Make
+      // ownership assignment part of the same synchronous cart transaction so
+      // a fast first click can never persist an authenticated item as a guest
+      // and then lose it when the owner effect catches up.
+      if (!authResolved) return;
+      setCartOwner(user?.id || 'guest');
       const catalogId = product.catalogId || product.key;
       const variantToken = variant?.id || variant?.key || 'standard';
       const line = buildLineItem(product, variant, quantity, { includePrice: true });
@@ -1171,7 +1178,7 @@ export default function MerchStore({
       });
       showStoreToast('success', `${product.name} Added To Cart.`);
     },
-    [addCartItem, buildLineItem]
+    [addCartItem, authResolved, buildLineItem, setCartOwner, user?.id]
   );
 
   const requireSignedIn = useCallback(() => {
@@ -1749,6 +1756,7 @@ export default function MerchStore({
                 product={product}
                 balance={balance}
                 hasUser={!!user?.id}
+                cartReady={authResolved}
                 busyKey={busyKey}
                 wishlistBusyKey={wishlistBusyKey}
                 isWishlisted={wishlistIds.has(product.catalogId || product.key)}

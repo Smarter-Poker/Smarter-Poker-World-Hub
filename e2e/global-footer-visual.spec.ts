@@ -296,6 +296,16 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     for (const entry of WORLD_ROUTES) {
       const definition = footerRegistry.worlds.find((world) => world.id === entry.id)!;
       await visit(page, entry.route);
+      // Page-owned onboarding must remain above the footer. Dismiss it before
+      // auditing footer destinations instead of depending on navigation to
+      // incorrectly cover an active dialog/popover.
+      const dismissOnboarding = page.getByRole('button', { name: "Don't Show Again" });
+      if (entry.id === 'poker-near-me') {
+        await dismissOnboarding.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
+      }
+      if (await dismissOnboarding.isVisible().catch(() => false)) {
+        await dismissOnboarding.click();
+      }
       const nav = page.locator(`[data-footer-world="${entry.id}"]`);
       await expect(nav).toHaveCount(1);
 

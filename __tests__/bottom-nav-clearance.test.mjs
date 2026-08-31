@@ -15,6 +15,10 @@ const manifest = JSON.parse(
 const registry = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'src/config/world-footer-navigation.json'), 'utf8')
 );
+const bottomNavSource = fs.readFileSync(
+  path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'),
+  'utf8'
+);
 
 const EXPECTED_WORLDS = [
   'personal-assistant',
@@ -49,6 +53,12 @@ const EXPECTED_ARTWORK = {
   'poker-near-me': 'footer-poker-near-me.png',
   marketplace: 'footer-marketplace.png',
 };
+
+test('the global footer remains below modal and dialog stacking layers', () => {
+  const zIndex = Number(bottomNavSource.match(/BOTTOM_NAV_Z\s*=\s*(\d+)/)?.[1]);
+  assert.ok(Number.isFinite(zIndex));
+  assert.ok(zIndex < 1000, 'footer links must not cover the platform modal layer');
+});
 
 function walk(dir) {
   return fs.readdirSync(dir).flatMap((entry) => {

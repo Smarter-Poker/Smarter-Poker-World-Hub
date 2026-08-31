@@ -72,10 +72,11 @@ import {
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterNavigation';
 
-// Keep the global footer above page-local fixed overlays and decorative shells.
-// Product modals/portals can still use the browser top layer when they must
-// intentionally cover navigation.
-export const BOTTOM_NAV_Z = 2147483000;
+// Keep navigation above ordinary page content but below dialogs and other
+// intentional overlays. A near-integer-max z-index made the footer's six real
+// link hit zones cover confirmation buttons even though its artwork frame was
+// pointer-transparent.
+export const BOTTOM_NAV_Z = 900;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
