@@ -86,6 +86,7 @@ async function handler(req, res) {
 
   const started = Date.now();
   const handlerDeadline = started + HANDLER_BUDGET_SECONDS * 1000;
+  const optionalWorkDeadline = handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000;
   const result = {
     drained: [],
     rollup: [],
@@ -95,6 +96,22 @@ async function handler(req, res) {
     budget_exhausted: false,
     errors: [],
   };
+
+  // A SQL function's own time box is not enough to protect the HTTP request:
+  // connection waits, statement startup, or an unexpectedly slow probe can
+  // otherwise keep fetch pending beyond Open Claw's 120-second deadline. Give
+  // every maintenance RPC one request-wide abort signal. Once the optional
+  // work budget expires, later RPCs fail immediately and the heartbeat still
+  // has its reserved response window.
+  const workAbort = new AbortController();
+  const workAbortTimer = setTimeout(
+    () => {
+      result.budget_exhausted = true;
+      workAbort.abort(new Error('club stats maintenance work budget exhausted'));
+    },
+    Math.max(1, optionalWorkDeadline - Date.now())
+  );
+  const rpc = (name, args) => admin.rpc(name, args).abortSignal(workAbort.signal);
 
   try {
     // ── 0a. LEADERBOARD SNAPSHOT SELF-HEAL ────────────────────────────────
@@ -115,9 +132,7 @@ async function handler(req, res) {
     // CLAUDE.md 11.3/11.5 forbid growing pages/api/cron/, and 11 routes new
     // scheduled work to Open Claw rather than pg_cron.
     try {
-      const { data: healData, error: healErr } = await admin.rpc(
-        'fn_snapshot_player_stats_if_missing'
-      );
+      const { data: healData, error: healErr } = await rpc('fn_snapshot_player_stats_if_missing');
       if (healErr) {
         result.errors.push(`snapshot heal: ${healErr.message}`);
       } else if (healData?.healed) {
@@ -129,7 +144,7 @@ async function handler(req, res) {
         result.snapshot_heal = healData;
       }
 
-      const { data: healthData, error: healthErr } = await admin.rpc('fn_snapshot_health', {
+      const { data: healthData, error: healthErr } = await rpc('fn_snapshot_health', {
         p_days: 35,
       });
       if (healthErr) {
@@ -142,9 +157,7 @@ async function handler(req, res) {
         // train everyone to ignore it. All gaps remain visible in
         // snapshot_health for anyone who looks.
         const RECENT_GAP_DAYS = 7;
-        const cutoff = new Date(Date.now() - RECENT_GAP_DAYS * 86400000)
-          .toISOString()
-          .slice(0, 10);
+        const cutoff = new Date(Date.now() - RECENT_GAP_DAYS * 86400000).toISOString().slice(0, 10);
         const recentGaps = (healthData.missing_days || []).filter((d) => d >= cutoff);
         if (recentGaps.length > 0) {
           result.errors.push(
@@ -170,10 +183,9 @@ async function handler(req, res) {
     // never touched - the live trigger owns today.
     try {
       const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const { data: recon, error: reconErr } = await admin.rpc(
-        'fn_reconcile_club_member_daily_profit',
-        { p_date: yday }
-      );
+      const { data: recon, error: reconErr } = await rpc('fn_reconcile_club_member_daily_profit', {
+        p_date: yday,
+      });
       if (reconErr) {
         result.errors.push(`profit reconcile: ${reconErr.message}`);
       } else {
@@ -197,7 +209,7 @@ async function handler(req, res) {
     // scheduler. The advisory lock inside the function makes a concurrent
     // page-triggered refresh a no-op rather than duplicate work.
     try {
-      const { data: idxRows, error: idxErr } = await admin.rpc('ca_refresh_hand_player_index', {
+      const { data: idxRows, error: idxErr } = await rpc('ca_refresh_hand_player_index', {
         p_max_hands: 60000,
       });
       if (idxErr) {
@@ -230,7 +242,7 @@ async function handler(req, res) {
     // ordered early: the backlog drain below can take 150 seconds, and a step
     // placed after it is not guaranteed to run on a heavy day.
     try {
-      const { data: rolled, error: rollErr } = await admin.rpc('ca_roll_hand_stats_forward');
+      const { data: rolled, error: rollErr } = await rpc('ca_roll_hand_stats_forward');
       if (rollErr) {
         result.errors.push(`stat rollup: ${rollErr.message}`);
       } else {
@@ -253,10 +265,9 @@ async function handler(req, res) {
     // player_position_stats, so it is cheap; running it every 15 minutes is
     // wasteful but harmless, and simpler than carrying its own schedule.
     try {
-      const { data: distData, error: distErr } = await admin.rpc(
-        'ca_refresh_stat_distribution',
-        { p_min_hands: 1000 }
-      );
+      const { data: distData, error: distErr } = await rpc('ca_refresh_stat_distribution', {
+        p_min_hands: 1000,
+      });
       if (distErr) {
         result.errors.push(`stat distribution: ${distErr.message}`);
       } else {
@@ -267,7 +278,7 @@ async function handler(req, res) {
     }
 
     // ── 1. Which clubs still have un-rebuilt tables with recent hands? ──
-    const { data: pending, error: pendingErr } = await admin.rpc('ca_clubs_with_rebuild_backlog');
+    const { data: pending, error: pendingErr } = await rpc('ca_clubs_with_rebuild_backlog');
     if (pendingErr) {
       result.errors.push(`backlog probe: ${pendingErr.message}`);
     }
@@ -286,7 +297,7 @@ async function handler(req, res) {
         }
         const clubsRemaining = clubs.length - index;
         const perClub = Math.max(1, Math.floor(remainingSeconds / clubsRemaining));
-        const { data, error } = await admin.rpc('ca_drain_club_rebuild', {
+        const { data, error } = await rpc('ca_drain_club_rebuild', {
           p_club_id: clubId,
           p_max_seconds: perClub,
           p_chunk: 3000,
@@ -303,7 +314,7 @@ async function handler(req, res) {
     // ── 2. Roll club_hand_daily forward for yesterday (immutable) ────────
     if (Date.now() < handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000) {
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const { data: clubsNeedingRollup, error: rollupProbeErr } = await admin.rpc(
+      const { data: clubsNeedingRollup, error: rollupProbeErr } = await rpc(
         'ca_clubs_missing_hand_daily',
         { p_date: yesterday }
       );
@@ -315,7 +326,7 @@ async function handler(req, res) {
           result.budget_exhausted = true;
           break;
         }
-        const { data, error } = await admin.rpc('ca_backfill_club_hand_daily', {
+        const { data, error } = await rpc('ca_backfill_club_hand_daily', {
           p_club_id: row.club_id,
           p_date: yesterday,
         });
@@ -329,17 +340,22 @@ async function handler(req, res) {
       result.budget_exhausted = true;
     }
 
-    const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
-      probe_name: 'club-stats-maintenance',
-      // 'partial', not 'degraded': probe_heartbeats_status_check allows only
-      // ok | failed | partial. Writing 'degraded' violated the constraint, so
-      // every run WITH errors silently failed to record - the exact runs you
-      // most want recorded. The insert error is only console.warn'd, so this
-      // was invisible until the Vercel runtime log was read directly.
-      status: result.errors.length ? 'partial' : 'ok',
-      duration_ms: Date.now() - started,
-      details: result,
-    });
+    clearTimeout(workAbortTimer);
+    const heartbeatAbort = AbortSignal.timeout(RESPONSE_RESERVE_SECONDS * 1000);
+    const { error: heartbeatErr } = await admin
+      .from('probe_heartbeats')
+      .insert({
+        probe_name: 'club-stats-maintenance',
+        // 'partial', not 'degraded': probe_heartbeats_status_check allows only
+        // ok | failed | partial. Writing 'degraded' violated the constraint, so
+        // every run WITH errors silently failed to record - the exact runs you
+        // most want recorded. The insert error is only console.warn'd, so this
+        // was invisible until the Vercel runtime log was read directly.
+        status: result.errors.length ? 'partial' : 'ok',
+        duration_ms: Date.now() - started,
+        details: result,
+      })
+      .abortSignal(heartbeatAbort);
     if (heartbeatErr) {
       console.warn('[club-stats-maintenance] heartbeat write failed:', heartbeatErr.message);
     }
@@ -351,6 +367,8 @@ async function handler(req, res) {
     });
   } catch (err) {
     return res.status(500).json({ status: 'error', error: err?.message });
+  } finally {
+    clearTimeout(workAbortTimer);
   }
 }
 

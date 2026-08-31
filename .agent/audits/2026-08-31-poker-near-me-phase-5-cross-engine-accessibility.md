@@ -15,6 +15,8 @@ Phase 5 hardens the existing #SmarterCasinoRealism Poker Near Me system across b
 - Safari/WebKit receives explicit mask prefixes and a repaired tab-rail hit-test layer.
 - Increased contrast and Windows forced-colors modes preserve borders, selected state, focus state, text, and hierarchy without depending on imagery, transparency, or glow.
 - The permanent Playwright matrix now includes dedicated desktop Safari and iPhone/WebKit projects for the Phase 17 cross-engine contract.
+- The 390×844 global-menu trigger now draws its keyboard ring entirely inside the scaled header frame, eliminating the clipped corner stroke caused by the platform 44-pixel target extending below the artwork.
+- Poker Near Me command selectors use a dedicated restrained-blue palette, one continuous one-pixel frame, contained focus geometry, and no intersecting decorative edge fragment.
 
 ## Inherited coverage
 
@@ -24,9 +26,10 @@ Phase 5 hardens the existing #SmarterCasinoRealism Poker Near Me system across b
 
 ## Verification before preview
 
-- `npm run test:pnm`: 89/89 passed.
-- `npm run prebuild`: 553/553 passed.
+- `npm run test:pnm`: 90/90 passed.
+- `npm run prebuild`: 554/554 passed.
 - Phase 16 + 17 compiled Chromium desktop/mobile: 14/14 passed.
+- Compiled Phase 17 four-engine closeout matrix: 18/18 applicable checks passed across Chromium, mobile Chrome, desktop WebKit, and iPhone WebKit; two forced-colors cases were correctly skipped outside Chromium.
 - Exact required webpack build passed and generated 403 static pages.
 - Desktop and exact 390×844 checks found no horizontal overflow on the representative discovery/location/detail/event families.
 - Repository ESLint remains blocked before source evaluation by the pre-existing ESLint 9 flat-config/circular legacy-config conflict. The focused contracts, complete prebuild suite, compiled browser journeys, and production build provide the release gates for this phase.
@@ -43,3 +46,4 @@ Repository policy intentionally skips Vercel previews for `agent/*` branches bec
 - Production desktop 1440×1000 and mobile 390×844 audits each found one main landmark, the correct heading/selected route, zero horizontal overflow, and 44-pixel tab targets.
 - A live mobile Events → Map → browser Back journey restored `/daily-tournaments`, selected Events, and the assistive route announcement without a reload.
 - Visual inspection confirmed the black-first rendered environment, precision chrome framing, restrained blue energy, readable venue imagery, clean desktop composition, and two-column mobile card geometry remain intact.
+- A second exact 390×844 WebKit visual audit verified the closed header trigger and open command menu: every trigger, utility control, section selector, and selected destination has an unbroken contained frame, with zero horizontal overflow.
