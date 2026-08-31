@@ -24,7 +24,7 @@ const TURN_TEXTURES = [
     oopAction: 'If you check-called flop, continue check-calling. Your range is defined.' },
   { card: 'Pairing Card', type: 'Neutral', color: '#8b5cf6', icon: '●',
     effect: 'Reduces combos of trips dramatically. Makes full houses possible for set-miners.',
-    ipAction: 'Great bluff card — fewer combos of trips exist. Barrel as a bluff.',
+    ipAction: 'Great bluff card - fewer combos of trips exist. Barrel as a bluff.',
     oopAction: 'Check-raise with trips for value. Fold out overpairs that fear trips.' },
 ];
 

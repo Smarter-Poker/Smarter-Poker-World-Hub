@@ -106,7 +106,7 @@ export default function TriviaResult({
     }, []);
 
     const handleShare = async () => {
-        const text = `Poker Trivia ${grade.letter} Grade! ${safeCorrect}/${safeTotal} correct (${accuracy}%)${diamondsEarned > 0 ? ` — earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` — ${streak} day streak` : ''} on smarter.poker`;
+        const text = `Poker Trivia ${grade.letter} Grade! ${safeCorrect}/${safeTotal} correct (${accuracy}%)${diamondsEarned > 0 ? ` - earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` - ${streak} day streak` : ''} on smarter.poker`;
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
                 await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });

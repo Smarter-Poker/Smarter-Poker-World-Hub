@@ -821,7 +821,7 @@ export default function TriviaGame({
                                     data-trivia-answer
                                     aria-pressed={selectedAnswer === index}
                                     aria-label={isEliminated
-                                        ? `Answer ${letter}: ${label} — eliminated by 50/50`
+                                        ? `Answer ${letter}: ${label} - eliminated by 50/50`
                                         : `Answer ${letter}: ${label}`}
                                     whileHover={!isLocked && !reduceMotion ? { scale: 1.02, borderColor: 'rgba(14, 165, 233, 0.5)' } : {}}
                                     whileTap={!isLocked && !reduceMotion ? { scale: 0.98 } : {}}

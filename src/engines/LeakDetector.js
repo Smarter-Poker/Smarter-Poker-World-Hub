@@ -120,10 +120,10 @@ export function detectLeaks(report) {
             type: 'overall_accuracy',
             severity: report.gtoScore < 50 ? 'critical' : 'major',
             score: report.gtoScore,
-            description: `Overall GTO accuracy is ${report.gtoScore}% — below the 70% target.`,
+            description: `Overall GTO accuracy is ${report.gtoScore}% - below the 70% target.`,
             drill: {
                 gameId: 'adv-001',
-                title: 'Solver Mimicry — Full Range Review',
+                title: 'Solver Mimicry - Full Range Review',
                 focus: 'All spots, start with fundamentals',
             },
         });
@@ -141,7 +141,7 @@ export function detectLeaks(report) {
             description: `Blunder rate of ${Math.round(blunderRate * 100)}% is too high (target: <8%).`,
             drill: {
                 gameId: 'psy-001',
-                title: 'Tilt Control — Slow Down and Think',
+                title: 'Tilt Control - Slow Down and Think',
                 focus: 'Take more time on each decision',
             },
         });
@@ -163,11 +163,11 @@ function _checkStreetLeaks(streetStats, leaks) {
                 type: LEAK_TYPES.NOT_ENOUGH_CBET,
                 severity: flopAcc < 50 ? 'major' : 'minor',
                 score: flopAcc,
-                description: `Flop play accuracy ${flopAcc}% — review c-bet strategy and flop defense.`,
+                description: `Flop play accuracy ${flopAcc}% - review c-bet strategy and flop defense.`,
                 drill: {
                     gameId: 'cash-002',
                     level: 8,
-                    title: 'C-Bet Academy — Flop Decisions',
+                    title: 'C-Bet Academy - Flop Decisions',
                     focus: 'Practice c-bet frequency by board texture',
                 },
             });
@@ -182,7 +182,7 @@ function _checkStreetLeaks(streetStats, leaks) {
                 type: LEAK_TYPES.TURN_GIVE_UP,
                 severity: turnAcc < 45 ? 'major' : 'minor',
                 score: turnAcc,
-                description: `Turn play accuracy ${turnAcc}% — likely giving up too often or barreling incorrectly.`,
+                description: `Turn play accuracy ${turnAcc}% - likely giving up too often or barreling incorrectly.`,
                 drill: {
                     gameId: 'cash-013',
                     level: 9,
@@ -201,11 +201,11 @@ function _checkStreetLeaks(streetStats, leaks) {
                 type: LEAK_TYPES.RIVER_GIVE_UP,
                 severity: riverAcc < 40 ? 'major' : 'minor',
                 score: riverAcc,
-                description: `River play accuracy ${riverAcc}% — missing value bets or bluffing incorrectly.`,
+                description: `River play accuracy ${riverAcc}% - missing value bets or bluffing incorrectly.`,
                 drill: {
                     gameId: 'cash-012',
                     level: 10,
-                    title: 'River Decisions — Value & Bluff',
+                    title: 'River Decisions - Value & Bluff',
                     focus: 'Practice river value bets and bluff spots',
                 },
             });
@@ -231,7 +231,7 @@ function _checkPositionLeaks(positionStats, leaks) {
             type: LEAK_TYPES.POSITION_LEAK,
             severity: worstAcc < 40 ? 'major' : 'minor',
             score: worstAcc,
-            description: `${worstPos} accuracy is ${worstAcc}% — significantly below other positions.`,
+            description: `${worstPos} accuracy is ${worstAcc}% - significantly below other positions.`,
             drill: {
                 gameId: isEP ? 'cash-001' : 'cash-006',
                 title: `${worstPos} Range Work`,
@@ -247,11 +247,11 @@ function _checkPositionLeaks(positionStats, leaks) {
             type: LEAK_TYPES.FOLDING_TOO_MUCH,
             severity: 'major',
             score: bbStats.accuracy,
-            description: `BB play accuracy ${bbStats.accuracy}% — likely over-folding in the big blind.`,
+            description: `BB play accuracy ${bbStats.accuracy}% - likely over-folding in the big blind.`,
             drill: {
                 gameId: 'cash-003',
                 level: 3,
-                title: 'Defense Matrix — BB Defense',
+                title: 'Defense Matrix - BB Defense',
                 focus: 'Practice BB defense vs each position opener',
             },
         });
@@ -381,7 +381,7 @@ export function generateDrillRecommendations(leaks) {
     if (!leaks || leaks.length === 0) {
         return [{
             gameId: 'cash-025',
-            title: 'Cash King — Full Session Grind',
+            title: 'Cash King - Full Session Grind',
             level: 1,
             priority: 'low',
             reason: 'No specific leaks detected. Practice all spots to maintain sharpness.',

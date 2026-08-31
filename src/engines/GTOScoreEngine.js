@@ -83,7 +83,7 @@ export function getArenaScoreColor(score) {
  */
 export function formatSignedScore(score) {
     const s = Number(score);
-    if (!Number.isFinite(s)) return '—';
+    if (!Number.isFinite(s)) return '-';
     const rounded = Math.round(s);
     return `${rounded > 0 ? '+' : ''}${rounded}%`;
 }

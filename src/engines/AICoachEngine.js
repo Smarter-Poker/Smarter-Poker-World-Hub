@@ -33,7 +33,7 @@ export const COACH_PERSONALITY = {
     JARVIS: {
         name: 'Jarvis',
         style: 'casual',
-        prefix: 'Hey, quick thought —',
+        prefix: 'Hey, quick thought -',
         encouragement: 'Nice one! That\'s the play.',
         correction: 'Close, but let\'s think about this differently.',
         blunder: 'Whoa, let\'s talk about that one.',
@@ -108,11 +108,11 @@ function _explainCorrectAction(decision, concepts) {
     if (action === 'bet' || action === 'raise') {
         if (decision.madeHandStrength >= 0.70) {
             concepts.push('value_betting');
-            return `Betting for value with ${madeHand} is the right play — you want to build the pot and get paid by worse hands.`;
+            return `Betting for value with ${madeHand} is the right play - you want to build the pot and get paid by worse hands.`;
         }
         if (draws) {
             concepts.push('semi_bluff');
-            return `Semi-bluffing with ${draws} is great — you have equity if called and fold equity to win the pot now.`;
+            return `Semi-bluffing with ${draws} is great - you have equity if called and fold equity to win the pot now.`;
         }
         concepts.push('bluffing');
         return `This is a well-timed bluff. Your opponent's range is capped and you're representing a strong hand.`;
@@ -129,7 +129,7 @@ function _explainCorrectAction(decision, concepts) {
 
     if (action === 'call') {
         concepts.push('pot_odds');
-        return `Calling is correct — you're getting the right price with your hand strength / draw equity.`;
+        return `Calling is correct - you're getting the right price with your hand strength / draw equity.`;
     }
 
     if (action === 'fold') {
@@ -208,7 +208,7 @@ export function generateStudyPlan(leaks, playerProfile = {}) {
     if (criticalLeaks.length > 0) {
         plan.push({
             day: 1,
-            focus: `Fix ${criticalLeaks[0].description.split(' — ')[0]}`,
+            focus: `Fix ${criticalLeaks[0].description.split(' - ')[0]}`,
             games: [criticalLeaks[0].drill?.gameId || 'cash-001'].filter(Boolean),
             duration: '30 min',
             tip: 'Focus on understanding why the GTO action is correct, not just memorizing it.',
@@ -217,7 +217,7 @@ export function generateStudyPlan(leaks, playerProfile = {}) {
         if (criticalLeaks.length > 1) {
             plan.push({
                 day: 2,
-                focus: `Fix ${criticalLeaks[1].description.split(' — ')[0]}`,
+                focus: `Fix ${criticalLeaks[1].description.split(' - ')[0]}`,
                 games: [criticalLeaks[1].drill?.gameId || 'cash-002'].filter(Boolean),
                 duration: '30 min',
                 tip: 'Review the previous day\'s work before starting today\'s focus.',
@@ -245,7 +245,7 @@ export function generateStudyPlan(leaks, playerProfile = {}) {
     // Day 5: Mixed practice
     plan.push({
         day: plan.length + 1,
-        focus: 'Full Session — All Streets',
+        focus: 'Full Session - All Streets',
         games: ['cash-025'],
         duration: '30 min',
         tip: 'Play a full session without looking at feedback until the end.',
@@ -274,7 +274,7 @@ export function generateStudyPlan(leaks, playerProfile = {}) {
         ? 'Your plan focuses on fixing fundamental leaks first. Spend extra time on understanding board textures and when to c-bet.'
         : avgScore < 80
             ? 'You have a solid foundation. This plan targets specific weak spots while maintaining your strengths.'
-            : 'Advanced plan — focus on marginal spots and mixed strategies to push from good to great.';
+            : 'Advanced plan - focus on marginal spots and mixed strategies to push from good to great.';
 
     return { plan, summary };
 }
@@ -313,14 +313,14 @@ export function getLiveHint(context) {
     if (boardTexture) {
         if (boardTexture.toLowerCase().includes('wet')) {
             return {
-                hint: `Wet board (${boardTexture}). Protection bets are important — don't let draws get there for free.`,
+                hint: `Wet board (${boardTexture}). Protection bets are important - don't let draws get there for free.`,
                 concept: 'equity_denial',
                 difficulty: 'medium',
             };
         }
         if (boardTexture.toLowerCase().includes('dry')) {
             return {
-                hint: `Dry board (${boardTexture}). Small sizing works well here — opponent has few draws to worry about.`,
+                hint: `Dry board (${boardTexture}). Small sizing works well here - opponent has few draws to worry about.`,
                 concept: 'bet_sizing',
                 difficulty: 'medium',
             };
@@ -331,7 +331,7 @@ export function getLiveHint(context) {
     if (draws && draws !== 'No draws') {
         if (facingBet) {
             return {
-                hint: `You have ${draws}. Calculate your pot odds — do you have enough equity to call?`,
+                hint: `You have ${draws}. Calculate your pot odds - do you have enough equity to call?`,
                 concept: 'pot_odds',
                 difficulty: 'medium',
             };
@@ -347,13 +347,13 @@ export function getLiveHint(context) {
     if (handStrength >= 0.30 && handStrength < 0.60) {
         if (facingBet) {
             return {
-                hint: `Medium strength hand (${madeHand}). Think about your opponent's range — is this a good bluff-catcher?`,
+                hint: `Medium strength hand (${madeHand}). Think about your opponent's range - is this a good bluff-catcher?`,
                 concept: 'hand_reading',
                 difficulty: 'hard',
             };
         }
         return {
-            hint: `${madeHand} — consider pot control. Sometimes the best play is checking to keep the pot small.`,
+            hint: `${madeHand} - consider pot control. Sometimes the best play is checking to keep the pot small.`,
             concept: 'pot_control',
             difficulty: 'medium',
         };
@@ -371,7 +371,7 @@ export function getLiveHint(context) {
 export const POKER_CONCEPTS = {
     board_texture: { name: 'Board Texture', description: 'Understanding how the community cards interact with ranges' },
     value_betting: { name: 'Value Betting', description: 'Betting with strong hands to extract chips from worse hands' },
-    semi_bluff: { name: 'Semi-Bluffing', description: 'Betting with a draw — win now if they fold, or improve if called' },
+    semi_bluff: { name: 'Semi-Bluffing', description: 'Betting with a draw - win now if they fold, or improve if called' },
     bluffing: { name: 'Bluffing', description: 'Betting with a weak hand to make opponents fold better hands' },
     pot_control: { name: 'Pot Control', description: 'Keeping the pot small with medium-strength hands' },
     pot_odds: { name: 'Pot Odds', description: 'The ratio of the current pot to the cost of calling' },

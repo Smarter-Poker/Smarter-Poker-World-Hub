@@ -493,19 +493,19 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         if (!dailyCompleted) startMode('daily');
                     }}
                     disabled={dailyCompleted}
-                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia — free, once per day'}
+                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia - free, once per day'}
                 />
                 {currentStreak > 0 && !dailyCompleted && (
                     <div className="daily-streak-chip" title={`${currentStreak} day streak`}>
                         <Flame size={14} aria-hidden />
-                        <span>Day {currentStreak} — keep it alive!</span>
+                        <span>Day {currentStreak} - keep it alive!</span>
                     </div>
                 )}
                 {dailyCompleted && (
                     <div className="daily-trivia-banner__completed">
                         <span>
                             COMPLETED
-                            {currentStreak > 0 ? ` — ${currentStreak} DAY STREAK` : ''}
+                            {currentStreak > 0 ? ` - ${currentStreak} DAY STREAK` : ''}
                         </span>
                     </div>
                 )}
@@ -566,7 +566,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 : cost > 0 ? `${cost} DIAMONDS` : 'FREE';
                         const rewardText = typeof mode.diamondReward === 'number'
                             ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} PERFECT` : ''}`
-                            : (mode.diamondReward ? String(mode.diamondReward).toUpperCase() : '—');
+                            : (mode.diamondReward ? String(mode.diamondReward).toUpperCase() : '-');
 
                         return (
                             <button
@@ -634,7 +634,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     onPointerEnter={() => prefetchMode('arcade')}
                     onFocus={() => prefetchMode('arcade')}
                     disabled={isRouting}
-                    aria-label={`Quick Stakes — timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
+                    aria-label={`Quick Stakes - timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
                 >
                     <img
                         src="/images/trivia/quick-stakes.webp?v=v6"

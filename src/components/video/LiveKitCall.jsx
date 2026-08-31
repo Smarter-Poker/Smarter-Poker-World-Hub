@@ -48,7 +48,7 @@ function resolveAuthToken(authToken) {
 export async function getLiveKitToken(roomName, participantName, participantId, authToken) {
     const token = resolveAuthToken(authToken);
     if (!token) {
-        throw new Error('Not authenticated — please sign in to make calls');
+        throw new Error('Not authenticated - please sign in to make calls');
     }
 
     const response = await fetch('/api/livekit/token', {

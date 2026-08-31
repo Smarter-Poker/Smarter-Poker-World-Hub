@@ -45,11 +45,11 @@ export const TIER_STYLE: Record<Tier, { text: string; chip: string; glow: string
 };
 
 const VERDICT: Record<Tier, string> = {
-  ELITE: "Elite bet — strong value backed by clean, trustworthy inputs.",
-  STRONG: "Strong bet — solid value with only minor caveats.",
-  LEAN: "Lean — real but modest value; size down.",
-  THIN: "Thin — barely worth it; only if you have conviction.",
-  PASS: "Pass — not worth it at this price.",
+  ELITE: "Elite bet - strong value backed by clean, trustworthy inputs.",
+  STRONG: "Strong bet - solid value with only minor caveats.",
+  LEAN: "Lean - real but modest value; size down.",
+  THIN: "Thin - barely worth it; only if you have conviction.",
+  PASS: "Pass - not worth it at this price.",
 };
 
 export type ScoreFactor = { dir: "up" | "down" | "flat" | "info"; text: string };
@@ -67,11 +67,11 @@ export function explain(
   const factors: ScoreFactor[] = [];
   if (ev >= 8) factors.push({ dir: "up", text: `Strong expected value: +${ev.toFixed(1)}% return per $1 long-run.` });
   else if (ev >= 3) factors.push({ dir: "up", text: `Positive expected value: +${ev.toFixed(1)}% per $1.` });
-  else if (ev >= 0) factors.push({ dir: "flat", text: `Thin expected value: +${ev.toFixed(1)}% — barely beats the price.` });
-  else factors.push({ dir: "down", text: `Negative expected value: ${ev.toFixed(1)}% — the price is worse than the model's true win chance, losing money long-run.` });
+  else if (ev >= 0) factors.push({ dir: "flat", text: `Thin expected value: +${ev.toFixed(1)}% - barely beats the price.` });
+  else factors.push({ dir: "down", text: `Negative expected value: ${ev.toFixed(1)}% - the price is worse than the model's true win chance, losing money long-run.` });
   
   factors.push({ dir: "info", text: `Model raw baseline gives this a ${wc.toFixed(0)}% chance to hit.` });
-  if (american > 0) factors.push({ dir: "up", text: `Plus-money price (+${american}) — pays more than even if it hits.` });
+  if (american > 0) factors.push({ dir: "up", text: `Plus-money price (+${american}) - pays more than even if it hits.` });
   
   return { betScore: s, tier: t, winConfidence: wc, evPct: Math.round(ev * 10) / 10, verdict: VERDICT[t], factors };
 }

@@ -77,7 +77,7 @@ export default function SpinsICMCalculatorUI({ question, onAnswer, showFeedback,
 
                 {survivalMode && (
                     <div style={styles.survivalBadge}>
-                         SURVIVAL MODE — Minimize Risk
+                         SURVIVAL MODE - Minimize Risk
                     </div>
                 )}
             </div>

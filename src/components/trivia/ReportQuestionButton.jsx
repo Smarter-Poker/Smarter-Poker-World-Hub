@@ -55,7 +55,7 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
     if (done) {
         return (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', padding: '6px 8px' }}>
-                ✓ Thanks — report submitted
+                ✓ Thanks - report submitted
             </div>
         );
     }

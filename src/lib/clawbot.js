@@ -190,7 +190,7 @@ export function verifyCronAuth(req) {
   
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
-    console.error('[ClawBot] CRON_SECRET not set — denying request');
+    console.error('[ClawBot] CRON_SECRET not set - denying request');
     return false;
   }
   

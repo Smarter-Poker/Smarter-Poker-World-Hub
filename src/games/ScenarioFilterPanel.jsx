@@ -177,7 +177,7 @@ export default function ScenarioFilterPanel({
                 <div className="scenario-filter-readout">
                     <div className="scenario-filter-meter" aria-hidden="true">
                         <span>Practice pool</span>
-                        <strong>{isDirty ? '—' : filteredCount}</strong>
+                        <strong>{isDirty ? '-' : filteredCount}</strong>
                         <small>/ {availableScenarios}</small>
                     </div>
                     <div className="scenario-filter-summary">

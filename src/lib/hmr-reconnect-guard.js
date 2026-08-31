@@ -46,7 +46,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 
   if (storageAvailable && count > MAX_RELOADS) {
     // Stop the infinite reload — show banner instead
-    console.warn(`[HMR Guard] Detected ${count} reloads in ${WINDOW_MS / 1000}s — stopping reload loop`);
+    console.warn(`[HMR Guard] Detected ${count} reloads in ${WINDOW_MS / 1000}s - stopping reload loop`);
 
     // Reset counter so next manual reload works
     sessionStorage.removeItem(RELOAD_KEY);

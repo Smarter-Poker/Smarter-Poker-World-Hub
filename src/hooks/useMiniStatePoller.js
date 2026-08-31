@@ -82,7 +82,7 @@ export default function useMiniStatePoller() {
 
     const startFallbackPolling = () => {
       if (fallbackInterval) return; // already polling
-      console.warn('[useMiniStatePoller] ⚠️ WebSocket unhealthy — falling back to HTTP polling');
+      console.warn('[useMiniStatePoller] ⚠️ WebSocket unhealthy - falling back to HTTP polling');
       fallbackInterval = setInterval(() => {
         if (!mountedRef.current) return;
         const ids = Array.from(visibleIds.current);
@@ -94,7 +94,7 @@ export default function useMiniStatePoller() {
       if (fallbackInterval) {
         clearInterval(fallbackInterval);
         fallbackInterval = null;
-        console.debug('[useMiniStatePoller] 🔌 WebSocket restored — stopping HTTP fallback');
+        console.debug('[useMiniStatePoller] 🔌 WebSocket restored - stopping HTTP fallback');
       }
     };
 

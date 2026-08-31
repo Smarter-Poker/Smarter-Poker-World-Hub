@@ -781,7 +781,7 @@ export default function StrategyTrivia({ mode }) {
                                 className="lobby-image-wrapper"
                                 onClick={startGame}
                                 disabled={isPreparing || vipInitializing}
-                                aria-label={`${config.title} — start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
+                                aria-label={`${config.title} - start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
                             >
                                 <img
                                     src={LOBBY_IMAGES[mode]}
@@ -1119,7 +1119,7 @@ export default function StrategyTrivia({ mode }) {
 
                                 {resultCapped && (
                                     <div className="results-note">
-                                        Daily reward cap reached for {config.title} — play for the score, come back tomorrow for more diamonds.
+                                        Daily reward cap reached for {config.title} - play for the score, come back tomorrow for more diamonds.
                                     </div>
                                 )}
 

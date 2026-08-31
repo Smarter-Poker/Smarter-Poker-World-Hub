@@ -69,9 +69,9 @@ const STREETS = [
 // were unreachable from the whole screen. 'exact' has always mapped to
 // DIFFICULTY.STANDARD; using it makes the label true.
 const DIFFICULTY_MODES = [
-    { id: 'simple', label: 'Simple', icon: '1', desc: 'Bet/Check/Fold', detail: '3 buttons max — learn basic decisions' },
-    { id: 'grouped', label: 'Grouped', icon: '2', desc: 'Small/Medium/Large/Overbet', detail: '4-5 buttons — sizing categories' },
-    { id: 'exact', label: 'Standard', icon: '3', desc: 'Exact Sizings', detail: 'Up to 9 buttons — real solver sizings' },
+    { id: 'simple', label: 'Simple', icon: '1', desc: 'Bet/Check/Fold', detail: '3 buttons max - learn basic decisions' },
+    { id: 'grouped', label: 'Grouped', icon: '2', desc: 'Small/Medium/Large/Overbet', detail: '4-5 buttons - sizing categories' },
+    { id: 'exact', label: 'Standard', icon: '3', desc: 'Exact Sizings', detail: 'Up to 9 buttons - real solver sizings' },
 ];
 
 export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGameId }) {

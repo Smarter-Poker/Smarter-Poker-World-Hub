@@ -107,7 +107,7 @@ const SUPABASE_ANON_KEY = (
 
 function requireAnonKey() {
     if (!SUPABASE_ANON_KEY) {
-        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — cannot upload to Supabase Storage. Set this environment variable.');
+        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set - cannot upload to Supabase Storage. Set this environment variable.');
     }
     return SUPABASE_ANON_KEY;
 }
@@ -192,7 +192,7 @@ async function _ensureBearer() {
         const payload = _readJwtPayload(tok);
         const nowSec = Math.floor(Date.now() / 1000);
         const remaining = payload?.exp ? (payload.exp - nowSec) : 'unknown';
-        lastDiagnostic = `attempt ${attempt + 1}: token exp in ${remaining}s (need >30s) — likely mid-refresh`;
+        lastDiagnostic = `attempt ${attempt + 1}: token exp in ${remaining}s (need >30s) - likely mid-refresh`;
     }
 
     if (lastShapeValid) {
@@ -201,7 +201,7 @@ async function _ensureBearer() {
         console.warn('[bgUpload] _ensureBearer using stale-but-shape-valid token after retries:', lastDiagnostic);
         return lastShapeValid;
     }
-    console.warn('[bgUpload] _ensureBearer returning null — every read failed:', lastDiagnostic);
+    console.warn('[bgUpload] _ensureBearer returning null - every read failed:', lastDiagnostic);
     return null;
 }
 
@@ -256,7 +256,7 @@ function _installNetworkListeners() {
     };
     const handleOnline = () => {
         if (_state === 'uploading' || _state === 'background') {
-            _label = 'Connection restored — resuming…';
+            _label = 'Connection restored - resuming…';
             _emit('onProgress', { state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
         }
     };
@@ -380,7 +380,7 @@ function _installVisibilityListener() {
         const hidden = document.hidden || document.visibilityState === 'hidden';
         if (hidden) {
             _hiddenSince = Date.now();
-            console.warn('[bgUpload] tab hidden during upload — iOS Safari may throttle network');
+            console.warn('[bgUpload] tab hidden during upload - iOS Safari may throttle network');
         } else if (_hiddenSince) {
             const dt = Date.now() - _hiddenSince;
             _totalHiddenMs += dt;
@@ -467,7 +467,7 @@ function _clearUploadIntent() {
  */
 async function _fetchUploadMeta(file, userId, folder) {
     const token = getAccessToken();
-    if (!token) throw new Error('Authentication required — please refresh and try again.');
+    if (!token) throw new Error('Authentication required - please refresh and try again.');
 
     const mimeType = sniffMimeType(file);
     const metaRes = await fetch('/api/social/upload-url', {
@@ -523,7 +523,7 @@ async function _uploadWithTus(file, meta, mimeType) {
     if (!_isJWT(userToken)) {
         // Belt-and-suspenders: even if _ensureBearer somehow returned a
         // non-JWT, this final check stops it from reaching the wire.
-        console.warn('[bgUpload] _uploadWithTus refusing to start — no valid JWT available');
+        console.warn('[bgUpload] _uploadWithTus refusing to start - no valid JWT available');
         throw new Error('Session expired. Please refresh the page and try again.');
     }
     // PHASE-B (2026-05-03): proactive JWT lifetime check. tus-js-client v4.3.1
@@ -554,11 +554,11 @@ async function _uploadWithTus(file, meta, mimeType) {
         //   • remainingSec < 120 (about to)      → fail-fast "about to
         //                                            expire" message.
         if (expSec > 0 && remainingSec <= 0) {
-            console.warn('[bgUpload] JWT already expired by', Math.abs(remainingSec), 's — failing fast');
+            console.warn('[bgUpload] JWT already expired by', Math.abs(remainingSec), 's - failing fast');
             throw new Error('Your session has expired. Please log in again and try posting.');
         }
         if (expSec > 0 && remainingSec < 120) {
-            console.warn('[bgUpload] JWT only has', remainingSec, 's remaining — failing fast to avoid mid-upload expiry');
+            console.warn('[bgUpload] JWT only has', remainingSec, 's remaining - failing fast to avoid mid-upload expiry');
             throw new Error('Your session is about to expire. Please refresh the page and try posting again.');
         }
     } catch (e) {
@@ -603,7 +603,7 @@ async function _uploadWithTus(file, meta, mimeType) {
         // than the config error it is.
         const anonKey = requireAnonKey();
         if (anonKey.length < 50) {
-            console.error('[bgUpload] NEXT_PUBLIC_SUPABASE_ANON_KEY looks malformed at runtime — Storage may reject it as Invalid Compact JWS', { len: anonKey.length });
+            console.error('[bgUpload] NEXT_PUBLIC_SUPABASE_ANON_KEY looks malformed at runtime - Storage may reject it as Invalid Compact JWS', { len: anonKey.length });
         }
         const tusHeaders = {
             Authorization: `Bearer ${userToken}`,
@@ -655,7 +655,7 @@ async function _uploadWithTus(file, meta, mimeType) {
                             : ` at ${Math.round(bytesPerSec / 1024)} KB/s`;
                     }
                 }
-                const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
+                const etaSuffix = eta ? ` - ~${eta}` : (_lastEta ? ` - ~${_lastEta}` : '');
                 _setState(_state, displayPct, `Uploading… ${labelPct}%${speedStr}${etaSuffix}`);
             },
             onSuccess: () => {
@@ -683,7 +683,7 @@ async function _uploadWithTus(file, meta, mimeType) {
                             hint: 'If JWT looks structurally valid but server says "Invalid Compact JWS", your cached session token is stale-against-current-signing-key. Log out and log in fresh.',
                         });
                     }
-                    reject(new Error(`Upload failed: ${msg.slice(0, 300)} — please try again.`));
+                    reject(new Error(`Upload failed: ${msg.slice(0, 300)} - please try again.`));
                 }
             },
             // NOTE: an `onBeforeRequest` hook USED to live here — it called
@@ -780,7 +780,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                         : ` at ${Math.round(bytesPerSec / 1024)} KB/s`;
                 }
             }
-            const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
+            const etaSuffix = eta ? ` - ~${eta}` : (_lastEta ? ` - ~${_lastEta}` : '');
 
             _setState(
                 _state,
@@ -803,7 +803,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                 // alreadyConsumed can happen on ANY retry (server got bytes, ACK was lost)
                 if (alreadyConsumed) {
                     // File is in Supabase. Signed URL consumed = upload completed.
-                    console.warn('[bgUpload] 400 already-consumed — resolving as success');
+                    console.warn('[bgUpload] 400 already-consumed - resolving as success');
                     resolve(null);
                     return;
                 }
@@ -814,7 +814,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                     _progress = 5;
                     _uploadStartTime = Date.now();
                     _lastEta = '';
-                    _setState(_state, 5, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                    _setState(_state, 5, `${reason} - getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                     setTimeout(async () => {
                         try {
                             const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
@@ -822,19 +822,19 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                                 .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl))
                                 .catch(reject);
                         } catch (fetchErr) {
-                            reject(new Error(`Upload failed (HTTP ${xhr.status}) — could not get new URL: ${fetchErr.message}`));
+                            reject(new Error(`Upload failed (HTTP ${xhr.status}) - could not get new URL: ${fetchErr.message}`));
                         }
                     }, delay);
                 } else {
                     const errMsg = xhr.status === 400
-                        ? 'Upload failed after 6 attempts — please try again later.'
-                        : 'Upload session expired after 6 attempts — please try again later.';
+                        ? 'Upload failed after 6 attempts - please try again later.'
+                        : 'Upload session expired after 6 attempts - please try again later.';
                     reject(new Error(errMsg));
                 }
             } else if (xhr.status >= 500 && attempt < MAX_RETRIES) {
                 // Server error — retry with backoff using correct delay index
                 const delay = RETRY_DELAYS[attempt + 1] || 8000;
-                _setState(_state, maxPctReached, `Server error — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                _setState(_state, maxPctReached, `Server error - retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
@@ -843,7 +843,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             } else {
                 const errMsg = xhr.status === 413
                     ? 'File is too large for the server. Please trim the video and try again.'
-                    : 'Upload failed after 6 attempts — please try again later.';
+                    : 'Upload failed after 6 attempts - please try again later.';
                 reject(new Error(errMsg));
             }
         };
@@ -853,14 +853,14 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             if (attempt < MAX_RETRIES) {
                 // Network error — retry with backoff using next delay slot
                 const delay = RETRY_DELAYS[attempt + 1] || 10000;
-                _setState(_state, maxPctReached, `Connection lost — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                _setState(_state, maxPctReached, `Connection lost - retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
                         .catch(reject);
                 }, delay);
             } else {
-                reject(new Error('Upload failed after 6 attempts — please check your connection and try again later.'));
+                reject(new Error('Upload failed after 6 attempts - please check your connection and try again later.'));
             }
         };
 
@@ -870,14 +870,14 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             if (attempt < MAX_RETRIES) {
                 // Timeout — retry with backoff using next delay slot
                 const delay = RETRY_DELAYS[attempt + 1] || 10000;
-                _setState(_state, maxPctReached, `Upload timed out — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                _setState(_state, maxPctReached, `Upload timed out - retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
                         .catch(reject);
                 }, delay);
             } else {
-                reject(new Error('Upload failed after 6 attempts — please try on a stronger Wi-Fi connection.'));
+                reject(new Error('Upload failed after 6 attempts - please try on a stronger Wi-Fi connection.'));
             }
         };
 
@@ -1051,7 +1051,7 @@ const bgUpload = {
         // "Upload stalled" instead of a forever spinner.
         _installVisibilityListener();
         _watchdogOnTimeoutHandler = (ms) => {
-            console.error('[bgUpload] watchdog fired — no progress for', Math.round(ms / 1000), 's',
+            console.error('[bgUpload] watchdog fired - no progress for', Math.round(ms / 1000), 's',
                           'last progress:', _watchdogLastProgress + '%',
                           'file size:', Math.round(file.size / 1024 / 1024) + 'MB',
                           'hidden time:', Math.round(_totalHiddenMs / 1000) + 's');
@@ -1062,8 +1062,8 @@ const bgUpload = {
             }
             _state = 'idle';
             const errorMsg = _totalHiddenMs > 30000
-                ? 'Upload stalled — please keep the app open while large videos upload, especially on cellular.'
-                : 'Upload stalled — please check your connection and try again.';
+                ? 'Upload stalled - please keep the app open while large videos upload, especially on cellular.'
+                : 'Upload stalled - please check your connection and try again.';
             _emit('onError', { error: new Error(errorMsg) });
             _removeBeforeUnload();
             _removeNetworkListeners();
@@ -1134,7 +1134,7 @@ const bgUpload = {
             // silently bypassing the TUS protocol.
             const mimeType = sniffMimeType(file);
             if (!meta.tusEndpoint) {
-                throw new Error('Server did not return a TUS endpoint — upload aborted.');
+                throw new Error('Server did not return a TUS endpoint - upload aborted.');
             }
             await _uploadWithTus(file, meta, mimeType);
             const finalPublicUrl = meta.publicUrl;
