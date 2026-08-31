@@ -184,6 +184,23 @@ test('direct Vercel uploads retain the complete migration evidence tree', async 
   assert.match(ignore, /!\/supabase\/migrations\/20260829130000_club_shop_atomic_purchase\.sql/);
 });
 
+test('Club Shop browser fixtures follow the server-owned membership response', async () => {
+  const e2e = await read('e2e/05-diamond-store.spec.ts');
+  const detailFixture = e2e.slice(
+    e2e.indexOf("test('club item detail reviews one diamond settlement"),
+    e2e.indexOf("test('marketplace readiness is public", e2e.indexOf("test('club item detail reviews one diamond settlement"))
+  );
+  const adminFixture = e2e.slice(
+    e2e.indexOf("test('Club Shop operators delete"),
+    e2e.lastIndexOf('\n});')
+  );
+
+  assert.match(detailFixture, /clubId,/);
+  assert.match(adminFixture, /marketplace-items\*'/);
+  assert.match(adminFixture, /clubId,/);
+  assert.doesNotMatch(adminFixture, /rest\/v1\/club_members/);
+});
+
 test('public merchandise catalog retries cold reads without serial variant latency', async () => {
   const [catalog, readiness] = await Promise.all([
     read('pages/api/store/merch-catalog.js'),
