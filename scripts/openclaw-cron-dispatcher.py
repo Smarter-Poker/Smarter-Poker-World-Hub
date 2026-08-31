@@ -203,6 +203,9 @@ _alert_persist = {}
 def _alert_state_load():
     """Best-effort. A missing or corrupt file must never stop the dispatcher."""
     global _alert_persist
+    global ALERT_STATE_PATH
+    if not ALERT_STATE_PATH.exists() and (LOG_DIR / 'alert-state.json').exists():
+        ALERT_STATE_PATH = LOG_DIR / 'alert-state.json'
     try:
         _alert_persist = json.loads(ALERT_STATE_PATH.read_text(encoding='utf-8'))
         if not isinstance(_alert_persist, dict):
@@ -219,14 +222,27 @@ def _alert_state_load():
 
 
 def _alert_state_save():
-    try:
-        ALERT_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        tmp = ALERT_STATE_PATH.with_suffix('.tmp')
-        tmp.write_text(json.dumps(_alert_persist, sort_keys=True), encoding='utf-8')
-        tmp.replace(ALERT_STATE_PATH)
-    except Exception as e:
-        # Losing the file costs a duplicate page, not a missed one. Never fatal.
-        log.warning(f'[alert] could not persist state: {type(e).__name__}: {e}')
+    # The service runs as the unprivileged `openclaw` user, which cannot create
+    # /var/lib/openclaw itself on a box where the bootstrap never made it — and
+    # an unwritable state file silently returns us to re-paging on restart,
+    # which is the whole defect. So fall back to LOG_DIR, which the unit already
+    # owns, rather than giving up.
+    global ALERT_STATE_PATH
+    for attempt, target in enumerate((ALERT_STATE_PATH, LOG_DIR / 'alert-state.json')):
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_suffix('.tmp')
+            tmp.write_text(json.dumps(_alert_persist, sort_keys=True), encoding='utf-8')
+            tmp.replace(target)
+            if attempt:
+                log.warning(f'[alert] {ALERT_STATE_PATH} is not writable; '
+                            f'de-dup state now lives at {target}')
+                ALERT_STATE_PATH = target
+            return
+        except Exception as e:
+            last = f'{type(e).__name__}: {e}'
+    # Losing the file costs a duplicate page, not a missed one. Never fatal.
+    log.warning(f'[alert] could not persist state anywhere: {last}')
 
 
 def _alert_bind(key, state):

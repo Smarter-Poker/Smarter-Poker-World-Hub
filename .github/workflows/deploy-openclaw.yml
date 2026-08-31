@@ -70,8 +70,8 @@ jobs:
               || sudo pip3 install apscheduler requests
           fi
           python3 -c 'import apscheduler, requests; print("openclaw deps OK")'
-          sudo mkdir -p /opt/openclaw /var/log/openclaw
-          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw
+          sudo mkdir -p /opt/openclaw /var/log/openclaw /var/lib/openclaw
+          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw /var/lib/openclaw
           EOSSH
 
       - name: Merge managed dispatcher secrets into the canonical env file
