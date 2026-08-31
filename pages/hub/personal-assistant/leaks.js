@@ -866,6 +866,8 @@ function AuditReceipt({ result }) {
   const cells = [
     ['Club Hands Scanned', num(progress.handsScanned ?? sync.handsFound).toLocaleString()],
     ['Eligible Hands', num(sync.handsEligible).toLocaleString()],
+    ['Private Hands Recovered', num(sync.privateCardsRecovered).toLocaleString()],
+    ['Missing Private Cards', num(sync.handsMissingPrivateCards).toLocaleString()],
     ['No Hero Decision', num(sync.handsSkippedNoHeroDecisions).toLocaleString()],
     ['Audited This Run', num(progress.handsAudited ?? sync.handsAudited).toLocaleString()],
     ['Already Current', num(sync.handsAlreadyCurrent).toLocaleString()],
