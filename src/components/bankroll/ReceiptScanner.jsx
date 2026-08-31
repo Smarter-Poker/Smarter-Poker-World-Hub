@@ -253,7 +253,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             <Camera size={32} />
                         </div>
                         <p style={styles.uploadText}>TAP TO SCAN RECEIPT</p>
-                        <p style={styles.uploadHint}>Auto-detects And Captures Receipts</p>
+                        <p style={styles.uploadHint}>Auto-Detects And Captures Receipts</p>
                     </div>
                     <div style={styles.uploadDivider}>
                         <span style={styles.uploadDividerLine} />
@@ -265,7 +265,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                         style={styles.fileUploadBtn}
                     >
                         <Upload size={14} />
-                        Upload from gallery
+                        Upload From Gallery
                     </button>
                     <input
                         ref={fileInputRef}
@@ -303,7 +303,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             }}>
                                 {conf.label === 'HIGH' ? <Shield size={14} style={{ color: conf.color }} /> : <AlertTriangle size={14} style={{ color: conf.color }} />}
                                 <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 13, fontWeight: 800, color: conf.color, letterSpacing: '0.1em' }}>
-                                    {conf.label} CONFIDENCE — {confidenceScore}%
+                                    {conf.label} CONFIDENCE - {confidenceScore}%
                                 </span>
                             </div>
                         );
@@ -337,7 +337,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                                     ...((!extractedData.vendor || extractedData.vendor.length < 3) ? { border: '2px solid rgba(239,68,68,0.4)' } : {}),
                                 }}>
                                     <span style={styles.dataLabel}>VENDOR {(!extractedData.vendor || extractedData.vendor.length < 3) && <span style={{ color: '#f87171', fontSize: 10 }}>⚠ REVIEW</span>}</span>
-                                    <span style={styles.dataValue}>{extractedData.vendor || '—'}</span>
+                                    <span style={styles.dataValue}>{extractedData.vendor || '-'}</span>
                                 </div>
                             )}
                             {extractedData.amount != null && (

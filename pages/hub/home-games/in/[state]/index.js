@@ -273,7 +273,7 @@ export async function getServerSideProps({ params, res }) {
 
 function formatStakes(g) {
   if (g.default_stakes) return g.default_stakes;
-  if (g.buyin_min && g.buyin_max) return `$${g.buyin_min}–$${g.buyin_max} buy-in`;
+  if (g.buyin_min && g.buyin_max) return `$${g.buyin_min}-$${g.buyin_max} buy-in`;
   if (g.buyin_min) return `$${g.buyin_min}+ buy-in`;
   return null;
 }
@@ -438,7 +438,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
               ) : (
                 <>
                   No public home games have been listed in {stateName} yet. If you host a home game,{' '}
-                  list yours now — it's free while in beta.
+                  list yours now - it's free while in beta.
                 </>
               )}
             </p>

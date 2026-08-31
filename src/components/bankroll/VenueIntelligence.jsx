@@ -23,9 +23,9 @@ const GAME_TYPE_MAP = {
 
 const BUYIN_BRACKETS = [
     { label: '$1k+', min: 1000, max: Infinity },
-    { label: '$500–$999', min: 500, max: 999.99 },
-    { label: '$250–$499', min: 250, max: 499.99 },
-    { label: '$100–$249', min: 100, max: 249.99 },
+    { label: '$500-$999', min: 500, max: 999.99 },
+    { label: '$250-$499', min: 250, max: 499.99 },
+    { label: '$100-$249', min: 100, max: 249.99 },
     { label: '<$100', min: 0, max: 99.99 },
 ];
 
@@ -185,7 +185,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                             </div>
                                             <div style={s.venueStats}>
                                                 <div style={s.venueTotal}>${v.totalTokes.toFixed(0)}</div>
-                                                {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/hr</div>}
+                                                {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/Hr</div>}
                                             </div>
                                         </div>
                                     ))}

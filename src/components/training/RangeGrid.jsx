@@ -308,7 +308,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     )}
                     {useBlocker && blockerScore !== null && (
                         <div style={{ fontSize: 9, color: 'var(--sp-accent-red)', fontWeight: 600 }}>
-                            Blocked: {Math.round(blockerScore * 100)}% combos
+                            Blocked: {Math.round(blockerScore * 100)}% Combos
                         </div>
                     )}
                     {freqs && !useBlocker && (
@@ -443,7 +443,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                         {classificationInfo.subType || classificationInfo.classification}
                     </span>
                 ) : (
-                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>—</span>
+                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>-</span>
                 )}
                 {handEV !== undefined && handEV !== null && (
                     <span style={{
@@ -497,7 +497,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
-                GTO Strategy • Click another hand to compare
+                GTO Strategy • Click Another Hand To Compare
             </div>
         </motion.div>
     );
@@ -653,7 +653,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         Range: {rangeStats.rangePercent.toFixed(1)}%
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>
-                        ({Math.round(rangeStats.activeCombos)}/{Math.round(rangeStats.totalCombos)} combos)
+                        ({Math.round(rangeStats.activeCombos)}/{Math.round(rangeStats.totalCombos)} Combos)
                     </div>
                 </div>
             )}

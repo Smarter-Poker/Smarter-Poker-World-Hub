@@ -36,7 +36,7 @@ export const VIP_FEATURE_MATRIX = {
       'Mixed strategy lab',
       'Arena mode (God Mode)',
     ],
-    currentState: 'MOSTLY FREE — some games use diamond day-pass via premiumFeatureGate',
+    currentState: 'MOSTLY FREE - some games use diamond day-pass via premiumFeatureGate',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -59,7 +59,7 @@ export const VIP_FEATURE_MATRIX = {
       'Game ETA predictions',
       'Waitlist intelligence',
     ],
-    currentState: 'MOSTLY FREE — poker_near_me day-pass exists in premiumFeatureGate FEATURE_CONFIG',
+    currentState: 'MOSTLY FREE - poker_near_me day-pass exists in premiumFeatureGate FEATURE_CONFIG',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -79,7 +79,7 @@ export const VIP_FEATURE_MATRIX = {
       'Priority post visibility in feed (future)',
       'Exclusive creator tools (future)',
     ],
-    currentState: 'FREE — no gating in place',
+    currentState: 'FREE - no gating in place',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -120,7 +120,7 @@ export const VIP_FEATURE_MATRIX = {
       'Geofence intelligence',
       'Player notes (unlimited)',
     ],
-    currentState: 'bankroll_pro day-pass exists — 25 diamonds/24h',
+    currentState: 'bankroll_pro day-pass exists - 25 diamonds/24h',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -139,7 +139,7 @@ export const VIP_FEATURE_MATRIX = {
       'AI screenshot reader (camera import)',
       'Shareable hand cards',
     ],
-    currentState: 'FREE — 200 hands loaded, no gate',
+    currentState: 'FREE - 200 hands loaded, no gate',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -158,7 +158,7 @@ export const VIP_FEATURE_MATRIX = {
       'Premium/exclusive content (future)',
       'Jarvis video insights (currently free)',
     ],
-    currentState: 'FREE — no gating in place',
+    currentState: 'FREE - no gating in place',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -175,7 +175,7 @@ export const VIP_FEATURE_MATRIX = {
       'Story export',
       'Keyboard shortcuts',
     ],
-    currentState: 'personal_assistant day-pass exists — 100 diamonds/24h',
+    currentState: 'personal_assistant day-pass exists - 100 diamonds/24h',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -214,7 +214,7 @@ export const VIP_FEATURE_MATRIX = {
       'Message reactions (future)',
       'Voice messages (future)',
     ],
-    currentState: 'FREE — no gating in place',
+    currentState: 'FREE - no gating in place',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -235,7 +235,7 @@ export const VIP_FEATURE_MATRIX = {
       'Enhanced visibility in search',
       'Profile themes (future)',
     ],
-    currentState: 'custom_avatar day-pass exists — 25 diamonds/24h',
+    currentState: 'custom_avatar day-pass exists - 25 diamonds/24h',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -246,7 +246,7 @@ export const VIP_FEATURE_MATRIX = {
     gate: 'FREE',
     free: ['Browse and purchase diamond bundles', 'View merchandise', 'VIP subscription'],
     vip: [],
-    currentState: 'FREE — this IS the monetization page',
+    currentState: 'FREE - this IS the monetization page',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -257,7 +257,7 @@ export const VIP_FEATURE_MATRIX = {
     gate: 'FREE',
     free: ['Basic help questions', 'Platform guidance', 'Knowledge base'],
     vip: ['Priority support queue (future)', 'Extended AI coaching (future)'],
-    currentState: 'FREE — always available',
+    currentState: 'FREE - always available',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -268,7 +268,7 @@ export const VIP_FEATURE_MATRIX = {
     gate: 'DIAMOND',
     free: [],
     vip: ['Watch live streams', 'Go live from the rail', 'Live chat'],
-    currentState: 'lives day-pass exists — 25 diamonds/24h',
+    currentState: 'lives day-pass exists - 25 diamonds/24h',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -279,7 +279,7 @@ export const VIP_FEATURE_MATRIX = {
     gate: 'FREE',
     free: ['Browse poker news', 'Read articles', 'Share articles'],
     vip: [],
-    currentState: 'FREE — no gating',
+    currentState: 'FREE - no gating',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -290,7 +290,7 @@ export const VIP_FEATURE_MATRIX = {
     gate: 'VIP',
     free: [],
     vip: ['Full club management', 'Tournament director', 'Staff management', 'Analytics'],
-    currentState: 'Requires Club Commander subscription (separate Stripe product) — standalone app at commander.smarter.poker',
+    currentState: 'Requires Club Commander subscription (separate Stripe product) - standalone app at commander.smarter.poker',
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -302,7 +302,7 @@ export const VIP_FEATURE_MATRIX = {
     cost: 150,
     free: [],
     vip: ['24h access to ALL pay-as-you-go features'],
-    currentState: 'ACTIVE — 150 diamonds for 24h universal unlock',
+    currentState: 'ACTIVE - 150 diamonds for 24h universal unlock',
   },
 };
 

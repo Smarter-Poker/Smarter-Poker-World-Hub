@@ -232,7 +232,7 @@ export default function MemoryCampaignView() {
                         Memory Matrix Campaign
                     </h1>
                     <p className="text-xl text-slate-400">
-                        Master GTO preflop ranges • Progress through {levels.length} levels
+                        Master GTO Preflop Ranges • Progress Through {levels.length} Levels
                     </p>
                 </div>
 

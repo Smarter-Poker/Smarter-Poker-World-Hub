@@ -961,7 +961,7 @@ class GameStateMachine {
     // Timeout: 15 seconds total. If not all responded, treat as decline.
     this._runItOffer.timeoutHandle = setTimeout(() => {
       if (!this._runItOffer || this._runItOffer.resolved) return;
-      console.debug('[RunIt] Offer timed out — running single board');
+      console.debug('[RunIt] Offer timed out - running single board');
       this._resolveRunItOffer();
     }, 15000);
   }
@@ -999,7 +999,7 @@ class GameStateMachine {
 
       if (choice === 'once') {
         // Proposer chose single board — done immediately, no need to ask others
-        console.debug('[RunIt] Proposer chose once — single board');
+        console.debug('[RunIt] Proposer chose once - single board');
         this.emit('run_it_response', { playerId: pid, role: 'proposer', choice });
         offer.resolved = true;
         if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
@@ -1034,7 +1034,7 @@ class GameStateMachine {
 
     // Instant decline — any single decline kills the offer
     if (choice === 'decline') {
-      console.debug(`[RunIt] Player ${pid} declined — single board`);
+      console.debug(`[RunIt] Player ${pid} declined - single board`);
       offer.resolved = true;
       if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
       this.emit('run_it_declined', { reason: 'responder_declined', declinedBy: pid });
@@ -1087,7 +1087,7 @@ class GameStateMachine {
 
     // If proposer never chose, or chose 'once', or any responder didn't respond → single board
     if (!proposal || proposal === 'once') {
-      console.debug('[RunIt] No proposal or chose once — single board');
+      console.debug('[RunIt] No proposal or chose once - single board');
       this.emit('run_it_declined', { reason: 'no_proposal' });
       this._runItOffer = null;
       this._singleBoardRunout(fromStreet);
@@ -1100,7 +1100,7 @@ class GameStateMachine {
     if (!allAccepted) {
       // At least one missing or declined
       const decliners = responderIds.filter(pid => responses[pid] !== 'accept');
-      console.debug(`[RunIt] Not all agreed (${decliners.length} declined/timeout) — single board`);
+      console.debug(`[RunIt] Not all agreed (${decliners.length} declined/timeout) - single board`);
       this.emit('run_it_declined', { reason: 'not_all_accepted', declinedBy: decliners });
       this._runItOffer = null;
       this._singleBoardRunout(fromStreet);
@@ -1581,7 +1581,7 @@ class GameStateMachine {
         payout,
         premium: ins.premium,
         netGain: payout - ins.premium,
-        reason: 'Trailer won — union/club pays insurance claim',
+        reason: 'Trailer won - union/club pays insurance claim',
       });
 
       return { buyerId: ins.buyerId, payout, premium: ins.premium, source: 'house' };
@@ -1591,7 +1591,7 @@ class GameStateMachine {
       this.emit('insurance_expired', {
         buyerId: ins.buyerId,
         premiumLost: ins.premium,
-        reason: 'Leader won — no payout',
+        reason: 'Leader won - no payout',
       });
 
       console.debug(`🛡️ Insurance expired: ${ins.buyerId} loses ${ins.premium} premium`);

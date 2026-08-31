@@ -194,7 +194,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                     <circle cx="12" cy="18" r="1.5" fill="#8b5cf6" stroke="none" />
                 </svg>
                 <h2>Seasonal Calendar</h2>
-                <span className="sc-event-count">{allEvents.length} events</span>
+                <span className="sc-event-count">{allEvents.length} Events</span>
             </div>
 
             {/* Filters */}
@@ -234,7 +234,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                             <button className="sc-month-header" onClick={() => setExpandedMonth(isExpanded ? -1 : mi)}>
                                 <div className="sc-month-title">
                                     <span>{mo.label}</span>
-                                    {eventCount > 0 && <span className="sc-month-badge">{eventCount} event days</span>}
+                                    {eventCount > 0 && <span className="sc-month-badge">{eventCount} Event Days</span>}
                                 </div>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                     style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
@@ -339,7 +339,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                                     </div>
                                     <div className="sc-ev-details">
                                         {ev.venue_name && <span>{ev.venue_name}</span>}
-                                        {ev.start_date && <span> · {ev.start_date}{ev.end_date ? ` — ${ev.end_date}` : ''}</span>}
+                                        {ev.start_date && <span> · {ev.start_date}{ev.end_date ? ` - ${ev.end_date}` : ''}</span>}
                                     </div>
                                     {ev.guaranteed && <div className="sc-ev-gtd">${Number(ev.guaranteed).toLocaleString()} GTD</div>}
                                 </div>

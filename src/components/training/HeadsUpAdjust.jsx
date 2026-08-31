@@ -19,7 +19,7 @@ const HU_ADJUSTMENTS = [
   { area: 'Positional Advantage', icon: '★', color: '#3b82f6',
     adjust: 'IP (button/SB) should play extremely aggressively. OOP (BB) should check-raise more often.',
     why: 'Position is EVERYTHING heads-up. The button acts last on every street and controls the pot.',
-    mistake: 'Not utilizing position enough. IP should be printing money in HU — it\'s a massive advantage.',
+    mistake: 'Not utilizing position enough. IP should be printing money in HU - it\'s a massive advantage.',
     tip: 'Track your win rate IP vs OOP. If you\'re not winning significantly more IP, you\'re too passive.' },
   { area: 'Bluffing & Value', icon: '◇', color: '#f59e0b',
     adjust: 'Bluff more. Value bet thinner. Second pair is often a value bet HU. Ace-high can check down.',
@@ -42,7 +42,7 @@ export default function HeadsUpAdjust() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Heads-Up Adjustments
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Dominate 1v1 situations with these adjustments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Dominate 1V1 Situations With These Adjustments.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {HU_ADJUSTMENTS.map((a, i) => (

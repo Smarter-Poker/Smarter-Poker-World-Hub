@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     const phone = profile?.phone ? normalizePhone(profile.phone) : null;
     if (!phone || !isSendablePhone(phone) || profile?.phone_verified !== true) {
         return res.status(400).json({
-            error: 'Add and verify a mobile phone number on your account first — your text-message codes are sent there.',
+            error: 'Add and verify a mobile phone number on your account first - your text-message codes are sent there.',
             code: 'PHONE_NOT_VERIFIED',
             requiresPhoneVerification: true,
         });

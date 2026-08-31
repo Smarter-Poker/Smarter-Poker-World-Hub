@@ -61,11 +61,11 @@ function VenueCard({ venue }) {
           <h2>{venue.name}</h2>
           <p>{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
           <div className="pnm-location-card__facts">
-            {venue.is_featured && <span>Featured room</span>}
+            {venue.is_featured && <span>Featured Room</span>}
             {venue.trust_score > 0 && <span>Trust {Math.round(venue.trust_score)}</span>}
-            {venue.location_quality?.status === 'verified' && <span>Location verified</span>}
+            {venue.location_quality?.status === 'verified' && <span>Location Verified</span>}
             {updatedLabel && <span>Updated {updatedLabel}</span>}
-            <span>Open venue profile</span>
+            <span>Open Venue Profile</span>
           </div>
         </div>
       </Link>
@@ -170,7 +170,7 @@ export default function PokerNearMeLocationPage({
           { label: stateCode ? 'Cities represented' : 'States represented', value: stateCode ? new Set(venues.map((venue) => venue.city).filter(Boolean)).size : states.length },
           { label: degraded ? 'Snapshot date' : 'Directory check', value: sourceDateLabel || 'Current request' },
         ]}
-        actions={<Link href="/hub/poker-near-me/map">Open live map</Link>}
+        actions={<Link href="/hub/poker-near-me/map">Open Live Map</Link>}
       />
 
       <PokerNearMeRecentRail currentHref={currentPath} />
@@ -178,20 +178,20 @@ export default function PokerNearMeLocationPage({
       <main className="pnm-location-listing__main">
         <p className="pnm-location-listing__summary" role="status">
           {degraded ? `Showing the published directory snapshot${sourceDateLabel ? ` from ${sourceDateLabel}` : ''}. ` : ''}
-          {directoryCount} {directoryCount === 1 ? 'venue' : 'venues'} found for {placeLabel}.
+          {directoryCount} {directoryCount === 1 ? 'venue' : 'venues'} Found For {placeLabel}.
         </p>
 
         {states.length > 0 && (
           <section aria-labelledby="pnm-states-heading">
             <header className="pnm-location-listing__section-head">
-              <span>Regional index</span>
-              <h2 id="pnm-states-heading">Browse poker venues by state</h2>
-              <p>Move from the national network into room profiles, city indexes, and live discovery tools.</p>
+              <span>Regional Index</span>
+              <h2 id="pnm-states-heading">Browse Poker Venues By State</h2>
+              <p>Move From The National Network Into Room Profiles, City Indexes, And Live Discovery Tools.</p>
             </header>
             <div className="pnm-location-listing__states">
               {states.map((state) => (
                 <Link key={state.code} href={state.href} className="pnm-location-listing__state">
-                  <span>{state.name}</span><small>{state.venueCount} venues · {state.cityCount} cities</small>
+                  <span>{state.name}</span><small>{state.venueCount} Venues · {state.cityCount} Cities</small>
                 </Link>
               ))}
             </div>
@@ -201,14 +201,14 @@ export default function PokerNearMeLocationPage({
         {cities.length > 0 && (
           <section aria-labelledby="pnm-cities-heading">
             <header className="pnm-location-listing__section-head">
-              <span>City circuits</span>
-              <h2 id="pnm-cities-heading">Browse poker venues by city</h2>
-              <p>Open a focused local directory without losing the wider {stateName || stateCode} network.</p>
+              <span>City Circuits</span>
+              <h2 id="pnm-cities-heading">Browse Poker Venues By City</h2>
+              <p>Open A Focused Local Directory Without Losing The Wider {stateName || stateCode} Network.</p>
             </header>
             <div className="pnm-location-listing__states">
               {cities.map((entry) => (
                 <Link key={entry.href} href={entry.href} className="pnm-location-listing__state">
-                  <span>{entry.name}</span><small>{entry.venueCount} venues</small>
+                  <span>{entry.name}</span><small>{entry.venueCount} Venues</small>
                 </Link>
               ))}
             </div>
@@ -218,9 +218,9 @@ export default function PokerNearMeLocationPage({
         {venues.length > 0 && (
           <section aria-labelledby="pnm-venues-heading">
             <header className="pnm-location-listing__section-head">
-              <span>Directory room signals</span>
-              <h2 id="pnm-venues-heading">Poker venues in {placeLabel}</h2>
-              <p>Open a room profile for schedules, games, venue details, and current discovery signals.</p>
+              <span>Directory Room Signals</span>
+              <h2 id="pnm-venues-heading">Poker Venues In {placeLabel}</h2>
+              <p>Open A Room Profile For Schedules, Games, Venue Details, And Current Discovery Signals.</p>
             </header>
             <div className="pnm-location-listing__grid">
               {venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
@@ -230,9 +230,9 @@ export default function PokerNearMeLocationPage({
 
         {directoryCount === 0 && (
           <section className="pnm-empty-state" aria-labelledby="pnm-empty-title">
-            <h2 id="pnm-empty-title">No venue profiles found yet</h2>
-            <p>Try the live map or a nearby state while the directory expands.</p>
-            <Link href="/hub/poker-near-me/map">Explore the map</Link>
+            <h2 id="pnm-empty-title">No Venue Profiles Found Yet</h2>
+            <p>Try The Live Map Or A Nearby State While The Directory Expands.</p>
+            <Link href="/hub/poker-near-me/map">Explore The Map</Link>
           </section>
         )}
       </main>

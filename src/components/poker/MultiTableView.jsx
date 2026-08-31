@@ -440,7 +440,7 @@ function CloseConfirmation({ tableName, onConfirm, onCancel }) {
           Leave Table?
         </div>
         <div style={{ color: T.textDim, fontSize: 13, marginBottom: 16, lineHeight: 1.4 }}>
-          You&apos;ll be stood up from <strong style={{ color: T.textBright }}>{tableName}</strong>.
+          You&apos;Ll Be Stood Up From <strong style={{ color: T.textBright }}>{tableName}</strong>.
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -568,7 +568,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
           BAD BEAT JACKPOT!
         </h2>
         <p style={{ color: '#fff', fontSize: 16, margin: '4px 0' }}>
-          {bbjData.loserHand} <span style={{ color: T.danger }}>loses to</span> {bbjData.winnerHand}
+          {bbjData.loserHand} <span style={{ color: T.danger }}>Loses To</span> {bbjData.winnerHand}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 24, margin: '16px 0' }}>
           <div>
@@ -591,7 +591,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
           </div>
         </div>
         <p style={{ color: T.textDim, fontSize: 12, margin: '8px 0 0' }}>
-          Total: {Number(bbjData.totalPayout || 0).toLocaleString()} — Click to dismiss
+          Total: {Number(bbjData.totalPayout || 0).toLocaleString()} - Click To Dismiss
         </p>
       </div>
     </div>
@@ -873,7 +873,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}></div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>No Tables Open</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            Tap a &quot;+&quot; slot to open a table from the lobby
+            Tap A &quot;+&quot; Slot To Open A Table From The Lobby
           </div>
         </div>
       </div>

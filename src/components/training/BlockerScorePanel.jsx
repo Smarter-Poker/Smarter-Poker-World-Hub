@@ -214,7 +214,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
             <div style={{
                 padding: 20, textAlign: 'center', color: '#475569', fontSize: 12,
             }}>
-                Select a hand combo from the grid to see blocker analysis
+                Select A Hand Combo From The Grid To See Blocker Analysis
             </div>
         );
     }
@@ -292,10 +292,10 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 10, color: '#64748b', lineHeight: 1.5,
             }}>
-                <strong style={{ color: '#94a3b8' }}>How to read:</strong> Blocking villain's{' '}
-                <span style={{ color: '#22c55e' }}>bluffs</span> is good (they can't bluff as often).
-                Blocking their <span style={{ color: '#ef4444' }}>value</span> means they fold those combos
-                (bad for your bluff catch equity). High composite = strong blocker hand.
+                <strong style={{ color: '#94a3b8' }}>How To Read:</strong> Blocking villain's{' '}
+                <span style={{ color: '#22c55e' }}>Bluffs</span> Is Good (They Can't Bluff As Often).
+                Blocking Their <span style={{ color: '#ef4444' }}>Value</span> Means They Fold Those Combos
+                (Bad For Your Bluff Catch Equity). High Composite = Strong Blocker Hand.
             </div>
         </motion.div>
     );

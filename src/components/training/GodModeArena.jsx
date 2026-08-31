@@ -633,7 +633,7 @@ function AccuracyByPositionChart({ handHistory }) {
           marginBottom: 8,
         }}
       >
-        Accuracy by Position
+        Accuracy By Position
       </div>
       {positions.map((pos) => {
         const pct =
@@ -798,7 +798,7 @@ function WeaknessHeatmap({ handHistory }) {
         ))}
       </div>
       <div style={{ fontSize: 9, color: '#64748b', marginTop: 6, textAlign: 'center' }}>
-        Green = 80%+ | Yellow = 60-79% | Orange = 40-59% | Red = under 40%
+        Green = 80%+ | Yellow = 60-79% | Orange = 40-59% | Red = Under 40%
       </div>
     </div>
   );
@@ -1185,7 +1185,7 @@ function HandHistoryImportModal({
               cursor: 'pointer',
             }}
           >
-            x
+            X
           </button>
         </div>
 
@@ -1406,7 +1406,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
           color: '#64748b',
         }}
       >
-        Loading flashcards...
+        Loading Flashcards...
       </div>
     );
   }
@@ -1657,7 +1657,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
           {flipped ? card?.back || 'No answer' : card?.front || 'No question'}
         </div>
         {!flipped && (
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 12 }}>Tap to reveal answer</div>
+          <div style={{ fontSize: 10, color: '#475569', marginTop: 12 }}>Tap To Reveal Answer</div>
         )}
       </div>
 
@@ -1718,7 +1718,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
           cursor: 'pointer',
         }}
       >
-        ← Back to Training
+        ← Back To Training
       </button>
     </div>
   );
@@ -1910,7 +1910,7 @@ function DrillMode({
           Drill Complete!
         </div>
         <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
-          20 rapid-fire decisions
+          20 Rapid-Fire Decisions
         </div>
         <div style={{ display: 'flex', gap: 20, marginBottom: 24 }}>
           <div style={{ textAlign: 'center' }}>
@@ -2013,7 +2013,7 @@ function DrillMode({
           color: '#64748b',
         }}
       >
-        Loading drill question...
+        Loading Drill Question...
       </div>
     );
   }
@@ -2477,7 +2477,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 70 }) {
           >
             {achieved ? 'Daily Challenge Complete!' : 'Daily Challenge'}
           </div>
-          <div style={{ fontSize: 10, color: '#94a3b8' }}>Score {formatSignedScore(targetScore)}+ this session</div>
+          <div style={{ fontSize: 10, color: '#94a3b8' }}>Score {formatSignedScore(targetScore)}+ This Session</div>
         </div>
       </div>
       <div
@@ -2884,7 +2884,7 @@ function GodModeArenaInner({
 
         const areas = [];
         if (cc.blunder > 0)
-          areas.push(`${cc.blunder} blunder${cc.blunder > 1 ? 's' : ''} — review these hands`);
+          areas.push(`${cc.blunder} blunder${cc.blunder > 1 ? 's' : ''} - review these hands`);
         if (weakSpots.length > 0) {
           const worst = weakSpots[0];
           areas.push(
@@ -2907,14 +2907,14 @@ function GodModeArenaInner({
             acc >= 90 ? 'A+' : acc >= 80 ? 'A' : acc >= 70 ? 'B' : acc >= 60 ? 'C' : 'D',
           headline:
             acc >= 90
-              ? 'Exceptional session — GTO mastery in action.'
+              ? 'Exceptional session - GTO mastery in action.'
               : acc >= 80
-                ? 'Strong session — your GTO fundamentals are solid.'
+                ? 'Strong session - your GTO fundamentals are solid.'
                 : acc >= 70
-                  ? 'Good session — a few spots to tighten up.'
+                  ? 'Good session - a few spots to tighten up.'
                   : acc >= 60
                     ? 'Decent session with room for improvement.'
-                    : 'Focus on the basics — review your biggest mistakes.',
+                    : 'Focus on the basics - review your biggest mistakes.',
           strengths,
           areasToImprove: areas,
           detailedFeedback: feedback,
@@ -3668,7 +3668,7 @@ function GodModeArenaInner({
                 fontSize: 14,
               }}
             >
-              Back to Training
+              Back To Training
             </button>
           </div>
         </div>
@@ -4547,13 +4547,13 @@ function GodModeArenaInner({
                       if (leak.type === 'fold_too_much')
                         tips.push({
                           priority: 1,
-                          text: "You're folding too often. Practice defending wider — use pot odds to decide close calls.",
+                          text: "You're folding too often. Practice defending wider - use pot odds to decide close calls.",
                           color: '#ef4444',
                         });
                       else if (leak.type === 'call_too_much')
                         tips.push({
                           priority: 1,
-                          text: 'Over-calling is costing you. Tighten up against aggression — not every pair is worth a call.',
+                          text: 'Over-calling is costing you. Tighten up against aggression - not every pair is worth a call.',
                           color: '#ef4444',
                         });
                       else if (leak.type === 'bet_too_small')
@@ -4571,7 +4571,7 @@ function GodModeArenaInner({
                       else if (leak.type === 'missed_value')
                         tips.push({
                           priority: 1,
-                          text: "You're missing value bets. When you have a strong hand, bet for value — don't be afraid to build the pot.",
+                          text: "You're missing value bets. When you have a strong hand, bet for value - don't be afraid to build the pot.",
                           color: '#ef4444',
                         });
                       else if (leak.type === 'bluff_too_much')
@@ -4634,7 +4634,7 @@ function GodModeArenaInner({
                       else
                         tips.push({
                           priority: 3,
-                          text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% — review board texture analysis for this street.`,
+                          text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% - review board texture analysis for this street.`,
                           color: '#fbbf24',
                         });
                     });
@@ -4656,7 +4656,7 @@ function GodModeArenaInner({
                   if (avgEVLossPerHand > 0.3) {
                     tips.push({
                       priority: 1,
-                      text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders — those cost the most.`,
+                      text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders - those cost the most.`,
                       color: '#ef4444',
                     });
                   } else if (avgEVLossPerHand > 0.1) {
@@ -4829,7 +4829,7 @@ function GodModeArenaInner({
                         padding: '8px 0',
                       }}
                     >
-                      Analyzing your session...
+                      Analyzing Your Session...
                     </motion.div>
                   )}
 
@@ -5118,8 +5118,8 @@ function GodModeArenaInner({
                         Most Costly Spots
                       </div>
                       <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                        -{totalEVLoss.toFixed(1)} BB total · -
-                        {Math.abs(avgEVLossPerMistake).toFixed(2)} BB/mistake
+                        -{totalEVLoss.toFixed(1)} BB Total · -
+                        {Math.abs(avgEVLossPerMistake).toFixed(2)} BB/Mistake
                       </div>
                     </div>
                     {leaks.map((leak, idx) => {
@@ -5157,7 +5157,7 @@ function GodModeArenaInner({
                               minWidth: 30,
                             }}
                           >
-                            {leak.heroPosition || '—'}
+                            {leak.heroPosition || '-'}
                           </span>
                           <span
                             style={{
@@ -5168,7 +5168,7 @@ function GodModeArenaInner({
                               minWidth: 42,
                             }}
                           >
-                            {leak.street || '—'}
+                            {leak.street || '-'}
                           </span>
                           <span
                             style={{
@@ -5277,10 +5277,10 @@ function GodModeArenaInner({
                   </div>
                   <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
                     {mixedStrategyScore >= 60
-                      ? 'Great mixing — GTO-balanced!'
+                      ? 'Great mixing - GTO-balanced!'
                       : mixedStrategyScore >= 35
-                        ? 'Moderate — try diversifying your actions'
-                        : 'Too predictable — mix in more actions'}
+                        ? 'Moderate - try diversifying your actions'
+                        : 'Too predictable - mix in more actions'}
                   </div>
                 </div>
               )}
@@ -5398,7 +5398,7 @@ function GodModeArenaInner({
                           marginBottom: 8,
                         }}
                       >
-                        EV Loss by Street
+                        EV Loss By Street
                       </div>
                       {['preflop', 'flop', 'turn', 'river'].map((s) => (
                         <div
@@ -5508,11 +5508,11 @@ function GodModeArenaInner({
                         WEAKEST SPOT
                       </div>
                       <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
-                        You leaked {worst[1].evLoss.toFixed(1)} BB on{' '}
-                        <span style={{ color: '#00d4ff' }}>{worst[0]}</span> decisions
+                        You Leaked {worst[1].evLoss.toFixed(1)} BB on{' '}
+                        <span style={{ color: '#00d4ff' }}>{worst[0]}</span> Decisions
                       </div>
                       <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                        {worst[1].mistakes} mistake{worst[1].mistakes !== 1 ? 's' : ''} out of{' '}
+                        {worst[1].mistakes} mistake{worst[1].mistakes !== 1 ? 's' : ''} Out of{' '}
                         {worst[1].total} hand{worst[1].total !== 1 ? 's' : ''}
                       </div>
                     </motion.div>
@@ -5649,7 +5649,7 @@ function GodModeArenaInner({
                     gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay — Review with GTO Line
+                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay - Review With GTO Line
                 </motion.button>
               )}
             </>
@@ -5702,7 +5702,7 @@ function GodModeArenaInner({
                           Mistake Clusters
                         </div>
                         <div style={{ fontSize: 10, color: '#64748b' }}>
-                          {totalMistakes} mistake{totalMistakes === 1 ? '' : 's'} this session
+                          {totalMistakes} mistake{totalMistakes === 1 ? '' : 's'} This Session
                         </div>
                       </div>
                       {clusters.length === 0 ? (
@@ -5715,8 +5715,8 @@ function GodModeArenaInner({
                           }}
                         >
                           {totalMistakes === 0
-                            ? '✓ No mistakes to cluster — clean session.'
-                            : 'Mistakes were one-offs — no repeated pattern formed.'}
+                            ? '✓ No mistakes to cluster - clean session.'
+                            : 'Mistakes were one-offs - no repeated pattern formed.'}
                         </div>
                       ) : (
                         clusters.map((c, i) => (
@@ -5740,7 +5740,7 @@ function GodModeArenaInner({
                               >
                                 {c.street} · {c.userAction}{' '}
                                 <span style={{ color: '#64748b', textTransform: 'none' }}>
-                                  instead of
+                                  Instead Of
                                 </span>{' '}
                                 {c.solverAction}
                               </span>
@@ -5803,7 +5803,7 @@ function GodModeArenaInner({
                           color: '#94a3b8',
                         }}
                       >
-                        Critical-hand highlights unlock after 5 graded hands.
+                        Critical-Hand Highlights Unlock After 5 Graded Hands.
                       </div>
                     );
                   }
@@ -5845,7 +5845,7 @@ function GodModeArenaInner({
                               fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}
                           >
-                            -{ch.summaryEVLost.toFixed(2)} BB in the worst spots
+                            -{ch.summaryEVLost.toFixed(2)} BB In The Worst Spots
                           </div>
                         )}
                       </div>
@@ -5895,7 +5895,7 @@ function GodModeArenaInner({
                           </div>
                           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
                             {m.userAction}{' '}
-                            <span style={{ color: '#64748b' }}>→ solver wanted</span>{' '}
+                            <span style={{ color: '#64748b' }}>→ Solver Wanted</span>{' '}
                             <span style={{ color: '#22c55e', fontWeight: 700 }}>
                               {m.correctAction}
                             </span>
@@ -5939,7 +5939,7 @@ function GodModeArenaInner({
                             </span>
                           </div>
                           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
-                            Correct in a tough spot — well played.
+                            Correct In A Tough Spot - Well Played.
                           </div>
                         </div>
                       ))}
@@ -5968,7 +5968,7 @@ function GodModeArenaInner({
                           color: '#94a3b8',
                         }}
                       >
-                        Streak analysis unlocks after 5 graded hands.
+                        Streak Analysis Unlocks After 5 Graded Hands.
                       </div>
                     );
                   }
@@ -6115,7 +6115,7 @@ function GodModeArenaInner({
                       </div>
                       {sa.tiltAfterMistake + sa.recoveryAfterMistake > 0 && (
                         <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
-                          After a miss: recovered {sa.recoveryAfterMistake}×, missed again{' '}
+                          After A Miss: Recovered {sa.recoveryAfterMistake}×, Missed again{' '}
                           {sa.tiltAfterMistake}×.
                         </div>
                       )}
@@ -6152,7 +6152,7 @@ function GodModeArenaInner({
                           color: '#94a3b8',
                         }}
                       >
-                        The EV-loss heatmap unlocks after 3 graded hands.
+                        The EV-Loss Heatmap Unlocks After 3 Graded Hands.
                       </div>
                     );
                   }
@@ -6178,7 +6178,7 @@ function GodModeArenaInner({
                           marginBottom: 12,
                         }}
                       >
-                        Where the EV Went
+                        Where The EV Went
                       </div>
                       <div
                         style={{
@@ -6256,7 +6256,7 @@ function GodModeArenaInner({
                                       ? hot
                                         ? `-${cell.avgEVLoss.toFixed(2)}`
                                         : '✓'
-                                      : '—'}
+                                      : '-'}
                                   </div>
                                   {cell && cell.hands > 0 && (
                                     <div style={{ fontSize: 8, color: '#64748b' }}>
@@ -6270,7 +6270,7 @@ function GodModeArenaInner({
                         ))}
                       </div>
                       <div style={{ fontSize: 9, color: '#64748b', marginTop: 8 }}>
-                        Avg BB lost per decision. Redder = costlier. ✓ = played at zero loss.
+                        Avg BB Lost Per Decision. Redder = Costlier. ✓ = Played At Zero Loss.
                       </div>
                     </div>
                   );
@@ -6405,7 +6405,7 @@ function GodModeArenaInner({
                           color: '#94a3b8',
                         }}
                       >
-                        Decision-type breakdown unlocks after 5 graded hands.
+                        Decision-Type Breakdown Unlocks After 5 Graded Hands.
                       </div>
                     );
                   }
@@ -6431,7 +6431,7 @@ function GodModeArenaInner({
                           marginBottom: 12,
                         }}
                       >
-                        Accuracy by Decision Type
+                        Accuracy By Decision Type
                       </div>
                       {nb.breakdown.map((n) => (
                         <div key={n.nodeType} style={{ marginBottom: 10 }}>
@@ -6451,7 +6451,7 @@ function GodModeArenaInner({
                                   <span
                                     style={{ color: '#ef4444', fontWeight: 800, marginLeft: 6 }}
                                   >
-                                    ▼ weakest
+                                    ▼ Weakest
                                   </span>
                                 )}
                             </span>
@@ -6521,7 +6521,7 @@ function GodModeArenaInner({
                           color: '#94a3b8',
                         }}
                       >
-                        Concept mastery unlocks after 3 graded hands.
+                        Concept Mastery Unlocks After 3 Graded Hands.
                       </div>
                     );
                   }
@@ -6566,7 +6566,7 @@ function GodModeArenaInner({
                         >
                           {cm.masteredCount}
                           <span style={{ color: '#64748b', fontWeight: 600 }}>
-                            /{cm.totalConcepts} mastered
+                            /{cm.totalConcepts} Mastered
                           </span>
                         </div>
                       </div>
@@ -6650,7 +6650,7 @@ function GodModeArenaInner({
                               border: '1px solid rgba(239,68,68,0.25)',
                             }}
                           >
-                            Work on: {cm.weakestConcept.name}
+                            Work On: {cm.weakestConcept.name}
                           </span>
                           <span
                             style={{
@@ -7426,7 +7426,7 @@ function GodModeArenaInner({
                               color: '#e2e8f0',
                             }}
                           >
-                            {pacing.avgTimePerHand.toFixed(1)}s / hand
+                            {pacing.avgTimePerHand.toFixed(1)}s / Hand
                           </span>
                         </div>
                         <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>
@@ -7524,7 +7524,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Performance by Hand Type
+                          Performance By Hand Type
                         </div>
                         {breakdown.categories.map((cat, i) => (
                           <div
@@ -7560,7 +7560,7 @@ function GodModeArenaInner({
                                 {cat.accuracy}%
                               </span>
                               <span style={{ fontSize: 9, color: '#64748b' }}>
-                                ({cat.total} hands)
+                                ({cat.total} Hands)
                               </span>
                             </div>
                           </div>
@@ -7600,7 +7600,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          vs Average Player
+                          Vs Average Player
                         </div>
                         {comparison.improvements.map((imp, i) => (
                           <div
@@ -7734,7 +7734,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Mistake Patterns ({clusters.totalMistakes} total)
+                          Mistake Patterns ({clusters.totalMistakes} Total)
                         </div>
                         {clusters.clusters.slice(0, 5).map((c, i) => (
                           <div
@@ -7810,7 +7810,7 @@ function GodModeArenaInner({
                               color: '#e2e8f0',
                             }}
                           >
-                            {bvr.userBluffPct}% bluffs (solver: {bvr.solverBluffPct}%)
+                            {bvr.userBluffPct}% Bluffs (Solver: {bvr.solverBluffPct}%)
                           </span>
                         </div>
                         <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>
@@ -7848,7 +7848,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Action Frequency vs Solver
+                          Action Frequency Vs Solver
                         </div>
                         {freqs.frequencies.map((f, i) => (
                           <div
@@ -8679,7 +8679,7 @@ function GodModeArenaInner({
                               marginBottom: 6,
                             }}
                           >
-                            <span style={{ fontSize: 10, color: '#94a3b8' }}>vs Bets</span>
+                            <span style={{ fontSize: 10, color: '#94a3b8' }}>Vs Bets</span>
                             <span
                               style={{
                                 fontSize: 11,
@@ -8691,7 +8691,7 @@ function GodModeArenaInner({
                                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                               }}
                             >
-                              {df.facingBet.defendPct}% defend
+                              {df.facingBet.defendPct}% Defend
                             </span>
                           </div>
                         )}
@@ -8874,7 +8874,7 @@ function GodModeArenaInner({
                               fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}
                           >
-                            {mr.avgRecoveryTime} hands
+                            {mr.avgRecoveryTime} Hands
                           </span>
                         </div>
                         <div
@@ -9061,7 +9061,7 @@ function GodModeArenaInner({
                             }}
                           >
                             <span style={{ fontWeight: 700 }}>#{m.handNumber}</span> {m.userAction}{' '}
-                            → should be {m.correctAction}{' '}
+                            → Should Be {m.correctAction}{' '}
                             <span style={{ color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                               (-{m.evLoss} EV)
                             </span>
@@ -9078,7 +9078,7 @@ function GodModeArenaInner({
                             }}
                           >
                             <span style={{ fontWeight: 700 }}>#{d.handNumber}</span> {d.action} on{' '}
-                            {d.street} — great play!
+                            {d.street} - Great Play!
                           </div>
                         ))}
                       </div>
@@ -9178,7 +9178,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Top Leaks by Street
+                          Top Leaks By Street
                         </div>
                         {ssl.leaks.slice(0, 5).map((l, i) => (
                           <div
@@ -9341,7 +9341,7 @@ function GodModeArenaInner({
                               marginTop: 6,
                             }}
                           >
-                            Weakest: {ppa.weakestMatchup.matchup} at {ppa.weakestMatchup.accuracy}%
+                            Weakest: {ppa.weakestMatchup.matchup} At {ppa.weakestMatchup.accuracy}%
                           </div>
                         )}
                       </div>
@@ -9501,7 +9501,7 @@ function GodModeArenaInner({
                           }}
                         >
                           <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                            {ssl.currentLength} / {ssl.optimalLength} hands
+                            {ssl.currentLength} / {ssl.optimalLength} Hands
                           </span>
                           <span style={{ fontSize: 10, fontWeight: 700, color: barColor }}>
                             {pctDone}%
@@ -9556,7 +9556,7 @@ function GodModeArenaInner({
                               {s.label}
                             </div>
                             <div style={{ fontSize: 9, color: '#94a3b8' }}>
-                              {s.focus} — {s.hands} hands — {s.goal}
+                              {s.focus} - {s.hands} Hands - {s.goal}
                             </div>
                           </div>
                         ))}
@@ -9569,7 +9569,7 @@ function GodModeArenaInner({
                               marginTop: 6,
                             }}
                           >
-                            Estimated improvement: +{tp.estimatedImprovement}% accuracy
+                            Estimated Improvement: +{tp.estimatedImprovement}% Accuracy
                           </div>
                         )}
                       </div>
@@ -9648,7 +9648,7 @@ function GodModeArenaInner({
                               {er.oopAccuracy}%
                             </div>
                             <div style={{ fontSize: 9, color: '#64748b' }}>
-                              Out of Position ({er.oopHands})
+                              Out Of Position ({er.oopHands})
                             </div>
                           </div>
                         </div>
@@ -9687,7 +9687,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Mixed vs Pure Spots
+                          Mixed Vs Pure Spots
                         </div>
                         <div
                           style={{
@@ -9729,7 +9729,7 @@ function GodModeArenaInner({
                         </div>
                         {ms.gap !== null && ms.gap > 15 && (
                           <div style={{ fontSize: 10, color: '#fbbf24', fontStyle: 'italic' }}>
-                            Gap of {ms.gap}% — mixed spots need work
+                            Gap Of {ms.gap}% - Mixed Spots Need Work
                           </div>
                         )}
                         <div
@@ -9859,7 +9859,7 @@ function GodModeArenaInner({
                             marginBottom: 8,
                           }}
                         >
-                          Fold Frequency vs Solver
+                          Fold Frequency Vs Solver
                         </div>
                         <div
                           style={{
@@ -10047,7 +10047,7 @@ function GodModeArenaInner({
                               marginTop: 6,
                             }}
                           >
-                            Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} —{' '}
+                            Weakest: {wh.weakestCell.position} On {wh.weakestCell.street} -{' '}
                             {wh.weakestCell.accuracy}%
                           </div>
                         )}
@@ -10950,8 +10950,8 @@ function GodModeArenaInner({
                   </h3>
                 </div>
                 <p style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5, marginBottom: 12 }}>
-                  Interactive visualization of the solver game tree. Click nodes to expand branches.
-                  Edge thickness indicates action frequency. Select a hand below to see its tree.
+                  Interactive Visualization Of The Solver Game Tree. Click Nodes To Expand Branches.
+                  Edge Thickness Indicates Action Frequency. Select A Hand Below To See Its Tree.
                 </p>
 
                 {/* Hand selector for game tree */}
@@ -11046,7 +11046,7 @@ function GodModeArenaInner({
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: 24, color: '#475569', fontSize: 12 }}>
-                    Play some hands first to see the solver decision tree here.
+                    Play Some Hands First To See The Solver Decision Tree Here.
                   </div>
                 )}
               </div>
@@ -12920,7 +12920,7 @@ function GodModeArenaInner({
               }}
             >
               <span style={{ fontSize: 16 }}>{'\u2190'}</span>
-              Back to Training
+              Back To Training
             </motion.button>
           </div>
 
@@ -13120,7 +13120,7 @@ function GodModeArenaInner({
                     {gameName || 'GTO Training'}
                   </div>
                   <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
-                    Level {currentLevel} of {totalLevels || 12} • {totalQuestions || 25} Questions
+                    Level {currentLevel} Of {totalLevels || 12} • {totalQuestions || 25} Questions
                   </div>
                   {(() => {
                     const levelDef = getLevel(currentLevel);
@@ -13135,7 +13135,7 @@ function GodModeArenaInner({
                           letterSpacing: 0.5,
                         }}
                       >
-                        {levelDef.name} — {String(levelDef.tier || '').toLowerCase()}
+                        {levelDef.name} - {String(levelDef.tier || '').toLowerCase()}
                       </div>
                     ) : null;
                   })()}
@@ -13169,12 +13169,12 @@ function GodModeArenaInner({
                     Session Goal
                   </div>
                   <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
-                    Score ≥{passThreshold || 85}% to advance to Level{' '}
+                    Score ≥{passThreshold || 85}% To Advance To Level{' '}
                     {Math.min(currentLevel + 1, totalLevels || 12)}
                   </div>
                   <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
                     Answer {requiredCorrect || Math.ceil((totalQuestions || 25) * 0.85)} of{' '}
-                    {totalQuestions || 25} questions correctly
+                    {totalQuestions || 25} Questions Correctly
                   </div>
                 </motion.div>
 
@@ -13217,7 +13217,7 @@ function GodModeArenaInner({
                         >
                           {crossSessionAnalytics.milestones.last5Avg ||
                             crossSessionAnalytics.milestones.overallAccuracy ||
-                            '—'}
+                            '-'}
                           %
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
@@ -13489,10 +13489,10 @@ function GodModeArenaInner({
                   >
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>
-                        {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due for Review
+                        {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due For Review
                       </div>
                       <div style={{ fontSize: 9, color: '#64748b' }}>
-                        Reviewing now maximizes long-term retention
+                        Reviewing Now Maximizes Long-Term Retention
                       </div>
                     </div>
                     <span style={{ fontSize: 20 }}>↻</span>
@@ -13558,7 +13558,7 @@ function GodModeArenaInner({
                     cursor: 'pointer',
                   }}
                 >
-                  ← Back to Training
+                  ← Back To Training
                 </motion.button>
               </div>
             </motion.div>

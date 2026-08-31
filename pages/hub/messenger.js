@@ -2077,7 +2077,7 @@ function MessengerPage() {
             const capped = messages.slice(-JARVIS_HISTORY_CAP);
             localStorage.setItem('jarvis_messenger_history', JSON.stringify(capped));
         } catch (e) {
-            console.warn('[Jarvis] localStorage quota exceeded — history not saved:', e?.message);
+            console.warn('[Jarvis] localStorage quota exceeded - history not saved:', e?.message);
         }
     };
 
@@ -2916,7 +2916,7 @@ function MessengerPage() {
             if (isRequest) {
                 setToast({
                     type: 'info',
-                    message: `${otherUser.full_name || otherUser.username} isn't your friend — your message will be sent as a request`
+                    message: `${otherUser.full_name || otherUser.username} isn't your friend - your message will be sent as a request`
                 });
             }
         } catch (e) {
@@ -2995,7 +2995,7 @@ function MessengerPage() {
                 const onlineSet = new Set(Object.keys(state || {}));
                 setOnlineUsers(onlineSet);
                 if (process.env.NODE_ENV === 'development') {
-                    console.debug('[Presence] Sync — online users:', onlineSet.size);
+                    console.debug('[Presence] Sync - online users:', onlineSet.size);
                 }
 
                 // Update active conversation's other user status in real-time
@@ -3612,7 +3612,7 @@ function MessengerPage() {
         return (
             <>
                 <SEOHead
-                    title="Messenger — Direct Messages"
+                    title="Messenger - Direct Messages"
                     description="Chat With Friends And Poker Players Directly On Smarter.Poker Messenger."
                     canonical="/hub/messenger"
                 />

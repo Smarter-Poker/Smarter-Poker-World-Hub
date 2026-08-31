@@ -283,7 +283,7 @@ export default function TimeAttackGame({
                 </div>
                 <div className="stat">
                     <Zap size={18} />
-                    <span>{fastAnswers} fast</span>
+                    <span>{fastAnswers} Fast</span>
                 </div>
                 <div className="stat diamonds">
                     <Gem size={18} />

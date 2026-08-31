@@ -71,8 +71,8 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                 {!projection && (
                     <>
                         <div style={styles.description}>
-                            Run a Monte Carlo simulation based on your historical performance to project
-                            potential outcomes.
+                            Run A Monte Carlo Simulation Based On Your Historical Performance To Project
+                            Potential Outcomes.
                         </div>
 
                         <div style={styles.form}>
@@ -107,7 +107,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                                 ...(settings.projectionDays === days ? styles.periodBtnActive : {})
                                             }}
                                         >
-                                            {days} days
+                                            {days} Days
                                         </button>
                                     ))}
                                 </div>
@@ -133,7 +133,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                         <div style={styles.resultsHeader}>
                             <span style={styles.timeframe}>{projection.projection.timeframe}</span>
                             <span style={styles.simCount}>
-                                {projection.projection.simulationRuns.toLocaleString()} simulations
+                                {projection.projection.simulationRuns.toLocaleString()} Simulations
                             </span>
                         </div>
 
@@ -209,7 +209,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 Std Dev: ±${projection.inputs.sessionStdDev}
                             </span>
                             <span style={styles.inputItem}>
-                                Based on {projection.inputs.historicalSessions} sessions
+                                Based On {projection.inputs.historicalSessions} Sessions
                             </span>
                         </div>
 

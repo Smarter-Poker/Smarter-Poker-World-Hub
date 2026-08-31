@@ -87,7 +87,7 @@ export default async function handler(req, res) {
         }
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn('[Venue Scraper] SUPABASE_SERVICE_ROLE_KEY missing — refusing to run as anon');
+            console.warn('[Venue Scraper] SUPABASE_SERVICE_ROLE_KEY missing - refusing to run as anon');
             return res.status(500).json({ error: 'Server misconfigured: service role key unavailable' });
         }
 
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
 
             const prompt = `You are a poker venue data extractor. Visit each venue website below and extract their DAILY TOURNAMENT SCHEDULE and any current PROMOTIONS or NEWS.
 
-VENUES TO SCRAPE (Tier 1 — Direct Websites):
+VENUES TO SCRAPE (Tier 1 - Direct Websites):
 ${venueList}
 
 For EACH venue, extract:
@@ -195,7 +195,7 @@ POST body format:
 
             const prompt = `You are a poker venue data extractor. Visit each aggregator page below and extract the DAILY TOURNAMENT SCHEDULE.
 
-VENUES TO SCRAPE (Tier 2 — Aggregator Fallback):
+VENUES TO SCRAPE (Tier 2 - Aggregator Fallback):
 ${venueList}
 
 For EACH venue, extract:

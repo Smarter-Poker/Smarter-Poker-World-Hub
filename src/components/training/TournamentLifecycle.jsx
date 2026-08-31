@@ -24,7 +24,7 @@ const MTT_STAGES = [
   { stage: 'In the Money (20-40 BB)', icon: '●', color: '#8b5cf6',
     blinds: 'Levels 12+ | Pay jumps matter',
     strategy: 'After the bubble bursts, play for the win, not laddering. Re-accumulate aggressively.',
-    avoid: 'Don\'t play scared money. Min-cashing is not the goal — you want a deep run.',
+    avoid: 'Don\'t play scared money. Min-cashing is not the goal - you want a deep run.',
     key: 'The payout structure is top-heavy. 1st place is 20-30% of the total pool. Play to win.' },
   { stage: 'Final Table (10 BB - Deep)', icon: '★', color: '#ef4444',
     blinds: 'High | ICM: Critical at pay jumps',
@@ -42,7 +42,7 @@ export default function TournamentLifecycle() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ■ Tournament Lifecycle
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Adjust strategy through every MTT phase.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Adjust Strategy Through Every MTT Phase.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {MTT_STAGES.map((s, i) => (

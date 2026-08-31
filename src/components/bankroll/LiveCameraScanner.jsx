@@ -520,7 +520,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     </div>
                     <div style={styles.hint}>
                         <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center' }}>
-                            Outline wraps around receipt · Auto-captures when stable
+                            Outline Wraps Around Receipt · Auto-Captures When Stable
                         </p>
                     </div>
                 </>

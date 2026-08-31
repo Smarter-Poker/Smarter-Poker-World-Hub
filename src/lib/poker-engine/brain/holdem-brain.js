@@ -1140,7 +1140,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     // draws should NOT be folded by the RIO guard. The guard is for hands RELYING on
     // draw equity (pair + gutshot, weak pair + backdoor), not strong made hands.
     if (fbRioGuard.shouldBlock && drawEquity.outs > 0 && drawEquity.outs < 12 && effectiveStrength < 40) {
-        console.debug(`[HorseBrain]  MODULE 27 RIO FALLBACK: folding draw — ${fbRioGuard.reason}`);
+        console.debug(`[HorseBrain]  MODULE 27 RIO FALLBACK: folding draw - ${fbRioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
@@ -3432,7 +3432,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         }
                     }
 
-                    console.debug(`[HorseBrain]  TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(turnBluffFrac * 100)}% pot`);
+                    console.debug(`[HorseBrain]  TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} - ${Math.round(turnBluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * turnBluffFrac)) };
                 }
             }
@@ -4434,7 +4434,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                     probeFreq = Math.max(0, Math.min(0.55, probeFreq));
                     if (Math.random() < probeFreq) {
-                        console.debug(`[HorseBrain]  RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                        console.debug(`[HorseBrain]  RIVER PROBE: str=${handEval.strength} OOP after checked turn - ${Math.round(probeFrac * 100)}% pot live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeFrac)) };
                     }
                 }
@@ -4606,7 +4606,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         }
                     }
 
-                    console.debug(`[HorseBrain]  RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
+                    console.debug(`[HorseBrain]  RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} - ${Math.round(bluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffFrac)) };
                 }
             }

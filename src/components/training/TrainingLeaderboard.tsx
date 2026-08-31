@@ -101,12 +101,12 @@ export function TrainingLeaderboard({ userId, compact = false }) {
                                 <div style={styles.info}>
                                     <div style={styles.username}>{entry.username}</div>
                                     <div style={styles.stats}>
-                                        {entry.accuracy}% • {entry.questionsCorrect} correct
+                                        {entry.accuracy}% • {entry.questionsCorrect} Correct
                                     </div>
                                 </div>
                                 {/* 2026-07-19: totalXp removed from the API (XP system
                                     retired) — was rendering "+undefined". Show best streak. */}
-                                <div style={styles.xp}>{entry.bestStreak || 0} streak</div>
+                                <div style={styles.xp}>{entry.bestStreak || 0} Streak</div>
                             </motion.div>
                         ))}
                     </AnimatePresence>

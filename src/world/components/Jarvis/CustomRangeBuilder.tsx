@@ -396,7 +396,7 @@ Compare this to a standard ${compareTo} range and tell me:
                         cursor: Object.keys(customRange || {}).length > 0 ? 'pointer' : 'not-allowed'
                     }}
                 >
-                    📊 Grade vs GTO
+                    📊 Grade Vs GTO
                 </button>
                 <button
                     onClick={askJarvisToReview}
@@ -455,7 +455,7 @@ Compare this to a standard ${compareTo} range and tell me:
                     )}
                     {gradeResult.worstHands && gradeResult.worstHands.length > 0 && (
                         <div style={{ marginTop: '8px', fontSize: '10px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                            Biggest deviations: {gradeResult.worstHands.slice(0, 5).map((h: any) => h.hand).join(', ')}
+                            Biggest Deviations: {gradeResult.worstHands.slice(0, 5).map((h: any) => h.hand).join(', ')}
                         </div>
                     )}
                 </div>

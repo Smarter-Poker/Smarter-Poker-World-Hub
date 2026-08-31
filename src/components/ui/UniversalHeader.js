@@ -11,7 +11,7 @@
  * - "Smarter.Poker" in white text
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
  * - Profile picture (uploaded photo by default; Arena avatar only by opt-in)
- * - VIP card entitlement state with a subtle neon-white active outline
+ * - VIP card entitlement state without selector boxes
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
@@ -522,7 +522,7 @@ export default function UniversalHeader({
               const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
               if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
                 console.warn(
-                  '[UniversalHeader] REST fallback skipped — Supabase env not configured'
+                  '[UniversalHeader] REST fallback skipped - Supabase env not configured'
                 );
                 throw new Error('supabase-env-missing');
               }
@@ -1366,14 +1366,6 @@ export default function UniversalHeader({
                     pointer-events: none;
                 }
 
-                .approved-global-header__vip--active {
-                    border-radius: 12%;
-                    box-shadow:
-                        inset 0 0 0 1px rgba(255, 255, 255, .92),
-                        0 0 5px rgba(255, 255, 255, .75),
-                        0 0 10px rgba(210, 240, 255, .38);
-                }
-
                 .approved-global-header__badge {
                     position: absolute;
                     top: 3px;
@@ -1390,6 +1382,19 @@ export default function UniversalHeader({
                     color: #fff;
                     box-shadow: 0 2px 8px rgba(0,0,0,.72);
                     font: 800 11px/1 system-ui, sans-serif;
+                }
+
+                @media (max-width: 900px) {
+                    .approved-global-header__badge {
+                        top: 0;
+                        right: -2px;
+                        min-width: clamp(12px, 1.7vw, 18px);
+                        min-height: clamp(12px, 1.7vw, 18px);
+                        padding: 0 2px;
+                        border-width: 1px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,.72);
+                        font-size: clamp(7px, 1vw, 10px);
+                    }
                 }
 
                 @media (display-mode: standalone), (display-mode: fullscreen) {
@@ -1429,7 +1434,7 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
-            data-menu-symbol="command-grid"
+            data-menu-symbol="hamburger"
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()

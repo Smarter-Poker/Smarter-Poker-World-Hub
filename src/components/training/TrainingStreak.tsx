@@ -80,7 +80,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                 </div>
                 {streak?.longestStreak > currentStreak && (
                     <div style={styles.longestStreak}>
-                        Personal Best: {streak.longestStreak} days
+                        Personal Best: {streak.longestStreak} Days
                     </div>
                 )}
             </div>
@@ -114,7 +114,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                     <div style={styles.nextInfo}>
                         <span>{nextMilestone.name}</span>
                         <span style={{ color: '#888' }}>
-                            {nextMilestone.days - currentStreak} days to go
+                            {nextMilestone.days - currentStreak} Days To Go
                         </span>
                     </div>
                     <div style={styles.progressBar}>

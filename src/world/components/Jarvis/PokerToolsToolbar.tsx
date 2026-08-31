@@ -102,7 +102,7 @@ export function PokerToolsToolbar({ onAskQuestion }: PokerToolsToolbarProps) {
                             }}
                             title="Ask About C-betting"
                         >
-                            C-bet?
+                            C-Bet?
                         </button>
                     </>
                 )}

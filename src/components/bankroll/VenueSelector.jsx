@@ -230,7 +230,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                                 onClick={() => setShowMapPicker(true)}
                                 style={styles.locationBtn}
                             >
-                                📍 Add to Map
+                                📍 Add To Map
                             </button>
                             <button
                                 type="button"

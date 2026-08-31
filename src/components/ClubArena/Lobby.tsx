@@ -51,7 +51,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                 <div style={popupStyles.header}>
                     <div style={popupStyles.warningIcon}>⚠️</div>
                     <h2 style={popupStyles.title}>Software Neutrality Disclaimer</h2>
-                    <p style={popupStyles.subtitle}>Club Arena — Play Money Home Games</p>
+                    <p style={popupStyles.subtitle}>Club Arena - Play Money Home Games</p>
                 </div>
 
                 {/* Disclaimer Content */}
@@ -80,7 +80,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                         <h3 style={popupStyles.sectionTitle}>🛡️ User Responsibilities</h3>
                         <ul style={popupStyles.policyList}>
                             <li>You Agree To Use Club Arena <strong>For Entertainment Only</strong></li>
-                            <li>You Will Not Use The Platform To Facilitate Real-money Transactions</li>
+                            <li>You Will Not Use The Platform To Facilitate Real-Money Transactions</li>
                             <li>You Understand Play Money Has <strong>No Cash Value</strong></li>
                             <li>You Accept Full Responsibility For Your Use Of The Platform</li>
                             <li>You Indemnify Smarter.Poker From Any Liability Arising From Your Actions</li>
@@ -90,7 +90,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>🚫 Prohibited Activities</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>Discussing Or Arranging Real-money Settlements</li>
+                            <li>Discussing Or Arranging Real-Money Settlements</li>
                             <li>Sharing Payment App Information (Venmo, CashApp, Zelle, Etc.)</li>
                             <li>Converting Play Money To Real Currency</li>
                             <li>Using The Platform For Any Form Of Gambling</li>
@@ -118,11 +118,11 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                             style={popupStyles.checkbox}
                         />
                         <span style={popupStyles.checkboxText}>
-                            I have read and agree to the{' '}
+                            I Have Read And Agree To the{' '}
                             <a href="/terms" target="_blank" style={popupStyles.link}>Terms Of Service</a>,{' '}
                             <a href="/terms#privacy" target="_blank" style={popupStyles.link}>Privacy Policy</a>, and{' '}
                             <a href="/legal/official-rules" target="_blank" style={popupStyles.link}>Official Rules</a>.
-                            I understand that Club Arena is a <strong>Play Money Platform Only</strong>.
+                            I Understand That Club Arena Is A <strong>Play Money Platform Only</strong>.
                         </span>
                     </label>
 
@@ -135,12 +135,12 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                         disabled={!canProceed}
                         onClick={onAccept}
                     >
-                        {canProceed ? 'I Accept — Enter Club Arena' : 'Read & Accept Terms to Continue'}
+                        {canProceed ? 'I Accept - Enter Club Arena' : 'Read & Accept Terms to Continue'}
                     </button>
 
                     <p style={popupStyles.footerNote}>
-                        By clicking "I Accept", you acknowledge that you are 18+ years of age and
-                        agree to be bound by all terms and conditions.
+                        By Clicking "I Accept", You Acknowledge That You Are 18+ Years Of Age And
+                        Agree To Be Bound By All Terms And Conditions.
                     </p>
                 </div>
             </div>
@@ -215,11 +215,11 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                 <div style={lobbyStyles.lobbyContent}>
                     <header style={lobbyStyles.header}>
                         <h1 style={lobbyStyles.title}>🏛️ Club Arena</h1>
-                        <p style={lobbyStyles.subtitle}>Play Money Home Games — Train With Friends</p>
+                        <p style={lobbyStyles.subtitle}>Play Money Home Games - Train With Friends</p>
 
                         {/* Play Money Badge */}
                         <div style={lobbyStyles.playMoneyBadge}>
-                            🎮 PLAY MONEY ONLY — NO CASH VALUE
+                            🎮 PLAY MONEY ONLY - NO CASH VALUE
                         </div>
                     </header>
 
@@ -237,8 +237,8 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                     {/* Footer Reminder */}
                     <footer style={lobbyStyles.footer}>
                         <p style={lobbyStyles.footerText}>
-                            Remember: Club Arena is for entertainment only.
-                            Play money has no cash value.
+                            Remember: Club Arena Is For Entertainment Only.
+                            Play Money Has No Cash Value.
                             <Link href="/terms" style={lobbyStyles.footerLink}> View Terms</Link>
                         </p>
                     </footer>

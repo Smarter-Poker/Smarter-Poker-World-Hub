@@ -26,7 +26,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!key) {
-            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing — bootstrap cannot write to trivia_questions');
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing - bootstrap cannot write to trivia_questions');
         }
         _supabase = createClient(url, key);
     }

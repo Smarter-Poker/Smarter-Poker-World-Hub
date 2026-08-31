@@ -114,11 +114,11 @@ export default class PageErrorBoundary extends React.Component {
 
                     <div>
                         <h2 style={{ color: '#ff6b6b', fontSize: 20, margin: '0 0 8px', fontWeight: 700 }}>
-                            This Page Hit a Snag
+                            This Page Hit A Snag
                         </h2>
                         <p style={{ color: '#8a8d91', fontSize: 14, maxWidth: 420, margin: '0 auto 24px', lineHeight: 1.5 }}>
-                            Something went wrong on this page, but the rest of the site is running normally.
-                            You can try again or head back to the Hub.
+                            Something Went Wrong On This Page, But The Rest Of The Site Is Running Normally.
+                            You Can Try Again Or Head Back To The Hub.
                         </p>
                     </div>
 
@@ -153,7 +153,7 @@ export default class PageErrorBoundary extends React.Component {
                                 fontFamily: 'inherit',
                             }}
                         >
-                            Go to Hub
+                            Go To Hub
                         </button>
                     </div>
 
@@ -176,7 +176,7 @@ export default class PageErrorBoundary extends React.Component {
                                 fontWeight: 600,
                                 marginBottom: 8,
                             }}>
-                                Error details (tap to copy)
+                                Error Details (Tap To Copy)
                             </summary>
                             <pre
                                 onClick={() => {

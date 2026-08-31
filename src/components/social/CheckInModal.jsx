@@ -37,7 +37,7 @@ function VenueCard({ venue, onSelect, checkinCount }) {
                 }}>{venue.name}</div>
                 <div style={{ fontSize: 12, color: '#65676B', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>{[venue.city, venue.state].filter(Boolean).join(', ')}</span>
-                    {venue.distance != null && <span>· {venue.distance < 1 ? '<1' : Math.round(venue.distance)} mi</span>}
+                    {venue.distance != null && <span>· {venue.distance < 1 ? '<1' : Math.round(venue.distance)} Mi</span>}
                 </div>
             </div>
             {/* Check-in count badge */}
@@ -48,7 +48,7 @@ function VenueCard({ venue, onSelect, checkinCount }) {
                     fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
                     flexShrink: 0,
                 }}>
-                    {checkinCount} today
+                    {checkinCount} Today
                 </div>
             )}
         </button>
@@ -243,7 +243,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
                             padding: '3px 8px', borderRadius: 10, background: '#E7F3FF',
                             marginRight: 'auto', marginLeft: 12,
                         }}>
-                            {userStats.venues} {userStats.venues === 1 ? 'venue' : 'venues'} visited
+                            {userStats.venues} {userStats.venues === 1 ? 'venue' : 'venues'} Visited
                         </span>
                     )}
                     <button
@@ -324,7 +324,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
 
                     {(loading || gpsLoading) && !displayVenues.length && (
                         <div style={{ padding: 24, textAlign: 'center', color: '#65676B', fontSize: 14 }}>
-                            Finding venues...
+                            Finding Venues...
                         </div>
                     )}
 

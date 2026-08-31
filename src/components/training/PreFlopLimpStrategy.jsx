@@ -33,7 +33,7 @@ export default function PreFlopLimpStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Pre-Flop Limp Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Limping isn't always bad — know when it's profitable.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Limping Isn't Always Bad - Know When It's Profitable.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {LIMP_SCENARIOS.map((s, i) => (
@@ -50,7 +50,7 @@ export default function PreFlopLimpStrategy() {
         <div style={{ fontSize: 16, fontWeight: 800, color: scenario.color, marginBottom: 8 }}>{scenario.verdict}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{scenario.reason}</p>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>Hands to Use:</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>Hands To Use:</div>
         {scenario.hands.map((h, i) => (
           <div key={i} style={{ fontSize: 12, color: '#cbd5e1', padding: '3px 0', display: 'flex', gap: 6 }}>
             <span style={{ color: scenario.color }}>•</span> {h}

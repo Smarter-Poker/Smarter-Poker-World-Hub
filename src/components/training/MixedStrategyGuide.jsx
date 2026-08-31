@@ -11,7 +11,7 @@ const MIXED_CONCEPTS = [
     example: 'Solver checks AK on A♠7♦2♣ about 40% of the time. Why? To protect the checking range and trap.',
     practical: 'You don\'t need to mix perfectly. Use a simplified strategy: always bet with your strongest and weakest hands, check the middle.' },
   { concept: 'Indifference Principle', icon: '', color: '#22c55e',
-    detail: 'At equilibrium, mixed strategy hands are indifferent between actions — each action has the SAME EV. The solver picks frequencies to make the opponent indifferent too.',
+    detail: 'At equilibrium, mixed strategy hands are indifferent between actions - each action has the SAME EV. The solver picks frequencies to make the opponent indifferent too.',
     example: 'If you\'re mixed between bet and check with KQ on a K-high board, both options are worth exactly the same in EV.',
     practical: 'If both options are equal EV, just pick one and be consistent. The error is small either way.' },
   { concept: 'Simplifying Mixed Strategies', icon: '', color: '#f59e0b',
@@ -37,7 +37,7 @@ export default function MixedStrategyGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ◆ Mixed Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why solvers mix and how to simplify for real play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why Solvers Mix And How To Simplify For Real Play.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {MIXED_CONCEPTS.map((c, i) => (

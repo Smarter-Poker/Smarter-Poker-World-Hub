@@ -74,13 +74,13 @@ function SourcePanel({ name, data }) {
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#e0e8f0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{name}</div>
           <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)', marginTop: 2 }}>
-            Last scrape: {data.last_scrape ? new Date(data.last_scrape).toLocaleTimeString() : 'Never'}
+            Last Scrape: {data.last_scrape ? new Date(data.last_scrape).toLocaleTimeString() : 'Never'}
           </div>
         </div>
         <StatusBadge status={data.status} />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <StatCard label="Minutes Ago" value={data.minutes_ago ?? '—'} color={statusCfg.color} />
+        <StatCard label="Minutes Ago" value={data.minutes_ago ?? '-'} color={statusCfg.color} />
         <StatCard label="Venues" value={data.venues ?? 0} />
         <StatCard label="Records" value={data.records ?? 0} />
         <StatCard label="Tables" value={data.tables_running ?? 0} color="#3fb950" />
@@ -275,7 +275,7 @@ export default function ScraperHealthDashboard() {
       )}
 
       {loading && !health && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>Loading scraper health data...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>Loading Scraper Health Data...</div>
       )}
 
       {health && (
@@ -292,7 +292,7 @@ export default function ScraperHealthDashboard() {
               background: 'rgba(139,148,158,0.06)', border: '1px solid rgba(139,148,158,0.2)',
               color: 'rgba(200,214,229,0.5)', fontSize: 12,
             }}>
-              Real-Time Engine: retired. Cash-game activity is published from modelled history, so there is no live scrape to monitor.
+              Real-Time Engine: Retired. Cash-Game Activity Is Published From Modelled History, So There Is No Live Scrape To Monitor.
             </div>
           )}
 
@@ -314,7 +314,7 @@ export default function ScraperHealthDashboard() {
             border: '1.5px solid rgba(0,212,255,0.15)', cursor: 'pointer',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit',
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Performance Metrics (24h)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Performance Metrics (24H)</span>
             <span style={{ color: '#00d4ff', fontSize: 12 }}>{showMetrics ? 'Hide' : 'Show'}</span>
           </button>
 
@@ -355,7 +355,7 @@ export default function ScraperHealthDashboard() {
                     )}
                     {hist.length <= 1 && (
                       <div style={{ color: 'rgba(200,214,229,0.3)', fontSize: 11, textAlign: 'center', padding: 8 }}>
-                        Collecting performance data...
+                        Collecting Performance Data...
                       </div>
                     )}
                   </div>
@@ -378,7 +378,7 @@ export default function ScraperHealthDashboard() {
           {showAlertHistory && (
             <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
               {(!health.alert_history || health.alert_history.length === 0) ? (
-                <div style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, textAlign: 'center', padding: 10 }}>No recent alerts found.</div>
+                <div style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, textAlign: 'center', padding: 10 }}>No Recent Alerts Found.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {health.alert_history.map(ev => {

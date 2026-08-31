@@ -173,8 +173,8 @@ function OverviewTab({ group, token, slug }) {
           events.map(ev => (
             <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: C.tealDim, border: `1px solid ${C.tealBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.teal }}>{ev.scheduled_date ? new Date(ev.scheduled_date).toLocaleDateString('en-US', { month: 'short' }) : '—'}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1 }}>{ev.scheduled_date ? new Date(ev.scheduled_date).getDate() : '—'}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.teal }}>{ev.scheduled_date ? new Date(ev.scheduled_date).toLocaleDateString('en-US', { month: 'short' }) : '-'}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1 }}>{ev.scheduled_date ? new Date(ev.scheduled_date).getDate() : '-'}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title || 'Game Night'}</div>
@@ -290,7 +290,7 @@ function ModerationTab({ group, token }) {
     <div>
       {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <div style={{ background: 'rgba(6,182,212,.07)', border: '1px solid rgba(6,182,212,.2)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: '#67e8f9' }}>
-        Host moderation — hide or remove content within your group. High-severity reports (illegal, self-harm, doxxing) are automatically escalated to platform staff.
+        Host moderation - hide or remove content within your group. High-severity reports (illegal, self-harm, doxxing) are automatically escalated to platform staff.
       </div>
       {reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>No pending moderation items.</div>

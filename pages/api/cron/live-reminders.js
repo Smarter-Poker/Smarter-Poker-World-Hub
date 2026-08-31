@@ -25,7 +25,7 @@ async function handler(req, res) {
   // reminder notifications to every follower on the platform.
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
-    console.warn('[live-reminders] CRON_SECRET is not configured — rejecting request');
+    console.warn('[live-reminders] CRON_SECRET is not configured - rejecting request');
     return res.status(500).json({ error: 'Server misconfigured' });
   }
 

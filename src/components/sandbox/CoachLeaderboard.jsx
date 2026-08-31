@@ -141,7 +141,7 @@ export default function CoachLeaderboard({ userId }) {
                 body={`Play ${MIN_HANDS} coach-mode hands between Monday and Sunday to enter the board · be the first.`}
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => router.push(buildPracticeHref({}))}>
-                        Play coach hands
+                        Play Coach Hands
                     </button>
                 }
             />
@@ -194,13 +194,13 @@ export default function CoachLeaderboard({ userId }) {
                         textAlign: 'center', margin: `${S.md}px 0 0`, paddingTop: S.md,
                         borderTop: `1px solid ${T.border}`, fontSize: F.caption, color: T.textMuted, ...numeric,
                     }}>
-                        Your rank this week: #{myRank}
+                        Your Rank This Week: #{myRank}
                     </p>
                 )}
 
                 {!myRank && (
                     <p style={{ margin: `${S.md}px 0 0`, fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                        You are not ranked yet · {MIN_HANDS} coach hands this week qualifies you.
+                        You Are Not Ranked Yet · {MIN_HANDS} Coach Hands This Week Qualifies You.
                     </p>
                 )}
 
@@ -210,7 +210,7 @@ export default function CoachLeaderboard({ userId }) {
                     style={{ ...btn('secondary', { block: true }), marginTop: S.md }}
                     onClick={() => router.push(buildPracticeHref({}))}
                 >
-                    Play coach hands
+                    Play Coach Hands
                 </button>
             </div>
         );

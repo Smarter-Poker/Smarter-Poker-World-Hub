@@ -804,7 +804,7 @@ export function SessionReport({
                             cursor: 'pointer'
                         }}
                     >
-                        Exit to Hub
+                        Exit To Hub
                     </button>
                     <button
                         onClick={onPlayAgain}

@@ -32,6 +32,8 @@ import {
   clearCommerceRequestById,
   getOrCreateCommerceRequestId,
 } from '../../src/lib/store/checkoutIntentStore';
+import { reconcilePurchasedCart } from '../../src/lib/store/checkoutReconciliation';
+import useCartStore from '../../src/stores/cartStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
@@ -130,6 +132,7 @@ const GEM = '\uD83D\uDC8E';
 export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
 const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
 const CHECKOUT_STATUS_RETRY_DELAYS = [0, 1200, 2400, 4800];
+const CHECKOUT_STATUS_REQUEST_TIMEOUT_MS = 20000;
 const CLUB_CARD_PACKAGE_OPTIONS = [
   { packageId: 'micro', diamonds: 100, price: 1 },
   { packageId: 'small', diamonds: 500, price: 5 },
@@ -455,6 +458,9 @@ export default function DiamondStorePage({ initialTab }) {
   const [pendingSpend, setPendingSpend] = useState(null);
   const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
   const [checkoutReturn, setCheckoutReturn] = useState(null);
+  const [checkoutVerificationAttempt, setCheckoutVerificationAttempt] = useState(0);
+  const cartOwnerId = useCartStore((state) => state.ownerId);
+  const reconciledCheckoutSessionsRef = useRef(new Set());
 
   useEffect(() => {
     if (!router.isReady || activeTab !== 'vip') return;
@@ -600,7 +606,7 @@ export default function DiamondStorePage({ initialTab }) {
     let cancelled = false;
     let retryTimer = null;
     const controller = new AbortController();
-    setCheckoutReturn({ status: 'verifying' });
+    setCheckoutReturn({ status: 'verifying', sessionId: rawSession });
     // Remove the transport parameters before any network work so a Stripe
     // session reference never lingers in copied URLs, analytics, or referrers.
     clearCheckoutTransport();
@@ -608,6 +614,7 @@ export default function DiamondStorePage({ initialTab }) {
     if (!token) {
       setCheckoutReturn({
         status: 'failed',
+        sessionId: rawSession,
         message: 'Sign In To Verify This Checkout And View Its Receipt.',
       });
       return undefined;
@@ -628,18 +635,34 @@ export default function DiamondStorePage({ initialTab }) {
           if (cancelled || controller.signal.aborted) return;
 
           let response;
+          const requestController = new AbortController();
+          const abortRequest = () => requestController.abort();
+          controller.signal.addEventListener('abort', abortRequest, { once: true });
+          let requestTimedOut = false;
+          const requestTimer = window.setTimeout(() => {
+            requestTimedOut = true;
+            requestController.abort();
+          }, CHECKOUT_STATUS_REQUEST_TIMEOUT_MS);
           try {
             response = await fetch(
               `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-                signal: controller.signal,
+                signal: requestController.signal,
               }
             );
           } catch (error) {
-            if (error?.name === 'AbortError' || cancelled) return;
+            if (cancelled || controller.signal.aborted) return;
+            if (error?.name === 'AbortError' && requestTimedOut) {
+              if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
+              throw new Error('Checkout Verification Timed Out. Try Verification Again.');
+            }
+            if (error?.name === 'AbortError') return;
             if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
             throw error;
+          } finally {
+            window.clearTimeout(requestTimer);
+            controller.signal.removeEventListener('abort', abortRequest);
           }
 
           const body = await response.json().catch(() => null);
@@ -648,10 +671,13 @@ export default function DiamondStorePage({ initialTab }) {
           }
           if (cancelled) return;
 
-          const status = body.data?.status === 'complete' ? 'complete' : 'pending';
+          const status = ['complete', 'failed'].includes(body.data?.status)
+            ? body.data.status
+            : 'pending';
           const needsRedemptionReview = body.data?.redemptionStatus === 'needs_review';
           setCheckoutReturn({
             status,
+            sessionId: rawSession,
             receipt: body.data,
             ...(needsRedemptionReview ? {
               message: 'Your Card Payment And Diamonds Are Recorded, But The Item Was Not Purchased. Your Diamonds Remain Available: Buy The Item Separately Without Paying By Card Again.',
@@ -678,7 +704,11 @@ export default function DiamondStorePage({ initialTab }) {
         }
       } catch (error) {
         if (cancelled) return;
-        setCheckoutReturn({ status: 'failed', message: error.message });
+        setCheckoutReturn({
+          status: 'failed',
+          sessionId: rawSession,
+          message: error.message,
+        });
         captureStoreEvent('checkout_verification_failed', { route: activeTab });
       }
     })();
@@ -694,6 +724,7 @@ export default function DiamondStorePage({ initialTab }) {
     router.query.canceled,
     router.query.session_id,
     router.query.success,
+    checkoutVerificationAttempt,
   ]);
 
   useEffect(() => {
@@ -709,6 +740,27 @@ export default function DiamondStorePage({ initialTab }) {
       });
     }
   }, [checkoutReturn?.receipt?.requestId, checkoutReturn?.status, user?.id]);
+
+  // A verified owner-scoped receipt is the only signal allowed to remove paid
+  // cart quantities. Exact server-resolved lines preserve anything added or
+  // increased while Stripe Checkout was open.
+  useEffect(() => {
+    if (checkoutReturn?.status !== 'complete' || !user?.id) return;
+    const sessionId = checkoutReturn.receipt?.sessionId;
+    const purchasedLines = checkoutReturn.receipt?.cartItems;
+    if (
+      !sessionId
+      || !Array.isArray(purchasedLines)
+      || purchasedLines.length === 0
+      || cartOwnerId !== user.id
+      || reconciledCheckoutSessionsRef.current.has(sessionId)
+    ) return;
+
+    const cartStore = useCartStore.getState();
+    const reconciled = reconcilePurchasedCart(cartStore.items, purchasedLines);
+    if (reconciled !== cartStore.items) cartStore.setItems(reconciled);
+    reconciledCheckoutSessionsRef.current.add(sessionId);
+  }, [cartOwnerId, checkoutReturn?.receipt, checkoutReturn?.status, user?.id]);
 
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
@@ -1722,7 +1774,11 @@ export default function DiamondStorePage({ initialTab }) {
           <UniversalHeader pageDepth={1} />
 
           <main className={`store-redesign-content ${shellStyles.root}`}>
-            <CheckoutStatusPanel state={checkoutReturn} onDismiss={() => setCheckoutReturn(null)} />
+            <CheckoutStatusPanel
+              state={checkoutReturn}
+              onDismiss={() => setCheckoutReturn(null)}
+              onRetry={() => setCheckoutVerificationAttempt((attempt) => attempt + 1)}
+            />
             <SmarterStoreShowcase
               activeTab={activeTab}
               packages={DIAMOND_PACKAGES}

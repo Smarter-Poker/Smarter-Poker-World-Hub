@@ -18,7 +18,7 @@ const PROGRESS_AREAS = [
     mastery: 'When you can articulate your range on every street and your opponent\'s range too.' },
   { area: 'Hand Reading', icon: '○', color: '#f59e0b',
     skills: ['Range narrowing per street', 'Combo counting on boards', 'Blocker awareness', 'Behavioral tells (live)'],
-    metrics: 'Accuracy improves with volume — track your predictions vs actual holdings.',
+    metrics: 'Accuracy improves with volume - track your predictions vs actual holdings.',
     checkpoints: '[ ] Can count combos quickly | [ ] Understand how board texture filters ranges | [ ] Use blockers in bluff decisions',
     mastery: 'When you regularly predict villain\'s holding within a 5-combo range on the river.' },
   { area: 'Mental Game', icon: '◇', color: '#8b5cf6',
@@ -42,7 +42,7 @@ export default function ProgressDashboard() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Progress Dashboard
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Track your poker skills across all areas.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Track Your Poker Skills Across All Areas.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PROGRESS_AREAS.map((a, i) => (
@@ -62,7 +62,7 @@ export default function ProgressDashboard() {
           <span style={{ fontSize: 16, fontWeight: 800, color: area.color }}>{area.area}</span>
         </div>
         <div style={{ background: `${area.color}08`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: area.color, marginBottom: 4 }}>Skills to Develop</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: area.color, marginBottom: 4 }}>Skills To Develop</div>
           {area.skills.map((s, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0' }}>• {s}</div>
           ))}

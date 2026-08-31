@@ -12,7 +12,7 @@ const MATCHUPS = [
     defense: { fourBet: 8, call: 12, fold: 80 },
     fourBetRange: 'AA, KK, QQ, AKs, AKo (value) + A5s, A4s (bluffs)',
     callRange: 'JJ, TT, AQs, AQo, AJs, KQs',
-    foldRange: 'Everything else — UTG range is narrow, 3-bet is strong',
+    foldRange: 'Everything else - UTG range is narrow, 3-bet is strong',
     note: 'UTG vs BTN 3-bet: very tight defense. BTNs 3-bet range is wide but UTG must respect it.',
   },
   {
@@ -36,7 +36,7 @@ const MATCHUPS = [
     defense: { fourBet: 11, call: 18, fold: 71 },
     fourBetRange: 'AA-QQ, AKs, AKo (value) + A5s, A4s, K5s (bluffs)',
     callRange: 'JJ-88, AQs, AJs, KQs, KJs, QJs, T9s, 98s',
-    foldRange: 'Most of range — OOP without position advantage',
+    foldRange: 'Most of range - OOP without position advantage',
     note: 'SB vs BB 3-bet: tricky spot. Out of position postflop makes calling more costly.',
   },
 ];
@@ -58,8 +58,8 @@ function ThreeBetDefenseMatrix() {
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
               fontSize: 10, fontWeight: 700,
             }}>
-              <div>{m.opener} vs</div>
-              <div>{m.threeBetter} 3-bet</div>
+              <div>{m.opener} Vs</div>
+              <div>{m.threeBetter} 3-Bet</div>
             </button>
           ))}
         </div>
@@ -108,7 +108,7 @@ function ThreeBetDefenseMatrix() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>3-Bet Defense Matrix failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>3-Bet Defense Matrix Failed To Load: {err.message}</div>;
   }
 }
 

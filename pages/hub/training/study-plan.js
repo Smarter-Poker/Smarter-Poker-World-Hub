@@ -138,7 +138,7 @@ function generateStudyPlan(sessions) {
         difficulty: 'easy',
         goal: 85,
         questionCount: 15,
-        reason: 'Review day — keep sharp without burnout',
+        reason: 'Review day - keep sharp without burnout',
       });
     } else {
       // Main weak area focus
@@ -150,7 +150,7 @@ function generateStudyPlan(sessions) {
         goal: 80,
         questionCount: 25,
         reason: primaryWeakness.weakness
-          ? `You\'re at ${primaryWeakness.accuracy}% here — needs work`
+          ? `You\'re at ${primaryWeakness.accuracy}% here - needs work`
           : 'Balanced training to fill gaps',
       });
 
@@ -344,7 +344,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
               {dayPlan.day}{' '}
               {isToday && (
-                <span style={{ fontSize: 10, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>— TODAY</span>
+                <span style={{ fontSize: 10, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>- TODAY</span>
               )}
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
@@ -795,7 +795,7 @@ export default function StudyPlanPage() {
                     {focus.icon} {focus.name}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                    {focus.accuracy}% accuracy — needs attention
+                    {focus.accuracy}% accuracy - needs attention
                   </div>
                 </div>
                 <motion.button

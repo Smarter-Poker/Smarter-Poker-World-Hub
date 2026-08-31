@@ -731,7 +731,7 @@ export class DeterministicGTOEngine {
             const freqParts = actionLabels
                 .filter(a => (freqs[a.solver] || 0) > 0.01)
                 .map(a => `${a.label} ${Math.round(freqs[a.solver] * 100)}%`);
-            const explanation = `${contextText}: ${hand} — ${freqParts.join(', ')}.`;
+            const explanation = `${contextText}: ${hand} - ${freqParts.join(', ')}.`;
 
             // Reconstruct the chips already in the pot from the exact preflop
             // action contract. A 4-bet decision is not a 4.5 BB pot, and a
@@ -2216,7 +2216,7 @@ export class DeterministicGTOEngine {
         if (street === 'preflop') {
             if (nodeType === 'preflop_open') return 'Folded to you';
             if (nodeType === 'preflop_facing_raise') return `Action folds to ${villainPosition}, who raises`;
-            if (nodeType === 'preflop_bb_option') return `${villainPosition} limps — BB option`;
+            if (nodeType === 'preflop_bb_option') return `${villainPosition} limps - BB option`;
             return '';
         }
 
@@ -2273,19 +2273,19 @@ export class DeterministicGTOEngine {
             const potType = context.potType || '';
 
             if (nodeType === 'preflop_open') {
-                return `${prefix}${heroPosition} — Action folds to you. You hold ${heroHand}. What is your best action?`;
+                return `${prefix}${heroPosition} - Action folds to you. You hold ${heroHand}. What is your best action?`;
             } else if (nodeType === 'preflop_facing_raise') {
                 // Differentiate facing open vs facing 3-bet vs facing 4-bet
                 if (potType === '4-Bet' || potType === '4bet') {
-                    return `${prefix}${heroPosition} — ${villainPosition} 4-bets. You hold ${heroHand}. What is your best action?`;
+                    return `${prefix}${heroPosition} - ${villainPosition} 4-bets. You hold ${heroHand}. What is your best action?`;
                 } else if (potType === '3-Bet' || potType === '3bet') {
-                    return `${prefix}${heroPosition} — ${villainPosition} 3-bets. You hold ${heroHand}. What is your best action?`;
+                    return `${prefix}${heroPosition} - ${villainPosition} 3-bets. You hold ${heroHand}. What is your best action?`;
                 }
-                return `${prefix}${heroPosition} — Action folds to ${villainPosition}, who raises. You hold ${heroHand}. What is your best action?`;
+                return `${prefix}${heroPosition} - Action folds to ${villainPosition}, who raises. You hold ${heroHand}. What is your best action?`;
             } else if (nodeType === 'preflop_bb_option') {
-                return `${prefix}BB — ${villainPosition} limps. You hold ${heroHand}. What is your best action?`;
+                return `${prefix}BB - ${villainPosition} limps. You hold ${heroHand}. What is your best action?`;
             }
-            return `${prefix}${heroPosition} — You hold ${heroHand}. What is your best action?`;
+            return `${prefix}${heroPosition} - You hold ${heroHand}. What is your best action?`;
         }
 
         const handStrength = this.categorizeHand(heroHand, board);
@@ -2317,7 +2317,7 @@ export class DeterministicGTOEngine {
         if (stackDepth && pot) {
             const effectiveStack = stackDepth - (pot / 2);
             const spr = effectiveStack / pot;
-            if (spr < 0.5) sprPart = ' [Committed — very short SPR]';
+            if (spr < 0.5) sprPart = ' [Committed - very short SPR]';
             else if (spr < 1) sprPart = ' [Short SPR]';
             else if (spr < 3 && street === 'river') sprPart = ' [Medium SPR]';
         }
@@ -2602,7 +2602,7 @@ export class DeterministicGTOEngine {
         if (isStraightPossible && !isConnected) extras.push('straight possible');
 
         let desc = parts.join(' ');
-        if (extras.length > 0) desc += ` — ${extras.join(', ')}`;
+        if (extras.length > 0) desc += ` - ${extras.join(', ')}`;
 
         return desc;
     }
@@ -2688,15 +2688,15 @@ export class DeterministicGTOEngine {
 
         // Phase 57: Enhanced brick/scare card detection
         if (impacts.length === 0) {
-            if (newVal <= 3) impacts.push('brick — deuce/trey changes nothing');
-            else if (newVal <= 5) impacts.push('low brick — doesn\'t change the board dynamics');
-            else if (newVal >= 9 && newVal <= 11) impacts.push('broadway card — could have connected with many hands');
+            if (newVal <= 3) impacts.push('brick - deuce/trey changes nothing');
+            else if (newVal <= 5) impacts.push('low brick - doesn\'t change the board dynamics');
+            else if (newVal >= 9 && newVal <= 11) impacts.push('broadway card - could have connected with many hands');
             else impacts.push('relatively blank runout');
         }
 
         // Phase 57: Add strategic context based on combination of impacts
         if (impacts.length >= 2 && impacts.some(i => i.includes('flush')) && impacts.some(i => i.includes('straight'))) {
-            impacts.push('double-draw completion — very dynamic card');
+            impacts.push('double-draw completion - very dynamic card');
         }
 
         return impacts.join(', ');
@@ -2807,7 +2807,7 @@ export class DeterministicGTOEngine {
             const baseExpl = this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, ctx.potType);
             // Phase 91: Append hand equity tier context
             const handTier = this._getPreflopHandTier(heroHand);
-            const tierNote = handTier.equityVsRandom ? ` [~${handTier.equityVsRandom}% equity vs random — ${handTier.description}]` : '';
+            const tierNote = handTier.equityVsRandom ? ` [~${handTier.equityVsRandom}% equity vs random - ${handTier.description}]` : '';
             return baseExpl + tierNote;
         }
 
@@ -3088,7 +3088,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${coachingPrefix}${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
+        return `${coachingPrefix}${heroHand} (${handStrength}): Mixed - ${mixedParts}. ${mixReason}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
     }
 
     /**
@@ -3240,74 +3240,74 @@ export class DeterministicGTOEngine {
         // Phase 55: Raise-specific sizing reasoning
         if (isRaise) {
             if (sizePct <= 75) {
-                if (isNutted || isTrips) return 'Min-raise with a monster — disguise hand strength while building the pot. Looks like a bluff.';
-                if (isDraw || isMonster) return 'Small raise as a semi-bluff — building fold equity cheaply with backup equity if called.';
-                return 'Small raise — polarized between value and bluffs, minimizing risk.';
+                if (isNutted || isTrips) return 'Min-raise with a monster - disguise hand strength while building the pot. Looks like a bluff.';
+                if (isDraw || isMonster) return 'Small raise as a semi-bluff - building fold equity cheaply with backup equity if called.';
+                return 'Small raise - polarized between value and bluffs, minimizing risk.';
             }
             if (sizePct <= 150) {
-                if (isNutted) return 'Standard raise for value — building the pot while keeping villain\'s calling range wide.';
-                if (isDraw) return 'Raise with a draw — leveraging fold equity plus implied odds if you hit.';
-                if (isTopPair) return 'Raise for protection — charge draws and deny equity on a dynamic board.';
+                if (isNutted) return 'Standard raise for value - building the pot while keeping villain\'s calling range wide.';
+                if (isDraw) return 'Raise with a draw - leveraging fold equity plus implied odds if you hit.';
+                if (isTopPair) return 'Raise for protection - charge draws and deny equity on a dynamic board.';
                 return 'Standard raise size polarizes the range between value and bluffs.';
             }
-            if (isNutted) return 'Large raise to extract maximum value — villain is committed with any reasonable holding.';
-            if (isAir) return 'Large raise as a bluff — representing an extremely strong range with maximum pressure.';
-            return 'Oversize raise applies extreme pressure — only the strongest hands can continue.';
+            if (isNutted) return 'Large raise to extract maximum value - villain is committed with any reasonable holding.';
+            if (isAir) return 'Large raise as a bluff - representing an extremely strong range with maximum pressure.';
+            return 'Oversize raise applies extreme pressure - only the strongest hands can continue.';
         }
 
         // Small bets (16-33%) — merged/range betting strategy
         if (sizePct <= 33) {
-            if (isNutted && texture.dry) return 'Small sizing with a nutted hand on a dry board — keeping villain\'s entire range in. The board runs out well for you.';
-            if (isTopPair && texture.dry) return 'Small sizing with top pair on a dry board — range bet exploiting range advantage. Few draws threaten you.';
-            if (isTwoPair && texture.dry) return 'Small sizing with two pair on a dry board — trapping, as villains can\'t put you on this exact hand.';
-            if (isAir && street === 'flop') return 'Small c-bet bluff — range betting at minimum cost. Villain folds their weakest hands, you lose little when called.';
-            if (isDraw && street === 'flop') return 'Small c-bet with a draw — cheap equity denial that sets up the turn. Low risk, high reward on favorable runouts.';
-            if (texture.aceHigh) return 'Range bet sizing on ace-high board — IP player has range advantage. Small bets target the entire range.';
-            if (texture.broadwayHeavy) return 'Small c-bet on a broadway-heavy board — PFR has significant range advantage with more premium broadway combos.';
-            if (texture.lowBoard && !texture.connected) return 'Small sizing on a low disconnected board — neither range connects strongly, so a cheap range bet picks up dead money.';
-            if (texture.dry && texture.paired) return 'Small sizing on paired dry texture — few combinations hit this board. Range bet denies equity.';
-            if (street === 'flop') return 'Range c-bet sizing — on this texture, betting small with your entire range is more profitable than checking.';
-            if (street === 'turn') return 'Small turn probe — testing villain\'s range after a checked flop. Minimal investment with fold equity.';
+            if (isNutted && texture.dry) return 'Small sizing with a nutted hand on a dry board - keeping villain\'s entire range in. The board runs out well for you.';
+            if (isTopPair && texture.dry) return 'Small sizing with top pair on a dry board - range bet exploiting range advantage. Few draws threaten you.';
+            if (isTwoPair && texture.dry) return 'Small sizing with two pair on a dry board - trapping, as villains can\'t put you on this exact hand.';
+            if (isAir && street === 'flop') return 'Small c-bet bluff - range betting at minimum cost. Villain folds their weakest hands, you lose little when called.';
+            if (isDraw && street === 'flop') return 'Small c-bet with a draw - cheap equity denial that sets up the turn. Low risk, high reward on favorable runouts.';
+            if (texture.aceHigh) return 'Range bet sizing on ace-high board - IP player has range advantage. Small bets target the entire range.';
+            if (texture.broadwayHeavy) return 'Small c-bet on a broadway-heavy board - PFR has significant range advantage with more premium broadway combos.';
+            if (texture.lowBoard && !texture.connected) return 'Small sizing on a low disconnected board - neither range connects strongly, so a cheap range bet picks up dead money.';
+            if (texture.dry && texture.paired) return 'Small sizing on paired dry texture - few combinations hit this board. Range bet denies equity.';
+            if (street === 'flop') return 'Range c-bet sizing - on this texture, betting small with your entire range is more profitable than checking.';
+            if (street === 'turn') return 'Small turn probe - testing villain\'s range after a checked flop. Minimal investment with fold equity.';
             return 'Small sizing minimizes risk while applying range-wide pressure.';
         }
 
         // Medium bets (40-66%) — value-heavy, protection-focused
         if (sizePct <= 66) {
-            if (isNutted && texture.wet) return 'Medium sizing builds the pot with a monster while charging draws — the board is dynamic and you need to protect.';
-            if (isNutted && street === 'turn') return 'Medium sizing on the turn sets up a geometric river shove — betting ~66% on turn leaves a pot-sized jam on river.';
-            if (isTopPair && texture.connected) return 'Medium sizing with top pair on a connected board — charging straight and flush draws while extracting value.';
-            if (isTopPair && texture.wet) return 'Medium protection bet with top pair — too many draws to give a free card. Price villain\'s draws incorrectly.';
-            if (isDraw && texture.wet) return 'Semi-bluff sizing — enough fold equity to profit immediately, plus 30%+ equity when called.';
-            if (isCombo || isMonster) return 'Medium sizing with a combo draw — fold equity + massive equity when called makes this highly profitable.';
-            if (isOverpair) return 'Medium sizing with an overpair — extract value from top pair and worse while keeping the range balanced.';
-            if (isTwoPair) return 'Medium sizing with two pair — building the pot against top pair and draws before the board changes.';
-            if (isSecondPair && texture.dry) return 'Medium sizing with second pair for thin value — targeting bottom pair and ace-high hands.';
-            if (street === 'turn') return 'Geometric turn sizing — 60-66% bets on turn set up a natural pot-sized river shove.';
-            if (texture.wet || texture.connected) return 'Medium sizing on a coordinated board — polarized enough to deny equity, merged enough to get called.';
+            if (isNutted && texture.wet) return 'Medium sizing builds the pot with a monster while charging draws - the board is dynamic and you need to protect.';
+            if (isNutted && street === 'turn') return 'Medium sizing on the turn sets up a geometric river shove - betting ~66% on turn leaves a pot-sized jam on river.';
+            if (isTopPair && texture.connected) return 'Medium sizing with top pair on a connected board - charging straight and flush draws while extracting value.';
+            if (isTopPair && texture.wet) return 'Medium protection bet with top pair - too many draws to give a free card. Price villain\'s draws incorrectly.';
+            if (isDraw && texture.wet) return 'Semi-bluff sizing - enough fold equity to profit immediately, plus 30%+ equity when called.';
+            if (isCombo || isMonster) return 'Medium sizing with a combo draw - fold equity + massive equity when called makes this highly profitable.';
+            if (isOverpair) return 'Medium sizing with an overpair - extract value from top pair and worse while keeping the range balanced.';
+            if (isTwoPair) return 'Medium sizing with two pair - building the pot against top pair and draws before the board changes.';
+            if (isSecondPair && texture.dry) return 'Medium sizing with second pair for thin value - targeting bottom pair and ace-high hands.';
+            if (street === 'turn') return 'Geometric turn sizing - 60-66% bets on turn set up a natural pot-sized river shove.';
+            if (texture.wet || texture.connected) return 'Medium sizing on a coordinated board - polarized enough to deny equity, merged enough to get called.';
             return 'Medium sizing builds the pot while keeping villain\'s calling range wide.';
         }
 
         // Large bets (75-100%) — polarized strategy
         if (sizePct <= 100) {
-            if (isNutted && street === 'river') return 'Pot-sized value bet on the river — villain\'s bluff-catchers are getting 2:1 odds. You need 33% bluffs to stay balanced.';
-            if (isNutted) return 'Large sizing to build a big pot with a monster — villain is priced in with strong-but-second-best hands.';
-            if (isDraw && street !== 'river') return 'Large semi-bluff — maximum fold equity with a draw. If villain calls, you still have outs to improve.';
-            if (isAir && street === 'river') return 'Pot-sized river bluff — fully polarized. You\'re repping the nuts and villain must be strong to call.';
-            if (isAir && street === 'turn') return 'Large turn barrel as a bluff — building a credible story. Villain must defend with strong hands.';
-            if (isTopPair && texture.wet) return 'Large bet with top pair on a wet board — forced to go big for protection. Can\'t risk a cheap draw completion.';
-            if (texture.flushy || texture.monotone) return 'Large sizing on a flush-possible board — polarized between flushes and bluffs. Medium hands check.';
-            if (street === 'river') return 'Pot-sized river bet — polarized between value and bluffs. At this size, your range should be ~67% value, ~33% bluffs.';
-            return 'Large sizing polarizes your range — only very strong hands and bluffs bet this big.';
+            if (isNutted && street === 'river') return 'Pot-sized value bet on the river - villain\'s bluff-catchers are getting 2:1 odds. You need 33% bluffs to stay balanced.';
+            if (isNutted) return 'Large sizing to build a big pot with a monster - villain is priced in with strong-but-second-best hands.';
+            if (isDraw && street !== 'river') return 'Large semi-bluff - maximum fold equity with a draw. If villain calls, you still have outs to improve.';
+            if (isAir && street === 'river') return 'Pot-sized river bluff - fully polarized. You\'re repping the nuts and villain must be strong to call.';
+            if (isAir && street === 'turn') return 'Large turn barrel as a bluff - building a credible story. Villain must defend with strong hands.';
+            if (isTopPair && texture.wet) return 'Large bet with top pair on a wet board - forced to go big for protection. Can\'t risk a cheap draw completion.';
+            if (texture.flushy || texture.monotone) return 'Large sizing on a flush-possible board - polarized between flushes and bluffs. Medium hands check.';
+            if (street === 'river') return 'Pot-sized river bet - polarized between value and bluffs. At this size, your range should be ~67% value, ~33% bluffs.';
+            return 'Large sizing polarizes your range - only very strong hands and bluffs bet this big.';
         }
 
         // Overbets (125%+) / All-in
         if (sizePct >= 125 || sizePct === 999) {
-            if (isNutted && street === 'river') return 'River overbet for max value — targeting villain\'s second-nut type hands that can\'t fold. This is the most +EV sizing with the nuts.';
-            if (isNutted) return 'Overbet with a monster — puts villain\'s entire stack at risk. Strong hands can\'t fold, building a massive pot.';
-            if (isAir && street === 'river') return 'Overbet bluff — representing a polarized nutted range. Villain needs extremely strong hands to call, creating profitable bluffs.';
-            if ((isDraw || isCombo) && sizePct === 999) return 'All-in semi-bluff — maximum fold equity combined with draw equity. The math works: fold equity + equity when called = profitable.';
-            if (isTopPair && sizePct === 999) return 'All-in for protection — with a short stack-to-pot ratio, shoving denies villain\'s equity realization.';
-            return 'Overbet applies extreme pressure — exploiting range advantage. Only the strongest holdings continue.';
+            if (isNutted && street === 'river') return 'River overbet for max value - targeting villain\'s second-nut type hands that can\'t fold. This is the most +EV sizing with the nuts.';
+            if (isNutted) return 'Overbet with a monster - puts villain\'s entire stack at risk. Strong hands can\'t fold, building a massive pot.';
+            if (isAir && street === 'river') return 'Overbet bluff - representing a polarized nutted range. Villain needs extremely strong hands to call, creating profitable bluffs.';
+            if ((isDraw || isCombo) && sizePct === 999) return 'All-in semi-bluff - maximum fold equity combined with draw equity. The math works: fold equity + equity when called = profitable.';
+            if (isTopPair && sizePct === 999) return 'All-in for protection - with a short stack-to-pot ratio, shoving denies villain\'s equity realization.';
+            return 'Overbet applies extreme pressure - exploiting range advantage. Only the strongest holdings continue.';
         }
 
         return '';
@@ -3335,43 +3335,43 @@ export class DeterministicGTOEngine {
         // ═══ CHECKING CONCEPTS (Phase 56: Enhanced depth, Phase 68: Position-aware) ═══
         if (isCheck) {
             if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
-                if (isIP && texture.wet) return 'Checking back TPTK in position on a wet board — pot control while retaining the positional advantage to call or bet later streets.';
-                if (isOOP && texture.wet) return 'Checking TPTK from OOP on a wet board — building a check-call or check-raise range. OOP checks carry more monsters for balance.';
-                if (texture.wet) return 'Pot control with TPTK on a wet board — checking avoids getting raised off a strong but vulnerable hand. You can call bets profitably.';
-                if (isIP) return 'Checking back TPTK in position — trapping with a hand that\'s strong enough to check-call or check-raise later.';
-                return 'Checking back TPTK as a trap — your hand is strong enough to check-call or check-raise on later streets.';
+                if (isIP && texture.wet) return 'Checking back TPTK in position on a wet board - pot control while retaining the positional advantage to call or bet later streets.';
+                if (isOOP && texture.wet) return 'Checking TPTK from OOP on a wet board - building a check-call or check-raise range. OOP checks carry more monsters for balance.';
+                if (texture.wet) return 'Pot control with TPTK on a wet board - checking avoids getting raised off a strong but vulnerable hand. You can call bets profitably.';
+                if (isIP) return 'Checking back TPTK in position - trapping with a hand that\'s strong enough to check-call or check-raise later.';
+                return 'Checking back TPTK as a trap - your hand is strong enough to check-call or check-raise on later streets.';
             }
             if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
-                if (texture.straightDrawHeavy) return 'Checking a one-pair hand on a straight-heavy board — too many draws complete on the turn. Pot control avoids getting raised off your hand.';
-                if (isIP && texture.wet) return 'Checking back in position for pot control — your pair is vulnerable but you maintain the positional advantage for future streets.';
-                if (isOOP) return 'Checking OOP to build a strong check-call range — one-pair hands from OOP often check to control the pot and avoid being raised.';
-                if (texture.wet) return 'Pot control — your pair is vulnerable on this wet board. Checking avoids facing a raise with a one-pair hand.';
-                if (street === 'turn') return 'Checking the turn to control the pot — your hand has showdown value but doesn\'t want to face a raise.';
-                return 'Pot control with a strong-but-vulnerable hand — checking keeps the pot manageable and avoids bloating it with a one-pair hand.';
+                if (texture.straightDrawHeavy) return 'Checking a one-pair hand on a straight-heavy board - too many draws complete on the turn. Pot control avoids getting raised off your hand.';
+                if (isIP && texture.wet) return 'Checking back in position for pot control - your pair is vulnerable but you maintain the positional advantage for future streets.';
+                if (isOOP) return 'Checking OOP to build a strong check-call range - one-pair hands from OOP often check to control the pot and avoid being raised.';
+                if (texture.wet) return 'Pot control - your pair is vulnerable on this wet board. Checking avoids facing a raise with a one-pair hand.';
+                if (street === 'turn') return 'Checking the turn to control the pot - your hand has showdown value but doesn\'t want to face a raise.';
+                return 'Pot control with a strong-but-vulnerable hand - checking keeps the pot manageable and avoids bloating it with a one-pair hand.';
             }
             if (handStrength.includes('set') || handStrength.includes('full house') || handStrength.includes('quads')) {
-                if (street === 'flop') return 'Trapping with a monster — checking the flop to induce turn bets. Your hand is disguised.';
-                return 'Slow-playing a monster — checking to let villain catch up or bluff into you on a later street.';
+                if (street === 'flop') return 'Trapping with a monster - checking the flop to induce turn bets. Your hand is disguised.';
+                return 'Slow-playing a monster - checking to let villain catch up or bluff into you on a later street.';
             }
             if (handStrength.includes('two pair')) {
-                return 'Checking two pair as a trap — your hand is strong but disguised. Check-raising is an option if villain bets.';
+                return 'Checking two pair as a trap - your hand is strong but disguised. Check-raising is an option if villain bets.';
             }
             if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
-                return 'Checking a big draw to realize equity cheaply — if villain bets, you can raise as a semi-bluff with massive equity.';
+                return 'Checking a big draw to realize equity cheaply - if villain bets, you can raise as a semi-bluff with massive equity.';
             }
             if (handStrength.includes('draw')) {
-                if (street === 'turn') return 'Free card play on the turn — checking preserves your stack when the draw misses the river.';
-                return 'Taking a free card with draw equity — checking preserves the option to realize equity without risk.';
+                if (street === 'turn') return 'Free card play on the turn - checking preserves your stack when the draw misses the river.';
+                return 'Taking a free card with draw equity - checking preserves the option to realize equity without risk.';
             }
             if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
-                if (isIP && street === 'flop') return 'Checking back air in position — preserving the option to bluff the turn if a good card comes, while taking a free card.';
-                if (isOOP && street === 'flop') return 'Checking air from OOP — you lack position and equity. If villain bets, you can fold without losing more.';
-                if (street === 'flop') return 'Checking back air — this hand has insufficient equity to c-bet and the board doesn\'t favor your range.';
-                if (street === 'river') return 'Giving up with air on the river — no value target and villain\'s range is too strong to bluff.';
-                return 'Giving up with air — no equity to bet for value and insufficient fold equity to profitably bluff.';
+                if (isIP && street === 'flop') return 'Checking back air in position - preserving the option to bluff the turn if a good card comes, while taking a free card.';
+                if (isOOP && street === 'flop') return 'Checking air from OOP - you lack position and equity. If villain bets, you can fold without losing more.';
+                if (street === 'flop') return 'Checking back air - this hand has insufficient equity to c-bet and the board doesn\'t favor your range.';
+                if (street === 'river') return 'Giving up with air on the river - no value target and villain\'s range is too strong to bluff.';
+                return 'Giving up with air - no equity to bet for value and insufficient fold equity to profitably bluff.';
             }
             if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                return 'Checking a marginal made hand — your hand has showdown value but can\'t bet for value or bluff effectively. Play defense.';
+                return 'Checking a marginal made hand - your hand has showdown value but can\'t bet for value or bluff effectively. Play defense.';
             }
             return 'Checking to control the pot size and realize equity on future streets.';
         }
@@ -3383,145 +3383,145 @@ export class DeterministicGTOEngine {
             if (isOOP && nodeType === 'hero_bets_or_checks' && street !== 'preflop') {
                 // OOP leading (donk bet) is rare in GTO — add a note when it happens
                 if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
-                    return 'Donk-betting OOP as a bluff — rare in GTO, but the board texture heavily favors your range over the preflop aggressor. This exploits range disadvantage.';
+                    return 'Donk-betting OOP as a bluff - rare in GTO, but the board texture heavily favors your range over the preflop aggressor. This exploits range disadvantage.';
                 }
             }
             // Nutted hands
             if (hs.includes('quads') || hs.includes('full house')) {
-                if (street === 'river') return 'Value betting the nuts on the river — extracting maximum from second-best hands that can\'t fold.';
-                return 'Building the pot with an unbeatable hand — bet to grow the pot for river value.';
+                if (street === 'river') return 'Value betting the nuts on the river - extracting maximum from second-best hands that can\'t fold.';
+                return 'Building the pot with an unbeatable hand - bet to grow the pot for river value.';
             }
             if (hs.includes('nut flush') || hs.includes('nut straight')) {
-                if (street === 'river') return 'Betting the nuts for max value — your hand is the best possible. Target strong second-best hands.';
-                return 'Betting a nutted hand to build the pot — you want to get stacks in by the river.';
+                if (street === 'river') return 'Betting the nuts for max value - your hand is the best possible. Target strong second-best hands.';
+                return 'Betting a nutted hand to build the pot - you want to get stacks in by the river.';
             }
             if (hs.includes('flush') && !hs.includes('draw')) {
-                if (texture.connected) return 'Betting a flush on a connected board — protect against full house draws and extract from worse flushes.';
-                return 'Betting a flush for value — target sets, two pair, and strong pairs.';
+                if (texture.connected) return 'Betting a flush on a connected board - protect against full house draws and extract from worse flushes.';
+                return 'Betting a flush for value - target sets, two pair, and strong pairs.';
             }
             if (hs.includes('straight') && !hs.includes('draw')) {
-                if (texture.flushy || texture.monotone) return 'Betting a straight on a flushy board — need to extract value before a flush card kills action.';
-                if (texture.straightDrawHeavy) return 'Betting a straight on a connected board — higher straights are possible. Bet for value now before the board pairs or a higher card comes.';
-                return 'Betting a straight for value — target two pair, sets, and strong one-pair hands.';
+                if (texture.flushy || texture.monotone) return 'Betting a straight on a flushy board - need to extract value before a flush card kills action.';
+                if (texture.straightDrawHeavy) return 'Betting a straight on a connected board - higher straights are possible. Bet for value now before the board pairs or a higher card comes.';
+                return 'Betting a straight for value - target two pair, sets, and strong one-pair hands.';
             }
             if (hs.includes('set')) {
-                if (texture.straightDrawHeavy) return 'Betting a set on a straight-heavy board — multiple straight draws are out there. Charge them heavily or the board will get away from you.';
-                if (texture.wet) return 'Betting a set on a wet board — charge draws heavily. Sets want big pots before the board gets scary.';
-                if (texture.dry) return 'Betting a set on a dry board — slow-play is an option, but betting builds the pot for later streets.';
-                return 'Value betting a set — targeting top pair and overpairs that can\'t fold.';
+                if (texture.straightDrawHeavy) return 'Betting a set on a straight-heavy board - multiple straight draws are out there. Charge them heavily or the board will get away from you.';
+                if (texture.wet) return 'Betting a set on a wet board - charge draws heavily. Sets want big pots before the board gets scary.';
+                if (texture.dry) return 'Betting a set on a dry board - slow-play is an option, but betting builds the pot for later streets.';
+                return 'Value betting a set - targeting top pair and overpairs that can\'t fold.';
             }
             if (hs.includes('two pair')) {
-                if (texture.straightDrawHeavy) return 'Betting two pair on a rundown board — straight draws are everywhere. Bet big to deny equity before the turn changes everything.';
-                if (texture.connected) return 'Betting two pair on a connected board — charge straight draws and build the pot before the board changes.';
-                return 'Betting two pair for value — strong enough to target one-pair hands and draws.';
+                if (texture.straightDrawHeavy) return 'Betting two pair on a rundown board - straight draws are everywhere. Bet big to deny equity before the turn changes everything.';
+                if (texture.connected) return 'Betting two pair on a connected board - charge straight draws and build the pot before the board changes.';
+                return 'Betting two pair for value - strong enough to target one-pair hands and draws.';
             }
             if (hs.includes('top pair') && hs.includes('top kicker')) {
-                if (texture.wet) return 'Betting TPTK for value and protection — too many draws to give free cards.';
-                if (texture.dry) return 'Betting TPTK for thin value on a dry board — target weaker top pair and second pair.';
-                return 'Betting top pair top kicker — the strongest one-pair hand. Extract from worse pairs.';
+                if (texture.wet) return 'Betting TPTK for value and protection - too many draws to give free cards.';
+                if (texture.dry) return 'Betting TPTK for thin value on a dry board - target weaker top pair and second pair.';
+                return 'Betting top pair top kicker - the strongest one-pair hand. Extract from worse pairs.';
             }
             if (hs.includes('top pair') && hs.includes('strong kicker')) {
-                return 'Betting top pair strong kicker for value — ahead of most of villain\'s calling range.';
+                return 'Betting top pair strong kicker for value - ahead of most of villain\'s calling range.';
             }
             if (hs.includes('top pair')) {
-                if (texture.wet) return 'Betting for value and protection on a wet board — charge draws while your top pair is ahead.';
-                if (hs.includes('weak kicker')) return 'Thin value bet with top pair weak kicker — targeting second pair and draws, but beware of domination.';
-                return 'Betting top pair for value — targeting weaker pairs and high card hands.';
+                if (texture.wet) return 'Betting for value and protection on a wet board - charge draws while your top pair is ahead.';
+                if (hs.includes('weak kicker')) return 'Thin value bet with top pair weak kicker - targeting second pair and draws, but beware of domination.';
+                return 'Betting top pair for value - targeting weaker pairs and high card hands.';
             }
             if (hs.includes('overpair')) {
-                if (texture.wet) return 'Betting an overpair for protection on a wet board — too many draws to give a free card.';
-                return 'Betting an overpair for value — stronger than any pair on the board.';
+                if (texture.wet) return 'Betting an overpair for protection on a wet board - too many draws to give a free card.';
+                return 'Betting an overpair for value - stronger than any pair on the board.';
             }
             // Draw hands
             if (hs.includes('monster draw') || hs.includes('combo draw')) {
-                if (street === 'river') return 'Bluffing the river with a busted monster draw — your hand has no showdown value but you can represent the nuts.';
-                return 'Semi-bluffing with a monster draw — huge equity when called plus fold equity. This is one of the most +EV spots.';
+                if (street === 'river') return 'Bluffing the river with a busted monster draw - your hand has no showdown value but you can represent the nuts.';
+                return 'Semi-bluffing with a monster draw - huge equity when called plus fold equity. This is one of the most +EV spots.';
             }
             if (hs.includes('nut flush draw')) {
-                if (street === 'river') return 'Bluffing with a missed nut flush draw — you block the nut flush, making it harder for villain to have it.';
-                return 'Semi-bluffing with the nut flush draw — 9 clean outs plus fold equity. Premium bluff candidate.';
+                if (street === 'river') return 'Bluffing with a missed nut flush draw - you block the nut flush, making it harder for villain to have it.';
+                return 'Semi-bluffing with the nut flush draw - 9 clean outs plus fold equity. Premium bluff candidate.';
             }
             if (hs.includes('flush draw')) {
-                if (street === 'river') return 'Bluffing with a missed flush draw — converting busted equity into fold equity on the river.';
-                return 'Semi-bluffing with a flush draw — betting now gives fold equity plus equity when called.';
+                if (street === 'river') return 'Bluffing with a missed flush draw - converting busted equity into fold equity on the river.';
+                return 'Semi-bluffing with a flush draw - betting now gives fold equity plus equity when called.';
             }
             if (hs.includes('oesd') || hs.includes('double gutshot')) {
-                if (street === 'river') return 'Bluffing with a missed straight draw — converting busted equity into a river bluff.';
-                if (texture.straightDrawHeavy) return 'Semi-bluffing with 8 straight outs on a rundown board — villain has draws too, so fold equity is lower but your equity is real. Bet to deny their draws.';
-                return 'Semi-bluffing with 8 straight outs — enough equity to make betting very profitable.';
+                if (street === 'river') return 'Bluffing with a missed straight draw - converting busted equity into a river bluff.';
+                if (texture.straightDrawHeavy) return 'Semi-bluffing with 8 straight outs on a rundown board - villain has draws too, so fold equity is lower but your equity is real. Bet to deny their draws.';
+                return 'Semi-bluffing with 8 straight outs - enough equity to make betting very profitable.';
             }
             if (hs.includes('gutshot')) {
-                if (street === 'river') return 'Bluffing the river with a busted gutshot — no showdown value, only fold equity.';
-                if (texture.gapSize === 'one-gap' || texture.threeToStraight) return 'Semi-bluffing with a gutshot on a board with straight possibilities — your draw is hidden and the connected texture adds credibility to your bet.';
-                return 'Semi-bluffing with a gutshot — 4 outs plus fold equity. A balanced bluff candidate.';
+                if (street === 'river') return 'Bluffing the river with a busted gutshot - no showdown value, only fold equity.';
+                if (texture.gapSize === 'one-gap' || texture.threeToStraight) return 'Semi-bluffing with a gutshot on a board with straight possibilities - your draw is hidden and the connected texture adds credibility to your bet.';
+                return 'Semi-bluffing with a gutshot - 4 outs plus fold equity. A balanced bluff candidate.';
             }
             if (hs.includes('backdoor')) {
-                return 'Betting with backdoor equity — preserving the option to hit a draw on the turn while picking up the pot now.';
+                return 'Betting with backdoor equity - preserving the option to hit a draw on the turn while picking up the pot now.';
             }
             // Air
             if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard') || hs.includes('high cards')) {
-                if (street === 'river') return 'Pure bluff on the river — the only way to win with no made hand. You\'re repping a strong range.';
-                if (street === 'flop') return 'C-bet bluff with air — attacking villain\'s capped range. Most opponents fold too much to flop c-bets.';
-                return 'Bluffing as part of a balanced strategy — keeping the opponent indifferent about calling.';
+                if (street === 'river') return 'Pure bluff on the river - the only way to win with no made hand. You\'re repping a strong range.';
+                if (street === 'flop') return 'C-bet bluff with air - attacking villain\'s capped range. Most opponents fold too much to flop c-bets.';
+                return 'Bluffing as part of a balanced strategy - keeping the opponent indifferent about calling.';
             }
             // Marginal hands
             if (hs.includes('second pair')) {
-                if (street === 'river') return 'Thin value bet with second pair — targeting weaker holdings, though this is close between betting and checking.';
-                return 'Betting second pair for thin value and protection — charge draws and target bottom pair.';
+                if (street === 'river') return 'Thin value bet with second pair - targeting weaker holdings, though this is close between betting and checking.';
+                return 'Betting second pair for thin value and protection - charge draws and target bottom pair.';
             }
             if (hs.includes('bottom pair')) {
-                return 'Thin value bet / protection bet with bottom pair — targeting ace-high and king-high hands.';
+                return 'Thin value bet / protection bet with bottom pair - targeting ace-high and king-high hands.';
             }
             if (hs.includes('underpair')) {
-                return 'Betting an underpair as a semi-bluff — some showdown value plus fold equity against overcards.';
+                return 'Betting an underpair as a semi-bluff - some showdown value plus fold equity against overcards.';
             }
-            return 'Betting for value and protection — extracting from worse hands while denying equity.';
+            return 'Betting for value and protection - extracting from worse hands while denying equity.';
         }
 
         // ═══ CALLING CONCEPTS (Phase 56: Enhanced depth, Phase 68: Position-aware) ═══
         if (isCall) {
             // Position-specific calling note
             if (isIP && street === 'river' && (handStrength.includes('second pair') || handStrength.includes('bottom pair'))) {
-                return 'Bluff-catching in position on the river — being IP means you see villain\'s bet before deciding. Your positional advantage makes marginal calls more profitable.';
+                return 'Bluff-catching in position on the river - being IP means you see villain\'s bet before deciding. Your positional advantage makes marginal calls more profitable.';
             }
             if (isOOP && street === 'river' && (handStrength.includes('top pair') || handStrength.includes('overpair'))) {
-                return 'Calling down from OOP — strong enough to bluff-catch, but OOP calling ranges need to be tighter since you face more aggression.';
+                return 'Calling down from OOP - strong enough to bluff-catch, but OOP calling ranges need to be tighter since you face more aggression.';
             }
             if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
-                return 'Calling with a monster draw — massive equity (15+ outs) makes this a clear continue. Raising is also viable as a semi-bluff.';
+                return 'Calling with a monster draw - massive equity (15+ outs) makes this a clear continue. Raising is also viable as a semi-bluff.';
             }
             if (handStrength.includes('flush draw')) {
-                if (handStrength.includes('nut')) return 'Calling with the nut flush draw — 9 clean outs plus implied odds when the flush hits.';
-                return 'Calling with a flush draw — 9 outs (~19% turn equity) plus implied odds when completing.';
+                if (handStrength.includes('nut')) return 'Calling with the nut flush draw - 9 clean outs plus implied odds when the flush hits.';
+                return 'Calling with a flush draw - 9 outs (~19% turn equity) plus implied odds when completing.';
             }
             if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
-                return 'Calling with 8 straight outs — the pot odds are sufficient and implied odds boost the call.';
+                return 'Calling with 8 straight outs - the pot odds are sufficient and implied odds boost the call.';
             }
             if (handStrength.includes('gutshot')) {
-                if (handStrength.includes('overcard') || handStrength.includes('top pair')) return 'Calling with a gutshot plus extra equity — the additional outs make this profitable.';
-                return 'Calling with a gutshot — 4 outs is marginal but implied odds and backdoor equity justify the call.';
+                if (handStrength.includes('overcard') || handStrength.includes('top pair')) return 'Calling with a gutshot plus extra equity - the additional outs make this profitable.';
+                return 'Calling with a gutshot - 4 outs is marginal but implied odds and backdoor equity justify the call.';
             }
             if (handStrength.includes('draw')) {
-                return 'Calling with draw equity — pot odds plus implied odds make continuing profitable.';
+                return 'Calling with draw equity - pot odds plus implied odds make continuing profitable.';
             }
             if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('full house')) {
-                return 'Flatting with a monster — keeping villain\'s bluffs and weaker value in the pot. Raising would fold out too many hands you beat.';
+                return 'Flatting with a monster - keeping villain\'s bluffs and weaker value in the pot. Raising would fold out too many hands you beat.';
             }
             if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
-                return 'Calling with TPTK — strong enough to continue but raising would only get action from better hands.';
+                return 'Calling with TPTK - strong enough to continue but raising would only get action from better hands.';
             }
             if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
-                if (street === 'river') return 'Bluff-catching with a strong pair on the river — your hand beats all of villain\'s bluffs and some thin value.';
-                return 'Calling with a strong pair — flatting keeps the pot controlled while you\'re ahead of most of villain\'s range.';
+                if (street === 'river') return 'Bluff-catching with a strong pair on the river - your hand beats all of villain\'s bluffs and some thin value.';
+                return 'Calling with a strong pair - flatting keeps the pot controlled while you\'re ahead of most of villain\'s range.';
             }
             if (street === 'river') {
                 if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                    return 'Bluff-catching on the river with a marginal pair — you need villain to be bluffing at the right frequency.';
+                    return 'Bluff-catching on the river with a marginal pair - you need villain to be bluffing at the right frequency.';
                 }
-                return 'Bluff-catching on the river — calling at the right frequency to prevent villain from profiting with pure bluffs.';
+                return 'Bluff-catching on the river - calling at the right frequency to prevent villain from profiting with pure bluffs.';
             }
             if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                return 'Calling with a marginal made hand — your pair beats villain\'s bluffs and some of their value range.';
+                return 'Calling with a marginal made hand - your pair beats villain\'s bluffs and some of their value range.';
             }
             return 'Calling to see another card and realize equity.';
         }
@@ -3529,66 +3529,66 @@ export class DeterministicGTOEngine {
         // ═══ RAISING CONCEPTS (Phase 58: Enhanced) ═══
         if (isRaise) {
             if (handStrength.includes('set')) {
-                if (street === 'flop') return 'Check-raising a set on the flop — the strongest play. Build the pot and let aggressive opponents barrel into you.';
-                return 'Raising a set for value — building a big pot with a hand that dominates two pair and overpairs.';
+                if (street === 'flop') return 'Check-raising a set on the flop - the strongest play. Build the pot and let aggressive opponents barrel into you.';
+                return 'Raising a set for value - building a big pot with a hand that dominates two pair and overpairs.';
             }
             if (handStrength.includes('two pair')) {
-                return 'Raising two pair for value — strong enough to raise for value against top pair and overpairs.';
+                return 'Raising two pair for value - strong enough to raise for value against top pair and overpairs.';
             }
             if (handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house')) {
-                return 'Raising the nuts — building the pot with a monster hand. Get stacks in before the board changes.';
+                return 'Raising the nuts - building the pot with a monster hand. Get stacks in before the board changes.';
             }
             if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
-                return 'Raising TPTK — in certain spots, raising for value targets worse top pair combos and avoids being outdrawn.';
+                return 'Raising TPTK - in certain spots, raising for value targets worse top pair combos and avoids being outdrawn.';
             }
             if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
-                return 'Semi-bluff raise with a monster draw — huge fold equity plus 15+ outs if called. One of the best raising hands.';
+                return 'Semi-bluff raise with a monster draw - huge fold equity plus 15+ outs if called. One of the best raising hands.';
             }
             if (handStrength.includes('flush draw')) {
-                if (handStrength.includes('nut')) return 'Semi-bluff raise with the nut flush draw — premium bluff candidate that blocks villain\'s nutted range.';
-                return 'Semi-bluff raise with a flush draw — leveraging fold equity plus 9 outs when called.';
+                if (handStrength.includes('nut')) return 'Semi-bluff raise with the nut flush draw - premium bluff candidate that blocks villain\'s nutted range.';
+                return 'Semi-bluff raise with a flush draw - leveraging fold equity plus 9 outs when called.';
             }
             if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
-                return 'Semi-bluff raise with 8 straight outs — enough equity to make this raise profitable even when called.';
+                return 'Semi-bluff raise with 8 straight outs - enough equity to make this raise profitable even when called.';
             }
             if (handStrength.includes('gutshot')) {
-                return 'Semi-bluff raise with a gutshot — 4 outs isn\'t many, but the fold equity makes this raising hand profitable.';
+                return 'Semi-bluff raise with a gutshot - 4 outs isn\'t many, but the fold equity makes this raising hand profitable.';
             }
             if (handStrength.includes('air') || handStrength.includes('overcard') || handStrength.includes('no pair')) {
-                if (street === 'flop') return 'Check-raise bluff — attacking villain\'s c-bet with maximum aggression. Forces folds from better hands.';
-                return 'Bluff raise — attacking villain\'s capped range with aggression. You need villain to fold frequently.';
+                if (street === 'flop') return 'Check-raise bluff - attacking villain\'s c-bet with maximum aggression. Forces folds from better hands.';
+                return 'Bluff raise - attacking villain\'s capped range with aggression. You need villain to fold frequently.';
             }
-            return 'Raising to build the pot and apply pressure — balancing value raises with bluffs.';
+            return 'Raising to build the pot and apply pressure - balancing value raises with bluffs.';
         }
 
         // ═══ FOLDING CONCEPTS (Phase 56: Enhanced depth) ═══
         if (isFold) {
             if (handStrength.includes('flush draw') || handStrength.includes('nut flush draw')) {
-                return 'Folding even with a flush draw — the bet size prices you out. You need ~4:1 odds for 9 outs, and the sizing is too large.';
+                return 'Folding even with a flush draw - the bet size prices you out. You need ~4:1 odds for 9 outs, and the sizing is too large.';
             }
             if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
-                return 'Folding a straight draw — the bet sizing doesn\'t give you correct pot odds, and implied odds aren\'t sufficient.';
+                return 'Folding a straight draw - the bet sizing doesn\'t give you correct pot odds, and implied odds aren\'t sufficient.';
             }
             if (handStrength.includes('gutshot')) {
-                return 'Folding a gutshot — only 4 outs (~8% equity) isn\'t enough against this bet size. You need ~11:1 odds to call.';
+                return 'Folding a gutshot - only 4 outs (~8% equity) isn\'t enough against this bet size. You need ~11:1 odds to call.';
             }
             if (handStrength.includes('draw')) {
-                return 'Folding a draw — the bet sizing prices out your draw. Calling would be a -EV play.';
+                return 'Folding a draw - the bet sizing prices out your draw. Calling would be a -EV play.';
             }
             if (handStrength.includes('top pair')) {
-                return 'Folding top pair against heavy aggression — villain\'s range is polarized toward strong value hands that beat you.';
+                return 'Folding top pair against heavy aggression - villain\'s range is polarized toward strong value hands that beat you.';
             }
             if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                if (street === 'river') return 'Folding a weak pair on the river — you\'re not getting the right price to bluff-catch against this sizing.';
-                return 'Folding a marginal pair — facing too much aggression to continue. Your hand doesn\'t have enough equity vs villain\'s range.';
+                if (street === 'river') return 'Folding a weak pair on the river - you\'re not getting the right price to bluff-catch against this sizing.';
+                return 'Folding a marginal pair - facing too much aggression to continue. Your hand doesn\'t have enough equity vs villain\'s range.';
             }
             if (handStrength.includes('overpair')) {
-                return 'Folding an overpair — even strong pairs must fold facing extreme aggression. Villain\'s range is heavily weighted toward sets and better.';
+                return 'Folding an overpair - even strong pairs must fold facing extreme aggression. Villain\'s range is heavily weighted toward sets and better.';
             }
             if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
-                return 'Folding air — no made hand, insufficient draw equity. This hand is at the bottom of your range.';
+                return 'Folding air - no made hand, insufficient draw equity. This hand is at the bottom of your range.';
             }
-            return 'Folding — the hand lacks sufficient equity against villain\'s betting range to continue.';
+            return 'Folding - the hand lacks sufficient equity against villain\'s betting range to continue.';
         }
 
         return '';
@@ -3621,30 +3621,30 @@ export class DeterministicGTOEngine {
                 const isTopPair = hs.includes('top pair') || hs.includes('overpair');
 
                 if (sizePct <= 33 && texture.dry) {
-                    context = 'Small c-bet on a dry flop — range-betting strategy. On dry boards, the preflop aggressor c-bets small with most of their range because they have a range advantage.';
+                    context = 'Small c-bet on a dry flop - range-betting strategy. On dry boards, the preflop aggressor c-bets small with most of their range because they have a range advantage.';
                 } else if (sizePct <= 33 && !texture.dry) {
-                    context = 'Small c-bet on a wet flop — probing for information while keeping the pot controlled. Smaller sizes risk less on coordinated boards.';
+                    context = 'Small c-bet on a wet flop - probing for information while keeping the pot controlled. Smaller sizes risk less on coordinated boards.';
                 } else if (sizePct >= 60 && isNutted) {
-                    context = 'Large c-bet with a strong hand — polarizing on the flop to build the pot for later streets. This sizing allows for geometric bet-bet-shove lines.';
+                    context = 'Large c-bet with a strong hand - polarizing on the flop to build the pot for later streets. This sizing allows for geometric bet-bet-shove lines.';
                 } else if (sizePct >= 60 && hasDraw) {
-                    context = 'Large c-bet semi-bluff — maximum fold equity with a draw. Two cards to come gives strong backup equity if called.';
+                    context = 'Large c-bet semi-bluff - maximum fold equity with a draw. Two cards to come gives strong backup equity if called.';
                 } else if (sizePct >= 60 && (hs.includes('air') || hs.includes('no pair'))) {
-                    context = 'Large c-bet as a bluff on the flop — representing a strong range and putting villain in a tough spot with their entire range.';
+                    context = 'Large c-bet as a bluff on the flop - representing a strong range and putting villain in a tough spot with their entire range.';
                 } else if (isTopPair && texture.wet) {
-                    context = 'C-betting for value and protection — charging draws on a wet flop while your hand is currently best.';
+                    context = 'C-betting for value and protection - charging draws on a wet flop while your hand is currently best.';
                 } else if (isTopPair && texture.dry) {
-                    context = 'C-betting for thin value on a dry board — extracting from worse pairs and high-card hands.';
+                    context = 'C-betting for thin value on a dry board - extracting from worse pairs and high-card hands.';
                 }
             } else if (isCheck) {
                 if (hs.includes('set') || hs.includes('two pair')) {
-                    context = 'Checking back a strong hand on the flop — trapping to disguise strength and induce villain action on later streets.';
+                    context = 'Checking back a strong hand on the flop - trapping to disguise strength and induce villain action on later streets.';
                 } else if (hs.includes('draw') && hs.includes('backdoor')) {
-                    context = 'Checking back with backdoor equity — preserving the option to improve on the turn without committing chips.';
+                    context = 'Checking back with backdoor equity - preserving the option to improve on the turn without committing chips.';
                 } else if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
-                    context = 'Giving up the c-bet with air — the board doesn\'t favor the preflop aggressor\'s range enough to justify bluffing.';
+                    context = 'Giving up the c-bet with air - the board doesn\'t favor the preflop aggressor\'s range enough to justify bluffing.';
                 } else if (hs.includes('top pair') || hs.includes('overpair')) {
-                    if (texture.wet) context = 'Checking back top pair on a wet board for pot control — a common GTO strategy to avoid being check-raised off a vulnerable hand.';
-                    else context = 'Checking back for deception — protecting the checking range with strong hands so it isn\'t always weak.';
+                    if (texture.wet) context = 'Checking back top pair on a wet board for pot control - a common GTO strategy to avoid being check-raised off a vulnerable hand.';
+                    else context = 'Checking back for deception - protecting the checking range with strong hands so it isn\'t always weak.';
                 }
             }
         }
@@ -3653,27 +3653,27 @@ export class DeterministicGTOEngine {
         if (nodeType === 'hero_faces_bet') {
             if (isCall) {
                 if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
-                    context = 'Floating the c-bet with a draw — calling with equity to improve on the turn. Two cards to come maximizes implied odds.';
+                    context = 'Floating the c-bet with a draw - calling with equity to improve on the turn. Two cards to come maximizes implied odds.';
                 } else if (hs.includes('top pair') || hs.includes('overpair')) {
-                    context = 'Calling the flop c-bet with a strong hand — keeping villain\'s bluffs in and not inflating the pot unnecessarily.';
+                    context = 'Calling the flop c-bet with a strong hand - keeping villain\'s bluffs in and not inflating the pot unnecessarily.';
                 } else if (hs.includes('second pair') || hs.includes('middle pair')) {
-                    context = 'Defending a medium-strength hand vs the c-bet — good enough to call but not strong enough to raise.';
+                    context = 'Defending a medium-strength hand vs the c-bet - good enough to call but not strong enough to raise.';
                 } else if (hs.includes('backdoor')) {
-                    context = 'Floating with backdoor equity — calling the flop cheaply to see if the turn improves your draw potential.';
+                    context = 'Floating with backdoor equity - calling the flop cheaply to see if the turn improves your draw potential.';
                 }
             } else if (isRaise) {
                 if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight')) {
-                    context = 'Check-raising for value on the flop — the strongest play with a nutted hand, building a big pot early.';
+                    context = 'Check-raising for value on the flop - the strongest play with a nutted hand, building a big pot early.';
                 } else if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
-                    context = 'Check-raise semi-bluff — combining fold equity with draw equity. If called, you still have strong equity to improve.';
+                    context = 'Check-raise semi-bluff - combining fold equity with draw equity. If called, you still have strong equity to improve.';
                 } else if (hs.includes('air') || hs.includes('no pair')) {
-                    context = 'Check-raise bluff on the flop — attacking the c-bettor\'s range with maximum aggression. This works because most c-bet ranges are wide and weak.';
+                    context = 'Check-raise bluff on the flop - attacking the c-bettor\'s range with maximum aggression. This works because most c-bet ranges are wide and weak.';
                 }
             } else if (isFold) {
                 if (hs.includes('draw') && sizePct >= 60) {
-                    context = 'Folding a draw to a large c-bet — the sizing prices out your draw equity. You need better pot odds to continue profitably.';
+                    context = 'Folding a draw to a large c-bet - the sizing prices out your draw equity. You need better pot odds to continue profitably.';
                 } else if (hs.includes('no pair') || hs.includes('air')) {
-                    context = 'Folding air to the c-bet — no equity and no backdoor draws make continuing unprofitable regardless of pot odds.';
+                    context = 'Folding air to the c-bet - no equity and no backdoor draws make continuing unprofitable regardless of pot odds.';
                 }
             }
         }
@@ -3712,11 +3712,11 @@ export class DeterministicGTOEngine {
             const threeFlush = Object.values(suitCounts || {}).some(c => c >= 3);
 
             if (threeFlush) {
-                turnImpact = 'Turn puts three to a flush on board — flush draws now have one card to hit.';
+                turnImpact = 'Turn puts three to a flush on board - flush draws now have one card to hit.';
             } else if (tv >= 12) {
-                turnImpact = 'Ace on the turn shifts hand rankings — Ax hands improve significantly.';
+                turnImpact = 'Ace on the turn shifts hand rankings - Ax hands improve significantly.';
             } else if (tv >= 10) {
-                turnImpact = 'Broadway turn card — may complete straights or improve broadway draws.';
+                turnImpact = 'Broadway turn card - may complete straights or improve broadway draws.';
             }
         }
 
@@ -3729,44 +3729,44 @@ export class DeterministicGTOEngine {
 
             // Geometric sizing awareness
             if (sizePct >= 60 && sizePct <= 80 && isNutted) {
-                decisionContext = 'Geometric sizing on the turn — this bet size sets up a comfortable pot-sized river shove to get all-in over two streets.';
+                decisionContext = 'Geometric sizing on the turn - this bet size sets up a comfortable pot-sized river shove to get all-in over two streets.';
             } else if (sizePct >= 60 && sizePct <= 80 && isDraw) {
-                decisionContext = 'Large semi-bluff on the turn — one card to come, maximum fold equity now while retaining draw equity if called.';
+                decisionContext = 'Large semi-bluff on the turn - one card to come, maximum fold equity now while retaining draw equity if called.';
             } else if (sizePct <= 40 && isVulnerable) {
-                decisionContext = 'Small turn bet for protection — charge draws to see the river while controlling pot size with a vulnerable hand.';
+                decisionContext = 'Small turn bet for protection - charge draws to see the river while controlling pot size with a vulnerable hand.';
             } else if (sizePct >= 100) {
-                decisionContext = 'Overbet on the turn — polarizing between the nuts and bluffs. This sizing pressures the middle of villain\'s range.';
+                decisionContext = 'Overbet on the turn - polarizing between the nuts and bluffs. This sizing pressures the middle of villain\'s range.';
             } else if (isDraw) {
-                decisionContext = 'Turn semi-bluff — with one card to come, betting applies pressure while preserving the chance to improve on the river.';
+                decisionContext = 'Turn semi-bluff - with one card to come, betting applies pressure while preserving the chance to improve on the river.';
             } else if (isVulnerable && texture.wet) {
-                decisionContext = 'Betting the turn for protection on a wet board — too many draws could improve to beat your hand on the river.';
+                decisionContext = 'Betting the turn for protection on a wet board - too many draws could improve to beat your hand on the river.';
             }
         } else if (isCheck) {
             const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush');
             if (isNutted) {
-                decisionContext = 'Check-trapping the turn with a strong hand — inducing a bet on the river or setting up a check-raise.';
+                decisionContext = 'Check-trapping the turn with a strong hand - inducing a bet on the river or setting up a check-raise.';
             } else if (hs.includes('draw')) {
-                decisionContext = 'Taking a free card on the turn — preserving equity with a draw without investing more chips.';
+                decisionContext = 'Taking a free card on the turn - preserving equity with a draw without investing more chips.';
             } else if (hs.includes('top pair') || hs.includes('overpair')) {
-                decisionContext = 'Pot control on the turn — your hand has showdown value but the board is getting dangerous.';
+                decisionContext = 'Pot control on the turn - your hand has showdown value but the board is getting dangerous.';
             }
         } else if (isCall) {
             if (hs.includes('draw')) {
-                decisionContext = 'Calling the turn with a draw — pot odds and implied odds on the river justify continuing.';
+                decisionContext = 'Calling the turn with a draw - pot odds and implied odds on the river justify continuing.';
             } else if (hs.includes('top pair') || hs.includes('overpair')) {
-                decisionContext = 'Calling the turn with a strong made hand — flatting to keep the pot controlled while villain may be semi-bluffing.';
+                decisionContext = 'Calling the turn with a strong made hand - flatting to keep the pot controlled while villain may be semi-bluffing.';
             }
         } else if (isFold) {
             if (hs.includes('draw')) {
-                decisionContext = 'Folding a draw on the turn — the bet sizing prices you out with only one card to come.';
+                decisionContext = 'Folding a draw on the turn - the bet sizing prices you out with only one card to come.';
             } else if (hs.includes('pair')) {
-                decisionContext = 'Folding a marginal hand on the turn — facing too much aggression with the river still to come.';
+                decisionContext = 'Folding a marginal hand on the turn - facing too much aggression with the river still to come.';
             }
         } else if (isRaise) {
             if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
-                decisionContext = 'Raising the turn for value — building a pot to set up a river shove with a strong hand.';
+                decisionContext = 'Raising the turn for value - building a pot to set up a river shove with a strong hand.';
             } else if (hs.includes('draw')) {
-                decisionContext = 'Semi-bluff raise on the turn — maximum fold equity now, plus equity to improve on the river.';
+                decisionContext = 'Semi-bluff raise on the turn - maximum fold equity now, plus equity to improve on the river.';
             }
         }
 
@@ -3814,15 +3814,15 @@ export class DeterministicGTOEngine {
             const riverPairsBoard = rankCounts[riverRank] >= 2;
 
             if (flushComplete && riverSuit) {
-                riverImpact = 'The river completes a possible flush — ranges polarize heavily.';
+                riverImpact = 'The river completes a possible flush - ranges polarize heavily.';
             } else if (riverPairsBoard) {
-                riverImpact = 'The river pairs the board — full houses now possible, changing the hand rankings.';
+                riverImpact = 'The river pairs the board - full houses now possible, changing the hand rankings.';
             } else if (rv >= 12) {
-                riverImpact = 'Ace on the river is a significant scare card — Ax hands improved while bluffs gain credibility.';
+                riverImpact = 'Ace on the river is a significant scare card - Ax hands improved while bluffs gain credibility.';
             } else if (rv >= 10) {
-                riverImpact = 'Broadway river card — may have completed straights or improved high-card hands.';
+                riverImpact = 'Broadway river card - may have completed straights or improved high-card hands.';
             } else if (rv <= 4) {
-                riverImpact = 'Low river card — a relative brick that mostly preserves the turn dynamic.';
+                riverImpact = 'Low river card - a relative brick that mostly preserves the turn dynamic.';
             }
         }
 
@@ -3834,37 +3834,37 @@ export class DeterministicGTOEngine {
             const isThinValue = hs.includes('top pair') || hs.includes('overpair') || hs.includes('two pair');
 
             if (isNutted) {
-                decisionContext = 'On the river, nutted hands always bet — no more cards to come means pure value extraction.';
+                decisionContext = 'On the river, nutted hands always bet - no more cards to come means pure value extraction.';
             } else if (isMissedDraw) {
                 decisionContext = 'Converting a missed draw into a bluff on the river. With no showdown value, betting is the only way to profit.';
             } else if (isThinValue) {
-                decisionContext = 'Thin value bet — villain\'s calling range on the river includes enough worse hands to make this profitable.';
+                decisionContext = 'Thin value bet - villain\'s calling range on the river includes enough worse hands to make this profitable.';
             }
         } else if (isCall) {
             const sizeMatch = a.match(/\d+/); // This won't match 'call', need to check what villain bet
-            decisionContext = 'Bluff-catching on the river — you need to call enough to prevent villain from profiting with any two cards as a bluff.';
+            decisionContext = 'Bluff-catching on the river - you need to call enough to prevent villain from profiting with any two cards as a bluff.';
             if (hs.includes('top pair') || hs.includes('overpair')) {
                 decisionContext = 'Your hand is strong enough to bluff-catch. On the river, calling with top pair is standard when villain could be bluffing missed draws.';
             } else if (hs.includes('second pair') || hs.includes('bottom pair')) {
-                decisionContext = 'Marginal bluff-catch — your hand blocks some value combos and catches enough bluffs to justify calling.';
+                decisionContext = 'Marginal bluff-catch - your hand blocks some value combos and catches enough bluffs to justify calling.';
             }
         } else if (isFold) {
             if (hs.includes('pair')) {
-                decisionContext = 'Folding a made hand on the river — facing too much aggression. Villain\'s river betting range is strong enough that your pair is losing more often than not.';
+                decisionContext = 'Folding a made hand on the river - facing too much aggression. Villain\'s river betting range is strong enough that your pair is losing more often than not.';
             } else if (hs.includes('draw')) {
-                decisionContext = 'Draw missed on the river — no showdown value and facing a bet. Folding is the only option.';
+                decisionContext = 'Draw missed on the river - no showdown value and facing a bet. Folding is the only option.';
             }
         } else if (isCheck) {
             if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
-                decisionContext = 'Check-trapping on the river with a strong hand — inducing a bluff or delayed value bet from villain.';
+                decisionContext = 'Check-trapping on the river with a strong hand - inducing a bluff or delayed value bet from villain.';
             } else if (hs.includes('top pair') || hs.includes('overpair')) {
-                decisionContext = 'Checking back on the river for pot control — your hand has showdown value but betting risks being raised off the best hand.';
+                decisionContext = 'Checking back on the river for pot control - your hand has showdown value but betting risks being raised off the best hand.';
             }
         } else if (isRaise) {
             if (hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads')) {
-                decisionContext = 'River raise for value with the nuts — villain\'s bet indicates strength, and you\'re raising to extract maximum.';
+                decisionContext = 'River raise for value with the nuts - villain\'s bet indicates strength, and you\'re raising to extract maximum.';
             } else if (hs.includes('air') || hs.includes('no pair')) {
-                decisionContext = 'River bluff-raise — representing the nuts when you have nothing. This works because villain\'s betting range is often capped.';
+                decisionContext = 'River bluff-raise - representing the nuts when you have nothing. This works because villain\'s betting range is often capped.';
             }
         }
 
@@ -3902,11 +3902,11 @@ export class DeterministicGTOEngine {
         // Very low SPR (< 1) — pot-committed
         if (spr < 1) {
             if (isFold) {
-                if (hs.includes('air') || hs.includes('no pair')) return `SPR is ${spr.toFixed(1)} — you're nearly committed, but with pure air, even low SPR doesn't justify putting in more chips.`;
-                return `SPR is ${spr.toFixed(1)} — you're essentially pot-committed but the solver still folds this hand, indicating villain's range is extremely strong here.`;
+                if (hs.includes('air') || hs.includes('no pair')) return `SPR is ${spr.toFixed(1)} - you're nearly committed, but with pure air, even low SPR doesn't justify putting in more chips.`;
+                return `SPR is ${spr.toFixed(1)} - you're essentially pot-committed but the solver still folds this hand, indicating villain's range is extremely strong here.`;
             }
             if (isCall || isBet || isRaise) {
-                return `SPR is ${spr.toFixed(1)} — you're pot-committed. With this stack-to-pot ratio, getting it in is automatic with almost any piece of the board.`;
+                return `SPR is ${spr.toFixed(1)} - you're pot-committed. With this stack-to-pot ratio, getting it in is automatic with almost any piece of the board.`;
             }
         }
 
@@ -3914,10 +3914,10 @@ export class DeterministicGTOEngine {
         if (spr < 3) {
             if (isBet || isRaise) {
                 if (hs.includes('top pair') || hs.includes('overpair') || hs.includes('set') || hs.includes('two pair')) {
-                    return `SPR ${spr.toFixed(1)} — low enough to commit with one pair or better. Stack-off thresholds widen at shallow SPR.`;
+                    return `SPR ${spr.toFixed(1)} - low enough to commit with one pair or better. Stack-off thresholds widen at shallow SPR.`;
                 }
                 if (hs.includes('draw')) {
-                    return `SPR ${spr.toFixed(1)} — with a short stack-to-pot ratio, semi-bluff shoving has maximum fold equity and you can't be blown off your equity.`;
+                    return `SPR ${spr.toFixed(1)} - with a short stack-to-pot ratio, semi-bluff shoving has maximum fold equity and you can't be blown off your equity.`;
                 }
             }
             if (isFold && (hs.includes('top pair') || hs.includes('overpair'))) {
@@ -3929,10 +3929,10 @@ export class DeterministicGTOEngine {
         if (spr >= 3 && spr < 6) {
             if (a === 'allin' || isRaise) {
                 if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
-                    return `SPR ${spr.toFixed(1)} — medium SPR means two pair+ is needed to stack off comfortably. Your hand qualifies.`;
+                    return `SPR ${spr.toFixed(1)} - medium SPR means two pair+ is needed to stack off comfortably. Your hand qualifies.`;
                 }
                 if (hs.includes('top pair')) {
-                    return `SPR ${spr.toFixed(1)} — at medium SPR, stacking off with just top pair is marginal. The solver raises because your specific hand is strong enough.`;
+                    return `SPR ${spr.toFixed(1)} - at medium SPR, stacking off with just top pair is marginal. The solver raises because your specific hand is strong enough.`;
                 }
             }
         }
@@ -3940,10 +3940,10 @@ export class DeterministicGTOEngine {
         // High SPR (6+) — deep stacked, implied odds matter
         if (spr >= 6 && street === 'flop') {
             if (isCall && (hs.includes('set') || hs.includes('flush draw'))) {
-                return `SPR ${spr.toFixed(1)} — deep stack-to-pot ratio maximizes implied odds. When you hit, you can win a massive pot relative to your investment.`;
+                return `SPR ${spr.toFixed(1)} - deep stack-to-pot ratio maximizes implied odds. When you hit, you can win a massive pot relative to your investment.`;
             }
             if (isFold && (hs.includes('top pair'))) {
-                return `SPR ${spr.toFixed(1)} — deep SPR means one pair is vulnerable. You need to improve to stack off, and the pot-to-stack commitment isn't there yet.`;
+                return `SPR ${spr.toFixed(1)} - deep SPR means one pair is vulnerable. You need to improve to stack off, and the pot-to-stack commitment isn't there yet.`;
             }
         }
 
@@ -3976,30 +3976,30 @@ export class DeterministicGTOEngine {
             if (street === 'flop') {
                 // Villain c-bet or donk-bet
                 if (villainIsIP) {
-                    if (isFold && (hs.includes('air') || hs.includes('no pair'))) return `Villain${villainTag} c-bets IP with a wide range (~60-70% on most textures) — but your hand has no equity to continue against even this wide range.`;
+                    if (isFold && (hs.includes('air') || hs.includes('no pair'))) return `Villain${villainTag} c-bets IP with a wide range (~60-70% on most textures) - but your hand has no equity to continue against even this wide range.`;
                     if (isCall && hs.includes('draw')) return `Villain${villainTag} c-bets IP with ~60-70% of their range. Your draw has enough equity to call since villain's wide c-bet range includes many weak hands.`;
-                    if (isRaise) return `Villain${villainTag} c-bets IP with a wide range — check-raising exploits their many weak c-bets and puts their bluffs in a tough spot.`;
+                    if (isRaise) return `Villain${villainTag} c-bets IP with a wide range - check-raising exploits their many weak c-bets and puts their bluffs in a tough spot.`;
                 }
                 if (villainIsOOP) {
-                    if (isBet || isRaise) return `Villain${villainTag} leads OOP (donk-bet) — this polarized line usually means strong made hands or draws. Villain's range is narrow but potent.`;
-                    if (isCall) return `Villain${villainTag} leads OOP — a polarized action. Call to keep their bluffs in and evaluate the turn.`;
+                    if (isBet || isRaise) return `Villain${villainTag} leads OOP (donk-bet) - this polarized line usually means strong made hands or draws. Villain's range is narrow but potent.`;
+                    if (isCall) return `Villain${villainTag} leads OOP - a polarized action. Call to keep their bluffs in and evaluate the turn.`;
                 }
-                if (isCall && (hs.includes('top pair') || hs.includes('overpair'))) return `Villain's flop c-bet range is wide — your strong pair is ahead of most of it. Calling keeps their bluffs in.`;
+                if (isCall && (hs.includes('top pair') || hs.includes('overpair'))) return `Villain's flop c-bet range is wide - your strong pair is ahead of most of it. Calling keeps their bluffs in.`;
             }
 
             if (street === 'turn') {
                 // Turn barrel — villain's range has narrowed
-                if (isFold) return `Villain barrels the turn — their range has narrowed significantly from the flop. Turn bets are more value-heavy, so folding weaker hands becomes correct.`;
+                if (isFold) return `Villain barrels the turn - their range has narrowed significantly from the flop. Turn bets are more value-heavy, so folding weaker hands becomes correct.`;
                 if (isCall && (hs.includes('top pair') || hs.includes('overpair'))) return `Villain's turn barrel narrows their range to strong value and committed draws. Your pair is still a bluff-catcher that must continue to prevent villain from profiting with air.`;
-                if (isCall && hs.includes('draw')) return `Facing a turn barrel with a draw — villain's range is stronger than flop, but your outs are live and implied odds help when you hit the river.`;
-                if (isRaise) return `Raising villain's turn barrel — a powerful line. Villain's range is face-up as value or draws. A raise puts maximum pressure on their medium-strength hands.`;
+                if (isCall && hs.includes('draw')) return `Facing a turn barrel with a draw - villain's range is stronger than flop, but your outs are live and implied odds help when you hit the river.`;
+                if (isRaise) return `Raising villain's turn barrel - a powerful line. Villain's range is face-up as value or draws. A raise puts maximum pressure on their medium-strength hands.`;
             }
 
             if (street === 'river') {
                 // River bet — villain is polarized (nuts or air)
-                if (isFold) return `Villain fires three streets — their river range is heavily polarized between the nuts and bluffs. Your hand falls below the call threshold against this polarized range.`;
+                if (isFold) return `Villain fires three streets - their river range is heavily polarized between the nuts and bluffs. Your hand falls below the call threshold against this polarized range.`;
                 if (isCall) return `Villain's river bet is polarized between value and bluffs. You must call at the right frequency (~1-alpha) to keep villain indifferent about bluffing.`;
-                if (isRaise) return `Raising the river against a polarized villain — only viable with the nuts or as a massive bluff. Villain's value range is capped by not raising earlier.`;
+                if (isRaise) return `Raising the river against a polarized villain - only viable with the nuts or as a massive bluff. Villain's value range is capped by not raising earlier.`;
             }
         }
 
@@ -4010,21 +4010,21 @@ export class DeterministicGTOEngine {
                 if (isBet && texture.wet) return `Villain's checking range contains many draws that get a free card if you check. Betting charges these draws and denies their equity realization.`;
                 if (isCheck && texture.dry && texture.spread > 6) return `Villain's range whiffs this spread-out dry board frequently. Checking lets them bluff the turn with hands that would fold to a flop bet.`;
                 if (isCheck && texture.dry) return `Villain's range whiffs this dry board frequently. Checking lets them bluff the turn with hands that would fold to a flop bet.`;
-                if (isBet && texture.dry && (hs.includes('air') || hs.includes('no pair'))) return `Villain likely missed this dry board — c-betting as a bluff targets the large portion of their range that can't continue.`;
+                if (isBet && texture.dry && (hs.includes('air') || hs.includes('no pair'))) return `Villain likely missed this dry board - c-betting as a bluff targets the large portion of their range that can't continue.`;
             }
             if (street === 'turn') {
-                if (isBet && (hs.includes('top pair') || hs.includes('set'))) return `After checking to hero on the turn, villain's range is capped — they would have bet strong hands. Bet to extract value from their medium-strength holdings.`;
+                if (isBet && (hs.includes('top pair') || hs.includes('set'))) return `After checking to hero on the turn, villain's range is capped - they would have bet strong hands. Bet to extract value from their medium-strength holdings.`;
                 if (isCheck) return `Villain's turn checking range still contains traps and slow-plays. Checking back avoids walking into a check-raise with a vulnerable hand.`;
             }
             if (street === 'river') {
-                if (isBet && (hs.includes('air') || hs.includes('no pair'))) return `Villain has checked to you on the river — their range is weak and capped. This is a prime spot to bluff since they can't have strong hands.`;
-                if (isBet && (hs.includes('set') || hs.includes('two pair') || hs.includes('flush') || hs.includes('straight'))) return `Villain checks the river — their capped range means they can't beat your strong hand but may call with bluff-catchers. Value bet.`;
+                if (isBet && (hs.includes('air') || hs.includes('no pair'))) return `Villain has checked to you on the river - their range is weak and capped. This is a prime spot to bluff since they can't have strong hands.`;
+                if (isBet && (hs.includes('set') || hs.includes('two pair') || hs.includes('flush') || hs.includes('straight'))) return `Villain checks the river - their capped range means they can't beat your strong hand but may call with bluff-catchers. Value bet.`;
             }
         }
 
         // ═══ FACING RAISE (hero_faces_raise) ═══
         if (nodeType === 'hero_faces_raise') {
-            if (isFold) return `Villain raises — a very strong line that narrows their range to premium hands and select bluffs. Folding is correct when your hand can't beat villain's tightened range.`;
+            if (isFold) return `Villain raises - a very strong line that narrows their range to premium hands and select bluffs. Folding is correct when your hand can't beat villain's tightened range.`;
             if (isCall) return `Villain's raise polarizes their range between monsters and bluffs. Calling traps their bluffs while keeping the pot manageable against their value.`;
         }
 
@@ -4093,26 +4093,26 @@ export class DeterministicGTOEngine {
 
         if (isCall) {
             if (hs.includes('flush draw') || hs.includes('nut flush draw')) {
-                if (street === 'flop') return `Pot odds math: 9 flush outs × 4 = ~36% equity (rule of 4). You need ~25-33% equity to call most bet sizes — this is a clear call.`;
+                if (street === 'flop') return `Pot odds math: 9 flush outs × 4 = ~36% equity (rule of 4). You need ~25-33% equity to call most bet sizes - this is a clear call.`;
                 if (street === 'turn') return `Pot odds math: 9 flush outs × 2 = ~18% equity (rule of 2). Marginal on pot odds alone, but implied odds when the flush hits make this profitable.`;
             }
             if (hs.includes('oesd') || hs.includes('double gutshot')) {
                 if (street === 'flop') return `Pot odds math: 8 straight outs × 4 = ~32% equity (rule of 4). Sufficient to call most standard bet sizes.`;
-                if (street === 'turn') return `Pot odds math: 8 outs × 2 = ~16% equity (rule of 2). Needs implied odds to justify — when the straight completes, you should win a large pot.`;
+                if (street === 'turn') return `Pot odds math: 8 outs × 2 = ~16% equity (rule of 2). Needs implied odds to justify - when the straight completes, you should win a large pot.`;
             }
             if (hs.includes('gutshot')) {
-                if (street === 'flop') return `Pot odds math: 4 gutshot outs × 4 = ~16% equity. Marginal call — needs implied odds and possibly backdoor equity to justify continuing.`;
-                if (street === 'turn') return `Pot odds math: 4 outs × 2 = ~8% equity. Direct pot odds don't justify calling — but implied odds when the straight hits make this close.`;
+                if (street === 'flop') return `Pot odds math: 4 gutshot outs × 4 = ~16% equity. Marginal call - needs implied odds and possibly backdoor equity to justify continuing.`;
+                if (street === 'turn') return `Pot odds math: 4 outs × 2 = ~8% equity. Direct pot odds don't justify calling - but implied odds when the straight hits make this close.`;
             }
             if (hs.includes('monster draw') || hs.includes('combo draw')) {
-                return `Pot odds math: 15+ outs give ${estEquity}% equity — you're essentially a coin flip. Calling is always correct, and raising is also viable.`;
+                return `Pot odds math: 15+ outs give ${estEquity}% equity - you're essentially a coin flip. Calling is always correct, and raising is also viable.`;
             }
             if (hs.includes('top pair') || hs.includes('overpair')) {
                 if (street === 'river') return `Equity estimate: ~${estEquity}% vs villain's river betting range. Against balanced opponents, you need to call enough to prevent auto-profit bluffs.`;
-                return `Equity estimate: ~${estEquity}% against villain's range — comfortably above the pot odds threshold for most bet sizes.`;
+                return `Equity estimate: ~${estEquity}% against villain's range - comfortably above the pot odds threshold for most bet sizes.`;
             }
             if (hs.includes('second pair') || hs.includes('bottom pair')) {
-                if (street === 'river') return `Equity estimate: ~${estEquity}% vs villain's river range — close to the bluff-catching threshold. Call if villain bluffs enough.`;
+                if (street === 'river') return `Equity estimate: ~${estEquity}% vs villain's river range - close to the bluff-catching threshold. Call if villain bluffs enough.`;
             }
         }
 
@@ -4121,10 +4121,10 @@ export class DeterministicGTOEngine {
                 return `Pot odds math: 9 outs × 2 = ~18% equity. If the bet size requires more than 18% equity, folding is correct without sufficient implied odds.`;
             }
             if (hs.includes('gutshot')) {
-                return `Pot odds math: 4 outs = only ~${estEquity}% equity. This is below the required equity for nearly any bet size — folding is mathematically correct.`;
+                return `Pot odds math: 4 outs = only ~${estEquity}% equity. This is below the required equity for nearly any bet size - folding is mathematically correct.`;
             }
             if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
-                return `Equity estimate: ~${estEquity}% — well below the required equity to call. No profitable continue.`;
+                return `Equity estimate: ~${estEquity}% - well below the required equity to call. No profitable continue.`;
             }
             if (hs.includes('overpair') || hs.includes('top pair')) {
                 return `Despite holding a strong hand (~${estEquity}% in a vacuum), villain's aggression narrows their range to hands that beat you. Effective equity drops below the calling threshold.`;
@@ -4165,7 +4165,7 @@ export class DeterministicGTOEngine {
                     return 'Multi-street plan: Large semi-bluff now → if the draw hits, barrel for value; if it misses, you can either give up or triple-barrel bluff representing the nuts.';
                 }
                 if (sizePct <= 33 && isNutted) {
-                    return 'Multi-street plan: Small flop bet builds the pot gradually — allows larger turn and river bets while keeping villain\'s entire range in.';
+                    return 'Multi-street plan: Small flop bet builds the pot gradually - allows larger turn and river bets while keeping villain\'s entire range in.';
                 }
                 if (sizePct <= 33 && (hs.includes('air') || hs.includes('no pair'))) {
                     return 'Multi-street plan: Cheap flop c-bet → evaluate the turn card. Give up on bad runouts, barrel good turn cards that improve your equity or fold out villain\'s marginal hands.';
@@ -4200,19 +4200,19 @@ export class DeterministicGTOEngine {
                 const hasDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('flush draw');
 
                 if (sizePct >= 60 && sizePct <= 75) {
-                    if (isNutted) return 'Multi-street plan: 60-75% turn bet sets up a pot-sized river shove — geometric sizing to get stacks in by the river.';
+                    if (isNutted) return 'Multi-street plan: 60-75% turn bet sets up a pot-sized river shove - geometric sizing to get stacks in by the river.';
                     if (hasDraw) return 'Multi-street plan: Large turn semi-bluff → if the river completes the draw, bet for value. If not, you\'ve already built fold equity for a river jam.';
                 }
                 if (sizePct >= 80) {
-                    return 'Multi-street plan: Large turn bet commits a significant portion of your stack — be prepared to follow through with a river shove regardless of the card.';
+                    return 'Multi-street plan: Large turn bet commits a significant portion of your stack - be prepared to follow through with a river shove regardless of the card.';
                 }
                 if (sizePct <= 40) {
                     if (isNutted) return 'Multi-street plan: Small turn bet keeps villain\'s wide range in → overbet or pot-sized river bet for maximum extraction.';
                     if (hs.includes('top pair') || hs.includes('overpair')) return 'Multi-street plan: Medium turn bet for value/protection → check back or make a small river value bet depending on the runout.';
                 }
                 if (a === 'allin') {
-                    if (hasDraw) return 'Multi-street plan: Shoving the turn as a semi-bluff — maximum fold equity with one card to come. If called, you still have draw outs.';
-                    if (isNutted) return 'Going all-in on the turn for max value — the pot is large enough relative to stacks to get it in now.';
+                    if (hasDraw) return 'Multi-street plan: Shoving the turn as a semi-bluff - maximum fold equity with one card to come. If called, you still have draw outs.';
+                    if (isNutted) return 'Going all-in on the turn for max value - the pot is large enough relative to stacks to get it in now.';
                 }
             }
             if (isCheck) {
@@ -4220,7 +4220,7 @@ export class DeterministicGTOEngine {
                     return 'Multi-street plan: Checking the turn to control the pot → call a reasonable river bet or bet for thin value if checked to.';
                 }
                 if (hs.includes('set') || hs.includes('two pair')) {
-                    return 'Multi-street plan: Check the turn to induce a river bluff or delayed bet — then raise for maximum value on the river.';
+                    return 'Multi-street plan: Check the turn to induce a river bluff or delayed bet - then raise for maximum value on the river.';
                 }
                 if (hs.includes('draw')) {
                     return 'Multi-street plan: Take a free card on the turn → if the draw completes on the river, bet for value. If not, check-fold or bluff based on runout.';
@@ -4231,7 +4231,7 @@ export class DeterministicGTOEngine {
                     return 'Multi-street plan: Calling the turn with a draw → final card decides everything. If the draw hits, you win a big pot. If not, fold to a river bet.';
                 }
                 if (hs.includes('top pair') || hs.includes('overpair')) {
-                    return 'Multi-street plan: Call turn → bluff-catch the river. One more bet to face — your hand should be good often enough to justify calling down.';
+                    return 'Multi-street plan: Call turn → bluff-catch the river. One more bet to face - your hand should be good often enough to justify calling down.';
                 }
             }
         }
@@ -4290,47 +4290,47 @@ export class DeterministicGTOEngine {
         if (nodeType === 'hero_bets_or_checks' && street === 'flop') {
             // Hero is the preflop aggressor (c-bet decision)
             if (isAceHighBoard) {
-                if (isBet) return 'Range advantage: Ace-high boards heavily favor the preflop raiser — your range has more AA/AK/AQ combos than the caller.';
+                if (isBet) return 'Range advantage: Ace-high boards heavily favor the preflop raiser - your range has more AA/AK/AQ combos than the caller.';
                 if (isCheck) return 'Range advantage: Even though ace-high boards favor the raiser, checking balances your range and prevents being exploited by always c-betting.';
             }
             if (isHighBoard && boardRanks.includes('K')) {
-                if (isBet) return 'Range advantage: King-high boards favor the preflop raiser — more KK/AK/KQ in your range than the caller\'s.';
+                if (isBet) return 'Range advantage: King-high boards favor the preflop raiser - more KK/AK/KQ in your range than the caller\'s.';
             }
             if (texture.broadwayDraw) {
-                if (isBet) return 'Range advantage: Broadway-draw board (3+ cards T-A) — the preflop raiser\'s range has more broadway combinations, giving significant range advantage.';
+                if (isBet) return 'Range advantage: Broadway-draw board (3+ cards T-A) - the preflop raiser\'s range has more broadway combinations, giving significant range advantage.';
             }
             if (texture.highCard && !isAceHighBoard && !boardRanks.includes('K')) {
-                if (isBet) return 'Range advantage: High board favors the preflop raiser — more premium hands in your range connect with these high cards.';
+                if (isBet) return 'Range advantage: High board favors the preflop raiser - more premium hands in your range connect with these high cards.';
             }
             if (isLowBoard && texture.connected) {
                 if (texture.gapSize === 'rundown') {
-                    if (isCheck) return 'Range advantage: This low rundown board (3+ connected cards) massively favors the caller — they have straights, sets, two pair, and combo draws. Check frequently as the PFR.';
+                    if (isCheck) return 'Range advantage: This low rundown board (3+ connected cards) massively favors the caller - they have straights, sets, two pair, and combo draws. Check frequently as the PFR.';
                     if (isBet) return 'Range note: Rundown low boards strongly favor the caller, but betting with your specific hand applies pressure to their capped portions.';
                 }
-                if (isCheck) return 'Range advantage: Low connected boards favor the caller\'s range — they have more sets, two pair, and straight combos. Checking is often correct as the PFR.';
+                if (isCheck) return 'Range advantage: Low connected boards favor the caller\'s range - they have more sets, two pair, and straight combos. Checking is often correct as the PFR.';
                 if (isBet && hs.includes('overpair')) return 'Range note: Low connected boards favor the caller, but your overpair still needs to bet for protection against the many draws and strong hands in their range.';
             }
             if (isLowBoard && !texture.connected) {
-                if (isBet) return 'Range advantage: Low dry boards are close in range advantage — small c-bets with wide range work because neither player connects strongly.';
+                if (isBet) return 'Range advantage: Low dry boards are close in range advantage - small c-bets with wide range work because neither player connects strongly.';
             }
             if (texture.straightDrawHeavy && !isLowBoard) {
-                if (isCheck) return 'Range note: This connected board allows many straight draws — checking accounts for the caller\'s strong equity realization with connected hands.';
-                if (isBet && (hs.includes('set') || hs.includes('two pair'))) return 'Range note: Connected board with many straight possibilities — bet to charge the numerous draws before the turn changes the landscape.';
+                if (isCheck) return 'Range note: This connected board allows many straight draws - checking accounts for the caller\'s strong equity realization with connected hands.';
+                if (isBet && (hs.includes('set') || hs.includes('two pair'))) return 'Range note: Connected board with many straight possibilities - bet to charge the numerous draws before the turn changes the landscape.';
             }
             if (texture.monotone) {
-                if (isCheck) return 'Range note: Monotone boards reduce the preflop raiser\'s range advantage — the caller has more suited combos that hit flushes and flush draws.';
+                if (isCheck) return 'Range note: Monotone boards reduce the preflop raiser\'s range advantage - the caller has more suited combos that hit flushes and flush draws.';
                 if (isBet) return 'Range note: Despite the monotone texture reducing your range advantage, betting protects your equity and charges villain\'s draws.';
             }
             if (texture.paired) {
-                if (isBet) return 'Range advantage: Paired boards strongly favor the preflop raiser — your range has more overpairs and big pairs while the caller rarely has trips.';
+                if (isBet) return 'Range advantage: Paired boards strongly favor the preflop raiser - your range has more overpairs and big pairs while the caller rarely has trips.';
             }
         }
 
         // ═══ CALLER/OOP RANGE ADVANTAGE (facing c-bet) ═══
         if (nodeType === 'hero_faces_bet' && street === 'flop') {
             if (isLowBoard && texture.connected) {
-                if (isRaise) return 'Range advantage: You (the caller) have the range advantage on this low connected board — more two pair, sets, and straights than the preflop raiser. Check-raising exploits this.';
-                if (isCall) return 'Range advantage: Low connected boards favor the caller\'s range — you connect more often with sets and two pair here.';
+                if (isRaise) return 'Range advantage: You (the caller) have the range advantage on this low connected board - more two pair, sets, and straights than the preflop raiser. Check-raising exploits this.';
+                if (isCall) return 'Range advantage: Low connected boards favor the caller\'s range - you connect more often with sets and two pair here.';
             }
             if (isAceHighBoard && isFold) {
                 return 'Range disadvantage: Ace-high boards favor the preflop raiser heavily. Without a strong hand, folding is correct because villain\'s range connects much more often here.';
@@ -4340,12 +4340,12 @@ export class DeterministicGTOEngine {
         // ═══ IP vs OOP DYNAMICS ═══
         if (heroIsIP && isCheck && street === 'flop') {
             if (hs.includes('draw') || hs.includes('backdoor')) {
-                return 'Position advantage: Being in position allows you to check back draws and realize equity freely — a key IP advantage.';
+                return 'Position advantage: Being in position allows you to check back draws and realize equity freely - a key IP advantage.';
             }
         }
         if (heroIsOOP && isBet && street === 'flop') {
             if (hs.includes('air') || hs.includes('no pair')) {
-                return 'Position note: Donk-betting OOP is uncommon in GTO — when the solver uses it, the board texture strongly favors the OOP player\'s range.';
+                return 'Position note: Donk-betting OOP is uncommon in GTO - when the solver uses it, the board texture strongly favors the OOP player\'s range.';
             }
         }
 
@@ -4442,14 +4442,14 @@ export class DeterministicGTOEngine {
                 }
 
                 if (blockers.length > 0) {
-                    return `Blocker effect: ${blockers[0]}${blockers.length > 1 ? '; ' + blockers[1] : ''} — making this a premium bluff candidate.`;
+                    return `Blocker effect: ${blockers[0]}${blockers.length > 1 ? '; ' + blockers[1] : ''} - making this a premium bluff candidate.`;
                 }
             }
 
             // Semi-bluffing with draw + blockers
             if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd') || hs.includes('gutshot')) {
                 if (hasAce && isSuited && (threeFlush || fourFlush)) {
-                    return 'Blocker effect: Your suited ace blocks villain\'s nut flush — they\'re less likely to have the nuts, making your semi-bluff more effective.';
+                    return 'Blocker effect: Your suited ace blocks villain\'s nut flush - they\'re less likely to have the nuts, making your semi-bluff more effective.';
                 }
                 if (hasAce && (threeFlush || fourFlush)) {
                     return 'Blocker effect: Holding an A reduces the chance villain has the nut flush, supporting this aggression.';
@@ -4460,12 +4460,12 @@ export class DeterministicGTOEngine {
             if (hs.includes('set') || hs.includes('two pair') || hs.includes('full house') || hs.includes('straight') || hs.includes('flush')) {
                 // Set on Axx board — you block AA but unblock AK/AQ
                 if (isPair && boardRanks.includes(r1)) {
-                    if (r1 === 'A') return 'Blocker note: Your set blocks AA (no combos left) but villain can still have AK/AQ — good targets for value.';
+                    if (r1 === 'A') return 'Blocker note: Your set blocks AA (no combos left) but villain can still have AK/AQ - good targets for value.';
                     if (hasAce || boardRanks.includes('A')) return ''; // complex, skip
                 }
                 // Two pair on flushy board — no flush blocker is good
                 if (hs.includes('two pair') && (threeFlush || fourFlush) && !isSuited) {
-                    return 'Blocker note: Your offsuit hand doesn\'t block flush draws — villain\'s range has more missed draws that may call.';
+                    return 'Blocker note: Your offsuit hand doesn\'t block flush draws - villain\'s range has more missed draws that may call.';
                 }
             }
 
@@ -4474,7 +4474,7 @@ export class DeterministicGTOEngine {
                 const sizeMatch = a.match(/^b(\d+)$/);
                 const sizePct = sizeMatch ? parseInt(sizeMatch[1]) : 0;
                 if (sizePct >= 125 && hasAce && (threeFlush || fourFlush)) {
-                    return 'Blocker effect: Overbetting while holding the A on a flushy board — you block the nuts, making villain less likely to have a hand that can call.';
+                    return 'Blocker effect: Overbetting while holding the A on a flushy board - you block the nuts, making villain less likely to have a hand that can call.';
                 }
             }
         }
@@ -4495,11 +4495,11 @@ export class DeterministicGTOEngine {
 
                 // Unblocking bluffs: also good for calling (absence of blockers to draws)
                 if ((threeFlush || fourFlush) && !isSuited) {
-                    effects.push('your offsuit hand doesn\'t block missed flush draws — villain has more bluff combos');
+                    effects.push('your offsuit hand doesn\'t block missed flush draws - villain has more bluff combos');
                 }
 
                 if (effects.length > 0) {
-                    return `Blocker logic: ${effects.join('; ')} — supporting the call.`;
+                    return `Blocker logic: ${effects.join('; ')} - supporting the call.`;
                 }
             }
         }
@@ -4509,10 +4509,10 @@ export class DeterministicGTOEngine {
             // Folding is correct when you UNBLOCK value and BLOCK bluffs
             if (street === 'river' || street === 'turn') {
                 if (isSuited && (threeFlush || fourFlush)) {
-                    return 'Blocker consideration: Your suited cards block some of villain\'s missed flush draw bluffs — they have fewer bluffs, supporting the fold.';
+                    return 'Blocker consideration: Your suited cards block some of villain\'s missed flush draw bluffs - they have fewer bluffs, supporting the fold.';
                 }
                 if (connectedBoard && (Math.abs(v1 - boardVals[0]) <= 2 || Math.abs(v2 - boardVals[0]) <= 2)) {
-                    return 'Your cards block some of villain\'s missed straight draws — fewer bluffs in their range supports folding.';
+                    return 'Your cards block some of villain\'s missed straight draws - fewer bluffs in their range supports folding.';
                 }
             }
         }
@@ -4522,10 +4522,10 @@ export class DeterministicGTOEngine {
             // Strong hands checking — sometimes because blockers reduce action
             if (hs.includes('top pair') || hs.includes('overpair')) {
                 if (hasAce && boardRanks.includes('A')) {
-                    return 'Blocker note: Holding an A on an ace-high board reduces villain\'s top pair combos — fewer hands can pay you off, supporting a check.';
+                    return 'Blocker note: Holding an A on an ace-high board reduces villain\'s top pair combos - fewer hands can pay you off, supporting a check.';
                 }
                 if (hasKing && boardRanks.includes('K')) {
-                    return 'Blocker note: Your K on a king-high board reduces villain\'s top pair combos — checking makes sense when value targets are scarce.';
+                    return 'Blocker note: Your K on a king-high board reduces villain\'s top pair combos - checking makes sense when value targets are scarce.';
                 }
             }
         }
@@ -4538,7 +4538,7 @@ export class DeterministicGTOEngine {
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a]);
 
-        if (sorted.length < 2) return 'Close decision — nearly pure.';
+        if (sorted.length < 2) return 'Close decision - nearly pure.';
 
         const top = sorted[0].toLowerCase();
         const second = sorted[1].toLowerCase();
@@ -4557,29 +4557,29 @@ export class DeterministicGTOEngine {
         if ((topIsCheck && secondIsBet) || (topIsBet && secondIsCheck)) {
             if (hs.includes('top pair') || hs.includes('overpair')) {
                 if (texture.wet) return `This hand is at the indifference point between betting for value/protection and checking to control the pot. On a wet board, betting ${topIsBet ? topFreq : secondFreq}% protects against draws while checking preserves a balanced checking range.`;
-                if (texture.dry) return `On a dry board, top pair is less vulnerable — the solver splits between betting for thin value and checking to trap. Neither line dominates.`;
+                if (texture.dry) return `On a dry board, top pair is less vulnerable - the solver splits between betting for thin value and checking to trap. Neither line dominates.`;
                 if (texture.paired) return `On a paired board, top pair is relatively strong. The solver mixes between betting thin and checking, since fewer draws exist and villain's range is more capped.`;
                 return `At the boundary between value betting and pot control. If this hand always bet, the checking range would become too weak and exploitable. The solver splits to keep both ranges strong.`;
             }
             if (hs.includes('set') || hs.includes('two pair')) {
-                if (texture.wet) return `Strong hand mixing bet/check on a wet board — betting protects against draws while checking traps aggressive opponents. Wet textures increase the mix frequency.`;
-                if (texture.dry) return `Slow-playing a monster on a dry board — fewer draws mean less urgency to bet. Trapping is more viable when villain can't outdraw you easily.`;
+                if (texture.wet) return `Strong hand mixing bet/check on a wet board - betting protects against draws while checking traps aggressive opponents. Wet textures increase the mix frequency.`;
+                if (texture.dry) return `Slow-playing a monster on a dry board - fewer draws mean less urgency to bet. Trapping is more viable when villain can't outdraw you easily.`;
                 return `Strong hand that mixes between building the pot and trapping. Slow-playing some percentage disguises hand strength and protects the checking range with monsters.`;
             }
             if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
-                if (texture.wet) return `Draw at the indifference point on a wet board — semi-bluffing has more credibility when many draws exist, but checking also realizes equity well.`;
-                return `Draw at the indifference point — sometimes semi-bluffing for fold equity, sometimes checking to realize equity freely. Both lines have approximately equal EV.`;
+                if (texture.wet) return `Draw at the indifference point on a wet board - semi-bluffing has more credibility when many draws exist, but checking also realizes equity well.`;
+                return `Draw at the indifference point - sometimes semi-bluffing for fold equity, sometimes checking to realize equity freely. Both lines have approximately equal EV.`;
             }
             if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
-                if (texture.dry) return `On a dry board, the solver bluffs less frequently — villain has fewer draws to fold out, so bluff profitability is lower. The mix keeps frequencies unpredictable.`;
+                if (texture.dry) return `On a dry board, the solver bluffs less frequently - villain has fewer draws to fold out, so bluff profitability is lower. The mix keeps frequencies unpredictable.`;
                 if (texture.wet) return `Wet board gives air more semi-bluff equity through backdoors. The solver bluffs enough to make villain indifferent between calling and folding.`;
-                return `This hand sometimes bluffs and sometimes gives up. The solver bluffs just often enough to make villain indifferent between calling and folding — the foundation of GTO balance.`;
+                return `This hand sometimes bluffs and sometimes gives up. The solver bluffs just often enough to make villain indifferent between calling and folding - the foundation of GTO balance.`;
             }
             if (hs.includes('second pair') || hs.includes('bottom pair') || hs.includes('middle pair')) {
-                if (texture.wet) return `Marginal hand on a wet board — betting risks getting raised, checking risks giving free cards. The solver mixes because neither option clearly dominates.`;
+                if (texture.wet) return `Marginal hand on a wet board - betting risks getting raised, checking risks giving free cards. The solver mixes because neither option clearly dominates.`;
                 return `Marginal made hand at the bet/check boundary. Betting extracts thin value from worse hands, but checking preserves the option to call a river bet with showdown value.`;
             }
-            return `Indifferent between betting and checking${texTag} — at Nash equilibrium, both actions yield identical EV. The solver randomizes to prevent opponents from exploiting predictable patterns.`;
+            return `Indifferent between betting and checking${texTag} - at Nash equilibrium, both actions yield identical EV. The solver randomizes to prevent opponents from exploiting predictable patterns.`;
         }
 
         // Multiple bet sizes
@@ -4587,40 +4587,40 @@ export class DeterministicGTOEngine {
             const topSize = parseInt(top.match(/\d+/)?.[0] || '0');
             const secSize = parseInt(second.match(/\d+/)?.[0] || '0');
             if (hs.includes('set') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house')) {
-                if (texture.wet) return `Multiple sizings with a strong hand on a wet board — smaller bets keep draws in, while larger bets charge them. The solver optimizes the value extraction mix.`;
-                return `The solver uses multiple sizings with the nuts — smaller bets target thin calls from medium-strength hands, while larger bets maximize value from strong holdings.`;
+                if (texture.wet) return `Multiple sizings with a strong hand on a wet board - smaller bets keep draws in, while larger bets charge them. The solver optimizes the value extraction mix.`;
+                return `The solver uses multiple sizings with the nuts - smaller bets target thin calls from medium-strength hands, while larger bets maximize value from strong holdings.`;
             }
             if (hs.includes('draw')) {
-                return `Different bluff sizings with a draw — smaller bets risk less when bluffing, while larger bets generate more fold equity. The solver optimizes the sizing mix${texTag}.`;
+                return `Different bluff sizings with a draw - smaller bets risk less when bluffing, while larger bets generate more fold equity. The solver optimizes the sizing mix${texTag}.`;
             }
             if (Math.abs(topSize - secSize) >= 40) {
-                return `Wide sizing split (${topSize}% vs ${secSize}%)${texTag} — each size targets a different portion of villain's range. The larger size is polarized; the smaller is merged.`;
+                return `Wide sizing split (${topSize}% vs ${secSize}%)${texTag} - each size targets a different portion of villain's range. The larger size is polarized; the smaller is merged.`;
             }
-            return `Multiple bet sizes at the indifference point. The solver splits sizings to target different parts of villain's range — each size attacks a different hand class optimally.`;
+            return `Multiple bet sizes at the indifference point. The solver splits sizings to target different parts of villain's range - each size attacks a different hand class optimally.`;
         }
 
         // Call vs Raise mix
         if ((top === 'call' && (second.startsWith('r') || second === 'allin')) ||
             ((top.startsWith('r') || top === 'allin') && second === 'call')) {
             if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
-                if (texture.wet) return `Strong hand mixing flat/raise on a wet board — raising denies equity but narrows villain's range. Flatting keeps bluffs in and maintains pot size for river extraction.`;
+                if (texture.wet) return `Strong hand mixing flat/raise on a wet board - raising denies equity but narrows villain's range. Flatting keeps bluffs in and maintains pot size for river extraction.`;
                 return `Strong hand that mixes flat and raise. Raising always would cap the flatting range, making it exploitable. Slow-playing some percentage keeps both ranges balanced.`;
             }
             if (hs.includes('draw')) {
-                if (texture.wet) return `Semi-bluff raise vs. float on a wet board — raising maximizes fold equity against villain's many vulnerable hands. Calling preserves implied odds.`;
-                return `Semi-bluff raise vs. floating call — raising applies maximum pressure, calling preserves implied odds. Both lines are approximately +EV.`;
+                if (texture.wet) return `Semi-bluff raise vs. float on a wet board - raising maximizes fold equity against villain's many vulnerable hands. Calling preserves implied odds.`;
+                return `Semi-bluff raise vs. floating call - raising applies maximum pressure, calling preserves implied odds. Both lines are approximately +EV.`;
             }
-            return `Mixing call/raise at the indifference point${texTag} — flatting traps bluffs, raising builds the pot. The solver balances both to stay unexploitable.`;
+            return `Mixing call/raise at the indifference point${texTag} - flatting traps bluffs, raising builds the pot. The solver balances both to stay unexploitable.`;
         }
 
         // Fold vs Call mix — critical bluff-catching theory
         if ((top === 'f' && second === 'call') || (top === 'call' && second === 'f')) {
             if (street === 'river') {
-                if (texture.flushy || texture.monotone) return `At the bluff-catching threshold on a flushy river board. Missed flush draws are a large part of villain's bluffing range — calling just enough to prevent them from auto-profiting with bluffs.`;
+                if (texture.flushy || texture.monotone) return `At the bluff-catching threshold on a flushy river board. Missed flush draws are a large part of villain's bluffing range - calling just enough to prevent them from auto-profiting with bluffs.`;
                 return `At the exact bluff-catching threshold on the river. Calling too much lets villain profit by over-bluffing; folding too much lets villain steal pots unchallenged. The solver calls just enough to keep villain indifferent.`;
             }
-            if (texture.wet) return `At the minimum defense frequency on a wet board — many draws increase villain's semi-bluff frequency, but this hand is at the threshold of profitability.`;
-            return `At the minimum defense frequency boundary — this hand is nearly indifferent between continuing and folding. Defending slightly more than breakeven prevents exploitation.`;
+            if (texture.wet) return `At the minimum defense frequency on a wet board - many draws increase villain's semi-bluff frequency, but this hand is at the threshold of profitability.`;
+            return `At the minimum defense frequency boundary - this hand is nearly indifferent between continuing and folding. Defending slightly more than breakeven prevents exploitation.`;
         }
 
         // Fold vs Call vs Raise three-way mix
@@ -4628,10 +4628,10 @@ export class DeterministicGTOEngine {
         const hasCall = sorted.some(s => s.toLowerCase() === 'call');
         const hasRaise = sorted.some(s => s.toLowerCase().startsWith('r') || s.toLowerCase() === 'allin');
         if (hasFold && hasCall && hasRaise) {
-            return `Three-way mix (fold/call/raise)${texTag} — this hand is at a complex indifference point where all three actions yield similar EV. The solver distributes across all lines to maintain perfect balance.`;
+            return `Three-way mix (fold/call/raise)${texTag} - this hand is at a complex indifference point where all three actions yield similar EV. The solver distributes across all lines to maintain perfect balance.`;
         }
 
-        return `Multiple actions at the Nash equilibrium indifference point — all mixed-in actions yield identical EV. Deviating from these frequencies creates exploitable imbalances.`;
+        return `Multiple actions at the Nash equilibrium indifference point - all mixed-in actions yield identical EV. Deviating from these frequencies creates exploitable imbalances.`;
     }
 
     /**
@@ -4689,36 +4689,36 @@ export class DeterministicGTOEngine {
         // ═══ OPEN RAISE (RFI) ═══
         // Phase 41: Stack-depth-aware open raise explanations
         if (nodeType === 'preflop_open') {
-            const stackNote = stackDepth ? (stackDepth <= 20 ? ` At ${stackDepth}BB, opening ranges tighten due to high SPR risk.` : stackDepth <= 40 ? '' : ` Deep-stacked — implied odds favor suited/connected hands.`) : '';
+            const stackNote = stackDepth ? (stackDepth <= 20 ? ` At ${stackDepth}BB, opening ranges tighten due to high SPR risk.` : stackDepth <= 40 ? '' : ` Deep-stacked - implied odds favor suited/connected hands.`) : '';
             if (isRaise) {
                 if (freq >= 0.95) {
                     if (isPremium) return `${heroHand}: Always open ${handDesc} from ${posName}. ${this._positionOpenContext(heroPosition)}${stackNote}`;
-                    if (isLatePos && isSuited && isConnected) return `${heroHand}: Pure open from ${posName}. ${handDesc} — ideal steal hand with playability, suitedness, and connectivity.${stackNote}`;
-                    if (isLatePos) return `${heroHand}: Pure open from ${posName}. ${handDesc} — wide opening range in late position to steal blinds.${stackNote}`;
+                    if (isLatePos && isSuited && isConnected) return `${heroHand}: Pure open from ${posName}. ${handDesc} - ideal steal hand with playability, suitedness, and connectivity.${stackNote}`;
+                    if (isLatePos) return `${heroHand}: Pure open from ${posName}. ${handDesc} - wide opening range in late position to steal blinds.${stackNote}`;
                     if (isEarlyPos) return `${heroHand}: Pure open from ${posName}. ${handDesc} strong enough to open even in early position against many opponents.${stackNote}`;
-                    if (isBlind) return `${heroHand}: Pure open from ${posName}. ${handDesc} — stealing from the small blind with only BB to get through.${stackNote}`;
+                    if (isBlind) return `${heroHand}: Pure open from ${posName}. ${handDesc} - stealing from the small blind with only BB to get through.${stackNote}`;
                     return `${heroHand}: Pure open from ${posName}. ${handDesc} is always in the opening range here.${stackNote}`;
                 }
                 const foldFreq = handActions['f'] ? (handActions['f'] * 100).toFixed(0) : null;
                 if (foldFreq) {
-                    return `${heroHand}: Open ${freqPct}%, fold ${foldFreq}% from ${posName}. ${handDesc} is at the boundary of the opening range — the solver mixes to stay balanced.${stackNote}`;
+                    return `${heroHand}: Open ${freqPct}%, fold ${foldFreq}% from ${posName}. ${handDesc} is at the boundary of the opening range - the solver mixes to stay balanced.${stackNote}`;
                 }
-                return `${heroHand}: Open ${freqPct}% from ${posName}. ${handDesc} — marginal open that the solver mixes.${stackNote}`;
+                return `${heroHand}: Open ${freqPct}% from ${posName}. ${handDesc} - marginal open that the solver mixes.${stackNote}`;
             }
             if (isFold) {
                 if (freq >= 0.95) {
                     if (isEarlyPos) {
-                        if (!isPair && !isSuited && !isBroadway) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — offsuit non-broadway hands are never in the ~13% EP opening range. Needs suitedness, connectivity, or high cards.${stackNote}`;
-                        return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak for the tight ~13% opening range with 5+ players behind.${stackNote}`;
+                        if (!isPair && !isSuited && !isBroadway) return `${heroHand}: Pure fold from ${posName}. ${handDesc} - offsuit non-broadway hands are never in the ~13% EP opening range. Needs suitedness, connectivity, or high cards.${stackNote}`;
+                        return `${heroHand}: Pure fold from ${posName}. ${handDesc} - too weak for the tight ~13% opening range with 5+ players behind.${stackNote}`;
                     }
-                    if (isMiddlePos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} falls outside the ~20% MP opening range — not enough playability to open profitably.${stackNote}`;
-                    if (heroPosition === 'CO') return `${heroHand}: Fold from CO. ${handDesc} — falls just outside the ~30% CO opening range. Marginal hand that doesn't play well enough postflop.${stackNote}`;
+                    if (isMiddlePos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} falls outside the ~20% MP opening range - not enough playability to open profitably.${stackNote}`;
+                    if (heroPosition === 'CO') return `${heroHand}: Fold from CO. ${handDesc} - falls just outside the ~30% CO opening range. Marginal hand that doesn't play well enough postflop.${stackNote}`;
                     if (heroPosition === 'BTN') return `${heroHand}: Fold from BTN. Even with the widest opening range (~45%), ${handDesc} doesn't have enough playability to open profitably.${stackNote}`;
-                    if (isBlind) return `${heroHand}: Fold from ${posName}. ${handDesc} — even with the positional discount, this hand plays too poorly postflop out of position.${stackNote}`;
+                    if (isBlind) return `${heroHand}: Fold from ${posName}. ${handDesc} - even with the positional discount, this hand plays too poorly postflop out of position.${stackNote}`;
                     return `${heroHand}: Fold from ${posName}. ${handDesc} is outside the opening range.${stackNote}`;
                 }
-                if (isEarlyPos) return `${heroHand}: Fold ${freqPct}% from ${posName}. At the very edge of the ~13% EP opening range — the solver mostly folds this hand from early position.${stackNote}`;
-                if (isLatePos) return `${heroHand}: Fold ${freqPct}% from ${posName}. Borderline hand at the bottom of the opening range — the solver sometimes folds to stay balanced.${stackNote}`;
+                if (isEarlyPos) return `${heroHand}: Fold ${freqPct}% from ${posName}. At the very edge of the ~13% EP opening range - the solver mostly folds this hand from early position.${stackNote}`;
+                if (isLatePos) return `${heroHand}: Fold ${freqPct}% from ${posName}. Borderline hand at the bottom of the opening range - the solver sometimes folds to stay balanced.${stackNote}`;
                 return `${heroHand}: Fold ${freqPct}% from ${posName}. Marginal hand at the edge of the opening range.${stackNote}`;
             }
         }
@@ -4734,23 +4734,23 @@ export class DeterministicGTOEngine {
                 // ═══ FACING A 3-BET (4-bet, call, or fold) ═══
                 if (isRaise) {
                     if (freq >= 0.95) {
-                        if (isSuperPremium) return `${heroHand}: Always 4-bet ${handDesc} vs ${vs}'s 3-bet. This is a mandatory value 4-bet — trap with AA/KK only at exploitative frequencies.${stackContext}`;
-                        if (isPremium) return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. ${handDesc} is too strong to flat — re-raising for value and pot control.${stackContext}`;
+                        if (isSuperPremium) return `${heroHand}: Always 4-bet ${handDesc} vs ${vs}'s 3-bet. This is a mandatory value 4-bet - trap with AA/KK only at exploitative frequencies.${stackContext}`;
+                        if (isPremium) return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. ${handDesc} is too strong to flat - re-raising for value and pot control.${stackContext}`;
                         if (isAx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks AA/AK in villain's value range (removing ~16 combos) and has nut potential if called.${stackContext}`;
-                        if (isKx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks KK and AK combos, reducing villain's premium holdings — a balanced 4-bet bluff.${stackContext}`;
+                        if (isKx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks KK and AK combos, reducing villain's premium holdings - a balanced 4-bet bluff.${stackContext}`;
                         return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. Strong enough to continue aggressively in a 3-bet pot.${stackContext}`;
                     }
                     const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
                     if (callFreq && parseInt(callFreq) > 5) {
-                        return `${heroHand}: 4-bet ${freqPct}%, call ${callFreq}% vs ${vs}'s 3-bet. ${handDesc} — the solver mixes to keep its 4-bet and flatting ranges balanced.${stackContext}`;
+                        return `${heroHand}: 4-bet ${freqPct}%, call ${callFreq}% vs ${vs}'s 3-bet. ${handDesc} - the solver mixes to keep its 4-bet and flatting ranges balanced.${stackContext}`;
                     }
                     return `${heroHand}: 4-bet ${freqPct}% vs ${vs}'s 3-bet. ${handDesc} at the boundary of the 4-bet range.${stackContext}`;
                 }
                 if (isCall) {
                     if (freq >= 0.95) {
-                        if (isPair && v1 >= 8) return `${heroHand}: Flat the 3-bet with ${handDesc}. Set mining is very profitable in 3-bet pots — if you hit, villain's range is strong enough to pay off.${stackContext}`;
+                        if (isPair && v1 >= 8) return `${heroHand}: Flat the 3-bet with ${handDesc}. Set mining is very profitable in 3-bet pots - if you hit, villain's range is strong enough to pay off.${stackContext}`;
                         if (isBroadway && isSuited) return `${heroHand}: Call the 3-bet. ${handDesc} has enough equity and playability to continue in a 3-bet pot without bloating it further.${stackContext}`;
-                        return `${heroHand}: Call vs ${vs}'s 3-bet. ${handDesc} is too good to fold but not strong enough to 4-bet — flatting to realize equity.${stackContext}`;
+                        return `${heroHand}: Call vs ${vs}'s 3-bet. ${handDesc} is too good to fold but not strong enough to 4-bet - flatting to realize equity.${stackContext}`;
                     }
                     const fourBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
                     if (fourBetFreq > 0.05) {
@@ -4760,8 +4760,8 @@ export class DeterministicGTOEngine {
                 }
                 if (isFold) {
                     if (freq >= 0.95) {
-                        if (!isAx && !isKx) return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue, and no blockers to villain's premium range (AA/KK/AK).${stackContext}`;
-                        return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue against a polarized 3-bet range. Pot odds don't justify calling.${stackContext}`;
+                        if (!isAx && !isKx) return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} - not enough equity to continue, and no blockers to villain's premium range (AA/KK/AK).${stackContext}`;
+                        return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} - not enough equity to continue against a polarized 3-bet range. Pot odds don't justify calling.${stackContext}`;
                     }
                     const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
                     if (callFreq2 && parseInt(callFreq2) > 5) {
@@ -4773,40 +4773,40 @@ export class DeterministicGTOEngine {
                 // ═══ FACING AN OPEN (3-bet, call, or fold) ═══
                 if (isRaise) {
                     if (freq >= 0.95) {
-                        if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call — build the pot preflop.${stackContext}`;
-                        if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} — premium 3-bet bluff because the A blocks AA/AK (removes ~16 combos), plus suitedness gives nut potential.${stackContext}`;
-                        if (isKx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} — the K blocks KK and AK, reducing villain's continue range. Good 3-bet bluff with playability.${stackContext}`;
-                        if (isBlind) return `${heroHand}: Pure 3-bet from the blinds vs ${vs}. ${handDesc} — 3-betting compensates for being out of position postflop.${stackContext}`;
+                        if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call - build the pot preflop.${stackContext}`;
+                        if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} - premium 3-bet bluff because the A blocks AA/AK (removes ~16 combos), plus suitedness gives nut potential.${stackContext}`;
+                        if (isKx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} - the K blocks KK and AK, reducing villain's continue range. Good 3-bet bluff with playability.${stackContext}`;
+                        if (isBlind) return `${heroHand}: Pure 3-bet from the blinds vs ${vs}. ${handDesc} - 3-betting compensates for being out of position postflop.${stackContext}`;
                         return `${heroHand}: Pure 3-bet vs ${vs}'s open. Strong enough to re-raise for value and build the pot.${stackContext}`;
                     }
                     const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
                     if (callFreq && parseInt(callFreq) > 5) {
-                        return `${heroHand}: 3-bet ${freqPct}%, call ${callFreq}% vs ${vs}. ${handDesc} — the solver mixes between building the pot and keeping the range wide.${stackContext}`;
+                        return `${heroHand}: 3-bet ${freqPct}%, call ${callFreq}% vs ${vs}. ${handDesc} - the solver mixes between building the pot and keeping the range wide.${stackContext}`;
                     }
                     return `${heroHand}: 3-bet ${freqPct}% vs ${vs}. ${handDesc} at the boundary of the 3-bet range.${stackContext}`;
                 }
                 if (isCall) {
                     if (freq >= 0.95) {
-                        if (isPair && v1 >= 8) return `${heroHand}: Call vs ${vs}. ${handDesc} has great set-mining equity and implied odds — 3-betting risks losing action.${stackContext}`;
-                        if (isBroadway && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} plays well postflop — good equity and playability without bloating the pot.${stackContext}`;
-                        if (isConnected && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} has strong implied odds — when it connects, it makes big hands.${stackContext}`;
-                        if (isBlind) return `${heroHand}: Defend from the blind vs ${vs}. ${handDesc} has enough equity to defend at this price — closing the action with a discount.${stackContext}`;
-                        return `${heroHand}: Call vs ${vs}. Good equity against the opening range — calling maintains position and pot control.${stackContext}`;
+                        if (isPair && v1 >= 8) return `${heroHand}: Call vs ${vs}. ${handDesc} has great set-mining equity and implied odds - 3-betting risks losing action.${stackContext}`;
+                        if (isBroadway && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} plays well postflop - good equity and playability without bloating the pot.${stackContext}`;
+                        if (isConnected && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} has strong implied odds - when it connects, it makes big hands.${stackContext}`;
+                        if (isBlind) return `${heroHand}: Defend from the blind vs ${vs}. ${handDesc} has enough equity to defend at this price - closing the action with a discount.${stackContext}`;
+                        return `${heroHand}: Call vs ${vs}. Good equity against the opening range - calling maintains position and pot control.${stackContext}`;
                     }
                     const threeBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
                     if (threeBetFreq > 0.05) {
-                        return `${heroHand}: Call ${freqPct}%, 3-bet ${(threeBetFreq * 100).toFixed(0)}% vs ${vs}. The solver polarizes — sometimes flatting, sometimes 3-betting for balance.${stackContext}`;
+                        return `${heroHand}: Call ${freqPct}%, 3-bet ${(threeBetFreq * 100).toFixed(0)}% vs ${vs}. The solver polarizes - sometimes flatting, sometimes 3-betting for balance.${stackContext}`;
                     }
                     return `${heroHand}: Call ${freqPct}% vs ${vs}. Marginal call at the bottom of the defending range.${stackContext}`;
                 }
                 if (isFold) {
                     if (freq >= 0.95) {
-                        if (isBlind) return `${heroHand}: Fold from the blind vs ${vs}'s open. ${handDesc} — even with the discount, you don't have enough equity to defend profitably.${stackContext}`;
+                        if (isBlind) return `${heroHand}: Fold from the blind vs ${vs}'s open. ${handDesc} - even with the discount, you don't have enough equity to defend profitably.${stackContext}`;
                         return `${heroHand}: Fold vs ${vs}'s open. ${handDesc} lacks sufficient equity and playability to continue profitably.${stackContext}`;
                     }
                     const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
                     if (callFreq2 && parseInt(callFreq2) > 5) {
-                        return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}. Borderline hand — sometimes the solver defends, but it's mostly a fold.${stackContext}`;
+                        return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}. Borderline hand - sometimes the solver defends, but it's mostly a fold.${stackContext}`;
                     }
                     return `${heroHand}: Fold ${freqPct}% vs ${vs}. At the edge of the defending range.${stackContext}`;
                 }
@@ -4819,23 +4819,23 @@ export class DeterministicGTOEngine {
             if (isRaise) {
                 if (freq >= 0.95) {
                     if (isPremium || isSuperPremium) return `${heroHand}: Always raise ${handDesc} vs a limper. Punish passive play and build the pot with a premium.`;
-                    if (isAx && isSuited) return `${heroHand}: Pure raise vs ${vs}'s limp. ${handDesc} plays well as a value-iso — charge weaker hands to see a flop.`;
+                    if (isAx && isSuited) return `${heroHand}: Pure raise vs ${vs}'s limp. ${handDesc} plays well as a value-iso - charge weaker hands to see a flop.`;
                     return `${heroHand}: Raise vs the limp. ${handDesc} is strong enough to iso-raise and take the initiative.`;
                 }
                 const checkFreq = (handActions['x'] || handActions['c'] || 0) * 100;
                 if (checkFreq > 10) {
-                    return `${heroHand}: Raise ${freqPct}%, check ${checkFreq.toFixed(0)}% from BB. ${handDesc} — sometimes iso-raising, sometimes trapping in the big blind.`;
+                    return `${heroHand}: Raise ${freqPct}%, check ${checkFreq.toFixed(0)}% from BB. ${handDesc} - sometimes iso-raising, sometimes trapping in the big blind.`;
                 }
                 return `${heroHand}: Raise ${freqPct}% from BB. ${handDesc} at the boundary of the iso-raise range.`;
             }
             // Checking the BB option
             if (freq >= 0.95) {
                 if (handDesc.includes('air') || handDesc.includes('offsuit')) {
-                    return `${heroHand}: Check from BB vs limp. ${handDesc} — see a free flop with a marginal hand.`;
+                    return `${heroHand}: Check from BB vs limp. ${handDesc} - see a free flop with a marginal hand.`;
                 }
                 return `${heroHand}: Check from BB. ${handDesc} prefers to see a flop in position rather than bloating the pot.`;
             }
-            return `${heroHand}: Check ${freqPct}% from BB. ${handDesc} — mixed between trapping and raising.`;
+            return `${heroHand}: Check ${freqPct}% from BB. ${handDesc} - mixed between trapping and raising.`;
         }
 
         // Fallback
@@ -4887,14 +4887,14 @@ export class DeterministicGTOEngine {
     _positionOpenContext(position) {
         switch (position) {
             case 'UTG': return 'UTG opens ~12-15% of hands (pairs 22+, ATo+, ATs+, KQo, KJs+, suited connectors 78s+). Many players behind means tight range.';
-            case 'UTG+1': return 'UTG+1 opens ~15-17% — slightly wider than UTG but still conservative with 5+ players behind.';
-            case 'MP': return 'MP opens ~18-20% — adds hands like KJo, QJs, T9s, 67s to the range.';
-            case 'MP+1': return 'MP+1 opens ~20-22% — wider than MP, starts including more suited connectors and one-gappers.';
-            case 'HJ': return 'HJ opens ~22-26% — the range expands to include A8o+, K9s+, suited one-gappers, and more offsuit broadways.';
-            case 'CO': return 'CO opens ~27-32% — wide range with only BTN and blinds behind. Includes most suited hands, A2o+, and weak broadways.';
-            case 'BTN': return 'BTN opens ~40-50% — the widest RFI range. Nearly all suited hands, most offsuit broadways, all pairs. Guaranteed position postflop.';
-            case 'SB': return 'SB opens ~35-45% into only the BB — wide range for stealing but plays OOP postflop. Include more hands but size up (3x+).';
-            case 'BB': return 'BB checking option — you already have money invested and close the action.';
+            case 'UTG+1': return 'UTG+1 opens ~15-17% - slightly wider than UTG but still conservative with 5+ players behind.';
+            case 'MP': return 'MP opens ~18-20% - adds hands like KJo, QJs, T9s, 67s to the range.';
+            case 'MP+1': return 'MP+1 opens ~20-22% - wider than MP, starts including more suited connectors and one-gappers.';
+            case 'HJ': return 'HJ opens ~22-26% - the range expands to include A8o+, K9s+, suited one-gappers, and more offsuit broadways.';
+            case 'CO': return 'CO opens ~27-32% - wide range with only BTN and blinds behind. Includes most suited hands, A2o+, and weak broadways.';
+            case 'BTN': return 'BTN opens ~40-50% - the widest RFI range. Nearly all suited hands, most offsuit broadways, all pairs. Guaranteed position postflop.';
+            case 'SB': return 'SB opens ~35-45% into only the BB - wide range for stealing but plays OOP postflop. Include more hands but size up (3x+).';
+            case 'BB': return 'BB checking option - you already have money invested and close the action.';
             default: return '';
         }
     }
@@ -4915,14 +4915,14 @@ export class DeterministicGTOEngine {
         if (isCallNode) {
             if (correctAction === 'call') {
                 let reason = '';
-                if (isPair) reason = 'Pocket pairs realise their full equity all-in — no reverse implied odds.';
+                if (isPair) reason = 'Pocket pairs realise their full equity all-in - no reverse implied odds.';
                 else if (isHighCard) reason = 'High-card hands dominate enough of the shoving range to call profitably.';
                 else if (isSuited) reason = 'The pot odds an all-in lays make this suited hand a profitable call.';
                 else reason = 'Against a wide shoving range, the price makes this call profitable.';
                 return `ICM: ${heroHand} is a ${pct}% call from ${pos} at ${stack}BB facing the shove. ${reason}`;
             }
             return `ICM: ${heroHand} is only a ${pct}% call from ${pos} at ${stack}BB facing the shove. `
-                + `You have no fold equity when calling — the hand must win at showdown often enough, and this one doesn't.`;
+                + `You have no fold equity when calling - the hand must win at showdown often enough, and this one doesn't.`;
         }
 
         if (correctAction === 'push') {
@@ -4933,7 +4933,7 @@ export class DeterministicGTOEngine {
             else if (isSuited) reason = 'Suitedness adds ~3% equity, pushing this hand into shoving range.';
             else reason = 'Fold equity at this stack depth compensates for marginal hand strength.';
 
-            if (stack <= 8) reason += ` At ${stack}BB, push-or-fold is optimal — no room for post-flop play.`;
+            if (stack <= 8) reason += ` At ${stack}BB, push-or-fold is optimal - no room for post-flop play.`;
             else if (stack <= 12) reason += ` At ${stack}BB, shoving preserves fold equity before the blinds eat further into your stack.`;
 
             return `ICM: ${heroHand} is a ${pct}% push from ${pos} at ${stack}BB. ${reason}`;
@@ -5080,23 +5080,23 @@ export class DeterministicGTOEngine {
         if (hasFlush) {
             // Check if it's the nut flush
             if (r1 === 'A' || r2 === 'A') {
-                madeHand = boardPaired ? 'the nut flush (board paired — full house possible)' : 'the nut flush';
+                madeHand = boardPaired ? 'the nut flush (board paired - full house possible)' : 'the nut flush';
             } else if (heroHigh >= 11) {
-                madeHand = boardPaired ? 'a strong flush (board paired — vulnerable)' : 'a strong flush';
+                madeHand = boardPaired ? 'a strong flush (board paired - vulnerable)' : 'a strong flush';
             } else {
-                madeHand = boardPaired ? 'a weak flush (board paired — vulnerable)' : 'a flush';
+                madeHand = boardPaired ? 'a weak flush (board paired - vulnerable)' : 'a flush';
             }
         }
         // Straight — Phase 74: quality tiers
         else if (hasMadeStraight) {
             if (isNutStraight) {
-                madeHand = boardPaired ? 'the nut straight (board paired — full house beats you)' : 'the nut straight';
+                madeHand = boardPaired ? 'the nut straight (board paired - full house beats you)' : 'the nut straight';
             } else if (bestStraightTop <= 5) {
                 madeHand = 'a baby straight (vulnerable to higher straights)';
             } else if (heroLow === Math.min(...boardVals) || heroHigh === Math.min(...boardVals)) {
                 madeHand = 'the bottom-end straight (higher straights possible)';
             } else {
-                madeHand = boardPaired ? 'a straight (board paired — full house beats you)' : 'a straight';
+                madeHand = boardPaired ? 'a straight (board paired - full house beats you)' : 'a straight';
             }
         }
         // Pair-based hands
@@ -5573,33 +5573,33 @@ export class DeterministicGTOEngine {
 
         // Street + action coaching tips
         if (street === 'river' && actionBucket === 'fold') {
-            return '▲ You tend to over-fold rivers — remember that bluff-catchers need to call enough to keep villain honest.';
+            return '▲ You tend to over-fold rivers - remember that bluff-catchers need to call enough to keep villain honest.';
         }
         if (street === 'river' && actionBucket === 'bet') {
-            return '▲ River betting is a common leak area for you — focus on whether your hand is polarized (value or bluff) vs. a check-back.';
+            return '▲ River betting is a common leak area for you - focus on whether your hand is polarized (value or bluff) vs. a check-back.';
         }
         if (street === 'turn' && actionBucket === 'check') {
-            return '▲ Turn checking decisions have been tricky — consider whether you\'re pot-controlling with medium strength or giving up too cheaply.';
+            return '▲ Turn checking decisions have been tricky - consider whether you\'re pot-controlling with medium strength or giving up too cheaply.';
         }
         if (street === 'flop' && actionBucket === 'bet') {
-            return '▲ Flop bet sizing has been a pattern — focus on whether the board favors range bets (small) or polarized bets (large).';
+            return '▲ Flop bet sizing has been a pattern - focus on whether the board favors range bets (small) or polarized bets (large).';
         }
 
         // Hand category coaching tips
         if (handBucket === 'flush_draw' || handBucket === 'straight_draw') {
-            return '▲ Draw decisions are a leak area — evaluate pot odds, implied odds, and whether you have fold equity with a semi-bluff.';
+            return '▲ Draw decisions are a leak area - evaluate pot odds, implied odds, and whether you have fold equity with a semi-bluff.';
         }
         if (handBucket === 'top_pair' || handBucket === 'overpair') {
-            return '▲ Playing strong-but-vulnerable hands is tricky for you — think about protection vs. pot control based on board texture.';
+            return '▲ Playing strong-but-vulnerable hands is tricky for you - think about protection vs. pot control based on board texture.';
         }
         if (handBucket === 'air' || handBucket === 'overcards') {
-            return '▲ Bluffing spots have been challenging — look for hands with blockers and backdoor equity rather than pure air.';
+            return '▲ Bluffing spots have been challenging - look for hands with blockers and backdoor equity rather than pure air.';
         }
         if (handBucket === 'middle_pair' || handBucket === 'bottom_pair') {
-            return '▲ Medium-strength hand decisions are a weak spot — these are often check-call candidates, not bets.';
+            return '▲ Medium-strength hand decisions are a weak spot - these are often check-call candidates, not bets.';
         }
 
-        return '▲ This is a spot type where you\'ve been making frequent mistakes — pay close attention to the reasoning below.';
+        return '▲ This is a spot type where you\'ve been making frequent mistakes - pay close attention to the reasoning below.';
     }
 
     /**
@@ -5803,24 +5803,24 @@ export class DeterministicGTOEngine {
         if (isIP) {
             // IP advantages
             if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
-                notes.push('Being IP lets you control pot size with draws — you can take free cards when checked to or bet when equity is high.');
+                notes.push('Being IP lets you control pot size with draws - you can take free cards when checked to or bet when equity is high.');
             } else if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('weak pair')) {
-                notes.push('IP with medium-strength hands lets you pot-control effectively — check back to realize equity cheaply.');
+                notes.push('IP with medium-strength hands lets you pot-control effectively - check back to realize equity cheaply.');
             }
         } else {
             // OOP disadvantages
             if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
                 if (a === 'c' || a === 'x') {
-                    notes.push('OOP draws realize less equity — you can\'t take free cards, and villain\'s IP bet will force tough fold-or-call decisions.');
+                    notes.push('OOP draws realize less equity - you can\'t take free cards, and villain\'s IP bet will force tough fold-or-call decisions.');
                 } else if (a.startsWith('b') || a.startsWith('r')) {
-                    notes.push('Semi-bluffing OOP with draws is important because you can\'t rely on free cards — building the pot with equity gives you fold equity now.');
+                    notes.push('Semi-bluffing OOP with draws is important because you can\'t rely on free cards - building the pot with equity gives you fold equity now.');
                 }
             } else if (hc.includes('top pair') && !hc.includes('top kicker')) {
                 if (a === 'c' || a === 'x') {
-                    notes.push('OOP top pair without a great kicker struggles to realize full equity — villain can put you in tough spots with raises and barrels.');
+                    notes.push('OOP top pair without a great kicker struggles to realize full equity - villain can put you in tough spots with raises and barrels.');
                 }
             } else if (hc.includes('middle pair') || hc.includes('bottom pair')) {
-                notes.push('Medium-strength hands OOP realize equity poorly — you face difficult decisions on every street without position.');
+                notes.push('Medium-strength hands OOP realize equity poorly - you face difficult decisions on every street without position.');
             }
         }
 
@@ -5828,30 +5828,30 @@ export class DeterministicGTOEngine {
         if (hc.includes('nut') || hc.includes('full house') || hc.includes('quads') || hc.includes('set')) {
             // Nutted hands realize well regardless
             if (notes.length === 0 && spr > 4) {
-                notes.push('Strong made hands realize close to 100% of their equity — focus on maximizing value across streets.');
+                notes.push('Strong made hands realize close to 100% of their equity - focus on maximizing value across streets.');
             }
         }
 
         // ─── DOMINATION EFFECTS ───
         if (hc.includes('air') || hc.includes('no pair')) {
             if (!isIP && (a === 'c' || a === 'x')) {
-                notes.push('With no made hand or draw, your equity realization is near zero — without fold equity or draw equity, checking and giving up is often correct.');
+                notes.push('With no made hand or draw, your equity realization is near zero - without fold equity or draw equity, checking and giving up is often correct.');
             }
         }
 
         // ─── STACK DEPTH EFFECTS ───
         if (spr > 8 && !isIP && (hc.includes('pair') || hc.includes('draw'))) {
             if (notes.length > 0) {
-                notes.push(`Deep stacks (SPR ${spr.toFixed(0)}) amplify the positional disadvantage — more streets of play means more decisions OOP.`);
+                notes.push(`Deep stacks (SPR ${spr.toFixed(0)}) amplify the positional disadvantage - more streets of play means more decisions OOP.`);
             }
         } else if (spr >= 2 && spr <= 4 && notes.length > 0) {
-            notes.push(`Shorter effective stacks (SPR ${spr.toFixed(0)}) reduce the equity realization gap — fewer remaining decisions.`);
+            notes.push(`Shorter effective stacks (SPR ${spr.toFixed(0)}) reduce the equity realization gap - fewer remaining decisions.`);
         }
 
         // ─── WET BOARD EQUITY REALIZATION ───
         if (texture && texture.wet && !isIP && hc.includes('pair') && !hc.includes('two pair') && !hc.includes('overpair')) {
             if (notes.length === 0) {
-                notes.push('On wet boards OOP, one-pair hands struggle to realize equity — many turn and river cards can complete villain\'s draws.');
+                notes.push('On wet boards OOP, one-pair hands struggle to realize equity - many turn and river cards can complete villain\'s draws.');
             }
         }
 
@@ -5905,17 +5905,17 @@ export class DeterministicGTOEngine {
         if (heroPosition === 'BTN' && villainPosition === 'BB') {
             if (street === 'flop' && nodeType === 'hero_bets_or_checks') {
                 if (isBet && texture && texture.dry) {
-                    return 'BTN vs BB on dry boards: IP aggressor c-bets at high frequency with small sizing — BB\'s wide defense range misses these boards often.';
+                    return 'BTN vs BB on dry boards: IP aggressor c-bets at high frequency with small sizing - BB\'s wide defense range misses these boards often.';
                 }
                 if (isBet && texture && texture.wet) {
-                    return 'BTN vs BB on wet boards: IP c-bet frequency drops — BB connects more with suited/connected hands, so be selective with your bets.';
+                    return 'BTN vs BB on wet boards: IP c-bet frequency drops - BB connects more with suited/connected hands, so be selective with your bets.';
                 }
                 if (isCheck) {
-                    return 'BTN checking back: even as IP aggressor, some hands prefer a free card — you can bet later streets when your equity improves or bluff when draws miss.';
+                    return 'BTN checking back: even as IP aggressor, some hands prefer a free card - you can bet later streets when your equity improves or bluff when draws miss.';
                 }
             }
             if (street === 'turn' && isBet) {
-                return 'BTN double-barreling: the IP aggressor narrows to value + draws on the turn — be honest about whether your hand improved or if this is a profitable bluff card.';
+                return 'BTN double-barreling: the IP aggressor narrows to value + draws on the turn - be honest about whether your hand improved or if this is a profitable bluff card.';
             }
         }
 
@@ -5926,7 +5926,7 @@ export class DeterministicGTOEngine {
                     return 'BB check-raising vs BTN c-bet: OOP needs to build a check-raise range with both value (sets, two pair) and semi-bluffs (draws) to prevent BTN from c-betting with impunity.';
                 }
                 if (isFold && freq > 0.5) {
-                    return 'BB folding to BTN c-bet: even though you defend wide preflop, you must fold your weakest holdings — defending too wide here costs more than it saves.';
+                    return 'BB folding to BTN c-bet: even though you defend wide preflop, you must fold your weakest holdings - defending too wide here costs more than it saves.';
                 }
             }
             if (nodeType === 'hero_bets_or_checks' && isBet) {
@@ -5937,21 +5937,21 @@ export class DeterministicGTOEngine {
         // ─── SB dynamics ───
         if (heroPosition === 'SB') {
             if (street === 'flop' && isBet && nodeType === 'hero_bets_or_checks') {
-                return 'SB as preflop raiser: playing a raised pot OOP, SB tends to c-bet at moderate frequency — your range is narrower but stronger than a cold-caller.';
+                return 'SB as preflop raiser: playing a raised pot OOP, SB tends to c-bet at moderate frequency - your range is narrower but stronger than a cold-caller.';
             }
         }
 
         // ─── CO/HJ vs blinds ───
         if ((heroPosition === 'CO' || heroPosition === 'HJ') && (villainPosition === 'BB' || villainPosition === 'SB')) {
             if (street === 'flop' && isBet && nodeType === 'hero_bets_or_checks') {
-                return `${heroPosition} vs ${villainPosition}: similar to BTN vs blind dynamics but with a tighter opening range — your range advantage on most boards supports c-betting.`;
+                return `${heroPosition} vs ${villainPosition}: similar to BTN vs blind dynamics but with a tighter opening range - your range advantage on most boards supports c-betting.`;
             }
         }
 
         // ─── Generic IP vs OOP ───
         if (isIP && isCheck && street !== 'river') {
             if (hc.includes('pair') && !hc.includes('overpair') && !hc.includes('top pair')) {
-                return 'IP with medium strength: checking behind controls the pot and lets you realize equity — no need to build a big pot with a marginal hand.';
+                return 'IP with medium strength: checking behind controls the pot and lets you realize equity - no need to build a big pot with a marginal hand.';
             }
         }
         if (!isIP && nodeType === 'hero_faces_bet') {
@@ -6013,35 +6013,35 @@ export class DeterministicGTOEngine {
         // Chose check when solver prefers bet
         if ((ca === 'c' || ca === 'x') && (oa.startsWith('b') || oa === 'allin')) {
             if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
-                reason = 'The solver prefers betting as a semi-bluff — you have equity when called and fold equity to win immediately. Checking surrenders your fold equity advantage.';
+                reason = 'The solver prefers betting as a semi-bluff - you have equity when called and fold equity to win immediately. Checking surrenders your fold equity advantage.';
             } else if (hc.includes('top pair') || hc.includes('overpair') || hc.includes('set')) {
-                reason = 'The solver prefers betting for value + protection — strong hands need to build the pot and deny equity to draws. Checking lets villain see cheap cards.';
+                reason = 'The solver prefers betting for value + protection - strong hands need to build the pot and deny equity to draws. Checking lets villain see cheap cards.';
             } else if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
-                reason = 'The solver prefers bluffing here — your hand has no showdown value, so betting generates fold equity. Checking gives up because you can\'t win at showdown.';
+                reason = 'The solver prefers bluffing here - your hand has no showdown value, so betting generates fold equity. Checking gives up because you can\'t win at showdown.';
             } else {
-                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — building the pot or exerting pressure is higher EV than checking in this spot.`;
+                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% - building the pot or exerting pressure is higher EV than checking in this spot.`;
             }
         }
 
         // Chose bet when solver prefers check
         if ((oa === 'c' || oa === 'x') && (ca.startsWith('b') || ca === 'allin')) {
             if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('weak')) {
-                reason = 'The solver prefers checking — medium-strength hands do better as check-calls, protecting your checking range while avoiding bloating the pot in a marginal spot.';
+                reason = 'The solver prefers checking - medium-strength hands do better as check-calls, protecting your checking range while avoiding bloating the pot in a marginal spot.';
             } else if (hc.includes('draw')) {
-                reason = 'The solver prefers checking here — this specific draw does better passively, perhaps because it has decent showdown potential or the board favors free cards.';
+                reason = 'The solver prefers checking here - this specific draw does better passively, perhaps because it has decent showdown potential or the board favors free cards.';
             } else {
-                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — your hand benefits more from pot control or deception than from betting.`;
+                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% - your hand benefits more from pot control or deception than from betting.`;
             }
         }
 
         // Chose fold when solver prefers call/check
         if (ca === 'f' && oa !== 'f') {
-            reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — your hand has enough equity or pot odds to continue. Folding is too tight and lets villain profit by over-bluffing.`;
+            reason = `The solver prefers ${optimalLabel} at ${optimalPct}% - your hand has enough equity or pot odds to continue. Folding is too tight and lets villain profit by over-bluffing.`;
         }
 
         // Chose call when solver prefers raise
         if ((ca === 'call') && (oa.startsWith('r') || oa === 'allin')) {
-            reason = `The solver prefers raising — your hand is strong enough to raise for value or as a semi-bluff. Just calling misses out on building the pot and applying maximum pressure.`;
+            reason = `The solver prefers raising - your hand is strong enough to raise for value or as a semi-bluff. Just calling misses out on building the pot and applying maximum pressure.`;
         }
 
         // Chose smaller bet when solver prefers larger
@@ -6049,9 +6049,9 @@ export class DeterministicGTOEngine {
             const chosenSize = parseInt(ca.replace('b', '')) || 0;
             const optimalSize = parseInt(oa.replace('b', '')) || 0;
             if (optimalSize > chosenSize) {
-                reason = `The solver prefers a larger sizing (${optimalLabel}) — your hand's value or fold equity is maximized with a bigger bet. The smaller size doesn't apply enough pressure.`;
+                reason = `The solver prefers a larger sizing (${optimalLabel}) - your hand's value or fold equity is maximized with a bigger bet. The smaller size doesn't apply enough pressure.`;
             } else {
-                reason = `The solver prefers a smaller sizing (${optimalLabel}) — a smaller bet is higher EV here because it gets called by more hands you beat or maintains a balanced range.`;
+                reason = `The solver prefers a smaller sizing (${optimalLabel}) - a smaller bet is higher EV here because it gets called by more hands you beat or maintains a balanced range.`;
             }
         }
 
@@ -6063,11 +6063,11 @@ export class DeterministicGTOEngine {
         // Frequency context
         let freqContext = '';
         if (chosenFreq >= 0.30) {
-            freqContext = `Your ${chosenLabel} is a legitimate secondary action (${chosenPct}% in the solver mix) — this is a close spot where both actions have merit.`;
+            freqContext = `Your ${chosenLabel} is a legitimate secondary action (${chosenPct}% in the solver mix) - this is a close spot where both actions have merit.`;
         } else if (chosenFreq >= 0.10) {
-            freqContext = `Your ${chosenLabel} is in the solver mix but only at ${chosenPct}% — it's not wrong per se, but it's significantly lower EV than the primary action.`;
+            freqContext = `Your ${chosenLabel} is in the solver mix but only at ${chosenPct}% - it's not wrong per se, but it's significantly lower EV than the primary action.`;
         } else {
-            freqContext = `Your ${chosenLabel} appears in the mix at just ${chosenPct}% — this is an edge-case action that the solver rarely uses. The ${gapPct}% frequency gap suggests a meaningful EV difference.`;
+            freqContext = `Your ${chosenLabel} appears in the mix at just ${chosenPct}% - this is an edge-case action that the solver rarely uses. The ${gapPct}% frequency gap suggests a meaningful EV difference.`;
         }
 
         return `${reason} ${freqContext}`;
@@ -6110,36 +6110,36 @@ export class DeterministicGTOEngine {
         // Large sizing = polarized range
         if (sizePct >= 75 || a === 'allin') {
             if (isNuts || isStrong) {
-                return `Range context: large sizing indicates a polarized range. Your strong hand is at the top of this range — you\'re betting big for value, knowing villain must call with their bluff-catchers.`;
+                return `Range context: large sizing indicates a polarized range. Your strong hand is at the top of this range - you\'re betting big for value, knowing villain must call with their bluff-catchers.`;
             }
             if (isAir) {
-                return `Range context: large sizing indicates a polarized range. Your hand is at the bluffing end — you have no showdown value, so you\'re maximizing fold equity with a large bet.`;
+                return `Range context: large sizing indicates a polarized range. Your hand is at the bluffing end - you have no showdown value, so you\'re maximizing fold equity with a large bet.`;
             }
             if (isDraw) {
-                return `Range context: large sizing with a draw is a semi-bluff in a polarized range — you either win the pot now or have equity to improve when called.`;
+                return `Range context: large sizing with a draw is a semi-bluff in a polarized range - you either win the pot now or have equity to improve when called.`;
             }
             if (isMedium) {
-                return `Range context: interesting — medium-strength hands occasionally appear in large sizing ranges as thin value bets or as range balance. This is a solver nuance that prevents exploitation.`;
+                return `Range context: interesting - medium-strength hands occasionally appear in large sizing ranges as thin value bets or as range balance. This is a solver nuance that prevents exploitation.`;
             }
         }
 
         // Small sizing = merged/linear range
         if (sizePct > 0 && sizePct <= 40) {
             if (isStrong) {
-                return `Range context: small sizing with a strong hand suggests a merged/linear betting range — you\'re betting frequently with many hand types, using a small size to get called by a wide range.`;
+                return `Range context: small sizing with a strong hand suggests a merged/linear betting range - you\'re betting frequently with many hand types, using a small size to get called by a wide range.`;
             }
             if (isMedium) {
-                return `Range context: small sizing fits naturally with medium-strength hands — a merged betting range includes thin value, letting you extract from worse while not overcommitting.`;
+                return `Range context: small sizing fits naturally with medium-strength hands - a merged betting range includes thin value, letting you extract from worse while not overcommitting.`;
             }
             if (isAir) {
-                return `Range context: small-sizing bluffs are cheap to execute — in a merged range, small bets risk less with air while maintaining pressure across your entire betting range.`;
+                return `Range context: small-sizing bluffs are cheap to execute - in a merged range, small bets risk less with air while maintaining pressure across your entire betting range.`;
             }
         }
 
         // Mid sizing
         if (sizePct > 40 && sizePct < 75) {
             if (street === 'river') {
-                return `Range context: medium river sizing often indicates a somewhat polarized range — stronger than merged but not fully polarized. This sizing targets villain\'s medium-strength calling range.`;
+                return `Range context: medium river sizing often indicates a somewhat polarized range - stronger than merged but not fully polarized. This sizing targets villain\'s medium-strength calling range.`;
             }
         }
 
@@ -6182,16 +6182,16 @@ export class DeterministicGTOEngine {
         if (isCheck && isStrong) {
             if (texture && texture.dry) {
                 if (isVeryStrong) {
-                    return `Trapping play: checking ${handStrength} on a dry board is a classic slow-play — few draws can outdraw you, and checking induces bluffs or lighter bets from villain on later streets.`;
+                    return `Trapping play: checking ${handStrength} on a dry board is a classic slow-play - few draws can outdraw you, and checking induces bluffs or lighter bets from villain on later streets.`;
                 }
-                return `Slow-play: checking with strong hands on dry boards protects your checking range — if you always bet your best hands, villain can exploit your checks by over-bluffing.`;
+                return `Slow-play: checking with strong hands on dry boards protects your checking range - if you always bet your best hands, villain can exploit your checks by over-bluffing.`;
             }
 
             if (texture && texture.wet) {
                 if (freq >= 0.5) {
-                    return `Trap on a wet board: the solver still prefers checking even on a draw-heavy board — this may protect your checking range or set up a check-raise if villain bets.`;
+                    return `Trap on a wet board: the solver still prefers checking even on a draw-heavy board - this may protect your checking range or set up a check-raise if villain bets.`;
                 }
-                return `▲ Careful slow-play: checking strong hands on wet boards is risky since draws can get there. The solver mixes here — sometimes you need to protect your equity by betting.`;
+                return `▲ Careful slow-play: checking strong hands on wet boards is risky since draws can get there. The solver mixes here - sometimes you need to protect your equity by betting.`;
             }
 
             if (nodeType === 'hero_faces_bet' || isCall) {
@@ -6210,7 +6210,7 @@ export class DeterministicGTOEngine {
         // Flat-calling with a strong hand (when facing a bet)
         if (isCall && isStrong && nodeType === 'hero_faces_bet') {
             if (isVeryStrong) {
-                return `Flat-calling with a monster: just calling instead of raising disguises your hand strength — this lets villain continue bluffing or value-betting thinner on later streets.`;
+                return `Flat-calling with a monster: just calling instead of raising disguises your hand strength - this lets villain continue bluffing or value-betting thinner on later streets.`;
             }
         }
 
@@ -6256,15 +6256,15 @@ export class DeterministicGTOEngine {
 
         if (isRangeBet) {
             if (texture.aceHigh && texture.dry) {
-                return `Board coverage: this is a range bet spot — the A-high dry board heavily favors the preflop raiser\'s range. Bet small and frequently because villain\'s range rarely connects.`;
+                return `Board coverage: this is a range bet spot - the A-high dry board heavily favors the preflop raiser\'s range. Bet small and frequently because villain\'s range rarely connects.`;
             }
             if (texture.paired && !texture.wet) {
-                return `Board coverage: paired dry boards favor range betting — neither range hits trips often, but the aggressor\'s wider range of overcards and draws benefits from frequent small pressure.`;
+                return `Board coverage: paired dry boards favor range betting - neither range hits trips often, but the aggressor\'s wider range of overcards and draws benefits from frequent small pressure.`;
             }
             if (texture.dry && !texture.lowBoard) {
                 return `Board coverage: dry board = range bet. Bet small with most hands because the board doesn\'t help either range much, and small bets are efficient at winning dead money.`;
             }
-            return `Board coverage: the solver is using a range-bet approach here — small sizing with high frequency across many hand types to put consistent pressure.`;
+            return `Board coverage: the solver is using a range-bet approach here - small sizing with high frequency across many hand types to put consistent pressure.`;
         }
 
         if (isPolarBet) {
@@ -6272,12 +6272,12 @@ export class DeterministicGTOEngine {
                 return `Board coverage: wet board = polar betting. The solver bets selectively with strong made hands and draws, skipping medium holdings that prefer pot control.`;
             }
             if (texture.lowBoard) {
-                return `Board coverage: low boards favor the caller\'s range — the aggressor can\'t range bet profitably, so they go polar with strong value hands and select bluffs.`;
+                return `Board coverage: low boards favor the caller\'s range - the aggressor can\'t range bet profitably, so they go polar with strong value hands and select bluffs.`;
             }
             if (texture.connected && texture.straightDrawHeavy) {
                 return `Board coverage: highly connected board = polar strategy. Both ranges connect, so only strong hands and draws with equity justify building the pot.`;
             }
-            return `Board coverage: polar betting spot — the solver is selective about which hands to bet, using a larger size with fewer hands for maximum leverage.`;
+            return `Board coverage: polar betting spot - the solver is selective about which hands to bet, using a larger size with fewer hands for maximum leverage.`;
         }
 
         return '';
@@ -6328,11 +6328,11 @@ export class DeterministicGTOEngine {
         if ((a === 'c' || a === 'x') && street === 'flop') {
             const isDrawy = hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd');
             if (isDrawy) {
-                return `Multi-street plan: checking the flop with a draw preserves your stack for when you hit — on the turn, you can either bet with a made hand or check again for a free river.`;
+                return `Multi-street plan: checking the flop with a draw preserves your stack for when you hit - on the turn, you can either bet with a made hand or check again for a free river.`;
             }
             const isStrong = hc.includes('set') || hc.includes('two pair') || hc.includes('overpair');
             if (isStrong && spr > 4) {
-                return `Multi-street plan: checking a strong hand on the flop can set up bigger turn and river bets — if villain bets, you can check-raise; if they check, you can overbet later streets.`;
+                return `Multi-street plan: checking a strong hand on the flop can set up bigger turn and river bets - if villain bets, you can check-raise; if they check, you can overbet later streets.`;
             }
         }
 
@@ -6344,10 +6344,10 @@ export class DeterministicGTOEngine {
             if (remainingStack > 0 && newPot > 0) {
                 const riverSPR = remainingStack / newPot;
                 if (riverSPR < 1) {
-                    return `Multi-street plan: this turn bet sets up a river all-in — after bet and call, the remaining stack-to-pot ratio will be under 1, committing you on the river.`;
+                    return `Multi-street plan: this turn bet sets up a river all-in - after bet and call, the remaining stack-to-pot ratio will be under 1, committing you on the river.`;
                 }
                 if (riverSPR >= 1 && riverSPR <= 2) {
-                    return `Multi-street plan: this turn sizing leaves a pot-sized river bet — clean pot geometry that maximizes value or fold equity on the final street.`;
+                    return `Multi-street plan: this turn sizing leaves a pot-sized river bet - clean pot geometry that maximizes value or fold equity on the final street.`;
                 }
             }
         }
@@ -6409,29 +6409,29 @@ export class DeterministicGTOEngine {
         // Top pair analysis
         if (hc.includes('top pair')) {
             if (kickerVal >= 12) { // A kicker
-                return `Kicker context: TPTK (top pair, top kicker) — your A kicker is the best possible. This hand can confidently bet for value across streets.`;
+                return `Kicker context: TPTK (top pair, top kicker) - your A kicker is the best possible. This hand can confidently bet for value across streets.`;
             }
             if (kickerVal >= 11) { // K kicker
-                return `Kicker context: top pair with K kicker — very strong. Only Ax hands have a better kicker, and those are a small portion of villain's range.`;
+                return `Kicker context: top pair with K kicker - very strong. Only Ax hands have a better kicker, and those are a small portion of villain's range.`;
             }
             if (kickerVal >= 9) { // Q-J kicker
-                return `Kicker context: top pair with ${kickerRank} kicker — solid but not premium. Be cautious against raises, as better kickers (A/K) are possible.`;
+                return `Kicker context: top pair with ${kickerRank} kicker - solid but not premium. Be cautious against raises, as better kickers (A/K) are possible.`;
             }
             if (kickerVal <= 6) { // 8 or lower
                 if (a === 'c' || a === 'x' || a === 'f') {
-                    return `Kicker context: top pair weak kicker (${kickerRank}) — your hand is vulnerable to domination. Many hands in villain's range have the same pair with a better kicker, making this a check/call at best.`;
+                    return `Kicker context: top pair weak kicker (${kickerRank}) - your hand is vulnerable to domination. Many hands in villain's range have the same pair with a better kicker, making this a check/call at best.`;
                 }
-                return `Kicker context: top pair weak kicker (${kickerRank}) — be careful. Your hand can be dominated by the same pair with A/K/Q/J kicker.`;
+                return `Kicker context: top pair weak kicker (${kickerRank}) - be careful. Your hand can be dominated by the same pair with A/K/Q/J kicker.`;
             }
         }
 
         // Middle/bottom pair kicker
         if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('second pair')) {
             if (kickerVal >= 12) {
-                return `Kicker context: ${hc} with A kicker — the best possible kicker elevates this medium-strength hand. Worth calling lighter than with a weak kicker.`;
+                return `Kicker context: ${hc} with A kicker - the best possible kicker elevates this medium-strength hand. Worth calling lighter than with a weak kicker.`;
             }
             if (kickerVal <= 7) {
-                return `Kicker context: ${hc} with weak kicker (${kickerRank}) — this hand is at the bottom of the calling range. Folding to significant pressure is often correct.`;
+                return `Kicker context: ${hc} with weak kicker (${kickerRank}) - this hand is at the bottom of the calling range. Folding to significant pressure is often correct.`;
             }
         }
 
@@ -6474,46 +6474,46 @@ export class DeterministicGTOEngine {
         // ─── A-high boards ───
         if (highestBoard === 12) { // Ace on board
             if (heroIsPFR) {
-                return 'Nut advantage: PFR has the nut advantage on A-high boards — more Ax combos in the raising range than the caller\'s range. This supports aggressive play.';
+                return 'Nut advantage: PFR has the nut advantage on A-high boards - more Ax combos in the raising range than the caller\'s range. This supports aggressive play.';
             }
-            return 'Nut advantage: the raiser has more Ax combos on this A-high board. As the caller, be cautious — your range is capped more than villain\'s.';
+            return 'Nut advantage: the raiser has more Ax combos on this A-high board. As the caller, be cautious - your range is capped more than villain\'s.';
         }
 
         // ─── K-high boards ───
         if (highestBoard === 11 && !boardRanks.includes('A')) {
             if (heroIsPFR) {
-                return 'Nut advantage: PFR has a significant nut advantage on K-high boards — more KK/AK combos vs. caller\'s wider but weaker range.';
+                return 'Nut advantage: PFR has a significant nut advantage on K-high boards - more KK/AK combos vs. caller\'s wider but weaker range.';
             }
         }
 
         // ─── Low/medium boards (7-high and below) ───
         if (highestBoard <= 5) {
             if (villainIsBB && heroIsPFR) {
-                return 'Nut advantage: low boards favor the BB defender — their wider preflop range (small pairs, suited connectors) connects heavily here. PFR\'s range advantage is reduced.';
+                return 'Nut advantage: low boards favor the BB defender - their wider preflop range (small pairs, suited connectors) connects heavily here. PFR\'s range advantage is reduced.';
             }
         }
 
         // ─── Monotone boards ───
         if (texture && texture.monotone) {
             if (villainIsBB) {
-                return 'Nut advantage: monotone boards shift nut advantage toward the caller — suited hands are more common in BB\'s wide defense range than in PFR\'s tighter range.';
+                return 'Nut advantage: monotone boards shift nut advantage toward the caller - suited hands are more common in BB\'s wide defense range than in PFR\'s tighter range.';
             }
             if (heroIsPFR) {
-                return 'Nut advantage: on monotone boards, be cautious — the caller often has more suited combos. Your nut advantage is reduced unless you hold the nut flush draw.';
+                return 'Nut advantage: on monotone boards, be cautious - the caller often has more suited combos. Your nut advantage is reduced unless you hold the nut flush draw.';
             }
         }
 
         // ─── Paired boards ───
         if (texture && texture.paired) {
             if (heroIsPFR) {
-                return 'Nut advantage: paired boards generally favor the PFR — trips and full houses come from pocket pairs, which the raiser has more of.';
+                return 'Nut advantage: paired boards generally favor the PFR - trips and full houses come from pocket pairs, which the raiser has more of.';
             }
         }
 
         // ─── Connected low-mid boards ───
         if (texture && texture.connected && highestBoard <= 8) {
             if (villainIsBB) {
-                return 'Nut advantage: connected middle/low boards favor the caller\'s range — suited connectors and small pairs hit these boards hard.';
+                return 'Nut advantage: connected middle/low boards favor the caller\'s range - suited connectors and small pairs hit these boards hard.';
             }
         }
 
@@ -6615,12 +6615,12 @@ export class DeterministicGTOEngine {
 
         const bdList = backdoors.join(' + ');
         if (hc.includes('pair')) {
-            return `Backdoor equity: your ${bdList} adds ~4-5% equity on top of your made hand — this makes your hand significantly more playable across streets.`;
+            return `Backdoor equity: your ${bdList} adds ~4-5% equity on top of your made hand - this makes your hand significantly more playable across streets.`;
         }
         if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
-            return `Backdoor equity: your ${bdList} is critical for this hand — without it, this would be pure air. The backdoor potential makes this a viable semi-bluff candidate.`;
+            return `Backdoor equity: your ${bdList} is critical for this hand - without it, this would be pure air. The backdoor potential makes this a viable semi-bluff candidate.`;
         }
-        return `Backdoor equity: ${bdList} — adds hidden equity that improves your hand's playability on future streets.`;
+        return `Backdoor equity: ${bdList} - adds hidden equity that improves your hand's playability on future streets.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -6661,19 +6661,19 @@ export class DeterministicGTOEngine {
 
         if (isVulnerable && isBet) {
             if (texture && texture.wet) {
-                return `Protection: betting is urgent — the wet board gives villain many drawing combinations. Checking lets them realize equity cheaply against your vulnerable ${hc}.`;
+                return `Protection: betting is urgent - the wet board gives villain many drawing combinations. Checking lets them realize equity cheaply against your vulnerable ${hc}.`;
             }
             if (texture && texture.straightDrawHeavy) {
-                return `Protection: straight draw heavy board requires a protection bet — many hands in villain\'s range have straight draws that erode your equity significantly.`;
+                return `Protection: straight draw heavy board requires a protection bet - many hands in villain\'s range have straight draws that erode your equity significantly.`;
             }
             if (!isIP && texture && !texture.dry) {
-                return `Protection: betting OOP for protection is important here — if you check, villain gets a free card IP and can bet you off your hand on scary runouts.`;
+                return `Protection: betting OOP for protection is important here - if you check, villain gets a free card IP and can bet you off your hand on scary runouts.`;
             }
         }
 
         if (isVulnerable && isCheck) {
             if (texture && texture.dry) {
-                return `No protection needed: the dry board has few draws that threaten your hand. Checking is fine — you can call future bets or bet later streets.`;
+                return `No protection needed: the dry board has few draws that threaten your hand. Checking is fine - you can call future bets or bet later streets.`;
             }
             if (isIP) {
                 return `Protection not urgent IP: you can control the pot by checking back. If a scary card comes, you save money; if a blank comes, you can bet for value later.`;
@@ -6681,7 +6681,7 @@ export class DeterministicGTOEngine {
         }
 
         if (isInvulnerable && isCheck) {
-            return `No protection needed: your hand is nearly invulnerable — very few runouts hurt you. Slow-playing is viable to extract maximum value.`;
+            return `No protection needed: your hand is nearly invulnerable - very few runouts hurt you. Slow-playing is viable to extract maximum value.`;
         }
 
         if (isInvulnerable && isBet && texture && texture.wet) {
@@ -6724,35 +6724,35 @@ export class DeterministicGTOEngine {
 
         if (noShowdown && isBet) {
             if (street === 'river') {
-                return 'Showdown value: zero — your hand can\'t win at showdown, so betting as a bluff is the only way to profit. Choose bluffs with good blockers to nutted hands.';
+                return 'Showdown value: zero - your hand can\'t win at showdown, so betting as a bluff is the only way to profit. Choose bluffs with good blockers to nutted hands.';
             }
-            return 'Showdown value: very low — your hand needs to bet to win the pot since it can\'t win at showdown. This is a profitable bluff spot when you have fold equity.';
+            return 'Showdown value: very low - your hand needs to bet to win the pot since it can\'t win at showdown. This is a profitable bluff spot when you have fold equity.';
         }
         if (noShowdown && isCheck) {
-            return 'Showdown value: none — checking here gives up on the pot. Sometimes this is correct to keep your checking range balanced, but you\'re surrendering equity.';
+            return 'Showdown value: none - checking here gives up on the pot. Sometimes this is correct to keep your checking range balanced, but you\'re surrendering equity.';
         }
         if (noShowdown && isFold) {
-            return 'Showdown value: none — folding is correct because you have no equity, no draw, and no fold equity if you bet.';
+            return 'Showdown value: none - folding is correct because you have no equity, no draw, and no fold equity if you bet.';
         }
 
         // ─── Strong showdown value → protect it ───
         const strongShowdown = hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('two pair') || hc.includes('flush') || hc.includes('straight');
 
         if (strongShowdown && isCheck && street === 'river') {
-            return 'Showdown value: high — your hand is strong enough to win at showdown. Checking aims to induce bluffs or because villain\'s calling range is too strong to value bet against.';
+            return 'Showdown value: high - your hand is strong enough to win at showdown. Checking aims to induce bluffs or because villain\'s calling range is too strong to value bet against.';
         }
 
         // ─── Medium showdown value → the decision is nuanced ───
         const mediumShowdown = hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('second pair') || hc.includes('weak pair');
 
         if (mediumShowdown && isCheck) {
-            return 'Showdown value: medium — your hand has some showdown value but isn\'t strong enough to bet for value. Check-call to realize your equity without bloating the pot.';
+            return 'Showdown value: medium - your hand has some showdown value but isn\'t strong enough to bet for value. Check-call to realize your equity without bloating the pot.';
         }
         if (mediumShowdown && isBet) {
-            return 'Showdown value: medium but betting anyway — this could be thin value against worse hands or a merge-bet that uses your equity edge. Be aware your hand is vulnerable if raised.';
+            return 'Showdown value: medium but betting anyway - this could be thin value against worse hands or a merge-bet that uses your equity edge. Be aware your hand is vulnerable if raised.';
         }
         if (mediumShowdown && isCall && nodeType === 'hero_faces_bet') {
-            return 'Showdown value: medium — calling is correct because you beat bluffs and some thin value bets. Folding would over-fold your range in this spot.';
+            return 'Showdown value: medium - calling is correct because you beat bluffs and some thin value bets. Folding would over-fold your range in this spot.';
         }
 
         return '';
@@ -6836,14 +6836,14 @@ export class DeterministicGTOEngine {
         if (weaknessDescriptions.length > 0) {
             summaryParts.push('Areas to improve:');
             weaknessDescriptions.forEach((w, i) => {
-                summaryParts.push(`${i + 1}. ${w.description} — ${w.mistakeRatePct}% mistake rate (${w.total} samples)`);
+                summaryParts.push(`${i + 1}. ${w.description} - ${w.mistakeRatePct}% mistake rate (${w.total} samples)`);
             });
         }
 
         if (strengthDescriptions.length > 0) {
             summaryParts.push('Strengths:');
             strengthDescriptions.forEach(s => {
-                summaryParts.push(`✓ ${s.description} — ${s.accuracyPct}% accuracy`);
+                summaryParts.push(`✓ ${s.description} - ${s.accuracyPct}% accuracy`);
             });
         }
 
@@ -6851,13 +6851,13 @@ export class DeterministicGTOEngine {
         if (weaknessDescriptions.length > 0) {
             const topWeak = weaknessDescriptions[0];
             let suggestion = '';
-            if (topWeak.key.includes('fold')) suggestion = 'Focus on pot odds calculations — you may be folding too often in spots where calling is profitable.';
-            else if (topWeak.key.includes('river')) suggestion = 'River play is your biggest leak — study polarization (value vs. bluff) and bluff-catching frequencies.';
-            else if (topWeak.key.includes('turn')) suggestion = 'Turn decisions need work — focus on when to continue barreling vs. pot-controlling with medium hands.';
-            else if (topWeak.key.includes('draw') || topWeak.key.includes('flush_draw')) suggestion = 'Draw play is a weakness — practice pot odds, implied odds, and semi-bluff sizing decisions.';
-            else if (topWeak.key.includes('air') || topWeak.key.includes('bluff')) suggestion = 'Bluffing decisions need refinement — look for hands with blockers and no showdown value for optimal bluffs.';
-            else if (topWeak.key.includes('top_pair')) suggestion = 'Top pair play needs work — focus on kicker strength, board texture, and when to slow down vs. bet for value.';
-            else suggestion = `Focus on ${topWeak.description} — review the solver explanations in these spots and look for patterns in your mistakes.`;
+            if (topWeak.key.includes('fold')) suggestion = 'Focus on pot odds calculations - you may be folding too often in spots where calling is profitable.';
+            else if (topWeak.key.includes('river')) suggestion = 'River play is your biggest leak - study polarization (value vs. bluff) and bluff-catching frequencies.';
+            else if (topWeak.key.includes('turn')) suggestion = 'Turn decisions need work - focus on when to continue barreling vs. pot-controlling with medium hands.';
+            else if (topWeak.key.includes('draw') || topWeak.key.includes('flush_draw')) suggestion = 'Draw play is a weakness - practice pot odds, implied odds, and semi-bluff sizing decisions.';
+            else if (topWeak.key.includes('air') || topWeak.key.includes('bluff')) suggestion = 'Bluffing decisions need refinement - look for hands with blockers and no showdown value for optimal bluffs.';
+            else if (topWeak.key.includes('top_pair')) suggestion = 'Top pair play needs work - focus on kicker strength, board texture, and when to slow down vs. bet for value.';
+            else suggestion = `Focus on ${topWeak.description} - review the solver explanations in these spots and look for patterns in your mistakes.`;
 
             summaryParts.push(`Suggestion: ${suggestion}`);
         }
@@ -6912,11 +6912,11 @@ export class DeterministicGTOEngine {
 
         // Tier classification
         let tier, description;
-        if (eq >= 78) { tier = 'premium'; description = 'top-tier hand — always play aggressively'; }
+        if (eq >= 78) { tier = 'premium'; description = 'top-tier hand - always play aggressively'; }
         else if (eq >= 66) { tier = 'strong'; description = 'strong hand with high raw equity'; }
         else if (eq >= 58) { tier = 'playable'; description = 'solid playable hand with good equity'; }
-        else if (eq >= 52) { tier = 'marginal'; description = 'marginal hand — position and context matter most'; }
-        else { tier = 'speculative'; description = 'speculative hand — needs suitedness/connectivity to justify playing'; }
+        else if (eq >= 52) { tier = 'marginal'; description = 'marginal hand - position and context matter most'; }
+        else { tier = 'speculative'; description = 'speculative hand - needs suitedness/connectivity to justify playing'; }
 
         return { tier, equityVsRandom: Math.round(eq), description };
     }
@@ -6956,10 +6956,10 @@ export class DeterministicGTOEngine {
         if (estimatedPot && estimatedPot > 0) {
             const diffAsPct = ((evDiff / estimatedPot) * 100).toFixed(1);
             if (evDiff >= estimatedPot * 0.15) {
-                return `EV context: this action is significantly higher EV — ${diffAsPct}% of pot better than ${secondLabel}. Clear best play.`;
+                return `EV context: this action is significantly higher EV - ${diffAsPct}% of pot better than ${secondLabel}. Clear best play.`;
             }
             if (evDiff >= estimatedPot * 0.05) {
-                return `EV context: ${diffAsPct}% pot EV edge over ${secondLabel}. Meaningful but not huge — a close spot where execution matters.`;
+                return `EV context: ${diffAsPct}% pot EV edge over ${secondLabel}. Meaningful but not huge - a close spot where execution matters.`;
             }
             if (evDiff < estimatedPot * 0.02) {
                 return `EV context: essentially break-even between top actions (${diffAsPct}% pot difference). Both are viable in practice.`;
@@ -6974,7 +6974,7 @@ export class DeterministicGTOEngine {
             return `EV context: ${evDiff.toFixed(1)}bb edge over ${secondLabel}. Meaningful EV difference.`;
         }
         if (evDiff < 0.2) {
-            return `EV context: only ${evDiff.toFixed(2)}bb separates the top actions — razor-thin margin. Mixed strategy is natural here.`;
+            return `EV context: only ${evDiff.toFixed(2)}bb separates the top actions - razor-thin margin. Mixed strategy is natural here.`;
         }
 
         return '';
@@ -7015,21 +7015,21 @@ export class DeterministicGTOEngine {
                 return 'Turn check-raise for value: building the pot with a strong hand. After check-raising the turn, you can comfortably bet or shove the river.';
             }
             if (street === 'river') {
-                return 'River check-raise for value: the ultimate extraction play — you checked hoping villain would bet, then raise for maximum value. Only do this with hands that beat villain\'s betting range.';
+                return 'River check-raise for value: the ultimate extraction play - you checked hoping villain would bet, then raise for maximum value. Only do this with hands that beat villain\'s betting range.';
             }
         }
 
         // ─── Semi-bluff check-raises ───
         if (hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot') || hc.includes('combo draw')) {
             if (texture && texture.wet) {
-                return 'Semi-bluff check-raise: raising with a draw on a wet board gives you two ways to win — villain folds now (instant profit) or you hit your draw when called. This is a key OOP play.';
+                return 'Semi-bluff check-raise: raising with a draw on a wet board gives you two ways to win - villain folds now (instant profit) or you hit your draw when called. This is a key OOP play.';
             }
             return 'Semi-bluff check-raise: using your drawing equity plus fold equity. Even if called, you have outs to improve. This balances your check-raise range with value hands.';
         }
 
         // ─── Bluff check-raises ───
         if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
-            return 'Bluff check-raise: raising with a weak hand to deny villain\'s equity and generate fold equity. This works because your range also contains strong hands — villain can\'t tell.';
+            return 'Bluff check-raise: raising with a weak hand to deny villain\'s equity and generate fold equity. This works because your range also contains strong hands - villain can\'t tell.';
         }
 
         // ─── Overpair/top pair check-raises ───
@@ -7065,13 +7065,13 @@ export class DeterministicGTOEngine {
         // Every 10 questions
         if (questionNumber % 10 === 0 && questionNumber > 0) {
             if (recentAcc >= 80) {
-                return `▲ ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. You're in the zone — the solver would be proud.`;
+                return `▲ ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. You're in the zone - the solver would be proud.`;
             }
             if (recentAcc >= 60) {
-                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Solid progress — keep focusing on the explanations for spots you miss.`;
+                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Solid progress - keep focusing on the explanations for spots you miss.`;
             }
             if (recentAcc >= 40) {
-                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Room to improve — try reading each explanation carefully and look for patterns in your mistakes.`;
+                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Room to improve - try reading each explanation carefully and look for patterns in your mistakes.`;
             }
             return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Consider dropping down a level to build confidence, then come back stronger.`;
         }
@@ -7089,7 +7089,7 @@ export class DeterministicGTOEngine {
                 const mistakeRate = Math.round((data.mistakes / data.total) * 100);
                 return `${questionNumber}-question checkpoint! Overall: ${accuracy}%. Your biggest leak: "${key.replace(/_/g, '')}"(${mistakeRate}% mistake rate, ${data.total} samples). Focus on this area to see the biggest improvement.`;
             }
-            return `${questionNumber}-question checkpoint! Overall accuracy: ${accuracy}%. ${accuracy >= 70 ? 'Great session — you\'re building strong GTO fundamentals.': 'Keep grinding — consistency is key to improving.'}`;
+            return `${questionNumber}-question checkpoint! Overall accuracy: ${accuracy}%. ${accuracy >= 70 ? 'Great session - you\'re building strong GTO fundamentals.': 'Keep grinding - consistency is key to improving.'}`;
         }
 
         return null;
@@ -7150,22 +7150,22 @@ export class DeterministicGTOEngine {
         if (newSuit && suitCounts[newSuit] >= 2) {
             const totalOfSuit = (suitCounts[newSuit] || 0) + 1;
             if (totalOfSuit >= 3 && existingBoard.length === 3) {
-                impacts.push('puts a third flush card out — flush draws now have direct draws');
+                impacts.push('puts a third flush card out - flush draws now have direct draws');
             } else if (totalOfSuit >= 4) {
-                impacts.push('fourth flush card — flushes are now very likely');
+                impacts.push('fourth flush card - flushes are now very likely');
             }
         }
 
         // Check if the new card pairs the board
         if (boardRanks.includes(newRank)) {
-            impacts.push('pairs the board — full houses now possible');
+            impacts.push('pairs the board - full houses now possible');
         }
 
         // Check if the new card is an overcard to previous board
         const highestExisting = Math.max(...boardVals);
         if (newVal > highestExisting) {
             const overcardName = newRank;
-            impacts.push(`${overcardName} is an overcard — shifts range advantage`);
+            impacts.push(`${overcardName} is an overcard - shifts range advantage`);
         }
 
         // Check if the new card completes straight possibilities
@@ -7174,19 +7174,19 @@ export class DeterministicGTOEngine {
         // Check for 4-in-a-row
         for (let i = 0; i < uniqueVals.length - 3; i++) {
             if (uniqueVals[i + 3] - uniqueVals[i] === 3) {
-                impacts.push('connects the board — many straights now possible');
+                impacts.push('connects the board - many straights now possible');
                 break;
             }
         }
 
         // Low card on a high board = blank
         if (impacts.length === 0 && newVal <= 5 && highestExisting >= 8) {
-            impacts.push('low card on a high board — likely a blank that changes nothing');
+            impacts.push('low card on a high board - likely a blank that changes nothing');
         }
 
         // High card on a low board = dynamic
         if (impacts.length === 0 && newVal >= 9 && highestExisting <= 7) {
-            impacts.push('overcard to the board — changes the equity landscape significantly');
+            impacts.push('overcard to the board - changes the equity landscape significantly');
         }
 
         if (impacts.length === 0) return '';
@@ -7221,23 +7221,23 @@ export class DeterministicGTOEngine {
 
         if (isNutted) {
             if (street === 'river') {
-                return `Overbet for value: your nutted hand maximizes extraction by overbetting — villain's bluff-catchers face maximum pressure. They must call with their entire defend-vs-overbet range or let you profit.`;
+                return `Overbet for value: your nutted hand maximizes extraction by overbetting - villain's bluff-catchers face maximum pressure. They must call with their entire defend-vs-overbet range or let you profit.`;
             }
             return `Overbet for value: your strong hand leverages a nut advantage to overbet. This builds the maximum pot for when you have the goods and sets up large future bets.`;
         }
 
         if (isAir) {
             if (street === 'river') {
-                return `Overbet bluff: with no showdown value, overbetting applies maximum fold pressure. Villain must defend narrowly against overbets — even strong one-pair hands often fold.`;
+                return `Overbet bluff: with no showdown value, overbetting applies maximum fold pressure. Villain must defend narrowly against overbets - even strong one-pair hands often fold.`;
             }
-            return `Overbet bluff: your hand has no showdown value. The overbet generates maximum fold equity — few hands in villain's range can profitably continue against this sizing.`;
+            return `Overbet bluff: your hand has no showdown value. The overbet generates maximum fold equity - few hands in villain's range can profitably continue against this sizing.`;
         }
 
         if (hc.includes('draw')) {
             return `Overbet semi-bluff: massive sizing with a draw applies extreme fold pressure. If villain folds, you win immediately; if called, you have outs to improve.`;
         }
 
-        return `Overbetting: the solver uses a size above pot to maximize leverage. This is a polarized play — your range here should be nutted hands for value and select bluffs.`;
+        return `Overbetting: the solver uses a size above pot to maximize leverage. This is a polarized play - your range here should be nutted hands for value and select bluffs.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7273,17 +7273,17 @@ export class DeterministicGTOEngine {
 
         if (isMedium && sizePct <= 50 && freq < 0.85) {
             if (street === 'river') {
-                return `Thin value: betting ${handStrength} for thin value on the river. You beat bluff-catchers and some weaker pairs — missing this bet is a common leak. Only bet if you expect to be called by worse more than half the time.`;
+                return `Thin value: betting ${handStrength} for thin value on the river. You beat bluff-catchers and some weaker pairs - missing this bet is a common leak. Only bet if you expect to be called by worse more than half the time.`;
             }
             if (street === 'turn') {
-                return `Thin value: betting a medium-strength hand for value. This is thinly profitable — you beat some of villain's calling range, but be prepared to check the river if called.`;
+                return `Thin value: betting a medium-strength hand for value. This is thinly profitable - you beat some of villain's calling range, but be prepared to check the river if called.`;
             }
-            return `Thin value: the solver bets this medium hand for a small amount, targeting worse hands that will call. Most players would check here — extracting thin value is what separates good from great.`;
+            return `Thin value: the solver bets this medium hand for a small amount, targeting worse hands that will call. Most players would check here - extracting thin value is what separates good from great.`;
         }
 
         // Top pair bad kicker thin value
         if (hc.includes('top pair') && !hc.includes('top kicker') && street === 'river' && sizePct <= 40) {
-            return `Thin value: top pair without a premium kicker — betting small on the river targets second pair and other worse one-pair hands. This is a thin but profitable bet.`;
+            return `Thin value: top pair without a premium kicker - betting small on the river targets second pair and other worse one-pair hands. This is a thin but profitable bet.`;
         }
 
         return '';
@@ -7311,7 +7311,7 @@ export class DeterministicGTOEngine {
 
         // Pure strategy — GTO has one clear answer
         if (freq >= 0.95) {
-            return 'GTO note: this is a pure strategy spot — the solver always takes this action. Exploitatively, this doesn\'t change unless villain deviates significantly.';
+            return 'GTO note: this is a pure strategy spot - the solver always takes this action. Exploitatively, this doesn\'t change unless villain deviates significantly.';
         }
 
         // Heavily mixed — GTO and exploitative diverge most here
@@ -7321,7 +7321,7 @@ export class DeterministicGTOEngine {
 
         // Close spot — both actions are correct
         if (mixedActions === 2 && freq < 0.65 && freq > 0.35) {
-            return 'GTO note: close decision — the solver mixes nearly 50/50. Against unknown opponents, either action is fine. Against specific tendencies, exploit accordingly.';
+            return 'GTO note: close decision - the solver mixes nearly 50/50. Against unknown opponents, either action is fine. Against specific tendencies, exploit accordingly.';
         }
 
         return '';
@@ -7488,7 +7488,7 @@ export class DeterministicGTOEngine {
             return `This hand is comfortably inside ${heroPosition}'s ${r.desc} opening range.`;
         }
         if (tier.tier === 'marginal' || tier.tier === 'speculative') {
-            return `${heroPosition} opens ${r.desc} of hands — your hand is at or near the boundary. Position matters most for marginal opens.`;
+            return `${heroPosition} opens ${r.desc} of hands - your hand is at or near the boundary. Position matters most for marginal opens.`;
         }
         return '';
     }
@@ -7513,23 +7513,23 @@ export class DeterministicGTOEngine {
 
         // Value 3-bets
         if (isPair && v1 >= 9) { // JJ+ (J is index 9)
-            return `3-bet for value: ${heroHand} is always in the value 3-bet range — too strong to flat and risk multiway pots.`;
+            return `3-bet for value: ${heroHand} is always in the value 3-bet range - too strong to flat and risk multiway pots.`;
         }
         if (isAx && (Math.min(v1, v2) >= 11 || (isSuited && Math.min(v1, v2) >= 10))) { // AK, AQs+
-            return `3-bet for value: ${heroHand} — strong enough to 3-bet vs most positions. Building the pot preflop with a premium hand.`;
+            return `3-bet for value: ${heroHand} - strong enough to 3-bet vs most positions. Building the pot preflop with a premium hand.`;
         }
 
         // Bluff 3-bets
         if (isAx && isSuited && Math.min(v1, v2) <= 5) { // A2s-A5s
-            return `3-bet as a bluff: ${heroHand} — suited Ax blocks AA/AK in villain's range (removes ~16 combos) while having nut flush potential if called. Ideal 3-bet bluff.`;
+            return `3-bet as a bluff: ${heroHand} - suited Ax blocks AA/AK in villain's range (removes ~16 combos) while having nut flush potential if called. Ideal 3-bet bluff.`;
         }
         if (isKx && isSuited && Math.min(v1, v2) <= 6) {
-            return `3-bet as a bluff: ${heroHand} — suited Kx blocks KK/AK, removing key combos from villain's 4-bet/continue range. Good candidate for a polarized 3-bet.`;
+            return `3-bet as a bluff: ${heroHand} - suited Kx blocks KK/AK, removing key combos from villain's 4-bet/continue range. Good candidate for a polarized 3-bet.`;
         }
 
         // Flatting hands
         if (isPair && v1 >= 5 && v1 <= 8) { // 77-TT
-            return `Medium pairs typically flat a raise rather than 3-bet — set mining value is highest when you see a flop, and 3-betting builds an awkward pot with a hand that's often behind.`;
+            return `Medium pairs typically flat a raise rather than 3-bet - set mining value is highest when you see a flop, and 3-betting builds an awkward pot with a hand that's often behind.`;
         }
 
         return '';
@@ -7568,10 +7568,10 @@ export class DeterministicGTOEngine {
 
         if (heroPosition === 'BB') {
             if (a === 'call') {
-                return `BB defense: you're getting excellent pot odds (typically 2:1 or better) to call. The BB defends wide (~55-65% vs BTN open) because of the price — even marginal hands are profitable calls.`;
+                return `BB defense: you're getting excellent pot odds (typically 2:1 or better) to call. The BB defends wide (~55-65% vs BTN open) because of the price - even marginal hands are profitable calls.`;
             }
             if (a === 'f') {
-                return `BB fold: even though you have good pot odds, some hands are too weak to defend profitably — they play too poorly postflop OOP to justify the call.`;
+                return `BB fold: even though you have good pot odds, some hands are too weak to defend profitably - they play too poorly postflop OOP to justify the call.`;
             }
             if (a.startsWith('r')) {
                 const tier = this._getPreflopHandTier(heroHand);
@@ -7584,10 +7584,10 @@ export class DeterministicGTOEngine {
 
         if (heroPosition === 'SB') {
             if (a === 'call') {
-                return `SB flat: SB flatting is generally discouraged in GTO — you'll be OOP postflop with the BB still to act. Consider 3-betting or folding instead.`;
+                return `SB flat: SB flatting is generally discouraged in GTO - you'll be OOP postflop with the BB still to act. Consider 3-betting or folding instead.`;
             }
             if (a.startsWith('r')) {
-                return `SB 3-bet: the preferred way to play from the SB is either fold or 3-bet — flatting creates a multiway pot where you're OOP, which is the worst outcome.`;
+                return `SB 3-bet: the preferred way to play from the SB is either fold or 3-bet - flatting creates a multiway pot where you're OOP, which is the worst outcome.`;
             }
         }
 
@@ -7605,13 +7605,13 @@ export class DeterministicGTOEngine {
      */
     _getPositionEVContext(heroPosition) {
         const posEV = {
-            'BTN': '+10bb/100 — most profitable seat. IP postflop with widest stealing range.',
-            'CO': '+5bb/100 — strong seat with IP advantage in most pots.',
-            'HJ': '+2bb/100 — moderately profitable, narrower range but still favorable.',
-            'MP': '~0bb/100 — break-even position, tight range required.',
-            'UTG': '-1bb/100 — tightest range, often OOP postflop.',
-            'SB': '-7bb/100 — most unprofitable seat. Always OOP postflop.',
-            'BB': '-3bb/100 — forced investment, but best pot odds to defend.',
+            'BTN': '+10bb/100 - most profitable seat. IP postflop with widest stealing range.',
+            'CO': '+5bb/100 - strong seat with IP advantage in most pots.',
+            'HJ': '+2bb/100 - moderately profitable, narrower range but still favorable.',
+            'MP': '~0bb/100 - break-even position, tight range required.',
+            'UTG': '-1bb/100 - tightest range, often OOP postflop.',
+            'SB': '-7bb/100 - most unprofitable seat. Always OOP postflop.',
+            'BB': '-3bb/100 - forced investment, but best pot odds to defend.',
         };
         return posEV[heroPosition] ? `Position EV: ${heroPosition} averages ${posEV[heroPosition]}` : '';
     }
@@ -7634,16 +7634,16 @@ export class DeterministicGTOEngine {
 
         if (isBet) {
             if (isIP && texture && texture.dry) {
-                return `C-bet theory: IP on a dry board — c-bet frequency should be high (70%+). Your range advantage is significant and villain rarely connects. Small sizing is most efficient.`;
+                return `C-bet theory: IP on a dry board - c-bet frequency should be high (70%+). Your range advantage is significant and villain rarely connects. Small sizing is most efficient.`;
             }
             if (isIP && texture && texture.wet) {
-                return `C-bet theory: IP on a wet board — be selective. C-bet with strong hands, draws with equity, and give up weak holdings. Frequency drops to ~40-50%.`;
+                return `C-bet theory: IP on a wet board - be selective. C-bet with strong hands, draws with equity, and give up weak holdings. Frequency drops to ~40-50%.`;
             }
             if (!isIP && texture && texture.dry) {
-                return `C-bet theory: OOP on a dry board — c-betting is still effective but use a smaller size. Your range advantage as PFR still applies, but you lack position for future streets.`;
+                return `C-bet theory: OOP on a dry board - c-betting is still effective but use a smaller size. Your range advantage as PFR still applies, but you lack position for future streets.`;
             }
             if (!isIP && texture && texture.wet) {
-                return `C-bet theory: OOP on a wet board — the lowest c-bet frequency spot. Check more often to build a strong checking range. Only c-bet with strong hands and draws.`;
+                return `C-bet theory: OOP on a wet board - the lowest c-bet frequency spot. Check more often to build a strong checking range. Only c-bet with strong hands and draws.`;
             }
         }
 
@@ -7674,7 +7674,7 @@ export class DeterministicGTOEngine {
         if (street === 'turn' && isBet) {
             const isValue = hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('two pair') || hc.includes('flush') || hc.includes('straight');
             if (isValue) {
-                return `Double barrel for value: continuing to bet strong hands on the turn builds the pot. Villain's flop calling range is now defined — extract from it.`;
+                return `Double barrel for value: continuing to bet strong hands on the turn builds the pot. Villain's flop calling range is now defined - extract from it.`;
             }
             if (hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot')) {
                 return `Double barrel semi-bluff: barreling the turn with a draw maintains pressure. You have equity when called and fold equity against villain's weaker continuing range.`;
@@ -7692,7 +7692,7 @@ export class DeterministicGTOEngine {
 
         if (street === 'river' && isBet) {
             if (hc.includes('air') || hc.includes('no pair')) {
-                return `Triple barrel bluff: the ultimate test — betting all three streets with nothing. This only works against a range that can fold. Choose bluffs with good blockers to villain's calling range.`;
+                return `Triple barrel bluff: the ultimate test - betting all three streets with nothing. This only works against a range that can fold. Choose bluffs with good blockers to villain's calling range.`;
             }
             if (hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('flush') || hc.includes('straight')) {
                 return `Triple barrel for value: betting all three streets with a strong hand maximizes extraction. Your sizing should target the specific hands villain calls with on the river.`;
@@ -7765,7 +7765,7 @@ export class DeterministicGTOEngine {
         const mdfPct = Math.round(mdf * 100);
 
         if (isFold) {
-            return `MDF note: against a ~${commonBetPct}% pot bet, you need to defend ~${mdfPct}% of your range to prevent villain from auto-profiting with bluffs. Folding here is fine — this hand is below your defense threshold.`;
+            return `MDF note: against a ~${commonBetPct}% pot bet, you need to defend ~${mdfPct}% of your range to prevent villain from auto-profiting with bluffs. Folding here is fine - this hand is below your defense threshold.`;
         }
         if (isCall) {
             return `MDF note: against a ~${commonBetPct}% pot bet, MDF is ~${mdfPct}%. Calling keeps your defense frequency honest and prevents villain from exploiting with excessive bluffs.`;
@@ -7793,7 +7793,7 @@ export class DeterministicGTOEngine {
         // Probe bet = betting when PFR checked previous street (indicating weakness)
         if (street === 'turn') {
             if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
-                return `Probe bet: betting the turn after PFR checked flop. Their check signals a capped range — they would have c-bet with strong hands. Exploit this weakness with a probe bet.`;
+                return `Probe bet: betting the turn after PFR checked flop. Their check signals a capped range - they would have c-bet with strong hands. Exploit this weakness with a probe bet.`;
             }
             if (hc.includes('pair') || hc.includes('draw')) {
                 return `Probe bet for thin value: PFR's flop check caps their range. You can bet thinner for value here because their range is weaker than if they had c-bet.`;
@@ -7801,7 +7801,7 @@ export class DeterministicGTOEngine {
         }
 
         if (street === 'river') {
-            return `River probe: villain has checked two streets, heavily capping their range. A well-timed river bet exploits their passivity — they rarely have strong hands after checking twice.`;
+            return `River probe: villain has checked two streets, heavily capping their range. A well-timed river bet exploits their passivity - they rarely have strong hands after checking twice.`;
         }
 
         return '';
@@ -7822,7 +7822,7 @@ export class DeterministicGTOEngine {
         if (nodeType === 'hero_bets_or_checks') {
             // If we're the one to act, villain checked to us
             if (street === 'turn') {
-                return 'Range capping: villain checked to you on the turn. If they c-bet the flop and checked the turn, their range is capped — they likely don\'t have strong value hands, which they would have bet. Increase your bluffing frequency.';
+                return 'Range capping: villain checked to you on the turn. If they c-bet the flop and checked the turn, their range is capped - they likely don\'t have strong value hands, which they would have bet. Increase your bluffing frequency.';
             }
             if (street === 'river') {
                 return 'Range capping: two checks from villain suggests a heavily capped range. Strong hands would have bet for value on at least one street. You can bluff more aggressively here.';
@@ -7831,7 +7831,7 @@ export class DeterministicGTOEngine {
 
         if (nodeType === 'hero_faces_bet' && street === 'river') {
             if (texture && texture.wet) {
-                return 'Villain betting river on a wet board: if draws completed, villain\'s bet could be a made flush/straight. If draws missed, their range is polarized — they either have it or they\'re bluffing.';
+                return 'Villain betting river on a wet board: if draws completed, villain\'s bet could be a made flush/straight. If draws missed, their range is polarized - they either have it or they\'re bluffing.';
             }
         }
 
@@ -7852,7 +7852,7 @@ export class DeterministicGTOEngine {
 
         // Non-nut flush draws
         if (hc.includes('flush draw') && !hc.includes('nut') && !hc.includes('strong')) {
-            return `Reverse implied odds: your non-nut flush draw is dangerous — if you hit, a higher flush could cost you your entire stack. Proceed with caution.`;
+            return `Reverse implied odds: your non-nut flush draw is dangerous - if you hit, a higher flush could cost you your entire stack. Proceed with caution.`;
         }
 
         // Bottom-end straight draws
@@ -7869,7 +7869,7 @@ export class DeterministicGTOEngine {
 
         // Second pair facing aggression
         if ((hc.includes('middle pair') || hc.includes('second pair') || hc.includes('bottom pair'))) {
-            return `Reverse implied odds: medium/small pairs have significant reverse implied odds — when villain has a better hand, you'll often lose more than you gain from catching bluffs.`;
+            return `Reverse implied odds: medium/small pairs have significant reverse implied odds - when villain has a better hand, you'll often lose more than you gain from catching bluffs.`;
         }
 
         return '';
@@ -7895,7 +7895,7 @@ export class DeterministicGTOEngine {
         // Ace blocker effects
         if (r1 === 'A' || r2 === 'A') {
             if (isBet && (hc.includes('air') || hc.includes('no pair'))) {
-                return `Card removal: holding an Ace removes 3 combos of AA, 4 combos of AK, and blocks villain's strongest holdings. This makes your bluff more effective — villain is less likely to have the nuts.`;
+                return `Card removal: holding an Ace removes 3 combos of AA, 4 combos of AK, and blocks villain's strongest holdings. This makes your bluff more effective - villain is less likely to have the nuts.`;
             }
             if (isFold) {
                 return `Card removal: your Ace blocks AA/AK combos, reducing the chance villain has premiums. However, other factors outweigh this blocker effect in this spot.`;
@@ -7905,7 +7905,7 @@ export class DeterministicGTOEngine {
         // King blocker
         if (r1 === 'K' || r2 === 'K') {
             if (isBet && (hc.includes('air') || hc.includes('no pair'))) {
-                return `Card removal: holding a King blocks KK (3 combos) and AK (8 combos). This is a good bluffing blocker — villain is less likely to have a hand that can comfortably call.`;
+                return `Card removal: holding a King blocks KK (3 combos) and AK (8 combos). This is a good bluffing blocker - villain is less likely to have a hand that can comfortably call.`;
             }
         }
 
@@ -7958,7 +7958,7 @@ export class DeterministicGTOEngine {
             return `Implied odds: good (${impliedOddsRatio.toFixed(1)}x pot behind). Enough stack depth to profit when your draw completes. Focus on draws that make the nuts.`;
         }
         if (impliedOddsRatio < 1) {
-            return `Implied odds: poor — not much stack left behind (${impliedOddsRatio.toFixed(1)}x pot). You need direct pot odds to justify calling, as there's little extra money to win.`;
+            return `Implied odds: poor - not much stack left behind (${impliedOddsRatio.toFixed(1)}x pot). You need direct pot odds to justify calling, as there's little extra money to win.`;
         }
 
         return '';
@@ -8026,7 +8026,7 @@ export class DeterministicGTOEngine {
         const equityTurn = Math.min(outs * 2, 45); // Rule of 2
 
         if (outs >= 12) {
-            return `Monster draw: ~${Math.round(outs)} outs (${parts.join(' + ')}). Approximately ${Math.round(equityFlop)}% equity on the flop — you're actually a mathematical favorite vs most one-pair hands. Play aggressively.`;
+            return `Monster draw: ~${Math.round(outs)} outs (${parts.join(' + ')}). Approximately ${Math.round(equityFlop)}% equity on the flop - you're actually a mathematical favorite vs most one-pair hands. Play aggressively.`;
         }
         return `Combo draw: ~${Math.round(outs)} outs (${parts.join(' + ')}). ~${Math.round(equityFlop)}% equity on flop. Strong enough to semi-bluff aggressively.`;
     }
@@ -8046,7 +8046,7 @@ export class DeterministicGTOEngine {
             return `Paired board: you have the nuts or near it. Paired boards reduce the number of strong hands in villain's range, making your monster even more disguised.`;
         }
         if (hc.includes('trips') || hc.includes('three of a kind')) {
-            return `Paired board: you have trips — strong but vulnerable to full houses. Villain's pocket pairs could be full houses, so be cautious if raised.`;
+            return `Paired board: you have trips - strong but vulnerable to full houses. Villain's pocket pairs could be full houses, so be cautious if raised.`;
         }
         if (hc.includes('flush') || hc.includes('straight')) {
             return `Paired board warning: your flush/straight is vulnerable to full houses. Paired boards allow trips and full houses that beat you. Size for value but be ready to fold to raises.`;
@@ -8073,11 +8073,11 @@ export class DeterministicGTOEngine {
             return `Ace-high board with top pair: you have the nuts in terms of one-pair hands. The PFR's range heavily favors Ax, so you can bet confidently for value.`;
         }
         if (hc.includes('pair') && !hc.includes('ace') && !hc.includes('top pair')) {
-            return `Ace-high board without an ace: your pair is dominated by all the Ax combos in villain's range. Play cautiously — you're often behind.`;
+            return `Ace-high board without an ace: your pair is dominated by all the Ax combos in villain's range. Play cautiously - you're often behind.`;
         }
         if (hc.includes('air') || hc.includes('no pair')) {
             if (nodeType === 'hero_bets_or_checks') {
-                return `Ace-high board with air: the Ace on the board is great for bluffing as PFR — your range is perceived to have many Ax hands. Villain will fold pairs below top pair.`;
+                return `Ace-high board with air: the Ace on the board is great for bluffing as PFR - your range is perceived to have many Ax hands. Villain will fold pairs below top pair.`;
             }
         }
 
@@ -8096,7 +8096,7 @@ export class DeterministicGTOEngine {
         const hc = (handStrength || '').toLowerCase();
 
         if (hc.includes('nut flush')) {
-            return `Monotone board with nut flush: you have the nuts. Bet for value — anyone with a lower flush or a pair will often pay you off.`;
+            return `Monotone board with nut flush: you have the nuts. Bet for value - anyone with a lower flush or a pair will often pay you off.`;
         }
         if (hc.includes('flush') && !hc.includes('nut')) {
             return `Monotone board with a non-nut flush: be cautious. The board having 3+ of a suit means anyone with a higher card of that suit beats you. Size for thin value but don't overcommit.`;
@@ -8123,7 +8123,7 @@ export class DeterministicGTOEngine {
         const hc = (handStrength || '').toLowerCase();
 
         if (hc.includes('overpair')) {
-            return `Low board with overpair: your hand is very strong but vulnerable to sets and two pairs. Villain's BB defense range connects heavily with low cards — bet for value and protection.`;
+            return `Low board with overpair: your hand is very strong but vulnerable to sets and two pairs. Villain's BB defense range connects heavily with low cards - bet for value and protection.`;
         }
         if (hc.includes('air') || hc.includes('no pair')) {
             if (nodeType === 'hero_bets_or_checks') {
@@ -8159,10 +8159,10 @@ export class DeterministicGTOEngine {
         if (r1 === 'K' || r2 === 'K') criteria.push('blocks second-best holdings');
 
         // Missed draws are good bluff candidates
-        if (hc.includes('missed') || hc.includes('draw')) criteria.push('missed draw — naturally arrives at river without a made hand');
+        if (hc.includes('missed') || hc.includes('draw')) criteria.push('missed draw - naturally arrives at river without a made hand');
 
         // No showdown value
-        criteria.push('zero showdown value — can only win by betting');
+        criteria.push('zero showdown value - can only win by betting');
 
         if (criteria.length > 0) {
             return `River bluff selection: your hand qualifies because: ${criteria.join('; ')}. Ideal river bluffs combine blocker effects with no showdown equity.`;
@@ -8208,14 +8208,14 @@ export class DeterministicGTOEngine {
 
         if (street === 'turn') {
             if (nodeType === 'hero_faces_bet') {
-                return `Range narrowing: by the turn, both ranges have narrowed significantly from the flop. Villain's betting range is now weighted toward strong made hands and draws — medium hands would have checked.`;
+                return `Range narrowing: by the turn, both ranges have narrowed significantly from the flop. Villain's betting range is now weighted toward strong made hands and draws - medium hands would have checked.`;
             }
             return `Range narrowing: the turn is where ranges start to crystallize. Hands that continued from the flop either improved, had draws, or were strong enough to keep investing.`;
         }
 
         if (street === 'river') {
             if (nodeType === 'hero_faces_bet') {
-                return `Range narrowing: villain's river betting range is highly polarized — they either have a strong hand (value) or nothing (bluff). Medium-strength hands check the river for showdown. Use this to calibrate your calling decision.`;
+                return `Range narrowing: villain's river betting range is highly polarized - they either have a strong hand (value) or nothing (bluff). Medium-strength hands check the river for showdown. Use this to calibrate your calling decision.`;
             }
             return `Range narrowing: by the river, ranges are at their narrowest. Decisions are binary: bet for value/bluff or check for showdown. Every hand in your range should have a clear purpose.`;
         }
@@ -8248,7 +8248,7 @@ export class DeterministicGTOEngine {
             return { trend: 'improving', diff: Math.round(diff * 100), message: `Your accuracy is improving! Up ${Math.round(diff * 100)}% in the second half of your session. You're warming up and making better decisions.` };
         }
         if (diff < -0.15) {
-            return { trend: 'declining', diff: Math.round(diff * 100), message: `Your accuracy is declining (${Math.round(Math.abs(diff) * 100)}% drop). Consider taking a break — decision fatigue is real in poker training.` };
+            return { trend: 'declining', diff: Math.round(diff * 100), message: `Your accuracy is declining (${Math.round(Math.abs(diff) * 100)}% drop). Consider taking a break - decision fatigue is real in poker training.` };
         }
         return { trend: 'stable', diff: Math.round(diff * 100), message: `Consistent performance throughout the session. You're maintaining focus well.` };
     }
@@ -8358,13 +8358,13 @@ export class DeterministicGTOEngine {
         const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair', 'weak_pair'].includes(handToken);
 
         if (a === 'f' && isMedium) {
-            return 'Multi-way pot: medium-strength hands lose significant value with multiple opponents — more players means someone likely has you beat. Folding marginal hands is correct.';
+            return 'Multi-way pot: medium-strength hands lose significant value with multiple opponents - more players means someone likely has you beat. Folding marginal hands is correct.';
         }
         if (this._isAggressiveAction(a) && isStrong) {
             return 'Multi-way pot: with a strong hand, bet for value against multiple opponents who may each have some equity. Thin value goes up when facing wide ranges.';
         }
         if (a === 'call' || a === 'x') {
-            return 'Multi-way pot: bluffing frequency drops dramatically — more players means more chance someone has a calling hand. Play honestly and wait for strong holdings.';
+            return 'Multi-way pot: bluffing frequency drops dramatically - more players means more chance someone has a calling hand. Play honestly and wait for strong holdings.';
         }
         return 'Multi-way pot: tighten your range significantly. Bluff less, value bet more, and be cautious with medium-strength hands.';
     }
@@ -8385,18 +8385,18 @@ export class DeterministicGTOEngine {
         if (sizePct == null) return '';
 
         if (sizePct <= 33) {
-            return `Small bet (${sizePct}% pot): signals a merged/depolarized range. Villain bets this size with both value and marginal hands — your bluff-catching threshold is lower. Defend wider.`;
+            return `Small bet (${sizePct}% pot): signals a merged/depolarized range. Villain bets this size with both value and marginal hands - your bluff-catching threshold is lower. Defend wider.`;
         }
         if (sizePct <= 50) {
             return `Medium-small bet (${sizePct}% pot): common for range bets where villain c-bets their entire range. Indicates board favors their range but they're not committing heavily.`;
         }
         if (sizePct <= 75) {
-            return `Standard sizing (${sizePct}% pot): balanced between value and bluffs. Villain's range is somewhat polarized — they have both strong hands and bluffs at this size.`;
+            return `Standard sizing (${sizePct}% pot): balanced between value and bluffs. Villain's range is somewhat polarized - they have both strong hands and bluffs at this size.`;
         }
         if (sizePct <= 100) {
-            return `Large bet (${sizePct}% pot): polarized range — villain has either a strong value hand or a bluff. Middle-strength hands rarely use this sizing. Bluff-catch or fold.`;
+            return `Large bet (${sizePct}% pot): polarized range - villain has either a strong value hand or a bluff. Middle-strength hands rarely use this sizing. Bluff-catch or fold.`;
         }
-        return `Overbet (${sizePct}% pot): maximally polarized. Villain is either nutted or bluffing — no medium-strength hands. Call with top of range, fold everything else.`;
+        return `Overbet (${sizePct}% pot): maximally polarized. Villain is either nutted or bluffing - no medium-strength hands. Call with top of range, fold everything else.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -8428,9 +8428,9 @@ export class DeterministicGTOEngine {
             return 'Check-back with air: give up on the bluff when villain has shown interest. Saving your stack for better spots is a key part of GTO play.';
         }
         if (street === 'river') {
-            return 'Check-back on river: your hand has showdown value but isn\'t strong enough to bet for value — betting only gets called by better and folds out worse.';
+            return 'Check-back on river: your hand has showdown value but isn\'t strong enough to bet for value - betting only gets called by better and folds out worse.';
         }
-        return 'Check-back: controlling the pot and realizing equity. Not every hand needs to bet — sometimes checking maximizes EV by keeping the pot manageable.';
+        return 'Check-back: controlling the pot and realizing equity. Not every hand needs to bet - sometimes checking maximizes EV by keeping the pot manageable.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -8480,7 +8480,7 @@ export class DeterministicGTOEngine {
         const hasDraw = ['gutshot', 'oesd', 'flush_draw', 'backdoor_flush_draw', 'combo_draw'].includes(handToken);
 
         if (isWeak) {
-            return 'Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last — if villain shows weakness by checking, you can bluff profitably.';
+            return 'Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last - if villain shows weakness by checking, you can bluff profitably.';
         }
         if (hasDraw) {
             return 'Float with a draw: calling IP to see another card. If you hit, you can extract value. If villain checks the turn, you can semi-bluff with your draw or take a free card.';
@@ -8514,7 +8514,7 @@ export class DeterministicGTOEngine {
             return 'Raise as a semi-bluff: your draw gives you equity when called, and raising may win the pot immediately. The combination of fold equity + draw equity makes this profitable.';
         }
         if (isCall && isMedium) {
-            return 'Call rather than raise: medium-strength hands prefer to keep the pot controlled. Raising only gets action from better hands while folding out worse — the classic "raising turns your hand into a bluff" problem.';
+            return 'Call rather than raise: medium-strength hands prefer to keep the pot controlled. Raising only gets action from better hands while folding out worse - the classic "raising turns your hand into a bluff" problem.';
         }
         if (isCall && isStrong && street === 'flop') {
             return 'Flat call with a monster: slow-playing on the flop to keep villain\'s bluffs in and allow them to catch up slightly. Raising may fold out everything but the nuts.';
@@ -8545,14 +8545,14 @@ export class DeterministicGTOEngine {
         flopSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
         const flushDrawSuit = Object.entries(suitCounts || {}).find(([_, ct]) => ct >= 2);
         if (flushDrawSuit && turnSuit === flushDrawSuit[0]) {
-            return `▲ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic — flush draws got there, and hands without a flush need to proceed cautiously.`;
+            return `▲ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic - flush draws got there, and hands without a flush need to proceed cautiously.`;
         }
 
         // Overcard
         const maxFlopRank = Math.max(...flopRanks);
         if (turnRankVal > maxFlopRank && turnRankVal >= 10) { // T+
             const rankNames = { 10: 'Jack', 11: 'Queen', 12: 'King', 13: 'Ace' };
-            return `Turn ${turnCard} is an overcard to the flop — ${rankNames[turnRankVal] || turnRank} changes the dynamic. Top pairs from the flop may now be second pair. Ranges with big cards improve.`;
+            return `Turn ${turnCard} is an overcard to the flop - ${rankNames[turnRankVal] || turnRank} changes the dynamic. Top pairs from the flop may now be second pair. Ranges with big cards improve.`;
         }
 
         // Board pairing
@@ -8562,7 +8562,7 @@ export class DeterministicGTOEngine {
 
         // Brick/blank
         if (turnRankVal <= 5 && !flopRanks.includes(turnRankVal)) {
-            return `Turn ${turnCard} is a relative blank — low card that doesn't complete obvious draws. The board dynamic stays similar to the flop. Continue with your flop plan.`;
+            return `Turn ${turnCard} is a relative blank - low card that doesn't complete obvious draws. The board dynamic stays similar to the flop. Continue with your flop plan.`;
         }
 
         return '';
@@ -8584,9 +8584,9 @@ export class DeterministicGTOEngine {
         const isWeak = ['high_card', 'ace_high', 'underpair', 'bottom_pair', 'missed_draw', 'weak_pair', 'overcards', 'air'].includes(handToken);
 
         if (this._isAggressiveAction(a)) {
-            if (isStrong) return 'River value bet: with a strong hand, bet for maximum value. Choose a size that gets called by enough worse hands — balance between frequency and size.';
+            if (isStrong) return 'River value bet: with a strong hand, bet for maximum value. Choose a size that gets called by enough worse hands - balance between frequency and size.';
             if (isWeak) return 'River bluff: with a weak hand, betting turns your hand into a bluff. The key question: does villain fold enough to make this profitable? Target their bluff-catching range.';
-            if (isMedium) return 'River thin value: a medium-strength bet targeting worse hands that might call. Be careful — if villain only calls with better, this is a losing bet.';
+            if (isMedium) return 'River thin value: a medium-strength bet targeting worse hands that might call. Be careful - if villain only calls with better, this is a losing bet.';
         }
         if (a === 'call') {
             if (isMedium) return 'River bluff-catch: calling with a medium-strength hand to catch villain\'s bluffs. The decision: does villain bluff enough to justify calling? Compare to pot odds.';
@@ -8626,7 +8626,7 @@ export class DeterministicGTOEngine {
         if (spr <= 10) {
             return `SPR ≈ ${spr.toFixed(1)} (medium): top pair is good but not stack-off worthy. Sets are ideal stacking hands. Drawing hands have reasonable implied odds.`;
         }
-        return `SPR ≈ ${spr.toFixed(1)} (high): deep stacks favor implied-odds hands (suited connectors, small pairs). Top pair alone is rarely worth stacking off — play cautiously without a monster.`;
+        return `SPR ≈ ${spr.toFixed(1)} (high): deep stacks favor implied-odds hands (suited connectors, small pairs). Top pair alone is rarely worth stacking off - play cautiously without a monster.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -8640,7 +8640,7 @@ export class DeterministicGTOEngine {
         if (!stackDepth || street === 'preflop') return '';
 
         if (stackDepth <= 20) {
-            return `Short-stacked (${stackDepth}BB): simplified strategy — push/fold dynamics dominate. Implied odds are minimal, so speculative hands lose value. Premium hands gain value.`;
+            return `Short-stacked (${stackDepth}BB): simplified strategy - push/fold dynamics dominate. Implied odds are minimal, so speculative hands lose value. Premium hands gain value.`;
         }
         if (stackDepth <= 40) {
             return `Medium stack (${stackDepth}BB): standard play applies. Top pair is often a stacking hand. Draws need decent equity to continue.`;
@@ -8648,7 +8648,7 @@ export class DeterministicGTOEngine {
         if (stackDepth <= 100) {
             return `Standard depth (${stackDepth}BB): full range of plays available. Balance between value, bluffs, and pot control.`;
         }
-        return `Deep-stacked (${stackDepth}BB): implied odds are maximized — suited connectors, small pairs become more valuable. Be cautious with one-pair hands; the risk of stacking off is too high relative to hand strength.`;
+        return `Deep-stacked (${stackDepth}BB): implied odds are maximized - suited connectors, small pairs become more valuable. Be cautious with one-pair hands; the risk of stacking off is too high relative to hand strength.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -8678,12 +8678,12 @@ export class DeterministicGTOEngine {
         if (remainingBets === 2 && ratio > 1.5) {
             const perStreetMultiplier = Math.pow(ratio + 1, 1 / 2) - 1;
             const sizePct = (perStreetMultiplier * 100).toFixed(0);
-            return `Pot geometry: ${effectiveStack}BB remaining over 2 streets — bet ~${sizePct}% pot per street to stack off naturally by the river.`;
+            return `Pot geometry: ${effectiveStack}BB remaining over 2 streets - bet ~${sizePct}% pot per street to stack off naturally by the river.`;
         }
         if (remainingBets === 1) {
             const sizePct = ((effectiveStack / estimatedPot) * 100).toFixed(0);
             if (effectiveStack <= estimatedPot * 1.5) {
-                return `River sizing: ${effectiveStack}BB into ${estimatedPot.toFixed(0)}BB pot — a ${sizePct}% pot jam gets all the money in.`;
+                return `River sizing: ${effectiveStack}BB into ${estimatedPot.toFixed(0)}BB pot - a ${sizePct}% pot jam gets all the money in.`;
             }
         }
         return '';
@@ -8737,13 +8737,13 @@ export class DeterministicGTOEngine {
         const isConnected = texture.connected;
 
         if (isMonotone && isCaller) {
-            return 'Board interaction: monotone boards favor the caller\'s range — callers have more suited hands in their range, giving them more flush draws and made flushes.';
+            return 'Board interaction: monotone boards favor the caller\'s range - callers have more suited hands in their range, giving them more flush draws and made flushes.';
         }
         if (isPaired && isPFR) {
-            return 'Board interaction: paired boards favor the PFR — the preflop raiser has more big pairs and overcards that use the board pair for trips. Callers rarely have trips.';
+            return 'Board interaction: paired boards favor the PFR - the preflop raiser has more big pairs and overcards that use the board pair for trips. Callers rarely have trips.';
         }
         if (isConnected && isCaller) {
-            return 'Board interaction: connected boards (like 7-8-9) favor the caller\'s range — callers have more suited connectors and middling hands that hit these boards hard.';
+            return 'Board interaction: connected boards (like 7-8-9) favor the caller\'s range - callers have more suited connectors and middling hands that hit these boards hard.';
         }
         return '';
     }
@@ -8764,13 +8764,13 @@ export class DeterministicGTOEngine {
         const isMedium = ['top_pair', 'overpair', 'middle_pair', 'second_pair', 'top_pair_weak_kicker'].includes(handToken);
 
         if (isNutted && (a.startsWith('r') || a === 'allin')) {
-            return 'Equity distribution: you\'re at the top of your range. Your hand beats nearly everything villain can have. Size for maximum value — go big against their calling range.';
+            return 'Equity distribution: you\'re at the top of your range. Your hand beats nearly everything villain can have. Size for maximum value - go big against their calling range.';
         }
         if (isAir && (a.startsWith('r') || a === 'allin')) {
-            return 'Equity distribution: you\'re at the bottom of your range with no showdown value. This makes your hand a natural bluff candidate — you have nothing to lose by betting.';
+            return 'Equity distribution: you\'re at the bottom of your range with no showdown value. This makes your hand a natural bluff candidate - you have nothing to lose by betting.';
         }
         if (isMedium && (a === 'x' || a === 'call')) {
-            return 'Equity distribution: your hand is in the middle of your range — beating bluffs but losing to value. These hands are natural check/calls that keep villain\'s bluffing range honest.';
+            return 'Equity distribution: your hand is in the middle of your range - beating bluffs but losing to value. These hands are natural check/calls that keep villain\'s bluffing range honest.';
         }
         return '';
     }
@@ -8799,7 +8799,7 @@ export class DeterministicGTOEngine {
         if (chosenStr < correctStr) {
             if (chosen === 'f') {
                 this._deviationTracker.overFold++;
-                return `▲ Deviation: folding when GTO says ${correct === 'call'? 'call': 'raise'}. You may be over-folding — this leak gives villain free equity when they bet.`;
+                return `▲ Deviation: folding when GTO says ${correct === 'call'? 'call': 'raise'}. You may be over-folding - this leak gives villain free equity when they bet.`;
             }
             this._deviationTracker.overCall++;
             return `Deviation: calling when GTO says raise. Passive play lets villain control the pot size and realize equity cheaply.`;
@@ -8807,7 +8807,7 @@ export class DeterministicGTOEngine {
         if (chosenStr > correctStr) {
             if (correct === 'f') {
                 this._deviationTracker.overCall++;
-                return `▲ Deviation: calling/raising when GTO says fold. You may be defending too wide — losing money in spots where your equity is too low.`;
+                return `▲ Deviation: calling/raising when GTO says fold. You may be defending too wide - losing money in spots where your equity is too low.`;
             }
             this._deviationTracker.overRaise++;
             return `Deviation: raising when GTO says ${correct}. Over-aggression bloats pots with hands that don't have enough equity.`;
@@ -8878,13 +8878,13 @@ export class DeterministicGTOEngine {
 
         if (street === 'flop') {
             if (node.includes('cbet')) {
-                return 'Hand reading: villain\'s c-bet tells us little — most PFRs c-bet the flop at high frequency. Their range is still wide.';
+                return 'Hand reading: villain\'s c-bet tells us little - most PFRs c-bet the flop at high frequency. Their range is still wide.';
             }
             if (node.includes('check')) {
-                return 'Hand reading: villain checked. This caps their range — they probably don\'t have the nuts or a strong overpair. Their range is weighted toward medium hands and draws.';
+                return 'Hand reading: villain checked. This caps their range - they probably don\'t have the nuts or a strong overpair. Their range is weighted toward medium hands and draws.';
             }
             if (node.includes('raise') || node.includes('xr')) {
-                return 'Hand reading: villain\'s check-raise on the flop is polarized — they have either a very strong hand (set, two pair) or a draw/bluff. Medium-strength hands just call.';
+                return 'Hand reading: villain\'s check-raise on the flop is polarized - they have either a very strong hand (set, two pair) or a draw/bluff. Medium-strength hands just call.';
             }
         }
         if (street === 'turn') {
@@ -8892,12 +8892,12 @@ export class DeterministicGTOEngine {
                 return 'Hand reading: villain betting again on the turn narrows their range. They\'re representing real strength or a committed bluff. Floaters and medium hands often give up here.';
             }
             if (node.includes('check')) {
-                return 'Hand reading: villain checking the turn after betting the flop signals weakness. Their range is capped — strong hands almost always continue betting.';
+                return 'Hand reading: villain checking the turn after betting the flop signals weakness. Their range is capped - strong hands almost always continue betting.';
             }
         }
         if (street === 'river') {
             if (node.includes('bet') || node.includes('barrel')) {
-                return 'Hand reading: triple-barreling on the river is the most polarized action. Villain has either the nuts or air — very few medium hands take this line.';
+                return 'Hand reading: triple-barreling on the river is the most polarized action. Villain has either the nuts or air - very few medium hands take this line.';
             }
             if (node.includes('check')) {
                 return 'Hand reading: villain checking the river means they\'re giving up on bluffs or have a medium hand looking to get to showdown. Consider a thin value bet.';
@@ -9095,7 +9095,7 @@ export class DeterministicGTOEngine {
             evLossBB: evLossBB.toFixed(1),
             evLossPctPot: pot > 0 ? ((evDiff / pot) * 100).toFixed(1) + '% of pot' : '0% of pot',
             severity,
-            message: `EV loss: ~${evLossBB.toFixed(1)}bb (${evLossPct}% of optimal EV). ${severity === 'major' ? 'This is a costly mistake — focus on this spot.' : severity === 'significant' ? 'Moderate leak that adds up over time.' : 'Small loss, but fixing it improves your win rate.'}`,
+            message: `EV loss: ~${evLossBB.toFixed(1)}bb (${evLossPct}% of optimal EV). ${severity === 'major' ? 'This is a costly mistake - focus on this spot.' : severity === 'significant' ? 'Moderate leak that adds up over time.' : 'Small loss, but fixing it improves your win rate.'}`,
         };
     }
 
@@ -9143,7 +9143,7 @@ export class DeterministicGTOEngine {
         return {
             overall: { accuracy: (accuracy * 100).toFixed(1) + '%', total, level: userLevel.label },
             streetBreakdown,
-            vsOptimal: `Your accuracy: ${(accuracy * 100).toFixed(1)}%. ${userLevel.label}. ${accuracy >= 0.75 ? 'Excellent — you\'re playing at an advanced GTO level!' : accuracy >= 0.55 ? 'Solid foundation — focus on your weak spots to level up.' : 'Keep studying — every session builds your GTO intuition.'}`,
+            vsOptimal: `Your accuracy: ${(accuracy * 100).toFixed(1)}%. ${userLevel.label}. ${accuracy >= 0.75 ? 'Excellent - you\'re playing at an advanced GTO level!' : accuracy >= 0.55 ? 'Solid foundation - focus on your weak spots to level up.' : 'Keep studying - every session builds your GTO intuition.'}`,
         };
     }
 
@@ -9179,22 +9179,22 @@ export class DeterministicGTOEngine {
         // Generate improvement suggestions
         if (deviations) {
             if (deviations.tendency.includes('over-folding')) {
-                report.improvementPlan.push('Defend more against bets — study pot odds and MDF (Minimum Defense Frequency) to find calls you\'re missing.');
+                report.improvementPlan.push('Defend more against bets - study pot odds and MDF (Minimum Defense Frequency) to find calls you\'re missing.');
             }
             if (deviations.tendency.includes('over-calling')) {
-                report.improvementPlan.push('Tighten your calling range — learn when to fold marginal hands, especially on the river.');
+                report.improvementPlan.push('Tighten your calling range - learn when to fold marginal hands, especially on the river.');
             }
             if (deviations.tendency.includes('over-raising')) {
-                report.improvementPlan.push('Reduce aggression with medium hands — learn when calling or checking is more profitable than raising.');
+                report.improvementPlan.push('Reduce aggression with medium hands - learn when calling or checking is more profitable than raising.');
             }
         }
 
         if (weaknesses) {
             for (const w of weaknesses.slice(0, 3)) {
-                if (w.dimension.includes('river')) report.improvementPlan.push('Focus on river play — practice value betting, bluff-catching, and knowing when to give up.');
-                if (w.dimension.includes('turn')) report.improvementPlan.push('Work on turn strategy — this is where ranges narrow and decisions get complex.');
-                if (w.dimension.includes('hand:weak')) report.improvementPlan.push('Practice playing weak hands — know when to bluff and when to fold.');
-                if (w.dimension.includes('action:raise')) report.improvementPlan.push('Study raising strategy — when to raise for value vs as a bluff.');
+                if (w.dimension.includes('river')) report.improvementPlan.push('Focus on river play - practice value betting, bluff-catching, and knowing when to give up.');
+                if (w.dimension.includes('turn')) report.improvementPlan.push('Work on turn strategy - this is where ranges narrow and decisions get complex.');
+                if (w.dimension.includes('hand:weak')) report.improvementPlan.push('Practice playing weak hands - know when to bluff and when to fold.');
+                if (w.dimension.includes('action:raise')) report.improvementPlan.push('Study raising strategy - when to raise for value vs as a bluff.');
             }
         }
 
@@ -9235,12 +9235,12 @@ export class DeterministicGTOEngine {
             return '✕ You should know this one. Study the explanation carefully and don\'t repeat this mistake.';
         }
         if (tone === 'supportive') {
-            if (isCorrect) return 'Great job! You got this one right — you\'re building strong GTO instincts!';
-            return 'Don\'t worry about this one — every top player made these mistakes while learning. Focus on the concept.';
+            if (isCorrect) return 'Great job! You got this one right - you\'re building strong GTO instincts!';
+            return 'Don\'t worry about this one - every top player made these mistakes while learning. Focus on the concept.';
         }
         if (tone === 'encouraging') {
             if (isCorrect) return questionNumber % 5 === 0 ? 'Keep it up! Your understanding is growing with every question.': null;
-            return 'Close! Review the explanation — these spots get easier with practice.';
+            return 'Close! Review the explanation - these spots get easier with practice.';
         }
         // neutral
         return null;
@@ -9364,11 +9364,11 @@ export class DeterministicGTOEngine {
         const totalCategories = strengthOrder.length;
         const percentile = ((idx / totalCategories) * 100).toFixed(0);
 
-        if (idx <= 3) return `Range ranking: your hand is in the top ~5% of possible holdings — a premium hand you should be looking to get value from.`;
-        if (idx <= 7) return `Range ranking: your hand is in the top ~25% — a strong hand that can bet for value on most board textures.`;
-        if (idx <= 12) return `Range ranking: your hand is in the middle of your range — decent but vulnerable. These hands need careful pot control.`;
-        if (idx <= 18) return `Range ranking: your hand is in the bottom ~30% of made hands — marginal showdown value at best. Consider whether checking or folding is better than betting.`;
-        return `Range ranking: your hand is a draw/air — no current showdown value. Play for equity realization or as a bluff.`;
+        if (idx <= 3) return `Range ranking: your hand is in the top ~5% of possible holdings - a premium hand you should be looking to get value from.`;
+        if (idx <= 7) return `Range ranking: your hand is in the top ~25% - a strong hand that can bet for value on most board textures.`;
+        if (idx <= 12) return `Range ranking: your hand is in the middle of your range - decent but vulnerable. These hands need careful pot control.`;
+        if (idx <= 18) return `Range ranking: your hand is in the bottom ~30% of made hands - marginal showdown value at best. Consider whether checking or folding is better than betting.`;
+        return `Range ranking: your hand is a draw/air - no current showdown value. Play for equity realization or as a bluff.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9399,7 +9399,7 @@ export class DeterministicGTOEngine {
         if (flushSuit) {
             const hasNutFlushBlocker = heroRanks[0] === 'A' || heroRanks[1] === 'A';
             if (hasNutFlushBlocker) {
-                return `Nut flush blocker: your Ace blocks the nut flush, making villain less likely to have the nuts. This makes your bluff more effective — they can\'t confidently call with non-nut hands.`;
+                return `Nut flush blocker: your Ace blocks the nut flush, making villain less likely to have the nuts. This makes your bluff more effective - they can\'t confidently call with non-nut hands.`;
             }
         }
 
@@ -9434,7 +9434,7 @@ export class DeterministicGTOEngine {
         const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker'].includes(handToken);
 
         if (isMedium && isWet) {
-            return 'Equity denial: betting forces draws to pay to continue or fold. If you check, villain gets a free card and can realize their equity for free — costing you money long-term.';
+            return 'Equity denial: betting forces draws to pay to continue or fold. If you check, villain gets a free card and can realize their equity for free - costing you money long-term.';
         }
         if (isMedium && !isWet) {
             return 'Equity denial: even on dry boards, villain\'s overcards have equity against your pair. Betting makes them fold hands with 3-6 outs they would otherwise see for free.';
@@ -9469,7 +9469,7 @@ export class DeterministicGTOEngine {
         if (stackDepth && stackDepth > estimatedPot * 3) {
             return `Implied odds justify the call: ${outs} outs = ~${equity}% equity, but pot odds alone don't cover it (~${potOddsNeeded}% needed). With ${stackDepth}BB behind, the potential to win a big pot when you hit makes this profitable.`;
         }
-        return `Drawing decision: ${outs} outs = ~${equity}% equity. Need ~${potOddsNeeded}% to call — check if implied odds make up the difference.`;
+        return `Drawing decision: ${outs} outs = ~${equity}% equity. Need ~${potOddsNeeded}% to call - check if implied odds make up the difference.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9541,9 +9541,9 @@ export class DeterministicGTOEngine {
             pfr: pfrPct + '%',
             gap: gap + '%',
             hands: this._preflopStats.hands,
-            assessment: parseFloat(gap) > 15 ? 'Too much cold-calling — tighten your flatting range or raise more.' :
-                parseFloat(vpipPct) > 35 ? 'Playing too many hands preflop — tighten your opening range.' :
-                parseFloat(vpipPct) < 18 ? 'Playing too tight — you\'re missing profitable spots.' :
+            assessment: parseFloat(gap) > 15 ? 'Too much cold-calling - tighten your flatting range or raise more.' :
+                parseFloat(vpipPct) > 35 ? 'Playing too many hands preflop - tighten your opening range.' :
+                parseFloat(vpipPct) < 18 ? 'Playing too tight - you\'re missing profitable spots.' :
                 'Solid preflop stats.',
         };
     }
@@ -9593,7 +9593,7 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         if (is5Bet) {
-            return '5-bet pot: ranges are extremely narrow — typically AA/KK for value, possibly AKs. At this point, SPR is so low that you\'re committed with any hand you continue with.';
+            return '5-bet pot: ranges are extremely narrow - typically AA/KK for value, possibly AKs. At this point, SPR is so low that you\'re committed with any hand you continue with.';
         }
 
         if (is4Bet) {
@@ -9605,7 +9605,7 @@ export class DeterministicGTOEngine {
                 return '4-bet pot flat call: flatting keeps villain\'s bluffs in and disguises hand strength. Be ready to play a large pot postflop with a narrow range.';
             }
             if (a === 'f') {
-                return '4-bet pot fold: facing a 4-bet, most hands are folds. Only continue with the top of your range — the pot is already very large relative to remaining stacks.';
+                return '4-bet pot fold: facing a 4-bet, most hands are folds. Only continue with the top of your range - the pot is already very large relative to remaining stacks.';
             }
         }
         return '';
@@ -9632,7 +9632,7 @@ export class DeterministicGTOEngine {
             return 'Turn barrel commitment: you\'ve bet the flop and now the turn. If you plan to bluff the river too (triple barrel), you need to commit ~65% of your stack total. Make sure the story is consistent.';
         }
         if (street === 'turn' && hasDraw) {
-            return 'Turn semi-bluff: your draw gives you a safety net — if called, you can still hit. If you miss the river, you can give up or fire the third barrel as a pure bluff.';
+            return 'Turn semi-bluff: your draw gives you a safety net - if called, you can still hit. If you miss the river, you can give up or fire the third barrel as a pure bluff.';
         }
         return '';
     }
@@ -9653,14 +9653,14 @@ export class DeterministicGTOEngine {
         const sizePct = this._actionSizePct(a) ?? 0;
 
         if (street === 'flop') {
-            if (sizePct <= 250) return `Check-raise to ${sizePct}%: standard sizing on the flop. A 3x check-raise puts villain in a tough spot — they need a strong hand to continue.`;
+            if (sizePct <= 250) return `Check-raise to ${sizePct}%: standard sizing on the flop. A 3x check-raise puts villain in a tough spot - they need a strong hand to continue.`;
             return `Large check-raise to ${sizePct}%: oversized check-raise commits a large portion of your stack. This polarized sizing screams "I have a monster or nothing."`;
         }
         if (street === 'turn') {
-            return `Turn check-raise: a very strong play. By the turn, check-raising is heavily weighted toward value. Villain\'s range is narrowed from the flop action — target their medium-strength continuing range.`;
+            return `Turn check-raise: a very strong play. By the turn, check-raising is heavily weighted toward value. Villain\'s range is narrowed from the flop action - target their medium-strength continuing range.`;
         }
         if (street === 'river') {
-            return `River check-raise: the strongest possible line. This is almost always the nuts or a big bluff — villain needs a very strong hand to call a river check-raise.`;
+            return `River check-raise: the strongest possible line. This is almost always the nuts or a big bluff - villain needs a very strong hand to call a river check-raise.`;
         }
         return '';
     }
@@ -9687,7 +9687,7 @@ export class DeterministicGTOEngine {
             return `River overbet for value (${sizePct}% pot): with the nuts, overbetting extracts maximum value. Villain's calling range narrows but each call pays more. This is optimal when you have a hand that beats everything but the absolute nuts.`;
         }
         if (isAir) {
-            return `River overbet bluff (${sizePct}% pot): a maximally polarized bluff. The large size means villain needs to be right a high percentage of the time to call — even strong one-pair hands might fold. You need this to work ~${(sizePct / (100 + sizePct) * 100).toFixed(0)}% of the time.`;
+            return `River overbet bluff (${sizePct}% pot): a maximally polarized bluff. The large size means villain needs to be right a high percentage of the time to call - even strong one-pair hands might fold. You need this to work ~${(sizePct / (100 + sizePct) * 100).toFixed(0)}% of the time.`;
         }
         return '';
     }
@@ -9709,7 +9709,7 @@ export class DeterministicGTOEngine {
         const isVeryThin = ['top_pair', 'top_pair_weak_kicker', 'middle_pair'].includes(handToken);
 
         if (isThickValue) {
-            return 'Thick value: your hand beats a large portion of villain\'s range. Size bigger to extract maximum value — you can afford to be called by worse hands frequently.';
+            return 'Thick value: your hand beats a large portion of villain\'s range. Size bigger to extract maximum value - you can afford to be called by worse hands frequently.';
         }
         if (isThinValue && street === 'river') {
             return 'Thin value bet: your hand beats some of villain\'s calling range but loses to some too. Size smaller to get called by more worse hands while minimizing losses against better.';
@@ -9742,7 +9742,7 @@ export class DeterministicGTOEngine {
             return 'Range bet: small sizing used across your entire range to put pressure. This strategy works on boards that favor your range.';
         }
         if (sizePct >= 75) {
-            if (isStrong || isWeak) return 'Polarized betting range: large sizing signals a polarized range — you either have the nuts or nothing. Medium hands check or use smaller sizes.';
+            if (isStrong || isWeak) return 'Polarized betting range: large sizing signals a polarized range - you either have the nuts or nothing. Medium hands check or use smaller sizes.';
         }
         return '';
     }
@@ -9759,7 +9759,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 15 !== 0) return '';
         if (this._sessionStats.total < 15) return '';
 
-        return 'GTO concept — Node Locking: in real solvers, you can "lock"villain\'s strategy at a node (e.g., force them to always fold) and re-solve to find the best exploit. This is how pros find maximum deviation from GTO against specific player types.';
+        return 'GTO concept - Node Locking: in real solvers, you can "lock"villain\'s strategy at a node (e.g., force them to always fold) and re-solve to find the best exploit. This is how pros find maximum deviation from GTO against specific player types.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9778,10 +9778,10 @@ export class DeterministicGTOEngine {
 
         const a = (optimalAction || '').toLowerCase();
         if (a === 'f') {
-            return 'Tournament concept — ICM: in tournaments, chips lost are worth more than chips won (diminishing marginal utility). This means folding borderline spots is more correct than in cash games. Survival is paramount near pay jumps.';
+            return 'Tournament concept - ICM: in tournaments, chips lost are worth more than chips won (diminishing marginal utility). This means folding borderline spots is more correct than in cash games. Survival is paramount near pay jumps.';
         }
         if (a.startsWith('r') || a === 'allin') {
-            return 'Tournament concept — ICM pressure: raising and going all-in applies ICM pressure to opponents who can\'t afford to bust. Players with medium stacks near the bubble fold more than GTO dictates.';
+            return 'Tournament concept - ICM pressure: raising and going all-in applies ICM pressure to opponents who can\'t afford to bust. Players with medium stacks near the bubble fold more than GTO dictates.';
         }
         return '';
     }
@@ -9818,12 +9818,12 @@ export class DeterministicGTOEngine {
                 return `Push/fold mode (${stackDepth}BB): at this stack depth, open-raising is an all-in. Your fold equity + hand equity combined determines profitability. Push ranges are significantly wider from late position.`;
             }
             if (a === 'f') {
-                return `Push/fold fold (${stackDepth}BB): even at short stacks, some hands are too weak to shove. Wait for a better spot — your fold equity decreases as your stack shrinks further.`;
+                return `Push/fold fold (${stackDepth}BB): even at short stacks, some hands are too weak to shove. Wait for a better spot - your fold equity decreases as your stack shrinks further.`;
             }
         }
         if (stackDepth <= 15) {
             if (a.startsWith('r') || a === 'allin') {
-                return `Short-stack play (${stackDepth}BB): raise-folding becomes awkward at this depth. Consider whether your hand is strong enough to call a shove if 3-bet — if not, shoving preflop may be better.`;
+                return `Short-stack play (${stackDepth}BB): raise-folding becomes awkward at this depth. Consider whether your hand is strong enough to call a shove if 3-bet - if not, shoving preflop may be better.`;
             }
         }
         return '';
@@ -9838,7 +9838,7 @@ export class DeterministicGTOEngine {
      */
     _getAnteNote(potType) {
         if (!potType || !potType.toLowerCase().includes('ante')) return '';
-        return 'Ante pot: antes increase the dead money in the pot, making steals more profitable. Open wider from all positions — the extra dead money shifts marginal folds into profitable opens.';
+        return 'Ante pot: antes increase the dead money in the pot, making steals more profitable. Open wider from all positions - the extra dead money shifts marginal folds into profitable opens.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9873,7 +9873,7 @@ export class DeterministicGTOEngine {
 
         const isIP = this._isInPosition(heroPosition, villainPosition);
         if (isIP) {
-            return 'Cold-calling in position: your flatting range should be hands that play well postflop — suited broadways, medium pairs, suited connectors. These hands have implied odds and realize equity well IP.';
+            return 'Cold-calling in position: your flatting range should be hands that play well postflop - suited broadways, medium pairs, suited connectors. These hands have implied odds and realize equity well IP.';
         }
         return 'Cold-calling out of position: be selective. Only call with hands that have strong postflop playability or can hit hard. Suited connectors and medium pairs are better than offsuit broadways OOP.';
     }
@@ -9914,7 +9914,7 @@ export class DeterministicGTOEngine {
             if (a === 'f') return 'SB fold: even in BvB where ranges are wide, some hands are unprofitable to play OOP. This hand doesn\'t have enough playability to overcome the positional disadvantage.';
         }
         if (heroPosition === 'BB') {
-            if (a === 'call') return 'BB defense vs SB: defend very wide here — the SB opens with a huge range, so your calling range should be equally wide. You\'re getting good pot odds with position postflop.';
+            if (a === 'call') return 'BB defense vs SB: defend very wide here - the SB opens with a huge range, so your calling range should be equally wide. You\'re getting good pot odds with position postflop.';
             if (a.startsWith('r')) return 'BB 3-bet vs SB: 3-betting from the BB is highly effective against the SB\'s wide stealing range. Many of their hands can\'t continue vs a 3-bet.';
         }
         return '';
@@ -9970,17 +9970,17 @@ export class DeterministicGTOEngine {
             // comparing against the pot-fraction thresholds below
             const pot = estimatedPot || 0;
             const gapPctPot = pot > 0 ? evGap / pot : evGap;
-            if (gapPctPot <= 0.02) return { classification: 'TRIVIAL', desc: 'Negligible EV difference — both plays are essentially equal.' };
-            if (gapPctPot <= 0.10) return { classification: 'INACCURACY', desc: 'Small EV loss — acceptable in real-time play.' };
-            if (gapPctPot <= 0.30) return { classification: 'MISTAKE', desc: 'Moderate EV loss — worth studying this spot.' };
-            return { classification: 'BLUNDER', desc: 'Significant EV loss — this is a major leak to fix.' };
+            if (gapPctPot <= 0.02) return { classification: 'TRIVIAL', desc: 'Negligible EV difference - both plays are essentially equal.' };
+            if (gapPctPot <= 0.10) return { classification: 'INACCURACY', desc: 'Small EV loss - acceptable in real-time play.' };
+            if (gapPctPot <= 0.30) return { classification: 'MISTAKE', desc: 'Moderate EV loss - worth studying this spot.' };
+            return { classification: 'BLUNDER', desc: 'Significant EV loss - this is a major leak to fix.' };
         }
 
         // Fallback to frequency-based
         if (chosenFreq >= 0.3) return { classification: 'INACCURACY', desc: 'Your action is a valid part of the mixed strategy, just not the most frequent.' };
         if (chosenFreq >= 0.1) return { classification: 'MISTAKE', desc: 'Your action exists in the solver\'s strategy but at low frequency.' };
-        if (chosenFreq > 0) return { classification: 'MISTAKE', desc: 'Rarely taken action — the solver almost never plays this way.' };
-        return { classification: 'BLUNDER', desc: 'This action is never in the solver\'s strategy — significant deviation from GTO.' };
+        if (chosenFreq > 0) return { classification: 'MISTAKE', desc: 'Rarely taken action - the solver almost never plays this way.' };
+        return { classification: 'BLUNDER', desc: 'This action is never in the solver\'s strategy - significant deviation from GTO.' };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9994,9 +9994,9 @@ export class DeterministicGTOEngine {
         if (!currentStreak || currentStreak < 3) return null;
         if (currentStreak === 3) return '▲ 3 in a row! You\'re warming up!';
         if (currentStreak === 5) return '▲▲ 5-streak! Your GTO instincts are sharp!';
-        if (currentStreak === 10) return '▲▲▲ 10 in a row! You\'re in the zone — GTO machine!';
+        if (currentStreak === 10) return '▲▲▲ 10 in a row! You\'re in the zone - GTO machine!';
         if (currentStreak === 15) return '15 streak! You\'re playing at an elite level!';
-        if (currentStreak === 20) return '20 in a row! Solver-level accuracy — incredible!';
+        if (currentStreak === 20) return '20 in a row! Solver-level accuracy - incredible!';
         if (currentStreak >= 25 && currentStreak % 5 === 0) return `${currentStreak} streak! You might be the best player in this training session ever!`;
         return null;
     }
@@ -10055,8 +10055,8 @@ export class DeterministicGTOEngine {
 
         const questions = [];
         questions.push({ q: 'Is this board wet or dry?', a: texture.wet ? 'Wet' : 'Dry', explain: texture.flushy || texture.monotone ? 'Flush draws present' : texture.straightDrawHeavy || texture.straightPossible ? 'Straight draws present' : 'No obvious draws' });
-        questions.push({ q: 'Is a flush draw possible?', a: (texture.flushy || texture.monotone) ? 'Yes' : 'No', explain: texture.monotone ? 'Monotone board — flush already possible' : texture.flushy ? 'Three of one suit on board' : 'Not enough of one suit for a flush' });
-        questions.push({ q: 'Is the board paired?', a: texture.paired ? 'Yes' : 'No', explain: texture.paired ? 'Board has a pair — full houses and trips possible' : 'No pair on board' });
+        questions.push({ q: 'Is a flush draw possible?', a: (texture.flushy || texture.monotone) ? 'Yes' : 'No', explain: texture.monotone ? 'Monotone board - flush already possible' : texture.flushy ? 'Three of one suit on board' : 'Not enough of one suit for a flush' });
+        questions.push({ q: 'Is the board paired?', a: texture.paired ? 'Yes' : 'No', explain: texture.paired ? 'Board has a pair - full houses and trips possible' : 'No pair on board' });
 
         return questions;
     }
@@ -10109,7 +10109,7 @@ export class DeterministicGTOEngine {
             { pot: 10, bet: 5, outs: 9, street: 'turn', answer: 'Call', explain: '9 outs × 2 = 18% equity. Need 5/(10+5+5) = 25%. Close but implied odds make it a call.' },
             { pot: 20, bet: 10, outs: 8, street: 'flop', answer: 'Call', explain: '8 outs × 4 = 32% equity (2 streets). Need 10/(20+10+10) = 25%. Easy call.' },
             { pot: 15, bet: 15, outs: 4, street: 'turn', answer: 'Fold', explain: '4 outs × 2 = 8% equity. Need 15/(15+15+15) = 33%. Way too expensive.' },
-            { pot: 30, bet: 10, outs: 15, street: 'flop', answer: 'Raise', explain: '15 outs × 4 = 60% equity. You\'re a favorite — raise for value!' },
+            { pot: 30, bet: 10, outs: 15, street: 'flop', answer: 'Raise', explain: '15 outs × 4 = 60% equity. You\'re a favorite - raise for value!' },
             { pot: 8, bet: 8, outs: 6, street: 'turn', answer: 'Fold', explain: '6 outs × 2 = 12% equity. Need 8/(8+8+8) = 33%. Not enough equity to call.' },
         ];
         return scenarios[Math.floor(Math.random() * scenarios.length)];
@@ -10134,7 +10134,7 @@ export class DeterministicGTOEngine {
             const label1 = this._actionLabel(a1);
             const label2 = this._actionLabel(a2);
             if (Math.abs(f1 - f2) < 0.15) {
-                return `Nearly even split: solver uses ${label1} ${(f1 * 100).toFixed(0)}% and ${label2} ${(f2 * 100).toFixed(0)}%. Both plays are close in EV — in practice, either is acceptable. The mix exists for balance.`;
+                return `Nearly even split: solver uses ${label1} ${(f1 * 100).toFixed(0)}% and ${label2} ${(f2 * 100).toFixed(0)}%. Both plays are close in EV - in practice, either is acceptable. The mix exists for balance.`;
             }
             return `Mixed strategy: ${label1} ${(f1 * 100).toFixed(0)}% is preferred over ${label2} ${(f2 * 100).toFixed(0)}%. The less frequent action keeps your range balanced but isn't required for most players.`;
         }
@@ -10209,7 +10209,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 20 !== 0) return '';
         if (this._sessionStats.total < 20) return '';
 
-        return 'Opponent modeling: in real games, categorize opponents. TAG (Tight-Aggressive): plays few hands, bets strong — respect their bets. LAG (Loose-Aggressive): plays many hands aggressively — widen your calling range. Nit: folds too much — bluff more. Fish: calls too much — value bet wider, bluff less.';
+        return 'Opponent modeling: in real games, categorize opponents. TAG (Tight-Aggressive): plays few hands, bets strong - respect their bets. LAG (Loose-Aggressive): plays many hands aggressively - widen your calling range. Nit: folds too much - bluff more. Fish: calls too much - value bet wider, bluff less.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10238,7 +10238,7 @@ export class DeterministicGTOEngine {
         // Check aggression
         for (const [street, data] of Object.entries(aggression || {})) {
             if (data.assessment === 'too passive') leaks.push({ leak: `Too passive on ${street}`, severity: 'MEDIUM', fix: `Increase your betting and raising frequency on the ${street}. Passive play lets opponents realize equity for free.` });
-            if (data.assessment === 'too aggressive') leaks.push({ leak: `Over-aggressive on ${street}`, severity: 'MEDIUM', fix: `Dial back aggression on the ${street}. Not every hand should be bet — some are better as checks/calls.` });
+            if (data.assessment === 'too aggressive') leaks.push({ leak: `Over-aggressive on ${street}`, severity: 'MEDIUM', fix: `Dial back aggression on the ${street}. Not every hand should be bet - some are better as checks/calls.` });
         }
 
         // Check preflop stats
@@ -10283,9 +10283,9 @@ export class DeterministicGTOEngine {
             slowest: (slowest / 1000).toFixed(1) + 's',
             recentAvg: (recentAvg / 1000).toFixed(1) + 's',
             trend: recentAvg < avg * 0.8 ? 'speeding_up' : recentAvg > avg * 1.2 ? 'slowing_down' : 'consistent',
-            assessment: avg < 5000 ? 'Quick decisions — make sure you\'re thinking it through, not just guessing.' :
-                avg < 15000 ? 'Good pace — taking enough time to think but not overthinking.' :
-                'Taking a while — try to identify the key factors faster. Pattern recognition will come with practice.',
+            assessment: avg < 5000 ? 'Quick decisions - make sure you\'re thinking it through, not just guessing.' :
+                avg < 15000 ? 'Good pace - taking enough time to think but not overthinking.' :
+                'Taking a while - try to identify the key factors faster. Pattern recognition will come with practice.',
         };
     }
 
@@ -10422,10 +10422,10 @@ export class DeterministicGTOEngine {
     getProgressiveLevelDescription() {
         const level = this.getProgressiveLevel();
         const descs = {
-            1: { name: 'Foundation', desc: 'Pure strategy spots — clear correct answers. Building basic GTO instincts.' },
+            1: { name: 'Foundation', desc: 'Pure strategy spots - clear correct answers. Building basic GTO instincts.' },
             2: { name: 'Developing', desc: 'Introducing mixed strategies and positional play. Learning when the solver splits actions.' },
             3: { name: 'Advanced', desc: 'Complex multi-street scenarios, multi-way pots, and tight mixed spots.' },
-            4: { name: 'Expert', desc: 'Full solver complexity — close EV spots, complex board interactions, multi-street planning.' },
+            4: { name: 'Expert', desc: 'Full solver complexity - close EV spots, complex board interactions, multi-street planning.' },
         };
         return descs[level] || descs[1];
     }
@@ -10444,10 +10444,10 @@ export class DeterministicGTOEngine {
         const node = (nodeType || '').toLowerCase();
 
         if (street === 'turn' && a.startsWith('r') && node.includes('check')) {
-            return 'Line consistency: checking the flop then betting the turn is a well-known "delayed c-bet" line. It tells a consistent story — you checked to trap or control the pot, then bet when the turn changed things.';
+            return 'Line consistency: checking the flop then betting the turn is a well-known "delayed c-bet" line. It tells a consistent story - you checked to trap or control the pot, then bet when the turn changed things.';
         }
         if (street === 'river' && a.startsWith('r')) {
-            return 'Cross-street consistency: triple-barreling (betting all three streets) is a polarized line. Make sure your story is consistent — did each card justify continued aggression?';
+            return 'Cross-street consistency: triple-barreling (betting all three streets) is a polarized line. Make sure your story is consistent - did each card justify continued aggression?';
         }
         if (street === 'river' && a === 'x' && node.includes('bet')) {
             return 'Line change: betting earlier then checking the river can mean your hand has showdown value but can\'t bet for value (only better calls, worse folds). This is a natural endpoint for many medium-strength hands.';
@@ -10466,7 +10466,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 10 !== 0) return '';
         if (this._sessionStats.total < 10) return '';
 
-        return 'Think in ranges, not hands: instead of asking "what does villain have?", ask "what does villain\'s RANGE look like?". GTO strategy is about balancing your range — not reading a specific hand. Every decision should consider how your entire range plays, not just this one hand.';
+        return 'Think in ranges, not hands: instead of asking "what does villain have?", ask "what does villain\'s RANGE look like?". GTO strategy is about balancing your range - not reading a specific hand. Every decision should consider how your entire range plays, not just this one hand.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10482,9 +10482,9 @@ export class DeterministicGTOEngine {
         if (actions.length <= 1) return ''; // Pure strategy — high confidence
 
         const maxFreq = Math.max(...actions.map(([, f]) => f));
-        if (maxFreq >= 0.9) return 'Solver confidence: HIGH — this is a near-pure strategy. The solver almost always takes this action.';
-        if (maxFreq >= 0.7) return 'Solver confidence: MEDIUM — this is the preferred action but alternatives exist. In-game, defaulting to the highest-frequency action is correct.';
-        return 'Solver confidence: LOW — this is a heavily mixed spot. Multiple actions have similar EV. Don\'t stress about getting the "right" answer in mixed spots.';
+        if (maxFreq >= 0.9) return 'Solver confidence: HIGH - this is a near-pure strategy. The solver almost always takes this action.';
+        if (maxFreq >= 0.7) return 'Solver confidence: MEDIUM - this is the preferred action but alternatives exist. In-game, defaulting to the highest-frequency action is correct.';
+        return 'Solver confidence: LOW - this is a heavily mixed spot. Multiple actions have similar EV. Don\'t stress about getting the "right" answer in mixed spots.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10561,15 +10561,15 @@ export class DeterministicGTOEngine {
         const recentWrong = recent.filter(r => !r).length;
 
         if (recentWrong >= 4) {
-            return 'Mental game check: 4 of your last 5 answers were incorrect. This might be tilt creeping in — take a deep breath, refocus on the fundamentals. Quality of study matters more than quantity.';
+            return 'Mental game check: 4 of your last 5 answers were incorrect. This might be tilt creeping in - take a deep breath, refocus on the fundamentals. Quality of study matters more than quantity.';
         }
         if (recentWrong >= 3) {
-            return 'Tough stretch — don\'t let frustration affect your next decision. Each question is independent. Reset and focus on the current hand only.';
+            return 'Tough stretch - don\'t let frustration affect your next decision. Each question is independent. Reset and focus on the current hand only.';
         }
 
         // Periodic mental game tips
         const total = this._sessionStats.total;
-        if (total === 30) return '30 questions in! Stay focused — fatigue can creep in. Take a short break if you need it.';
+        if (total === 30) return '30 questions in! Stay focused - fatigue can creep in. Take a short break if you need it.';
         if (total === 50) return '50 questions! Great session length. Studies show GTO training is most effective in 30-60 minute sessions.';
         if (total === 75) return 'Long session! Your concentration may be waning. Consider wrapping up and reviewing your session report.';
 
@@ -10674,10 +10674,10 @@ export class DeterministicGTOEngine {
         };
         const equity = strengthOrder[this._getHandToken(handStrength)] ?? 30;
 
-        if (equity >= 70) return 'Equity bucket: TOP — your hand is in the strongest portion of your range. This equity bucket almost always bets for value. The question is sizing, not whether to bet.';
-        if (equity >= 45) return 'Equity bucket: MIDDLE — your hand has decent equity but isn\'t a clear value bet or fold. These hands often check for pot control or bet small as a merge.';
-        if (equity >= 25) return 'Equity bucket: BOTTOM of made hands — marginal showdown value. In GTO, these are natural check/calls on most streets or bluff candidates on the river.';
-        return 'Equity bucket: AIR — no real showdown value. This is the bluff portion of your range. The solver uses these hands as bluffs to balance the value bets.';
+        if (equity >= 70) return 'Equity bucket: TOP - your hand is in the strongest portion of your range. This equity bucket almost always bets for value. The question is sizing, not whether to bet.';
+        if (equity >= 45) return 'Equity bucket: MIDDLE - your hand has decent equity but isn\'t a clear value bet or fold. These hands often check for pot control or bet small as a merge.';
+        if (equity >= 25) return 'Equity bucket: BOTTOM of made hands - marginal showdown value. In GTO, these are natural check/calls on most streets or bluff candidates on the river.';
+        return 'Equity bucket: AIR - no real showdown value. This is the bluff portion of your range. The solver uses these hands as bluffs to balance the value bets.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10696,11 +10696,11 @@ export class DeterministicGTOEngine {
         }
         if (street === 'turn') {
             const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight'].includes(handToken);
-            if (isStrong) return 'Range shape (turn): ranges have narrowed significantly. Weak hands have folded, and remaining ranges are polarized — strong hands and draws vs medium hands and bluffs.';
-            return 'Range shape (turn): by the turn, ranges are much narrower. Players who continued from the flop have shown interest — expect stronger average hand strength from both sides.';
+            if (isStrong) return 'Range shape (turn): ranges have narrowed significantly. Weak hands have folded, and remaining ranges are polarized - strong hands and draws vs medium hands and bluffs.';
+            return 'Range shape (turn): by the turn, ranges are much narrower. Players who continued from the flop have shown interest - expect stronger average hand strength from both sides.';
         }
         if (street === 'river') {
-            return 'Range shape (river): maximally narrowed. Draws have either hit or missed. Remaining ranges are highly polarized — the nuts/strong value vs bluff-catchers vs bluffs. No more drawing equity to consider.';
+            return 'Range shape (river): maximally narrowed. Draws have either hit or missed. Remaining ranges are highly polarized - the nuts/strong value vs bluff-catchers vs bluffs. No more drawing equity to consider.';
         }
         return '';
     }
@@ -10804,7 +10804,7 @@ export class DeterministicGTOEngine {
 
         if (effects.length === 0) return '';
         if (a.startsWith('r') && ['high_card', 'ace_high', 'missed_draw', 'underpair'].includes(handToken)) {
-            return `Blocker advantage for bluffing: ${effects[0]}. This makes your bluff more effective — villain has fewer nutted hands.`;
+            return `Blocker advantage for bluffing: ${effects[0]}. This makes your bluff more effective - villain has fewer nutted hands.`;
         }
         if (a === 'call') {
             return `Blocker effect when calling: ${effects[0]}. This slightly improves your call since villain is less likely to have the nuts.`;
@@ -10827,10 +10827,10 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         if (parseInt(investedPct) >= 33 && a === 'f') {
-            return `▲ Pot commitment: you've invested ~${investedPct}% of your stack. At this point, folding is expensive. The threshold for pot commitment is typically 30-33% — once past that, you often need a very strong reason to fold.`;
+            return `▲ Pot commitment: you've invested ~${investedPct}% of your stack. At this point, folding is expensive. The threshold for pot commitment is typically 30-33% - once past that, you often need a very strong reason to fold.`;
         }
         if (parseInt(investedPct) >= 50) {
-            return `Pot committed (~${investedPct}% of stack invested): you're essentially committed to this pot. Getting all-in is almost always correct — the remaining stack is too small relative to the pot.`;
+            return `Pot committed (~${investedPct}% of stack invested): you're essentially committed to this pot. Getting all-in is almost always correct - the remaining stack is too small relative to the pot.`;
         }
         return '';
     }
@@ -10859,7 +10859,7 @@ export class DeterministicGTOEngine {
             return 'Bluff-catching: calling with a weak hand to catch bluffs. This only works if villain bluffs frequently enough. Calculate: you need to be right > pot odds % of the time.';
         }
         if (a === 'f' && isMedium) {
-            return 'Check-fold with a medium hand: GTO says fold here. Villain\'s betting range is too strong — your hand doesn\'t beat enough of their value bets, and they\'re not bluffing enough to justify calling.';
+            return 'Check-fold with a medium hand: GTO says fold here. Villain\'s betting range is too strong - your hand doesn\'t beat enough of their value bets, and they\'re not bluffing enough to justify calling.';
         }
         if (a === 'f' && isWeak) {
             return 'Check-fold: no showdown value and not enough equity to justify calling. Save your chips for a better spot.';
@@ -10880,13 +10880,13 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         if (this._isAggressiveAction(a)) {
-            return 'Facing donk bet — raise: donk bets are often polarized or merged-weak. Raising puts maximum pressure. Your raising range should include strong value hands and semi-bluffs with good equity.';
+            return 'Facing donk bet - raise: donk bets are often polarized or merged-weak. Raising puts maximum pressure. Your raising range should include strong value hands and semi-bluffs with good equity.';
         }
         if (a === 'call') {
-            return 'Facing donk bet — call: flatting keeps the pot controlled and lets you see how villain plays on later streets. Many donk bettors give up on the turn if called.';
+            return 'Facing donk bet - call: flatting keeps the pot controlled and lets you see how villain plays on later streets. Many donk bettors give up on the turn if called.';
         }
         if (a === 'f') {
-            return 'Facing donk bet — fold: even though donk bets are often weak, your hand doesn\'t have enough equity to continue. Respect the action when your hand is at the bottom of your range.';
+            return 'Facing donk bet - fold: even though donk bets are often weak, your hand doesn\'t have enough equity to continue. Respect the action when your hand is at the bottom of your range.';
         }
         return '';
     }
@@ -10907,15 +10907,15 @@ export class DeterministicGTOEngine {
         const isDry = texture && texture.dry && !(texture.flushy || texture.monotone);
         const criteria = [];
         if (isDry) criteria.push('✓ Dry board (villain has few draws)');
-        else criteria.push('✕ Wet board (draws can outdraw you — prefer betting)');
+        else criteria.push('✕ Wet board (draws can outdraw you - prefer betting)');
 
         if (street === 'flop') criteria.push('✓ Early street (time to trap on later streets)');
         if (street === 'river') criteria.push('✕ River (no more streets to extract value)');
 
         if (criteria.some(c => c.startsWith('✕'))) {
-            return `Slow-play analysis: ${criteria.join('. ')}. Consider whether slow-playing is optimal — wet boards and late streets often favor fast-playing strong hands.`;
+            return `Slow-play analysis: ${criteria.join('. ')}. Consider whether slow-playing is optimal - wet boards and late streets often favor fast-playing strong hands.`;
         }
-        return `Slow-play checklist: ${criteria.join('. ')}. Conditions favor a trap — villain can't outdraw you and has room to bluff on later streets.`;
+        return `Slow-play checklist: ${criteria.join('. ')}. Conditions favor a trap - villain can't outdraw you and has room to bluff on later streets.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10935,14 +10935,14 @@ export class DeterministicGTOEngine {
         const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handToken);
         const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handToken);
 
-        if (isNuts) criteria.push('✓ Nutted hand — overbet for max value');
-        if (isAir) criteria.push('✓ Air — overbet as a bluff to maximize fold equity');
-        if (street === 'river') criteria.push('✓ River — maximum polarization');
+        if (isNuts) criteria.push('✓ Nutted hand - overbet for max value');
+        if (isAir) criteria.push('✓ Air - overbet as a bluff to maximize fold equity');
+        if (street === 'river') criteria.push('✓ River - maximum polarization');
         if (stackDepth && estimatedPot && stackDepth > estimatedPot * 2) criteria.push('✓ Deep enough stacks for overbet');
-        if (texture && texture.dry) criteria.push('✓ Dry/static board — ranges are clearer');
+        if (texture && texture.dry) criteria.push('✓ Dry/static board - ranges are clearer');
 
         if (criteria.length >= 3) {
-            return `Overbet criteria (${sizePct}% pot): ${criteria.join('. ')}. Multiple conditions met — overbet is well-justified.`;
+            return `Overbet criteria (${sizePct}% pot): ${criteria.join('. ')}. Multiple conditions met - overbet is well-justified.`;
         }
         return '';
     }
@@ -10963,9 +10963,9 @@ export class DeterministicGTOEngine {
 
         const polarizationScore = (raiseFreq + foldFreq) / (raiseFreq + foldFreq + callFreq + checkFreq + 0.001);
 
-        if (polarizationScore > 0.8) return 'Polarization index: VERY HIGH — this river spot is extremely polarized. Ranges consist of the nuts and bluffs with almost no medium hands.';
-        if (polarizationScore > 0.6) return 'Polarization index: HIGH — river ranges are fairly polarized. Most hands are clearly value or clearly bluffs.';
-        if (polarizationScore > 0.4) return 'Polarization index: MODERATE — some medium-strength hands exist in the range. Not fully polarized.';
+        if (polarizationScore > 0.8) return 'Polarization index: VERY HIGH - this river spot is extremely polarized. Ranges consist of the nuts and bluffs with almost no medium hands.';
+        if (polarizationScore > 0.6) return 'Polarization index: HIGH - river ranges are fairly polarized. Most hands are clearly value or clearly bluffs.';
+        if (polarizationScore > 0.4) return 'Polarization index: MODERATE - some medium-strength hands exist in the range. Not fully polarized.';
         return '';
     }
 
@@ -10991,7 +10991,7 @@ export class DeterministicGTOEngine {
             return '';
         }
         if (street === 'river') {
-            if (this._isAggressiveAction(a) && isStrong) return `EV source (river): river value bets capture the final portion of the hand's EV. Sizing correctly here — not too big to fold out everything, not too small to leave money behind.`;
+            if (this._isAggressiveAction(a) && isStrong) return `EV source (river): river value bets capture the final portion of the hand's EV. Sizing correctly here - not too big to fold out everything, not too small to leave money behind.`;
             if (a === 'call') return `EV source (river): river calls with bluff-catchers generate EV by catching villain's bluffs. The value comes from correct bluff-catching frequency.`;
             return '';
         }
@@ -11079,7 +11079,7 @@ export class DeterministicGTOEngine {
         // Hint 1: General direction
         if (a === 'f') hints.push('Think about whether your hand has enough equity to continue here.');
         else if (a === 'call') hints.push('Consider whether this hand has showdown value worth protecting.');
-        else if (a.startsWith('r') || a === 'allin') hints.push('Think about what you want to accomplish — are you building the pot or applying pressure?');
+        else if (a.startsWith('r') || a === 'allin') hints.push('Think about what you want to accomplish - are you building the pot or applying pressure?');
         else hints.push('Consider the pot size and your position before deciding.');
 
         // Hint 2: More specific
@@ -11087,13 +11087,13 @@ export class DeterministicGTOEngine {
         else if (a === 'call') hints.push(`Your hand has some value but maybe not enough to raise. Is there a reason to keep the pot small?`);
         else if (a.startsWith('r')) {
             const match = a.match(/r(\d+)/);
-            hints.push(match ? `Consider the sizing — what does a ${parseInt(match[1]) > 75 ? 'large' : 'small-to-medium'} bet accomplish here?` : 'Think about why raising is better than calling.');
+            hints.push(match ? `Consider the sizing - what does a ${parseInt(match[1]) > 75 ? 'large' : 'small-to-medium'} bet accomplish here?` : 'Think about why raising is better than calling.');
         }
 
         // Hint 3: Almost reveals
         const freq = handActions?.[correctAction] || 0;
-        if (freq >= 0.9) hints.push(`This is a near-pure strategy spot — the solver almost always takes one specific action here. What's the clearest play?`);
-        else hints.push(`This is a mixed spot — but the most frequent action (${(freq * 100).toFixed(0)}%) should guide your default.`);
+        if (freq >= 0.9) hints.push(`This is a near-pure strategy spot - the solver almost always takes one specific action here. What's the clearest play?`);
+        else hints.push(`This is a mixed spot - but the most frequent action (${(freq * 100).toFixed(0)}%) should guide your default.`);
 
         return hints;
     }
@@ -11161,11 +11161,11 @@ export class DeterministicGTOEngine {
         const maxFreq = Math.max(...Object.values(handActions || {}));
         const optimalAction = Object.entries(handActions || {}).sort((a, b) => b[1] - a[1])[0]?.[0];
 
-        if (chosenAction === optimalAction) return { score: 1.0, maxScore: 1.0, details: 'Perfect — you chose the most frequent action.' };
-        if (chosenFreq >= 0.4) return { score: 0.8, maxScore: 1.0, details: `Good — your action is played ${(chosenFreq * 100).toFixed(0)}% of the time. Very close to optimal.` };
-        if (chosenFreq >= 0.2) return { score: 0.5, maxScore: 1.0, details: `Acceptable — your action is in the solver's strategy at ${(chosenFreq * 100).toFixed(0)}%, but not the primary action.` };
-        if (chosenFreq > 0) return { score: 0.2, maxScore: 1.0, details: `Marginal — your action exists at ${(chosenFreq * 100).toFixed(0)}%, but it's rarely used. The primary action is much more frequent.` };
-        return { score: 0, maxScore: 1.0, details: 'This action is never in the solver\'s strategy — 0% frequency.' };
+        if (chosenAction === optimalAction) return { score: 1.0, maxScore: 1.0, details: 'Perfect - you chose the most frequent action.' };
+        if (chosenFreq >= 0.4) return { score: 0.8, maxScore: 1.0, details: `Good - your action is played ${(chosenFreq * 100).toFixed(0)}% of the time. Very close to optimal.` };
+        if (chosenFreq >= 0.2) return { score: 0.5, maxScore: 1.0, details: `Acceptable - your action is in the solver's strategy at ${(chosenFreq * 100).toFixed(0)}%, but not the primary action.` };
+        if (chosenFreq > 0) return { score: 0.2, maxScore: 1.0, details: `Marginal - your action exists at ${(chosenFreq * 100).toFixed(0)}%, but it's rarely used. The primary action is much more frequent.` };
+        return { score: 0, maxScore: 1.0, details: 'This action is never in the solver\'s strategy - 0% frequency.' };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -11322,7 +11322,7 @@ export class DeterministicGTOEngine {
                     const street = dim.split(':')[1];
                     recommendations.push({
                         name: `${street.charAt(0).toUpperCase() + street.slice(1)} Practice`,
-                        desc: `Focus on ${street} decisions — your mistake rate is ${(w.mistakeRate * 100).toFixed(0)}%`,
+                        desc: `Focus on ${street} decisions - your mistake rate is ${(w.mistakeRate * 100).toFixed(0)}%`,
                         filters: { streets: [street] },
                         priority: 'HIGH',
                     });
@@ -11331,7 +11331,7 @@ export class DeterministicGTOEngine {
                     const action = dim.split(':')[1];
                     recommendations.push({
                         name: `${action.charAt(0).toUpperCase() + action.slice(1)} Situations`,
-                        desc: `Practice spots where ${action} is correct — ${(w.mistakeRate * 100).toFixed(0)}% mistake rate`,
+                        desc: `Practice spots where ${action} is correct - ${(w.mistakeRate * 100).toFixed(0)}% mistake rate`,
                         filters: { nodeTypes: [action] },
                         priority: 'HIGH',
                     });
@@ -11344,7 +11344,7 @@ export class DeterministicGTOEngine {
             if (data.mastery === 'needs_work') {
                 recommendations.push({
                     name: `Master: ${concept.replace(/_/g, ' ')}`,
-                    desc: `Only ${data.accuracy} accuracy — needs focused practice`,
+                    desc: `Only ${data.accuracy} accuracy - needs focused practice`,
                     filters: { nodeTypes: [concept] },
                     priority: 'MEDIUM',
                 });
@@ -11424,10 +11424,10 @@ export class DeterministicGTOEngine {
 
         // Rough GTO benchmarks (varies heavily by spot)
         const assessment = [];
-        if (parseInt(freqs.fold) > 45) assessment.push('Folding more than expected — you may be too tight');
-        if (parseInt(freqs.fold) < 20) assessment.push('Folding less than expected — you may be too loose');
-        if (parseInt(freqs.raise) > 50) assessment.push('Raising very aggressively — make sure you have value to back it up');
-        if (parseInt(freqs.raise) < 20) assessment.push('Raising infrequently — you may be too passive');
+        if (parseInt(freqs.fold) > 45) assessment.push('Folding more than expected - you may be too tight');
+        if (parseInt(freqs.fold) < 20) assessment.push('Folding less than expected - you may be too loose');
+        if (parseInt(freqs.raise) > 50) assessment.push('Raising very aggressively - make sure you have value to back it up');
+        if (parseInt(freqs.raise) < 20) assessment.push('Raising infrequently - you may be too passive');
 
         return { frequencies: freqs, total: userTotals.total, assessment: assessment.length > 0 ? assessment : ['Well-balanced overall action frequencies'] };
     }
@@ -11527,10 +11527,10 @@ export class DeterministicGTOEngine {
         return {
             equity: equity + '%',
             vsRange: rangeType,
-            assessment: equity >= 70 ? 'Strong favorite — bet for value' :
-                equity >= 50 ? 'Slight favorite — thin value or pot control' :
-                equity >= 30 ? 'Underdog — need pot odds or implied odds to continue' :
-                'Significant underdog — fold unless getting excellent price',
+            assessment: equity >= 70 ? 'Strong favorite - bet for value' :
+                equity >= 50 ? 'Slight favorite - thin value or pot control' :
+                equity >= 30 ? 'Underdog - need pot odds or implied odds to continue' :
+                'Significant underdog - fold unless getting excellent price',
         };
     }
 
@@ -11558,9 +11558,9 @@ export class DeterministicGTOEngine {
             mistakes: c.count,
             avgLossPerMistake: c.count > 0 ? (c.total / c.count).toFixed(1) + 'bb' : '0bb',
             costPerHundred: this._sessionStats?.total > 0 ? ((c.total / this._sessionStats.total) * 100).toFixed(1) + 'bb/100' : 'N/A',
-            message: c.total > 50 ? '▲ Significant EV leakage — focus on your biggest mistake categories.':
-                c.total > 20 ? 'Moderate leaks — fixing your top 3 mistakes would save most of this.' :
-                'Small leaks — you\'re playing close to GTO. Fine-tuning will get you even closer.',
+            message: c.total > 50 ? '▲ Significant EV leakage - focus on your biggest mistake categories.':
+                c.total > 20 ? 'Moderate leaks - fixing your top 3 mistakes would save most of this.' :
+                'Small leaks - you\'re playing close to GTO. Fine-tuning will get you even closer.',
         };
     }
 
@@ -11576,11 +11576,11 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         const deepDives = {
-            'set': `Sets are the strongest hidden hands in hold'em. With a set, you hold 3-of-a-kind with a pocket pair, making it nearly invisible to opponents. On most boards, fast-play your set to build the pot — slow-playing risks being outdrawn.`,
+            'set': `Sets are the strongest hidden hands in hold'em. With a set, you hold 3-of-a-kind with a pocket pair, making it nearly invisible to opponents. On most boards, fast-play your set to build the pot - slow-playing risks being outdrawn.`,
             'two_pair': `Two pair is strong but vulnerable. On wet boards, straights and flushes can overtake you. The key: bet for value on the flop/turn to deny equity, but be cautious if the board gets scarier on later streets.`,
             'overpair': `Overpairs (pair higher than all board cards) are strong on dry boards but can be tricky on wet boards. The danger: opponents may have flopped sets, two pair, or draws. Play your overpair aggressively on favorable boards.`,
             'flush_draw': `Flush draws have ~35% equity on the flop (2 streets) and ~19% on the turn (1 street). Rule of 4/2: multiply outs by 4 on flop, by 2 on turn. With 9 outs, that's 36% on flop, 18% on turn. Always consider whether you're drawing to the nut flush.`,
-            'combo_draw': `Combo draws (flush draw + straight draw) are monsters with 12-15 outs. That's 48-60% equity on the flop — you're often a favorite! Play these aggressively: raise and re-raise to build the pot or win it outright.`,
+            'combo_draw': `Combo draws (flush draw + straight draw) are monsters with 12-15 outs. That's 48-60% equity on the flop - you're often a favorite! Play these aggressively: raise and re-raise to build the pot or win it outright.`,
             'top_pair': `Top pair is the backbone of postflop play. Its value depends heavily on your kicker. TPTK (top pair top kicker) is much stronger than TPWK (weak kicker). On wet boards, bet for protection. On dry boards, pot control may be optimal.`,
         };
 
@@ -11606,16 +11606,16 @@ export class DeterministicGTOEngine {
         // Flush-completing card
         const flushSuit = Object.entries(suitCounts || {}).find(([, ct]) => ct >= 2);
         if (flushSuit && flushSuit[1] < 3) {
-            scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush — villain\'s draw got there.' });
+            scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush - villain\'s draw got there.' });
         }
 
         // Overcard (Ace or King)
         const maxRank = Math.max(...boardRanks);
         if (maxRank < 12) { // No Ace on board
-            scenarios.push({ type: 'ace_comes', desc: 'An Ace hits the turn/river', impact: 'changes_dynamics', strategy: 'Ace is the most impactful overcard — it helps Ax hands in both ranges but especially favors the preflop raiser.' });
+            scenarios.push({ type: 'ace_comes', desc: 'An Ace hits the turn/river', impact: 'changes_dynamics', strategy: 'Ace is the most impactful overcard - it helps Ax hands in both ranges but especially favors the preflop raiser.' });
         }
         if (maxRank < 11) { // No King on board
-            scenarios.push({ type: 'king_comes', desc: 'A King hits', impact: 'overcard', strategy: 'King improves KQ/KJ type hands. Reassess — your top pair may now be second pair.' });
+            scenarios.push({ type: 'king_comes', desc: 'A King hits', impact: 'overcard', strategy: 'King improves KQ/KJ type hands. Reassess - your top pair may now be second pair.' });
         }
 
         // Board pairing
@@ -11673,10 +11673,10 @@ export class DeterministicGTOEngine {
         const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handToken);
 
         if (isIP && isWet && isStrong) {
-            return 'Aggression coaching: IP on a wet board with a strong hand — maximum aggression. Bet/raise for value AND protection. Villain has draws that you need to charge.';
+            return 'Aggression coaching: IP on a wet board with a strong hand - maximum aggression. Bet/raise for value AND protection. Villain has draws that you need to charge.';
         }
         if (!isIP && isStrong) {
-            return 'Aggression coaching: OOP with a strong hand — lead out or check-raise. Being OOP means you need to build the pot before villain can take a free card.';
+            return 'Aggression coaching: OOP with a strong hand - lead out or check-raise. Being OOP means you need to build the pot before villain can take a free card.';
         }
         return '';
     }
@@ -11704,11 +11704,11 @@ export class DeterministicGTOEngine {
             else if (!isWet && isStrong) { sizePct = 33; reasoning = 'Dry board + strong hand: small bet to keep villain in. No draws to charge.'; }
             else if (isMedium) { sizePct = 33; reasoning = 'Medium hand: small sizing for thin value and pot control.'; }
             else if (isBluff) { sizePct = 33; reasoning = 'Bluff: use the same small sizing as your value bets for balance.'; }
-            else { sizePct = 50; reasoning = 'Standard sizing — balanced between value and protection.'; }
+            else { sizePct = 50; reasoning = 'Standard sizing - balanced between value and protection.'; }
         } else if (street === 'turn') {
             if (isNuts) { sizePct = 75; reasoning = 'Nutted hand on turn: size up to build the pot for a big river bet.'; }
             else if (isStrong) { sizePct = 66; reasoning = 'Strong hand: maintain pressure and charge draws for one more card.'; }
-            else { sizePct = 50; reasoning = 'Standard turn sizing — pot is growing, keep it manageable.'; }
+            else { sizePct = 50; reasoning = 'Standard turn sizing - pot is growing, keep it manageable.'; }
         } else {
             if (isNuts) { sizePct = stackDepth && estimatedPot && stackDepth > estimatedPot * 1.5 ? 125 : 80; reasoning = isNuts ? 'Max value: size to get called by the widest range of worse hands.' : 'Value bet'; }
             else if (isBluff) { sizePct = 75; reasoning = 'Bluff: size to make villain fold their bluff-catchers. ~75% pot gives you good fold equity.'; }
@@ -11753,10 +11753,10 @@ export class DeterministicGTOEngine {
 
         score = Math.min(85, Math.max(15, score));
 
-        if (score >= 65) return `Range advantage: ${score}/100 — your range significantly outperforms villain's on this board. Bet at higher frequency.`;
-        if (score >= 55) return `Range advantage: ${score}/100 — slight edge. Standard betting frequency applies.`;
-        if (score <= 35) return `Range advantage: ${score}/100 — villain's range hits this board better. Check more frequently and be cautious.`;
-        if (score <= 45) return `Range advantage: ${score}/100 — slight disadvantage. Mix checks and small bets.`;
+        if (score >= 65) return `Range advantage: ${score}/100 - your range significantly outperforms villain's on this board. Bet at higher frequency.`;
+        if (score >= 55) return `Range advantage: ${score}/100 - slight edge. Standard betting frequency applies.`;
+        if (score <= 35) return `Range advantage: ${score}/100 - villain's range hits this board better. Check more frequently and be cautious.`;
+        if (score <= 45) return `Range advantage: ${score}/100 - slight disadvantage. Mix checks and small bets.`;
         return '';
     }
 
@@ -11773,11 +11773,11 @@ export class DeterministicGTOEngine {
 
         const rangeNotes = {
             'flop:cbet': 'Villain c-bet: range is still wide (~60-80% of preflop range). They c-bet with value, draws, and air.',
-            'flop:check': 'Villain checked flop: range is CAPPED — no strong overpairs or top pair. Weighted toward medium hands and gives up.',
-            'flop:raise': 'Villain raised flop: range is POLARIZED — strong value (sets, two pair) or semi-bluffs (draws). Medium hands just call.',
-            'turn:bet': 'Villain bet turn: range narrowed significantly. They continued with real equity — value hands and committed draws. Bluffs have mostly given up.',
-            'turn:check': 'Villain checked turn after flop bet: major weakness signal. Range is capped — strong hands almost always continue. Exploit with bets.',
-            'river:bet': 'Villain bet all three streets: MAXIMALLY POLARIZED — either the nuts or a bluff. Very few medium hands take this line.',
+            'flop:check': 'Villain checked flop: range is CAPPED - no strong overpairs or top pair. Weighted toward medium hands and gives up.',
+            'flop:raise': 'Villain raised flop: range is POLARIZED - strong value (sets, two pair) or semi-bluffs (draws). Medium hands just call.',
+            'turn:bet': 'Villain bet turn: range narrowed significantly. They continued with real equity - value hands and committed draws. Bluffs have mostly given up.',
+            'turn:check': 'Villain checked turn after flop bet: major weakness signal. Range is capped - strong hands almost always continue. Exploit with bets.',
+            'river:bet': 'Villain bet all three streets: MAXIMALLY POLARIZED - either the nuts or a bluff. Very few medium hands take this line.',
             'river:check': 'Villain checked river: giving up on bluffs or has medium showdown value. Consider a thin value bet.',
         };
 
@@ -11802,13 +11802,13 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         if (a.startsWith('r') && equity < 40) {
-            return `Equity estimate: ~${equity}% vs villain's range. You're an underdog, but betting works as a bluff — fold equity + hand equity combined make this profitable.`;
+            return `Equity estimate: ~${equity}% vs villain's range. You're an underdog, but betting works as a bluff - fold equity + hand equity combined make this profitable.`;
         }
         if (a === 'call' && equity >= 30 && equity <= 50) {
-            return `Equity estimate: ~${equity}% vs villain's range. Borderline spot — pot odds determine if calling is correct. Getting ~${equity}% is close to breakeven.`;
+            return `Equity estimate: ~${equity}% vs villain's range. Borderline spot - pot odds determine if calling is correct. Getting ~${equity}% is close to breakeven.`;
         }
         if (a.startsWith('r') && equity >= 60) {
-            return `Equity estimate: ~${equity}% vs villain's range. Solid favorite — bet for value to extract chips from weaker holdings.`;
+            return `Equity estimate: ~${equity}% vs villain's range. Solid favorite - bet for value to extract chips from weaker holdings.`;
         }
         return '';
     }
@@ -11822,10 +11822,10 @@ export class DeterministicGTOEngine {
      */
     calculateDrawEquity(handStrength, street) {
         const drawData = {
-            'combo_draw': { outs: 15, name: 'Combo draw (flush + straight)', note: 'Monster draw — often a favorite vs one pair.' },
+            'combo_draw': { outs: 15, name: 'Combo draw (flush + straight)', note: 'Monster draw - often a favorite vs one pair.' },
             'flush_draw': { outs: 9, name: 'Flush draw', note: '9 clean outs to the flush.' },
             'oesd': { outs: 8, name: 'Open-ended straight draw', note: '8 outs to the straight.' },
-            'gutshot': { outs: 4, name: 'Gutshot straight draw', note: '4 outs — need good implied odds.' },
+            'gutshot': { outs: 4, name: 'Gutshot straight draw', note: '4 outs - need good implied odds.' },
             'backdoor_flush_draw': { outs: 1.5, name: 'Backdoor flush draw', note: '~1.5 effective outs (need runner-runner).' },
         };
 
@@ -12003,7 +12003,7 @@ export class DeterministicGTOEngine {
             ],
             position: [
                 { front: 'Why is position important?', back: 'Acting last gives you information about opponents\' actions before you decide. IP players win more money long-term.' },
-                { front: 'Which position is most profitable?', back: 'The Button (BTN) — always acts last postflop, averages +10bb/100 in 6-max.' },
+                { front: 'Which position is most profitable?', back: 'The Button (BTN) - always acts last postflop, averages +10bb/100 in 6-max.' },
                 { front: 'Why is SB the worst position?', back: 'SB is always OOP postflop (except vs BB) and must invest 0.5bb before seeing cards. Averages -7bb/100.' },
                 { front: '6-max positions in order?', back: 'UTG (Under the Gun), HJ (Hijack/MP), CO (Cutoff), BTN (Button), SB (Small Blind), BB (Big Blind). BTN is most profitable, SB is least.' },
                 { front: 'What is a steal attempt?', back: 'Opening (raising first) from late position (CO, BTN, SB) to win the blinds. GTO open ranges from BTN are ~45-50% of hands.' },
@@ -12015,7 +12015,7 @@ export class DeterministicGTOEngine {
             ],
             betting: [
                 { front: 'What is a polarized range?', back: 'A range consisting of very strong hands (value) and very weak hands (bluffs), with no medium-strength hands.' },
-                { front: 'What is a merged/linear range?', back: 'A range that includes all hand strengths — strong, medium, and weak. Used with small bet sizes.' },
+                { front: 'What is a merged/linear range?', back: 'A range that includes all hand strengths - strong, medium, and weak. Used with small bet sizes.' },
                 { front: 'What is MDF (Minimum Defense Frequency)?', back: 'MDF = 1 - bet/(pot+bet). Tells you how often to defend vs a bet to prevent villain from profiting with any two cards.' },
                 { front: 'When to use small bet sizes?', back: 'On dry/static boards where you have a range advantage. Small bets let you bet with a wide, merged range (value + medium hands).' },
                 { front: 'When to use large bet sizes?', back: 'On dynamic boards or when your range is polarized (nuts or air). Large bets maximize value from strong hands and maximize fold equity with bluffs.' },
@@ -12027,10 +12027,10 @@ export class DeterministicGTOEngine {
             ],
             draws: [
                 { front: 'Rule of 4 and 2?', back: 'Multiply outs by 4 on the flop (2 cards to come) or by 2 on the turn (1 card to come) to estimate equity %.' },
-                { front: 'How many outs does a flush draw have?', back: '9 outs — 13 cards of the suit minus 4 you can see (2 in hand, 2 on board).' },
-                { front: 'What is a combo draw?', back: 'A draw with both flush and straight potential — typically 12-15 outs, often a favorite vs one pair.' },
-                { front: 'Open-ended straight draw outs?', back: '8 outs — 4 cards on each end complete the straight. Example: 89 on a 67x board has 8 outs (four 5s + four Ts).' },
-                { front: 'Gutshot straight draw outs?', back: '4 outs — only one rank completes the straight. Example: 89 on a 6Tx board needs a 7 (four 7s in deck).' },
+                { front: 'How many outs does a flush draw have?', back: '9 outs - 13 cards of the suit minus 4 you can see (2 in hand, 2 on board).' },
+                { front: 'What is a combo draw?', back: 'A draw with both flush and straight potential - typically 12-15 outs, often a favorite vs one pair.' },
+                { front: 'Open-ended straight draw outs?', back: '8 outs - 4 cards on each end complete the straight. Example: 89 on a 67x board has 8 outs (four 5s + four Ts).' },
+                { front: 'Gutshot straight draw outs?', back: '4 outs - only one rank completes the straight. Example: 89 on a 6Tx board needs a 7 (four 7s in deck).' },
                 { front: 'When are draws playable OOP?', back: 'When you have good implied odds, the draw is to the nuts (not 2nd best), and you can semi-bluff effectively by representing a made hand.' },
                 { front: 'What is a semi-bluff?', back: 'Betting or raising with a draw that can improve on later streets. It wins if opponent folds now OR if the draw hits. Combines fold equity + draw equity.' },
                 { front: 'Flush draw equity vs top pair?', back: 'A flush draw has ~35% equity vs top pair on the flop (9 outs x 4 = 36% minus slight overcount). On the turn it drops to ~18% (9 outs x 2).' },
@@ -12066,13 +12066,13 @@ export class DeterministicGTOEngine {
                 { front: 'What is a bluff-catcher?', back: 'A hand that beats all bluffs but loses to all value bets. On the river, you must decide if opponent is value-betting or bluffing.' },
                 { front: 'How often should you bluff-catch?', back: 'Based on MDF. Vs a pot-sized bet, defend ~50% of your range. Vs half-pot, defend ~67%. This prevents opponent from profiting with pure bluffs.' },
                 { front: 'What is a thin value bet?', back: 'Betting a hand that is only slightly ahead of opponent\'s calling range. If you expect to be called by worse >50% of the time, it is a value bet.' },
-                { front: 'River check-raise frequency?', back: 'GTO check-raises rivers rarely (~5-10%) but with extreme polarity — the nuts or bluffs with zero showdown value. Never check-raise medium hands.' },
+                { front: 'River check-raise frequency?', back: 'GTO check-raises rivers rarely (~5-10%) but with extreme polarity - the nuts or bluffs with zero showdown value. Never check-raise medium hands.' },
                 { front: 'When to give up on a river bluff?', back: 'When your bluff candidate has showdown value (can win at showdown), when opponent\'s range is very strong (4-bet pot), or when you have no blockers to opponent\'s folds.' },
                 { front: 'What are good river bluff candidates?', back: 'Hands that: (1) block opponent\'s value range, (2) unblock their folding range, (3) have zero showdown value, (4) are busted draws that bricked.' },
                 { front: 'River probe bet strategy?', back: 'When the PFR checks back the turn, OOP player can probe (donk-bet) the river with a polar range. Good spots: scare cards, completed draws, or when PFR capped their range by checking.' },
             ],
             gto_theory: [
-                { front: 'What is Nash Equilibrium?', back: 'A strategy pair where neither player can improve their EV by unilaterally changing strategy. GTO poker seeks this equilibrium — unexploitable play.' },
+                { front: 'What is Nash Equilibrium?', back: 'A strategy pair where neither player can improve their EV by unilaterally changing strategy. GTO poker seeks this equilibrium - unexploitable play.' },
                 { front: 'What is a mixed strategy?', back: 'When GTO says to take different actions with the same hand at certain frequencies. Example: check AQ 60%, bet 33% 30%, bet 75% 10%.' },
                 { front: 'Why use mixed strategies?', back: 'To remain unpredictable (balanced). If you always bet strong hands and check weak ones, opponents can exploit your pattern. Mixing prevents this.' },
                 { front: 'What is EV (Expected Value)?', back: 'The average profit/loss of a decision over infinite repetitions. A call is +EV if you win more than you lose over time. GTO maximizes EV vs perfect opponents.' },
@@ -12081,7 +12081,7 @@ export class DeterministicGTOEngine {
                 { front: 'What is range vs range equity?', back: 'How one player\'s entire range performs against another player\'s entire range. The PFR has ~53-55% range equity on most flops, which is why c-betting is profitable.' },
                 { front: 'What is a capped range?', back: 'A range that does not contain very strong hands. Example: after checking back the flop, your range is capped (you would have bet nutted hands).' },
                 { front: 'What is equity denial?', back: 'Betting to prevent opponent from realizing their equity for free. A hand with 30% equity that gets to see free cards will eventually win 30% of the pot.' },
-                { front: 'What is ICM?', back: 'Independent Chip Model — converts tournament chips to monetary value. Near the bubble, chip survival matters more than chip accumulation, changing optimal strategy significantly.' },
+                { front: 'What is ICM?', back: 'Independent Chip Model - converts tournament chips to monetary value. Near the bubble, chip survival matters more than chip accumulation, changing optimal strategy significantly.' },
             ],
         };
 
@@ -12207,18 +12207,18 @@ export class DeterministicGTOEngine {
         const isPaired = new Set(boardRanks).size < boardRanks.length;
 
         // Classify
-        if (uniqueSuits === 1) return { type: 'MONOTONE', desc: 'All one suit — flush is already possible', strategy: 'Favor the caller. PFR should check more. Only bet with a flush or strong draw.' };
-        if (isPaired && maxRank >= 11) return { type: 'PAIRED_HIGH', desc: 'Paired board with high cards', strategy: 'Favors PFR — more trips/full house combos. Bet frequently with small sizing.' };
-        if (isPaired && maxRank <= 8) return { type: 'PAIRED_LOW', desc: 'Paired board with low cards', strategy: 'Split advantage — PFR has overpairs, caller may have trips. Proceed cautiously.' };
+        if (uniqueSuits === 1) return { type: 'MONOTONE', desc: 'All one suit - flush is already possible', strategy: 'Favor the caller. PFR should check more. Only bet with a flush or strong draw.' };
+        if (isPaired && maxRank >= 11) return { type: 'PAIRED_HIGH', desc: 'Paired board with high cards', strategy: 'Favors PFR - more trips/full house combos. Bet frequently with small sizing.' };
+        if (isPaired && maxRank <= 8) return { type: 'PAIRED_LOW', desc: 'Paired board with low cards', strategy: 'Split advantage - PFR has overpairs, caller may have trips. Proceed cautiously.' };
         if (maxRank >= 12 && spread <= 4) return { type: 'ACE_HIGH_CONNECTED', desc: 'Ace-high connected board', strategy: 'Strongly favors PFR range. C-bet at high frequency with small sizing.' };
         if (maxRank >= 12 && spread > 6) return { type: 'ACE_HIGH_RAINBOW_DRY', desc: 'Ace-high dry rainbow', strategy: 'PFR has big range advantage. Can range bet 33% pot at very high frequency.' };
-        if (maxRank >= 9 && maxRank <= 11 && spread <= 3) return { type: 'BROADWAY_WET', desc: 'Broadway-connected wet board', strategy: 'Both ranges hit well. Mixed strategy — check and bet at moderate frequency.' };
-        if (maxRank <= 8 && spread <= 3) return { type: 'LOW_CONNECTED', desc: 'Low connected board', strategy: 'Favors caller heavily — more two-pairs, sets, straights. PFR should check frequently.' };
+        if (maxRank >= 9 && maxRank <= 11 && spread <= 3) return { type: 'BROADWAY_WET', desc: 'Broadway-connected wet board', strategy: 'Both ranges hit well. Mixed strategy - check and bet at moderate frequency.' };
+        if (maxRank <= 8 && spread <= 3) return { type: 'LOW_CONNECTED', desc: 'Low connected board', strategy: 'Favors caller heavily - more two-pairs, sets, straights. PFR should check frequently.' };
         if (maxRank <= 8 && spread > 5) return { type: 'LOW_DISCONNECTED', desc: 'Low disconnected dry board', strategy: 'Slightly favors PFR (overpairs), but caller has set potential. Standard c-bet with medium sizing.' };
-        if (uniqueSuits === 2 && spread <= 4) return { type: 'TWO_TONE_CONNECTED', desc: 'Two-tone connected — many draws', strategy: 'Very wet board. Bet larger to charge draws. Both ranges have many possibilities.' };
-        if (uniqueSuits === 2 && spread > 5) return { type: 'TWO_TONE_DISCONNECTED', desc: 'Two-tone but disconnected', strategy: 'Flush draws present but fewer straight draws. Medium wetness — standard sizing.' };
+        if (uniqueSuits === 2 && spread <= 4) return { type: 'TWO_TONE_CONNECTED', desc: 'Two-tone connected - many draws', strategy: 'Very wet board. Bet larger to charge draws. Both ranges have many possibilities.' };
+        if (uniqueSuits === 2 && spread > 5) return { type: 'TWO_TONE_DISCONNECTED', desc: 'Two-tone but disconnected', strategy: 'Flush draws present but fewer straight draws. Medium wetness - standard sizing.' };
         if (uniqueSuits === 3 && spread > 6) return { type: 'RAINBOW_DRY', desc: 'Rainbow dry board', strategy: 'No flush draws, few straight draws. PFR can c-bet at high frequency with small sizing.' };
-        return { type: 'STANDARD', desc: 'Standard mixed texture', strategy: 'Balanced approach — use position and hand strength to guide decisions.' };
+        return { type: 'STANDARD', desc: 'Standard mixed texture', strategy: 'Balanced approach - use position and hand strength to guide decisions.' };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -12284,7 +12284,7 @@ export class DeterministicGTOEngine {
         if (stackDepth && stackDepth <= 30) {
             return 'Tournament adjustment: at short stacks in tournaments, ICM makes survival more important than chip accumulation. Fold more marginal spots, especially near pay jumps. Push/fold charts become essential under 15BB.';
         }
-        return 'Tournament vs cash: key differences — (1) ICM pressure means chips lost > chips won, (2) No rebuying means survival matters, (3) Antes increase steal profitability, (4) Bubble dynamics create exploitable spots against medium stacks.';
+        return 'Tournament vs cash: key differences - (1) ICM pressure means chips lost > chips won, (2) No rebuying means survival matters, (3) Antes increase steal profitability, (4) Bubble dynamics create exploitable spots against medium stacks.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -12332,14 +12332,14 @@ export class DeterministicGTOEngine {
         if (wrongCount >= 5 || suddenDrop) {
             return {
                 level: 'MODERATE',
-                message: '▲ Tilt warning: accuracy dropping. You may be rushing or letting frustration guide decisions. Slow down — take an extra 5 seconds per question.',
+                message: '▲ Tilt warning: accuracy dropping. You may be rushing or letting frustration guide decisions. Slow down - take an extra 5 seconds per question.',
                 action: 'SUGGEST_SLOWDOWN',
             };
         }
         if (wrongCount >= 4) {
             return {
                 level: 'MILD',
-                message: 'Rough patch — 4+ wrong in the last 8. Stay process-oriented: focus on HOW you decide, not the results.',
+                message: 'Rough patch - 4+ wrong in the last 8. Stay process-oriented: focus on HOW you decide, not the results.',
                 action: 'COACH',
             };
         }
@@ -12420,9 +12420,9 @@ export class DeterministicGTOEngine {
         const hc = (handCategory || '').toLowerCase();
 
         if (isCorrect) {
-            if (freqPct >= 95) return `${correctLabel} is the only play here — remember this as a pure strategy spot.`;
+            if (freqPct >= 95) return `${correctLabel} is the only play here - remember this as a pure strategy spot.`;
             if (freqPct >= 70) return `${correctLabel} is strongly preferred. In practice, always take this action with ${handCategory || 'this hand'}.`;
-            return `Good read on a mixed spot — ${correctLabel} at ${freqPct}% is the solver's top choice.`;
+            return `Good read on a mixed spot - ${correctLabel} at ${freqPct}% is the solver's top choice.`;
         }
 
         // Wrong answer takeaways — teach the principle
@@ -12442,7 +12442,7 @@ export class DeterministicGTOEngine {
             return `${selectedLabel} is never used here by the solver. Ask yourself: what is ${selectedLabel} trying to accomplish that ${correctLabel} doesn't do better?`;
         }
 
-        if (selPct > 0 && selPct < 15) return `${selectedLabel} is only used ${selPct}% — it's a rare mix, not a primary action. Default to ${correctLabel} (${freqPct}%).`;
+        if (selPct > 0 && selPct < 15) return `${selectedLabel} is only used ${selPct}% - it's a rare mix, not a primary action. Default to ${correctLabel} (${freqPct}%).`;
         if (selPct >= 15 && selPct < correctFreq) return `Both actions are in the mix, but ${correctLabel} at ${freqPct}% is preferred over ${selectedLabel} at ${selPct}%. The EV difference matters over volume.`;
 
         return `${correctLabel} at ${freqPct}% is the solver's primary choice. Study what makes ${handCategory || 'this hand'} prefer ${correctLabel} over ${selectedLabel} in this spot.`;
@@ -12521,7 +12521,7 @@ export class DeterministicGTOEngine {
             return {
                 isRecurring: true,
                 count: totalForSpot,
-                message: `This is the ${totalForSpot}${totalForSpot === 3 ? 'rd' : 'th'} time you've missed a ${street} ${nodeType || ''} spot this session. This is a systematic leak — add it to your study list.`,
+                message: `This is the ${totalForSpot}${totalForSpot === 3 ? 'rd' : 'th'} time you've missed a ${street} ${nodeType || ''} spot this session. This is a systematic leak - add it to your study list.`,
                 spotType: key,
             };
         }
@@ -12555,11 +12555,11 @@ export class DeterministicGTOEngine {
         }
         if (mt === 'TOO_AGGRESSIVE') {
             if (street === 'river') return 'Practice: On the river, only bet for value (can you get called by worse?) or as a bluff (can you fold out better?). If neither, check.';
-            return 'Drill: Before betting, identify your hand\'s goal — value, protection, or bluff. If none apply clearly, checking is usually correct.';
+            return 'Drill: Before betting, identify your hand\'s goal - value, protection, or bluff. If none apply clearly, checking is usually correct.';
         }
         if (mt === 'SIZING_ERROR') return 'Practice: Small bets target inelastic calls; large bets polarize. Match your sizing to your range, not just your hand.';
         if (mt === 'MIX_MISREAD') return 'Practice: In mixed strategy spots, default to the highest-frequency action. Only deviate when you have a strong exploitative reason.';
-        if (mt === 'OVER_CALL') return 'Drill: Calculate minimum defense frequency vs the bet size. Some hands must fold even if they look decent — that\'s how ranges work.';
+        if (mt === 'OVER_CALL') return 'Drill: Calculate minimum defense frequency vs the bet size. Some hands must fold even if they look decent - that\'s how ranges work.';
         if (mt === 'HERO_CALL') return 'Practice: Before calling a big bet, ask: what value hands does villain bet that I beat? If the answer is few or none, fold.';
 
         return 'Review this spot type in your next study session. Focus on understanding the solver\'s reasoning, not memorizing the action.';
@@ -12662,7 +12662,7 @@ export class DeterministicGTOEngine {
                     leaks.push({
                         type: 'AGGRESSION',
                         severity: 'medium',
-                        title: 'Too passive — not betting enough',
+                        title: 'Too passive - not betting enough',
                         detail: `You only bet/raise ${Math.round(aggPct)}% of the time. You\'re likely missing value bets and failing to deny equity.`,
                         fix: 'Focus on spots where betting is clearly +EV: thin value bets, equity denial on wet boards, and balanced bluffs.',
                         score: Math.abs(aggPct - 55) * 2,
@@ -13026,19 +13026,19 @@ export class DeterministicGTOEngine {
         let tier = 'medium';
         let description = 'Medium-strength hand with thin value or marginal showdown equity.';
         if (cat.includes('nut') || cat.includes('full house') || cat.includes('straight flush') || cat.includes('quads') || cat.includes('set') || cat.includes('top two')) {
-            tier = 'premium'; description = 'Monster hand — focus on building the pot and extracting maximum value.';
+            tier = 'premium'; description = 'Monster hand - focus on building the pot and extracting maximum value.';
         } else if (cat.includes('overpair') || cat.includes('top pair top kicker') || cat.includes('tptk') || cat.includes('two pair')) {
-            tier = 'strong'; description = 'Strong made hand — generally betting for value but watch for board texture changes.';
+            tier = 'strong'; description = 'Strong made hand - generally betting for value but watch for board texture changes.';
         } else if (cat.includes('flush draw') || cat.includes('open ended') || cat.includes('combo draw') || cat.includes('oesd')) {
-            tier = 'draw'; description = 'Drawing hand — equity comes from completing the draw; consider semi-bluff aggression.';
+            tier = 'draw'; description = 'Drawing hand - equity comes from completing the draw; consider semi-bluff aggression.';
         } else if (cat.includes('middle pair') || cat.includes('second pair') || cat.includes('weak top pair') || cat.includes('top pair weak kicker')) {
-            tier = 'medium'; description = 'Marginal showdown value — pot control, careful with sizing, avoid bloating the pot.';
+            tier = 'medium'; description = 'Marginal showdown value - pot control, careful with sizing, avoid bloating the pot.';
         } else if (cat.includes('bottom pair') || cat.includes('ace high') || cat.includes('king high') || cat.includes('underpair')) {
-            tier = 'weak'; description = 'Weak holding — limited showdown value, consider if bluff-catching is profitable.';
+            tier = 'weak'; description = 'Weak holding - limited showdown value, consider if bluff-catching is profitable.';
         } else if (cat.includes('air') || cat.includes('no pair') || cat.includes('missed') || cat.includes('gutshot')) {
-            tier = 'trash'; description = 'No showdown value — only profitable as a bluff with good blockers or fold equity.';
+            tier = 'trash'; description = 'No showdown value - only profitable as a bluff with good blockers or fold equity.';
         }
-        if (street === 'river' && tier === 'draw') { tier = 'trash'; description = 'Missed draw on the river — no equity improvement possible, bluff or give up.'; }
+        if (street === 'river' && tier === 'draw') { tier = 'trash'; description = 'Missed draw on the river - no equity improvement possible, bluff or give up.'; }
         return { ...tiers[tier], description };
     }
 
@@ -13070,11 +13070,11 @@ export class DeterministicGTOEngine {
         if (node.includes('facing') && node.includes('bet')) equity -= 4;
         equity = Math.max(2, Math.min(98, Math.round(equity)));
         let equityBucket = 'medium', rangeDesc = 'Villain likely has a mixed range of value and bluffs.';
-        if (equity >= 75) { equityBucket = 'dominating'; rangeDesc = 'You dominate villain\'s range — strong value region.'; }
+        if (equity >= 75) { equityBucket = 'dominating'; rangeDesc = 'You dominate villain\'s range - strong value region.'; }
         else if (equity >= 60) { equityBucket = 'ahead'; rangeDesc = 'Ahead of most of villain\'s range but vulnerable to draws and stronger hands.'; }
-        else if (equity >= 45) { equityBucket = 'coin-flip'; rangeDesc = 'Roughly even against villain\'s range — marginal spot.'; }
-        else if (equity >= 30) { equityBucket = 'behind'; rangeDesc = 'Behind most of villain\'s range — need improvement or fold equity.'; }
-        else { equityBucket = 'crushed'; rangeDesc = 'Very low equity vs range — only continue as a bluff.'; }
+        else if (equity >= 45) { equityBucket = 'coin-flip'; rangeDesc = 'Roughly even against villain\'s range - marginal spot.'; }
+        else if (equity >= 30) { equityBucket = 'behind'; rangeDesc = 'Behind most of villain\'s range - need improvement or fold equity.'; }
+        else { equityBucket = 'crushed'; rangeDesc = 'Very low equity vs range - only continue as a bluff.'; }
         return { equity, confidence: 'estimated', rangeDescription: rangeDesc, equityBucket };
     }
 
@@ -13113,14 +13113,14 @@ export class DeterministicGTOEngine {
         else if (correctFreq > 40) solverPreference = 'slight';
         let alignment = 'aligned', summary = '';
         if (isMatch) {
-            if (solverPreference === 'strong') { alignment = 'perfect'; summary = `Perfect play — solver strongly prefers this action (${correctFreq}% of the time).`; }
-            else if (solverPreference === 'mixed') { alignment = 'acceptable'; summary = `Acceptable — this is part of a mixed strategy (solver plays this ${selectedFreq}%).`; }
-            else { alignment = 'aligned'; summary = 'Good — you matched the solver\'s preferred action.'; }
+            if (solverPreference === 'strong') { alignment = 'perfect'; summary = `Perfect play - solver strongly prefers this action (${correctFreq}% of the time).`; }
+            else if (solverPreference === 'mixed') { alignment = 'acceptable'; summary = `Acceptable - this is part of a mixed strategy (solver plays this ${selectedFreq}%).`; }
+            else { alignment = 'aligned'; summary = 'Good - you matched the solver\'s preferred action.'; }
         } else {
             const freqDiff = correctFreq - selectedFreq;
-            if (freqDiff > 50) { alignment = 'major_deviation'; summary = `Major deviation — solver prefers ${correctAction} (${correctFreq}%) over your ${selectedAction} (${selectedFreq}%).`; }
-            else if (freqDiff > 20) { alignment = 'moderate_deviation'; summary = `Moderate deviation — solver slightly prefers ${correctAction} but your choice isn't terrible.`; }
-            else { alignment = 'minor_deviation'; summary = 'Minor deviation — both actions are close in the solver\'s strategy.'; }
+            if (freqDiff > 50) { alignment = 'major_deviation'; summary = `Major deviation - solver prefers ${correctAction} (${correctFreq}%) over your ${selectedAction} (${selectedFreq}%).`; }
+            else if (freqDiff > 20) { alignment = 'moderate_deviation'; summary = `Moderate deviation - solver slightly prefers ${correctAction} but your choice isn't terrible.`; }
+            else { alignment = 'minor_deviation'; summary = 'Minor deviation - both actions are close in the solver\'s strategy.'; }
         }
         return { solverLine: correctAction, userLine: selectedAction, solverFrequency: correctFreq, userFrequency: selectedFreq, alignment, solverPreference, summary };
     }
@@ -13182,7 +13182,7 @@ export class DeterministicGTOEngine {
         const hints = [];
         const pos = (heroPosition || '').toUpperCase();
         const cat = (handCategory || '').toLowerCase();
-        if (pos === 'BTN' || pos === 'CO') hints.push('You\'re in a late position — this gives you an information advantage.');
+        if (pos === 'BTN' || pos === 'CO') hints.push('You\'re in a late position - this gives you an information advantage.');
         else if (pos === 'SB' || pos === 'BB') hints.push('Playing from the blinds means you\'ll be OOP on every street. Tighten up.');
         else hints.push('Think about your position relative to the remaining players.');
         if (cat.includes('draw')) hints.push('You have a drawing hand. Consider your outs, pot odds, and fold equity.');
@@ -13195,7 +13195,7 @@ export class DeterministicGTOEngine {
                 const topFreq = entries[0][1];
                 if (topFreq > 80) hints.push('The solver has a very strong preference here (>80% for one action).');
                 else if (topFreq > 50) hints.push('The solver slightly favors one action, but there\'s a mix.');
-                else hints.push('This is a mixed spot — multiple actions are viable.');
+                else hints.push('This is a mixed spot - multiple actions are viable.');
                 const topAction = entries[0][0];
                 const actionType = topAction.includes('bet') || topAction.includes('raise') ? 'aggressive' : topAction.includes('check') ? 'passive' : topAction.includes('fold') ? 'defensive' : 'standard';
                 hints.push(`The solver leans toward a ${actionType} approach in this spot.`);
@@ -13214,15 +13214,15 @@ export class DeterministicGTOEngine {
         const runouts = [];
         if (street === 'flop' || street === 'turn') {
             runouts.push({ type: 'Flush Card', card: '♠♣♥♦', impact: cat.includes('flush draw') ? 'positive' : cat.includes('set') || cat.includes('two pair') ? 'negative' : 'neutral',
-                strategyChange: cat.includes('flush draw') ? 'Your draw completes — shift to value betting.' : 'Board gets wetter — check more, bet less.' });
+                strategyChange: cat.includes('flush draw') ? 'Your draw completes - shift to value betting.' : 'Board gets wetter - check more, bet less.' });
             runouts.push({ type: 'Connected Card', card: '5-9', impact: cat.includes('oesd') || cat.includes('open ended') ? 'positive' : 'negative',
-                strategyChange: cat.includes('oesd') ? 'Draw completes — value bet your straight.' : 'More straights possible — tighten your range.' });
+                strategyChange: cat.includes('oesd') ? 'Draw completes - value bet your straight.' : 'More straights possible - tighten your range.' });
             runouts.push({ type: 'Overcard (A/K)', card: 'A♠/K♠', impact: cat.includes('overpair') ? 'neutral' : cat.includes('top pair') ? 'negative' : 'varies',
-                strategyChange: cat.includes('top pair') ? 'An overcard hits — your top pair is no longer top pair. Check more.' : 'New high card changes range dynamics — re-evaluate.' });
+                strategyChange: cat.includes('top pair') ? 'An overcard hits - your top pair is no longer top pair. Check more.' : 'New high card changes range dynamics - re-evaluate.' });
             runouts.push({ type: 'Board Pairs', card: 'Paired', impact: cat.includes('trips') || cat.includes('set') ? 'positive' : 'neutral',
                 strategyChange: 'Board pairing favors the pre-flop aggressor. Full houses now possible.' });
             runouts.push({ type: 'Brick (Low Card)', card: '2♣/3♦', impact: cat.includes('pair') ? 'positive' : 'neutral',
-                strategyChange: 'Low brick changes little — ranges remain similar. Continue your plan.' });
+                strategyChange: 'Low brick changes little - ranges remain similar. Continue your plan.' });
         }
         return { runouts, street, nextStreet: street === 'flop' ? 'Turn' : 'River' };
     }
@@ -13446,7 +13446,7 @@ export class DeterministicGTOEngine {
         if (userRatio > solverRatio + 15) assessment = 'over_bluffing';
         else if (userRatio < solverRatio - 15) assessment = 'under_bluffing';
         return { userBluffPct: userRatio, solverBluffPct: solverRatio, userBluffs, userValue, solverBluffs, solverValue, assessment,
-            message: assessment === 'over_bluffing' ? 'You\'re bluffing too often — tighten your aggression range.' : assessment === 'under_bluffing' ? 'You\'re not bluffing enough — add more semi-bluffs to stay balanced.' : 'Your bluff-to-value ratio is well-balanced.' };
+            message: assessment === 'over_bluffing' ? 'You\'re bluffing too often - tighten your aggression range.' : assessment === 'under_bluffing' ? 'You\'re not bluffing enough - add more semi-bluffs to stay balanced.' : 'Your bluff-to-value ratio is well-balanced.' };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -13556,7 +13556,7 @@ export class DeterministicGTOEngine {
         const tips = [];
         const parts = [];
         // Overall assessment
-        if (accuracy >= 80) parts.push(`Excellent session — ${accuracy}% accuracy shows strong GTO understanding.`);
+        if (accuracy >= 80) parts.push(`Excellent session - ${accuracy}% accuracy shows strong GTO understanding.`);
         else if (accuracy >= 65) parts.push(`Solid session at ${accuracy}% accuracy. A few key spots to review.`);
         else if (accuracy >= 50) parts.push(`Average session at ${accuracy}% accuracy. Multiple areas need work.`);
         else parts.push(`Tough session at ${accuracy}% accuracy. Focus on fundamentals.`);
@@ -13574,7 +13574,7 @@ export class DeterministicGTOEngine {
             const posLB = this.getPositionLeaderboard();
             if (posLB?.worstPosition && posLB.worstPosition.accuracy < 50) {
                 parts.push(`Weakest position: ${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%.`);
-                tips.push(`Focus on ${posLB.worstPosition.position} strategy — study solver ranges for this seat.`);
+                tips.push(`Focus on ${posLB.worstPosition.position} strategy - study solver ranges for this seat.`);
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Bluff ratio
@@ -13582,7 +13582,7 @@ export class DeterministicGTOEngine {
             const bvr = this.getBluffToValueRatio();
             if (bvr && bvr.assessment !== 'balanced') {
                 parts.push(bvr.message);
-                if (bvr.assessment === 'over_bluffing') tips.push('Cut marginal bluffs — focus on hands with good blockers.');
+                if (bvr.assessment === 'over_bluffing') tips.push('Cut marginal bluffs - focus on hands with good blockers.');
                 else tips.push('Add more semi-bluffs with draws and backdoor equity.');
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -13590,8 +13590,8 @@ export class DeterministicGTOEngine {
         try {
             const vel = this.getImprovementVelocity();
             if (vel && vel.trend !== 'INSUFFICIENT_DATA') {
-                if (vel.trend.includes('IMPROV')) parts.push('Your accuracy improved as the session went on — good mental stamina.');
-                else if (vel.trend.includes('DECLIN')) { parts.push('Accuracy declined later in the session — consider shorter sessions.'); tips.push('Try 15-hand sessions to stay sharp.'); }
+                if (vel.trend.includes('IMPROV')) parts.push('Your accuracy improved as the session went on - good mental stamina.');
+                else if (vel.trend.includes('DECLIN')) { parts.push('Accuracy declined later in the session - consider shorter sessions.'); tips.push('Try 15-hand sessions to stay sharp.'); }
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return { summary: parts.join(' '), tips: tips.slice(0, 5), accuracy, totalHands: stats.total };
@@ -13674,10 +13674,10 @@ export class DeterministicGTOEngine {
             recoveryAfterMistake,
             streakBreakers,
             insight: tiltResistance >= 70
-                ? 'Strong mental game — you recover well after mistakes.'
+                ? 'Strong mental game - you recover well after mistakes.'
                 : tiltResistance >= 50
-                    ? 'Moderate tilt resistance — some cascade errors after mistakes.'
-                    : 'Watch for tilt — mistakes tend to cluster. Take a breath after errors.',
+                    ? 'Moderate tilt resistance - some cascade errors after mistakes.'
+                    : 'Watch for tilt - mistakes tend to cluster. Take a breath after errors.',
         };
     }
 
@@ -13731,7 +13731,7 @@ export class DeterministicGTOEngine {
                 ? 'Your accuracy drops significantly later in sessions. Consider 15-20 hand sessions.'
                 : fatigueDropoff > 10
                     ? 'Mild fatigue detected. A short break every 20 hands could help.'
-                    : 'Great mental stamina — your accuracy holds well throughout the session.',
+                    : 'Great mental stamina - your accuracy holds well throughout the session.',
         };
     }
 
@@ -13741,18 +13741,18 @@ export class DeterministicGTOEngine {
 
     getRangeConstructionDrill(heroPosition = 'CO', nodeType = 'open') {
         const OPEN_RANGES = {
-            UTG: { hands: 15, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'AJs', 'KQs'], description: 'UTG opens ~15% — premium pairs + strong broadways' },
-            MP: { hands: 18, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', 'AKs', 'AQs', 'AJs', 'AKo', 'KQs', 'AQo'], description: 'MP opens ~18% — add 99, more broadways' },
-            CO: { hands: 27, top: ['AA-77', 'AKs-A2s', 'KQs-KTs', 'QJs-QTs', 'JTs', 'AKo-ATo', 'KQo', 'KJo'], description: 'CO opens ~27% — wide but structured' },
-            BTN: { hands: 42, top: ['AA-22', 'AKs-A2s', 'KQs-K5s', 'QJs-Q8s', 'JTs-J8s', 'T9s-T8s', 'AKo-A7o', 'KQo-KTo', 'QJo-QTo'], description: 'BTN opens ~42% — very wide, all pairs + suited connectors' },
+            UTG: { hands: 15, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'AJs', 'KQs'], description: 'UTG opens ~15% - premium pairs + strong broadways' },
+            MP: { hands: 18, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', 'AKs', 'AQs', 'AJs', 'AKo', 'KQs', 'AQo'], description: 'MP opens ~18% - add 99, more broadways' },
+            CO: { hands: 27, top: ['AA-77', 'AKs-A2s', 'KQs-KTs', 'QJs-QTs', 'JTs', 'AKo-ATo', 'KQo', 'KJo'], description: 'CO opens ~27% - wide but structured' },
+            BTN: { hands: 42, top: ['AA-22', 'AKs-A2s', 'KQs-K5s', 'QJs-Q8s', 'JTs-J8s', 'T9s-T8s', 'AKo-A7o', 'KQo-KTo', 'QJo-QTo'], description: 'BTN opens ~42% - very wide, all pairs + suited connectors' },
             SB: { hands: 36, top: ['AA-22', 'AKs-A2s', 'KQs-K7s', 'QJs-Q9s', 'JTs-J9s', 'T9s', 'AKo-A8o', 'KQo-KJo'], description: 'SB opens ~36% vs BB only' },
         };
 
         const _3BET_RANGES = {
-            'vs_UTG': { hands: 6, top: ['AA', 'KK', 'QQ', 'AKs', 'AKo'], description: '3-Bet vs UTG: ~6% — only premiums' },
-            'vs_MP': { hands: 8, top: ['AA', 'KK', 'QQ', 'JJ', 'AKs', 'AKo', 'AQs'], description: '3-Bet vs MP: ~8% — add JJ, AQs' },
-            'vs_CO': { hands: 11, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'A5s-A4s', 'KQs'], description: '3-Bet vs CO: ~11% — value + blockers' },
-            'vs_BTN': { hands: 14, top: ['AA-88', 'AKs-ATs', 'AKo-AJo', 'KQs', 'A5s-A2s'], description: '3-Bet from blinds vs BTN: ~14% — wider value + bluffs' },
+            'vs_UTG': { hands: 6, top: ['AA', 'KK', 'QQ', 'AKs', 'AKo'], description: '3-Bet vs UTG: ~6% - only premiums' },
+            'vs_MP': { hands: 8, top: ['AA', 'KK', 'QQ', 'JJ', 'AKs', 'AKo', 'AQs'], description: '3-Bet vs MP: ~8% - add JJ, AQs' },
+            'vs_CO': { hands: 11, top: ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo', 'A5s-A4s', 'KQs'], description: '3-Bet vs CO: ~11% - value + blockers' },
+            'vs_BTN': { hands: 14, top: ['AA-88', 'AKs-ATs', 'AKo-AJo', 'KQs', 'A5s-A2s'], description: '3-Bet from blinds vs BTN: ~14% - wider value + bluffs' },
         };
 
         const rangeSet = nodeType === 'open' ? OPEN_RANGES : _3BET_RANGES;
@@ -13808,7 +13808,7 @@ export class DeterministicGTOEngine {
                 type: 'exploit_overfold',
                 title: 'You fold too much',
                 description: `Folding ${foldPct}% of the time. Villains should bluff you more.`,
-                fix: 'Defend wider — call with more marginal hands, especially in position.',
+                fix: 'Defend wider - call with more marginal hands, especially in position.',
                 severity: foldPct > 55 ? 'critical' : 'moderate',
             });
         }
@@ -13829,7 +13829,7 @@ export class DeterministicGTOEngine {
             adjustments.push({
                 type: 'exploit_passive',
                 title: 'Not aggressive enough',
-                description: `Only raising/betting ${raisePct}% — too passive.`,
+                description: `Only raising/betting ${raisePct}% - too passive.`,
                 fix: 'Add more semi-bluff raises with draws. Bet for value more thinly.',
                 severity: raisePct < 15 ? 'critical' : 'moderate',
             });
@@ -13840,7 +13840,7 @@ export class DeterministicGTOEngine {
             adjustments.push({
                 type: 'exploit_overaggro',
                 title: 'Over-aggressive',
-                description: `Raising/betting ${raisePct}% — too aggressive for balanced play.`,
+                description: `Raising/betting ${raisePct}% - too aggressive for balanced play.`,
                 fix: 'Include more checks and calls. Not every hand needs aggression.',
                 severity: raisePct > 65 ? 'critical' : 'moderate',
             });
@@ -13869,7 +13869,7 @@ export class DeterministicGTOEngine {
             totalActions,
             isBalanced: adjustments.length === 0,
             summary: adjustments.length === 0
-                ? 'Your action frequencies look balanced — keep it up!'
+                ? 'Your action frequencies look balanced - keep it up!'
                 : `Found ${adjustments.length} exploitable tendenc${adjustments.length === 1 ? 'y' : 'ies'} in your play.`,
         };
     }
@@ -13888,29 +13888,29 @@ export class DeterministicGTOEngine {
             icmPressure = 'bubble';
             if (stackRatio > 1.5) {
                 adjustments.push({ action: 'Apply pressure', detail: 'You are a big stack near the bubble. Raise wider to exploit ICM pressure on medium stacks.' });
-                adjustments.push({ action: 'Target medium stacks', detail: 'Medium stacks (15-25bb) must fold wider near the bubble — attack them.' });
+                adjustments.push({ action: 'Target medium stacks', detail: 'Medium stacks (15-25bb) must fold wider near the bubble - attack them.' });
             } else if (stackRatio < 0.7) {
                 adjustments.push({ action: 'Tighten up', detail: 'Short stack near the bubble. Only shove premium hands unless forced.' });
                 adjustments.push({ action: 'Avoid marginal spots', detail: 'Every chip lost is worth more than every chip won in ICM terms.' });
             } else {
-                adjustments.push({ action: 'Play cautiously', detail: 'Medium stack near the bubble — avoid coinflips. Let short stacks bust.' });
+                adjustments.push({ action: 'Play cautiously', detail: 'Medium stack near the bubble - avoid coinflips. Let short stacks bust.' });
             }
         } else if (playersLeft <= payoutSpots * 2) {
             icmPressure = 'approaching_money';
             if (stackRatio < 0.5) {
-                adjustments.push({ action: 'Find a spot', detail: 'Short stack — look for a shove spot with any ace, pair, or suited broadway.' });
+                adjustments.push({ action: 'Find a spot', detail: 'Short stack - look for a shove spot with any ace, pair, or suited broadway.' });
             } else {
                 adjustments.push({ action: 'Standard play', detail: 'Not yet on the bubble. Play close to chip-EV but be aware of stack dynamics.' });
             }
         } else {
             icmPressure = 'early_stage';
-            adjustments.push({ action: 'Chip accumulation', detail: 'Far from the money — play for chip EV. Accumulate chips for a deep run.' });
+            adjustments.push({ action: 'Chip accumulation', detail: 'Far from the money - play for chip EV. Accumulate chips for a deep run.' });
         }
 
         // Push/fold ranges at various stack depths
         let pushFoldNote = null;
         if (stackSize <= 10) {
-            pushFoldNote = 'At 10bb or less, you should be push/fold only. Open-shove or fold — no limping, no min-raising.';
+            pushFoldNote = 'At 10bb or less, you should be push/fold only. Open-shove or fold - no limping, no min-raising.';
         } else if (stackSize <= 15) {
             pushFoldNote = 'At 11-15bb, your strategy simplifies. Open-shove or raise/fold. Avoid calling 3-bets unless you have a premium.';
         } else if (stackSize <= 25) {
@@ -13926,7 +13926,7 @@ export class DeterministicGTOEngine {
             payoutSpots,
             adjustments,
             pushFoldNote,
-            summary: `${icmPressure.replace(/_/g, ' ').toUpperCase()} — Stack: ${stackSize}bb (${Math.round(stackRatio * 100)}% of average). ${adjustments[0]?.detail || ''}`,
+            summary: `${icmPressure.replace(/_/g, ' ').toUpperCase()} - Stack: ${stackSize}bb (${Math.round(stackRatio * 100)}% of average). ${adjustments[0]?.detail || ''}`,
         };
     }
 
@@ -13972,7 +13972,7 @@ export class DeterministicGTOEngine {
             strongestGameType: strongest,
             totalGameTypes: stats.length,
             recommendation: weakest && weakest.accuracy < 50
-                ? `Focus on ${weakest.type} — your ${weakest.accuracy}% accuracy suggests a gap in understanding.`
+                ? `Focus on ${weakest.type} - your ${weakest.accuracy}% accuracy suggests a gap in understanding.`
                 : 'Your performance across pot types looks solid.',
         };
     }
@@ -14107,10 +14107,10 @@ export class DeterministicGTOEngine {
             simulations,
             insight: `With a true ${winRate}% win rate over ${n} hands, you'll see results between ${Math.round(low2sd / n * 100)}% and ${Math.round(high2sd / n * 100)}% roughly 95% of the time. Don't over-react to short-term swings.`,
             keyTakeaway: n < 50
-                ? 'Small sample size — results can vary wildly. Don\'t draw conclusions from under 50 hands.'
+                ? 'Small sample size - results can vary wildly. Don\'t draw conclusions from under 50 hands.'
                 : n < 200
-                    ? 'Moderate sample — trends are starting to emerge but variance is still significant.'
-                    : 'Large sample — your results are becoming statistically meaningful.',
+                    ? 'Moderate sample - trends are starting to emerge but variance is still significant.'
+                    : 'Large sample - your results are becoming statistically meaningful.',
         };
     }
 
@@ -14181,12 +14181,12 @@ export class DeterministicGTOEngine {
             insight: trend === 'strongly_improving'
                 ? 'Excellent improvement trend! Your accuracy is climbing steadily.'
                 : trend === 'slightly_improving'
-                    ? 'Positive trend — you are getting better as the session continues.'
+                    ? 'Positive trend - you are getting better as the session continues.'
                     : trend === 'stable'
-                        ? 'Stable performance — consistency is good. Push for improvement with targeted drills.'
+                        ? 'Stable performance - consistency is good. Push for improvement with targeted drills.'
                         : trend === 'slightly_declining'
-                            ? 'Mild decline detected — possible fatigue. Consider a break.'
-                            : 'Significant accuracy drop — take a break and review your recent mistakes.',
+                            ? 'Mild decline detected - possible fatigue. Consider a break.'
+                            : 'Significant accuracy drop - take a break and review your recent mistakes.',
         };
     }
 
@@ -14327,10 +14327,10 @@ export class DeterministicGTOEngine {
 
         const assessments = [];
         if (betDefendPct !== null) {
-            if (betDefendPct < 50) assessments.push({ type: 'overfolding_vs_bets', message: `Defending only ${betDefendPct}% vs bets — you are exploitably tight. MDF suggests ~60%+.`, severity: 'critical' });
-            else if (betDefendPct < 60) assessments.push({ type: 'slightly_tight_vs_bets', message: `Defending ${betDefendPct}% vs bets — slightly below MDF. Consider widening.`, severity: 'moderate' });
-            else if (betDefendPct > 80) assessments.push({ type: 'overdefending_vs_bets', message: `Defending ${betDefendPct}% vs bets — too loose. You can fold more weak hands.`, severity: 'moderate' });
-            else assessments.push({ type: 'balanced_vs_bets', message: `Defending ${betDefendPct}% vs bets — well balanced.`, severity: 'good' });
+            if (betDefendPct < 50) assessments.push({ type: 'overfolding_vs_bets', message: `Defending only ${betDefendPct}% vs bets - you are exploitably tight. MDF suggests ~60%+.`, severity: 'critical' });
+            else if (betDefendPct < 60) assessments.push({ type: 'slightly_tight_vs_bets', message: `Defending ${betDefendPct}% vs bets - slightly below MDF. Consider widening.`, severity: 'moderate' });
+            else if (betDefendPct > 80) assessments.push({ type: 'overdefending_vs_bets', message: `Defending ${betDefendPct}% vs bets - too loose. You can fold more weak hands.`, severity: 'moderate' });
+            else assessments.push({ type: 'balanced_vs_bets', message: `Defending ${betDefendPct}% vs bets - well balanced.`, severity: 'good' });
         }
 
         return {
@@ -14374,13 +14374,13 @@ export class DeterministicGTOEngine {
         let style, description;
         if (polarizationScore >= 70) {
             style = 'polarized';
-            description = 'Your range is highly polarized — you tend to use big bets or check. This is optimal on many board textures.';
+            description = 'Your range is highly polarized - you tend to use big bets or check. This is optimal on many board textures.';
         } else if (polarizationScore >= 50) {
             style = 'semi-polarized';
             description = 'Mix of polarized and merged strategies. Generally solid approach.';
         } else {
             style = 'merged';
-            description = 'Your range is merged — lots of medium bets. Consider polarizing more on favorable textures.';
+            description = 'Your range is merged - lots of medium bets. Consider polarizing more on favorable textures.';
         }
 
         return {
@@ -14441,10 +14441,10 @@ export class DeterministicGTOEngine {
             quickRecoveries,
             prolongedTilts,
             grade,
-            insight: grade === 'A' ? 'Excellent mental recovery — you bounce back quickly after mistakes.'
-                : grade === 'B' ? 'Good recovery — occasional short mistake streaks but you reset well.'
-                : grade === 'C' ? 'Average recovery — mistakes sometimes cascade. Practice resetting between hands.'
-                : 'Tilt-prone — mistakes cluster together. Work on mental game fundamentals.',
+            insight: grade === 'A' ? 'Excellent mental recovery - you bounce back quickly after mistakes.'
+                : grade === 'B' ? 'Good recovery - occasional short mistake streaks but you reset well.'
+                : grade === 'C' ? 'Average recovery - mistakes sometimes cascade. Practice resetting between hands.'
+                : 'Tilt-prone - mistakes cluster together. Work on mental game fundamentals.',
         };
     }
 
@@ -14499,7 +14499,7 @@ export class DeterministicGTOEngine {
             {
                 concept: 'ICM',
                 question: 'In a tournament, why is a chip won worth less than a chip lost?',
-                answer: 'Due to ICM — your tournament equity diminishes as your stack grows',
+                answer: 'Due to ICM - your tournament equity diminishes as your stack grows',
                 explanation: 'The Independent Chip Model shows that doubling your stack does not double your tournament equity because of the prize structure.',
             },
         ];
@@ -14673,7 +14673,7 @@ export class DeterministicGTOEngine {
                 street: h.street || 'unknown',
                 position: h.heroPosition || h.position || 'unknown',
                 action: h.selectedAction || 'unknown',
-                description: `Hand #${h.index}: Correct ${h.selectedAction || 'unknown'} on the ${h.street || 'unknown'} — well played!`,
+                description: `Hand #${h.index}: Correct ${h.selectedAction || 'unknown'} on the ${h.street || 'unknown'} - well played!`,
             }));
 
         return {
@@ -14941,9 +14941,9 @@ export class DeterministicGTOEngine {
             cbetWhenShouldCheck,
             checkWhenShouldCbet,
             tip: cbetWhenShouldCheck > 2
-                ? `You c-bet too often — ${cbetWhenShouldCheck} times when the solver prefers checking. Not every flop deserves a c-bet.`
+                ? `You c-bet too often - ${cbetWhenShouldCheck} times when the solver prefers checking. Not every flop deserves a c-bet.`
                 : checkWhenShouldCbet > 2
-                    ? `You miss c-bet opportunities — the solver wants you to bet on ${checkWhenShouldCbet} more flops.`
+                    ? `You miss c-bet opportunities - the solver wants you to bet on ${checkWhenShouldCbet} more flops.`
                     : 'Your c-bet frequency looks reasonable for this session.',
         };
     }
@@ -15021,7 +15021,7 @@ export class DeterministicGTOEngine {
                 ? `Great progress! Your accuracy improved from ${earlyAcc}% to ${lateAcc}% over the session.`
                 : earlyAcc === lateAcc
                     ? 'Consistent play throughout. Try to push past your comfort zone to improve.'
-                    : `Accuracy dipped from ${earlyAcc}% to ${lateAcc}%. Possible fatigue — consider shorter sessions.`,
+                    : `Accuracy dipped from ${earlyAcc}% to ${lateAcc}%. Possible fatigue - consider shorter sessions.`,
         };
     }
 
@@ -15063,7 +15063,7 @@ export class DeterministicGTOEngine {
             peakAt: peakWindow + 1,
             shouldContinue: currentLength < optimalLength * 0.9,
             recommendation: currentLength >= optimalLength
-                ? `Consider stopping — your optimal session length is ~${optimalLength} hands based on when accuracy peaks.`
+                ? `Consider stopping - your optimal session length is ~${optimalLength} hands based on when accuracy peaks.`
                 : currentLength >= optimalLength * 0.8
                     ? `You're nearing your optimal session length (~${optimalLength} hands). Stay sharp for the last few.`
                     : `You're in the zone. Optimal session length estimate: ~${optimalLength} hands.`,
@@ -15206,7 +15206,7 @@ export class DeterministicGTOEngine {
             totalHands: total,
             tip: profile === 'TAG' ? 'Tight-aggressive is the foundation of winning poker. Keep it up!'
                 : profile === 'LAG' ? 'Loose-aggressive can be profitable but requires deep understanding. Make sure your bluffs have blockers.'
-                : profile === 'LP' ? 'Loose-passive is the weakest style. Add more aggression — bet and raise more with draws and strong hands.'
+                : profile === 'LP' ? 'Loose-passive is the weakest style. Add more aggression - bet and raise more with draws and strong hands.'
                 : 'Tight-passive plays too few hands and too passively. Open wider in position and bet for value more.',
         };
     }
@@ -15316,7 +15316,7 @@ export class DeterministicGTOEngine {
             tip: missedBluffs > 2
                 ? `You missed ${missedBluffs} bluff opportunities. Look for spots with good blockers and fold equity.`
                 : bluffAttempts > shouldBluff + 2
-                    ? 'You bluff more than the solver recommends. Be selective — choose spots with good blockers.'
+                    ? 'You bluff more than the solver recommends. Be selective - choose spots with good blockers.'
                     : 'Your bluffing frequency looks reasonable.',
         };
     }
@@ -15565,7 +15565,7 @@ export class DeterministicGTOEngine {
             actionComparison,
             totalDeviation,
             grade: balanceScore >= 85 ? 'A' : balanceScore >= 70 ? 'B' : balanceScore >= 55 ? 'C' : 'D',
-            insight: balanceScore >= 85 ? 'Excellent range balance — your action frequencies match the solver closely.'
+            insight: balanceScore >= 85 ? 'Excellent range balance - your action frequencies match the solver closely.'
                 : balanceScore >= 70 ? 'Good balance with minor deviations. Fine-tune your weaker spots.'
                 : 'Significant frequency imbalances. Study which actions you over- or under-use.',
         };
@@ -15760,8 +15760,8 @@ export class DeterministicGTOEngine {
             aggressiveLines,
             foldedOut,
             total,
-            insight: showdownRate > 75 ? 'High showdown rate — you see a lot of rivers. Make sure you are not calling too light.'
-                : showdownRate < 40 ? 'Low showdown rate — you fold a lot. Consider defending wider, especially in position.'
+            insight: showdownRate > 75 ? 'High showdown rate - you see a lot of rivers. Make sure you are not calling too light.'
+                : showdownRate < 40 ? 'Low showdown rate - you fold a lot. Consider defending wider, especially in position.'
                 : 'Balanced showdown frequency.',
         };
     }
@@ -15796,7 +15796,7 @@ export class DeterministicGTOEngine {
             avgEVLoss: avgEV,
             actions: { folds: riverFolds, calls: riverCalls, bets: riverBets },
             grade: accuracy >= 80 ? 'A' : accuracy >= 65 ? 'B' : accuracy >= 50 ? 'C' : 'D',
-            insight: accuracy >= 80 ? 'Excellent river play — this is where the biggest decisions happen.'
+            insight: accuracy >= 80 ? 'Excellent river play - this is where the biggest decisions happen.'
                 : accuracy >= 65 ? 'Good river decisions. Focus on close bluff-catching and value betting spots.'
                 : 'River play needs work. This is the highest-EV street to improve on.',
         };
@@ -15913,10 +15913,10 @@ export class DeterministicGTOEngine {
             oopHands: oopHands.length,
             positionAdvantage: calcAcc(ipHands) - calcAcc(oopHands),
             insight: calcAcc(ipHands) - calcAcc(oopHands) > 15
-                ? 'Significant IP advantage — you realize equity much better in position. Work on OOP strategy.'
+                ? 'Significant IP advantage - you realize equity much better in position. Work on OOP strategy.'
                 : calcAcc(ipHands) - calcAcc(oopHands) > 5
-                    ? 'Slight IP advantage — normal pattern. Position is power in poker.'
-                    : 'Your IP/OOP accuracy is close — either great OOP play or room to improve IP play.',
+                    ? 'Slight IP advantage - normal pattern. Position is power in poker.'
+                    : 'Your IP/OOP accuracy is close - either great OOP play or room to improve IP play.',
         };
     }
 
@@ -15950,7 +15950,7 @@ export class DeterministicGTOEngine {
             controlRate: shouldControl > 0 ? Math.round((controlledCorrectly / shouldControl) * 100) : null,
             tip: inflatedWhenShouldControl > 3
                 ? `You inflated the pot ${inflatedWhenShouldControl} times when the solver prefers pot control. Save aggression for polarized spots.`
-                : 'Good pot control awareness — you keep pots small when appropriate.',
+                : 'Good pot control awareness - you keep pots small when appropriate.',
         };
     }
 
@@ -15987,7 +15987,7 @@ export class DeterministicGTOEngine {
                 approach: 'Push/Fold',
                 keyPrinciple: 'At 10bb or less, your strategy is binary: shove or fold. No limping, no min-raising.',
                 ranges: 'Shove wider from late position. Tighten up from early position. Any pair, suited ace, KQ+ from BTN.',
-                mistakes: 'Limping, calling opens, min-raising — all are errors at this depth.',
+                mistakes: 'Limping, calling opens, min-raising - all are errors at this depth.',
             };
         } else if (effectiveStack <= 20) {
             strategy = {
@@ -16045,7 +16045,7 @@ export class DeterministicGTOEngine {
                 ? Math.round((pureCorrect / pureSpots) * 100) - Math.round((mixedCorrect / mixedSpots) * 100)
                 : null,
             insight: mixedSpots > 0 && (mixedCorrect / mixedSpots) < 0.5
-                ? 'Mixed strategy spots are your weakest area. These spots have close EV between actions — focus on understanding why the solver mixes.'
+                ? 'Mixed strategy spots are your weakest area. These spots have close EV between actions - focus on understanding why the solver mixes.'
                 : 'Your mixed strategy spot accuracy is respectable.',
         };
     }
@@ -16070,7 +16070,7 @@ export class DeterministicGTOEngine {
         };
 
         // Highlights
-        if (accuracy >= 80) report.highlights.push(`${accuracy}% accuracy — top tier performance!`);
+        if (accuracy >= 80) report.highlights.push(`${accuracy}% accuracy - top tier performance!`);
         if (stats.bestStreak >= 5) report.highlights.push(`${stats.bestStreak}-hand winning streak!`);
 
         // Areas for improvement from various sources
@@ -16131,7 +16131,7 @@ export class DeterministicGTOEngine {
         const reminders = [];
 
         if (street === 'preflop') {
-            reminders.push('Position is the most valuable asset in poker — play tighter from early positions.');
+            reminders.push('Position is the most valuable asset in poker - play tighter from early positions.');
             if (nodeType.includes('3bet')) reminders.push('3-bet with a polarized range: premiums for value + suited aces/small pairs as bluffs.');
         } else if (street === 'flop') {
             reminders.push('On dry boards, c-bet small and frequently. On wet boards, check more and bet larger.');
@@ -16141,7 +16141,7 @@ export class DeterministicGTOEngine {
             reminders.push('If you checked the flop, consider a delayed c-bet if the turn improves your range.');
         } else if (street === 'river') {
             reminders.push('River ranges should be polarized: bet big with strong hands and bluffs, check medium hands.');
-            reminders.push('Use blockers to select bluffs — blocking strong hands villain could have makes bluffs more profitable.');
+            reminders.push('Use blockers to select bluffs - blocking strong hands villain could have makes bluffs more profitable.');
         }
 
         return { reminders: reminders.slice(0, 3), street, position: heroPosition };
@@ -16172,15 +16172,15 @@ export class DeterministicGTOEngine {
         try {
             const gto = this.getGTOComplianceScore();
             if (gto) {
-                if (gto.components.frequency < 70) prep.studyTopics.push('Mixed frequency spots — understand when the solver mixes and why');
-                if (gto.components.balance < 70) prep.studyTopics.push('Range balance — review your fold/call/raise distribution vs solver');
-                if (gto.components.accuracy < 70) prep.studyTopics.push('Core strategy — review opening ranges and postflop fundamentals');
+                if (gto.components.frequency < 70) prep.studyTopics.push('Mixed frequency spots - understand when the solver mixes and why');
+                if (gto.components.balance < 70) prep.studyTopics.push('Range balance - review your fold/call/raise distribution vs solver');
+                if (gto.components.accuracy < 70) prep.studyTopics.push('Core strategy - review opening ranges and postflop fundamentals');
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const rdq = this.getRiverDecisionQuality();
-            if (rdq && rdq.grade === 'C' || rdq?.grade === 'D') prep.studyTopics.push('River play — focus on bluff-catching and thin value betting');
+            if (rdq && rdq.grade === 'C' || rdq?.grade === 'D') prep.studyTopics.push('River play - focus on bluff-catching and thin value betting');
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         if (prep.warmup.length === 0) prep.warmup.push('Start with 5 hands of familiar spots to get warmed up');

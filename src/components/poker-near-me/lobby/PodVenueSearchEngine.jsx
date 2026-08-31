@@ -152,8 +152,8 @@ const PodVenueSearchEngine = ({
           </button>
           <select value={pRadius} onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}Radius`]: e.target.value }))}
             style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
-            <option value="5">5 miles</option><option value="10">10 miles</option><option value="25">25 miles</option>
-            <option value="50">50 miles</option><option value="100">100 miles</option><option value="150">150 miles</option><option value="any">Any distance</option>
+            <option value="5">5 Miles</option><option value="10">10 Miles</option><option value="25">25 Miles</option>
+            <option value="50">50 Miles</option><option value="100">100 Miles</option><option value="150">150 Miles</option><option value="any">Any Distance</option>
           </select>
         </div>
 
@@ -228,8 +228,8 @@ const PodVenueSearchEngine = ({
             <span style={{ fontSize: 13, color: '#c9d1d9' }}>
               <span style={{ color: '#d4a853', fontWeight: 800 }}>{results.length.toLocaleString()}</span> venue{results.length !== 1 ? 's' : ''}
               {nearbyTourSeriesCount > 0 && <span> · <span style={{ color: '#f59e0b', fontWeight: 700 }}>{nearbyTourSeriesCount}</span> tour{nearbyTourSeriesCount !== 1 ? 's/series' : ''}</span>}
-              {userLocation && pRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{pRadius} mi</span></span>}
-              {showBuyIn && pTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{pTournaments.length}</span> tournaments</span>}
+              {userLocation && pRadius !== 'any' && <span> Within <span style={{ color: '#3fb950' }}>{pRadius} Mi</span></span>}
+              {showBuyIn && pTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{pTournaments.length}</span> Tournaments</span>}
             </span>
             <button onClick={() => setFilters(prev => ({ ...prev, [`${prefix}State`]: 'all', [`${prefix}VenueType`]: 'all', [`${prefix}GameType`]: 'all', [`${prefix}Radius`]: showBuyIn ? '50' : '100', [`${prefix}MinBuyin`]: '', [`${prefix}MaxBuyin`]: '', [`${prefix}Searched`]: false }))}
               style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
@@ -284,7 +284,7 @@ const PodVenueSearchEngine = ({
             <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
-              <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, or Selecting a Different State.</p>
+              <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, Or Selecting A Different State.</p>
             </div>
           )}
           {nearbyTourSeriesCount > 0 && (
@@ -293,7 +293,7 @@ const PodVenueSearchEngine = ({
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.3px' }}>Poker Tours & Series Nearby</div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{nearbyTours.length} tour{nearbyTours.length !== 1 ? 's' : ''} · {nearbySeries.length} series within {pRadius === 'any' ? 'range' : pRadius + ' mi'}</div>
+                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{nearbyTours.length} tour{nearbyTours.length !== 1 ? 's' : ''} · {nearbySeries.length} Series Within {pRadius === 'any' ? 'range' : pRadius + ' mi'}</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
@@ -339,8 +339,8 @@ const PodVenueSearchEngine = ({
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
             {/* Real counts only — show a neutral placeholder while venues load
                 instead of fabricated "700+" / "47+" figures. */}
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
           </div>
         </div>
       )}

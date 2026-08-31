@@ -230,7 +230,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Mute Chat</div>
-                <div style={{ fontSize: 11, color: T.dim }}>Hide messages from this player</div>
+                <div style={{ fontSize: 11, color: T.dim }}>Hide Messages From This Player</div>
               </div>
               <button
                 onClick={handleToggleMute}

@@ -153,7 +153,7 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
                 ) : entries.length === 0 ? (
                     <div style={styles.emptyState}>
                         <span style={{ fontSize: 40 }}>{meta.icon}</span>
-                        <p style={styles.emptyText}>No {meta.label.toLowerCase()} entries yet</p>
+                        <p style={styles.emptyText}>No {meta.label.toLowerCase()} Entries Yet</p>
                         <button
                             style={styles.addButton}
                             onClick={() => {

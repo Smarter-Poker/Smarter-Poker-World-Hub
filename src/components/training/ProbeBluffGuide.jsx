@@ -13,7 +13,7 @@ const PROBE_SCENARIOS = [
     reason: 'Brick turn after checked A-high flop. CO likely has medium pairs. Small probe folds them out.',
     sizing: '40-50% pot', color: '#22c55e' },
   { board: 'Q♠ J♥ 8♣ → 9♦', position: 'BB vs BTN', action: 'CHECK ',
-    reason: '4 to a straight on board. Too dangerous to probe — villain could easily have a straight or strong draw.',
+    reason: '4 to a straight on board. Too dangerous to probe - villain could easily have a straight or strong draw.',
     sizing: 'N/A', color: '#ef4444' },
   { board: 'T♦ 6♦ 2♣ → K♠', position: 'SB vs HJ', action: 'PROBE 66%',
     reason: 'King on turn is a great scare card. HJ checked a draw-heavy flop. Now bluff the K arrival.',
@@ -24,7 +24,7 @@ const PROBE_SCENARIOS = [
 ];
 
 const PROBE_FACTORS = [
-  { factor: 'Villain checked flop', weight: 'Essential', desc: 'This is what makes probing possible — they showed weakness' },
+  { factor: 'Villain checked flop', weight: 'Essential', desc: 'This is what makes probing possible - they showed weakness' },
   { factor: 'Turn card is a scare card', weight: 'Strong', desc: 'A, K, completing a draw = great probe cards' },
   { factor: 'Board stayed dry', weight: 'Good', desc: 'Static boards make villain\'s check-back range weak' },
   { factor: 'You have some equity', weight: 'Bonus', desc: 'Backdoor draws or overcards add safety if called' },
@@ -39,7 +39,7 @@ export default function ProbeBluffGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #10b981, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Probe Bluff Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Attack when the PFR shows weakness by checking back.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Attack When The PFR Shows Weakness By Checking Back.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {PROBE_SCENARIOS.map((s, i) => (

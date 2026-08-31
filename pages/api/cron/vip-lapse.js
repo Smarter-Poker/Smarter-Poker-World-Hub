@@ -62,7 +62,7 @@ async function handler(req, res) {
     if (!supabase) {
         // Loud, not silent. expire_lapsed_vip is service_role-only; without the
         // key this job cannot work and must not pretend it did.
-        console.error('[cron/vip-lapse] SUPABASE_SERVICE_ROLE_KEY is not configured — VIP expiry is NOT running.');
+        console.error('[cron/vip-lapse] SUPABASE_SERVICE_ROLE_KEY is not configured - VIP expiry is NOT running.');
         return res.status(500).json({
             success: false,
             error: 'Service role key not configured',

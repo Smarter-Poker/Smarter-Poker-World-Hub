@@ -33,6 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 /* Seconds the "Resend code" button stays locked after a successful send. */
 const RESEND_COOLDOWN_SEC = 30;
@@ -189,13 +190,9 @@ export default function MfaChallengePage() {
     useEffect(() => {
         let cancelled = false;
         async function boot() {
-            let s = null;
-            try {
-                const { data } = await supabase.auth.getSession();
-                s = data?.session || null;
-            } catch (err) {
-                console.warn('[mfa] session lookup failed:', err);
-            }
+            const user = getAuthUser();
+            const accessToken = getAccessToken();
+            const s = user?.id && accessToken ? { user, access_token: accessToken } : null;
             if (cancelled) return;
             if (!s) {
                 router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
@@ -356,7 +353,7 @@ export default function MfaChallengePage() {
                             <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
                                 Two-factor is not turned on for this account
                             </strong>
-                            There is no code to send you. Head back and carry on — you can turn on
+                            There is no code to send you. Head back and carry on - you can turn on
                             text-message two-factor any time under Settings → Security.
                             <div style={{ marginTop: 10 }}>
                                 <button
@@ -449,7 +446,7 @@ export default function MfaChallengePage() {
                                     <strong style={{ color: '#e2e8f0' }}>Remember this device for 30 days</strong>
                                     <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
                                         {rememberDevice
-                                            ? 'We will not ask you for another code on this device for 30 days — not at sign-in, and not for admin, cashout or account actions.'
+                                            ? 'We will not ask you for another code on this device for 30 days - not at sign-in, and not for admin, cashout or account actions.'
                                             : 'You will be asked for a new code the next time anything needs confirming.'}
                                     </span>
                                 </span>
@@ -504,7 +501,7 @@ export default function MfaChallengePage() {
                         <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>
                             Contact support
                         </a>
-                        {' '}— account recovery requires identity verification.
+                        {' '}- account recovery requires identity verification.
                     </p>
                 </div>
             </div>

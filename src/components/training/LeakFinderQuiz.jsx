@@ -16,7 +16,7 @@ const LEAKS = [
       { text: 'The Hand Should Be Open-Limped To Control The Pot', correct: false },
       { text: 'The Hand Should Be Raised Larger To Deny Equity', correct: false },
     ],
-    explanation: 'K9s is too weak to open from UTG at a full ring table. UTG range should be ~12-15% — K9s is outside this range. It plays poorly multiway and is dominated by KT+, AK, AQ.',
+    explanation: 'K9s is too weak to open from UTG at a full ring table. UTG range should be ~12-15% - K9s is outside this range. It plays poorly multiway and is dominated by KT+, AK, AQ.',
     fix: 'Tighten UTG range to pairs 77+, ATs+, KQs, AJo+. Fold K9s from early position.',
     severity: 'Medium',
   },
@@ -55,7 +55,7 @@ const LEAKS = [
       { text: 'Failing To Use A Smaller Block Bet With Six-High', correct: false },
       { text: 'Checking Would Waste Too Much Fold Equity On The River', correct: false },
     ],
-    explanation: 'Bluffing into 3 players rarely works — each player only needs to call sometimes. Small sizing gives everyone great odds. In multiway pots, bluffing frequency should drop dramatically. Give up on missed draws multiway.',
+    explanation: 'Bluffing into 3 players rarely works - each player only needs to call sometimes. Small sizing gives everyone great odds. In multiway pots, bluffing frequency should drop dramatically. Give up on missed draws multiway.',
     fix: 'Avoid bluffing multiway unless you have a very credible story. If bluffing heads-up, use appropriate sizing (66%+).',
     severity: 'High',
   },
@@ -81,7 +81,7 @@ const LEAKS = [
       { text: 'The Hand Should Always Be Used As A 4-Bet Bluff', correct: false },
       { text: 'The Call Is Correct Because Suited Hands Fully Realize Equity', correct: false },
     ],
-    explanation: 'Cold-calling a 3-bet from the SB is one of the worst plays in poker. Youre OOP, facing a strong range, and cant realize your equity well. T9s needs position and implied odds — you have neither here.',
+    explanation: 'Cold-calling a 3-bet from the SB is one of the worst plays in poker. Youre OOP, facing a strong range, and cant realize your equity well. T9s needs position and implied odds - you have neither here.',
     fix: 'SB should 4-bet or fold vs 3-bets. Never cold-call. If you want to play T9s, 4-bet bluff (occasionally) or fold.',
     severity: 'High',
   },
@@ -124,7 +124,7 @@ function LeakFinderQuiz() {
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{leak.scenario}</div>
         </div>
 
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>What is the leak?</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>What Is The Leak?</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
           {leak.options.map((opt, i) => {
             const isSelected = selected === i;
@@ -187,7 +187,7 @@ function LeakFinderQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Leak Finder Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Leak Finder Quiz Failed To Load: {err.message}</div>;
   }
 }
 

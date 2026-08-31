@@ -446,7 +446,7 @@ export default function RangeExplorer({
             {/* Presets */}
             <div style={{ marginBottom: S.lg }}>
                 <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.sm }}>
-                    Positional opens
+                    Positional Opens
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                     {POSITION_PRESETS.map(p => (
@@ -457,7 +457,7 @@ export default function RangeExplorer({
                             onClick={() => loadPreset(p)}
                             style={{ ...btn('secondary'), padding: '0 14px', fontSize: F.label }}
                         >
-                            {p} open
+                            {p} Open
                         </button>
                     ))}
                     <button
@@ -481,7 +481,7 @@ export default function RangeExplorer({
                         fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs,
                     }}
                 >
-                    <span>Fill top % by strength</span>
+                    <span>Fill Top % By Strength</span>
                     <span style={{ ...numeric, color: T.accent }}>{topPct}%</span>
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
@@ -614,12 +614,12 @@ export default function RangeExplorer({
                         <span style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, ...numeric }}>{detail.label}</span>
                         <span style={pill(detail.on ? 'success' : 'neutral')}>{detail.on ? 'In range' : 'Removed'}</span>
                         {detail.combos > 0 && (
-                            <span style={{ fontSize: F.caption, color: T.textMuted }}>{detail.combos} combos</span>
+                            <span style={{ fontSize: F.caption, color: T.textMuted }}>{detail.combos} Combos</span>
                         )}
                     </>
                 ) : (
                     <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                        Tap or drag a cell to edit the range.
+                        Tap Or Drag A Cell To Edit The Range.
                     </span>
                 )}
             </div>

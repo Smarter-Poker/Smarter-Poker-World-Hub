@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 
 const FT_CONCEPTS = [
   { title: 'ICM Awareness', icon: '■', color: '#ef4444',
-    detail: 'At the final table, every pay jump represents real money. ICM distorts optimal play — you must tighten your calling ranges significantly.',
+    detail: 'At the final table, every pay jump represents real money. ICM distorts optimal play - you must tighten your calling ranges significantly.',
     key: 'The shorter stacks\' busts increase everyone\'s equity. Don\'t risk your stack unless the reward justifies the ICM cost.',
     example: 'With 9 players left and a $1M prize pool: busting 9th = $50k, but laddering to 6th = $120k. That $70k difference demands tighter play.',
     numbers: 'Tighten calling ranges 15-25% vs ICM-naive ChipEV. The closer you are to a pay jump, the tighter you should be.' },
@@ -24,10 +24,10 @@ const FT_CONCEPTS = [
   { title: 'Deal-Making Strategy', icon: '●', color: '#3b82f6',
     detail: 'Many final tables end with ICM deals. Understanding your ICM equity helps you negotiate from a position of strength.',
     key: 'Know your ICM equity before entering deal discussions. The big stack always has more than their chip share.',
-    example: 'If you have 40% of chips at a 3-way FT, your ICM equity might be 38% due to diminishing chip value — but you negotiate from strength.',
+    example: 'If you have 40% of chips at a 3-way FT, your ICM equity might be 38% due to diminishing chip value - but you negotiate from strength.',
     numbers: 'Use ICM calculators during breaks. Never accept a deal that gives you less than your ICM equity minus 2%.' },
   { title: 'Heads-Up for the Title', icon: '★', color: '#8b5cf6',
-    detail: 'The biggest pay jump is usually 1st vs 2nd. Heads-up play is pure aggression — ICM barely matters with only 2 payouts.',
+    detail: 'The biggest pay jump is usually 1st vs 2nd. Heads-up play is pure aggression - ICM barely matters with only 2 payouts.',
     key: 'Play close to ChipEV HU. The pay jump to 1st is worth fighting for. Don\'t try to nit into 2nd.',
     example: 'If 1st = $200k and 2nd = $130k, you\'re playing for a $70k difference. That\'s worth taking +ChipEV spots.',
     numbers: 'HU opening range: 80%+ from SB. 3-bet BB range: 25-30%. Shove <15bb with any two playable cards.' },
@@ -42,7 +42,7 @@ export default function MTTFinalTableGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         MTT Final Table Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate the most important stage of any tournament.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate The Most Important Stage Of Any Tournament.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {FT_CONCEPTS.map((t, i) => (

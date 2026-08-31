@@ -159,12 +159,12 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         Back
                     </button>
                     <button type="button" className="pa-btn" onClick={handleConfirm} style={{ ...btn('primary'), flex: 1 }}>
-                        <Check size={18} strokeWidth={2} /> Load scenario
+                        <Check size={18} strokeWidth={2} /> Load Scenario
                     </button>
                 </>
             ) : (
                 <button type="button" className="pa-btn" onClick={handleParse} style={{ ...btn('primary', { block: true }) }}>
-                    Check scenario
+                    Check Scenario
                 </button>
             )}
         >
@@ -172,7 +172,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
             {preview ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                    <span style={pill('success')}><Check size={12} strokeWidth={3} /> Ready to load</span>
+                    <span style={pill('success')}><Check size={12} strokeWidth={3} /> Ready To Load</span>
                     <div style={{
                         background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
                         padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
@@ -197,7 +197,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                             borderRadius: R.sm, padding: S.md,
                         }}>
                             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn, marginBottom: S.xs }}>
-                                Defaults applied
+                                Defaults Applied
                             </div>
                             <ul style={{ margin: 0, paddingLeft: 18, color: T.textMuted, fontSize: F.caption, lineHeight: 1.5 }}>
                                 {preview.defaults.map(d => <li key={d}>{d}</li>)}
@@ -206,8 +206,8 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                     )}
 
                     <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                        Loading replaces the board, hero position, pot, stack and every villain seat. The sandbox
-                        keeps an undo step.
+                        Loading Replaces The Board, Hero Position, Pot, Stack And Every Villain Seat. The Sandbox
+                        Keeps An Undo Step.
                     </p>
                 </div>
             ) : (
@@ -230,7 +230,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
                     }}>
                         <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>
-                            Accepted formats
+                            Accepted Formats
                         </div>
                         <pre style={{
                             margin: 0, fontSize: F.caption, color: T.purple, lineHeight: 1.5,
@@ -246,7 +246,7 @@ CSV   Board, Position, Pot, Stack
                         </pre>
                     </div>
 
-                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON or CSV</label>
+                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON Or CSV</label>
                     <textarea
                         id="esi-input"
                         value={rawInput}
@@ -267,7 +267,7 @@ CSV   Board, Position, Pot, Stack
                         onClick={() => { setRawInput(EXAMPLE); setError(null); }}
                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px', alignSelf: 'flex-start' }}
                     >
-                        Load example
+                        Load Example
                     </button>
                 </div>
             )}

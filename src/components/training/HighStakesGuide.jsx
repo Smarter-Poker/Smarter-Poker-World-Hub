@@ -12,7 +12,7 @@ const HIGH_CONCEPTS = [
     warning: 'Regs at this level track your stats meticulously. Unbalanced lines get punished within 1000 hands.' },
   { title: 'Thin Value & Thin Bluffs', icon: '✕', color: '#f59e0b',
     detail: 'The edge at high stakes comes from razor-thin margins. Value betting 2nd pair on the river and bluffing with marginal blockers.',
-    principle: 'Every missed thin value bet or thin bluff costs you fractions of a big blind — over thousands of hands, this is your entire win rate.',
+    principle: 'Every missed thin value bet or thin bluff costs you fractions of a big blind - over thousands of hands, this is your entire win rate.',
     warning: 'Don\'t go thin just for the sake of it. Your reads and range analysis must be sharp.' },
   { title: 'Metagame Warfare', icon: '●', color: '#8b5cf6',
     detail: 'High stakes is a repeated game. Your opponents adjust to you, and you must adjust to their adjustments. It\'s an infinite loop.',
@@ -37,7 +37,7 @@ export default function HighStakesGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         High Stakes Strategy (NL500+)
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Elite concepts for the toughest games on the planet.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Elite Concepts For The Toughest Games On The Planet.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {HIGH_CONCEPTS.map((t, i) => (

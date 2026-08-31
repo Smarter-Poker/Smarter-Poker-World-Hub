@@ -34,7 +34,7 @@ const SCENARIOS = [
     evCall: 8.4,
     evFold: 0,
     recommendation: 'CALL',
-    reasoning: 'Villain needs 34+ bluff combos to make folding correct. With only 21 value combos and 13 bluffs, they\'re bluffing 38% — above the 33% threshold. Second pair is a mandatory call.',
+    reasoning: 'Villain needs 34+ bluff combos to make folding correct. With only 21 value combos and 13 bluffs, they\'re bluffing 38% - above the 33% threshold. Second pair is a mandatory call.',
   },
   {
     id: 'river_pot_bet',
@@ -100,7 +100,7 @@ const SCENARIOS = [
     evCall: 15.6,
     evFold: 0,
     recommendation: 'CALL',
-    reasoning: 'Small bet means you need to defend 75% of range. With equal value/bluff combos, villain is bluffing 50% — well above the 25% threshold. Easy call with any pair.',
+    reasoning: 'Small bet means you need to defend 75% of range. With equal value/bluff combos, villain is bluffing 50% - well above the 25% threshold. Easy call with any pair.',
   },
   {
     id: 'tough_spot',
@@ -122,7 +122,7 @@ const SCENARIOS = [
     evCall: -3.1,
     evFold: 0,
     recommendation: 'CLOSE FOLD',
-    reasoning: 'Villain has 19 value vs 12 bluffs (61% value). At this sizing, they need ~41% bluffs to justify a call. With only 39% bluffs, it\'s a marginal fold — but barely.',
+    reasoning: 'Villain has 19 value vs 12 bluffs (61% value). At this sizing, they need ~41% bluffs to justify a call. With only 39% bluffs, it\'s a marginal fold - but barely.',
   },
 ];
 
@@ -174,7 +174,7 @@ export default function BluffCatcherAnalyzer() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Bluff Catcher Analyzer</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Should you call or fold with bluff catchers?</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Should You Call Or Fold With Bluff Catchers?</div>
         </div>
 
         {/* Scenario selector */}
@@ -206,7 +206,7 @@ export default function BluffCatcherAnalyzer() {
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
             <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Pot / Bet</div>
             <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{selectedScenario.pot} / {selectedScenario.bet}</div>
-            <div style={{ color: '#94a3b8', fontSize: 9 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% of pot</div>
+            <div style={{ color: '#94a3b8', fontSize: 9 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% Of Pot</div>
           </div>
         </div>
 
@@ -268,7 +268,7 @@ export default function BluffCatcherAnalyzer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Bluff Catcher Analyzer</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

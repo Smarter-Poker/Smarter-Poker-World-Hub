@@ -64,7 +64,7 @@ function KellyBetCalculator() {
           <div style={{ fontSize: 28, fontWeight: 900, color: calc.hasEdge ? '#10b981' : '#ef4444' }}>
             {calc.hasEdge ? `+${calc.edge}` : calc.edge}
           </div>
-          {!calc.hasEdge && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>No edge — do not play! Kelly says bet $0.</div>}
+          {!calc.hasEdge && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>No Edge - Do Not Play! Kelly Says Bet $0.</div>}
         </div>
 
         {calc.hasEdge && (
@@ -79,8 +79,8 @@ function KellyBetCalculator() {
                 <div key={k.label} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center', borderTop: `3px solid ${k.color}` }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: k.color, marginBottom: 4 }}>{k.label}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>${k.bet.toLocaleString()}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{k.pct}% of bankroll</div>
-                  <div style={{ fontSize: 9, color: k.ruin > 10 ? '#ef4444' : '#10b981', marginTop: 4 }}>Ruin risk: ~{k.ruin}%</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{k.pct}% Of Bankroll</div>
+                  <div style={{ fontSize: 9, color: k.ruin > 10 ? '#ef4444' : '#10b981', marginTop: 4 }}>Ruin Risk: ~{k.ruin}%</div>
                   <div style={{ fontSize: 9, fontWeight: 700, color: k.color, marginTop: 2 }}>{k.rec}</div>
                 </div>
               ))}
@@ -89,8 +89,8 @@ function KellyBetCalculator() {
             <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Best Practice</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-                Use Half Kelly for the best risk/reward balance. Full Kelly maximizes long-term growth but has high variance.
-                Quarter Kelly is ultra-safe but slower growth. Never bet more than Full Kelly — it actually reduces expected growth.
+                Use Half Kelly For The Best Risk/Reward Balance. Full Kelly Maximizes Long-Term Growth But Has High Variance.
+                Quarter Kelly Is Ultra-Safe But Slower Growth. Never Bet More Than Full Kelly - It Actually Reduces Expected Growth.
               </div>
             </div>
           </>
@@ -98,7 +98,7 @@ function KellyBetCalculator() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Kelly Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Kelly Calculator Failed To Load: {err.message}</div>;
   }
 }
 

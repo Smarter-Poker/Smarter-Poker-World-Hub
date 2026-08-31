@@ -437,7 +437,7 @@ function buildAnalysisFromPio(pioData, params) {
     // for the UI badge) than to confidently render meaningless numbers.
     const totalFreq = Object.values(handFrequencies).reduce((s, v) => s + v, 0);
     if (totalFreq < 0.01) {
-        console.warn(`[GTO-Analysis] PIO matrix has no coverage for hand=${hand} on this node — returning null to trigger LLM fallback.`);
+        console.warn(`[GTO-Analysis] PIO matrix has no coverage for hand=${hand} on this node - returning null to trigger LLM fallback.`);
         return null;
     }
 

@@ -258,15 +258,15 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
 
                     {/* Status */}
                     <div className="voice-status">
-                        {listening && <span className="voice-status-text">● Listening... Speak now</span>}
-                        {!listening && !result && !error && <span className="voice-status-text">Tap the mic button to speak</span>}
+                        {listening && <span className="voice-status-text">● Listening... Speak Now</span>}
+                        {!listening && !result && !error && <span className="voice-status-text">Tap The Mic Button To Speak</span>}
                         {error && <span className="voice-error">{error}</span>}
                     </div>
 
                     {/* Transcript */}
                     {transcript && (
                         <div className="voice-transcript">
-                            <span className="voice-transcript-label">You said:</span>
+                            <span className="voice-transcript-label">You Said:</span>
                             <p className="voice-transcript-text">"{transcript}"</p>
                         </div>
                     )}
@@ -278,11 +278,11 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
                             <div className="voice-filter-tags">
                                 {result.filters.gameType && <span className="voice-tag game">{result.filters.gameType}</span>}
                                 {result.filters.stakes && <span className="voice-tag stakes">{result.filters.stakes}</span>}
-                                {result.filters.radius && <span className="voice-tag radius">{result.filters.radius} mi</span>}
+                                {result.filters.radius && <span className="voice-tag radius">{result.filters.radius} Mi</span>}
                                 {result.filters.venueType && <span className="voice-tag type">{result.filters.venueType.replace('_', ' ')}</span>}
                                 {result.filters.minBuyin && <span className="voice-tag buyin">Min ${result.filters.minBuyin}</span>}
                                 {result.filters.maxBuyin && <span className="voice-tag buyin">Max ${result.filters.maxBuyin}</span>}
-                                {result.filters.useMyLocation && <span className="voice-tag radius">Near my location</span>}
+                                {result.filters.useMyLocation && <span className="voice-tag radius">Near My Location</span>}
                                 {result.searchQuery && <span className="voice-tag search">○ {result.searchQuery}</span>}
                             </div>
                             <button className="voice-apply-btn" onClick={applyResult}>Apply Filters</button>
@@ -292,23 +292,23 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
                     {/* Not supported fallback */}
                     {!supported && (
                         <div className="voice-unsupported">
-                            <p>Speech recognition is not supported in this browser.</p>
-                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Try Chrome, Edge, or Safari.</p>
+                            <p>Speech Recognition Is Not Supported In This Browser.</p>
+                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Try Chrome, Edge, Or Safari.</p>
                         </div>
                     )}
 
                     {/* Examples */}
                     <div className="voice-examples">
-                        <span className="voice-examples-label">Try saying:</span>
+                        <span className="voice-examples-label">Try Saying:</span>
                         <div className="voice-example-list">
                             <button className="voice-example" onClick={() => { setTranscript('Find me a 2/5 NLH game within 30 miles'); setResult(parseVoiceQuery('Find me a 2/5 NLH game within 30 miles')); }}>
-                                "Find me a 2/5 NLH game within 30 miles"
+                                "Find Me A 2/5 NLH Game Within 30 Miles"
                             </button>
                             <button className="voice-example" onClick={() => { setTranscript('PLO tournaments near Las Vegas'); setResult(parseVoiceQuery('PLO tournaments near Las Vegas')); }}>
-                                "PLO tournaments near Las Vegas"
+                                "PLO Tournaments Near Las Vegas"
                             </button>
                             <button className="voice-example" onClick={() => { setTranscript('Casinos within 50 miles'); setResult(parseVoiceQuery('Casinos within 50 miles')); }}>
-                                "Casinos within 50 miles"
+                                "Casinos Within 50 Miles"
                             </button>
                         </div>
                     </div>

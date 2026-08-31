@@ -121,7 +121,7 @@ export default function TrendingPosts({ limit = 5 }) {
                             {post.content?.slice(0, 80) || (post.content_type === 'video' ? 'Video Post' : 'Post')}
                         </div>
                         <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>
-                            {post.author?.full_name || post.author?.username || 'User'} · {post.engagement} engagements
+                            {post.author?.full_name || post.author?.username || 'User'} · {post.engagement} Engagements
                         </div>
                     </div>
                 </a>

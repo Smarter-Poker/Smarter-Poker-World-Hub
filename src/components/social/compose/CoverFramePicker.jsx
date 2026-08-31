@@ -138,8 +138,8 @@ export default function CoverFramePicker({ onBack, onSave }) {
                         background: 'none', border: 'none', color: '#050505',
                         fontSize: 22, padding: 8, cursor: 'pointer',
                     }}
-                >&#x2190;</button>
-                <div style={{ fontSize: 17, fontWeight: 600 }}>Edit cover</div>
+                >&#X2190;</button>
+                <div style={{ fontSize: 17, fontWeight: 600 }}>Edit Cover</div>
                 <button
                     onClick={handleSave}
                     style={{
@@ -179,7 +179,7 @@ export default function CoverFramePicker({ onBack, onSave }) {
                 </div>
 
                 <div style={{ fontSize: 13, color: '#65676B', textAlign: 'center', maxWidth: 320, lineHeight: 1.4 }}>
-                    To select a cover photo, choose a frame from your video or an image from your gallery.
+                    To Select A Cover Photo, Choose A Frame From Your Video Or An Image From Your Gallery.
                 </div>
 
                 {/* ── Frame scrubber strip ─────────────────────── */}
@@ -242,8 +242,8 @@ export default function CoverFramePicker({ onBack, onSave }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}
                 >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>&#xff0b;</span>
-                    Add from gallery
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>&#Xff0b;</span>
+                    Add From Gallery
                 </button>
 
                 {customCoverFile && (
@@ -253,7 +253,7 @@ export default function CoverFramePicker({ onBack, onSave }) {
                             background: 'none', border: 'none', color: '#1877F2',
                             fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 8,
                         }}
-                    >Remove custom cover</button>
+                    >Remove Custom Cover</button>
                 )}
             </div>
 

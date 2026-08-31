@@ -11,9 +11,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 export default function CASHPage() {
     useTrainingBus('trivia-cash');
     return (
-        <TriviaErrorBoundary pageName="Trivia — Cash Game">
+        <TriviaErrorBoundary pageName="Trivia - Cash Game">
             <SEOHead
-                title="Cash Game Trivia — Deep Stack Scenarios"
+                title="Cash Game Trivia - Deep Stack Scenarios"
                 description="Test Your Cash Game Knowledge With Deep Stack Scenarios, Implied Odds, And Table Dynamics On Smarter.Poker."
                 canonical="/hub/trivia/cash"
                 noindex={true}

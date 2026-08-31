@@ -38,14 +38,14 @@ const QUESTIONS = [
       'A♠K♠ (Two Pair) > A♥7♥ (Two Pair) > Q♣J♣ (Flush) > K♥Q♥ (Pair)',
     ],
     answer: 0,
-    explanation: 'Flush (QJcc) beats all two pairs. AK two pair and A7 two pair are ranked by the higher second pair — AK beats A7. KQ is just one pair of kings.',
+    explanation: 'Flush (QJcc) beats all two pairs. AK two pair and A7 two pair are ranked by the higher second pair - AK beats A7. KQ is just one pair of kings.',
   },
   {
     id: 5, type: 'equity', category: 'Preflop',
     question: 'What is the equity of 7♠2♦ vs A♥A♣ all-in preflop?',
     options: ['8%', '12%', '16%', '22%'],
     answer: 1, // ~12%
-    explanation: '72o is the worst starting hand in poker. Against AA it has approximately 12% equity — mostly from making two pair or a miracle straight.',
+    explanation: '72o is the worst starting hand in poker. Against AA it has approximately 12% equity - mostly from making two pair or a miracle straight.',
   },
   {
     id: 6, type: 'ranking', category: 'Board Reading',
@@ -75,7 +75,7 @@ const QUESTIONS = [
   },
   {
     id: 9, type: 'equity', category: 'Preflop',
-    question: 'J♠J♥ vs A♣K♣ vs 8♠8♥ — who has the most equity 3-way?',
+    question: 'J♠J♥ vs A♣K♣ vs 8♠8♥ - who has the most equity 3-way?',
     options: ['JJ (~42%)', 'AKs (~32%)', '88 (~26%)', 'All roughly equal (~33%)'],
     answer: 0,
     explanation: 'JJ has the most equity at ~42% as the highest pair. AKs has ~32% with overcards and flush potential. 88 is the weakest at ~26%, dominated by JJ and needing to dodge overcards.',
@@ -208,7 +208,7 @@ function HandRankingQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Ranking Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Ranking Quiz Failed To Load: {err.message}</div>;
   }
 }
 

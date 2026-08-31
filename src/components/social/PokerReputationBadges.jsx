@@ -177,7 +177,7 @@ export const PokerReactionBar = ({
 
             {totalReactions > 0 && (
                 <div className="reaction-summary">
-                    <span className="total-count">{totalReactions} reactions</span>
+                    <span className="total-count">{totalReactions} Reactions</span>
                 </div>
             )}
 

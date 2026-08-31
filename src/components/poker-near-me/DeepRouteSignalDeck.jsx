@@ -76,7 +76,7 @@ export default function DeepRouteSignalDeck({
         </div>
         {freshness?.label && (
           <p className="pnm-deep-deck__freshness">
-            Data signal: {freshness.dateTime
+            Data Signal: {freshness.dateTime
               ? <time dateTime={freshness.dateTime}>{freshness.label}</time>
               : freshness.label}
           </p>

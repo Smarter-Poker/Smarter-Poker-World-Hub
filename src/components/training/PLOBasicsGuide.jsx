@@ -9,7 +9,7 @@ const PLO_BASICS = [
   { title: 'Hand Selection', icon: '◇', color: '#22c55e',
     detail: 'In PLO, you get 4 hole cards but must use exactly 2. Strong hands have coordination: double-suited, connected, with big pairs.',
     examples: 'AAKKds, JT98ds, AKQJss are premium. Random hands like K♠7♥3♦2♣ are trash despite having a King.',
-    tip: 'Think in terms of "planarity" — how many ways can your 4 cards work together? More connections = better hand.' },
+    tip: 'Think in terms of "planarity" - how many ways can your 4 cards work together? More connections = better hand.' },
   { title: 'Position Matters More', icon: '·', color: '#3b82f6',
     detail: 'PLO is a drawing game with massive equity swings. Being in position lets you control pot size and see how draws develop.',
     examples: 'IP you can pot-control with draws, value bet thinner, and bluff more effectively. OOP you\'re guessing.',
@@ -37,7 +37,7 @@ export default function PLOBasicsGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         PLO Fundamentals
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Essential Pot Limit Omaha concepts for Hold'em players.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Essential Pot Limit Omaha Concepts For Hold'em Players.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {PLO_BASICS.map((t, i) => (

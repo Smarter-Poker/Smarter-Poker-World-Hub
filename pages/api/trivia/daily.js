@@ -54,7 +54,7 @@ function getSupabase() {
             // attached, every RLS-locked read below returns zero rows, so
             // hasPlayedToday is permanently false and roster tagging fails —
             // a misconfiguration that used to look like a behaviour bug.
-            console.warn('[Trivia API] SUPABASE_SERVICE_ROLE_KEY missing — RLS reads/writes will silently fail');
+            console.warn('[Trivia API] SUPABASE_SERVICE_ROLE_KEY missing - RLS reads/writes will silently fail');
         }
         const key = serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         _supabase = createClient(url, key);
@@ -438,7 +438,7 @@ async function buildRosterFromPool(supabase, today) {
     // non-fatal (we still serve the questions for this request).
     const nowIso = new Date().toISOString();
     if (!_hasServiceRole) {
-        console.warn('[Trivia API] skipping roster tagging — no service-role key, RLS would reject the write');
+        console.warn('[Trivia API] skipping roster tagging - no service-role key, RLS would reject the write');
         return chosen.map(({ last_used_at: _lastUsed, ...rest }) => rest);
     }
     await Promise.all(chosen.map((q, idx) =>

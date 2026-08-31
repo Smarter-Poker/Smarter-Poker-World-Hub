@@ -877,8 +877,8 @@ export default function SignUpPage() {
   return (
     <>
       <SEOHead
-        title="Create Account — Smarter.Poker"
-        description="Join Smarter.Poker — The Future Of Poker. Free Account With Training, Trivia, Live Games, And More."
+        title="Create Account - Smarter.Poker"
+        description="Join Smarter.Poker - The Future Of Poker. Free Account With Training, Trivia, Live Games, And More."
         canonical="/auth/signup"
       />
 
@@ -1775,7 +1775,7 @@ export default function SignUpPage() {
 
                 <div style={styles.playerNumberCard}>
                   <span style={styles.playerNumberLabel}>Your Player Number</span>
-                  <span style={styles.playerNumber}>#{assignedPlayerNumber || '—'}</span>
+                  <span style={styles.playerNumber}>#{assignedPlayerNumber || '-'}</span>
                   <span style={styles.playerNumberInfo}>
                     Your Universal ID Across PokerIQ, Diamond Arena & Club Arena
                   </span>

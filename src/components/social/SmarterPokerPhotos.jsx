@@ -494,7 +494,7 @@ export const PhotoAlbumGrid = ({ albums = [], onAlbumClick }) => (
                 </div>
                 <div className="album-info">
                     <h4 className="album-name">{album.name}</h4>
-                    <span className="album-count">{album.photoCount} photos</span>
+                    <span className="album-count">{album.photoCount} Photos</span>
                 </div>
             </div>
         ))}

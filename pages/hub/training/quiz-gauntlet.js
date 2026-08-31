@@ -594,7 +594,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                   <div aria-live="assertive">
                     <FeedbackCard
                       verdict={showFeedback === 'correct' || showFeedback === 'close' ? 'correct' : 'incorrect'}
-                      userAction={userAnswer ? `${userAnswer}${q.unit || ''}` : (showFeedback === 'timeout' ? 'No answer' : '—')}
+                      userAction={userAnswer ? `${userAnswer}${q.unit || ''}` : (showFeedback === 'timeout' ? 'No answer' : '-')}
                       solverAction={`${q.answer}${q.unit || ''}`}
                       evLoss={0}
                       whyShort={q.explanation ? q.explanation.replace(/\*\*/g, '') : ''}

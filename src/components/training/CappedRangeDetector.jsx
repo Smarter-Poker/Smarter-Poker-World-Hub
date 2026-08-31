@@ -12,7 +12,7 @@ const CAPPED_SPOTS = [
     exploit: 'Overbet the river. They can\'t have the nuts, so your overbets get max fold equity.' },
   { action: 'Villain 3-bets and c-bets small on A♥8♣3♦', capped: false, color: '#ef4444',
     maxHand: 'AA, AK (uncapped)',
-    reason: '3-bet range includes AA, AK. They\'re not capped — their range is strong.',
+    reason: '3-bet range includes AA, AK. They\'re not capped - their range is strong.',
     exploit: 'Don\'t try to overbet bluff. Their range has too many nutted hands.' },
   { action: 'Villain checks back flop on T♥9♣5♠', capped: true, color: '#22c55e',
     maxHand: 'Medium pairs, weak Tx, draws',
@@ -37,7 +37,7 @@ export default function CappedRangeDetector() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Capped Range Detector
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Spot when villain's range has a ceiling — then crush them.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Spot When Villain's Range Has A Ceiling - Then Crush Them.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {CAPPED_SPOTS.map((s, i) => (

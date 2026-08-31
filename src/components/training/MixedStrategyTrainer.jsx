@@ -125,7 +125,7 @@ export default function MixedStrategyTrainer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Mixed Strategy Trainer</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Practice executing GTO frequencies</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Practice Executing GTO Frequencies</div>
           </div>
           <div style={{
             padding: '4px 10px', borderRadius: 4,
@@ -217,7 +217,7 @@ export default function MixedStrategyTrainer() {
                   if (rngValue <= cum) {
                     return (
                       <span style={{ color: scenario.actions[i].color, fontSize: 12, fontWeight: 700 }}>
-                        GTO says: {scenario.actions[i].label}
+                        GTO Says: {scenario.actions[i].label}
                       </span>
                     );
                   }
@@ -246,14 +246,14 @@ export default function MixedStrategyTrainer() {
         {scenarioHistory.length > 0 && (
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-              Frequency Analysis ({scenarioHistory.length} samples)
+              Frequency Analysis ({scenarioHistory.length} Samples)
             </div>
             {drifts.map((d, i) => (
               <div key={i} style={{ marginBottom: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                   <span style={{ color: d.color, fontSize: 11, fontWeight: 600 }}>{d.action}</span>
                   <span style={{ color: d.drift < 10 ? '#22c55e' : d.drift < 20 ? '#f59e0b' : '#ef4444', fontSize: 10 }}>
-                    {d.actual}% actual vs {d.target}% target (drift: {d.drift}%)
+                    {d.actual}% Actual Vs {d.target}% Target (Drift: {d.drift}%)
                   </span>
                 </div>
                 <div style={{ position: 'relative', height: 12, background: 'rgba(0,0,0,0.3)', borderRadius: 6 }}>
@@ -279,7 +279,7 @@ export default function MixedStrategyTrainer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Mixed Strategy Trainer</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

@@ -132,7 +132,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                                 animate={{ opacity: 0.5 }}
                                 transition={{ delay: 1 }}
                             >
-                                Tap to skip
+                                Tap To Skip
                             </motion.div>
                         </motion.div>
                     )}

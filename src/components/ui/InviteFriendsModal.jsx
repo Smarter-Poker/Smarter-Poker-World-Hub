@@ -25,8 +25,8 @@ function getSupabase() {
 }
 
 // Share channel configurations
-const SHARE_MESSAGE = "Join me on Smarter.Poker — the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
-const SHARE_TITLE = "Join Smarter.Poker — Get 500 Free Diamonds!";
+const SHARE_MESSAGE = "Join me on Smarter.Poker - the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
+const SHARE_TITLE = "Join Smarter.Poker - Get 500 Free Diamonds!";
 
 export default function InviteFriendsModal({
     isOpen,
@@ -539,7 +539,7 @@ export default function InviteFriendsModal({
                         letterSpacing: '1px',
                         marginBottom: 12,
                     }}>
-                        Search Contacts to Message
+                        Search Contacts To Message
                     </div>
                     <div style={{
                         borderRadius: 12,

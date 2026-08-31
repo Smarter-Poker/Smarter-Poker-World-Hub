@@ -17,7 +17,7 @@ async function handler(req, res) {
     // world-callable.
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
-        console.warn('[late-reg-cron] CRON_SECRET is not configured — rejecting request');
+        console.warn('[late-reg-cron] CRON_SECRET is not configured - rejecting request');
         return res.status(500).json({ error: 'Server misconfigured' });
     }
     const authHeader = req.headers.authorization;

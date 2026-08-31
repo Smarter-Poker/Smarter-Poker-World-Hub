@@ -27,7 +27,7 @@ const PATTERNS = [
     frequency: 'Very common with missed flush/straight draws. They bluffed two streets and gave up.',
     adjust: 'Value bet thin on the river when villain checks after double-barreling. They\'re usually weak here.' },
   { pattern: 'Check-Check-Overbet (Bomb)', icon: '▲', color: '#8b5cf6',
-    meaning: 'Passive on early streets, then a massive river overbet. Very polarized — monster or nothing.',
+    meaning: 'Passive on early streets, then a massive river overbet. Very polarized - monster or nothing.',
     vsStrong: 'This is the ultimate polar line. They either have the nuts or complete air. Use MDF to decide.',
     frequency: 'Rare but impactful. At low stakes, this is almost always the nuts. Fold one pair.',
     adjust: 'At high stakes, this line includes more bluffs. At low stakes, respect the overbet heavily.' },
@@ -42,7 +42,7 @@ export default function BettingPatternRead() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Betting Pattern Reader
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Decode hand strength from multi-street betting lines.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Decode Hand Strength From Multi-Street Betting Lines.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PATTERNS.map((p, i) => (

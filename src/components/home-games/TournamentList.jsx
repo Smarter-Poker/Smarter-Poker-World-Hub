@@ -198,7 +198,7 @@ function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }
           <Coins className="w-4 h-4 shrink-0" />
           <span>{formatBuyIn(t.buy_in)}</span>
           {t.starting_stack ? (
-            <span className="text-[#64748B] text-xs">· {Number(t.starting_stack).toLocaleString()} stack</span>
+            <span className="text-[#64748B] text-xs">· {Number(t.starting_stack).toLocaleString()} Stack</span>
           ) : null}
         </div>
         <div className="flex items-center gap-1.5 text-sm text-[#94A3B8]">
@@ -237,7 +237,7 @@ function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }
           )}
           {isCancelled && (
             <p className="text-xs text-[#64748B] italic">
-              Cancelled — restore by recreating from the manage page.
+              Cancelled - Restore By Recreating From The Manage Page.
             </p>
           )}
         </div>

@@ -42,7 +42,7 @@ export default function SpinAndGoStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Spin & Go Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master hyper-turbo 3-max tournaments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master Hyper-Turbo 3-Max Tournaments.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {SPIN_PHASES.map((t, i) => (

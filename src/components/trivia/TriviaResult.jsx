@@ -106,7 +106,7 @@ export default function TriviaResult({
     }, []);
 
     const handleShare = async () => {
-        const text = `Poker Trivia ${grade.letter} Grade! ${safeCorrect}/${safeTotal} correct (${accuracy}%)${diamondsEarned > 0 ? ` — earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` — ${streak} day streak` : ''} on smarter.poker`;
+        const text = `Poker Trivia ${grade.letter} Grade! ${safeCorrect}/${safeTotal} correct (${accuracy}%)${diamondsEarned > 0 ? ` - earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` - ${streak} day streak` : ''} on smarter.poker`;
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
                 await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });
@@ -472,7 +472,7 @@ export default function TriviaResult({
                 {isArcade && shownTimeBonus > 0 && (
                     <div className="time-bonus">
                         <Clock size={16} />
-                        <span>+{shownTimeBonus} bonus diamonds for {timeRemaining}s remaining!</span>
+                        <span>+{shownTimeBonus} Bonus Diamonds For {timeRemaining}s Remaining!</span>
                     </div>
                 )}
 
@@ -538,7 +538,7 @@ export default function TriviaResult({
                 <div className="actions">
                     <Link href="/hub/trivia" className="action-btn secondary">
                         <Home size={18} />
-                        Back to Trivia
+                        Back To Trivia
                     </Link>
                     <button className="action-btn share" onClick={handleShare}>
                         <Share2 size={18} />
@@ -567,7 +567,7 @@ export default function TriviaResult({
                     {showDoubleButton && onDoubleOrNothing && (
                         <button className="action-btn double-or-nothing" onClick={onDoubleOrNothing}>
                             <Zap size={18} />
-                            Double or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
+                            Double Or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
                         </button>
                     )}
                 </div>

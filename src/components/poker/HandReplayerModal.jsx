@@ -245,7 +245,7 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {loading && <div style={{ color: '#888', padding: 16, textAlign: 'center', fontSize: 12 }}>Loading...</div>}
         {!loading && filtered.length === 0 && (
-          <div style={{ color: '#666', padding: 16, textAlign: 'center', fontSize: 12 }}>No hands found</div>
+          <div style={{ color: '#666', padding: 16, textAlign: 'center', fontSize: 12 }}>No Hands Found</div>
         )}
         {filtered.map(h => (
           <button

@@ -928,7 +928,7 @@ export default function ProfilePage() {
                                             broadcastSync('smarter_poker_avatar_sync', 'refresh');
                                         } catch { /* noop */ }
                                         busEmit.dataMutated('profile');
-                                        setMessage('Undo successful — previous profile restored.');
+                                        setMessage('Undo successful - previous profile restored.');
                                     } catch (e) {
                                         console.warn('Undo save error:', e);
                                         setMessage('Error: Could not undo. Please try again.');

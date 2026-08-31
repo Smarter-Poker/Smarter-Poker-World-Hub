@@ -453,7 +453,7 @@ export default function MixedModePage() {
     return (
         <TriviaErrorBoundary pageName="Mixed Mode">
             <SEOHead
-                title="Mixed Trivia — All Categories"
+                title="Mixed Trivia - All Categories"
                 description="Challenge Yourself With Mixed Poker Trivia Covering All Categories And Difficulty Levels."
                 canonical="/hub/trivia/mixed"
             />
@@ -657,7 +657,7 @@ export default function MixedModePage() {
 
                                 {capReached && (
                                     <div className="cap-note">
-                                        Daily diamond cap reached ({DAILY_DIAMOND_CAP}/day) — correct answers still count toward your category mastery!
+                                        Daily diamond cap reached ({DAILY_DIAMOND_CAP}/day) - correct answers still count toward your category mastery!
                                     </div>
                                 )}
 

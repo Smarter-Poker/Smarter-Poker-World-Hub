@@ -177,7 +177,7 @@ function CategoryBar({ label, icon, value, maxValue = 5 }) {
                 }} />
             </div>
             <span style={{ width: 24, fontSize: 12, fontWeight: 700, color: value ? barColor : T.textMuted, textAlign: 'right' }}>
-                {value ? value.toFixed(1) : '—'}
+                {value ? value.toFixed(1) : '-'}
             </span>
         </div>
     );
@@ -425,7 +425,7 @@ export default function VenueReviews({ venueId, venueName }) {
             {/* ═══════════════════════════════════════ */}
             <div className="vr-summary-panel">
                 <div className="vr-summary-left">
-                    <div className="vr-big-rating">{summary.avg_rating > 0 ? summary.avg_rating.toFixed(1) : '—'}</div>
+                    <div className="vr-big-rating">{summary.avg_rating > 0 ? summary.avg_rating.toFixed(1) : '-'}</div>
                     <StarRating rating={Math.round(summary.avg_rating)} size={18} />
                     <div className="vr-total-count">
                         {summary.total_reviews} {summary.total_reviews === 1 ? 'Review' : 'Reviews'}
@@ -507,7 +507,7 @@ export default function VenueReviews({ venueId, venueName }) {
                         <label className="vr-form-label">Your Review (Optional)</label>
                         <textarea
                             className="vr-form-textarea"
-                            placeholder="Tell other players about your experience — dealers, games, food, atmosphere..."
+                            placeholder="Tell other players about your experience - dealers, games, food, atmosphere..."
                             value={formText}
                             onChange={e => setFormText(e.target.value)}
                             maxLength={2000}

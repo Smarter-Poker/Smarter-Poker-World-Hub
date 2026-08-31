@@ -108,7 +108,7 @@ function RiskOfRuin({ sessions, bankroll }) {
 
   return (
     <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
-      <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Risk of Ruin</div>
+      <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Risk Of Ruin</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div>
           <div style={{ color: rorColor, fontSize: 28, fontWeight: 800 }}>{ror.toFixed(1)}%</div>
@@ -175,7 +175,7 @@ export default function BankrollTracker() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Bankroll Tracker</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track sessions, manage bankroll, calculate risk</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track Sessions, Manage Bankroll, Calculate Risk</div>
           </div>
           <button onClick={() => setShowAddForm(!showAddForm)} style={{
             padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -259,7 +259,7 @@ export default function BankrollTracker() {
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Stake Recommendation</div>
             <div style={{ color: '#f59e0b', fontSize: 11, marginBottom: 8 }}>
-              Max recommended: <strong>{stats.maxStake.label} NL</strong>
+              Max Recommended: <strong>{stats.maxStake.label} NL</strong>
             </div>
             {STAKES.map((s, i) => {
               const canPlay = stats.currentBR >= s.minBR;
@@ -270,7 +270,7 @@ export default function BankrollTracker() {
                     background: canPlay ? '#22c55e' : 'rgba(255,255,255,0.1)',
                   }} />
                   <span style={{ color: canPlay ? '#f1f5f9' : '#475569', fontSize: 10, flex: 1 }}>{s.label} NL</span>
-                  <span style={{ color: '#64748b', fontSize: 9 }}>${s.minBR.toLocaleString()} min</span>
+                  <span style={{ color: '#64748b', fontSize: 9 }}>${s.minBR.toLocaleString()} Min</span>
                 </div>
               );
             })}
@@ -280,7 +280,7 @@ export default function BankrollTracker() {
         {/* Session Log */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12 }}>
           <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-            Session Log ({sessions.length} sessions, {stats.totalHours.toFixed(1)}hrs)
+            Session Log ({sessions.length} Sessions, {stats.totalHours.toFixed(1)}hrs)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 60px 60px 60px 60px 1fr', gap: 4, marginBottom: 6 }}>
             {['Date', 'Stakes', 'Buy-In', 'Out', 'P/L', 'Notes'].map(h => (
@@ -312,7 +312,7 @@ export default function BankrollTracker() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Bankroll Tracker</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

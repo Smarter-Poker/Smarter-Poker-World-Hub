@@ -32,7 +32,7 @@ export default function SmartPracticeCard({ handHistory, onStartPractice }) {
             </div>
 
             <div style={styles.body}>
-                <div style={styles.weaknessLabel}>Your weakest area:</div>
+                <div style={styles.weaknessLabel}>Your Weakest Area:</div>
                 <div style={styles.weaknessName}>{w.label}</div>
 
                 <div style={styles.statsRow}>

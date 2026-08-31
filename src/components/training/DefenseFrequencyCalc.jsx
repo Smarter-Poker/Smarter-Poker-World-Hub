@@ -21,7 +21,7 @@ const STREET_SCENARIOS = [
   { name: 'Flop vs 33% C-Bet', street: 'Flop', betPct: 33, potSize: 6, villainRange: 'Wide (65%)', heroDefense: 'Call with all pairs, draws, overcards. Fold bottom of range.' },
   { name: 'Turn vs 67% Barrel', street: 'Turn', betPct: 67, potSize: 14, villainRange: 'Polarizing (45%)', heroDefense: 'Call with top pair+, strong draws. Fold weak pairs, missed draws.' },
   { name: 'River vs Pot Overbet', street: 'River', betPct: 150, potSize: 32, villainRange: 'Very Polarized (25%)', heroDefense: 'Call with two pair+, strong blockers. Fold most one pair.' },
-  { name: 'River vs 33% Thin Value', street: 'River', betPct: 33, potSize: 20, villainRange: 'Merged (60%)', heroDefense: 'Call very wide — villain bets thin. Only fold pure air.' },
+  { name: 'River vs 33% Thin Value', street: 'River', betPct: 33, potSize: 20, villainRange: 'Merged (60%)', heroDefense: 'Call very wide - villain bets thin. Only fold pure air.' },
 ];
 
 function DefenseFrequencyCalc() {
@@ -75,14 +75,14 @@ function DefenseFrequencyCalc() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Bet Size (% of pot)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Bet Size (% Of Pot)</div>
             <input type="range" min={10} max={300} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#2dd4bf' }} />
             <div style={{ fontSize: 20, fontWeight: 800, color: '#2dd4bf', textAlign: 'center' }}>{betPct}%</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (bb)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
             <input type="range" min={2} max={100} step={1} value={potSize} onChange={e => setPotSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#2dd4bf' }} />
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{potSize} bb</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{potSize} BB</div>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ function DefenseFrequencyCalc() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{s.name}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#2dd4bf' }}>MDF: {mdf}%</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain range: {s.villainRange}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain Range: {s.villainRange}</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{s.heroDefense}</div>
                 </div>
               );
@@ -146,7 +146,7 @@ function DefenseFrequencyCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Defense Frequency Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Defense Frequency Calculator Failed To Load: {err.message}</div>;
   }
 }
 

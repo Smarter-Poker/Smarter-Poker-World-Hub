@@ -246,7 +246,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                 onChange={e => setEditForm({ ...editForm, location_id: e.target.value || null })}
                                 style={styles.formInput}
                             >
-                                <option value="">— Select Location —</option>
+                                <option value="">- Select Location -</option>
                                 {locations.map(loc => (
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
@@ -315,7 +315,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                         <div key={entry.id} style={styles.entryRow}>
                                             <div style={styles.entryInfo}>
                                                 <span style={styles.entryDate}>
-                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                                                 </span>
                                                 <span style={styles.entryCat}>{catLabel}</span>
                                                 {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
@@ -519,11 +519,11 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                     {trip.location_name && <span>{trip.location_name}</span>}
                                     <span>{new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
                                     {trip.end_date && (
-                                        <span> — {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
+                                        <span> - {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
                                     )}
                                 </div>
                                 <div style={styles.tripCardFooter}>
-                                    <span>{trip.entryCount || 0} entries</span>
+                                    <span>{trip.entryCount || 0} Entries</span>
                                     <span style={styles.viewReportLink}>View Report →</span>
                                 </div>
                             </motion.div>

@@ -8,19 +8,19 @@ import { motion } from 'framer-motion';
 const DRAWS = [
   { name: 'Nut Flush Draw', outs: 9, equity: '35%', icon: '♥', color: '#ef4444',
     play: 'Semi-bluff aggressively. Check-raise or bet when you have fold equity. Call when priced in.',
-    sizing: 'Bet 66-75% or check-raise to 3x as semi-bluff', avoid: 'Passive calling on the flop — you have too much equity to just call' },
+    sizing: 'Bet 66-75% or check-raise to 3x as semi-bluff', avoid: 'Passive calling on the flop - you have too much equity to just call' },
   { name: 'Open-Ended Straight', outs: 8, equity: '31%', icon: '·', color: '#f59e0b',
     play: 'Similar to flush draws but slightly less equity. Semi-bluff in position, check-call OOP.',
-    sizing: 'Bet 55-66% as semi-bluff, call reasonable bets', avoid: 'Overplaying gutshots as OESDs — count your outs carefully' },
+    sizing: 'Bet 55-66% as semi-bluff, call reasonable bets', avoid: 'Overplaying gutshots as OESDs - count your outs carefully' },
   { name: 'Combo Draw (Flush + Straight)', outs: 15, equity: '54%', icon: '◆', color: '#22c55e',
     play: 'You\'re actually a FAVORITE. Play ultra-aggressively. Get it all in on the flop if possible.',
-    sizing: 'Check-raise all-in or bet 100% pot. You want max money in.', avoid: 'Playing passively with a combo draw — you\'re leaving money on the table' },
+    sizing: 'Check-raise all-in or bet 100% pot. You want max money in.', avoid: 'Playing passively with a combo draw - you\'re leaving money on the table' },
   { name: 'Gutshot', outs: 4, equity: '17%', icon: '●', color: '#64748b',
     play: 'Mostly a fold or a bluff. Not enough equity to call big bets. Use as bluff candidates.',
-    sizing: 'Only semi-bluff when you have strong fold equity', avoid: 'Calling large bets hoping to hit — pot odds rarely justify it' },
+    sizing: 'Only semi-bluff when you have strong fold equity', avoid: 'Calling large bets hoping to hit - pot odds rarely justify it' },
   { name: 'Backdoor Flush + Backdoor Straight', outs: '~6', equity: '~12%', icon: '↻', color: '#8b5cf6',
     play: 'Not enough to call big bets alone, but great to add to your floating/bluffing range.',
-    sizing: 'Float flop bets in position, barrel favorable turns', avoid: 'Overvaluing backdoor draws — they\'re a bonus, not a primary draw' },
+    sizing: 'Float flop bets in position, barrel favorable turns', avoid: 'Overvaluing backdoor draws - they\'re a bonus, not a primary draw' },
 ];
 
 export default function DrawPlayingGuide() {
@@ -32,7 +32,7 @@ export default function DrawPlayingGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Draw Playing Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Every draw type, how many outs, and the optimal way to play it.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Every Draw Type, How Many Outs, And The Optimal Way To Play It.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {DRAWS.map((d, i) => (
@@ -51,13 +51,13 @@ export default function DrawPlayingGuide() {
           <span style={{ fontSize: 32 }}>{draw.icon}</span>
           <div>
             <div style={{ fontSize: 18, fontWeight: 800, color: draw.color }}>{draw.name}</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>{draw.outs} outs | {draw.equity} equity (2 cards)</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{draw.outs} Outs | {draw.equity} Equity (2 Cards)</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How to Play</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Play</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{draw.play}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>

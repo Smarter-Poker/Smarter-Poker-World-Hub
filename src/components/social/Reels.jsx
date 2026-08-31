@@ -1361,7 +1361,7 @@ export function ReelsViewer({ onClose }) {
       setCommentCounts((prev) => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
     } catch {
       setReelComments((prev) => prev.filter((c) => c.id !== tempId));
-      showErrorToast('Comment failed — please try again');
+      showErrorToast('Comment failed - please try again');
     }
   };
 
@@ -1551,7 +1551,7 @@ export function ReelsViewer({ onClose }) {
       // other errors on share failures. Only show the copy toast for actual copy failures.
       if (platform === 'copy') {
         // Clipboard copy failed — try fallback via selection
-        showErrorToast('Copy failed — try again');
+        showErrorToast('Copy failed - try again');
       }
       // For native/x/facebook/whatsapp failures, the window.open already fired or
       // navigator.share was cancelled by user; no toast needed.
@@ -1865,11 +1865,11 @@ export function ReelsViewer({ onClose }) {
       videoStallTimerRef.current = null;
       const v = videoRef.current;
       if (v && v.readyState < 2) {
-        console.warn('[ReelsViewer] video stall watchdog tripped — auto-skipping', {
+        console.warn('[ReelsViewer] video stall watchdog tripped - auto-skipping', {
           src: url,
           readyState: v.readyState,
           networkState: v.networkState,
-          reason: 'No metadata after 6s — likely HEVC/corrupt/dead URL',
+          reason: 'No metadata after 6s - likely HEVC/corrupt/dead URL',
         });
         if (typeof window !== 'undefined') {
           window.__reelStallSkip = (window.__reelStallSkip || 0) + 1;
@@ -1980,7 +1980,7 @@ export function ReelsViewer({ onClose }) {
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
         <div style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>Failed To Load Reels</div>
         <div style={{ color: C.textSec, fontSize: 14, marginBottom: 20 }}>
-          Please check your connection and try again.
+          Please Check Your Connection And Try Again.
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
@@ -2317,7 +2317,7 @@ export function ReelsViewer({ onClose }) {
                     code: err?.code,
                     message: err?.message,
                     src: url,
-                    suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264',
+                    suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
                   });
                   if (typeof window !== 'undefined') {
                     window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
@@ -3089,7 +3089,7 @@ export function ReelsViewer({ onClose }) {
                             cursor: 'pointer',
                           }}
                         >
-                          x
+                          X
                         </button>
                       </div>
                     </div>
@@ -3110,7 +3110,7 @@ export function ReelsViewer({ onClose }) {
                             fontSize: 14,
                           }}
                         >
-                          No comments yet. Be the first!
+                          No Comments Yet. Be The First!
                         </div>
                       )}
                       {reelComments.map((c, i) => (
@@ -3465,7 +3465,7 @@ export function ReelsViewer({ onClose }) {
                             marginLeft: 'auto',
                           }}
                         >
-                          x
+                          X
                         </button>
                       </div>
                     )}
@@ -3917,7 +3917,7 @@ export function ReelsViewer({ onClose }) {
                             >
                               <path d="M20 6L9 17l-5-5" />
                             </svg>{' '}
-                            Shared to My Feed!
+                            Shared To My Feed!
                           </>
                         ) : (
                           <>
@@ -3933,7 +3933,7 @@ export function ReelsViewer({ onClose }) {
                               <polyline points="16 6 12 2 8 6" />
                               <line x1="12" y1="2" x2="12" y2="15" />
                             </svg>{' '}
-                            Share to My Feed
+                            Share To My Feed
                           </>
                         )}
                       </button>
@@ -4098,7 +4098,7 @@ export function ReelsViewer({ onClose }) {
                         }}
                       >
                         <div style={{ color: 'white', fontWeight: 700, fontSize: 17 }}>
-                          Share to My Feed
+                          Share To My Feed
                         </div>
                         <button
                           onClick={() => setShowShareDescriptionModal(false)}
@@ -4223,7 +4223,7 @@ export function ReelsViewer({ onClose }) {
                               <polyline points="16 6 12 2 8 6" />
                               <line x1="12" y1="2" x2="12" y2="15" />
                             </svg>{' '}
-                            Post to My Feed
+                            Post To My Feed
                           </>
                         )}
                       </button>
@@ -4245,7 +4245,7 @@ export function ReelsViewer({ onClose }) {
                           fontWeight: 500,
                         }}
                       >
-                        Skip Description — Share Now
+                        Skip Description - Share Now
                       </button>
                     </div>
                   </div>
@@ -4328,7 +4328,7 @@ export function ReelsViewer({ onClose }) {
                           <div
                             style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}
                           >
-                            Thank you. We will review this content.
+                            Thank You. We Will Review This Content.
                           </div>
                         </div>
                       ) : (
@@ -4350,7 +4350,7 @@ export function ReelsViewer({ onClose }) {
                               marginBottom: 12,
                             }}
                           >
-                            Why are you reporting this content?
+                            Why Are You Reporting This Content?
                           </div>
                           {[
                             'Inappropriate Content',

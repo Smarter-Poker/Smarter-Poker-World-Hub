@@ -108,7 +108,7 @@ export default async function handler(req) {
                                 color: 'rgba(255,255,255,0.5)',
                                 marginTop: 4,
                             }}>
-                                {stakes} — {venue}
+                                {stakes} - {venue}
                             </div>
                         </div>
                         <div style={{

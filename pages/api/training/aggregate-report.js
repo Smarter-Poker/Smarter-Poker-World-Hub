@@ -70,16 +70,16 @@ function classifyFlopTexture(board) {
 
 // Texture display names and colors
 const TEXTURE_META = {
-    monotone: { label: 'Monotone', color: '#8b5cf6', icon: '♠♠♠', desc: 'All same suit — flush draws dominate' },
-    trips: { label: 'Trips', color: '#ef4444', icon: '◇', desc: 'Three of a kind on board — rare' },
+    monotone: { label: 'Monotone', color: '#8b5cf6', icon: '♠♠♠', desc: 'All same suit - flush draws dominate' },
+    trips: { label: 'Trips', color: '#ef4444', icon: '◇', desc: 'Three of a kind on board - rare' },
     paired_two_tone: { label: 'Paired Two-Tone', color: '#f97316', icon: '♦♦♠', desc: 'One pair + flush draw possible' },
     paired_rainbow: { label: 'Paired Rainbow', color: '#f59e0b', icon: '◇♦♦', desc: 'One pair, no flush draws' },
-    connected_two_tone: { label: 'Connected Two-Tone', color: '#3b82f6', icon: '↗♠♦', desc: 'Straight + flush draws — wet' },
+    connected_two_tone: { label: 'Connected Two-Tone', color: '#3b82f6', icon: '↗♠♦', desc: 'Straight + flush draws - wet' },
     connected_broadway: { label: 'Connected Broadway', color: '#06b6d4', icon: '↗KQJ', desc: 'High connected cards' },
     connected_rainbow: { label: 'Connected Rainbow', color: '#22c55e', icon: '↗◇', desc: 'Straight draws only' },
     broadway_two_tone: { label: 'Broadway Two-Tone', color: '#a855f7', icon: 'AK♠♦', desc: 'High cards with flush draw' },
     broadway_rainbow: { label: 'Broadway Rainbow', color: '#14b8a6', icon: 'AK◇', desc: 'High cards, dry' },
-    two_tone: { label: 'Two-Tone', color: '#64748b', icon: '♠♦', desc: 'Two suits — standard' },
+    two_tone: { label: 'Two-Tone', color: '#64748b', icon: '♠♦', desc: 'Two suits - standard' },
     ace_high_dry: { label: 'Ace-High Dry', color: '#e2e8f0', icon: 'A-x-x', desc: 'Ace high, disconnected' },
     king_high_dry: { label: 'King-High Dry', color: '#cbd5e1', icon: 'K-x-x', desc: 'King high, disconnected' },
     low_dry: { label: 'Low Dry', color: '#94a3b8', icon: '2-5-8', desc: 'Low disconnected rainbow' },

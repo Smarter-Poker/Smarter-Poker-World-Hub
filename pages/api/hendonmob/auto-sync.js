@@ -74,7 +74,7 @@ Body (JSON):
 
 IMPORTANT RULES:
 - Every value MUST come from an explicit label on the page
-- If you cannot find a labeled stat, set it to null — do NOT guess
+- If you cannot find a labeled stat, set it to null - do NOT guess
 - Remove dollar signs and commas from numbers before sending (e.g. "$900,957" → 900957)
 - If the page is blocked or fails to load, skip that player and move on
 

@@ -101,7 +101,7 @@ export default function PeakHoursHeatmap({ venueId }) {
                 border: `1px solid ${T.border}`, padding: 16,
                 color: T.textSec, fontSize: 13, textAlign: 'center',
             }}>
-                Activity Heatmap Not Yet Available — Needs Historical Data
+                Activity Heatmap Not Yet Available - Needs Historical Data
             </div>
         );
     }

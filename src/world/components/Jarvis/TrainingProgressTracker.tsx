@@ -59,7 +59,7 @@ What specific training games should I play next to improve fastest?`;
                 textAlign: 'center',
                 color: 'rgba(255, 255, 255, 0.5)'
             }}>
-                Loading training data...
+                Loading Training Data...
             </div>
         );
     }
@@ -252,7 +252,7 @@ What specific training games should I play next to improve fastest?`;
                                 color: 'rgba(255, 255, 255, 0.5)'
                             }}>
                                 <span>{session.date}</span>
-                                <span>{session.duration} min</span>
+                                <span>{session.duration} Min</span>
                             </div>
                         </div>
                     ))}

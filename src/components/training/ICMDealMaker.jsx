@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DEAL_SCENARIOS = [
-  { scenario: '3 Players — You\'re Chip Leader', icon: '★', color: '#22c55e',
+  { scenario: '3 Players - You\'re Chip Leader', icon: '★', color: '#22c55e',
     stacks: 'You: 500K | P2: 300K | P3: 200K',
     prizes: '1st: $5,000 | 2nd: $3,000 | 3rd: $2,000',
     icmEquity: 'You: $3,920 | P2: $3,450 | P3: $2,630',
     chipChop: 'You: $5,000 | P2: $3,000 | P3: $2,000',
     advice: 'ICM gives you less than chip chop. Push for chip chop or chip leader premium. Don\'t accept ICM flat.' },
-  { scenario: '3 Players — You\'re Short Stack', icon: '▼', color: '#ef4444',
+  { scenario: '3 Players - You\'re Short Stack', icon: '▼', color: '#ef4444',
     stacks: 'P1: 500K | P2: 300K | You: 200K',
     prizes: '1st: $5,000 | 2nd: $3,000 | 3rd: $2,000',
     icmEquity: 'P1: $3,920 | P2: $3,450 | You: $2,630',
     chipChop: 'P1: $5,000 | P2: $3,000 | You: $2,000',
-    advice: 'ICM gives you $630 MORE than chip chop. Push hard for ICM deal — it heavily favors short stacks.' },
-  { scenario: '4 Players — Pay Bubble', icon: '●', color: '#f59e0b',
+    advice: 'ICM gives you $630 MORE than chip chop. Push hard for ICM deal - it heavily favors short stacks.' },
+  { scenario: '4 Players - Pay Bubble', icon: '●', color: '#f59e0b',
     stacks: 'P1: 400K | P2: 300K | P3: 200K | You: 100K',
     prizes: '1st: $8K | 2nd: $5K | 3rd: $3K | 4th: $0',
     icmEquity: 'P1: $5,280 | P2: $4,510 | P3: $3,560 | You: $2,650',
@@ -47,7 +47,7 @@ export default function ICMDealMaker() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ICM Deal Maker
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Negotiate final table deals with ICM equity.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Negotiate Final Table Deals With ICM Equity.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {DEAL_SCENARIOS.map((s, i) => (

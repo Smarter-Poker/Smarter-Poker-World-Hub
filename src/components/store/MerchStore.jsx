@@ -1566,8 +1566,8 @@ export default function MerchStore({
             }}
           >
             <span>
-              Live price, option, stock, wishlist, cart, card, and diamond controls are verified
-              below.
+              Live Price, Option, Stock, Wishlist, Cart, Card, And Diamond Controls Are Verified
+              Below.
             </span>
             <span style={{ color: CYAN }}>
               {user?.id ? `Wallet: ${fmt(balance)} Diamonds` : 'Sign In To Purchase'}

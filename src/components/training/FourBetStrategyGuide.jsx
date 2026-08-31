@@ -96,7 +96,7 @@ function FourBetStrategyGuide() {
 
         {/* Postflop play */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Postflop in 4-Bet Pots:</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Postflop In 4-Bet Pots:</div>
           {s.postflop.map((p, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4, display: 'flex', gap: 8 }}>
               <div style={{ minWidth: 65, fontSize: 10, fontWeight: 700, color: s.color }}>{p.board}</div>
@@ -111,7 +111,7 @@ function FourBetStrategyGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>4-Bet Strategy failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>4-Bet Strategy Failed To Load: {err.message}</div>;
   }
 }
 

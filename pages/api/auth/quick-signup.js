@@ -119,6 +119,6 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_) { /* never let logging break the handler */ }
         console.warn('[quick-signup] handler error:', err);
-        return res.status(500).json({ error: 'Server error — please try again' });
+        return res.status(500).json({ error: 'Server error - please try again' });
     }
 }

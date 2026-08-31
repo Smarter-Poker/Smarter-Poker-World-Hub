@@ -95,7 +95,7 @@ export default function StudyStreakMap({ sessionHistory = [] }) {
             <div style={styles.header}>
                 <div>
                     <h3 style={styles.title}>Study Routine</h3>
-                    <p style={styles.subtitle}>{sessionHistory.length} sessions recorded</p>
+                    <p style={styles.subtitle}>{sessionHistory.length} Sessions Recorded</p>
                 </div>
                 <div style={styles.statsRow}>
                     <div style={styles.statBox}>
@@ -256,7 +256,7 @@ export function StudyStreakMapAuto({ userId, gameId }) {
     if (loading) {
         return (
             <div style={{ ...styles.container, textAlign: 'center', padding: 20 }}>
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Loading study routine...</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Loading Study Routine...</div>
             </div>
         );
     }

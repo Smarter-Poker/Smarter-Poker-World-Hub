@@ -288,7 +288,7 @@ const BetSlider: React.FC<{
                     className="bet-value"
                     animate={showSnap ? { scale: [1, 1.2, 1] } : {}}
                 >
-                    {displayValue}% pot
+                    {displayValue}% Pot
                     {showSnap && <span className="snap-icon"></span>}
                 </motion.span>
             </div>
@@ -1181,7 +1181,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                                     exit={{ opacity: 0 }}
                                 >
                                     <span className="thinking-dots">
-                                        Villain is thinking
+                                        Villain Is Thinking
                                         <motion.span
                                             animate={{ opacity: [0, 1, 0] }}
                                             transition={{ duration: 1.5, repeat: Infinity }}

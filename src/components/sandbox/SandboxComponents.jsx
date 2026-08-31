@@ -480,12 +480,12 @@ export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
                     {onPickHand && (
                         <button type="button" className="pa-btn" onClick={() => onPickHand(pinned)}
                             style={{ ...btn('ghost'), minHeight: 44, padding: '0 10px', fontSize: F.caption, color: T.accent, marginLeft: 'auto' }}>
-                            Use this hand
+                            Use This Hand
                         </button>
                     )}
                 </>
             ) : (
-                <span style={{ fontSize: F.caption, color: T.textMuted }}>Tap any cell to see its action mix.</span>
+                <span style={{ fontSize: F.caption, color: T.textMuted }}>Tap Any Cell To See Its Action Mix.</span>
             )}
         </div>
     );
@@ -493,7 +493,7 @@ export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={{ ...sectionHeader, marginBottom: S.sm }}>
-                <p style={sectionTitle}>Hand grid</p>
+                <p style={sectionTitle}>Hand Grid</p>
                 <button type="button" className="pa-btn" onClick={() => setExpanded(true)} aria-label="Expand range grid to full screen"
                     style={{ ...btn('ghost'), minHeight: 44, padding: '0 10px', fontSize: F.caption, color: T.accent }}>
                     <Maximize2 size={16} strokeWidth={2} aria-hidden="true" />Expand
@@ -652,7 +652,7 @@ export function ActionHistoryBuilder({
     return (
         <div style={{ ...card, padding: S.md }}>
             <div style={sectionHeader}>
-                <p style={sectionTitle}>Action line</p>
+                <p style={sectionTitle}>Action Line</p>
                 <span style={{ ...pill(state.facingBet ? 'warn' : 'success'), ...NUM }}>
                     Pot {(Number(state.pot) || 0).toFixed(1)} BB
                 </span>
@@ -660,8 +660,8 @@ export function ActionHistoryBuilder({
 
             {/* Live node maths · pot odds and MDF are the whole point of the builder */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm, marginBottom: S.md }}>
-                {state.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To call {state.toCall} BB</span>}
-                {state.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot odds {state.potOdds}%</span>}
+                {state.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To Call {state.toCall} BB</span>}
+                {state.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot Odds {state.potOdds}%</span>}
                 {state.mdf != null && <span style={{ ...pill('neutral'), ...NUM }}>MDF {state.mdf}%</span>}
                 {state.spr != null && <span style={{ ...pill('accent'), ...NUM }}>SPR {state.spr}</span>}
             </div>
@@ -711,7 +711,7 @@ export function ActionHistoryBuilder({
                     </div>
                     {outOfTurn && (
                         <p style={{ fontSize: F.caption, color: T.warn, margin: `0 0 ${S.sm}px` }}>
-                            It is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;s turn · adding out of turn.
+                            It Is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;S Turn · Adding Out Of Turn.
                         </p>
                     )}
                     <div
@@ -798,7 +798,7 @@ export function SizingSensitivity({ results }) {
 
     return (
         <div className="pa-chart-panel" style={{ ...cardCompact, background: T.surface2, marginBottom: S.md }}>
-            <div style={sectionHeader}><p style={sectionTitle}>Sizing sensitivity</p></div>
+            <div style={sectionHeader}><p style={sectionTitle}>Sizing Sensitivity</p></div>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SIZING_COLUMNS.length}, minmax(0,1fr))`, gap: S.xs }}>
                 {SIZING_COLUMNS.map(({ label: size, pct }) => {
                     // Sum in case the solver returns two ids that normalize to
@@ -892,8 +892,8 @@ export function TreeVisualization({ actions, archetypeId = 'gto_neutral', potSiz
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
-                <p style={sectionTitle}>Decision tree</p>
-                <span style={{ fontSize: F.caption, color: T.textDim }}>vs {archetypeId.replace(/_/g, ' ')}</span>
+                <p style={sectionTitle}>Decision Tree</p>
+                <span style={{ fontSize: F.caption, color: T.textDim }}>Vs {archetypeId.replace(/_/g, ' ')}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
                 {live.map((action) => {
@@ -942,7 +942,7 @@ export function TreeVisualization({ actions, archetypeId = 'gto_neutral', potSiz
                                                     </span>
                                                     {heroEquity != null && r.id !== 'fold' && (
                                                         <span style={{ fontSize: F.caption, color: heroEquity >= 50 ? T.success : T.warn, ...NUM }}>
-                                                            {Math.round(heroEquity)}% eq
+                                                            {Math.round(heroEquity)}% Eq
                                                         </span>
                                                     )}
                                                 </button>
@@ -1101,7 +1101,7 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
                             {current.text}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm }}>
-                            <span style={{ color: T.textDim, fontSize: F.caption, fontWeight: 700 }}>{step + 1} of {TOUR_STEPS.length}</span>
+                            <span style={{ color: T.textDim, fontSize: F.caption, fontWeight: 700 }}>{step + 1} Of {TOUR_STEPS.length}</span>
                             <div style={{ display: 'flex', gap: S.sm }}>
                                 <button type="button" className="pa-btn" onClick={onClose} style={btn('secondary')}>Skip</button>
                                 <button type="button" className="pa-btn" onClick={() => (step < TOUR_STEPS.length - 1 ? onNext() : onClose())} style={btn('primary')}>
@@ -1282,7 +1282,7 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
             {streetHistory.length < 3 && (
                 <div style={{ flex: '1 0 88px', minWidth: 88, minHeight: 56, padding: S.sm, borderRadius: R.sm, textAlign: 'center', border: `1px dashed ${T.borderHi}`, scrollSnapAlign: 'start' }}>
                     <div style={{ fontSize: F.caption, color: T.textMuted, fontWeight: 700 }}>{nextStreetLabel(streetHistory, streets)}</div>
-                    <div style={{ fontSize: F.caption, color: T.textDim, marginTop: 2 }}>Deal to unlock</div>
+                    <div style={{ fontSize: F.caption, color: T.textDim, marginTop: 2 }}>Deal To Unlock</div>
                 </div>
             )}
         </div>
@@ -1306,7 +1306,7 @@ export function AnalysisSkeleton() {
             <div className="pa-skel" style={{ ...block, height: 40, marginTop: S.lg, width: '80%' }} />
             <div className="pa-skel" style={{ ...block, height: 120, marginTop: S.md }} />
             <div style={{ textAlign: 'center', color: T.textMuted, fontSize: F.caption, marginTop: S.md }}>
-                Analyzing hand…
+                Analyzing Hand…
             </div>
         </div>
     );
@@ -1332,7 +1332,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>
-                    {position} range · {rangePercent}%{hasCheck ? ' (checked through)' : ''}
+                    {position} Range · {rangePercent}%{hasCheck ? ' (checked through)' : ''}
                 </p>
                 <div style={{ display: 'flex', gap: S.sm }}>
                     {['rfi', '3bet'].map(s => (
@@ -1405,7 +1405,7 @@ export function RunoutChart({ runoutData }) {
             </div>
             <div style={{ display: 'flex', gap: S.md }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: F.caption, color: T.success, fontWeight: 700, marginBottom: S.xs }}>Best cards</div>
+                    <div style={{ fontSize: F.caption, color: T.success, fontWeight: 700, marginBottom: S.xs }}>Best Cards</div>
                     {runoutData.bestCards.map((c, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
                             <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
@@ -1414,7 +1414,7 @@ export function RunoutChart({ runoutData }) {
                     ))}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: F.caption, color: T.danger, fontWeight: 700, marginBottom: S.xs }}>Worst cards</div>
+                    <div style={{ fontSize: F.caption, color: T.danger, fontWeight: 700, marginBottom: S.xs }}>Worst Cards</div>
                     {runoutData.worstCards.map((c, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
                             <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
@@ -1485,7 +1485,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, 
                     {isCorrect ? 'Correct' : 'Incorrect'}
                 </div>
                 <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
-                    You chose <strong style={{ color: T.text }}>{userGuess}</strong> · GTO: <strong style={{ color: T.accent }}>{correctAction}</strong>
+                    You Chose <strong style={{ color: T.text }}>{userGuess}</strong> · GTO: <strong style={{ color: T.accent }}>{correctAction}</strong>
                 </div>
                 {score && (
                     <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...NUM }}>
@@ -1498,7 +1498,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, 
 
     return (
         <div style={{ padding: S.md, borderRadius: R.md, marginBottom: S.md, background: T.accentSoft, border: `1px solid rgba(99,231,255,0.35)` }}>
-            <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.accent, marginBottom: S.sm }}>What would you do?</div>
+            <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.accent, marginBottom: S.sm }}>What Would You Do?</div>
             {prompt && <p style={{ fontSize: F.bodySm, color: T.text, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>{prompt}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: S.sm }}>
                 {actions.map(a => (
@@ -1525,7 +1525,7 @@ export function StudyReplayCard({ session, index, total, onNext, onPrev }) {
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
-                <p style={sectionTitle}>Study card {index + 1} of {total}</p>
+                <p style={sectionTitle}>Study Card {index + 1} Of {total}</p>
                 <div style={{ display: 'flex', gap: S.sm }}>
                     <button type="button" className="pa-btn" onClick={onPrev} disabled={index === 0} aria-label="Previous study card"
                         style={{ ...btn('secondary', { disabled: index === 0 }), padding: '0 12px', fontSize: F.caption }}>Prev</button>
@@ -1587,7 +1587,7 @@ export function StatusStrip({ quizScore, coachStreak = 0, equity = null, pot = n
         }}>
             {handClass && <span style={{ ...pill('accent'), flexShrink: 0 }}>{handClass}</span>}
             {equity != null && Number.isFinite(Number(equity)) && (
-                <span style={{ ...pill(Number(equity) >= 50 ? 'success' : 'warn'), ...NUM, flexShrink: 0 }}>{Number(equity).toFixed(1)}% eq</span>
+                <span style={{ ...pill(Number(equity) >= 50 ? 'success' : 'warn'), ...NUM, flexShrink: 0 }}>{Number(equity).toFixed(1)}% Eq</span>
             )}
             {pot != null && <span style={{ ...pill('neutral'), ...NUM, flexShrink: 0 }}>Pot {Number(pot).toFixed(1)} BB</span>}
             {spr != null && <span style={{ ...pill('neutral'), ...NUM, flexShrink: 0 }}>SPR {spr}</span>}
@@ -1600,7 +1600,7 @@ export function StatusStrip({ quizScore, coachStreak = 0, equity = null, pot = n
             {dueCount > 0 && (
                 <button type="button" className="pa-btn" onClick={onDue}
                     style={{ ...btn('purple'), borderRadius: R.pill, padding: '0 14px', fontSize: F.caption, flexShrink: 0 }}>
-                    Due today ({dueCount})
+                    Due Today ({dueCount})
                 </button>
             )}
         </div>
@@ -1625,7 +1625,7 @@ export function LeaderboardCard({ entries, loading = false, error = null }) {
             <div role="alert" style={{ ...errorWrap, marginBottom: S.md }}>
                 <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
                 <div>
-                    <div style={errorTitle}>Leaderboard unavailable</div>
+                    <div style={errorTitle}>Leaderboard Unavailable</div>
                     <div style={errorBody}>{error}</div>
                 </div>
             </div>
@@ -1701,7 +1701,7 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet, onSel
 
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
-            <div style={sectionHeader}><p style={sectionTitle}>Equity progression</p></div>
+            <div style={sectionHeader}><p style={sectionTitle}>Equity Progression</p></div>
             <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
                 aria-label={`Equity by street: ${points.map(p => `${p.street} ${Math.round(p.equity)} percent`).join(', ')}`}
                 style={{ display: 'block', overflow: 'visible' }}>
@@ -1834,7 +1834,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                     icon={<Filter size={24} strokeWidth={2} aria-hidden="true" />}
                     title="Nothing matches"
                     body="No hands match this filter yet."
-                    action={<button type="button" className="pa-btn" onClick={() => setFilter('all')} style={btn('secondary')}>Show all</button>}
+                    action={<button type="button" className="pa-btn" onClick={() => setFilter('all')} style={btn('secondary')}>Show All</button>}
                 />
             ) : (
                 <>
@@ -1872,7 +1872,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                     {ordered.length > visible.length && (
                         <button type="button" className="pa-btn" onClick={() => setLimit(l => l + 24)}
                             style={{ ...btn('secondary', { block: true }), marginTop: S.sm }}>
-                            Load 24 more ({ordered.length - visible.length} left)
+                            Load 24 More ({ordered.length - visible.length} Left)
                         </button>
                     )}
                 </>
@@ -1922,7 +1922,7 @@ export function CoachActionPicker({
             labelledBy="pa-coach-title"
             footer={(
                 <button type="button" className="pa-btn" onClick={onSkip} style={btn('ghost', { block: true })}>
-                    Skip · just show the answer
+                    Skip · Just Show The Answer
                 </button>
             )}
         >
@@ -1933,7 +1933,7 @@ export function CoachActionPicker({
                         {handCards.length ? handCards.join(' ') : 'No hand set'}
                     </span>
                     <span style={{ ...pill('accent') }}>{heroPosition || 'Hero'}</span>
-                    {villain?.archetype?.name && <span style={{ ...pill('warn') }}>vs {villain.archetype.name}</span>}
+                    {villain?.archetype?.name && <span style={{ ...pill('warn') }}>Vs {villain.archetype.name}</span>}
                 </div>
                 <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
                     Board: <strong style={{ color: T.text }}>{boardCards.length ? boardCards.join(' ') : 'Preflop'}</strong>
@@ -1941,8 +1941,8 @@ export function CoachActionPicker({
                 </div>
                 <div style={{ display: 'flex', gap: S.sm, marginTop: S.sm, flexWrap: 'wrap' }}>
                     <span style={{ ...pill('neutral'), ...NUM }}>Pot {(Number(potSize) || 0).toFixed(1)} BB</span>
-                    {handState?.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To call {handState.toCall} BB</span>}
-                    {handState?.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot odds {handState.potOdds}%</span>}
+                    {handState?.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To Call {handState.toCall} BB</span>}
+                    {handState?.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot Odds {handState.potOdds}%</span>}
                     {handState?.mdf != null && <span style={{ ...pill('neutral'), ...NUM }}>MDF {handState.mdf}%</span>}
                     {handState?.spr != null && <span style={{ ...pill('accent'), ...NUM }}>SPR {handState.spr}</span>}
                 </div>
@@ -2003,11 +2003,11 @@ export function CoachVerdict({ userPick, gtoAction, evDelta, evDeltaEstimated = 
                 )}
             </div>
             <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
-                You: <strong style={{ color: T.text }}>{userPick}</strong> vs GTO: <strong style={{ color: T.accent }}>{gtoAction}</strong>
+                You: <strong style={{ color: T.text }}>{userPick}</strong> Vs GTO: <strong style={{ color: T.accent }}>{gtoAction}</strong>
             </div>
             {!showNumber && (
                 <div style={{ fontSize: F.caption, color: T.textDim, marginTop: S.xs, lineHeight: 1.45 }}>
-                    EV impact unavailable for this solve.
+                    EV Impact Unavailable For This Solve.
                 </div>
             )}
         </motion.div>
@@ -2036,7 +2036,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
                         onClick={() => { try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onExitReplay(); }}
                         style={{ ...btn('danger'), minHeight: 44, padding: '0 14px', fontSize: F.caption }}
                     >
-                        Exit replay
+                        Exit Replay
                     </button>
                 )}
             </div>
@@ -2076,7 +2076,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
 
             {replaying && (
                 <p style={{ marginTop: S.sm, fontSize: F.caption, color: T.accent, textAlign: 'center', margin: `${S.sm}px 0 0` }}>
-                    Rewound to <strong>{actions[replayIndex]?.position} {actions[replayIndex]?.label}</strong>
+                    Rewound To <strong>{actions[replayIndex]?.position} {actions[replayIndex]?.label}</strong>
                 </p>
             )}
         </div>

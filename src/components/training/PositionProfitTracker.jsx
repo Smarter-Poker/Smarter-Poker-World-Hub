@@ -46,7 +46,7 @@ function PositionProfitTracker() {
           <h3 style={{ margin: 0, fontSize: 18, color: '#22d3ee' }}>Position Profit Tracker</h3>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Overall WR</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: totalWR >= 5 ? '#10b981' : totalWR >= 0 ? '#f59e0b' : '#ef4444' }}>{totalWR > 0 ? '+' : ''}{totalWR} bb/100</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: totalWR >= 5 ? '#10b981' : totalWR >= 0 ? '#f59e0b' : '#ef4444' }}>{totalWR > 0 ? '+' : ''}{totalWR} BB/100</div>
           </div>
         </div>
 
@@ -71,7 +71,7 @@ function PositionProfitTracker() {
                   </div>
                   <div style={{ width: 80, textAlign: 'right' }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: isPositive ? '#10b981' : '#ef4444' }}>
-                      {isPositive ? '+' : ''}{rate} bb
+                      {isPositive ? '+' : ''}{rate} BB
                     </span>
                   </div>
                 </div>
@@ -79,7 +79,7 @@ function PositionProfitTracker() {
                   <input type="range" min={-25} max={20} step={0.5} value={rate} onChange={e => updateRate(p.pos, e.target.value)} style={{ flex: 1, accentColor: p.color, height: 4 }} />
                   <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginLeft: 8, minWidth: 50 }}>Open: {p.hands}</span>
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Expected: {p.expected > 0 ? '+' : ''}{p.expected} bb/100</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Expected: {p.expected > 0 ? '+' : ''}{p.expected} BB/100</div>
               </div>
             );
           })}
@@ -87,7 +87,7 @@ function PositionProfitTracker() {
 
         {/* Benchmark */}
         <div style={{ padding: 10, background: 'rgba(34,211,238,0.06)', borderRadius: 8, border: '1px solid rgba(34,211,238,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', marginBottom: 6 }}>Win Rate Benchmarks (6-max)</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', marginBottom: 6 }}>Win Rate Benchmarks (6-Max)</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {BENCHMARKS.map(b => (
               <span key={b.level} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 4, background: `${b.color}22`, color: b.color, fontWeight: 600 }}>{b.level}</span>
@@ -97,7 +97,7 @@ function PositionProfitTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Position Profit Tracker failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Position Profit Tracker Failed To Load: {err.message}</div>;
   }
 }
 

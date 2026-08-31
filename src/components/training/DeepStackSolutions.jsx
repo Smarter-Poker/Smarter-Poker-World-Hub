@@ -55,9 +55,9 @@ export default function DeepStackSolutions() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #8b5cf6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ▲ Deep Stack Solutions (200bb+)
+        ▲ Deep Stack Solutions (200BB+)
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Solver solutions optimized for deep-stack play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Solver Solutions Optimized For Deep-Stack Play.</p>
 
       {/* Depth Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>

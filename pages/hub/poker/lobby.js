@@ -43,7 +43,7 @@ export default function PokerLobbyPage() {
     <div>
       <SEOHead
         title="Poker Lobby | Smarter.Poker"
-        description="Browse and join live poker tables. No Limit Hold'em, PLO, Short Deck — play real-time multiplayer poker."
+        description="Browse and join live poker tables. No Limit Hold'em, PLO, Short Deck - play real-time multiplayer poker."
         path="/hub/poker/lobby"
       />
       <UniversalHeader pageDepth={2} />

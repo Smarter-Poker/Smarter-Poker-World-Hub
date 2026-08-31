@@ -178,7 +178,7 @@ async function checkDmarcRecord() {
             `https://cloudflare-dns.com/dns-query?name=_dmarc.${DOMAIN}&type=TXT`,
             { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(8000) },
         );
-        if (!resp.ok) return { check: 'dmarc_record', ok: true, detail: 'DoH returned ' + resp.status + ' — DMARC optional, treating as pass' };
+        if (!resp.ok) return { check: 'dmarc_record', ok: true, detail: 'DoH returned ' + resp.status + ' - DMARC optional, treating as pass' };
         const body = await resp.json();
         const txts = (body?.Answer || []).map((a) => a.data || '').join(' | ');
         const hasDmarc = /v=DMARC1/i.test(txts);
@@ -257,7 +257,7 @@ async function handler(req, res) {
                     body: JSON.stringify({
                         from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
                         to: process.env.OPS_ALERT_EMAIL,
-                        subject: `[smarter.poker] Email deliverability check FAILED — ${failures.length}/4`,
+                        subject: `[smarter.poker] Email deliverability check FAILED - ${failures.length}/4`,
                         text: JSON.stringify({ failures, allResults: results }, null, 2),
                     }),
                 });

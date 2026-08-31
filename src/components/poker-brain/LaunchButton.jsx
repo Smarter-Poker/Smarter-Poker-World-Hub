@@ -164,7 +164,7 @@ export default function PokerBrainLaunchButton({
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <h2 className="text-white text-xl font-bold mb-1">Select Game Variant</h2>
             <p className="text-slate-400 text-sm mb-5">
-              Pick the game you are playing. You can change it later from the HUD.
+              Pick The Game You Are Playing. You Can Change It Later From The HUD.
             </p>
             <div className="grid grid-cols-1 gap-2 mb-5">
               {[

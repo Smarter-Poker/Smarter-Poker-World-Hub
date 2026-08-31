@@ -1245,7 +1245,7 @@ export default function useGTOTrainer(
         );
         if (recap) {
           const recapText = recap.sections.map((s) => `${s.title}: ${s.content}`).join(' | ');
-          fullExplanation = `${fullExplanation} 📊 Session recap — ${recapText}`;
+          fullExplanation = `${fullExplanation} 📊 Session recap - ${recapText}`;
         }
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
@@ -1614,7 +1614,7 @@ export default function useGTOTrainer(
           if (data.mastery.masteryToken) {
             setMasteryToken(data.mastery.masteryToken);
             console.debug(
-              `[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`
+              `[GTOTrainer] 🏆 Mastery token received - next level: ${data.mastery.nextLevelUnlocked}`
             );
           }
           // Server overrides client pass/fail

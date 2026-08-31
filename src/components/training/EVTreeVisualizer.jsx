@@ -228,7 +228,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
           color: getEVColor(node.ev), fontSize: 12, fontWeight: 800, flexShrink: 0,
           minWidth: 50, textAlign: 'right',
         }}>
-          {node.ev > 0 ? '+' : ''}{node.ev.toFixed(2)} bb
+          {node.ev > 0 ? '+' : ''}{node.ev.toFixed(2)} BB
         </span>
 
         {/* Optimal marker */}
@@ -324,7 +324,7 @@ export default function EVTreeVisualizer() {
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>EV Decision Tree</h3>
             <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-              {scenario.board} — Pot: {scenario.pot}bb
+              {scenario.board} - Pot: {scenario.pot}bb
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -370,7 +370,7 @@ export default function EVTreeVisualizer() {
           ))}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ padding: '1px 4px', borderRadius: 2, fontSize: 7, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>GTO</span>
-            <span style={{ color: '#64748b', fontSize: 9 }}>= Optimal path</span>
+            <span style={{ color: '#64748b', fontSize: 9 }}>= Optimal Path</span>
           </div>
         </div>
 
@@ -384,7 +384,7 @@ export default function EVTreeVisualizer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>EV Decision Tree</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

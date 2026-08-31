@@ -205,7 +205,7 @@ function TokeCalendar({ userId }) {
             {/* Events count badge */}
             {events.length > 0 && (
                 <div style={calStyles.eventsBadge}>
-                    {events.filter(e => e.event_date >= todayStr).length} upcoming event{events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} this year
+                    {events.filter(e => e.event_date >= todayStr).length} Upcoming event{events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year
                 </div>
             )}
 
@@ -356,7 +356,7 @@ function TokeCalendar({ userId }) {
                                 autoFocus
                             />
 
-                            <label style={{ ...calStyles.label, marginTop: 12 }}>Venue (optional)</label>
+                            <label style={{ ...calStyles.label, marginTop: 12 }}>Venue (Optional)</label>
                             <input
                                 type="text"
                                 value={addForm.venue_name}
@@ -365,7 +365,7 @@ function TokeCalendar({ userId }) {
                                 style={calStyles.input}
                             />
 
-                            <label style={{ ...calStyles.label, marginTop: 12 }}>Notes (optional)</label>
+                            <label style={{ ...calStyles.label, marginTop: 12 }}>Notes (Optional)</label>
                             <textarea
                                 value={addForm.notes}
                                 onChange={e => setAddForm({ ...addForm, notes: e.target.value })}

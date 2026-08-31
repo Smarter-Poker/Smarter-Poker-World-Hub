@@ -130,10 +130,10 @@ function CohostPickerModal({ isOpen, onClose, currentUser, onPick }) {
         >
           <div>
             <h3 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700 }}>
-              Invite a Co-Host
+              Invite A CO-Host
             </h3>
             <div style={{ color: '#aaa', fontSize: 12, marginTop: 4 }}>
-              They'll get a messenger invite the instant you go live
+              They'll Get A Messenger Invite The Instant You Go Live
             </div>
           </div>
           <button
@@ -172,11 +172,11 @@ function CohostPickerModal({ isOpen, onClose, currentUser, onPick }) {
         />
         {loading ? (
           <div style={{ color: '#aaa', textAlign: 'center', padding: '30px 0' }}>
-            Loading friends...
+            Loading Friends...
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ color: '#aaa', textAlign: 'center', padding: '30px 0', fontSize: 14 }}>
-            {friends.length === 0 ? 'No friends yet — add some first.' : 'No matches.'}
+            {friends.length === 0 ? 'No friends yet - add some first.' : 'No matches.'}
           </div>
         ) : (
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
@@ -360,7 +360,7 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>
-            Invite Guest via Messenger
+            Invite Guest Via Messenger
           </h3>
           <button
             onClick={onClose}
@@ -377,7 +377,7 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
         </div>
         {loading ? (
           <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
-            Loading friends...
+            Loading Friends...
           </div>
         ) : (
           <>
@@ -411,7 +411,7 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
                   if (filtered.length === 0) {
                     return (
                       <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
-                        No matches found.
+                        No Matches Found.
                       </div>
                     );
                   }
@@ -1074,7 +1074,7 @@ export function GoLiveModal({
       if (!track) return;
       await track.applyConstraints({ advanced: [{ zoom: clamped }] });
     } catch (err) {
-      console.warn('[GoLive] applyZoom failed — CSS fallback:', err?.message || err);
+      console.warn('[GoLive] applyZoom failed - CSS fallback:', err?.message || err);
       setSoftwareZoomFallback(true);
     }
   };
@@ -1152,7 +1152,7 @@ export function GoLiveModal({
         const vEl = videoRef.current;
         if (vEl && vEl.readyState < 2 && !vEl.videoWidth) {
           console.warn(
-            '[GoLive] Black-frame watchdog: no decoded frame after 3s — re-acquiring camera'
+            '[GoLive] Black-frame watchdog: no decoded frame after 3s - re-acquiring camera'
           );
           // Force-release the singleton so acquireMediaStream gets a fresh track
           releaseMediaStream({ force: true });
@@ -1311,7 +1311,7 @@ export function GoLiveModal({
           if (!capNotified) {
             capNotified = true;
             try {
-              toast.info('Recording reached its size limit — the first part of your stream is saved. Your live broadcast continues.');
+              toast.info('Recording reached its size limit - the first part of your stream is saved. Your live broadcast continues.');
             } catch (_) {}
           }
         }
@@ -1344,7 +1344,7 @@ export function GoLiveModal({
     const videoTracks = recordingStream.getVideoTracks();
     if (!videoTracks.length || videoTracks[0].readyState === 'ended') {
       console.warn(
-        '[GoLive] startRecording: no live video track on recording stream — using raw camera fallback'
+        '[GoLive] startRecording: no live video track on recording stream - using raw camera fallback'
       );
       // Fall back to raw camera stream which always has a live video track
       const fallback = streamRef.current;
@@ -1399,7 +1399,7 @@ export function GoLiveModal({
         // 2026-08-15 audit: if the picked cover failed (HEIC/oversized/network),
         // don't go live thumbnail-less — fall through to an auto-captured frame.
         if (!thumbUrl && !guestMode) {
-          try { toast.info('Could not use that image — using a camera frame instead'); } catch (_) {}
+          try { toast.info('Could not use that image - using a camera frame instead'); } catch (_) {}
         }
       }
       if (!thumbUrl && !guestMode && user?.id) {
@@ -1418,7 +1418,7 @@ export function GoLiveModal({
           }
         } else {
           console.warn(
-            '[GoLive] captureThumbnail returned null — videoWidth:',
+            '[GoLive] captureThumbnail returned null - videoWidth:',
             videoRef.current?.videoWidth
           );
         }
@@ -1479,7 +1479,7 @@ export function GoLiveModal({
           setIsReconnecting((prev) => {
             if (prev) {
               console.warn(
-                '[GoLive] 60s reconnect watchdog fired — surfacing stuck-popup (no auto-end)'
+                '[GoLive] 60s reconnect watchdog fired - surfacing stuck-popup (no auto-end)'
               );
               setReconnectStuck(true);
             }
@@ -1587,7 +1587,7 @@ export function GoLiveModal({
               cohostErr?.message || cohostErr
             );
             toast.error(
-              `Couldn't invite co-host: ${cohostErr?.message || 'unknown'} — use the Invite Guest button to retry`
+              `Couldn't invite co-host: ${cohostErr?.message || 'unknown'} - use the Invite Guest button to retry`
             );
           }
         }
@@ -1937,7 +1937,7 @@ export function GoLiveModal({
           reconnectWatchdogRef.current = null;
           setIsReconnecting((prev) => {
             if (prev) {
-              console.warn('[GoLive/reconnect] 60s watchdog fired — surfacing stuck popup');
+              console.warn('[GoLive/reconnect] 60s watchdog fired - surfacing stuck popup');
               setReconnectStuck(true);
             }
             return prev;
@@ -2362,7 +2362,7 @@ export function GoLiveModal({
                       ⚡ Active Stream Detected
                     </div>
                     <div style={{ color: '#65676B', fontSize: 12, marginTop: 2 }}>
-                      {existingLiveStream.title || 'Your Live'} is still running. Reconnect?
+                      {existingLiveStream.title || 'Your Live'} Is Still Running. Reconnect?
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -2516,8 +2516,8 @@ export function GoLiveModal({
                           <div>
                             <div style={{ fontSize: 28, marginBottom: 6 }}>🖼️</div>
                             <div style={{ fontSize: 13, color: C.textSec }}>
-                              Tap to upload a thumbnail <br />
-                              <span style={{ fontSize: 11 }}>JPG, PNG — recommended 1280×720</span>
+                              Tap To Upload A Thumbnail <br />
+                              <span style={{ fontSize: 11 }}>JPG, PNG - Recommended 1280×720</span>
                             </div>
                           </div>
                         )}
@@ -2667,9 +2667,9 @@ export function GoLiveModal({
                         color: C.text,
                       }}
                     >
-                      Co-Host{' '}
+                      CO-Host{' '}
                       <span style={{ color: C.textSec, fontWeight: 500, fontSize: 12 }}>
-                        (optional — they'll get a Messenger invite when you go live)
+                        (Optional - They'll Get A Messenger Invite When You Go Live)
                       </span>
                     </label>
                     {pendingCohost ? (
@@ -2709,7 +2709,7 @@ export function GoLiveModal({
                             {pendingCohost.display_name || pendingCohost.username}
                           </div>
                           <div style={{ color: C.textSec, fontSize: 12 }}>
-                            Will be invited the moment you go live
+                            Will Be Invited The Moment You Go Live
                           </div>
                         </div>
                         <button
@@ -2747,7 +2747,7 @@ export function GoLiveModal({
                         }}
                       >
                         <span style={{ fontSize: 16 }}>👥</span>
-                        <span>Invite a friend to co-host</span>
+                        <span>Invite A Friend To CO-Host</span>
                       </button>
                     )}
                   </>
@@ -3059,7 +3059,7 @@ export function GoLiveModal({
                     Reconnecting...
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 6 }}>
-                    Please wait
+                    Please Wait
                   </div>
                 </div>
               )}
@@ -3092,8 +3092,8 @@ export function GoLiveModal({
                       Stream Ended
                     </div>
                     <div style={{ color: '#aaa', fontSize: 14, marginBottom: 20 }}>
-                      Your stream was automatically ended due to a connection timeout. Your
-                      recording has been saved as a draft.
+                      Your Stream Was Automatically Ended Due To A Connection Timeout. Your
+                      Recording Has Been Saved As A Draft.
                     </div>
                     <button
                       onClick={() => {
@@ -3113,7 +3113,7 @@ export function GoLiveModal({
                         width: '100%',
                       }}
                     >
-                      OK, Go to Recap
+                      OK, Go To Recap
                     </button>
                   </div>
                 </div>
@@ -3163,7 +3163,7 @@ export function GoLiveModal({
                     <div
                       style={{ color: 'white', fontSize: 18, fontWeight: 700, marginBottom: 10 }}
                     >
-                      Stream disrupted
+                      Stream Disrupted
                     </div>
                     <div
                       style={{
@@ -3173,8 +3173,8 @@ export function GoLiveModal({
                         marginBottom: 20,
                       }}
                     >
-                      We couldn't reconnect to the broadcast after 60 seconds. Try again, or end the
-                      stream and save your recording.
+                      We Couldn't Reconnect To The Broadcast After 60 Seconds. Try Again, Or End The
+                      Stream And Save Your Recording.
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <button
@@ -3405,7 +3405,7 @@ export function GoLiveModal({
                 {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
                 {isMuted && (
                   <span style={{ marginLeft: 6, opacity: 0.7 }} aria-hidden>
-                    (muted)
+                    (Muted)
                   </span>
                 )}
               </button>
@@ -3967,7 +3967,7 @@ export function GoLiveModal({
                                 maxWidth: 70,
                               }}
                             >
-                              preview only
+                              Preview Only
                             </div>
                           )}
                         </div>
@@ -4177,7 +4177,7 @@ export function GoLiveModal({
               <div style={{ fontSize: 48, marginBottom: 20 }}>📹</div>
               <h3 style={{ margin: '0 0 12px', color: C.text }}>Camera Access Required</h3>
               <p style={{ color: C.textSec, margin: '0 0 20px', fontSize: 14 }}>
-                Allow camera and microphone to go live.
+                Allow Camera And Microphone To Go Live.
               </p>
               {error && (
                 <div style={{ color: C.red, marginBottom: 16, fontSize: 14 }}>⚠️ {error}</div>

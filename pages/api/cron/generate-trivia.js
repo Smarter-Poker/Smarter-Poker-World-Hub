@@ -362,10 +362,10 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL missing — trivia generation cannot run');
+        if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL missing - trivia generation cannot run');
         if (!key) {
             throw new Error(
-                'SUPABASE_SERVICE_ROLE_KEY missing — trivia generation would be silently ' +
+                'SUPABASE_SERVICE_ROLE_KEY missing - trivia generation would be silently ' +
                 'rejected by RLS with the anon key. Refusing to run.'
             );
         }
@@ -473,14 +473,14 @@ function buildPrompt(category, difficulty, count, avoidSamples, topic) {
     const isStrategy = STRATEGY_KINDS.has(category.kind);
 
     const avoidBlock = avoidSamples.length > 0
-        ? `\n\nALREADY IN THE POOL — do not repeat these, and do not merely reword them:\n${
+        ? `\n\nALREADY IN THE POOL - do not repeat these, and do not merely reword them:\n${
             avoidSamples.map((q, i) => `${i + 1}. ${String(q).slice(0, 140)}`).join('\n')
         }\n`
         : '';
 
     const strategyRules = isStrategy
         ? `
-SCENARIO REQUIREMENTS (this is a STRATEGY category — a question missing any of
+SCENARIO REQUIREMENTS (this is a STRATEGY category - a question missing any of
 these is rejected automatically by the validator and wastes the call):
 - State the effective stack in big blinds, written as a number followed by BB (e.g. "40BB effective").
 - State the hero's position using a standard abbreviation: UTG, MP, HJ, CO, BTN, SB or BB.
@@ -507,18 +507,18 @@ FACTUAL REQUIREMENTS (this is a FACT category):
 CATEGORY: ${category.name}
 FOCUS FOR THIS BATCH: ${topic}
 CATEGORY GUIDANCE: ${category.guidance}
-DIFFICULTY: ${difficulty} — ${DIFFICULTY_BRIEF[difficulty]}
+DIFFICULTY: ${difficulty} - ${DIFFICULTY_BRIEF[difficulty]}
 ${strategyRules}
 UNIVERSAL REQUIREMENTS:
 - Exactly 4 options. Exactly one is correct. correct_index is the 0-based index of the correct option.
-- VARY correct_index across the batch — do not put the answer first every time.
+- VARY correct_index across the batch - do not put the answer first every time.
 - DISTRACTOR QUALITY IS GRADED. Each wrong option must be something a knowledgeable player could
   genuinely believe: the right kind of thing, the right order of magnitude, similar length and
   phrasing to the correct answer. Reject your own option if it is obviously wrong at a glance.
 - NEVER use filler options: "none of the above", "it doesn't matter", "it's just luck", "who cares".
 - The question text must NOT leak the answer.
 - Every question needs an explanation of at least 2 full sentences (120+ characters) that teaches
-  WHY the answer is right — cite the event/year/rule for facts, or the concept and the number for
+  WHY the answer is right - cite the event/year/rule for facts, or the concept and the number for
   strategy. Do not write "Option B is correct"; explain the reasoning.
 - No two questions in this batch may test the same fact or the same decision.
 ${avoidBlock}
@@ -1388,7 +1388,7 @@ async function handler(req, res) {
                             summary.timedOut = true;
                             summary.nextCursor = (startCursor + i) % orderedCats.length;
                             summary.warnings.push(
-                                `Generation stopped at ${category.id} — re-invoke with ?cursor=${summary.nextCursor} to resume.`
+                                `Generation stopped at ${category.id} - re-invoke with ?cursor=${summary.nextCursor} to resume.`
                             );
                             break;
                         }
@@ -1449,7 +1449,7 @@ async function handler(req, res) {
                 } catch (e) {
                     grok = null;
                     summary.warnings.push(
-                        `audit skipped — Grok client unavailable: ${String(e?.message || e).slice(0, 200)}`
+                        `audit skipped - Grok client unavailable: ${String(e?.message || e).slice(0, 200)}`
                     );
                 }
             }
@@ -1457,7 +1457,7 @@ async function handler(req, res) {
             if (summary.audit.demoted > 0) {
                 summary.warnings.push(
                     `AUDIT: demoted ${summary.audit.demoted} questions whose stored answer twice ` +
-                    'disagreed with confident cold answers — review engine_metadata.audit.'
+                    'disagreed with confident cold answers - review engine_metadata.audit.'
                 );
             }
         } catch (e) {

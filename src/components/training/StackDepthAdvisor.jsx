@@ -21,13 +21,13 @@ const DEPTH_PROFILES = [
     label: '< 15 BB',
     color: '#ef4444',
     spr: '< 1',
-    preflop: 'Push/fold mode. Shove or fold — no limping, no open-raising small.',
+    preflop: 'Push/fold mode. Shove or fold - no limping, no open-raising small.',
     postflop: 'Rarely see a flop. When you do, you\'re committed with any pair+.',
     keyAdjustments: [
       'Open-shove range widens significantly',
-      'No more 3-bet bluffing — 3-bet = all-in',
-      'Position matters less — it\'s about fold equity',
-      'Stop defending BB wide — reshove or fold',
+      'No more 3-bet bluffing - 3-bet = all-in',
+      'Position matters less - it\'s about fold equity',
+      'Stop defending BB wide - reshove or fold',
     ],
     commitThreshold: 'Committed with any piece of the board',
     ranges: { utg: 15, mp: 18, co: 28, btn: 42, sb: 38 },
@@ -40,12 +40,12 @@ const DEPTH_PROFILES = [
     color: '#f97316',
     spr: '1-3',
     preflop: 'Open-raise to 2-2.5x. 3-bet shove range is wide. Avoid flatting 3-bets.',
-    postflop: 'SPR is low — commit with top pair+ on most boards. Check-raise all-in frequently.',
+    postflop: 'SPR is low - commit with top pair+ on most boards. Check-raise all-in frequently.',
     keyAdjustments: [
       'Open smaller (2-2.2x) to risk less',
       '3-bet shove instead of small 3-bets',
       'Commit to pots with TPGK+',
-      'Avoid multi-street bluffs — one-and-done',
+      'Avoid multi-street bluffs - one-and-done',
     ],
     commitThreshold: 'Top pair good kicker or better',
     ranges: { utg: 12, mp: 15, co: 24, btn: 38, sb: 32 },
@@ -96,9 +96,9 @@ const DEPTH_PROFILES = [
     preflop: 'Position is king. Suited hands and connectors are premium. Small pairs always set-mine.',
     postflop: 'Extremely nuanced. Nut advantage matters most. Be careful with one-pair hands. Sets dominate.',
     keyAdjustments: [
-      'Position value is maximized — play tighter OOP',
+      'Position value is maximized - play tighter OOP',
       'Suited connectors and small pairs are very profitable',
-      'One-pair hands lose value — nut hands gain',
+      'One-pair hands lose value - nut hands gain',
       'Pot control with medium-strength hands is critical',
       'Overbet bluffs and value bets become powerful tools',
     ],
@@ -134,7 +134,7 @@ function PositionRanges({ ranges, color }) {
   const maxRange = Math.max(...Object.values(ranges || {}));
   return (
     <div>
-      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range by Position</div>
+      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range By Position</div>
       {positions.map(pos => (
         <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ color: '#94a3b8', fontSize: 10, width: 28, fontWeight: 600 }}>{labels[pos]}</span>
@@ -166,7 +166,7 @@ export default function StackDepthAdvisor() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Stack Depth Advisor</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Adjust your strategy based on effective stack depth</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Adjust Your Strategy Based On Effective Stack Depth</div>
         </div>
 
         {/* BB Slider */}
@@ -256,7 +256,7 @@ export default function StackDepthAdvisor() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Stack Depth Advisor</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

@@ -18,7 +18,7 @@ const SCENARIOS = [
     id: 2, name: 'Wet Two-Tone', board: 'J♥ T♥ 6♠', position: 'CO vs BB', spr: 5.1,
     optimalCbet: 52, optimalSize: '67%', rangeAdvantage: 'Slight IP',
     cbetBreakdown: { bet33: 15, bet67: 37, check: 48 },
-    reasoning: 'Connected two-tone board reduces range advantage. BB has more suited connectors. Use larger sizing with polarized range — strong hands and draws.',
+    reasoning: 'Connected two-tone board reduces range advantage. BB has more suited connectors. Use larger sizing with polarized range - strong hands and draws.',
     keyHands: { valueBet: 'Two pair+, strong draws', bluff: 'Combo draws, Qx gutshots', check: 'Weak one-pair, air' },
   },
   {
@@ -154,7 +154,7 @@ function ContinuationBetTrainer() {
                 {userDecision === bestAction ? '✓ Correct!': '✕ Incorrect'}
               </span>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginLeft: 12 }}>
-                Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% frequency)
+                Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% Frequency)
               </span>
             </div>
 
@@ -207,7 +207,7 @@ function ContinuationBetTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

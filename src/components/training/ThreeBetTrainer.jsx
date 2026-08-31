@@ -313,7 +313,7 @@ export default function ThreeBetTrainer() {
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>SIZING</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
-                        {currentData.sizing || '—'}
+                        {currentData.sizing || '-'}
                     </div>
                 </div>
                 <div style={{ flex: 1, textAlign: 'right' }}>
@@ -339,7 +339,7 @@ export default function ThreeBetTrainer() {
                 {mode === '3bet' && currentData.positions && (
                     <div style={{ marginTop: 12 }}>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
-                            3-Bet Frequency by Position
+                            3-Bet Frequency By Position
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 50 }}>
                             {Object.entries(currentData.positions || {}).map(([pos, data]) => {

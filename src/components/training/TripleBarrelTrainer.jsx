@@ -14,7 +14,7 @@ const SCENARIOS = [
     sizing: ['33%', '50%', '66%'],
     verdict: 'Must Barrel',
     color: '#10b981',
-    reason: 'You have nut advantage on AK7. Top pair strong kicker plays well over 3 streets. Villain\'s range is capped after calling twice — mostly Kx, medium pairs.',
+    reason: 'You have nut advantage on AK7. Top pair strong kicker plays well over 3 streets. Villain\'s range is capped after calling twice - mostly Kx, medium pairs.',
     keys: ['Board favors your range heavily', 'Villain capped after 2 calls', 'Size up on river for max value'],
   },
   {
@@ -25,7 +25,7 @@ const SCENARIOS = [
     sizing: ['50%', '66%', 'All-in'],
     verdict: 'Great Barrel',
     color: '#3b82f6',
-    reason: 'Backdoor flush draw gave equity on turn. River completes — now a monster. Turn barrel was semi-bluff, river is value. Perfect triple barrel.',
+    reason: 'Backdoor flush draw gave equity on turn. River completes - now a monster. Turn barrel was semi-bluff, river is value. Perfect triple barrel.',
     keys: ['Backdoor equity justifies turn barrel', 'River completes your draw', 'Opponent can\'t have many flushes'],
   },
   {
@@ -44,7 +44,7 @@ const SCENARIOS = [
     board: 'J♥ T♥ 6♣ → K♥',
     hero: 'A♣ A♦',
     line: 'Bet → Check → ???',
-    sizing: ['66%', '—', '—'],
+    sizing: ['66%', '-', '-'],
     verdict: 'Stop Barreling',
     color: '#ef4444',
     reason: 'Turn brings flush completion + straight card. AA is now a bluff-catcher. Villain\'s continuing range crushes you. Check turn and evaluate river.',
@@ -58,7 +58,7 @@ const SCENARIOS = [
     sizing: ['33%', '66%', '150%'],
     verdict: 'Polarized Barrel',
     color: '#8b5cf6',
-    reason: 'Gutshot on flop, picked up flush draw on turn, hit flush on river. Overbet river — you have the nuts and need to maximize value from strong Ax hands.',
+    reason: 'Gutshot on flop, picked up flush draw on turn, hit flush on river. Overbet river - you have the nuts and need to maximize value from strong Ax hands.',
     keys: ['Had equity every street', 'River overbet is optimal with nuts', 'Polarized = either nuts or air'],
   },
 ];
@@ -89,7 +89,7 @@ function TripleBarrelTrainer() {
           {s.sizing.map((sz, i) => (
             <div key={i} style={{
               padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-              background: 'rgba(255,255,255,0.06)', color: sz === '—' ? 'rgba(255,255,255,0.3)' : '#fff',
+              background: 'rgba(255,255,255,0.06)', color: sz === '-' ? 'rgba(255,255,255,0.3)' : '#fff',
             }}>
               {['Flop', 'Turn', 'River'][i]}: {sz}
             </div>
@@ -129,7 +129,7 @@ function TripleBarrelTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Triple Barrel Trainer failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Triple Barrel Trainer Failed: {err.message}</div>;
   }
 }
 

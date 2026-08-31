@@ -69,14 +69,14 @@ function MultiStreetPlanner() {
         {/* Setup */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Starting Pot (bb)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Starting Pot (BB)</div>
             <input type="range" min={2} max={30} step={0.5} value={startPot} onChange={e => setStartPot(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#a78bfa' }} />
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{startPot} bb</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{startPot} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (bb)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
             <input type="range" min={20} max={200} step={5} value={effectiveStack} onChange={e => setEffectiveStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#a78bfa' }} />
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{effectiveStack} bb</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{effectiveStack} BB</div>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ function MultiStreetPlanner() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Street Planner failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Street Planner Failed To Load: {err.message}</div>;
   }
 }
 

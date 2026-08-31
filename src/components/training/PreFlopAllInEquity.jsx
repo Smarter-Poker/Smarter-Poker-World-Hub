@@ -78,10 +78,10 @@ function PreFlopAllInEquity() {
                   <div style={{ marginTop: 8, textAlign: 'center' }}>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', padding: '2px 8px', background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>{m.category}</span>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-                      {m.eq1 > 80 ? 'Massive favorite — calling is always correct' :
-                       m.eq1 > 60 ? 'Solid favorite — profitable all-in' :
-                       m.eq1 > 52 ? 'Coin flip — small edge, high variance' :
-                       'Underdog — need pot odds or ICM reasons to call'}
+                      {m.eq1 > 80 ? 'Massive favorite - calling is always correct' :
+                       m.eq1 > 60 ? 'Solid favorite - profitable all-in' :
+                       m.eq1 > 52 ? 'Coin flip - small edge, high variance' :
+                       'Underdog - need pot odds or ICM reasons to call'}
                     </div>
                   </div>
                 )}
@@ -93,13 +93,13 @@ function PreFlopAllInEquity() {
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(232,121,249,0.06)', borderRadius: 8, border: '1px solid rgba(232,121,249,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Quick Rules</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-            Overpair vs underpair: ~80/20. Pair vs two overcards: ~55/45 (coin flip). Dominated hand (AK vs AQ): ~70/30. Pair vs random hand: ~82/18. The closer in rank, the closer to 50/50.
+            Overpair Vs Underpair: ~80/20. Pair Vs Two Overcards: ~55/45 (Coin Flip). Dominated Hand (AK Vs AQ): ~70/30. Pair Vs Random Hand: ~82/18. The Closer In Rank, The Closer To 50/50.
           </div>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Equity failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Equity Failed To Load: {err.message}</div>;
   }
 }
 

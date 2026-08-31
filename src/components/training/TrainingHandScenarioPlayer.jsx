@@ -134,7 +134,7 @@ export default function TrainingHandScenarioPlayer({
                     <div style={styles.errorMessage}>{error || 'Invalid scenario data'}</div>
                     {debugMode && (
                         <div style={styles.debugInfo}>
-                            <div>scenarioId: {scenarioId || 'null'}</div>
+                            <div>ScenarioId: {scenarioId || 'null'}</div>
                         </div>
                     )}
                 </div>
@@ -236,13 +236,13 @@ export default function TrainingHandScenarioPlayer({
             {/* Debug Overlay */}
             {debugMode && (
                 <div style={styles.debugOverlay}>
-                    <div>scenarioId: {scenario.id}</div>
-                    <div>gameId: {scenario.gameId}</div>
-                    <div>stepCount: {stepCount}</div>
-                    <div>stepIndex: {currentStepIndex}</div>
-                    <div>street: {currentState?.street}</div>
-                    <div>potAfterBB: {currentState?.potBB}</div>
-                    <div>isAtDecision: {isAtDecision ? 'YES' : 'no'}</div>
+                    <div>ScenarioId: {scenario.id}</div>
+                    <div>GameId: {scenario.gameId}</div>
+                    <div>StepCount: {stepCount}</div>
+                    <div>StepIndex: {currentStepIndex}</div>
+                    <div>Street: {currentState?.street}</div>
+                    <div>PotAfterBB: {currentState?.potBB}</div>
+                    <div>IsAtDecision: {isAtDecision ? 'YES' : 'no'}</div>
                 </div>
             )}
         </div>

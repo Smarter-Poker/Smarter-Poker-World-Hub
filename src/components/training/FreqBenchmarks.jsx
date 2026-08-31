@@ -7,24 +7,24 @@ import { motion } from 'framer-motion';
 
 const FREQ_BENCHMARKS = [
   { action: 'Flop C-Bet (IP, HU)', target: '55-65%', color: '#22c55e', icon: '◆',
-    tooHigh: '>70% — You\'re betting too many weak hands. Get check-raised more.',
-    tooLow: '<45% — You\'re giving up too much equity and letting villain see free cards.',
+    tooHigh: '>70% - You\'re betting too many weak hands. Get check-raised more.',
+    tooLow: '<45% - You\'re giving up too much equity and letting villain see free cards.',
     adjust: 'Higher on dry boards (K72r = 80%), lower on wet boards (JT8hh = 35%).' },
   { action: 'Flop C-Bet (OOP, HU)', target: '40-50%', color: '#3b82f6', icon: '·',
-    tooHigh: '>55% — OOP c-bets get exploited by floats and raises. Check more.',
-    tooLow: '<30% — You\'re check-folding too much. Villain steals with any two cards.',
+    tooHigh: '>55% - OOP c-bets get exploited by floats and raises. Check more.',
+    tooLow: '<30% - You\'re check-folding too much. Villain steals with any two cards.',
     adjust: 'Use range bets (33% pot with entire range) on favorable textures OOP.' },
   { action: 'Turn Barrel', target: '45-55%', color: '#f59e0b', icon: '▲',
-    tooHigh: '>60% — You\'re double-barreling too aggressively. Run into traps more.',
-    tooLow: '<35% — You\'re giving up after the flop too often. Free showdowns for villain.',
+    tooHigh: '>60% - You\'re double-barreling too aggressively. Run into traps more.',
+    tooLow: '<35% - You\'re giving up after the flop too often. Free showdowns for villain.',
     adjust: 'Barrel more on scare cards. Check back more on bricks when villain calls flop.' },
   { action: 'River Bet', target: '35-45%', color: '#ef4444', icon: '●',
-    tooHigh: '>50% — You\'re over-bluffing rivers. Villain starts hero-calling.',
-    tooLow: '<25% — You\'re missing thin value and giving up too many bluffing opportunities.',
+    tooHigh: '>50% - You\'re over-bluffing rivers. Villain starts hero-calling.',
+    tooLow: '<25% - You\'re missing thin value and giving up too many bluffing opportunities.',
     adjust: 'Aim for 2:1 value-to-bluff ratio. Every 2 value bets, include 1 bluff.' },
   { action: 'Fold to 3-Bet', target: '55-65%', color: '#8b5cf6', icon: '■',
-    tooHigh: '>70% — You\'re over-folding to 3-bets. Get exploited by light 3-bettors.',
-    tooLow: '<45% — You\'re defending too wide. Playing bloated pots with marginal hands.',
+    tooHigh: '>70% - You\'re over-folding to 3-bets. Get exploited by light 3-bettors.',
+    tooLow: '<45% - You\'re defending too wide. Playing bloated pots with marginal hands.',
     adjust: 'Defend wider from late position opens. Fold more from EP opens.' },
 ];
 
@@ -37,7 +37,7 @@ export default function FreqBenchmarks() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Frequency Benchmarks
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Compare your frequencies against optimal targets.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Compare Your Frequencies Against Optimal Targets.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {FREQ_BENCHMARKS.map((f, i) => (
@@ -68,7 +68,7 @@ export default function FreqBenchmarks() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How to Adjust</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How To Adjust</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.adjust}</div>
           </div>
         </div>

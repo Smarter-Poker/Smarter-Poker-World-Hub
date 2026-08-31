@@ -1498,3 +1498,36 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Coverage:** The lobby plus 11 canonical discovery routes directly inherit the controller system; the 354 current directory/location URLs remain covered by their established shared systems and regression gates.
 
 **Release state:** Complete. PR #1126 auto-merged as `638889cc`; Vercel deployment `dpl_H6vmPtys6n1NP6k5cCrr9f1Se3GA` promoted to production with healthy database/header checks, five representative Poker Near Me routes at HTTP 200, the Commander root/login loop closed, 14/14 live desktop/mobile Phase 14+16 journeys passing, and visual zero-overflow proof at 390 CSS pixels. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.
+
+---
+
+## PHASE 68 — Poker Near Me Phase 5 Cross-Engine Navigation + Accessibility (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Browser-history contract | User surface changes push canonical entries, filter/search synchronization replaces in place, and Back/Forward restores matching React state without discarding live map/realtime ownership. |
+| Navigation-race repair | Page lifecycle guards prevent a stale debounced discovery writer from undoing a full state/city/detail navigation. |
+| Assistive route state | A polite live region announces same-document route changes and restored history state. |
+| Safari/WebKit hardening | The interactive tab rail owns its hit-test layer, visual masks have WebKit prefixes, and dedicated desktop/iPhone WebKit projects permanently cover the phase. |
+| Contrast resilience | Increased-contrast and forced-colors contracts preserve text, boundaries, selection, focus, and live indicators without relying on glow or background artwork. |
+| Shared-family preservation | The lobby, 11 canonical discovery destinations, and 12 representative discovery/location/detail/event source families retain their existing APIs, data, maps, filters, forms, permissions, and templates. |
+| Regression gate | Phase 17 is included in both `test:pnm` and repository prebuild, with compiled desktop/mobile navigation, semantics, reduced-motion, forced-colors, and overflow journeys. |
+
+**Pre-publication verification:** 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, and the exact webpack production build (403 static pages) passed. Preview WebKit and production evidence are tracked in `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
+
+---
+
+## PHASE 69 — Marketplace Completion Phase 2 Of 8: Purchase Assurance (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Trusted card returns | Stripe, the authenticated owner, and the exact server-owned purchase, order, or subscription record must agree before a return is complete. |
+| Exact cart reconciliation | Server-priced checkout snapshots remove only verified product, variant, and quantity lines while preserving later additions and unrelated cart contents. |
+| Cross-device correctness | Unsynced local snapshots remain authoritative, preference writes are serialized, and stale remote carts cannot restore purchased lines. |
+| Bounded recovery | Checkout, order-history, and receipt reads have explicit deadlines, truthful failed states, and accessible direct retry controls. |
+| Private same-surface receipts | Completed returns link to owner-scoped receipts and order history inside the Marketplace browser surface. |
+| Visual contract | Purchase-assurance controls use sharp cyan and steel casino hardware, 44-pixel targets, title-cased copy, and no green, purple, or banned long bars. |
+| Permanent regression gate | Phase 23 contracts are included in `test:marketplace` and the Vercel build context; desktop and mobile browser coverage includes a failed return, retry, receipt link, and exact cart decrement. |
+| Preserved economics | Prices, Diamond grants and burns, Stripe and webhook settlement, inventory, entitlements, Club ownership, database schema, and deferred Printful automation are unchanged. |
+
+**Release state:** Complete and published. Pull request 1143 merged as `806f807bb2`; Vercel deployment `dpl_6Hgp4VByt7jiAkCgAms6wUpuoUiD` reached Ready and `smarter.poker` reported the matching healthy version. Verification passed 209/209 canonical Marketplace contracts, 60 applicable compiled-production desktop/mobile browser checks, the exact optimized production build with 403/403 static pages, 27/27 strict production probes, and thirteen representative live pages with zero banned long bars or new-tab targets. The live checkout-status privacy probe returned the required owner-gated 401 and private non-cacheable headers. Full evidence: `.agent/audits/2026-08-31-marketplace-completion-phase-2-purchase-assurance.md`.

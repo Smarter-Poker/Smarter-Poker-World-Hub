@@ -79,7 +79,7 @@ export default function TrustSeal({ truthSeal, source, confidence }) {
               </div>
             )}
             <p style={styles.disclaimer}>
-              Identical inputs will always produce identical outputs.
+              Identical Inputs Will Always Produce Identical Outputs.
             </p>
           </motion.div>
         )}

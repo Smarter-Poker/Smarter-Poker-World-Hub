@@ -140,7 +140,7 @@ function GeoLockScreen({ venue, userLocation, distanceMiles, onClose, noCoords =
             </p>
             {tooFar && (
                 <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', margin: '0 0 20px' }}>
-                    Required: within {GEO_RADIUS_MILES} mile · Your distance: {distanceMiles.toFixed(2)} mi
+                    Required: Within {GEO_RADIUS_MILES} Mile · Your Distance: {distanceMiles.toFixed(2)} Mi
                 </p>
             )}
             <button
@@ -527,7 +527,7 @@ export default function ReportGameModal({
                     {[activeVenue.city, activeVenue.state].filter(Boolean).join(', ')}
                     {userLocation && distanceMiles < 9999 && (
                         <span style={{ marginLeft: 8, color: distanceMiles <= GEO_RADIUS_MILES ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                            · {distanceMiles.toFixed(2)} mi {distanceMiles <= GEO_RADIUS_MILES ? '✓' : '— Too Far'}
+                            · {distanceMiles.toFixed(2)} Mi {distanceMiles <= GEO_RADIUS_MILES ? '✓' : '- Too Far'}
                         </span>
                     )}
                 </div>
@@ -560,7 +560,7 @@ export default function ReportGameModal({
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    Also Leave a Venue Review (Optional)
+                    Also Leave A Venue Review (Optional)
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                     style={{ transform: showReview ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
@@ -623,7 +623,7 @@ export default function ReportGameModal({
                     </div>
                     {showReview && reviewForm.rating === 0 && reviewForm.reviewText.trim() && (
                         <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.7)', marginTop: 4 }}>
-                            Please add an overall star rating to submit the review.
+                            Please Add An Overall Star Rating To Submit The Review.
                         </div>
                     )}
                 </div>
@@ -709,7 +709,7 @@ export default function ReportGameModal({
                                 borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#22c55e',
                             }}>
                                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'rgm-pulse 1.5s infinite' }} />
-                                Location Verified · {distanceMiles < 0.1 ? '<0.1' : distanceMiles.toFixed(2)} mi away
+                                Location Verified · {distanceMiles < 0.1 ? '<0.1' : distanceMiles.toFixed(2)} Mi Away
                             </div>
 
                             {/* Game Type */}
@@ -825,7 +825,7 @@ export default function ReportGameModal({
                     ) : (
                         /* ── No venue selected yet ── */
                         <div style={{ textAlign: 'center', padding: '20px 0 8px', color: 'rgba(200,214,229,0.4)', fontSize: 13 }}>
-                            Search and select a venue above to begin.
+                            Search And Select A Venue Above To Begin.
                         </div>
                     )}
                 </div>

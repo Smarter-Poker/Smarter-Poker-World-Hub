@@ -260,7 +260,7 @@ export default function SessionShareCard({
                             transition={{ duration: 1.5, repeat: Infinity }}
                             style={{ color: '#64748b', fontSize: 13, textAlign: 'center', padding: 40 }}
                         >
-                            Generating share card...
+                            Generating Share Card...
                         </motion.div>
                     )}
 
@@ -289,7 +289,7 @@ export default function SessionShareCard({
 
                     {status === 'error' && (
                         <div style={{ color: '#ef4444', fontSize: 11, textAlign: 'center', padding: 8 }}>
-                            Failed to generate. Try again.
+                            Failed To Generate. Try Again.
                         </div>
                     )}
                 </motion.div>

@@ -117,7 +117,7 @@ export default function TokeTrackerLanding() {
     return (
         <PageTransition>
             <SEOHead
-                title="Toke Tracker — Dealer Income Management"
+                title="Toke Tracker - Dealer Income Management"
                 description="Track shifts, analyze earnings, store documents, and monitor venue performance."
                 canonical="/hub/toke-tracker"
             />

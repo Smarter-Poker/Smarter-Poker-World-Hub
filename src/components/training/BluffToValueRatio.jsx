@@ -47,7 +47,7 @@ function BluffToValueRatio() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f43f5e' }}>Bluff-to-Value Ratio</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#f43f5e' }}>Bluff-To-Value Ratio</h3>
 
         {/* Quick Sizing Buttons */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -63,7 +63,7 @@ function BluffToValueRatio() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Bet Size (% pot)</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Bet Size (% Pot)</div>
             <input type="range" min={10} max={300} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#f43f5e' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: '#f43f5e' }}>{betPct}%</div>
           </div>
@@ -85,8 +85,8 @@ function BluffToValueRatio() {
             </div>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-            For every <span style={{ fontWeight: 800, color: '#10b981' }}>1</span> value bet, include{' '}
-            <span style={{ fontWeight: 800, color: '#ef4444' }}>{calc.bluffRatio}</span> bluffs
+            For Every <span style={{ fontWeight: 800, color: '#10b981' }}>1</span> Value Bet, include{' '}
+            <span style={{ fontWeight: 800, color: '#ef4444' }}>{calc.bluffRatio}</span> Bluffs
           </div>
         </div>
 
@@ -111,15 +111,15 @@ function BluffToValueRatio() {
         <div style={{ padding: 10, background: 'rgba(244,63,94,0.06)', borderRadius: 8, border: '1px solid rgba(244,63,94,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#f43f5e', marginBottom: 4 }}>How It Works</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-            At {betPct}% pot, villain gets {calc.potOdds}% pot odds and must call {calc.mdfPct}% to stay unexploitable.
-            Your betting range should be {calc.valuePct}% value and {calc.bluffPct}% bluffs.
-            With {valueCombos} value combos, include {calc.bluffCombos} bluff combos ({calc.totalBets} total bets).
+            At {betPct}% Pot, Villain Gets {calc.potOdds}% Pot Odds And Must Call {calc.mdfPct}% To Stay Unexploitable.
+            Your Betting Range Should Be {calc.valuePct}% Value And {calc.bluffPct}% Bluffs.
+            With {valueCombos} Value Combos, Include {calc.bluffCombos} Bluff Combos ({calc.totalBets} Total Bets).
           </div>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Bluff-to-Value Ratio failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Bluff-To-Value Ratio Failed To Load: {err.message}</div>;
   }
 }
 

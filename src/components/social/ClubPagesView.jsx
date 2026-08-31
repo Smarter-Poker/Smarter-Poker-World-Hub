@@ -1123,7 +1123,7 @@ const PostCard = React.memo(
                     display: 'inline-block',
                   }}
                 />
-                Editing as {post.author?.name || 'Club Page'} - club branding preserved
+                Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
               </div>
             )}
             <textarea
@@ -1251,7 +1251,7 @@ const PostCard = React.memo(
                           marginLeft: 4,
                         }}
                       >
-                        See more
+                        See More
                       </span>
                     )}
                   </>
@@ -1264,12 +1264,12 @@ const PostCard = React.memo(
         {post.content &&
           /^Checked in at /i.test(post.content) &&
           (() => {
-            const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–]\s*(.+))?$/i);
+            const match = post.content.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
             const venueName =
               match?.[1] ||
               post.content
                 .replace(/^Checked in at /i, '')
-                .split('—')[0]
+                .split('-')[0]
                 .trim();
             const locationText = match?.[2]?.trim() || '';
             return (
@@ -2191,7 +2191,7 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} is typing</span>
+              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing</span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -2595,7 +2595,7 @@ const PostCard = React.memo(
                   marginTop: 4,
                 }}
               >
-                View more comments
+                View More Comments
               </button>
             )}
 
@@ -2611,7 +2611,7 @@ const PostCard = React.memo(
                 }}
               >
                 <span>
-                  Replying to <strong>{replyingTo.name}</strong>
+                  Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
                   style={{ cursor: 'pointer', fontWeight: 600 }}
@@ -3760,7 +3760,7 @@ function ClubPagesView({
                 padding: 4,
               }}
             >
-              x
+              X
             </button>
           )}
         </div>

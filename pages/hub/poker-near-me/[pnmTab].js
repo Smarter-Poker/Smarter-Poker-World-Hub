@@ -247,6 +247,28 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     // dead key to localStorage on every session.
   });
 
+  // Native history writes do not update Next's router query. This ref prevents
+  // that stale query from fighting the currently selected discovery surface.
+  const lastRouteTabRef = useRef(null);
+  const discoveryPageExitingRef = useRef(false);
+
+  // A debounced filter write must never win a race against a full navigation.
+  // WebKit dispatches pagehide early enough to cancel the stale writer; pageshow
+  // resets the guard when this page returns from the back-forward cache.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const markExiting = () => { discoveryPageExitingRef.current = true; };
+    const markActive = () => { discoveryPageExitingRef.current = false; };
+    window.addEventListener('beforeunload', markExiting);
+    window.addEventListener('pagehide', markExiting);
+    window.addEventListener('pageshow', markActive);
+    return () => {
+      window.removeEventListener('beforeunload', markExiting);
+      window.removeEventListener('pagehide', markExiting);
+      window.removeEventListener('pageshow', markActive);
+    };
+  }, []);
+
   // HARDENED: Reset 'live' tab back to 'map' on every mount — live tab is ephemeral
   const tabResetDoneRef = useRef(false);
 
@@ -257,6 +279,40 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const activeMoreTab = uiFilters.activeMoreTab || 'overview';
   const sortBy = uiFilters.sortBy;
   const seriesViewMode = uiFilters.seriesViewMode;
+
+  // Surface changes are committed synchronously. WebKit can heavily defer a
+  // timer while a newly selected dynamic panel is evaluating, which previously
+  // left the visible Events state paired with the old /venues address. Filter
+  // and search changes remain debounced replacements in the effect below.
+  const pushDiscoverySurface = (nextState) => {
+    if (typeof window === 'undefined' || discoveryPageExitingRef.current) return;
+    const pathSlug = getTabSlug({
+      showLiveTab,
+      activeTab,
+      activeEventTab,
+      activeMoreTab,
+      ...nextState,
+    });
+    const newUrl = `/hub/poker-near-me/${pathSlug}${window.location.search}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    lastRouteTabRef.current = pathSlug;
+    if (currentUrl !== newUrl) {
+      // This is a view-state transition inside one already-mounted discovery
+      // application. A native entry preserves live map/realtime state and gives
+      // Back/Forward real semantics; router.push can refetch this dynamic Pages
+      // route in WebKit even when `shallow` is requested.
+      window.history.pushState(
+        {
+          ...window.history.state,
+          as: newUrl,
+          url: newUrl,
+          options: { ...window.history.state?.options, shallow: true, scroll: false },
+        },
+        '',
+        newUrl
+      );
+    }
+  };
 
   // Ephemeral live tab state — never persisted across sessions. Starts always false.
   const [showLiveTab, setShowLiveTab] = React.useState(false);
@@ -277,11 +333,29 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       setUiFilter('activeTab', val);
     }
   };
+  const navigateActiveTab = (val) => {
+    if (val !== activeTab || showLiveTab) {
+      pushDiscoverySurface({
+        showLiveTab: false,
+        activeTab: val,
+        activeMoreTab: val === 'more' ? 'overview' : activeMoreTab,
+      });
+    }
+    setActiveTab(val);
+  };
   // Helper to toggle live tab — also hides it when switching to any real tab
   const activateTab = (val) => {
     if (val === 'live') {
+      pushDiscoverySurface({ showLiveTab: !showLiveTab });
       setShowLiveTab((prev) => !prev);
     } else {
+      if (val !== activeTab || showLiveTab) {
+        pushDiscoverySurface({
+          showLiveTab: false,
+          activeTab: val,
+          activeMoreTab: val === 'more' ? 'overview' : activeMoreTab,
+        });
+      }
       setShowLiveTab(false);
       setActiveTab(val);
     }
@@ -301,6 +375,18 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   };
   const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
   const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
+  const navigateActiveEventTab = (val) => {
+    if (val !== activeEventTab) {
+      pushDiscoverySurface({ showLiveTab: false, activeTab: 'events', activeEventTab: val });
+    }
+    setActiveEventTab(val);
+  };
+  const navigateActiveMoreTab = (val) => {
+    if (val !== activeMoreTab) {
+      pushDiscoverySurface({ showLiveTab: false, activeTab: 'more', activeMoreTab: val });
+    }
+    setActiveMoreTab(val);
+  };
   const setSortBy = (val) => setUiFilter('sortBy', val);
   const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
 
@@ -311,7 +397,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // /hub/poker-near-me/<slug> URLs switches tabs (the one-shot mount parser below
   // only runs once). lastRouteTabRef is also updated by the deep-link URL writer so
   // UI-driven tab changes (history.replaceState) don't get fought by this effect.
-  const lastRouteTabRef = useRef(null);
   useEffect(() => {
     if (!router.isReady) return;
     const rawParam = router.query.pnmTab;
@@ -1605,7 +1690,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       const { getFreshAccessToken } = await import('../../../src/lib/authUtils');
       const token = await getFreshAccessToken();
       if (!token) {
-        console.warn('[PNM] Geofence ping skipped — no signed-in session');
+        console.warn('[PNM] Geofence ping skipped - no signed-in session');
         return;
       }
       const res = await fetch('/api/venues/record-geofence', {
@@ -2110,7 +2195,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // BUG FIX: renderContent short-circuits on showLiveTab, so setting activeTab
       // alone left the live feed on screen and the card permanently invisible.
       setShowLiveTab(false);
-      if (activeTab !== 'venues') setActiveTab('venues');
+      if (activeTab !== 'venues') navigateActiveTab('venues');
 
       // Try to find the card immediately.
       // BUG FIX: VenuesTabPanel renders tour stops as `tour-card-<tour_code>`, not
@@ -2813,6 +2898,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     if (typeof window === 'undefined' || !router.isReady || !paramsAbsorbed.current) return;
     if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
     deepLinkRef.current = setTimeout(() => {
+      if (discoveryPageExitingRef.current) return;
       // SEO FIX: the slug table now lives in the module-scope getTabSlug helper,
       // shared with the canonical tag below. They used to derive slugs
       // independently ('daily' vs 'daily-tournaments'), so the crawled URL
@@ -2828,17 +2914,23 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       });
 
       // Keep the route-sync effect in agreement with UI-driven URL rewrites
-      // (history.replaceState doesn't update router.query.pnmTab).
+      // (native history writes don't update router.query.pnmTab).
       lastRouteTabRef.current = pathSlug;
 
-      // Re-read current path to check if we really need to replace
-      const currentUrl = router.asPath;
+      // router.asPath stays stale after a native History API write. Compare the
+      // actual address bar so later filter changes cannot duplicate an entry.
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
       if (currentUrl !== newUrl) {
-        // IMPORTANT: Use window.history.replaceState, NOT router.replace.
+        // IMPORTANT: Use the native History API, NOT router.replace.
         // router.replace can cause a re-render cycle that resets component state,
         // which wipes out searchQuery and causes an empty URL to be pushed immediately after.
         window.history.replaceState(
-          { ...window.history.state, as: newUrl, url: newUrl },
+          {
+            ...window.history.state,
+            as: newUrl,
+            url: newUrl,
+            options: { ...window.history.state?.options, shallow: true, scroll: false },
+          },
           '',
           newUrl
         );
@@ -2897,6 +2989,40 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     paramsAbsorbed.current = true;
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Native pushState keeps the page mounted, so Next.js does not restore our
+  // React state when the user traverses browser history. Re-absorb the canonical
+  // URL on popstate. The writer observes that the address already matches, and
+  // the polite route announcer below reports the restored surface to assistive
+  // technology.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const restoreDiscoveryState = () => {
+      const target = resolveDiscoveryDeepLink({
+        pathname: window.location.pathname,
+        search: window.location.search,
+      });
+      setShowGlobalSearch(false);
+      setSearchQuery(target.query || '');
+      setShowLiveTab(Boolean(target.showLiveTab));
+      if (target.activeTab === 'more') {
+        setUiFilter('activeTab', 'more');
+        setActiveMoreTab(target.activeMoreTab || 'overview');
+      } else if (target.activeTab) {
+        setActiveTab(target.activeTab);
+        if (target.activeEventTab) setActiveEventTab(target.activeEventTab);
+      }
+      setFilters((previous) => ({
+        ...previous,
+        venueType: target.venueType || 'all',
+      }));
+      lastRouteTabRef.current = normalizeRouteSlug(
+        window.location.pathname.split('/').filter(Boolean).at(-1)
+      );
+    };
+    window.addEventListener('popstate', restoreDiscoveryState);
+    return () => window.removeEventListener('popstate', restoreDiscoveryState);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   fetchAllDataRef.current = fetchAllData;
   fetchVenuesRef.current = fetchVenues;
   fetchDailyRef.current = fetchDailyTournaments;
@@ -2915,9 +3041,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     activeEventTab,
     activeMoreTab,
     showLiveTab,
-    setActiveTab,
-    setActiveEventTab,
-    setActiveMoreTab,
+    setActiveTab: navigateActiveTab,
+    setActiveEventTab: navigateActiveEventTab,
+    setActiveMoreTab: navigateActiveMoreTab,
     setShowLiveTab,
     setPullDistance,
     isRefreshing,
@@ -3177,7 +3303,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           venueMaxGtd={venueMaxGtd}
           promotionVenueIds={promotionVenueIds}
           pnmReviewStatsMap={pnmReviewStatsMap}
-          setActiveTab={setActiveTab}
+          setActiveTab={navigateActiveTab}
           router={router}
           openVenueModal={openVenueModal}
         />
@@ -3259,7 +3385,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         return (
           <MoreTabPanel
             activeMoreTab={activeMoreTab}
-            setActiveMoreTab={setActiveMoreTab}
+            setActiveMoreTab={navigateActiveMoreTab}
             allVenuesForMap={allVenuesForMap}
             venues={venues}
             userLocation={userLocation}
@@ -3274,7 +3400,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             setPushPermission={setPushPermission}
             guardAction={guardAction}
             requestGpsLocation={requestGpsLocation}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateActiveTab}
             router={router}
             openVenueModal={openVenueModal}
           />
@@ -3522,13 +3648,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               'Loading Live Data...'
             ) : (
               <>
-                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
+                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Venues &nbsp;&bull;&nbsp;
                 {/* UX FIX: 'mixed' means the published total is real observations
                     PLUS simulator output, so it must carry the approximate label
                     too. Pending and offline feeds cannot prove a zero count, so
                     they render an em dash instead of a misleading zero. */}
                 {liveDataMode == null || liveDataMode === 'none'
-                  ? '—'
+                  ? '-'
                   : liveTableCount.toLocaleString()}{' '}
                 {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                   ? 'Tables (Approx.)'
@@ -3571,7 +3697,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
               <span>
                 {directorySource === 'supabase'
-                  ? `Loading live venue registry — ${directoryProgress.loaded} rooms ready.`
+                  ? `Loading live venue registry - ${directoryProgress.loaded} rooms ready.`
                   : directorySource === 'unavailable'
                   ? 'The venue registry is temporarily unavailable.'
                   : directorySource === 'partial_live'
@@ -3676,7 +3802,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               message={toastMsg}
               onClick={() => {
                 setShowLiveTab(false);
-                setActiveTab('saved');
+                navigateActiveTab('saved');
               }}
             />
           );
@@ -3839,6 +3965,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
         {/* ═══ MAIN CONTENT — full width, no sidebar ═══ */}
         <main className="pnm-layout" aria-label="Poker Near Me discovery results">
+          <p className="pnm-route-announcer" role="status" aria-live="polite" aria-atomic="true">
+            Showing {routeMeta.breadcrumb}
+          </p>
           <div className="pnm-main">
             {/* ─── MAIN CONTENT AREA ─── */}
 
@@ -3930,7 +4059,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 <div className="pnm-venues-below-map">
                   <button
                     className={'pnm-venues-below-btn' + (activeTab === 'venues' ? ' active' : '')}
-                    onClick={() => setActiveTab('venues')}
+                    onClick={() => navigateActiveTab('venues')}
                   >
                     Venues
                     {venues.length > 0 && <span className="pnm-tab-badge">{venues.length}</span>}
@@ -4042,12 +4171,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 // leaves the Live feed on screen (same defect as the swipe handler
                 // and the map pin handler) — clear it on the way out.
                 setShowLiveTab(false);
-                setActiveTab(target.tab);
-                if (target.sub) setActiveEventTab(target.sub);
+                navigateActiveTab(target.tab);
+                if (target.sub) navigateActiveEventTab(target.sub);
               } else if (
                 String(parsed.filters.tab).toLowerCase() === 'live' ||
                 String(parsed.filters.tab).toLowerCase() === 'live-games'
               ) {
+                pushDiscoverySurface({ showLiveTab: true });
                 setShowLiveTab(true);
               }
             }

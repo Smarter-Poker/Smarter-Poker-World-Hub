@@ -17,10 +17,10 @@ import React, { useState, useCallback, useMemo } from 'react';
 const STAGES = [
   { id: 'early', label: 'Early Game', blinds: '25/50', avgStack: '150bb', desc: 'Deep stacks, speculative hands gain value', color: '#22c55e' },
   { id: 'middle', label: 'Middle Stage', blinds: '200/400', avgStack: '40bb', desc: 'Antes kick in, stealing blinds becomes key', color: '#3b82f6' },
-  { id: 'bubble', label: 'Bubble', blinds: '500/1000', avgStack: '25bb', desc: 'ICM pressure at maximum — survival vs accumulation', color: '#f59e0b' },
-  { id: 'itm', label: 'In the Money', blinds: '800/1600', avgStack: '20bb', desc: 'Pay jumps matter — ladder vs gamble for the win', color: '#8b5cf6' },
-  { id: 'final_table', label: 'Final Table', blinds: '2000/4000', avgStack: '25bb', desc: 'Maximum ICM — every decision is magnified', color: '#ef4444' },
-  { id: 'heads_up', label: 'Heads Up', blinds: '5000/10000', avgStack: '30bb', desc: 'Winner takes all — ICM gone, pure chip EV', color: '#ec4899' },
+  { id: 'bubble', label: 'Bubble', blinds: '500/1000', avgStack: '25bb', desc: 'ICM pressure at maximum - survival vs accumulation', color: '#f59e0b' },
+  { id: 'itm', label: 'In the Money', blinds: '800/1600', avgStack: '20bb', desc: 'Pay jumps matter - ladder vs gamble for the win', color: '#8b5cf6' },
+  { id: 'final_table', label: 'Final Table', blinds: '2000/4000', avgStack: '25bb', desc: 'Maximum ICM - every decision is magnified', color: '#ef4444' },
+  { id: 'heads_up', label: 'Heads Up', blinds: '5000/10000', avgStack: '30bb', desc: 'Winner takes all - ICM gone, pure chip EV', color: '#ec4899' },
 ];
 
 // ●●● SCENARIO DATA ●●●
@@ -76,14 +76,14 @@ const SCENARIOS = {
       options: [
         { action: 'All-in', correct: true, ev: '+2.1%', explanation: '99 is a monster at 6bb. Even though you\'re on the bubble, you\'re so short that you need to double up. The BB can\'t call wide with ICM pressure from bigger stacks.' },
         { action: 'Fold', correct: false, ev: '-3.5%', explanation: 'Folding pocket nines at 6bb is a catastrophic error. Even in pure ICM, 99 is a profitable shove here. You\'ll blind out waiting for a better spot.' },
-        { action: 'Raise to 2.5x', correct: false, ev: '-0.4%', explanation: 'With 6bb, there\'s no room for a standard open. Push/fold mode — either jam or fold.' },
+        { action: 'Raise to 2.5x', correct: false, ev: '-0.4%', explanation: 'With 6bb, there\'s no room for a standard open. Push/fold mode - either jam or fold.' },
         { action: 'Limp', correct: false, ev: '-1.8%', explanation: 'Limping is terrible. It gives BB great odds, lets them see a flop, and you lose the fold equity that\'s your biggest weapon at 6bb.' },
       ],
     },
   ],
   final_table: [
     {
-      title: 'Final Table — Short Stack Shove',
+      title: 'Final Table - Short Stack Shove',
       stacks: [55, 30, 20, 18, 15, 12, 10, 8, 6],
       heroIdx: 8,
       position: 'UTG',
@@ -98,7 +98,7 @@ const SCENARIOS = {
       ],
     },
     {
-      title: 'Final Table — Chip Leader Decision',
+      title: 'Final Table - Chip Leader Decision',
       stacks: [60, 22, 20, 18, 15, 12, 8],
       heroIdx: 0,
       position: 'BTN',
@@ -117,7 +117,7 @@ const SCENARIOS = {
   ],
   push_fold: [
     {
-      title: 'Nash Push/Fold — 8bb UTG',
+      title: 'Nash Push/Fold - 8bb UTG',
       stacks: [8, 15, 20, 25, 12, 10],
       heroIdx: 0,
       position: 'UTG',
@@ -125,12 +125,12 @@ const SCENARIOS = {
       blinds: { sb: 500, bb: 1000, ante: 100 },
       situation: '6-handed, you have 8bb in UTG. Practice: should you push or fold K5o?',
       options: [
-        { action: 'Fold', correct: true, ev: '+0.1%', explanation: 'K5o at 8bb from UTG is a fold in Nash equilibrium. There are 5 players left to act, and K5o doesn\'t have enough equity when called. Nash push range for UTG at 8bb is ~15% — K5o is just outside.' },
+        { action: 'Fold', correct: true, ev: '+0.1%', explanation: 'K5o at 8bb from UTG is a fold in Nash equilibrium. There are 5 players left to act, and K5o doesn\'t have enough equity when called. Nash push range for UTG at 8bb is ~15% - K5o is just outside.' },
         { action: 'All-in', correct: false, ev: '-0.4%', explanation: 'K5o is marginal at 8bb from UTG. With 5 players behind, the chance of running into a premium is too high. From BTN or CO this would be a shove, but UTG it\'s a fold.' },
       ],
     },
     {
-      title: 'Nash Push/Fold — 12bb BTN',
+      title: 'Nash Push/Fold - 12bb BTN',
       stacks: [20, 15, 12, 8, 25, 18],
       heroIdx: 2,
       position: 'BTN',
@@ -145,13 +145,13 @@ const SCENARIOS = {
   ],
   blind_battle: [
     {
-      title: 'SB vs BB — 20bb Deep',
+      title: 'SB vs BB - 20bb Deep',
       stacks: [20, 30, 25, 20, 18, 22],
       heroIdx: 4,
       position: 'SB',
       hand: 'Q♥ 8♦',
       blinds: { sb: 300, bb: 600, ante: 75 },
-      situation: 'Folds to you in the SB with 20bb. BB has 22bb. Q8o — raise, limp, or fold?',
+      situation: 'Folds to you in the SB with 20bb. BB has 22bb. Q8o - raise, limp, or fold?',
       options: [
         { action: 'Raise 2.2x', correct: true, ev: '+0.4%', explanation: 'Q8o is a raise from the SB at 20bb in a blind battle. You need to be aggressive stealing blinds at this stack depth. Q8o has enough equity against BB\'s defending range.' },
         { action: 'All-in', correct: false, ev: '-0.3%', explanation: 'Shoving Q8o at 20bb from SB is too aggressive. You have room for a standard open/fold game. Save the jams for sub-12bb stacks.' },
@@ -211,7 +211,7 @@ export default function TournamentTrainer() {
           padding: '4px 12px', borderRadius: 6, background: 'rgba(59,130,246,0.15)',
           color: '#3b82f6', fontSize: 12, fontWeight: 700,
         }}>
-          {score.correct}/{score.total} correct ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%)
+          {score.correct}/{score.total} Correct ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%)
         </div>
       </div>
 
@@ -393,7 +393,7 @@ export default function TournamentTrainer() {
           </div>
           {scenario.bubbleSize && (
             <div style={{ color: '#f59e0b', fontSize: 11, marginTop: 6 }}>
-              Bubble: {scenario.playersLeft} remain, {scenario.bubbleSize} get paid
+              Bubble: {scenario.playersLeft} Remain, {scenario.bubbleSize} Get Paid
             </div>
           )}
         </div>

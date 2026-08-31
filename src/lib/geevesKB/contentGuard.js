@@ -72,7 +72,7 @@ const BRAND_REDIRECT_RESPONSE = {
 
 // ── Hard-block response for security probes ──
 const SECURITY_BLOCK_RESPONSE = {
-    answer: `I\'m Geeves, your Smarter.Poker Help Assistant — here to help you get the most out of the platform!\n\nI\'m not able to help with that type of question, but I\'m always happy to assist with:\n- **Features** — How any part of Smarter.Poker works\n- **Poker strategy** — GTO concepts, math, tournament strategy\n- **Account questions** — Profile, billing, settings\n- **Club management** — Commander, Club Arena, union setup\n\nWhat can I help you with today?`,
+    answer: `I\'m Geeves, your Smarter.Poker Help Assistant - here to help you get the most out of the platform!\n\nI\'m not able to help with that type of question, but I\'m always happy to assist with:\n- **Features** - How any part of Smarter.Poker works\n- **Poker strategy** - GTO concepts, math, tournament strategy\n- **Account questions** - Profile, billing, settings\n- **Club management** - Commander, Club Arena, union setup\n\nWhat can I help you with today?`,
     category: 'Security',
     followUps: ['How do I get started?', 'What features does Smarter.Poker have?', 'How do I contact support?'],
     confidence: 100,

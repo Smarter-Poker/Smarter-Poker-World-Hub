@@ -143,7 +143,7 @@ export default function TrainingSettingsMenu({ onClose }) {
                             <div>
                                 <label style={styles.settingLabel}>Hints</label>
                                 <span style={styles.settingHintSmall}>
-                                    Levels 1-3 only
+                                    Levels 1-3 Only
                                 </span>
                             </div>
                             <ToggleSwitch

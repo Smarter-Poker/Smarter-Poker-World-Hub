@@ -344,7 +344,7 @@ export default function HorseHandReviews() {
         justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: TEXT }}>
         <div role="alert" style={{ color: RED, fontWeight: 700, fontSize: 18 }}>Could not verify your role</div>
         <div style={{ color: MUTED, fontSize: 14, maxWidth: 480 }}>
-          {roleError}. This is a failed check, not a refusal — your access has not changed.
+          {roleError}. This is a failed check, not a refusal - your access has not changed.
         </div>
         <button onClick={() => router.reload()} style={{ background: ACCENT, color: BG, border: 'none',
           padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>

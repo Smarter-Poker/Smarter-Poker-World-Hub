@@ -94,7 +94,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
                 {/* The pre-rendered metal card PNG */}
                 <img
                     src="/images/diamond-cost-popup.png"
-                    alt="Diamond Cost — Each game costs diamonds. VIP members play free."
+                    alt="Diamond Cost - Each game costs diamonds. VIP members play free."
                     style={s.cardImage}
                     draggable={false}
                 />

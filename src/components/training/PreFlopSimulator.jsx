@@ -15,7 +15,7 @@ const ACTION_TREES = [
     defenderOptions: [
       { action: '3-Bet (12%)', hands: 'QQ+, AKs, AKo, A5s-A2s, 76s, 87s', sizing: '9-10bb', color: '#ef4444' },
       { action: 'Call (28%)', hands: 'JJ-22, AQs-A2s, KQs-K9s, QJs-Q9s, suited connectors, AQo-ATo', sizing: 'Flat 2.5bb', color: '#3b82f6' },
-      { action: 'Fold (60%)', hands: 'Worst offsuit hands, low disconnected', sizing: '—', color: '#6b7280' },
+      { action: 'Fold (60%)', hands: 'Worst offsuit hands, low disconnected', sizing: '-', color: '#6b7280' },
     ],
     postflopNotes: 'UTG has tight range with overpairs and big cards. BB has wider range but position disadvantage.',
   },
@@ -27,7 +27,7 @@ const ACTION_TREES = [
     defenderOptions: [
       { action: '4-Bet (6%)', hands: 'AA, KK, QQ, AKs, AKo, A5s (blocker)', sizing: '20-22bb', color: '#ef4444' },
       { action: 'Call (12%)', hands: 'JJ, TT, AQs, AQo, KQs, JTs, T9s, 98s', sizing: 'Flat 8bb', color: '#3b82f6' },
-      { action: 'Fold (82%)', hands: 'Most of opening range — suited connectors, weak broadway, small pairs', sizing: '—', color: '#6b7280' },
+      { action: 'Fold (82%)', hands: 'Most of opening range - suited connectors, weak broadway, small pairs', sizing: '-', color: '#6b7280' },
     ],
     postflopNotes: 'BTN 3-bet range is polarized (value + bluffs). CO 4-bet range is very tight. Calling range plays well IP.',
   },
@@ -39,19 +39,19 @@ const ACTION_TREES = [
     defenderOptions: [
       { action: '5-Bet All-in', hands: 'AA, KK (sometimes QQ, AKs)', sizing: 'Shove 100bb', color: '#ef4444' },
       { action: 'Call', hands: 'QQ, AKs, AKo (sometimes JJ)', sizing: 'Flat 22bb', color: '#3b82f6' },
-      { action: 'Fold', hands: 'All 3-bet bluffs (A5s, 76s, etc.), TT, AQs', sizing: '—', color: '#6b7280' },
+      { action: 'Fold', hands: 'All 3-bet bluffs (A5s, 76s, etc.), TT, AQs', sizing: '-', color: '#6b7280' },
     ],
-    postflopNotes: '4-bet pots are very high SPR. Both ranges are extremely narrow. Overpairs play simply — bet/bet/bet.',
+    postflopNotes: '4-bet pots are very high SPR. Both ranges are extremely narrow. Overpairs play simply - bet/bet/bet.',
   },
   {
     id: 4, name: 'Multiway Pot',
     sequence: ['Action Folds To Middle Position, Who Raises To 2.5 BB', 'The Cutoff Calls', 'The Button Calls', 'The Big Blind Squeezes To 12 BB'],
     positions: { opener: 'MP', defender: 'BB' },
-    openerRange: 'Multiway pot — all callers have capped ranges',
+    openerRange: 'Multiway pot - all callers have capped ranges',
     defenderOptions: [
       { action: 'Squeeze (10%)', hands: 'QQ+, AKs, AKo, A5s-A3s, KJs, T9s', sizing: '12-14bb (4x + 1x per caller)', color: '#ef4444' },
       { action: 'Call (18%)', hands: 'JJ-22, AQs-ATs, KQs, suited connectors', sizing: 'Flat 2.5bb', color: '#3b82f6' },
-      { action: 'Fold (72%)', hands: 'Weak hands — too many players, no position', sizing: '—', color: '#6b7280' },
+      { action: 'Fold (72%)', hands: 'Weak hands - too many players, no position', sizing: '-', color: '#6b7280' },
     ],
     postflopNotes: 'Multiway pots reduce bluffing frequency dramatically. Play tighter, bet for value. Implied odds matter more.',
   },
@@ -110,7 +110,7 @@ function PreFlopSimulator() {
 
         {/* Decision Options */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Decision Point — {tree.positions.defender || tree.positions.opener}:</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Decision Point - {tree.positions.defender || tree.positions.opener}:</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tree.defenderOptions.map((opt, i) => (
               <div key={i} style={{
@@ -148,7 +148,7 @@ function PreFlopSimulator() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Simulator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Simulator Failed To Load: {err.message}</div>;
   }
 }
 

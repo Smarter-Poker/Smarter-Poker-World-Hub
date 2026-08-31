@@ -657,7 +657,7 @@ export default function ClubPage() {
       try {
         if (isVideo) {
           // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-          // Read token from localStorage — avoids supabase.auth.getSession() lock contention
+          // Read the cached token directly to avoid SDK session-lock contention.
           let _clubVidToken = null;
           try {
             const _raw = localStorage.getItem('smarter-poker-auth');
@@ -695,7 +695,7 @@ export default function ClubPage() {
             body: file,
           });
           if (!uploadRes.ok) {
-            alert('Video upload failed — please try again');
+            alert('Video upload failed - please try again');
             continue;
           }
           uploaded.push({ type: 'video', url: meta.publicUrl });
@@ -877,8 +877,8 @@ export default function ClubPage() {
   return (
     <>
       <SEOHead
-        title={`${venue.name} — Poker Room`}
-        description={venue.tagline || `${venue.name} — Poker room in ${venue.city}, ${venue.state}. Live games, tournaments, and more on Smarter.Poker.`}
+        title={`${venue.name} - Poker Room`}
+        description={venue.tagline || `${venue.name} - Poker room in ${venue.city}, ${venue.state}. Live games, tournaments, and more on Smarter.Poker.`}
         canonical={`/club/${id}`}
         ogImage={venue.cover_photo_url || undefined}
         jsonLd={{

@@ -81,12 +81,12 @@ const TERMS = [
   {
     term: 'Board Texture',
     cat: 'Postflop',
-    def: 'The characteristics of community cards — dry (disconnected), wet (draw-heavy), monotone (single suit).',
+    def: 'The characteristics of community cards - dry (disconnected), wet (draw-heavy), monotone (single suit).',
   },
   {
     term: 'C-Bet',
     cat: 'Postflop',
-    def: 'Continuation bet — a bet by the preflop aggressor on the flop.',
+    def: 'Continuation bet - a bet by the preflop aggressor on the flop.',
   },
   {
     term: 'Cold Call',
@@ -131,12 +131,12 @@ const TERMS = [
   {
     term: 'GTO',
     cat: 'Theory',
-    def: 'Game Theory Optimal — a mathematically unexploitable strategy based on Nash Equilibrium.',
+    def: 'Game Theory Optimal - a mathematically unexploitable strategy based on Nash Equilibrium.',
   },
   {
     term: 'ICM',
     cat: 'Math',
-    def: 'Independent Chip Model — converts tournament chip stacks to real-money equity based on prize structure.',
+    def: 'Independent Chip Model - converts tournament chip stacks to real-money equity based on prize structure.',
   },
   {
     term: 'Implied Odds',
@@ -156,12 +156,12 @@ const TERMS = [
   {
     term: 'Linear Range',
     cat: 'Theory',
-    def: 'A range of hands ordered by strength — top pairs through medium pairs, no pure bluffs. Also called merged.',
+    def: 'A range of hands ordered by strength - top pairs through medium pairs, no pure bluffs. Also called merged.',
   },
   {
     term: 'MDF',
     cat: 'Math',
-    def: 'Minimum Defense Frequency — the minimum % of your range you must continue with to prevent villain from auto-profiting with bluffs.',
+    def: 'Minimum Defense Frequency - the minimum % of your range you must continue with to prevent villain from auto-profiting with bluffs.',
   },
   {
     term: 'Mixed Strategy',
@@ -186,7 +186,7 @@ const TERMS = [
   {
     term: 'OOP',
     cat: 'Theory',
-    def: 'Out of Position — acting first postflop. Disadvantaged due to less information.',
+    def: 'Out of Position - acting first postflop. Disadvantaged due to less information.',
   },
   {
     term: 'Overbet',
@@ -231,7 +231,7 @@ const TERMS = [
   {
     term: 'RFI',
     cat: 'Preflop',
-    def: 'Raise First In — the first voluntary open raise when action folds to you.',
+    def: 'Raise First In - the first voluntary open raise when action folds to you.',
   },
   {
     term: 'Semi-Bluff',
@@ -292,12 +292,12 @@ const TERMS = [
   {
     term: 'VPIP',
     cat: 'Math',
-    def: 'Voluntarily Put In Pot — % of hands a player enters the pot with a call or raise.',
+    def: 'Voluntarily Put In Pot - % of hands a player enters the pot with a call or raise.',
   },
   {
     term: 'Wet Board',
     cat: 'Postflop',
-    def: 'A board with many draw possibilities (e.g., J♠T♥9♦ — straights, T♥9♥8♥ — flush + straight).',
+    def: 'A board with many draw possibilities (e.g., J♠T♥9♦ - straights, T♥9♥8♥ - flush + straight).',
   },
 ];
 

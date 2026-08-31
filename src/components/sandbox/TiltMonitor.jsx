@@ -190,7 +190,7 @@ export default function TiltMonitor({ recentResults = [] }) {
                         style={{ ...btn('danger'), marginTop: S.sm }}
                     >
                         <Coffee size={18} strokeWidth={2} />
-                        Take a {COOLDOWN_SECONDS}s break
+                        Take A {COOLDOWN_SECONDS}s Break
                     </button>
                 )}
             </div>

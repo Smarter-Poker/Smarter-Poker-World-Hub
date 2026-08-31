@@ -595,7 +595,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="number" placeholder="Min $" value={minBuyin} onChange={e => startTransition(() => setMinBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
-        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>to</span>
+        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>To</span>
         <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => startTransition(() => setMaxBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => startTransition(() => setMinGuaranteed(e.target.value))}
@@ -620,7 +620,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.5)', marginBottom: 10 }}>
         <span style={{ color: '#ffffff', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
         {gameType !== 'all' && <span> ({gameType})</span>}
-        {selectedState && selectedState !== 'all' && <span> in <span style={{ color: '#ffffff' }}>{selectedState}</span></span>}
+        {selectedState && selectedState !== 'all' && <span> In <span style={{ color: '#ffffff' }}>{selectedState}</span></span>}
       </div>
 
       {/* Top States quick filter — [DTP5] uses memoized topStates (was an IIFE re-running 400+ items per render) */}
@@ -668,8 +668,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No tournaments found for {selectedDay}</p>
-          <p style={{ fontSize: 13 }}>Try another day, adjust filters, or enable GPS to see tournaments near you.</p>
+          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Tournaments Found For {selectedDay}</p>
+          <p style={{ fontSize: 13 }}>Try Another Day, Adjust Filters, Or Enable GPS To See Tournaments Near You.</p>
         </div>
       )}
 

@@ -2617,7 +2617,7 @@ export default function MemoryGamesPage() {
                                     ) : (
                                         <>
                                             <Clock3 size={18} aria-hidden />
-                                            <strong className="preflop-lab-timer-hidden">—</strong>
+                                            <strong className="preflop-lab-timer-hidden">-</strong>
                                             <span>timer hidden</span>
                                         </>
                                     )}

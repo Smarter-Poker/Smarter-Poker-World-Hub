@@ -71,7 +71,7 @@ function verifyEnvVars() {
     }
 
     if (missing.length > 0) {
-        console.error(`[ANTIGRAVITY] Required env vars are NOT set: ${missing.join(', ')} — Supabase calls will fail until they are configured.`);
+        console.error(`[ANTIGRAVITY] Required env vars are NOT set: ${missing.join(', ')} - Supabase calls will fail until they are configured.`);
     }
 
     return { success: true, missing: [] };
@@ -109,7 +109,7 @@ async function supabaseHealthCheck() {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
         const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
         if (!anonKey) {
-            throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — cannot run the Supabase health check.');
+            throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set - cannot run the Supabase health check.');
         }
 
         const controller = new AbortController();

@@ -255,7 +255,7 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
 
       {!loading && !error && detail && !snap && (
         <div style={S.contentGone}>
-          Content unavailable — the reported item is no longer in the database (already deleted,
+          Content unavailable - the reported item is no longer in the database (already deleted,
           purged, or of an unrecognised type). There is nothing left to hide or delete.
         </div>
       )}
@@ -447,8 +447,8 @@ function ReportsTab({ token }) {
                   <td style={S.td}><code style={{ fontSize: 11 }}>{r.id?.slice(0,8)}</code></td>
                   <td style={S.td}>{r.reported_type}</td>
                   <td style={S.td}><span style={{ color: ['illegal','self_harm','doxxing'].includes(r.reason_category) ? '#ef4444' : '#9ca3af', fontWeight: 700 }}>{r.reason_category}</span></td>
-                  <td style={S.td}>{r.reporter_name || '—'}</td>
-                  <td style={S.td}>{r.content_author_name || '—'}</td>
+                  <td style={S.td}>{r.reporter_name || '-'}</td>
+                  <td style={S.td}>{r.content_author_name || '-'}</td>
                   <td style={S.td}>{r.status}</td>
                   <td style={S.td}>{r.created_at?.slice(0,10)}</td>
                   <td style={S.td}>{r.status === 'pending' && <button type="button" style={S.btnSm} onClick={() => openReview(r)}>Review</button>}</td>
@@ -678,7 +678,7 @@ function GdprTab({ token }) {
     <div>
       <h2 style={S.srOnly}>GDPR Scrub</h2>
       <div style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#ef4444' }}>
-        WARNING — GDPR Erasure Is Irreversible. Anonymizes all Home Games posts, messages, and profile data for the target user. Use only on verified DPO/legal request.
+        WARNING - GDPR Erasure Is Irreversible. Anonymizes all Home Games posts, messages, and profile data for the target user. Use only on verified DPO/legal request.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 500 }}>
         <label style={S.label}>Target User UUID
@@ -763,13 +763,13 @@ export default function HgModerationPage() {
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
       <div role="alert" style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Could not verify your role</div>
       <div style={{ color: '#9ca3af', fontSize: 14, maxWidth: 480 }}>
-        {authFailure}. This is a failed check, not a refusal — your access has not changed.
+        {authFailure}. This is a failed check, not a refusal - your access has not changed.
       </div>
       <button onClick={() => router.reload()} style={{ background: '#00d4ff', color: '#0a0e17', border: 'none',
         padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
     </div>
   );
-  if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 — Admin access required</div>;
+  if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 - Admin access required</div>;
 
   return (
     <>
@@ -784,7 +784,7 @@ export default function HgModerationPage() {
             <button onClick={() => router.push('/horses')} style={S.backBtn}>&larr; Back to Horses</button>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: '#f3f4f6' }}>Home Games Moderation</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-staff surface — all escalation categories, cross-group actions, GDPR tools</p>
+          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-staff surface - all escalation categories, cross-group actions, GDPR tools</p>
 
           {/* Tab bar */}
           <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>

@@ -42,7 +42,7 @@ export default function NodeAnalysis() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Node Analysis
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master every decision point in the game tree.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master Every Decision Point In The Game Tree.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {NODE_TYPES.map((n, i) => (

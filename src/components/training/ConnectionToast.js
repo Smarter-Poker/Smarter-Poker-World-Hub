@@ -114,7 +114,7 @@ export default function ConnectionToast() {
           <polyline points="9 12 12 15 16 10" />
         </svg>
       )}
-      {isOffline ? 'You are offline — changes may not save' : 'Back online'}
+      {isOffline ? 'You are offline - changes may not save' : 'Back online'}
       <style>{`
         @keyframes slideUp {
           from { transform: translateX(-50%) translateY(20px); opacity: 0; }

@@ -38,7 +38,7 @@ function section(title) {
 
 // ============ TEST 1: GameStateMachine event data completeness ============
 
-section('GameStateMachine — Event Data Completeness');
+section('GameStateMachine - Event Data Completeness');
 
 (() => {
   const game = new GameStateMachine({
@@ -110,7 +110,7 @@ section('GameStateMachine — Event Data Completeness');
 
 // ============ TEST 2: TableManager getState includes config ============
 
-section('TableManager — getState config block');
+section('TableManager - getState config block');
 
 (() => {
   const table = new TableManager({
@@ -139,7 +139,7 @@ section('TableManager — getState config block');
 
 // ============ TEST 3: Hand History Recording via LobbyManager wiring ============
 
-section('LobbyManager Wiring — Hand History Recording');
+section('LobbyManager Wiring - Hand History Recording');
 
 (() => {
   // Simulate what LobbyManager._wireHandHistory does
@@ -276,7 +276,7 @@ section('LobbyManager Wiring — Hand History Recording');
 
 // ============ TEST 4: Card Integer to PNG Mapping Consistency ============
 
-section('Card Mapping — Engine ↔ UI Consistency');
+section('Card Mapping - Engine ↔ UI Consistency');
 
 (() => {
   const { Deck, getRank, getSuit } = require('../src/Deck');
@@ -323,7 +323,7 @@ section('Card Mapping — Engine ↔ UI Consistency');
 
 // ============ TEST 5: CHANNEL_EVENTS match LivePokerTable events ============
 
-section('Channel Events — Server ↔ Client Match');
+section('Channel Events - Server ↔ Client Match');
 
 (() => {
   // Events the server broadcasts
@@ -377,7 +377,7 @@ section('Channel Events — Server ↔ Client Match');
 
 // ============ TEST 6: Seat Layout Coverage ============
 
-section('Seat Layouts — All Player Counts');
+section('Seat Layouts - All Player Counts');
 
 (() => {
   // Replicate the SEAT_LAYOUTS from LivePokerTable

@@ -14,10 +14,10 @@ const FLOAT_SPOTS = [
     handExamples: [
       { hand: 'A♠ 5♠', action: 'Float Flop → Bet Turn', reasoning: 'Two overcards + backdoor. Float flop, stab turn when BB checks.' },
       { hand: 'K♣ T♣', action: 'Float Flop → Bet Turn', reasoning: 'Overcards with gutshot to Broadway. Excellent float candidate.' },
-      { hand: '9♥ 8♥', action: 'Fold Flop', reasoning: 'No draws, no overcards. Clean fold — poor float candidate.' },
+      { hand: '9♥ 8♥', action: 'Fold Flop', reasoning: 'No draws, no overcards. Clean fold - poor float candidate.' },
       { hand: 'J♦ T♦', action: 'Float Flop → Check Turn', reasoning: 'Gutshot only. Float flop if sizing is small, give up on brick turn.' },
     ],
-    strategy: 'Dry Q-high board. BB c-bets wide at 33%. Float in position with overcards, backdoor draws, and gutshots. Bet turn when checked to — villain folds 60%+.',
+    strategy: 'Dry Q-high board. BB c-bets wide at 33%. Float in position with overcards, backdoor draws, and gutshots. Bet turn when checked to - villain folds 60%+.',
     keyPrinciples: ['Position is essential for floating', 'Need equity or removal on later streets', 'Small flop bets = wider float range'],
   },
   {
@@ -26,9 +26,9 @@ const FLOAT_SPOTS = [
     floatFreq: 0, delayedCbetFreq: 55,
     handExamples: [
       { hand: 'A♠ K♦', action: 'Check Flop → Bet Turn K', reasoning: 'Turned top pair. Delayed c-bet for value on king turn.' },
-      { hand: 'Q♣ Q♠', action: 'Check Flop → Bet Turn', reasoning: 'Overpair checked back. King turn doesn\'t hurt — bet for value.' },
-      { hand: 'A♥ 2♥', action: 'Check Flop → Bet Turn', reasoning: 'Nut flush draw checked back. Turn brick — delayed bluff with equity.' },
-      { hand: '6♣ 4♣', action: 'Check Flop → Check Turn', reasoning: 'No equity, no draws. Give up — don\'t bluff without backup plan.' },
+      { hand: 'Q♣ Q♠', action: 'Check Flop → Bet Turn', reasoning: 'Overpair checked back. King turn doesn\'t hurt - bet for value.' },
+      { hand: 'A♥ 2♥', action: 'Check Flop → Bet Turn', reasoning: 'Nut flush draw checked back. Turn brick - delayed bluff with equity.' },
+      { hand: '6♣ 4♣', action: 'Check Flop → Check Turn', reasoning: 'No equity, no draws. Give up - don\'t bluff without backup plan.' },
     ],
     strategy: 'Wet flop favoring BB → check range IP. King turn shifts advantage back to IP (more Kx combos). Delayed c-bet ~55% on favorable turn cards.',
     keyPrinciples: ['Check flop on wet boards in position', 'Bet turn when card shifts range advantage', 'Keep delayed bluffs equity-backed'],
@@ -41,7 +41,7 @@ const FLOAT_SPOTS = [
       { hand: 'J♥ 8♥', action: 'Call Flop → Probe Turn', reasoning: 'Turned OESD. Probe bet to take initiative and semi-bluff.' },
       { hand: 'A♦ 4♦', action: 'Call Flop → Probe Turn', reasoning: 'Overcards + backdoor diamond draw. Probe to fold out weak BTN checks.' },
       { hand: '7♣ 5♣', action: 'Call Flop → Check Turn', reasoning: 'Gutshot but minimal equity. Call small flop bet, check-fold turn.' },
-      { hand: 'K♠ 9♠', action: 'Call Flop → Probe Turn', reasoning: 'Turned second pair. Good probe candidate — BTN checked back weakness.' },
+      { hand: 'K♠ 9♠', action: 'Call Flop → Probe Turn', reasoning: 'Turned second pair. Good probe candidate - BTN checked back weakness.' },
     ],
     strategy: 'BTN checks back flop showing weakness. BB probe bets ~28% of turn cards. 9♥ connects with BB range (T9, 98, J8). Probe with made hands and draws.',
     keyPrinciples: ['Probe when IP shows weakness by checking', 'Connected turn cards favor BB range', 'Size 50-67% for probes'],
@@ -52,11 +52,11 @@ const FLOAT_SPOTS = [
     floatFreq: 0, delayedCbetFreq: 0,
     handExamples: [
       { hand: 'Q♠ J♠', action: 'Bet Flop → Bet Turn → Bet River', reasoning: 'Overcards + gutshot. A and K on board block villain\'s calling range. Triple barrel.' },
-      { hand: 'T♣ 8♣', action: 'Bet Flop → Bet Turn → Check River', reasoning: 'Gutshot on flop/turn, missed river. Give up — K completes draws, less fold equity.' },
+      { hand: 'T♣ 8♣', action: 'Bet Flop → Bet Turn → Check River', reasoning: 'Gutshot on flop/turn, missed river. Give up - K completes draws, less fold equity.' },
       { hand: '5♠ 3♠', action: 'Bet Flop → Check Turn', reasoning: 'Backdoor only. One barrel enough, give up on blank turn.' },
-      { hand: 'Q♥ T♥', action: 'Bet Flop → Bet Turn → Bet River', reasoning: 'Overcards, QJ gutshot. K river is great bluff card — rep AK, KK. Triple barrel.' },
+      { hand: 'Q♥ T♥', action: 'Bet Flop → Bet Turn → Bet River', reasoning: 'Overcards, QJ gutshot. K river is great bluff card - rep AK, KK. Triple barrel.' },
     ],
-    strategy: 'Ace-high board ideal for triple barrel. BTN has more Ax and Kx. King river is excellent barrel card — represents AK, sets. Villain folds one pair.',
+    strategy: 'Ace-high board ideal for triple barrel. BTN has more Ax and Kx. King river is excellent barrel card - represents AK, sets. Villain folds one pair.',
     keyPrinciples: ['Triple barrel needs credible story', 'Scare cards (A, K) enable bluffs', 'Check bluffs with zero equity on turn', 'River sizing 67-100% for max fold equity'],
   },
 ];
@@ -132,7 +132,7 @@ function FloatPlayTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Float Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Float Trainer Failed To Load: {err.message}</div>;
   }
 }
 

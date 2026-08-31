@@ -170,7 +170,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             return;
         }
         if (file.size > 20 * 1024 * 1024) {
-            toast.error('File too large — max 20MB');
+            toast.error('File too large - max 20MB');
             return;
         }
 
@@ -361,7 +361,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Dealer Vault</div>
-                        <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} stored</div>
+                        <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} Stored</div>
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -374,7 +374,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                         <div style={s.alertBox}>
                             {thresholdAlerts.map(({ venue, total }) => (
                                 <div key={venue} style={s.alertRow}>
-                                    You've earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> at <strong>{venue}</strong> this year — you may receive a 1099-NEC
+                                    You've Earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> At <strong>{venue}</strong> This Year - You May Receive A 1099-NEC
                                 </div>
                             ))}
                         </div>
@@ -466,7 +466,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                             {isAnalyzing && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
                                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>Extracting document data with Vision OCR...</span>
+                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>Extracting Document Data With Vision OCR...</span>
                                 </div>
                             )}
                             <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>
@@ -528,7 +528,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             value={uploadForm.sub_type}
                                             onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
                                         >
-                                            <option value="">Select type...</option>
+                                            <option value="">Select Type...</option>
                                             {TAX_SUB_TYPES.map(t => (
                                                 <option key={t.value} value={t.value}>{t.label}</option>
                                             ))}
@@ -557,7 +557,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     value={uploadForm.sub_type}
                                     onChange={e => setUploadForm(f => ({ ...f, sub_type: e.target.value }))}
                                 >
-                                    <option value="">Select type...</option>
+                                    <option value="">Select Type...</option>
                                     {EMPLOYMENT_SUB_TYPES.map(t => (
                                         <option key={t.value} value={t.value}>{t.label}</option>
                                     ))}

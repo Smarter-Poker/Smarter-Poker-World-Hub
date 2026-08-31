@@ -222,7 +222,7 @@ export default async function handler(req, res) {
 
           if (allQuestions.length === 0) {
               // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
-              console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} — engines returned empty.`);
+              console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} - engines returned empty.`);
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
 

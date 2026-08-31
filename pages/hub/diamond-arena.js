@@ -112,7 +112,7 @@ export default function DiamondArenaPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Diamond Arena — Competitive Poker Games"
+                title="Diamond Arena - Competitive Poker Games"
                 description="Compete In High-stakes Diamond Arena Poker Games. Earn Diamonds, Climb Rankings, And Prove Your Skills."
                 canonical="/hub/diamond-arena"
             >

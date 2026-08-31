@@ -23,7 +23,7 @@ export default function PreflopSubpageShell({ eyebrow, title, description, metri
           <div className="preflop-subpage-utility">
             <Link href="/hub/preflop-charts" className="preflop-subpage-back">
               <ArrowLeft size={15} aria-hidden />
-              Back to command deck
+              Back To Command Deck
             </Link>
             <span>GTO RANGE SYSTEM // ONLINE</span>
           </div>

@@ -167,7 +167,7 @@ export default function LeakHeatmap({ userId }) {
         <div className="pa-chart-panel" style={{ ...card, marginBottom: S.md }}>
             <PAStyles />
             {header}
-            <div style={{ ...sectionTitle, marginBottom: S.sm }}>Coach accuracy by seat</div>
+            <div style={{ ...sectionTitle, marginBottom: S.sm }}>Coach Accuracy By Seat</div>
             {body}
         </div>
     );

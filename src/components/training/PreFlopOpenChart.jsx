@@ -50,7 +50,7 @@ function PreFlopOpenChart() {
 
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: posColors[position] }}>{position}</span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}> — {count} hands ({pct}%)</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}> - {count} Hands ({pct}%)</span>
         </div>
 
         {/* 13x13 Grid */}
@@ -77,14 +77,14 @@ function PreFlopOpenChart() {
         </div>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-          <span>Pairs: diagonal</span>
-          <span>Suited: above diagonal</span>
-          <span>Offsuit: below diagonal</span>
+          <span>Pairs: Diagonal</span>
+          <span>Suited: Above Diagonal</span>
+          <span>Offsuit: Below Diagonal</span>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Open Chart failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Preflop Open Chart Failed To Load: {err.message}</div>;
   }
 }
 

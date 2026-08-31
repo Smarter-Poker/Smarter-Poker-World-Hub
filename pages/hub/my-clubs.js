@@ -150,7 +150,7 @@ function ClubArenaCard({ club, onNavigate }) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.borderLight}`, paddingTop: 12 }}>
                 <div style={{ fontSize: 12, color: C.textMuted }}>
-                    Code: {club.club_id || '—'}
+                    Code: {club.club_id || '-'}
                 </div>
                 <div style={{
                     padding: '6px 14px', borderRadius: 8,

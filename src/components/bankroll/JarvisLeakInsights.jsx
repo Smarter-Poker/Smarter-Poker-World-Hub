@@ -137,7 +137,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                                             transition={{ duration: 2, repeat: Infinity }}
                                             style={styles.loadingText}
                                         >
-                                            🧠 Analyzing your bankroll data...
+                                            🧠 Analyzing Your Bankroll Data...
                                         </motion.div>
                                         <p style={styles.loadingHint}>This Usually Takes A Few Seconds</p>
                                     </div>
@@ -214,7 +214,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                                         {/* Last Updated */}
                                         {lastUpdated && (
                                             <div style={styles.timestamp}>
-                                                Last updated {lastUpdated.toLocaleTimeString()}
+                                                Last Updated {lastUpdated.toLocaleTimeString()}
                                             </div>
                                         )}
                                     </motion.div>
@@ -225,7 +225,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                                     <div style={styles.emptyState}>
                                         <div style={styles.emptyIcon}>🧠</div>
                                         <h3 style={styles.emptyTitle}>Ready To Analyze</h3>
-                                        <p style={styles.emptyHint}>Get AI-powered Insights On Your Bankroll Performance, Leak Detection, And Personalized Recommendations.</p>
+                                        <p style={styles.emptyHint}>Get AI-Powered Insights On Your Bankroll Performance, Leak Detection, And Personalized Recommendations.</p>
                                         <button onClick={fetchInsights} style={styles.analyzeBtn}>
                                             Run Analysis
                                         </button>

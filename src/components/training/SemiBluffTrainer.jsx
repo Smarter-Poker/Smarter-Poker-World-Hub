@@ -17,7 +17,7 @@ const SPOTS = [
   { hand: 'Q♠ J♠', board: 'K♠ T♣ 3♠', outs: 17, equity: 54, verdict: 'SEMI-BLUFF',
     sizing: '75-100% pot', reason: 'Flush draw + OESD = 17 outs! You\'re actually a FAVORITE. Bet large or even check-raise for max pressure.' },
   { hand: '6♦ 5♦', board: 'K♣ Q♥ 8♠', outs: 0, equity: 5, verdict: 'GIVE UP',
-    sizing: 'N/A', reason: 'No draw, no equity, no fold equity vs this board. Pure air — save your chips.' },
+    sizing: 'N/A', reason: 'No draw, no equity, no fold equity vs this board. Pure air - save your chips.' },
 ];
 
 export default function SemiBluffTrainer() {
@@ -43,7 +43,7 @@ export default function SemiBluffTrainer() {
          Semi-Bluff Trainer
       </h3>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>Should you semi-bluff or give up?</p>
+        <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>Should You Semi-Bluff Or Give Up?</p>
         {score.total > 0 && (
           <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>
             {score.correct}/{score.total} ({Math.round(score.correct/score.total*100)}%)

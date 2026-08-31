@@ -112,7 +112,7 @@ export default function SeatGridTable({
         <div className="bg-[#132240] border border-[#22D3EE]/40 rounded-lg p-5 max-w-sm w-full m-4 shadow-2xl">
           <div className="text-white font-semibold mb-3">
             {pendingSeat.offerGuest
-              ? `Seat ${pendingSeat.seatNumber} — bring a +1?`
+              ? `Seat ${pendingSeat.seatNumber} - bring a +1?`
               : `Claim seat ${pendingSeat.seatNumber}?`}
           </div>
           <p className="text-sm text-[#94A3B8] mb-4">
@@ -168,7 +168,7 @@ export default function SeatGridTable({
             {table.game_type?.toUpperCase() || 'NLH'}
             {table.stakes ? ` · ${table.stakes}` : ''}
             {table.buyin_min || table.buyin_max
-              ? ` · $${table.buyin_min || '?'}–$${table.buyin_max || '?'}`
+              ? ` · $${table.buyin_min || '?'}-$${table.buyin_max || '?'}`
               : ''}
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function SeatGridTable({
               style={pos}
               title={res
                 ? (res.display_name + (isOwn ? ' (you)' : ''))
-                : `Seat ${seatNumber} — empty`}
+                : `Seat ${seatNumber} - empty`}
             >
               {res ? (
                 <>
@@ -233,7 +233,7 @@ export default function SeatGridTable({
               ) : (
                 <>
                   <span className="text-sm font-bold">{seatNumber}</span>
-                  <span className="text-[9px] text-[#94A3B8]">open</span>
+                  <span className="text-[9px] text-[#94A3B8]">Open</span>
                 </>
               )}
             </button>
@@ -291,7 +291,7 @@ export default function SeatGridTable({
           {changeMode && (
             <div className="flex items-center gap-2 bg-[#F59E0B]/10 border border-[#F59E0B]/40
                             rounded-lg px-3 py-2 text-xs text-[#F59E0B]">
-              Tap an empty seat to move there
+              Tap An Empty Seat To Move There
               <button
                 onClick={() => setChangeMode(null)}
                 className="text-[#F59E0B] hover:text-[#FBBF24]"
@@ -314,7 +314,7 @@ export default function SeatGridTable({
             className="text-sm text-[#22D3EE] hover:text-[#67E8F9] flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            Seat a member at this table
+            Seat A Member At This Table
           </button>
         </div>
       )}
@@ -338,7 +338,7 @@ export default function SeatGridTable({
             {busy === `start:${table.id}` ? 'Starting…' : 'Start table'}
           </button>
           <p className="mt-1 text-[11px] text-[#94A3B8] text-center">
-            Seats everyone currently reserved. This cannot be undone.
+            Seats Everyone Currently Reserved. This Cannot Be Undone.
           </p>
         </div>
       )}

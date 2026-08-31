@@ -344,7 +344,7 @@ export default function ManageSocialPage() {
         <>
             <SEOHead
                 title="Manage Social Page"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
             <UniversalHeader pageDepth={2} />

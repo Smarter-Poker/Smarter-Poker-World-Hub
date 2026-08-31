@@ -5,7 +5,7 @@ import { getAccessToken } from '../../lib/authUtils';
 const PRIORITIES = [
     { key: 'low',    label: 'Low',    color: '#00d4ff', bg: 'rgba(0,212,255,0.12)',    border: 'rgba(0,212,255,0.3)',   desc: 'Minor Issue, Cosmetic' },
     { key: 'medium', label: 'Medium', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',   border: 'rgba(59,130,246,0.3)',  desc: 'Feature Broken But Workaround Exists' },
-    { key: 'high',   label: 'High',   color: '#e5e7eb', bg: 'rgba(229,231,235,0.12)',    border: 'rgba(229,231,235,0.3)',   desc: 'Blocking — Can\'t Use The App' },
+    { key: 'high',   label: 'High',   color: '#e5e7eb', bg: 'rgba(229,231,235,0.12)',    border: 'rgba(229,231,235,0.3)',   desc: 'Blocking - Can\'t Use The App' },
 ];
 
 // ─── Category quick-picks ──────────────────────────────────────────────────
@@ -95,7 +95,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
-                    subject:     `${category ? category + ' — ' : ''}${subject.trim()}`,
+                    subject:     `${category ? category + ' - ' : ''}${subject.trim()}`,
                     description: description.trim(),
                     priority,
                     currentPage,
@@ -238,7 +238,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                             <div style={{ padding: '36px 24px', textAlign: 'center' }}>
                                 <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Submission Failed</div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
-                                    Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>support@smarter.poker</a> Directly.
+                                    Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>Support@Smarter.Poker</a> Directly.
                                 </div>
                                 <button
                                     onClick={() => setResult(null)}

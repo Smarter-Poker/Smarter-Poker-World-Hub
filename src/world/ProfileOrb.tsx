@@ -30,7 +30,7 @@ export function ProfileOrb({
     // Handle click to navigate to Social Media
     const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
-        console.log('Profile Orb clicked — Navigate to Social Media');
+        console.log('Profile Orb clicked - Navigate to Social Media');
         if (onNavigateToSocialMedia) {
             onNavigateToSocialMedia();
         }

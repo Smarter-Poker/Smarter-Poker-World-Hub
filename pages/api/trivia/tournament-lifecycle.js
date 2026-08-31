@@ -499,7 +499,7 @@ async function startTournament(sb, tournament) {
                 userId: e.user_id,
                 amount: fee,
                 type: 'tournament_cancel_refund',
-                description: `Tournament cancelled (not enough players) — ${tournament.name}`,
+                description: `Tournament cancelled (not enough players) - ${tournament.name}`,
                 referenceId: `trivia_tourn_cancel_${tournament.id}_${e.user_id}`
             });
             if (r.ok && !r.deduped) refunded += 1;
@@ -510,7 +510,7 @@ async function startTournament(sb, tournament) {
                 user_id: e.user_id,
                 tournament_id: tournament.id,
                 notification_type: 'eliminated',
-                message: `${tournament.name} was cancelled — your entry fee has been refunded.`
+                message: `${tournament.name} was cancelled - your entry fee has been refunded.`
             }))
         );
         return { tournament_id: tournament.id, action: 'cancelled', entrants: entries.length, refunded };
@@ -563,7 +563,7 @@ async function startTournament(sb, tournament) {
             user_id: e.user_id,
             tournament_id: tournament.id,
             notification_type: 'round_start',
-            message: `${tournament.name} — Round 1 is live. You have 24 hours to play.`
+            message: `${tournament.name} - Round 1 is live. You have 24 hours to play.`
         }))
     );
 
@@ -707,7 +707,7 @@ async function openNextRoundOrFinish(sb, tournament, closedRound) {
             user_id: uid,
             tournament_id: tournament.id,
             notification_type: 'round_start',
-            message: `${tournament.name} — Round ${nextNumber} is live. You have 24 hours to play.`
+            message: `${tournament.name} - Round ${nextNumber} is live. You have 24 hours to play.`
         }))
     );
 
@@ -820,7 +820,7 @@ async function distributePrizes(sb, tournament, standings, amounts, displayName)
                 userId: e.user_id,
                 amount,
                 type: 'tournament_prize',
-                description: `Tournament prize — ${displayName} (rank ${rank})`,
+                description: `Tournament prize - ${displayName} (rank ${rank})`,
                 referenceId: `trivia_tourn_payout_${tournament.id}_${e.user_id}`
             });
             payoutResults.push({ user_id: e.user_id, rank, amount, ok: r.ok, deduped: r.deduped });
@@ -829,7 +829,7 @@ async function distributePrizes(sb, tournament, standings, amounts, displayName)
             if (!r.ok) {
                 failed += 1;
                 console.error(
-                    '[tournament-lifecycle] PAYOUT FAILED — will be retried by sweepRecentPayouts:',
+                    '[tournament-lifecycle] PAYOUT FAILED - will be retried by sweepRecentPayouts:',
                     tournament.id,
                     e.user_id,
                     amount,
@@ -905,7 +905,7 @@ async function finalizeTournament(sb, tournament, championId) {
             message:
                 i === 0
                     ? `You won ${fresh?.name || tournament.name}! Prize: ${amounts[0] || 0} diamonds.`
-                    : `${fresh?.name || tournament.name} is over — you finished #${i + 1}${
+                    : `${fresh?.name || tournament.name} is over - you finished #${i + 1}${
                           amounts[i] ? ` and won ${amounts[i]} diamonds` : ''
                       }.`
         }))

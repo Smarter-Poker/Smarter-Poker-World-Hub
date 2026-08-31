@@ -76,7 +76,7 @@ const LIBRARY_VIEW_META = {
     favorites: {
         kicker: 'Personal library · Favorites',
         title: 'Favorite Videos',
-        description: 'Your strongest hands, breakdowns, and broadcasts—saved for a fast return.',
+        description: 'Your strongest hands, breakdowns, and broadcasts-saved for a fast return.',
     },
     watchlater: {
         kicker: 'Personal library · Study queue',
@@ -1586,7 +1586,7 @@ export default function VideoLibraryPage() {
         <PageTransition>
             
             <SEOHead
-                title="Poker Video Library — Watch & Learn"
+                title="Poker Video Library - Watch & Learn"
                 description="Curated Poker Video Library With Strategy Content, Tournament Coverage, And Training Videos. Track Your Watch History And Get AI Tactical Analysis."
                 canonical="/hub/video-library"
             />

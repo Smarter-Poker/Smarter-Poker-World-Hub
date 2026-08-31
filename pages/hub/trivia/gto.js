@@ -11,9 +11,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 export default function GTOPage() {
     useTrainingBus('trivia-gto');
     return (
-        <TriviaErrorBoundary pageName="Trivia — GTO Master">
+        <TriviaErrorBoundary pageName="Trivia - GTO Master">
             <SEOHead
-                title="GTO Trivia — Solver-Based Scenarios"
+                title="GTO Trivia - Solver-Based Scenarios"
                 description="Test Your GTO Knowledge With Solver-Based Strategy Scenarios On Smarter.Poker."
                 canonical="/hub/trivia/gto"
                 noindex={true}

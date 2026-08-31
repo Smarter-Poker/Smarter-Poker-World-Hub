@@ -30,7 +30,7 @@ const SCENARIOS = [
     position: 'IP',
     spot: 'BTN vs BB SRP',
     correctSizing: 'third',
-    explanation: 'On a dry K72 board, you want to bet small with your entire range. AA is a value hand that doesn\'t need protection — the small sizing lets you bet your full range profitably while keeping villain\'s calling range wide.',
+    explanation: 'On a dry K72 board, you want to bet small with your entire range. AA is a value hand that doesn\'t need protection - the small sizing lets you bet your full range profitably while keeping villain\'s calling range wide.',
     concepts: ['Range betting', 'Dry board', 'Small sizing = wide range'],
   },
   {
@@ -85,7 +85,7 @@ const SCENARIOS = [
     position: 'IP',
     spot: 'BTN vs BB SRP',
     correctSizing: 'overbet',
-    explanation: 'On AKQ83 with complete air, you need maximum fold equity. An overbet polarizes your range — you\'re either the nuts or nothing. Villain has to fold most one-pair hands facing an overbet.',
+    explanation: 'On AKQ83 with complete air, you need maximum fold equity. An overbet polarizes your range - you\'re either the nuts or nothing. Villain has to fold most one-pair hands facing an overbet.',
     concepts: ['Polarized bluff', 'Maximum fold equity', 'River overbet'],
   },
   {
@@ -129,7 +129,7 @@ const SCENARIOS = [
     position: 'IP',
     spot: 'BTN vs BB SRP',
     correctSizing: 'twothirds',
-    explanation: 'QQ on 952J4 is a clear value bet on the river. You beat all pairs below queens. 2/3 pot is the sweet spot — big enough to extract meaningful value, but not so big that only better hands call.',
+    explanation: 'QQ on 952J4 is a clear value bet on the river. You beat all pairs below queens. 2/3 pot is the sweet spot - big enough to extract meaningful value, but not so big that only better hands call.',
     concepts: ['River value', 'Overpair', 'Sizing for value'],
   },
   {
@@ -140,7 +140,7 @@ const SCENARIOS = [
     position: 'IP',
     spot: 'BTN vs BB SRP',
     correctSizing: 'third',
-    explanation: 'A2 with a backdoor flush draw on K94. Small c-bet is ideal — you have some equity, and a small size allows you to bluff profitably with your entire air range. If called, you can barrel hearts.',
+    explanation: 'A2 with a backdoor flush draw on K94. Small c-bet is ideal - you have some equity, and a small size allows you to bluff profitably with your entire air range. If called, you can barrel hearts.',
     concepts: ['Backdoor draw', 'Small c-bet bluff', 'Range bet'],
   },
   {
@@ -151,7 +151,7 @@ const SCENARIOS = [
     position: 'IP',
     spot: 'BTN vs BB SRP',
     correctSizing: 'overbet',
-    explanation: 'You just made the nut straight. On 6524, an overbet is optimal because you\'re polarized — you either have the nuts or nothing. This sizing extracts maximum value from two pairs and sets.',
+    explanation: 'You just made the nut straight. On 6524, an overbet is optimal because you\'re polarized - you either have the nuts or nothing. This sizing extracts maximum value from two pairs and sets.',
     concepts: ['Nut hand', 'Polarized overbet', 'Maximum value'],
   },
 ];
@@ -244,7 +244,7 @@ export default function SizingTrainer() {
         </div>
 
         <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
-          You decide to bet. What sizing do you choose?
+          You Decide To Bet. What Sizing Do You Choose?
         </div>
 
         {/* ●●● SIZING OPTIONS ●●● */}
@@ -343,7 +343,7 @@ export default function SizingTrainer() {
       {score.total >= 3 && (
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
-            Accuracy by Sizing
+            Accuracy By Sizing
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {SIZINGS.map(s => {

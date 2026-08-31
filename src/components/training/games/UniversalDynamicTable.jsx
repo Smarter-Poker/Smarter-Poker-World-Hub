@@ -421,7 +421,7 @@ function RangeMatrixViewer({ rawFrequencies, show, heroHand }) {
             style={{ padding: '8px 4px', overflowX: 'auto' }}
         >
             <div style={{ fontSize: 9, color: 'var(--sp-fg-muted)', marginBottom: 4, textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
-                RANGE STRATEGY — ALL HANDS
+                RANGE STRATEGY - ALL HANDS
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, maxWidth: 300, margin: '0 auto' }}>
                 {matrix.flat().map((cell, i) => {
@@ -4025,7 +4025,7 @@ function UniversalDynamicTable({
                                         color: isActiveSeat ? '#ffd67a' : '#e2af3a',
                                         whiteSpace: 'nowrap',
                                     }}>
-                                        {stackSize} bb
+                                        {stackSize} BB
                                     </div>
 
                                     {/* Dealer Button — rendered at table level per
@@ -4542,7 +4542,7 @@ function UniversalDynamicTable({
                             </div>
                         )}
                         <div style={{ ...styles.questionOfPill, bottom: isMobile ? 3 : 16 }}>
-                            Question {questionNumber} of {totalQuestions}
+                            Question {questionNumber} Of {totalQuestions}
                         </div>
                     </div>
                 </div>
@@ -4934,9 +4934,9 @@ function UniversalDynamicTable({
                                 />
                             ) : (
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
-                                    No solver range matrix for this spot.
+                                    No Solver Range Matrix For This Spot.
                                     <br />
-                                    Range data loads with solved spots.
+                                    Range Data Loads With Solved Spots.
                                 </div>
                             )}
                         </InfoPanelShell>
@@ -5015,7 +5015,7 @@ function UniversalDynamicTable({
                                     <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
                                         By Hand Class
                                         <span style={{ marginLeft: 6, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0 }}>
-                                            {handClassStrategy.totalCombos} combos
+                                            {handClassStrategy.totalCombos} Combos
                                         </span>
                                     </div>
                                     {handClassStrategy.rows.map(row => (
@@ -5023,7 +5023,7 @@ function UniversalDynamicTable({
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginBottom: 2 }}>
                                                 <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{row.label}</span>
                                                 <span style={{ color: 'var(--sp-fg-dim)', fontFamily: "'Inter', monospace" }}>
-                                                    {row.share}% of range
+                                                    {row.share}% Of Range
                                                 </span>
                                             </div>
                                             {/* One stacked bar per class: the
@@ -5297,7 +5297,7 @@ function UniversalDynamicTable({
                                     border: '1px solid rgba(239,68,68,0.45)',
                                     background: 'rgba(239,68,68,0.10)',
                                 }}>
-                                    TIME — auto-{timeExpired === 'fold' ? 'folded' : 'checked'}
+                                    TIME - Auto-{timeExpired === 'fold' ? 'folded' : 'checked'}
                                 </span>
                             )}
                             <span style={{
@@ -5403,7 +5403,7 @@ function UniversalDynamicTable({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                                    Action mix
+                                    Action Mix
                                 </div>
                                 {/* GTOW parity #31 — say where these numbers came
                                     from. An estimated mix that looks identical to a
@@ -5527,7 +5527,7 @@ function UniversalDynamicTable({
                             }}
                         >
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
-                                EV by Action
+                                EV By Action
                             </div>
                             {options.slice(0, 9).map(opt => {
                                 const optId = opt.id || opt;
@@ -5595,71 +5595,71 @@ function UniversalDynamicTable({
 
                             // Player bet when should check
                             if (selIsBet && corIsCheck) {
-                                if (hasMonster) return `Betting your monster here is too transparent — ${correctOpt} traps villain and builds a deceptive checking range.`;
-                                if (hasTopPair) return `Betting top pair here bloats the pot — ${correctOpt} controls the pot and avoids getting raised off a one-pair hand.`;
-                                if (hasDraw) return `Betting your draw here is unnecessary — ${correctOpt} realizes equity for free without putting more chips at risk.`;
-                                return `Betting here bloats the pot unnecessarily — ${correctOpt} controls the pot and realizes equity.`;
+                                if (hasMonster) return `Betting your monster here is too transparent - ${correctOpt} traps villain and builds a deceptive checking range.`;
+                                if (hasTopPair) return `Betting top pair here bloats the pot - ${correctOpt} controls the pot and avoids getting raised off a one-pair hand.`;
+                                if (hasDraw) return `Betting your draw here is unnecessary - ${correctOpt} realizes equity for free without putting more chips at risk.`;
+                                return `Betting here bloats the pot unnecessarily - ${correctOpt} controls the pot and realizes equity.`;
                             }
                             // Player checked when should bet
                             if (selIsCheck && corIsBet) {
-                                if (hasMonster) return `Checking a monster here misses value — ${correctOpt} builds the pot while your hand is strong. Don't slow-play when you should bet.`;
-                                if (hasDraw) return `Checking your draw misses fold equity — ${correctOpt} combines semi-bluff equity with the chance to win the pot now.`;
-                                return `Checking misses value or lets opponents realize equity for free — ${correctOpt} is more profitable.`;
+                                if (hasMonster) return `Checking a monster here misses value - ${correctOpt} builds the pot while your hand is strong. Don't slow-play when you should bet.`;
+                                if (hasDraw) return `Checking your draw misses fold equity - ${correctOpt} combines semi-bluff equity with the chance to win the pot now.`;
+                                return `Checking misses value or lets opponents realize equity for free - ${correctOpt} is more profitable.`;
                             }
                             // Player called when should fold
                             if (selIsCall && corIsFold) {
-                                if (hasDraw) return `Calling your draw here is -EV — the sizing prices you out. You need better pot odds or implied odds to continue.`;
-                                if (hasTopPair) return `Calling with top pair is too loose here — villain's aggression indicates a range that beats you. Save your chips.`;
-                                return `Calling here is unprofitable — the bet prices you out. Folding saves BB in the long run.`;
+                                if (hasDraw) return `Calling your draw here is -EV - the sizing prices you out. You need better pot odds or implied odds to continue.`;
+                                if (hasTopPair) return `Calling with top pair is too loose here - villain's aggression indicates a range that beats you. Save your chips.`;
+                                return `Calling here is unprofitable - the bet prices you out. Folding saves BB in the long run.`;
                             }
                             // Player folded when should call
                             if (selIsFold && corIsCall) {
-                                if (hasDraw) return `Folding your draw is too tight — you have enough equity (pot odds + implied odds) to continue profitably.`;
-                                if (hasTopPair) return `Folding top pair here is too tight — your hand beats enough of villain's bluffs and thin value to call profitably.`;
-                                return `Folding here is too tight — you have enough equity against the betting range to call profitably.`;
+                                if (hasDraw) return `Folding your draw is too tight - you have enough equity (pot odds + implied odds) to continue profitably.`;
+                                if (hasTopPair) return `Folding top pair here is too tight - your hand beats enough of villain's bluffs and thin value to call profitably.`;
+                                return `Folding here is too tight - you have enough equity against the betting range to call profitably.`;
                             }
                             // Player called when should raise
                             if (selIsCall && (corIsRaise || corIsBet)) {
-                                if (hasMonster) return `Flatting a monster is too passive here — ${correctOpt} builds the pot while you have the nuts. Don't let villain off cheap.`;
-                                if (hasDraw) return `Flatting is too passive — raising as a semi-bluff maximizes fold equity while your draw gives backup equity.`;
-                                return `Flatting is too passive — raising builds the pot with your equity advantage.`;
+                                if (hasMonster) return `Flatting a monster is too passive here - ${correctOpt} builds the pot while you have the nuts. Don't let villain off cheap.`;
+                                if (hasDraw) return `Flatting is too passive - raising as a semi-bluff maximizes fold equity while your draw gives backup equity.`;
+                                return `Flatting is too passive - raising builds the pot with your equity advantage.`;
                             }
                             // Player raised when should call
                             if (selIsRaise && corIsCall) {
-                                if (hasMonster) return `Raising here is too aggressive — calling traps villain's bluffs and weaker value hands. Raising folds out the hands you beat.`;
-                                return `Raising bloats the pot against a strong range — calling keeps bluffs in and controls the pot.`;
+                                if (hasMonster) return `Raising here is too aggressive - calling traps villain's bluffs and weaker value hands. Raising folds out the hands you beat.`;
+                                return `Raising bloats the pot against a strong range - calling keeps bluffs in and controls the pot.`;
                             }
                             // Player folded when should bet/raise
                             if (selIsFold && (corIsBet || corIsRaise)) {
-                                if (hasDraw) return `Folding a draw when you should be semi-bluffing — ${correctOpt} combines fold equity with draw equity.`;
+                                if (hasDraw) return `Folding a draw when you should be semi-bluffing - ${correctOpt} combines fold equity with draw equity.`;
                                 if (hasTopPair) return `Folding the best hand! Your top pair has enough equity to be the aggressor here.`;
-                                return `Folding when you should be the aggressor — you have enough equity to put in money here.`;
+                                return `Folding when you should be the aggressor - you have enough equity to put in money here.`;
                             }
                             // Wrong sizing — Phase 35: detailed sizing feedback
                             if (selIsBet && corIsBet) {
                                 const selSize = parseInt((selA.match(/^b(\d+)$/) || [])[1] || '0');
                                 const corSize = parseInt((corA.match(/^b(\d+)$/) || [])[1] || '0');
                                 if (selSize > 0 && corSize > 0) {
-                                    if (selSize > corSize) return `Overbetting — ${correctOpt} is more efficient. Larger sizes fold out too many hands you want to get value from.`;
-                                    return `Underbetting — ${correctOpt} extracts more value and charges draws properly. Your sizing lets opponents continue too cheaply.`;
+                                    if (selSize > corSize) return `Overbetting - ${correctOpt} is more efficient. Larger sizes fold out too many hands you want to get value from.`;
+                                    return `Underbetting - ${correctOpt} extracts more value and charges draws properly. Your sizing lets opponents continue too cheaply.`;
                                 }
-                                return `Wrong sizing — the solver prefers ${correctOpt} here for a better risk/reward ratio.`;
+                                return `Wrong sizing - the solver prefers ${correctOpt} here for a better risk/reward ratio.`;
                             }
                             if (selIsRaise && corIsRaise) {
                                 const selSize = parseInt((selA.match(/^r(\d+)$/) || [])[1] || '0');
                                 const corSize = parseInt((corA.match(/^r(\d+)$/) || [])[1] || '0');
                                 if (selSize > 0 && corSize > 0) {
-                                    if (selSize > corSize) return `Raise too large — ${correctOpt} keeps more of villain's range in. Smaller raises often extract more.`;
-                                    return `Raise too small — ${correctOpt} puts more pressure and sets up better stack dynamics for the next street.`;
+                                    if (selSize > corSize) return `Raise too large - ${correctOpt} keeps more of villain's range in. Smaller raises often extract more.`;
+                                    return `Raise too small - ${correctOpt} puts more pressure and sets up better stack dynamics for the next street.`;
                                 }
-                                return `Wrong raise size — ${correctOpt} creates better SPR dynamics for the next street.`;
+                                return `Wrong raise size - ${correctOpt} creates better SPR dynamics for the next street.`;
                             }
                             // Player bet when should fold
-                            if (selIsBet && corIsFold) return `Bluffing in a spot where the solver gives up — not enough fold equity or too much showdown risk.`;
+                            if (selIsBet && corIsFold) return `Bluffing in a spot where the solver gives up - not enough fold equity or too much showdown risk.`;
                             // Player checked when should fold (facing bet)
-                            if (selIsCheck && corIsFold) return `You can't check here (you're facing a bet) — the solver folds this hand.`;
+                            if (selIsCheck && corIsFold) return `You can't check here (you're facing a bet) - the solver folds this hand.`;
                             // Player raised when should fold
-                            if (selIsRaise && corIsFold) return `Raise-bluffing here is -EV — the solver recognizes this spot has poor bluff equity and folds.`;
+                            if (selIsRaise && corIsFold) return `Raise-bluffing here is -EV - the solver recognizes this spot has poor bluff equity and folds.`;
                             return `${correctOpt} at ${correctFreq}% is the solver's preferred action here.`;
                         })();
 
@@ -5673,9 +5673,9 @@ function UniversalDynamicTable({
                         const displayExplanation = (explanation && explanationOk) ? explanation : (() => {
                             if (!moveClassification) return null;
                             if (moveClassification === 'best') {
-                                if (correctFreq >= 95) return `Perfect — ${correctOpt} is a pure play here. The solver always takes this action in this spot.`;
-                                if (correctFreq >= 70) return `Excellent — ${correctOpt} at ${correctFreq}% is the dominant action. You identified the highest-EV play.`;
-                                return `Great read — ${correctOpt} at ${correctFreq}% is the solver's top choice in a mixed strategy spot. Strong instinct.`;
+                                if (correctFreq >= 95) return `Perfect - ${correctOpt} is a pure play here. The solver always takes this action in this spot.`;
+                                if (correctFreq >= 70) return `Excellent - ${correctOpt} at ${correctFreq}% is the dominant action. You identified the highest-EV play.`;
+                                return `Great read - ${correctOpt} at ${correctFreq}% is the solver's top choice in a mixed strategy spot. Strong instinct.`;
                             }
                             if (moveClassification === 'correct') {
                                 const selFreq = computedFrequencies?.[selectedAnswer] || 0;
@@ -5695,10 +5695,10 @@ function UniversalDynamicTable({
                                 } else if (selA === 'f' && corA === 'call') {
                                     mixContext = ' The solver calls more to defend at the right frequency against bluffs.';
                                 }
-                                if (selFreq >= 30) return `Good — ${selectedOpt} at ${selFreq}% is a solid part of the GTO mix.${mixContext || ` The solver also uses ${correctOpt} at ${correctFreq}%.`}`;
-                                if (selFreq >= 15) return `Acceptable — ${selectedOpt} at ${selFreq}% is in the solver's strategy, though ${correctOpt} at ${correctFreq}% is higher-frequency.${mixContext}`;
-                                if (freqGap > 50) return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time, but ${correctOpt} at ${correctFreq}% is strongly preferred.${mixContext}`;
-                                return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time.${mixContext || ` ${correctOpt} at ${correctFreq}% is the primary action.`}`;
+                                if (selFreq >= 30) return `Good - ${selectedOpt} at ${selFreq}% is a solid part of the GTO mix.${mixContext || ` The solver also uses ${correctOpt} at ${correctFreq}%.`}`;
+                                if (selFreq >= 15) return `Acceptable - ${selectedOpt} at ${selFreq}% is in the solver's strategy, though ${correctOpt} at ${correctFreq}% is higher-frequency.${mixContext}`;
+                                if (freqGap > 50) return `Part of the mix - ${selectedOpt} is used ${selFreq}% of the time, but ${correctOpt} at ${correctFreq}% is strongly preferred.${mixContext}`;
+                                return `Part of the mix - ${selectedOpt} is used ${selFreq}% of the time.${mixContext || ` ${correctOpt} at ${correctFreq}% is the primary action.`}`;
                             }
                             if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${correctFreq > 0 ? ` at ${correctFreq}%` : ''}. ${mistakeFeedback}`;
                             if (moveClassification === 'wrong') return `${mistakeFeedback || `The solver prefers ${correctOpt}${correctFreq > 0 ? ` (${correctFreq}%)` : ''}.`}`;
@@ -5771,7 +5771,7 @@ function UniversalDynamicTable({
                                                 {/* Phase 53: Hand category for context */}
                                                 {fq?.handCategory && (
                                                     <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: 'var(--sp-accent-purple)' }}>
-                                                        Your hand: {fq.handCategory}
+                                                        Your Hand: {fq.handCategory}
                                                     </div>
                                                 )}
 
@@ -5780,7 +5780,7 @@ function UniversalDynamicTable({
                                                     <strong style={{ color: 'var(--sp-accent-green)' }}>Optimal:</strong>{' '}
                                                     {correctOpt}
                                                     {correctFreq > 0 && (
-                                                        <span style={{ color: 'var(--sp-fg-muted)' }}> at {correctFreq}%</span>
+                                                        <span style={{ color: 'var(--sp-fg-muted)' }}> At {correctFreq}%</span>
                                                     )}
                                                 </div>
 
@@ -5790,12 +5790,12 @@ function UniversalDynamicTable({
                                                         <strong style={{ color: 'var(--sp-accent-red)' }}>Your Pick:</strong>{' '}
                                                         {selectedOpt}
                                                         {selectedFreq > 0 ? (
-                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% — part of the mix but suboptimal)</span>
+                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% - Part Of The Mix But Suboptimal)</span>
                                                         ) : (
-                                                            <span style={{ color: 'var(--sp-accent-red)' }}> (0% — not in the solver's strategy)</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> (0% - Not In The Solver's Strategy)</span>
                                                         )}
                                                         {evLoss > 0 && (
-                                                            <span style={{ color: 'var(--sp-accent-red)' }}> — loses {evLoss.toFixed(2)} BB</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> - Loses {evLoss.toFixed(2)} BB</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -5830,8 +5830,8 @@ function UniversalDynamicTable({
                                                             : evLoss >= 0.2
                                                             ? `Losing ${evLoss.toFixed(2)} BB/hand is a moderate leak. Fixing these marginal spots separates good players from great ones.`
                                                             : evLoss >= 0.05
-                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is a small inaccuracy. This was a close decision — both actions have similar EV.`
-                                                            : `A ${evLoss.toFixed(2)} BB loss is negligible — the two actions are nearly identical in EV. Don't stress this one.`
+                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is a small inaccuracy. This was a close decision - both actions have similar EV.`
+                                                            : `A ${evLoss.toFixed(2)} BB loss is negligible - the two actions are nearly identical in EV. Don't stress this one.`
                                                         }
                                                     </div>
                                                 )}
@@ -6042,7 +6042,7 @@ function UniversalDynamicTable({
                                         padding: '4px 2px',
                                     }}
                                 >
-                                    More coaching insights
+                                    More Coaching Insights
                                 </summary>
                             {/* ═══ PHASE 261-280: Deep coaching insights ═══ */}
                             {(() => {
@@ -6134,7 +6134,7 @@ function UniversalDynamicTable({
                                     if (!eq) return null;
                                     const eqColor = eq.equity >= 60 ? 'var(--sp-accent-green)' : eq.equity >= 40 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>{eq.equity}%</span> - {eq.rangeDescription}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -6303,7 +6303,7 @@ function UniversalDynamicTable({
                                 <div style={{
                                     marginTop: 4, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right',
                                 }}>
-                                    Total EV loss: <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>
+                                    Total EV Loss: <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>
                                         -{handSummary.totalEVLoss.toFixed(1)}bb
                                     </span>
                                 </div>
@@ -6369,7 +6369,7 @@ function UniversalDynamicTable({
                                             : '0 0 10px rgba(34,197,94,0.12)',
                                     }}
                                 >
-                                    {isMultiStreetActive ? 'Next — Continue Hand →' : 'Next Question →'}
+                                    {isMultiStreetActive ? 'Next - Continue Hand →' : 'Next Question →'}
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
@@ -6447,7 +6447,7 @@ function UniversalDynamicTable({
                                     ))}
                                 </div>
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>
-                                    {computedDifficulty.label} difficulty • Session complete
+                                    {computedDifficulty.label} Difficulty • Session Complete
                                 </div>
                                 {/* PHASE 6: Review Mistakes Button */}
                                 {sessionMistakesListRef.current.length > 0 && (

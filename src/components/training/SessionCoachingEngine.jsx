@@ -23,7 +23,7 @@ const RECENT_TIPS = [
     evImpact: '+1.8bb', hand: 'A♥K♦' },
   { type: 'mistake', icon: '✕', priority: 'critical', street: 'Turn',
     message: 'You called a pot-sized turn bet with 8♦7♦ on A♣K♥5♠2♦. No draw, no pair, no equity.',
-    advice: 'This is a pure fold. You have zero equity against any value range. Don\'t call "to see" — fold immediately.',
+    advice: 'This is a pure fold. You have zero equity against any value range. Don\'t call "to see" - fold immediately.',
     evImpact: '-8.5bb', hand: '8♦7♦' },
   { type: 'tip', icon: '', priority: 'medium', street: 'Preflop',
     message: 'You\'ve been opening 2x from BTN for the last 15 hands. Opponents may start 3-betting light.',
@@ -58,7 +58,7 @@ const COACHING_FOCUS = [
   { area: 'River Fold Freq', your: '68%', gto: '52%', status: 'over', color: '#f59e0b',
     tip: 'Folding too much on rivers. You\'re being exploited by river bluffs.' },
   { area: '3-Bet %', your: '5%', gto: '8%', status: 'under', color: '#3b82f6',
-    tip: 'Add more 3-bet bluffs. You\'re too passive preflop — opponents play freely against you.' },
+    tip: 'Add more 3-bet bluffs. You\'re too passive preflop - opponents play freely against you.' },
   { area: 'WTSD', your: '28%', gto: '26%', status: 'ok', color: '#22c55e',
     tip: 'Your showdown frequency is near optimal. Keep it up.' },
 ];
@@ -72,7 +72,7 @@ export default function SessionCoachingEngine() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Session Coach
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 14 }}>Real-time coaching engine analyzing every decision. Learn while you play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 14 }}>Real-Time Coaching Engine Analyzing Every Decision. Learn While You Play.</p>
 
       {/* Mode Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
@@ -129,7 +129,7 @@ export default function SessionCoachingEngine() {
             style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12,
               borderLeft: `3px solid ${tip.type === 'mistake' ? '#ef4444' : tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#f59e0b' : '#3b82f6'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{tip.icon} {tip.hand} — {tip.street}</span>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{tip.icon} {tip.hand} - {tip.street}</span>
               <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'monospace',
                 color: tip.evImpact.startsWith('-') ? '#ef4444' : tip.evImpact === '0' ? '#64748b' : '#22c55e' }}>{tip.evImpact}</span>
             </div>

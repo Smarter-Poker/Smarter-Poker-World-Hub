@@ -291,7 +291,7 @@ export const ReelsCarousel = ({ reels = [], onViewAll, currentUser }) => {
                     Reels
                 </h3>
                 <button className="view-all-btn" onClick={onViewAll}>
-                    See all reels →
+                    See All Reels →
                 </button>
             </div>
 
@@ -313,7 +313,7 @@ export const ReelsCarousel = ({ reels = [], onViewAll, currentUser }) => {
                     }}>
                         <span style={{ fontSize: '32px', marginBottom: '8px' }}>🔒</span>
                         <h4 style={{ margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Login Required</h4>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#ccc' }}>Sign in to watch & interact with Reels</p>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#ccc' }}>Sign In To Watch & Interact With Reels</p>
                     </div>
                 )}
 
@@ -326,7 +326,7 @@ export const ReelsCarousel = ({ reels = [], onViewAll, currentUser }) => {
                                 <img src={reel.thumbnail} alt="" />
                                 <div className="reel-play-indicator">▶</div>
                                 <div className="reel-overlay">
-                                    <span className="view-count">{reel.viewCount} views</span>
+                                    <span className="view-count">{reel.viewCount} Views</span>
                                 </div>
                             </div>
                             <div className="reel-info">

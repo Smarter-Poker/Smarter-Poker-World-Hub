@@ -87,7 +87,7 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
         <header className={styles.header}>
           <div className={styles.identity}>
             <span className={styles.mark} aria-hidden="true"><BrainCircuit size={22} /></span>
-            <div><small>JARVIS // RANGE INTELLIGENCE</small><h2 id="jarvis-dialog-title">Strategic analysis</h2></div>
+            <div><small>JARVIS // RANGE INTELLIGENCE</small><h2 id="jarvis-dialog-title">Strategic Analysis</h2></div>
           </div>
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close strategic analysis">
             <X size={19} aria-hidden="true" />
@@ -98,22 +98,22 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
           <div className={styles.loading} role="status" aria-live="polite">
             <span className={styles.scanner} aria-hidden="true" />
             <strong>ANALYZING RANGE SIGNAL</strong>
-            <p id="jarvis-dialog-description">Generating strategic intelligence for this hand.</p>
+            <p id="jarvis-dialog-description">Generating Strategic Intelligence For This Hand.</p>
           </div>
         ) : modal.panelImageUrl ? (
           <div className={styles.imageFrame}>
             <img src={modal.panelImageUrl} alt={`Jarvis strategic analysis for ${modal.hand || 'this hand'}`} />
-            <p id="jarvis-dialog-description" className={styles.imageCaption}>{modal.hand || 'Selected hand'} // optimal action: {action}</p>
+            <p id="jarvis-dialog-description" className={styles.imageCaption}>{modal.hand || 'Selected hand'} // Optimal Action: {action}</p>
           </div>
         ) : (
           <div className={styles.body}>
             <div className={styles.readout}>
-              <div><small>HAND SIGNAL</small><strong>{modal.hand || '—'}</strong></div>
+              <div><small>HAND SIGNAL</small><strong>{modal.hand || '-'}</strong></div>
               <span style={{ '--jarvis-action': actionColor }}>{action.toUpperCase()}</span>
             </div>
             <dl className={styles.compare}>
-              <div><dt>Your answer</dt><dd>{String(modal.userAction || 'fold').replaceAll('_', ' ')}</dd></div>
-              <div><dt>Optimal line</dt><dd>{action}</dd></div>
+              <div><dt>Your Answer</dt><dd>{String(modal.userAction || 'fold').replaceAll('_', ' ')}</dd></div>
+              <div><dt>Optimal Line</dt><dd>{action}</dd></div>
             </dl>
             <div className={styles.explanation}>
               <small>GTO EXPLANATION</small>

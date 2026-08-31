@@ -286,7 +286,7 @@ export function identifyLeaks(sessions) {
                 area,
                 score: Math.round(avg),
                 severity: avg < 60 ? 'major' : 'minor',
-                suggestion: `Practice more ${area} scenarios — your score (${Math.round(avg)}%) is below your average (${Math.round(avgScore)}%)`,
+                suggestion: `Practice more ${area} scenarios - your score (${Math.round(avg)}%) is below your average (${Math.round(avgScore)}%)`,
             });
         }
     }

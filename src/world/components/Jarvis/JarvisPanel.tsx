@@ -300,7 +300,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                                 Poker Strategy Expert
                                 {cacheStats.total > 0 && (
                                     <span style={{ marginLeft: '8px', color: 'rgba(100, 255, 100, 0.8)' }}>
-                                        ⚡ {cacheStats.hits}/{cacheStats.total} cached
+                                        ⚡ {cacheStats.hits}/{cacheStats.total} Cached
                                     </span>
                                 )}
                             </p>

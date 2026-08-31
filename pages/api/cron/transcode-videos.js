@@ -163,7 +163,7 @@ async function runFfmpeg(args) {
 async function validateVideoSource(file) {
     const inSize = (await stat(file)).size;
     if (inSize < 1024) {
-        return { valid: false, reason: `Source file is only ${inSize} bytes — likely a failed/truncated upload` };
+        return { valid: false, reason: `Source file is only ${inSize} bytes - likely a failed/truncated upload` };
     }
     // Run ffprobe -show_format -show_streams to get a comprehensive view
     const probe = await new Promise((resolve) => {
@@ -187,20 +187,20 @@ async function validateVideoSource(file) {
         // Don't reject just because probe failed — the transcode might still work
         // (ffmpeg sometimes handles things ffprobe trips on). But log the diagnostic.
         console.warn('[transcode] ffprobe non-zero exit:', probe.code, probe.stderr.slice(0, 300));
-        return { valid: true, reason: null, warning: `ffprobe exit ${probe.code} — proceeding optimistically` };
+        return { valid: true, reason: null, warning: `ffprobe exit ${probe.code} - proceeding optimistically` };
     }
 
     let parsed = null;
     try {
         parsed = JSON.parse(probe.stdout || '{}');
     } catch (_) {
-        return { valid: true, reason: null, warning: 'ffprobe stdout not parseable as JSON — proceeding' };
+        return { valid: true, reason: null, warning: 'ffprobe stdout not parseable as JSON - proceeding' };
     }
 
     const streams = Array.isArray(parsed?.streams) ? parsed.streams : [];
     const videoStreams = streams.filter(s => s?.codec_type === 'video');
     if (videoStreams.length === 0) {
-        return { valid: false, reason: 'No video stream found in source — file is audio-only or corrupt' };
+        return { valid: false, reason: 'No video stream found in source - file is audio-only or corrupt' };
     }
 
     // Format-level duration. Some streams (esp. HEVC) report duration only at
@@ -211,7 +211,7 @@ async function validateVideoSource(file) {
         ? fmtDuration
         : (isFinite(streamDuration) && streamDuration > 0 ? streamDuration : 0);
     if (durationSec === 0) {
-        return { valid: false, reason: 'Source has zero duration — likely a corrupt file' };
+        return { valid: false, reason: 'Source has zero duration - likely a corrupt file' };
     }
 
     // Reject single-frame "videos" (< 0.1s) — almost certainly corrupt.

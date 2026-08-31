@@ -97,7 +97,7 @@ export default async function handler(req, res) {
           if (biggestStreetKey) {
               insights.push(`Your most problematic street is the **${biggestStreet}**, accounting for ${streetErrors[biggestStreetKey]} errors.`);
           } else {
-              insights.push('No street stands out as a systemic leak — your errors are evenly spread.');
+              insights.push('No street stands out as a systemic leak - your errors are evenly spread.');
           }
 
           if (biggestPos !== 'Unknown') {

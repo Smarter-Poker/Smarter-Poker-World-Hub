@@ -155,7 +155,7 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
                     {/* Other leaks count */}
                     {leaks.length > 1 && (
                         <div style={styles.otherLeaks}>
-                            +{leaks.length - 1} other leak{leaks.length > 2 ? 's' : ''} detected
+                            +{leaks.length - 1} Other leak{leaks.length > 2 ? 's' : ''} Detected
                         </div>
                     )}
                 </motion.div>

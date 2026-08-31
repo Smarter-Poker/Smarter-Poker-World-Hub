@@ -14,7 +14,7 @@ const HJ_TOPICS = [
     detail: '4-bet: QQ+, AKs | Call: TT-JJ, AQs, AJs, KQs, some suited connectors | Fold: weak broadways, low suited' },
   { title: 'Iso-Raising Limpers', icon: '◆', color: '#f59e0b',
     text: 'When UTG or UTG+1 limps, iso-raise to 4-5x from HJ with a wide value range.',
-    detail: 'Iso with: 77+, ATs+, KJs+, QJs — isolate the fish and play IP post-flop' },
+    detail: 'Iso with: 77+, ATs+, KJs+, QJs - isolate the fish and play IP post-flop' },
   { title: 'C-Betting from HJ', icon: '●', color: '#22c55e',
     text: 'When you open from HJ and get called, c-bet ~55-60% of flops. Your range is perceived as stronger than CO/BTN.',
     detail: 'Bet small (33%) on dry boards, larger (66%) on wet. Check back with marginal showdown value.' },
@@ -29,7 +29,7 @@ export default function HiJackStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         HiJack Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The HJ bridges early and late position — adapt accordingly.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The HJ Bridges Early And Late Position - Adapt Accordingly.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {HJ_TOPICS.map((t, i) => (

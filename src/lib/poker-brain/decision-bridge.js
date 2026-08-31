@@ -25,7 +25,6 @@ import PokerBrainEngine from './engine.js';
 // NOTE: ../supabase.js is a no-op mock for Node ESM test runner.
 // In Next.js (Webpack), the alias in next.config.js forces resolution
 // to supabase.ts (real client). See next.config.js webpack section.
-import { supabase } from '../supabase.js';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required
 const STRONG_CONFIDENCE_FLOOR  = 0.90;  // Used for high-stakes decisions
@@ -118,10 +117,16 @@ async function callHorseBrain(params, authToken) {
  * Returns null if not authenticated.
  */
 async function getAuthToken() {
+  if (typeof localStorage === 'undefined') return null;
   try {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || null;
-  } catch (err) {
+    const primary = JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null');
+    if (primary?.access_token) return primary.access_token;
+    const legacyKey = Object.keys(localStorage).find(
+      (key) => key.startsWith('sb-') && key.endsWith('-auth-token'),
+    );
+    if (!legacyKey) return null;
+    return JSON.parse(localStorage.getItem(legacyKey) || 'null')?.access_token || null;
+  } catch (_error) {
     return null;
   }
 }
@@ -332,7 +337,7 @@ export async function getBridgedDecision(input) {
         action,
         raiseAmount: amount,
         confidence: 95, // Horse Brain is high-confidence by design (0-100 scale, matching engine convention)
-        reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} — ${horseBrainResult.engineMs || '?'}ms`,
+        reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} - ${horseBrainResult.engineMs || '?'}ms`,
         equity: horseBrainResult.equity ?? null, // Pass through if Horse Brain returns it
         potOdds: potSize > 0 && betToCall > 0 ? Math.round((betToCall / (potSize + betToCall)) * 10000) / 100 : null, // 0-100 percentage scale to match engine convention
         highEquity: null,
@@ -372,7 +377,7 @@ export async function getBridgedDecision(input) {
   // FALLBACK: Local engine (only if Horse Brain API is unreachable)
   // This should rarely be hit — only if auth fails or network is down.
   // ═══════════════════════════════════════════════════════════════════
-  console.warn('[decision-bridge] Using LOCAL fallback engine — Horse Brain API unavailable');
+  console.warn('[decision-bridge] Using LOCAL fallback engine - Horse Brain API unavailable');
   const warnings = [];
   let engineResult;
   try {

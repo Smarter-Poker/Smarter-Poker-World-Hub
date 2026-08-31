@@ -94,9 +94,9 @@ export default function CreateHomeGame({ onCancel }) {
   };
 
   const bullets = [
-    { Icon: Calendar, text: 'Set your schedule — one-off or recurring' },
+    { Icon: Calendar, text: 'Set your schedule - one-off or recurring' },
     { Icon: Users,    text: 'Manage RSVPs, waitlists, and attendance' },
-    { Icon: Shield,   text: 'Private or public — you control who can join' },
+    { Icon: Shield,   text: 'Private or public - you control who can join' },
     { Icon: Sparkles, text: 'Free public listing on Poker Near Me' },
   ];
 
@@ -109,8 +109,8 @@ export default function CreateHomeGame({ onCancel }) {
 
         <h3 className="hg-cta-title">List Your Home Game On Poker Near Me</h3>
         <p className="hg-cta-subtitle">
-          100% free to start. No credit card required. Host your own poker game, list it publicly,
-          and let players in your area find you.
+          100% Free To Start. No Credit Card Required. Host Your Own Poker Game, List It Publicly,
+          And Let Players In Your Area Find You.
         </p>
 
         <ul className="hg-cta-bullets">
@@ -143,7 +143,7 @@ export default function CreateHomeGame({ onCancel }) {
         </div>
 
         <p className="hg-cta-fineprint">
-          Takes about 60 seconds. You'll be able to add stakes, schedule, and photos in the next step.
+          Takes About 60 Seconds. You'll Be Able To Add Stakes, Schedule, And Photos In The Next Step.
         </p>
       </div>
 

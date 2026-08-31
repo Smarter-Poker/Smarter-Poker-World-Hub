@@ -195,7 +195,7 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
                             ...styles.statValue,
                             color: calculations.hourlyRate >= 0 ? '#22c55e' : '#ef4444'
                         }}>
-                            {formatCurrency(calculations.hourlyRate, displayEUR)}/hr
+                            {formatCurrency(calculations.hourlyRate, displayEUR)}/Hr
                         </div>
                     </div>
                 </div>

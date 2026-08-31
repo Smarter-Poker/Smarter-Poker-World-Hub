@@ -114,7 +114,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
     const handleExportPDF = () => {
         // In production this uses jspdf — here we simulate
         const content = [
-            `POKER TAX REPORT — ${year}`,
+            `POKER TAX REPORT - ${year}`,
             `State: ${stateInfo.name} (${stateInfo.code})`,
             ``,
             `INCOME SUMMARY`,
@@ -148,7 +148,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
             }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Advanced Tax Report</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>IRS-ready P/L summary with state-specific calculations</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>IRS-Ready P/L Summary With State-Specific Calculations</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select
@@ -213,7 +213,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                 borderRadius: 16, padding: 20, marginBottom: 24,
             }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginBottom: 16, letterSpacing: 0.3 }}>
-                    Quarterly P/L Breakdown — {year}
+                    Quarterly P/L Breakdown - {year}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                     {quarterlyData.map((q, i) => {

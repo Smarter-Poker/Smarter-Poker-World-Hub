@@ -228,7 +228,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               status: 'under_review',
-              message: 'Code verified. Your claim is now under review — our team will confirm your connection to this venue and finish activating management access.',
+              message: 'Code verified. Your claim is now under review - our team will confirm your connection to this venue and finish activating management access.',
               venue_id: claim.venue_id
           });
 

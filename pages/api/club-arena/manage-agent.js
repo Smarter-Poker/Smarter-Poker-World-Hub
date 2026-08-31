@@ -780,12 +780,12 @@ export default async function handler(req, res) {
                   p_amount: balance,
                 });
                 if (refundErr) {
-                  console.warn('[manage-agent] Member refund ALSO failed — chips lost:', refundErr?.message || refundErr);
+                  console.warn('[manage-agent] Member refund ALSO failed - chips lost:', refundErr?.message || refundErr);
                 }
               } catch (rfErr) {
                 console.warn('[manage-agent] Member refund threw:', rfErr?.message || rfErr);
               }
-              return res.status(500).json({ success: false, error: 'Treasury credit failed — chips refunded, please retry' });
+              return res.status(500).json({ success: false, error: 'Treasury credit failed - chips refunded, please retry' });
             }
             const { error: txErr } = await getSupabase().from('chip_transactions').insert({
               club_id: clubId,
@@ -793,7 +793,7 @@ export default async function handler(req, res) {
               to_user_id: null,
               amount: balance,
               transaction_type: 'withdrawal',
-              notes: `Member removed — ${balance.toLocaleString()} chips returned to club treasury`,
+              notes: `Member removed - ${balance.toLocaleString()} chips returned to club treasury`,
             });
             if (txErr) {
               console.warn('[manage-agent] chip_transactions insert failed (debit/credit succeeded):', txErr?.message || txErr);
@@ -894,7 +894,7 @@ export default async function handler(req, res) {
             if (walkId === targetAgent.id) {
               return res.status(400).json({
                 success: false,
-                error: 'Circular agent hierarchy detected — this assignment would create an infinite loop',
+                error: 'Circular agent hierarchy detected - this assignment would create an infinite loop',
               });
             }
             const { data: ancestor } = await getSupabase()

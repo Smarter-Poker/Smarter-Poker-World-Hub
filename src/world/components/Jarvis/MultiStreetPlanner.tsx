@@ -336,7 +336,7 @@ For each street (flop, turn, river), what should my default plan be? Include:
                     cursor: hero.hand && flop ? 'pointer' : 'not-allowed'
                 }}
             >
-                🧠 Get Full Street Plan from Jarvis
+                🧠 Get Full Street Plan From Jarvis
             </button>
         </div>
     );

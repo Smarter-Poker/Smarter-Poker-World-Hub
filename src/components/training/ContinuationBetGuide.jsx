@@ -28,7 +28,7 @@ const BOARDS = [
   {
     texture: 'Q♠ Q♦ 6♣', type: 'Paired', color: '#8b5cf6',
     ip: { freq: '80%', size: '25%', reason: 'Almost pure range bet. Nobody has a Q very often. Tiny size with entire range is optimal.' },
-    oop: { freq: '60%', size: '25%', reason: 'Still very high frequency. Paired boards compress ranges — small bets work great.' },
+    oop: { freq: '60%', size: '25%', reason: 'Still very high frequency. Paired boards compress ranges - small bets work great.' },
     tip: 'Paired boards = range bet small. The pair removes so many combos from both ranges.',
   },
   {
@@ -104,7 +104,7 @@ function ContinuationBetGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Guide Failed To Load: {err.message}</div>;
   }
 }
 

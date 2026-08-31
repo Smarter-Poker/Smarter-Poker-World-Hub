@@ -298,7 +298,7 @@ export function SessionCoach({ onAskQuestion, onClose }: SessionCoachProps) {
                         color: '#f44336',
                         fontWeight: 600
                     }}>
-                        ⚠️ Consider taking a break! Tilt affects decision quality.
+                        ⚠️ Consider Taking A Break! Tilt Affects Decision Quality.
                     </p>
                 </div>
             )}

@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
         const parts = [];
         if (trimmedCommentary) parts.push(trimmedCommentary);
-        parts.push(`${liveLabel} — Watching @${broadcasterName} ${titleLine}`.trim());
+        parts.push(`${liveLabel} - Watching @${broadcasterName} ${titleLine}`.trim());
         parts.push(streamLink);
         const postContent = parts.join('\n\n');
 

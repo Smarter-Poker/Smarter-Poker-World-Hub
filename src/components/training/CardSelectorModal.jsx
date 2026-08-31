@@ -149,7 +149,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                             margin: '16px 0 0', fontSize: 11, color: '#64748b',
                             textAlign: 'center',
                         }}>
-                            Click a card to navigate to the next street • Grayed cards are already in play
+                            Click A Card To Navigate To The Next Street • Grayed Cards Are Already In Play
                         </p>
                     </motion.div>
                 </motion.div>

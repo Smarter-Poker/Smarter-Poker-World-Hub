@@ -41,12 +41,12 @@ export default function MapCoverageReadout({
       <div className="pnm-map-coverage__signal" aria-hidden="true"><span /></div>
       <div className="pnm-map-coverage__copy">
         <span>{ready ? (areaScoped ? 'Area coverage' : 'Live coverage') : 'Calibrating map'}</span>
-        <div><strong>{safeVisible}</strong> in frame <small>of {safeTotal} mapped · Z{zoomLabel}</small></div>
+        <div><strong>{safeVisible}</strong> In Frame <small>Of {safeTotal} Mapped · Z{zoomLabel}</small></div>
         {(safeVerified > 0 || safeApproximate > 0 || safeHeld > 0) && (
           <div className="pnm-map-coverage__integrity" aria-label="Map signal integrity">
-            {safeVerified > 0 && <span>{safeVerified} verified</span>}
-            {safeApproximate > 0 && <span>{safeApproximate} privacy-safe</span>}
-            {safeHeld > 0 && <span className="pnm-map-coverage__held">{safeHeld} held for review</span>}
+            {safeVerified > 0 && <span>{safeVerified} Verified</span>}
+            {safeApproximate > 0 && <span>{safeApproximate} Privacy-Safe</span>}
+            {safeHeld > 0 && <span className="pnm-map-coverage__held">{safeHeld} Held For Review</span>}
           </div>
         )}
         <p role="status" aria-live="polite">
@@ -60,7 +60,7 @@ export default function MapCoverageReadout({
               {busy ? 'Scanning…' : 'Search this area'}
             </button>
           )}
-          {areaScoped && <button type="button" onClick={onReset} disabled={busy}>Show all</button>}
+          {areaScoped && <button type="button" onClick={onReset} disabled={busy}>Show All</button>}
         </div>
       )}
     </aside>

@@ -8,7 +8,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
 
         function parseStopDates(dateStr) {
             if (!dateStr) return null;
-            const parts = dateStr.split(/\s*[-–]\s*/);
+            const parts = dateStr.split(/\s*[--]\s*/);
             function parseOne(s, fallbackMonth) {
                 if (!s) return null;
                 s = s.trim().replace(',', '');
@@ -185,7 +185,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
 
             tourPins.push({
                 id: `tour-stop-${tour.tour_code}`,
-                name: activeStop.name || `${tour.tour_name || tour.tour_code} — ${city}`,
+                name: activeStop.name || `${tour.tour_name || tour.tour_code} - ${city}`,
                 stop_name: activeStop.name || activeStop.venue || '',
                 stop_venue: activeStop.venue || '',
                 venue_type: 'tour_stop',
@@ -213,7 +213,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
                     logo_url: tour.logo_url,
                     tour_type: tour.tour_type || (isActive ? 'circuit' : 'regional'),
                     headquarters: activeStop.venue
-                        ? `${activeStop.venue}${city ? ' — ' + city : ''}${state ? ', ' + state : ''}`
+                        ? `${activeStop.venue}${city ? ' - ' + city : ''}${state ? ', ' + state : ''}`
                         : location || '',
                     typical_buyins: tour.typical_buyins || null,
                     regions: Array.isArray(tour.regions) ? tour.regions : [],
@@ -248,7 +248,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
         allVenuesForMap.forEach(v => {
             if (v.venue_type === 'charity' && v.name) {
                 let bn = v.name.replace(/\s*\(.*\)/g, ''); // Remove parentheticals like (CCG Poker)
-                bn = bn.split(' — ')[0]; // Em dash
+                bn = bn.split(' - ')[0]; // Em dash
                 bn = bn.split(' - ')[0]; // En dash / Hyphen
                 bn = bn.split(' @ ')[0];
                 bn = bn.toLowerCase().trim();
@@ -389,7 +389,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
             return true;
         });
     } catch (err) {
-        console.warn('[PNM] allVenuesWithTours crash — returning safe empty array:', err);
+        console.warn('[PNM] allVenuesWithTours crash - returning safe empty array:', err);
         return Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

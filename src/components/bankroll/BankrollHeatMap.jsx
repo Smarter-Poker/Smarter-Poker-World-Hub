@@ -82,7 +82,7 @@ export default function BankrollHeatMap({ entries = [] }) {
             <div style={styles.grid}>{days}</div>
             <div style={styles.legend}>
                 <span style={{ ...styles.legendItem, background: 'rgba(239, 68, 68, 0.5)' }}>Loss</span>
-                <span style={{ ...styles.legendItem, background: 'rgba(255, 255, 255, 0.08)' }}>Break-even</span>
+                <span style={{ ...styles.legendItem, background: 'rgba(255, 255, 255, 0.08)' }}>Break-Even</span>
                 <span style={{ ...styles.legendItem, background: 'rgba(34, 197, 94, 0.5)' }}>Win</span>
             </div>
         </div>

@@ -239,7 +239,7 @@ export function VideoPostWrapper({ url, onValidVideoClick, children }) {
               fontWeight: 500,
             }}
           >
-            Video unavailable
+            Video Unavailable
           </div>
         </>
       )}

@@ -185,7 +185,7 @@ export default function LiveActivityFeed({ currentUser }) {
                                 {s.profiles?.full_name || s.profiles?.username || 'Player'}
                             </div>
                             <div style={{ color: T.textSec, fontSize: 11 }}>
-                                {s.venue_name} — {s.stakes} {s.game_type}
+                                {s.venue_name} - {s.stakes} {s.game_type}
                             </div>
                             <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 10 }}>
                                 <span style={{ color: T.textDim }}>{elapsed[s.id] || formatDuration(s.started_at)}</span>

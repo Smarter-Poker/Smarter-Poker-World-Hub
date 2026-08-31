@@ -47,7 +47,7 @@ export default function PokerNearMeFamilyNav({ className = '' }) {
   return (
     <nav className={`pnm-family-nav ${className}`.trim()} aria-label="Poker Near Me">
       <div className="pnm-family-nav__rail" ref={railRef}>
-        <span className="pnm-family-nav__label" aria-hidden="true">Discovery deck</span>
+        <span className="pnm-family-nav__label" aria-hidden="true">Discovery Deck</span>
         {FAMILY_LINKS.map((item) => {
           const active = item.matches.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
           return (

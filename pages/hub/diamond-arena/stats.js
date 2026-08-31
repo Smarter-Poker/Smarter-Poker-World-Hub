@@ -28,7 +28,7 @@ export default function DiamondArenaStats() {
         <>
             <SEOHead
                 title="Diamond Arena Stats"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

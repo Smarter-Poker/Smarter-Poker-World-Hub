@@ -38,7 +38,7 @@ export default function SingleRaisedPotGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Single Raised Pot Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>SRPs are 70%+ of all pots. Master these and you master poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>SRPs Are 70%+ Of All Pots. Master These And You Master Poker.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {SRP_SPOTS.map((s, i) => (

@@ -127,7 +127,7 @@ function FeedItem({ item }) {
             <span style={{ fontWeight: 700, color: eventType.color }}>{item.handsPlayed}-hand</span>
             {' session on '}
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
-            {' — '}
+            {' - '}
             <span
               style={{
                 fontWeight: 800,

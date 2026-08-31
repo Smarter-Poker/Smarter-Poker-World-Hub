@@ -332,7 +332,7 @@ function CelebrationPopup({
                     fontSize: 12,
                     color: 'rgba(255, 255, 255, 0.4)',
                 }}>
-                    Tap to dismiss
+                    Tap To Dismiss
                 </div>
             </div>
 

@@ -214,7 +214,7 @@ const WatchVideoCard = ({ video }) => (
         <div className="watch-actions">
             <PokerReactionBar />
             <div className="action-stats">
-                <span>{video.views || 0} views</span>
+                <span>{video.views || 0} Views</span>
             </div>
         </div>
 
@@ -433,7 +433,7 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
                     }}>
                         <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📺</div>
                         <h3 style={{ margin: '0 0 8px', color: SP_COLORS.textPrimary, fontSize: 20, fontWeight: 700 }}>No Videos Yet</h3>
-                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Check back soon for poker content</p>
+                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Check Back Soon For Poker Content</p>
                     </div>
                 ) : (
                     videos.map(v => (

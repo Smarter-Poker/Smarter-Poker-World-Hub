@@ -47,7 +47,7 @@ function Circuit({ label, earned, cap, remaining }) {
       >
         <span style={{ width: `${percent}%` }} />
       </div>
-      <small>{Number(remaining || 0).toLocaleString()} Diamonds remain in this verified circuit.</small>
+      <small>{Number(remaining || 0).toLocaleString()} Diamonds Remain In This Verified Circuit.</small>
     </div>
   );
 }
@@ -107,7 +107,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
 
       {state.status === 'loading' && (
         <div className={styles.statePanel} role="status" aria-live="polite">
-          <Gauge size={23} aria-hidden="true" /> Synchronizing your reward circuits…
+          <Gauge size={23} aria-hidden="true" /> Synchronizing Your Reward Circuits…
         </div>
       )}
 

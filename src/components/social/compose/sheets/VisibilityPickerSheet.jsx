@@ -38,7 +38,7 @@ export default function VisibilityPickerSheet({ onClose }) {
                     fontSize: 13, color: '#65676B',
                     padding: '0 16px 16px', lineHeight: 1.4,
                 }}>
-                    Who can see this post? You can change the audience of any post later.
+                    Who Can See This Post? You Can Change The Audience Of Any Post Later.
                 </div>
                 {OPTIONS.map(opt => {
                     const isSelected = audienceMode === opt.mode;

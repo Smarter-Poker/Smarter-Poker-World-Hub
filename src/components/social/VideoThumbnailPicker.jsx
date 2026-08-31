@@ -77,7 +77,7 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
             <div className="sp-thumbnail-picker">
                 <div className="picker-header">
                     <span className="picker-title">Cover Image</span>
-                    <span className="picker-subtitle">Upload a cover photo for your video</span>
+                    <span className="picker-subtitle">Upload A Cover Photo For Your Video</span>
                 </div>
                 <div className="mobile-cover-row">
                     {currentThumbnail && (
@@ -170,7 +170,7 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
         <div className="sp-thumbnail-picker">
             <div className="picker-header">
                 <span className="picker-title">Cover Image</span>
-                <span className="picker-subtitle">Choose a frame or upload a custom cover</span>
+                <span className="picker-subtitle">Choose A Frame Or Upload A Custom Cover</span>
             </div>
             
             <div className="picker-content">
@@ -200,7 +200,7 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
                     
                     <div className="filmstrip">
                         {loading && frames.length === 0 ? (
-                            <div className="loading-frames">Generating frames...</div>
+                            <div className="loading-frames">Generating Frames...</div>
                         ) : (
                             frames.map((frame, idx) => (
                                 <button 

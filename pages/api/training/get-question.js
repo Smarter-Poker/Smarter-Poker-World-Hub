@@ -213,7 +213,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
       if (!question) {
         console.warn(
-          `[Training] No question available for ${gameId} level ${level} — all engines returned empty.`
+          `[Training] No question available for ${gameId} level ${level} - all engines returned empty.`
         );
       }
 
@@ -394,7 +394,7 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
     // and clobbering them produces a visible "you hold QJs" prose vs
     // "scenario.heroHand=As Ks" mismatch in the rendered UI.
     console.warn(
-      '[GetQuestion] Hero/board card collision — regenerating heroCards from non-board suits.'
+      '[GetQuestion] Hero/board card collision - regenerating heroCards from non-board suits.'
     );
     const seed = hashSeed((q.id || q.questionId || 'collision') + ':retry');
     q.heroCards = _getDeterministicCards(seed, 2, q.boardCards || []);

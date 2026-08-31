@@ -18,7 +18,7 @@ const THIN_VALUE_SPOTS = [
     beats: 'AK, AQ, AJ, A9-A7 beat you. But A5-A2, Jx, and pairs still call thin.' },
   { spot: 'Rivered Two Pair vs Missed Draw Board', hand: 'KJ on K♥9♥4♣ 2♦ J♠', color: '#f59e0b', icon: '⌁',
     sizing: '66-75% pot',
-    why: 'Flush draw missed. You have KJ for two pair. Villain\'s flush draws missed — bet big for value.',
+    why: 'Flush draw missed. You have KJ for two pair. Villain\'s flush draws missed - bet big for value.',
     getCalledBy: 'Kx, 99, rivered Jx, stubborn pocket pairs. Missed draws fold (you don\'t want those calls).',
     beats: 'Only K9, 44, KK, JJ beat you. Very few combos.' },
   { spot: 'Overpair on Scary Board', hand: 'QQ on T♠8♦6♣ 5♥ 3♠', color: '#8b5cf6', icon: '■',
@@ -42,7 +42,7 @@ export default function ThinValueGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Thin Value Mastery
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Extract max value from medium-strength hands.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Extract Max Value From Medium-Strength Hands.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {THIN_VALUE_SPOTS.map((s, i) => (

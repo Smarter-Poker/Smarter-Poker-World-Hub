@@ -97,7 +97,10 @@ test('four distinct regional WebP visuals are wired with non-deceptive artwork l
   for (const path of files) assert.match(component, new RegExp(path.replace('public', '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(component, /Fictional .* poker discovery console artwork/);
   assert.match(component, /ogImage=/);
-  assert.match(component, /Location verified/);
+  // MOVED, NOT WEAKENED 2026-08-31: Title Case is enforced on player-facing
+  // copy repo-wide by check-title-case now, so the badge reads "Location
+  // Verified". The contract - a verified location is badged as such - stands.
+  assert.match(component, /Location Verified/);
   assert.match(component, /Updated \{updatedLabel\}/);
   assert.doesNotMatch(component, /Verified room signals|No verified venue profiles/);
 });

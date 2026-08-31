@@ -307,7 +307,7 @@ export function RangeVisualizer({ rangeName, customRange, onClose }: RangeVisual
                     textAlign: 'center'
                 }}>
                     <strong style={{ color: '#FFD700' }}>{hoveredHand}</strong>
-                    {' — '}
+                    {' - '}
                     {currentRange[hoveredHand]
                         ? `${(currentRange[hoveredHand] * 100).toFixed(0)}% frequency`
                         : 'Not in range'

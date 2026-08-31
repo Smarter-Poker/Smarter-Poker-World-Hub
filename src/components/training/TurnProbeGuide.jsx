@@ -9,31 +9,31 @@ const PROBE_SPOTS = [
   { spot: 'IP After Both Check Flop', board: 'K♠8♦3♣ → 2♥', color: '#22c55e', icon: '◆',
     freq: '55-65%',
     why: 'Both players showed weakness on flop. The turn check gives you a chance to steal with any two cards.',
-    sizing: '50% pot — standard probe. Don\'t need to go big when both ranges are weak.',
+    sizing: '50% pot - standard probe. Don\'t need to go big when both ranges are weak.',
     bestHands: 'Any pair, any draw, any Kx. Even complete air works since villain\'s range is capped.',
     avoid: 'Don\'t probe into sticky opponents who check-call flop and turn with any pair.' },
   { spot: 'OOP After PFR Checks Back', board: 'A♠J♦7♣ → 4♠', color: '#3b82f6', icon: '·',
     freq: '35-45%',
     why: 'PFR checked back the flop, capping their range. They likely have mid-pairs or draws, not strong aces.',
-    sizing: '66% pot — go bigger OOP since you need fold equity. Small bets don\'t accomplish enough.',
+    sizing: '66% pot - go bigger OOP since you need fold equity. Small bets don\'t accomplish enough.',
     bestHands: 'Ax for value, flush draws turned into semi-bluffs, complete air with blockers.',
     avoid: 'Don\'t lead into PFRs who only check back nutted hands for deception.' },
   { spot: 'Scare Card Turn Probe', board: 'Q♥9♦6♣ → A♠', color: '#f59e0b', icon: '⌁',
     freq: '45-55%',
     why: 'The ace is a great scare card to probe. If PFR checked flop, they likely don\'t have an ace.',
-    sizing: '50-66% pot — represent the ace. Your bet tells a believable story.',
+    sizing: '50-66% pot - represent the ace. Your bet tells a believable story.',
     bestHands: 'Any ace (obviously), but also total air. The ace gives you a great bluffing card.',
     avoid: 'Don\'t overbluff. If villain check-called flop, they might have called with Ax.' },
   { spot: 'Flush Draw Completing Turn', board: 'T♥7♥3♦ → 2♥', color: '#8b5cf6', icon: '·',
     freq: '40-50%',
     why: 'Third heart arrives. If you have any heart, you can represent the flush. PFR fears this card.',
-    sizing: '75% pot — go big to represent the flush. Small bets are suspicious on flush-completing turns.',
+    sizing: '75% pot - go big to represent the flush. Small bets are suspicious on flush-completing turns.',
     bestHands: 'Made flushes for value. A♥x as a blocker bluff. Any single heart as a semi-bluff.',
     avoid: 'Don\'t bluff without a heart blocker. Villain will call with their own flush draws.' },
   { spot: 'Paired Board Turn Probe', board: 'J♠8♦4♣ → 4♠', color: '#ef4444', icon: '●',
     freq: '50-60%',
     why: 'Board pairs are great bluff cards. Very few combos have a 4. You can represent trips easily.',
-    sizing: '50% pot — medium sizing since trips would want calls. Overbetting looks like a bluff.',
+    sizing: '50% pot - medium sizing since trips would want calls. Overbetting looks like a bluff.',
     bestHands: 'Any 4x (rare but value). Jx for thin value. Complete air to take the pot.',
     avoid: 'If villain check-raised flop, they might have a 4 or set. Don\'t probe into aggression.' },
 ];
@@ -47,7 +47,7 @@ export default function TurnProbeGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Turn Probe Bet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Exploit weakness when the flop goes check-check.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Exploit Weakness When The Flop Goes Check-Check.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PROBE_SPOTS.map((s, i) => (
@@ -79,7 +79,7 @@ export default function TurnProbeGuide() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.sizing}</div>
           </div>
           <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${spot.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Best Hands to Probe</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Best Hands To Probe</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.bestHands}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>

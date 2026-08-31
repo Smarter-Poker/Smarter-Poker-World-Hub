@@ -216,7 +216,7 @@ export default function DiamondLiabilityDashboard() {
     }
     if (denied) {
         return shell(
-            <Message tone="error" title="Forbidden — admin only">
+            <Message tone="error" title="Forbidden - admin only">
                 Your account is signed in but is not flagged <code>is_admin</code>. Nothing on this page is available
                 to normal users.
             </Message>
@@ -258,7 +258,7 @@ export default function DiamondLiabilityDashboard() {
                     <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#fff' }}>Diamond Liability</h1>
                     <div style={{ fontSize: 12, color: C.faint, marginTop: 6 }}>
                         1 &#9670; = {usd(data.usdPerDiamond ?? 0.01)} &middot; period {data.period} ({data.timezone}) &middot; generated{' '}
-                        {data.generatedAt ? new Date(data.generatedAt).toLocaleString() : '—'}
+                        {data.generatedAt ? new Date(data.generatedAt).toLocaleString() : '-'}
                     </div>
                 </div>
                 <button onClick={load} disabled={loading} style={btnStyle}>
@@ -284,17 +284,17 @@ export default function DiamondLiabilityDashboard() {
                         usdValue={usd(outstanding?.usd)}
                         diamonds={outstanding?.diamonds}
                         color={C.cyan}
-                        hint={`${num(outstanding?.users)} user balances${outstanding?.truncated ? ' (scan truncated — floor)' : ''}`}
+                        hint={`${num(outstanding?.users)} user balances${outstanding?.truncated ? ' (scan truncated - floor)' : ''}`}
                     />
                     <MoneyStat
-                        label="Net flow — 24h"
+                        label="Net flow - 24h"
                         usdValue={usd(flow?.netFlow24hUsd)}
                         diamonds={flow?.netFlow24h}
                         color={netColor24h}
                         hint="issued minus redeemed"
                     />
                     <MoneyStat
-                        label="Net flow — 30d"
+                        label="Net flow - 30d"
                         usdValue={usd(flow?.netFlow30dUsd)}
                         diamonds={flow?.netFlow30d}
                         color={netColor30d}
@@ -304,12 +304,12 @@ export default function DiamondLiabilityDashboard() {
             </Panel>
 
             {/* ── FLOW ── */}
-            <Panel title="Issued vs redeemed" subtitle={`${num(flow?.ledgerRows)} ledger rows scanned${flow?.truncated ? ' (truncated — figures are a floor)' : ''}.`}>
+            <Panel title="Issued vs redeemed" subtitle={`${num(flow?.ledgerRows)} ledger rows scanned${flow?.truncated ? ' (truncated - figures are a floor)' : ''}.`}>
                 <Grid min={190}>
-                    <MoneyStat label="Issued — 24h" usdValue={usd(flow?.issued24hUsd)} diamonds={flow?.issued24h} color={C.gold} />
-                    <MoneyStat label="Redeemed — 24h" usdValue={usd(flow?.redeemed24hUsd)} diamonds={flow?.redeemed24h} color={C.green} />
-                    <MoneyStat label="Issued — 30d" usdValue={usd(flow?.issued30dUsd)} diamonds={flow?.issued30d} color={C.gold} />
-                    <MoneyStat label="Redeemed — 30d" usdValue={usd(flow?.redeemed30dUsd)} diamonds={flow?.redeemed30d} color={C.green} />
+                    <MoneyStat label="Issued - 24h" usdValue={usd(flow?.issued24hUsd)} diamonds={flow?.issued24h} color={C.gold} />
+                    <MoneyStat label="Redeemed - 24h" usdValue={usd(flow?.redeemed24hUsd)} diamonds={flow?.redeemed24h} color={C.green} />
+                    <MoneyStat label="Issued - 30d" usdValue={usd(flow?.issued30dUsd)} diamonds={flow?.issued30d} color={C.gold} />
+                    <MoneyStat label="Redeemed - 30d" usdValue={usd(flow?.redeemed30dUsd)} diamonds={flow?.redeemed30d} color={C.green} />
                 </Grid>
             </Panel>
 
@@ -337,8 +337,8 @@ export default function DiamondLiabilityDashboard() {
                         <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
                             Share of all outflow
                         </div>
-                        <Bar label="Recirculated — arena / gameplay" value={recirculation?.recirculated || 0} total={outflowTotal} color={C.cyan} right={usd(recirculation?.recirculatedUsd)} />
-                        <Bar label="Leaked — VIP + merchandise" value={recirculation?.leaked || 0} total={outflowTotal} color={C.red} right={usd(recirculation?.leakedUsd)} />
+                        <Bar label="Recirculated - arena / gameplay" value={recirculation?.recirculated || 0} total={outflowTotal} color={C.cyan} right={usd(recirculation?.recirculatedUsd)} />
+                        <Bar label="Leaked - VIP + merchandise" value={recirculation?.leaked || 0} total={outflowTotal} color={C.red} right={usd(recirculation?.leakedUsd)} />
                         <Bar label="Peer transfers" value={recirculation?.transfers || 0} total={outflowTotal} color={C.blue} right={usd(recirculation?.transfersUsd)} />
                         <Bar label="Clawbacks" value={recirculation?.clawbacks || 0} total={outflowTotal} color={C.green} right={usd(recirculation?.clawbacksUsd)} />
                         <Bar label="Unclassified" value={recirculation?.unclassified || 0} total={outflowTotal} color={C.gold} right={usd(recirculation?.unclassifiedUsd)} />
@@ -382,7 +382,7 @@ export default function DiamondLiabilityDashboard() {
             >
                 {!budget ? (
                     <div style={{ fontSize: 13, color: C.gold, lineHeight: 1.7 }}>
-                        No budget row available. The circuit breaker is not reporting — see Notes above. Configured
+                        No budget row available. The circuit breaker is not reporting - see Notes above. Configured
                         ceiling is {num(data.platformMonthlyBudgetConfig?.diamonds)} &#9670; (
                         {usd(data.platformMonthlyBudgetConfig?.usd)}) per month from{' '}
                         <code>src/config/diamondRewards.js</code>.
@@ -400,7 +400,7 @@ export default function DiamondLiabilityDashboard() {
                                 value={budget.spentDiamonds}
                                 total={budget.budgetDiamonds}
                                 color={budget.percentUsed >= 80 ? C.red : C.cyan}
-                                right={budget.percentUsed === null ? '—' : `${budget.percentUsed}%`}
+                                right={budget.percentUsed === null ? '-' : `${budget.percentUsed}%`}
                             />
                         </div>
                     </>
@@ -409,7 +409,7 @@ export default function DiamondLiabilityDashboard() {
 
             {/* ── TOP EARNERS ── */}
             <Panel
-                title="Top earners — 30d"
+                title="Top earners - 30d"
                 subtitle={`Abuse-detection surface. Monthly cap: ${num(data.monthlyCap?.free)} ◆ free / ${num(data.monthlyCap?.vip)} ◆ VIP.`}
             >
                 {topEarners.length === 0 ? (
@@ -440,7 +440,7 @@ export default function DiamondLiabilityDashboard() {
                                         </td>
                                         <td style={{ ...tdStyle, textAlign: 'right' }}>{num(e.diamonds)}</td>
                                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.text }}>{usd(e.usd)}</td>
-                                        <td style={{ ...tdStyle, textAlign: 'right', color: C.dim }}>{e.balance === null ? '—' : num(e.balance)}</td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', color: C.dim }}>{e.balance === null ? '-' : num(e.balance)}</td>
                                         <td style={tdStyle}>
                                             {e.overCap ? (
                                                 <span style={{ color: C.red, fontWeight: 700 }}>

@@ -482,7 +482,7 @@ export default function DocumentCropper({ imageSrc, onConfirm, onCancel }) {
                     {!imageLoaded && (
                         <div style={styles.loading}>
                             <div style={styles.spinner} />
-                            Detecting edges...
+                            Detecting Edges...
                         </div>
                     )}
                     <canvas

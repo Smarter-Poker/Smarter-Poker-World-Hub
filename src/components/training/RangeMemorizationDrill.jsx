@@ -214,7 +214,7 @@ function RangeMemorizationDrill() {
               {handDisplay}
             </div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              Is this hand in the <span style={{ color: '#10b981', fontWeight: 700 }}>{rangeName}</span> range?
+              Is This Hand In The <span style={{ color: '#10b981', fontWeight: 700 }}>{rangeName}</span> Range?
             </div>
           </div>
         </div>
@@ -230,7 +230,7 @@ function RangeMemorizationDrill() {
               {result.correct ? '✓ Correct!': '✕ Wrong!'}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
-              {handDisplay} is <span style={{ fontWeight: 700, color: isInRange ? '#10b981' : '#ef4444' }}>{result.answer}</span>
+              {handDisplay} Is <span style={{ fontWeight: 700, color: isInRange ? '#10b981' : '#ef4444' }}>{result.answer}</span>
             </div>
           </div>
         )}
@@ -286,7 +286,7 @@ function RangeMemorizationDrill() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Range Memorization Drill failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Range Memorization Drill Failed To Load: {err.message}</div>;
   }
 }
 

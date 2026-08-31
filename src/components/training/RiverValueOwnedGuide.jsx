@@ -19,7 +19,7 @@ const TRAP_HANDS = [
     reason: 'Ace on river is terrible for QJ. Villain calls with AQ, AT, and folds worse Qx. Classic value-own.',
     rule: 'When a scare card hits the river, your medium hands lose value. Check for showdown.' },
   { hand: 'AA on A♦K♠Q♥J♣T♠', action: 'CHECK ✓', wrong: 'Bet big',
-    reason: 'Board is AKQJT — any suited hand has a straight. Your aces are barely ahead. Check and pray.',
+    reason: 'Board is AKQJT - any suited hand has a straight. Your aces are barely ahead. Check and pray.',
     rule: 'On monotone or 4-straight boards, even strong hands should check for pot control.' },
 ];
 
@@ -33,7 +33,7 @@ export default function RiverValueOwnedGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Value-Own Prevention
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Stop betting when you only get called by better hands.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Stop Betting When You Only Get Called By Better Hands.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {TRAP_HANDS.map((s, i) => (
@@ -70,7 +70,7 @@ export default function RiverValueOwnedGuide() {
 
       <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>The #1 Leak</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Ask yourself before every river bet: "What worse hand calls?" If you can't name 5+ combos, check.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Ask Yourself Before Every River Bet: "What Worse Hand Calls?" If You Can't Name 5+ Combos, Check.</div>
       </div>
     </div>
   );

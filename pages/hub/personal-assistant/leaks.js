@@ -747,7 +747,7 @@ function TrendChart({ data, optimal, current, status }) {
       {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
       <div style={styles.trendScaleRow}>
         <span style={styles.trendScaleText}>
-          Range {minVal.toFixed(0)}%–{maxVal.toFixed(0)}%
+          Range {minVal.toFixed(0)}%-{maxVal.toFixed(0)}%
         </span>
         {optimalVal !== null && (
           <span style={styles.trendScaleText}>
@@ -921,6 +921,11 @@ function AuditReceipt({ result }) {
       {progress.coverage && (
         <p className={toolStyles.auditReceiptNote}>
           Coverage Funnel · {num(progress.coverage.scanned).toLocaleString()} Scanned → {num(progress.coverage.eligible).toLocaleString()} Eligible → {num(progress.coverage.privateCardsAvailable).toLocaleString()} Private Cards Available → {num(progress.coverage.heroDecisions).toLocaleString()} Hero Decisions → {num(progress.coverage.exactSolverMatches).toLocaleString()} Exact Solver Matches → {num(progress.coverage.unpriced).toLocaleString()} Unpriced → {num(progress.coverage.leaks).toLocaleString()} Leaks
+        </p>
+      )}
+      {result.evidencePartial && (
+        <p className={toolStyles.auditReceiptNote} data-tone="warn">
+          Historical Evidence Coverage Is Partial. Unverified Or Missing Canonical Training Rows Were Excluded; Club Arena Findings And Saved Leak Records Still Reconciled Independently.
         </p>
       )}
       {reconciliation.checkedAt && (

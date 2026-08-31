@@ -123,7 +123,7 @@ function VarianceSimulator() {
         {/* Graph */}
         <div style={{ marginBottom: 16, padding: 12, background: 'rgba(236,72,153,0.04)', borderRadius: 10, border: '1px solid rgba(236,72,153,0.12)' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-            {simCount} Simulated Paths ({numHands.toLocaleString()} hands each)
+            {simCount} Simulated Paths ({numHands.toLocaleString()} Hands Each)
           </div>
           <MiniGraph paths={results.map(r => r.path)} width={500} height={180} />
         </div>
@@ -149,18 +149,18 @@ function VarianceSimulator() {
         <div style={{ padding: 12, background: 'rgba(236,72,153,0.06)', borderRadius: 8, border: '1px solid rgba(236,72,153,0.15)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>Key Insights</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
-            At {winRate} bb/100 with {stdDev} bb/100 std dev over {numHands.toLocaleString()} hands:
+            At {winRate} BB/100 With {stdDev} BB/100 Std Dev Over {numHands.toLocaleString()} Hands:
             {' '}{stats.losingPct > 0
               ? `You have a ${stats.losingPct}% chance of being a losing player despite being a winner. `
               : 'All simulations were profitable. '}
-            Expected worst downswing is approximately {stats.maxDD.toFixed(0)} bb ({(stats.maxDD / 100).toFixed(1)} buy-ins at NL100).
+            Expected Worst Downswing Is Approximately {stats.maxDD.toFixed(0)} BB ({(stats.maxDD / 100).toFixed(1)} Buy-Ins At NL100).
             {stats.avgDD > 200 ? ' Consider increasing your bankroll to withstand variance.' : ' Your variance exposure is manageable with standard bankroll management.'}
           </div>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Variance Simulator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Variance Simulator Failed To Load: {err.message}</div>;
   }
 }
 

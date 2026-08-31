@@ -690,7 +690,7 @@ export default function MemoryGameClient({
 
                                 {gameState.currentHand.alternateLines && gameState.currentHand.alternateLines.length > 0 && (
                                     <div className="mb-4">
-                                        <div className="text-sm text-slate-400 mb-2">⚠️ Alternate Lines (Sub-optimal):</div>
+                                        <div className="text-sm text-slate-400 mb-2">⚠️ Alternate Lines (Sub-Optimal):</div>
                                         {gameState.currentHand.alternateLines.map((alt, idx) => (
                                             <div key={idx} className="text-yellow-400 text-sm">
                                                 • {alt.action} - {alt.note}
@@ -748,7 +748,7 @@ export default function MemoryGameClient({
                             {Math.round(accuracy * 100)}% Accuracy
                         </div>
                         <div className="text-sm text-slate-400 mt-2">
-                            (Need {Math.round(requiredAccuracy * 100)}% to pass • Level {levelIndex + 1})
+                            (Need {Math.round(requiredAccuracy * 100)}% To Pass • Level {levelIndex + 1})
                         </div>
                     </div>
 
@@ -771,7 +771,7 @@ export default function MemoryGameClient({
                                 <span className="text-slate-400">Diamonds Earned</span>
                                 <span className="font-bold text-yellow-400">
                                     <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> +{displayDiamonds}
-                                    {backendRewards === null && <span className="text-xs ml-2 text-slate-500">(processing...)</span>}
+                                    {backendRewards === null && <span className="text-xs ml-2 text-slate-500">(Processing...)</span>}
                                 </span>
                             </div>
                         )}

@@ -50,7 +50,7 @@ const TILT_TYPES = [
     recovery: [
       'STOP: Take a mandatory 15-minute break right now',
       'Set a stop-loss: decide max loss BEFORE sitting down',
-      'Move DOWN stakes if anything — never up when losing',
+      'Move DOWN stakes if anything - never up when losing',
       'Tomorrow: losses today will mean nothing in your poker career',
     ],
     severity: 'Critical',
@@ -137,7 +137,7 @@ function TiltRecoverySystem() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Tilt Recovery System failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Tilt Recovery System Failed To Load: {err.message}</div>;
   }
 }
 

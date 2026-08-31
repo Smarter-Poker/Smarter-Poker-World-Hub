@@ -23,7 +23,7 @@ export default function SheetShell({ title, onClose, rightAction, children }) {
                         background: 'none', border: 'none', color: '#050505',
                         fontSize: 22, padding: 8, cursor: 'pointer',
                     }}
-                >&#x2190;</button>
+                >&#X2190;</button>
                 <div style={{ fontSize: 17, fontWeight: 600 }}>{title}</div>
                 <div style={{ minWidth: 40, textAlign: 'right' }}>{rightAction || null}</div>
             </div>

@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         if (!sb) {
             return res.status(500).json({
                 status: 'unconfigured',
-                error: 'SUPABASE_SERVICE_ROLE_KEY missing — health probe cannot read signup_health_view.',
+                error: 'SUPABASE_SERVICE_ROLE_KEY missing - health probe cannot read signup_health_view.',
             });
         }
 

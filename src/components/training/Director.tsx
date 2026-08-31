@@ -486,7 +486,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             marginTop: '12px',
                             opacity: 0.7
                         }}>
-                            ▲ {assets.failedAssets.length} assets using fallbacks
+                            ▲ {assets.failedAssets.length} Assets Using Fallbacks
                         </div>
                     )}
                 </motion.div>
@@ -723,7 +723,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             marginTop: '8px',
                             opacity: 0.8
                         }}>
-                            {Math.round(currentLeak.failureRate * 100)}% error rate in last {currentLeak.attemptCount} attempts
+                            {Math.round(currentLeak.failureRate * 100)}% Error Rate In Last {currentLeak.attemptCount} Attempts
                         </div>
                     </motion.div>
                 )}
@@ -937,8 +937,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                             <div style={{ color: '#FFD700', marginBottom: '4px' }}>
                                                 Alternative Lines:
                                             </div>
-                                            <div>• CALL Is 2nd Best (+0.3 EV)</div>
-                                            <div>• FOLD Is Break-even (-0.1 EV)</div>
+                                            <div>• CALL Is 2Nd Best (+0.3 EV)</div>
+                                            <div>• FOLD Is Break-Even (-0.1 EV)</div>
                                         </div>
                                     </div>
                                 </motion.div>

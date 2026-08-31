@@ -91,7 +91,7 @@ export function isMissingAwardFn(error) {
 function logMigrationMissing(params, error) {
     const actionKey = (params && (params.p_action_key || params.actionKey)) || 'unknown';
     console.error(
-        `🚨 [${MIGRATION_MISSING}] public.${AWARD_FN}() does not exist in this database — ` +
+        `🚨 [${MIGRATION_MISSING}] public.${AWARD_FN}() does not exist in this database - ` +
         `every diamond reward is DOWN. Apply the migration: ${MIGRATION_FILE}. ` +
         `(action_key=${actionKey}; db said: ${errorText(error) || 'no message'})`
     );

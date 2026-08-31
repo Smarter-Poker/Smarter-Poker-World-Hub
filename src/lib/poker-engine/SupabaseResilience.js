@@ -239,7 +239,7 @@ async function resilientQuery(supabase, queryFn, options = {}) {
   // Circuit breaker check (skip for critical operations)
   if (!options.critical && !_checkCircuitBreaker()) {
     _metrics.failedOps++;
-    return { data: null, error: { message: `[SupabaseResilience] Circuit breaker OPEN — ${label} rejected` } };
+    return { data: null, error: { message: `[SupabaseResilience] Circuit breaker OPEN - ${label} rejected` } };
   }
 
   let lastError = null;

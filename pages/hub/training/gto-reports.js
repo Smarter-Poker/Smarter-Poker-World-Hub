@@ -267,7 +267,7 @@ function PositionHeatmap({ userByPosition }) {
                       fontSize: 10,
                     }}
                   >
-                    {uVal > 0 ? `${(Number.isFinite(Number(uVal)) ? Number(uVal) : 0).toFixed(0)}%` : '—'}
+                    {uVal > 0 ? `${(Number.isFinite(Number(uVal)) ? Number(uVal) : 0).toFixed(0)}%` : '-'}
                   </div>
                 );
               })}

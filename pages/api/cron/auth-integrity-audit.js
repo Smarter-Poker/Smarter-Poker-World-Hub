@@ -97,7 +97,7 @@ async function handler(req, res) {
                     Sentry.captureMessage(
                         `Auth integrity: ${realCount} REAL orphan(s) detected`
                         + ` (no_profile=${realOrphans.no_profile}, no_wallet=${realOrphans.no_wallet}, no_diamonds=${realOrphans.no_diamonds})`
-                        + (shouldHeal ? ` — healed: ${JSON.stringify(healResult)}` : ' — pass ?heal=1 to fix'),
+                        + (shouldHeal ? ` - healed: ${JSON.stringify(healResult)}` : ' - pass ?heal=1 to fix'),
                     );
                 });
             } catch (_) { /* ignore */ }

@@ -100,14 +100,14 @@ const VIP_SUBSCRIPTION_PLANS = {
         envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID',
         unitAmount: 1999,          // $19.99
         interval: 'month',
-        label: 'Smarter.Poker VIP — Monthly',
+        label: 'Smarter.Poker VIP - Monthly',
     },
     annual: {
         tier: 'annual',
         envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID',
         unitAmount: 19999,         // $199.99
         interval: 'year',
-        label: 'Smarter.Poker VIP — Annual',
+        label: 'Smarter.Poker VIP - Annual',
     },
 };
 
@@ -864,6 +864,11 @@ export default async function handler(req, res) {
               // SECURITY: Every price/diamond amount below is resolved from
               // VALID_DIAMOND_PACKAGES. Client-supplied price/diamonds/bonus are ignored.
               const resolvedPackages = preparedCheckout.resolvedPackages;
+              const cartSnapshot = resolvedPackages.map((pkg) => ({
+                  kind: 'diamonds',
+                  id: pkg.key,
+                  quantity: pkg.quantity,
+              }));
 
               // Use SERVER-SIDE values only — never trust client amounts
               sessionConfig.line_items = resolvedPackages.map(pkg => ({
@@ -900,6 +905,7 @@ export default async function handler(req, res) {
                           ...existingCheckout.metadata,
                           ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {}),
                           checkout_intent_hash: checkoutIntentHash,
+                          cart_snapshot: cartSnapshot,
                           ...(redemptionIntent ? { redemption_intent: redemptionIntent } : {}),
                       },
                   })
@@ -918,6 +924,7 @@ export default async function handler(req, res) {
                               checkout_request_id: checkoutRequestId,
                           } : {}),
                           checkout_intent_hash: checkoutIntentHash,
+                          cart_snapshot: cartSnapshot,
                           ...(redemptionIntent ? { redemption_intent: redemptionIntent } : {}),
                       }
                   });
@@ -986,7 +993,7 @@ export default async function handler(req, res) {
                   // from the request body, so this is exactly as tamper-proof as
                   // a price ID.
                   console.warn(
-                      `[Checkout] ${plan.envVar} is not set — selling VIP ${plan.key} from the built-in ` +
+                      `[Checkout] ${plan.envVar} is not set - selling VIP ${plan.key} from the built-in ` +
                       `$${(plan.unitAmount / 100).toFixed(2)}/${plan.interval} price. Set the env var to manage it in Stripe.`
                   );
                   sessionConfig.line_items = [{
@@ -1024,6 +1031,12 @@ export default async function handler(req, res) {
                   fulfillmentMode,
                   catalogProvider,
               } = preparedCheckout;
+              const cartSnapshot = resolvedItems.map((item) => ({
+                  kind: 'merchandise',
+                  id: item.id,
+                  variantId: item.variantId || null,
+                  quantity: item.quantity,
+              }));
 
               sessionConfig.line_items = resolvedItems.map(item => ({
                   price_data: {
@@ -1048,6 +1061,7 @@ export default async function handler(req, res) {
                           ...existingCheckout.metadata,
                           ...(checkoutRequestId ? { checkout_request_id: checkoutRequestId } : {}),
                           checkout_intent_hash: checkoutIntentHash,
+                          cart_snapshot: cartSnapshot,
                           fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
                           catalog_provider: catalogProvider,
                           fulfillment_mode: fulfillmentMode,
@@ -1066,6 +1080,7 @@ export default async function handler(req, res) {
                           ? { metadata: {
                               checkout_request_id: checkoutRequestId,
                               checkout_intent_hash: checkoutIntentHash,
+                              cart_snapshot: cartSnapshot,
                               fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
                               catalog_provider: catalogProvider,
                               fulfillment_mode: fulfillmentMode,
@@ -1074,6 +1089,7 @@ export default async function handler(req, res) {
                           : { metadata: {
                               fulfillment_provider: fulfillmentMode === 'automatic' ? catalogProvider : 'manual',
                               checkout_intent_hash: checkoutIntentHash,
+                              cart_snapshot: cartSnapshot,
                               catalog_provider: catalogProvider,
                               fulfillment_mode: fulfillmentMode,
                               fulfillment_status: 'awaiting_payment',

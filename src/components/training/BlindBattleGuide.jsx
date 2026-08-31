@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 
 const SB_STRATS = [
   {
-    title: 'SB Open — Raise or Fold',
+    title: 'SB Open - Raise or Fold',
     color: '#f59e0b',
     desc: 'From the SB, you should either raise or fold. Limping is sometimes used in advanced play but open-raising is the standard GTO approach.',
     range: '~50% of hands',
@@ -103,7 +103,7 @@ function BlindBattleGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Blind Battle Guide failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Blind Battle Guide Failed: {err.message}</div>;
   }
 }
 

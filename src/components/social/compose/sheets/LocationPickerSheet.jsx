@@ -91,7 +91,7 @@ export default function LocationPickerSheet({ onClose }) {
                     background: '#f0f2f5', borderRadius: 10,
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                 }}>
-                    <span aria-hidden="true">&#x1F50D;</span>
+                    <span aria-hidden="true">&#X1F50D;</span>
                     <input
                         autoFocus
                         value={query}
@@ -111,7 +111,7 @@ export default function LocationPickerSheet({ onClose }) {
                                 width: 18, height: 18, borderRadius: 9,
                                 fontSize: 11, cursor: 'pointer', padding: 0,
                             }}
-                        >&#x2715;</button>
+                        >&#X2715;</button>
                     )}
                 </div>
 
@@ -123,7 +123,7 @@ export default function LocationPickerSheet({ onClose }) {
                             borderRadius: 6, padding: '8px 12px', fontSize: 13,
                             color: '#1877F2', fontWeight: 600, cursor: 'pointer',
                         }}
-                    >Remove location ({location.name})</button>
+                    >Remove Location ({location.name})</button>
                 )}
             </div>
 
@@ -132,11 +132,11 @@ export default function LocationPickerSheet({ onClose }) {
                     <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>Searching…</div>
                 )}
                 {!loading && results.length === 0 && query && (
-                    <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>No matches.</div>
+                    <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>No Matches.</div>
                 )}
                 {!loading && results.length === 0 && !query && (
                     <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>
-                        Allow location access to see nearby venues, or search above.
+                        Allow Location Access To See Nearby Venues, Or Search Above.
                     </div>
                 )}
                 {results.map((v) => (
@@ -149,7 +149,7 @@ export default function LocationPickerSheet({ onClose }) {
                             borderTop: '1px solid #e4e6eb', cursor: 'pointer', textAlign: 'left',
                         }}
                     >
-                        <span aria-hidden="true" style={{ fontSize: 20, width: 28, textAlign: 'center', color: '#65676B' }}>&#x1F4CD;</span>
+                        <span aria-hidden="true" style={{ fontSize: 20, width: 28, textAlign: 'center', color: '#65676B' }}>&#X1F4CD;</span>
                         <span style={{ flex: 1 }}>
                             <span style={{ display: 'block', fontWeight: 600, fontSize: 14, color: '#050505' }}>{v.name}</span>
                             {(v.city || v.state) && (

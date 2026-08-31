@@ -17,7 +17,7 @@ const OVERBET_SPOTS = [
     key: 'Only works if the board supports your nut story (flush/straight completing).' },
   { scenario: 'Turned nut straight, brick river', sizing: '125% pot', type: 'VALUE', color: '#22c55e',
     reason: 'You have the nuts and villain has been calling. Overbet to extract from two pair and sets.',
-    key: 'Brick rivers are great for overbets — nothing changed, so villain\'s range is defined.' },
+    key: 'Brick rivers are great for overbets - nothing changed, so villain\'s range is defined.' },
   { scenario: 'Top pair on dry board', sizing: 'DON\'T OVERBET', type: 'AVOID', color: '#64748b',
     reason: 'Top pair is not nutted enough. Overbetting only gets called by better. Use 50-66% instead.',
     key: 'Overbetting with medium hands is a massive leak. Save it for the nuts and bluffs.' },
@@ -33,7 +33,7 @@ export default function RiverOverbetGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         River Overbet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Overbetting the river = maximum pressure. Use wisely.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Overbetting The River = Maximum Pressure. Use Wisely.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {OVERBET_SPOTS.map((s, i) => (

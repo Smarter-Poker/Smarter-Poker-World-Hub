@@ -20,7 +20,7 @@ const INDIFF_SPOTS = [
     practical: 'Use on wet boards where you want to charge draws. Strong sizing for value+bluff combos.' },
   { bet: '100% Pot', mdf: '50%', bluffFreq: '50%', color: '#ef4444', icon: '●',
     explain: 'Pot-sized bets force villain to fold half their range. Maximum pressure at standard sizing.',
-    implication: 'You can be 50/50 value and bluffs. Very polarized — you have the nuts or nothing.',
+    implication: 'You can be 50/50 value and bluffs. Very polarized - you have the nuts or nothing.',
     practical: 'River pot-sized bets should be 1:1 value-to-bluff. If you\'re not bluffing enough, you\'re leaving money on the table.' },
   { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#8b5cf6', icon: '●',
     explain: 'Overbets force villain to fold 60% of range! Only the top of their range can call.',
@@ -37,7 +37,7 @@ export default function IndifferenceCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ◇ Indifference Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How bet sizing determines optimal bluff frequency.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How Bet Sizing Determines Optimal Bluff Frequency.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {INDIFF_SPOTS.map((s, i) => (

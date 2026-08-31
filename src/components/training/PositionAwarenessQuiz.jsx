@@ -167,7 +167,7 @@ function PositionAwarenessQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Position Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Position Quiz Failed To Load: {err.message}</div>;
   }
 }
 

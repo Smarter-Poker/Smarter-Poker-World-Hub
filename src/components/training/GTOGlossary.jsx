@@ -13,11 +13,11 @@ const TERMS = [
   { term: 'Alpha', full: 'Breakeven Bluff %', category: 'Bluffing', def: 'The % of the time your bluff needs to succeed to break even. Alpha = Bet / (Bet + Pot). If villain folds more than alpha, your bluff prints money.', related: ['Fold Equity', 'MDF'] },
   { term: 'SPR', full: 'Stack-to-Pot Ratio', category: 'Sizing', def: 'Effective stack divided by pot. Low SPR (<3) = commit with top pair. High SPR (>10) = need sets+. Determines how many streets of value you can extract.', related: ['Geometric Sizing', 'Commitment'] },
   { term: 'Range Advantage', full: 'Range Advantage', category: 'Ranges', def: 'When one players range contains more strong hands than opponents on a given board. Example: BTN has range advantage on A-high boards (more Ax combos).', related: ['Nut Advantage', 'Equity Distribution'] },
-  { term: 'Nut Advantage', full: 'Nut Advantage', category: 'Ranges', def: 'When one player has more of the very strongest hands (nuts). Different from range advantage — you can have range advantage without nut advantage.', related: ['Range Advantage', 'Polarized'] },
+  { term: 'Nut Advantage', full: 'Nut Advantage', category: 'Ranges', def: 'When one player has more of the very strongest hands (nuts). Different from range advantage - you can have range advantage without nut advantage.', related: ['Range Advantage', 'Polarized'] },
   { term: 'Capped Range', full: 'Capped Range', category: 'Ranges', def: 'A range that cannot contain the strongest hands due to previous actions. Example: BB flat-calling is capped (no AA/KK/AK which would 3-bet).', related: ['Uncapped', 'Range Construction'] },
   { term: 'Polarized', full: 'Polarized Range', category: 'Ranges', def: 'A range containing only very strong hands and bluffs, with no medium-strength hands. Used for large bet sizes. The opposite of merged.', related: ['Merged', 'Linear'] },
   { term: 'Merged', full: 'Merged/Linear Range', category: 'Ranges', def: 'A range that includes strong, medium, and some weak hands. Used for small bet sizes. No clear separation between value and bluff.', related: ['Polarized', 'Small Sizing'] },
-  { term: 'ICM', full: 'Independent Chip Model', category: 'Tournament', def: 'Converts tournament chip stacks into $EV based on payout structure. Chips have diminishing value — your 1000th chip is worth less than your 1st.', related: ['Bubble Factor', 'Pay Jump'] },
+  { term: 'ICM', full: 'Independent Chip Model', category: 'Tournament', def: 'Converts tournament chip stacks into $EV based on payout structure. Chips have diminishing value - your 1000th chip is worth less than your 1st.', related: ['Bubble Factor', 'Pay Jump'] },
   { term: 'Bubble Factor', full: 'Bubble Factor', category: 'Tournament', def: 'Multiplier showing how much more a lost chip costs vs. what a won chip gains. BF of 2.0 means losing a chip costs twice as much as winning one is worth.', related: ['ICM', 'Risk Premium'] },
   { term: 'Fold Equity', full: 'Fold Equity', category: 'Bluffing', def: 'The portion of your EV that comes from opponent folding. Even with 0% equity, fold equity alone can make a bluff profitable if villain folds enough.', related: ['Alpha', 'Semi-Bluff'] },
   { term: 'Semi-Bluff', full: 'Semi-Bluff', category: 'Bluffing', def: 'A bluff with a hand that has equity to improve (like a flush draw). Profits two ways: villain folds (fold equity) or you hit your draw (equity when called).', related: ['Fold Equity', 'Outs'] },
@@ -64,7 +64,7 @@ function GTOGlossary() {
           ))}
         </div>
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} terms</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} Terms</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 400, overflowY: 'auto' }}>
           {filtered.map((t, i) => (
@@ -98,7 +98,7 @@ function GTOGlossary() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>GTO Glossary failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>GTO Glossary Failed To Load: {err.message}</div>;
   }
 }
 

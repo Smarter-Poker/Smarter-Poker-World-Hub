@@ -42,7 +42,7 @@ export default function PayoutStructure() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Payout Structures
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How prize distribution shapes your strategy.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How Prize Distribution Shapes Your Strategy.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PAYOUT_TYPES.map((p, i) => (

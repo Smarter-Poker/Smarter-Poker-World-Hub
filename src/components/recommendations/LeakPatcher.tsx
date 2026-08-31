@@ -255,7 +255,7 @@ export function LeakPatcher({
                     No Leaks Detected!
                 </h3>
                 <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    Your game is solid. Keep grinding!
+                    Your Game Is Solid. Keep Grinding!
                 </p>
             </div>
         );
@@ -288,7 +288,7 @@ export function LeakPatcher({
                         Recommended For You
                     </h3>
                     <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                        Based on your play patterns
+                        Based On Your Play Patterns
                     </p>
                 </div>
             </div>

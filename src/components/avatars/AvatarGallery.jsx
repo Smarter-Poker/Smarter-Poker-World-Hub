@@ -290,7 +290,7 @@ const InspectModal = ({ avatar, isCustom, onClose, onEquip, isVip }) => {
           </button>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', alignItems: 'center' }}>
-            <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: "'Rajdhani', sans-serif" }}>Where to apply?</h3>
+            <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: "'Rajdhani', sans-serif" }}>Where To Apply?</h3>
             <button onClick={() => handleEquip('arena')} style={scopeBtnStyle}>Club Arena Only</button>
             <button onClick={() => handleEquip('social')} style={scopeBtnStyle}>Social Profile Only</button>
             <button onClick={() => handleEquip('both')} style={scopeBtnStyle}>Both</button>

@@ -48,8 +48,8 @@ const SECTIONS = [
 const RANGES_HU = [
   { position: 'SB Open', pct: 75, hands: 'Any pair, any suited hand, any Ax, any Kx, Q2o+, J4o+, T6o+, 97o+, 87o', color: '#3b82f6' },
   { position: 'BB 3-Bet', pct: 20, hands: 'AA-66, AKs-A2s, KQs-K8s, QJs-Q9s, JTs-J9s, T9s, AKo-ATo, KQo-KJo, some bluffs', color: '#ef4444' },
-  { position: 'BB Call', pct: 45, hands: 'Rest of playable hands — small pairs, suited connectors, weak broadways, Kx suited', color: '#10b981' },
-  { position: 'BB Fold', pct: 10, hands: '72o, 82o, 83o, 92o, 93o, 94o — true garbage', color: '#6b7280' },
+  { position: 'BB Call', pct: 45, hands: 'Rest of playable hands - small pairs, suited connectors, weak broadways, Kx suited', color: '#10b981' },
+  { position: 'BB Fold', pct: 10, hands: '72o, 82o, 83o, 92o, 93o, 94o - true garbage', color: '#6b7280' },
 ];
 
 function HeadsUpStrategyGuide() {
@@ -104,7 +104,7 @@ function HeadsUpStrategyGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Heads-Up Strategy Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Heads-Up Strategy Guide Failed To Load: {err.message}</div>;
   }
 }
 

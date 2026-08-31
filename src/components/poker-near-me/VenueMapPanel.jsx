@@ -482,7 +482,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       <p id={mapInstructionsId} className="sr-only">
-        Interactive poker venue map. Use arrow keys to pan, plus and minus to zoom, and Tab to move between venue markers.
+        Interactive Poker Venue Map. Use Arrow Keys To Pan, Plus And Minus To Zoom, And Tab To Move Between Venue Markers.
       </p>
       <div
         ref={mapRef}
@@ -519,9 +519,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       )}
       {mapError && (
         <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, textAlign: 'center', color: '#e2e8f0', background: '#060810', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 12 }}>
-          <strong>Map unavailable</strong>
+          <strong>Map Unavailable</strong>
           <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: 13 }}>{mapError}</span>
-          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try map again</button>
+          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try Map Again</button>
         </div>
       )}
       <MapCoverageReadout

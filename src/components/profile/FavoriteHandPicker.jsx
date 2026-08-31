@@ -137,7 +137,7 @@ export default function FavoriteHandPicker({ value = '', gameType = 'holdem', la
         <p style={{ fontSize: 12, color: '#65676B', margin: 0, textAlign: 'center' }}>
           {selectedCards.length < maxCards
             ? `Tap ${maxCards - selectedCards.length} more card${maxCards - selectedCards.length > 1 ? 's' : ''} below`
-            : 'Hand complete — tap a selected card above to change it'}
+            : 'Hand complete - tap a selected card above to change it'}
         </p>
         {selectedCards.length > 0 && (
           <button

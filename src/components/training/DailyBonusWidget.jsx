@@ -183,7 +183,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                             </div>
                             {bonusData.nextStreakBonus && (
                                 <div style={styles.nextMilestone}>
-                                    {bonusData.nextStreakBonus.daysUntil} more days = +{bonusData.nextStreakBonus.bonus}◆
+                                    {bonusData.nextStreakBonus.daysUntil} More Days = +{bonusData.nextStreakBonus.bonus}◆
                                 </div>
                             )}
                         </>

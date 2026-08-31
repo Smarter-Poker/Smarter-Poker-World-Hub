@@ -19,17 +19,17 @@ const STACK_DEPTHS = [
     pushRange: 'Shove any pocket pair, A2+, K8+, Q9+, JTs from SB' },
   { bb: 10, label: '10bb', phase: 'Push/Fold', color: '#f59e0b', icon: '●',
     strategy: 'Primarily push or fold. Open-raising is rarely correct at 10bb.',
-    openRange: 'N/A — push or fold',
+    openRange: 'N/A - push or fold',
     notes: 'The Nash push/fold zone. Every hand is either a shove or a fold from SB.',
     pushRange: 'Shove any pair, any Ace, K2s+, K5o+, Q7s+, Q9o+, J8s+, JTo, T8s+, 98s, 87s' },
   { bb: 7, label: '7bb', phase: 'Desperation', color: '#ef4444', icon: '●',
-    strategy: 'Shove extremely wide. You\'re almost dead — fight for every blind.',
-    openRange: 'N/A — pure push/fold',
+    strategy: 'Shove extremely wide. You\'re almost dead - fight for every blind.',
+    openRange: 'N/A - pure push/fold',
     notes: 'At 7bb, you must shove ~65-70% from SB. Any two cards with an Ace or King.',
     pushRange: 'Shove 70%+ of hands from SB: any Ace, any King, any Queen, any suited, any connected' },
   { bb: 4, label: '4bb', phase: 'All-In Preflop', color: '#dc2626', icon: '●',
     strategy: 'Shove literally everything from SB. Call very wide from BB.',
-    openRange: 'N/A — ATC shove',
+    openRange: 'N/A - ATC shove',
     notes: 'At 4bb, both players should be shoving 80%+ and calling 60%+ of shoves.',
     pushRange: 'Shove any two cards (ATC). Fold only the very worst hands like 72o, 83o.' },
 ];
@@ -63,7 +63,7 @@ export default function HUSNGSolver() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         » HU SNG Solver
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Nash equilibrium push/fold charts for Heads-Up Sit & Go tournaments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Nash Equilibrium Push/Fold Charts For Heads-Up Sit & Go Tournaments.</p>
 
       {/* Stack Depth Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>

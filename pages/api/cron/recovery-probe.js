@@ -107,8 +107,8 @@ async function handler(req, res) {
             rate_limited: rpRateLimit,
             error: (rpe && !rpRateLimit) ? rpe?.message : null,
             note: rpRateLimit
-                ? 'Rate-limited (429) — API is alive, throttling duplicate sends'
-                : 'API accepted the request — actual delivery requires a real inbox (not measured here)',
+                ? 'Rate-limited (429) - API is alive, throttling duplicate sends'
+                : 'API accepted the request - actual delivery requires a real inbox (not measured here)',
         };
 
         // ── Probe B: magic link ────────────────────────────────────────────
@@ -128,8 +128,8 @@ async function handler(req, res) {
             rate_limited: mlRateLimit,
             error: (mle && !mlRateLimit) ? mle?.message : null,
             note: mlRateLimit
-                ? 'Rate-limited (429) — API is alive, throttling duplicate sends'
-                : 'API accepted the request — actual delivery requires a real inbox',
+                ? 'Rate-limited (429) - API is alive, throttling duplicate sends'
+                : 'API accepted the request - actual delivery requires a real inbox',
         };
 
         // Only count real failures (not rate-limits) as probe failures

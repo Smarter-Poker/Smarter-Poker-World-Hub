@@ -71,7 +71,7 @@ export default function QuickSignup() {
             }
             setDone(true);
         } catch (err) {
-            setError(err?.message || 'Network error — please try again');
+            setError(err?.message || 'Network error - please try again');
             setLoading(false);
         }
     };
@@ -92,7 +92,7 @@ export default function QuickSignup() {
             <div style={S.card}>
                 <h1 style={S.h1}>Quick Signup</h1>
                 <p style={S.p}>
-                    Backup signup path — minimal form, no analytics, no fancy validation.
+                    Backup signup path - minimal form, no analytics, no fancy validation.
                     {' '}<a href="/auth/signup" style={S.link}>Use the full signup instead</a>.
                 </p>
                 <form onSubmit={submit} style={S.form} autoComplete="on">

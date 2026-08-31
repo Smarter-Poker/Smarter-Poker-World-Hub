@@ -201,7 +201,7 @@ export class MasteryGate {
         if (masteryToken) {
             const validation = this.validateToken(masteryToken);
             if (validation.valid && validation.payload && validation.payload.nextLevelUnlocked >= targetLevel) {
-                return { allowed: true, level: targetLevel, status: 'GRANTED', message: `Token verified — Access granted to Level ${targetLevel}` };
+                return { allowed: true, level: targetLevel, status: 'GRANTED', message: `Token verified - Access granted to Level ${targetLevel}` };
             }
             return { allowed: false, level: targetLevel, status: validation.status, message: `Token validation failed: ${validation.status}` };
         }

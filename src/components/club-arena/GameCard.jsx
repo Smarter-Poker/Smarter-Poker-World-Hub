@@ -166,9 +166,9 @@ const STATUS_DOT = { active: '#00E676', running: '#00E676', waiting: '#FFA726', 
 // FORMAT HELPERS
 // ─────────────────────────────────────────────────────────────────────
 function fmtChips(v) {
-  if (v == null || v === '') return '—';
+  if (v == null || v === '') return '-';
   const n = Number(v);
-  if (isNaN(n)) return '—';
+  if (isNaN(n)) return '-';
   if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K';
   return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
@@ -183,7 +183,7 @@ function fmtBlind(v) {
 
 function fmtBuyRange(min, max) {
   if (!min && !max) return null;
-  if (min && max) return fmtChips(min) + ' – ' + fmtChips(max);
+  if (min && max) return fmtChips(min) + ' - ' + fmtChips(max);
   if (min) return 'Min ' + fmtChips(min);
   return 'Max ' + fmtChips(max);
 }

@@ -257,7 +257,7 @@ export async function compressVideoIfNeeded(file, onProgress, {
 
     // Skip if MediaRecorder not available (Safari < 14.1, some Android WebViews)
     if (typeof MediaRecorder === 'undefined') {
-        console.warn('[VideoCompress] MediaRecorder not available — skipping compression');
+        console.warn('[VideoCompress] MediaRecorder not available - skipping compression');
         return file;
     }
 
@@ -271,7 +271,7 @@ export async function compressVideoIfNeeded(file, onProgress, {
     ];
     const outputMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t));
     if (!outputMime) {
-        console.warn('[VideoCompress] No supported MediaRecorder output type — skipping compression');
+        console.warn('[VideoCompress] No supported MediaRecorder output type - skipping compression');
         return file;
     }
 
@@ -346,7 +346,7 @@ export async function compressVideoIfNeeded(file, onProgress, {
                 const blob = new Blob(chunks, { type: outputMime.split(';')[0] });
                 // Only use compressed version if it's actually smaller
                 if (blob.size >= file.size) {
-                    console.warn('[VideoCompress] Compressed size >= original — using original');
+                    console.warn('[VideoCompress] Compressed size >= original - using original');
                     return resolve(file);
                 }
                 const ext = outputMime.includes('mp4') ? 'mp4' : 'webm';

@@ -68,7 +68,7 @@ export default function LiveFeed({ storage, sessionId }) {
           />
           <span className="text-xs font-bold text-white">Live Hand Feed</span>
         </div>
-        <span className="text-[10px] text-slate-500">{hands.length} hands</span>
+        <span className="text-[10px] text-slate-500">{hands.length} Hands</span>
       </div>
 
       {/* Feed */}

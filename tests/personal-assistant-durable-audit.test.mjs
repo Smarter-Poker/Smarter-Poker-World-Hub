@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { openAuditJobToken, sealAuditJobToken } from '../src/lib/personal-assistant/auditJobToken.mjs';
+import { getAuditWorkerOrigin, openAuditJobToken, sealAuditJobToken } from '../src/lib/personal-assistant/auditJobToken.mjs';
 import { mergeAuditJobProgress, publicAuditJob } from '../src/lib/personal-assistant/auditJobRuntime.mjs';
 
 const migration = readFileSync(new URL('../supabase/migrations/20260831143000_pa_durable_leak_audit_jobs.sql', import.meta.url), 'utf8');
@@ -63,6 +63,28 @@ test('failed retries record attempts without double-counting unpersisted evidenc
   assert.equal(progress.workerAttempts, 1);
 });
 
+test('finalization retries do not count an accepted detector page twice', () => {
+  const previous = {
+    handsScanned: 1347,
+    decisionsAnalyzed: 241,
+    batchesCompleted: 7,
+    workerAttempts: 7,
+    totalProcessingMs: 7000,
+    finalBatchAwaitingPersistence: true,
+  };
+  const retried = mergeAuditJobProgress(previous, {
+    success: true,
+    leaksDetected: 6,
+    clubArenaSync: { handsFound: 147, decisionsAnalyzed: 21, solverVerified: 21 },
+  }, 500, { countAcceptedBatch: false });
+  assert.equal(retried.handsScanned, 1347);
+  assert.equal(retried.decisionsAnalyzed, 241);
+  assert.equal(retried.batchesCompleted, 7);
+  assert.equal(retried.workerAttempts, 8);
+  assert.equal(retried.totalProcessingMs, 7500);
+  assert.equal(retried.complete, true);
+});
+
 test('public job projection never exposes cursors, leases or worker tokens', () => {
   const projected = publicAuditJob({
     id: 'job', status: 'running', stage: 'importing_hands', audit_cursor: 'private-cursor',
@@ -94,18 +116,48 @@ test('durable jobs are owner-private, atomically claimed and restartable', () =>
   assert.doesNotMatch(migration, /GRANT SELECT ON TABLE public\.pa_leak_audit_jobs TO authenticated/);
 });
 
-test('server workers self-chain after the response and reconcile final evidence', () => {
+test('production workers use the public origin instead of an SSO-protected deployment URL', () => {
+  const prior = {
+    nodeEnv: process.env.NODE_ENV,
+    publicBase: process.env.PA_PUBLIC_BASE_URL,
+    internalBase: process.env.PA_INTERNAL_BASE_URL,
+    vercelUrl: process.env.VERCEL_URL,
+  };
+  process.env.NODE_ENV = 'production';
+  delete process.env.PA_PUBLIC_BASE_URL;
+  process.env.PA_INTERNAL_BASE_URL = 'http://internal.invalid';
+  process.env.VERCEL_URL = 'protected-preview.vercel.app';
+  assert.equal(getAuditWorkerOrigin(), 'https://smarter.poker');
+  process.env.PA_PUBLIC_BASE_URL = 'https://audit.smarter.poker/';
+  assert.equal(getAuditWorkerOrigin(), 'https://audit.smarter.poker');
+  for (const [key, value] of Object.entries({
+    NODE_ENV: prior.nodeEnv,
+    PA_PUBLIC_BASE_URL: prior.publicBase,
+    PA_INTERNAL_BASE_URL: prior.internalBase,
+    VERCEL_URL: prior.vercelUrl,
+  })) {
+    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
+});
+
+test('server workers finish detector pages in-process and reconcile final evidence', () => {
   assert.match(worker, /import \{ after \} from 'next\/server'/);
   assert.match(worker, /after\(async \(\) =>/);
-  assert.match(worker, /kickAuditWorker\(saved, \{ origin \}\)/);
+  assert.match(worker, /while \(activeJob.*MAX_BATCHES_PER_INVOCATION/s);
+  assert.match(worker, /status: 'running'.*auditCursor: nextCursor/s);
+  assert.doesNotMatch(worker, /kickAuditWorker/);
   assert.match(worker, /reconcileAuditEvidence/);
   assert.match(worker, /MAX_TRANSIENT_FAILURES = 3/);
-  assert.doesNotMatch(worker, /MAX_BATCHES/);
+  assert.match(worker, /MAX_BATCHES_PER_INVOCATION = 50/);
+  assert.match(worker, /WORKER_BUDGET_MS = 260_000/);
+  assert.match(worker, /response\.status === 508/);
   assert.match(worker, /nextCursorFingerprint === job\.progress\?\.cursorFingerprint/);
   assert.match(worker, /durableWorkRecorded/);
   assert.match(worker, /audit_cursor_stalled/);
   assert.match(worker, /audit_persistence_incomplete/);
   assert.match(worker, /audit_reconciliation_failed/);
+  assert.match(worker, /finalBatchAwaitingPersistence/);
+  assert.match(worker, /countAcceptedBatch: !retryingFinalization/);
   assert.match(worker, /p_lease_seconds: 300/);
   assert.match(worker, /body\?\.code === 'invalid_audit_cursor'/);
   assert.match(worker, /invalidCursor \? null/);
@@ -131,4 +183,15 @@ test('internal detection is job-bound and the UI restores server checkpoints', (
   assert.match(page, /You Can Safely Leave This Page And Return Later/);
   assert.match(page, /Resume Saved Audit/);
   assert.match(page, /Reconciliation/);
+});
+
+test('optional evidence gaps stay visible without falsifying durable persistence', () => {
+  assert.match(detect, /const evidencePartial = !sourceCompleteness\.trainingSolver/);
+  const persistenceGate = detect.slice(
+    detect.indexOf('const partial = !resolutionsSynced'),
+    detect.indexOf('return res.status(200).json({', detect.indexOf('const partial = !resolutionsSynced')),
+  );
+  assert.doesNotMatch(persistenceGate, /training\?\.complete|handAudit\?\.complete|existingResult\.complete/);
+  assert.match(detect, /evidencePartial,/);
+  assert.match(page, /Historical Evidence Coverage Is Partial/);
 });

@@ -104,7 +104,7 @@ Explain:
                         fontSize: '10px',
                         color: 'rgba(255, 255, 255, 0.5)'
                     }}>
-                        Query GTO solutions for any spot
+                        Query GTO Solutions For Any Spot
                     </p>
                 </div>
                 {onClose && (
@@ -245,7 +245,7 @@ Explain:
             {(queryType === 'frequency' || queryType === 'sizing') && (
                 <div style={{ marginBottom: '12px' }}>
                     <label style={{ fontSize: '9px', color: 'rgba(255, 215, 0, 0.7)' }}>
-                        Board (optional for postflop)
+                        Board (Optional For Postflop)
                     </label>
                     <input
                         value={spot.board}
@@ -279,7 +279,7 @@ Explain:
                     lineHeight: 1.4
                 }}>
                     <strong style={{ color: '#FFD700' }}>Query: </strong>
-                    {spot.position} {spot.action} vs {spot.vsPosition} @ {spot.stack}
+                    {spot.position} {spot.action} Vs {spot.vsPosition} @ {spot.stack}
                     {spot.board && ` on ${spot.board}`}
                 </p>
             </div>
@@ -314,7 +314,7 @@ Explain:
                 color: 'rgba(255, 255, 255, 0.4)',
                 textAlign: 'center'
             }}>
-                Powered by Grok AI trained on PIO solver outputs
+                Powered By Grok AI Trained On PIO Solver Outputs
             </p>
         </div>
     );

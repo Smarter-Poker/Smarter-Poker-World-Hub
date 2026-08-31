@@ -54,8 +54,8 @@ export default function PodTours({
       )}
       {toursLoaded && filteredTours.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-          <p style={{ fontSize: 14, fontWeight: 600 }}>No tours found</p>
-          <p style={{ fontSize: 12 }}>Try adjusting your search criteria</p>
+          <p style={{ fontSize: 14, fontWeight: 600 }}>No Tours Found</p>
+          <p style={{ fontSize: 12 }}>Try Adjusting Your Search Criteria</p>
         </div>
       )}
     </div>

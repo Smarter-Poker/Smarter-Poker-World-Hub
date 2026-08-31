@@ -223,8 +223,8 @@ export default function PvPBattle({
                         <AlertTriangle size={28} />
                         <h3>Battle Unavailable</h3>
                         <p>
-                            No live opponent connection. This battle cannot start until the
-                            server is relaying your opponent&apos;s answers.
+                            No Live Opponent Connection. This Battle Cannot Start Until The
+                            Server Is Relaying Your Opponent&apos;S Answers.
                         </p>
                     </div>
                 </MetalFrame>
@@ -336,7 +336,7 @@ export default function PvPBattle({
                                 {roundResult === 'opponent' && (
                                     <>
                                         <X size={24} />
-                                        <span>{opponent.username} won this round</span>
+                                        <span>{opponent.username} Won This Round</span>
                                     </>
                                 )}
                                 {roundResult === 'tie' && (
