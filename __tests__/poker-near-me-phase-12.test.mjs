@@ -56,12 +56,14 @@ test('directory API and every SSR location family use the dedicated snapshot pro
 });
 
 test('discovery progressively hydrates, cancels safely, caches revisions, and reports partial live state', async () => {
-  const [page, activity, css] = await Promise.all([
+  const [page, controller, activity, css] = await Promise.all([
     source('pages/hub/poker-near-me/[pnmTab].js'),
+    source('src/components/poker-near-me/discoveryController.js'),
     source('src/lib/poker-near-me/activity.js'),
     source('src/styles/worlds/poker-near-me.css'),
   ]);
-  assert.match(page, /DIRECTORY_PAGE_SIZE = 160/);
+  assert.match(controller, /DIRECTORY_PAGE_SIZE = 160/);
+  assert.match(page, /DIRECTORY_PAGE_SIZE[\s\S]*discoveryController/);
   assert.match(page, /requestIdleCallback/);
   assert.match(page, /new AbortController\(\)/);
   assert.match(page, /controller\.abort\(\)/);

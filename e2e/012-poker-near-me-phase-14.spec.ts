@@ -96,9 +96,13 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     await expect(sharedMap).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
 
     for (let cycle = 0; cycle < 2; cycle += 1) {
-      await page.getByRole('button', { name: 'Search', exact: true }).click();
+      // The legacy inline panel is intentionally deep-link-only: visible lobby
+      // hotspots navigate to standalone routes. Close it through the real
+      // dialog control, then recreate it through its supported deep link so we
+      // exercise a complete Leaflet teardown/remount without clicking hidden UI.
+      await page.getByRole('button', { name: 'Back to grid' }).click();
       await expect(sharedMap).toHaveCount(0);
-      await page.getByRole('button', { name: 'Map', exact: true }).click();
+      await page.goto('/hub/poker-near-me/lobby?pod=mapview', { waitUntil: 'domcontentloaded' });
       await expect(sharedMap).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
     }
 

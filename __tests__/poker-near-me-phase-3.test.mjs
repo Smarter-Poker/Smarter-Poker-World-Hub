@@ -6,10 +6,12 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 
 test('dynamic discovery routes publish their own heading, title, description, and breadcrumb', () => {
   const page = read('pages/hub/poker-near-me/[pnmTab].js');
+  const controller = read('src/components/poker-near-me/discoveryController.js');
   for (const slug of ['venues', 'map', 'saved', 'live-games', 'tours', 'series', 'daily-tournaments', 'events-calendar', 'more', 'roadtrip', 'alerts']) {
-    assert.match(page, new RegExp(`['"]?${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]?\\s*:`));
+    assert.match(controller, new RegExp(`['"]?${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]?\\s*:`));
   }
-  assert.match(page, /function normalizeRouteSlug/);
+  assert.match(controller, /function normalizeRouteSlug/);
+  assert.match(page, /import \{[\s\S]*normalizeRouteSlug[\s\S]*from '.{0,80}discoveryController'/);
   assert.match(page, /const requestedCanonicalSlug = normalizeRouteSlug\(router\.query\.pnmTab\)/);
   assert.match(page, /title=\{routeMeta\.title\}/);
   assert.match(page, /description=\{routeMeta\.description\}/);
@@ -19,7 +21,8 @@ test('dynamic discovery routes publish their own heading, title, description, an
 
 test('primary discovery tabs implement roving keyboard focus and a labelled panel', () => {
   const page = read('pages/hub/poker-near-me/[pnmTab].js');
-  assert.match(page, /const PRIMARY_TABS = \[/);
+  const controller = read('src/components/poker-near-me/discoveryController.js');
+  assert.match(controller, /const PRIMARY_TABS = \[/);
   assert.match(page, /event\.key === 'ArrowRight'/);
   assert.match(page, /event\.key === 'ArrowLeft'/);
   assert.match(page, /event\.key === 'Home'/);
