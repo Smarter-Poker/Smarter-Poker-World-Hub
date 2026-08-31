@@ -33,5 +33,13 @@ Phase 5 hardens the existing #SmarterCasinoRealism Poker Near Me system across b
 
 ## Publication gate
 
-The implementation is eligible for merge only after the Vercel preview passes the dedicated desktop and mobile WebKit contract with the deployment's configured Supabase environment. Production publication then requires healthy deployment status, representative HTTP probes, live desktop/mobile browser journeys, visual inspection, and history restoration on the public origin.
+Repository policy intentionally skips Vercel previews for `agent/*` branches because those branches are squash-merged and preview builds otherwise block production. The authoritative cross-engine gate therefore runs against the first healthy production revision containing the merge. The narrow WebKit projects block the unrelated global push service worker, which deadlocks Playwright's headless WebKit process across the entire site; push/offline behavior remains owned by its dedicated suites. Production publication requires healthy deployment status, representative HTTP probes, live desktop/mobile browser journeys, visual inspection, and history restoration on the public origin.
 
+## Production evidence
+
+- PR #1141 squash-merged as `24cae9ed`; the current production main revision contains that merge.
+- Vercel deployment `dpl_neTxaecVeVMWQgijKmWY2YiJ2TJq` is Ready, targets production, cloned main revision `4961ccc`, and owns the `smarter.poker` alias.
+- The unified live Phase 17 matrix passed 14/14 applicable Chromium, mobile Chrome, desktop WebKit, and iPhone WebKit checks; the two forced-colors cases are intentionally skipped outside Chromium.
+- Production desktop 1440×1000 and mobile 390×844 audits each found one main landmark, the correct heading/selected route, zero horizontal overflow, and 44-pixel tab targets.
+- A live mobile Events → Map → browser Back journey restored `/daily-tournaments`, selected Events, and the assistive route announcement without a reload.
+- Visual inspection confirmed the black-first rendered environment, precision chrome framing, restrained blue energy, readable venue imagery, clean desktop composition, and two-column mobile card geometry remain intact.

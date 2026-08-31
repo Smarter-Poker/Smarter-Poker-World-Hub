@@ -52,12 +52,15 @@ export default defineConfig({
       // authenticated Chromium suite does not multiply in CI.
       name: 'pnm-webkit',
       testMatch: /015-poker-near-me-phase-17\.spec\.ts$/,
-      use: { ...devices['Desktop Safari'] },
+      // The application's global push worker can deadlock Playwright's headless
+      // WebKit process. Phase 17 owns page/history/accessibility behavior, not
+      // push delivery, so keep that unrelated worker outside this narrow gate.
+      use: { ...devices['Desktop Safari'], serviceWorkers: 'block' },
     },
     {
       name: 'pnm-mobile-webkit',
       testMatch: /015-poker-near-me-phase-17\.spec\.ts$/,
-      use: { ...devices['iPhone 13'] },
+      use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
     },
     {
       name: 'footer-chromium',

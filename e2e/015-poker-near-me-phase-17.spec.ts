@@ -37,8 +37,8 @@ async function activateDiscoveryTab(page: Page, name: RegExp, browserName: strin
 test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening', () => {
   test.setTimeout(150_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(() => {
       localStorage.setItem('pnm_lobby_tutorial_seen', '1');
       localStorage.setItem('pnm_location_prompt_dismissed', '1');
       localStorage.removeItem('sp-filters-poker-near-me');
@@ -88,8 +88,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(Number.parseFloat(motion.transitionDuration)).toBeLessThanOrEqual(0.00001);
   });
 
-  test('representative inherited route families stay semantic and overflow-free at 390x844', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test('representative inherited route families stay semantic and overflow-free at 390x844', async ({ context }) => {
     for (const route of [
       '/hub/poker-near-me/map',
       '/hub/poker-near-me/in/nv',
@@ -98,22 +97,32 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       '/hub/poker-series',
       '/hub/events-calendar',
     ]) {
-      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+      // Each URL is an independent route-family audit. A fresh document avoids
+      // carrying a discovery page's intentionally delayed URL synchronizer into
+      // Playwright's synthetic `page.goto()` for the next family.
+      const routePage = await context.newPage();
+      await routePage.setViewportSize({ width: 390, height: 844 });
+      const response = await routePage.goto(route, { waitUntil: 'domcontentloaded' });
       expect(response?.status(), route).toBe(200);
-      await expect(page.locator('main')).toHaveCount(1);
-      await expectNoOverflow(page, route);
+      expect(new URL(routePage.url()).pathname, route).toBe(route);
+      await expect(routePage.locator('main')).toHaveCount(1);
+      await expectNoOverflow(routePage, route);
+      await routePage.close();
     }
 
     // The full-screen 3D lobby can schedule a same-URL recovery reload while
     // WebKit is compiling the next page in development. Audit it last so that
     // teardown cannot interrupt the following route's navigation.
-    const lobbyResponse = await page.goto('/hub/poker-near-me/lobby', {
+    const lobbyPage = await context.newPage();
+    await lobbyPage.setViewportSize({ width: 390, height: 844 });
+    const lobbyResponse = await lobbyPage.goto('/hub/poker-near-me/lobby', {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });
     expect(lobbyResponse?.status()).toBe(200);
-    await expect(page.locator('main')).toHaveCount(1);
-    await expectNoOverflow(page, '/hub/poker-near-me/lobby');
+    await expect(lobbyPage.locator('main')).toHaveCount(1);
+    await expectNoOverflow(lobbyPage, '/hub/poker-near-me/lobby');
+    await lobbyPage.close();
   });
 
   test('forced colors preserve visible selected and focus states', async ({ page, browserName }) => {

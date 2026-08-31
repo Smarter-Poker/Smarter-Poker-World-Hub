@@ -1513,7 +1513,7 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Shared-family preservation | The lobby, 11 canonical discovery destinations, and 12 representative discovery/location/detail/event source families retain their existing APIs, data, maps, filters, forms, permissions, and templates. |
 | Regression gate | Phase 17 is included in both `test:pnm` and repository prebuild, with compiled desktop/mobile navigation, semantics, reduced-motion, forced-colors, and overflow journeys. |
 
-**Pre-publication verification:** 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, and the exact webpack production build (403 static pages) passed. Preview WebKit and production evidence are tracked in `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
+**Release state:** Complete. PR #1141 squash-merged as `24cae9ed`; production deployment `dpl_neTxaecVeVMWQgijKmWY2YiJ2TJq` contains the merge and owns `smarter.poker`. Verification passed 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, the exact webpack production build (403 static pages), and 14/14 applicable live Chromium/mobile Chrome/desktop WebKit/iPhone WebKit Phase 17 checks with two expected Chromium-only forced-colors skips. Desktop 1440×1000 and mobile 390×844 visual audits confirmed zero overflow, 44-pixel tabs, and working live Back/Forward restoration. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
 
 ---
 
