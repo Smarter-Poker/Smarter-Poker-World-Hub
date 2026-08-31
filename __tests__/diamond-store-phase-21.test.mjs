@@ -110,8 +110,11 @@ test('operator UI labels platform Diamond burns, legacy chips, partial data, and
   );
 });
 
-test('shopper storefront loading times out visibly and stale requests cannot overwrite retries', async () => {
-  const store = await read('pages/hub/diamond-store.js');
+test('shopper storefront resolves membership server-side and cannot remain stuck on a stale request', async () => {
+  const [store, api] = await Promise.all([
+    read('pages/hub/diamond-store.js'),
+    read('pages/api/club-arena/marketplace-items.js'),
+  ]);
   const loaderStart = store.indexOf('const loadClubShop = useCallback');
   const loaderEnd = store.indexOf('// ═══ Club Shop: Purchase handler', loaderStart);
   const loader = store.slice(loaderStart, loaderEnd);
@@ -119,8 +122,11 @@ test('shopper storefront loading times out visibly and stale requests cannot ove
   assert.match(store, /const clubShopLoadRequestRef = useRef\(0\)/);
   assert.match(store, /const clubShopLoadTimerRef = useRef\(null\)/);
   assert.match(loader, /const requestId = \+\+clubShopLoadRequestRef\.current/);
-  assert.match(loader, /error: membershipError/);
-  assert.match(loader, /if \(membershipError\) throw membershipError/);
+  assert.doesNotMatch(loader, /\.from\('club_members'\)/);
+  assert.match(loader, /const loadController = new AbortController\(\)/);
+  assert.match(loader, /loadController\.abort\(\)/);
+  assert.match(loader, /signal: loadController\.signal/);
+  assert.match(loader, /const targetClub = data\.clubId \|\| null/);
   assert.match(loader, /requestId !== clubShopLoadRequestRef\.current/);
   assert.match(loader, /setClubShopError\(null\)/);
   assert.match(loader, /const loadTimer = setTimeout/);
@@ -129,6 +135,13 @@ test('shopper storefront loading times out visibly and stale requests cannot ove
   assert.match(loader, /setClubShopError\('The Club Shop Timed Out\. Please Try Again\.'\)/);
   assert.match(loader, /clearTimeout\(loadTimer\)/);
   assert.match(store, /clearTimeout\(clubShopLoadTimerRef\.current\)/);
+
+  assert.match(api, /defaults to the user's first club membership/);
+  assert.match(api, /\.select\('club_id, role'\)/);
+  assert.match(api, /if \(requestedClubId\) membershipQuery = membershipQuery\.eq\('club_id', requestedClubId\)/);
+  assert.match(api, /if \(membershipError\) throw membershipError/);
+  assert.match(api, /clubId: null/);
+  assert.match(api, /clubId,/);
 });
 
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {
