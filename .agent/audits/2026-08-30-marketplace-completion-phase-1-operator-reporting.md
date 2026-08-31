@@ -118,3 +118,26 @@ refresh, failure recovery, and desktop/mobile rendering.
   and mobile Chrome.
 - No database migration, purchase settlement, Diamond burn, Stripe, inventory,
   entitlement, commission, or Printful behavior changed in this closure pass.
+
+### Post-Publish Browser-Matrix Closure
+
+The repository-wide browser matrix exposed two additional marketplace defects
+after the first Phase 1 merge. Both were fixed before Phase 1 was closed:
+
+- Merchandise pages could briefly assign the cart to `guest` before browser
+  authentication resolved, clearing an owner-bound persisted cart on reload.
+  Cart ownership now changes only after authentication reaches a terminal
+  signed-in or signed-out state.
+- The new exact-artwork global footer captured pointer input across its full
+  transparent frame and could block purchase controls. The decorative nav and
+  artwork stage now ignore pointer input; only the six explicit, 44-pixel-or-
+  larger navigation hit zones remain interactive.
+- Cart payment radios now expose stable `Pay With Card` and `Pay With Diamonds`
+  accessible names, and the 320-pixel browser fixture uses the current owner-
+  bound v2 persistence schema rather than the intentionally quarantined legacy
+  schema.
+
+The exact product-detail add-to-cart and reload journey passes with normal
+pointer input in desktop Chromium and mobile Chrome. The complete optimized
+build, all 120 marketplace contracts, the footer contract across all 14
+worlds, and all 402 static pages pass after these fixes.

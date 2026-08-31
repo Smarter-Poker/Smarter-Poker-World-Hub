@@ -292,6 +292,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
         translate: 'none',
         transition: 'none',
         animation: 'none',
+        pointerEvents: 'none',
       }}
     >
       <div
@@ -302,6 +303,10 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
           ...artworkStageStyle(artwork),
           position: 'relative',
           minWidth: 0,
+          // Only the six explicit destination hit zones should capture input.
+          // The transparent remainder of the full artwork frame otherwise
+          // blocks buttons and links near the bottom of marketplace pages.
+          pointerEvents: 'none',
         }}
       >
         <img
@@ -358,6 +363,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
                 textDecoration: 'none',
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
+                pointerEvents: 'auto',
               }}
             />
           );

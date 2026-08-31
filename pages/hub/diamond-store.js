@@ -460,6 +460,7 @@ export default function DiamondStorePage({ initialTab }) {
   }, [activeTab, router.isReady, router.query.plan]);
 
   const [user, setUser] = useState(null);
+  const [authResolved, setAuthResolved] = useState(false);
 
   // ═══ Club Shop State ═══
   const [clubShopItems, setClubShopItems] = useState([]);
@@ -712,24 +713,34 @@ export default function DiamondStorePage({ initialTab }) {
     let cancelled = false;
 
     (async () => {
-      // Supabase may still be hydrating its persisted session on a cold load.
-      // Wait for the supported readiness chain before deciding this is a
-      // signed-out storefront for the rest of the page session.
-      const authUser = getAuthUser() || (await ensureAuthReady(supabase));
-      if (cancelled) return;
-      if (authUser?.id) {
-        setUser(authUser);
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
-          .eq('id', authUser.id)
-          .maybeSingle();
+      try {
+        // Supabase may still be hydrating its persisted session on a cold load.
+        // Wait for the supported readiness chain before deciding this is a
+        // signed-out storefront for the rest of the page session. Until this
+        // resolves, MerchStore must not downgrade an owner-bound persisted cart
+        // to "guest" and erase it during the first client render.
+        const authUser = getAuthUser() || (await ensureAuthReady(supabase));
         if (cancelled) return;
-        setIsVip(!!profile?.is_vip);
-        setVipTier(profile?.vip_tier || null);
-        setVipExpiresAt(profile?.vip_expires_at || null);
-        if (profile?.diamonds != null) setDiamondBalance(Number(profile.diamonds));
-        if (profile?.diamond_multiplier) setDiamondMultiplier(Number(profile.diamond_multiplier));
+        if (authUser?.id) {
+          setUser(authUser);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          if (cancelled) return;
+          setIsVip(!!profile?.is_vip);
+          setVipTier(profile?.vip_tier || null);
+          setVipExpiresAt(profile?.vip_expires_at || null);
+          if (profile?.diamonds != null) setDiamondBalance(Number(profile.diamonds));
+          if (profile?.diamond_multiplier) setDiamondMultiplier(Number(profile.diamond_multiplier));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('[DiamondStore] Authentication readiness failed:', error?.message || error);
+        }
+      } finally {
+        if (!cancelled) setAuthResolved(true);
       }
     })();
     return () => {
@@ -2316,7 +2327,7 @@ export default function DiamondStorePage({ initialTab }) {
               {/* ═══════════════════════════════════════════════════════════════════ */}
               {activeTab === 'merch' && (
                 <section className={shellStyles.merchSurface} aria-label="Official Merch Catalog">
-                  <MerchStore user={user} />
+                  <MerchStore user={user} authResolved={authResolved} />
                 </section>
               )}
 
