@@ -421,7 +421,8 @@ export function useSandboxAnalysis() {
           if (response.status >= 502 && response.status <= 504) {
             throw new Error('SERVER_RELOADING');
           }
-          return { success: false, error: data.error || `Server error (${response.status})` };
+          const validationMessage = Array.isArray(data.issues) ? data.issues[0]?.message : null;
+          return { ...data, success: false, error: validationMessage || data.error || `Server error (${response.status})` };
         }
 
         return data;
@@ -476,6 +477,16 @@ export function useSandboxAnalysis() {
           source: data.source,
           matchTier: data.matchTier,
           confidence: data.confidence,
+          truthLevel: data.truthLevel,
+          contextVerified: data.contextVerified === true,
+          contextMismatches: data.contextMismatches || [],
+          canonicalQuestionId: data.canonicalQuestionId || null,
+          decisionFingerprint: data.decisionFingerprint || null,
+          nodeLockApplied: data.nodeLockApplied === true,
+          nodeLocks: data.nodeLocks || [],
+          nodeLockModelVersion: data.nodeLockModelVersion || null,
+          baselineEv: data.baselineEv || null,
+          baselineActions: data.baselineActions || null,
           street: data.street,
           context: data.context,
           // Caller intent belongs to this exact response. Keeping it on the

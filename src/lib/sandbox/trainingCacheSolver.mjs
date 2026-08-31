@@ -82,6 +82,84 @@ function facesBetState(question) {
   return null;
 }
 
+function comparableActions(actions) {
+  if (!Array.isArray(actions)) return null;
+  return actions.map(action => [
+    String(action?.street || '').toLowerCase(),
+    String(action?.position || '').toUpperCase(),
+    String(action?.action || action?.id || '').toLowerCase(),
+  ]);
+}
+
+function sameNumber(left, right, tolerance = 0.001) {
+  const a = finite(left);
+  const b = finite(right);
+  return a !== null && b !== null && Math.abs(a - b) <= tolerance;
+}
+
+/**
+ * A matching hand and board proves only that the cached matrix is relevant.
+ * Solver verification requires every decision-defining field to be present and
+ * equal. Missing cache metadata downgrades to an approximation; it never
+ * inherits trust from a coincidental board match.
+ */
+export function assessDecisionContext(question, requested) {
+  if (!requested || typeof requested !== 'object') {
+    return { verified: false, mismatches: ['missing_requested_context'] };
+  }
+  const scenario = question?.scenario || {};
+  const villain = requested.villains?.[0] || {};
+  const questionActions = comparableActions(scenario.actionHistory);
+  const requestedActions = comparableActions(requested.actionHistory) || [];
+  const mismatches = [];
+
+  const requireString = (value, expected, missingCode, mismatchCode, transform = value2 => String(value2)) => {
+    if (value == null || value === '') mismatches.push(missingCode);
+    else if (transform(value) !== transform(expected)) mismatches.push(mismatchCode);
+  };
+
+  requireString(scenario.gameType ?? question.game_type, requested.gameType, 'missing_game_type', 'game_type_mismatch', value => String(value || '').toLowerCase());
+  requireString(scenario.villainPosition, villain.position, 'missing_villain_position', 'villain_position_mismatch', value => String(value || '').toUpperCase());
+  if (finite(scenario.stackDepth ?? scenario.effectiveStack) === null) mismatches.push('missing_hero_stack');
+  else if (!sameNumber(scenario.stackDepth ?? scenario.effectiveStack, requested.heroStack)) mismatches.push('hero_stack_mismatch');
+  if (finite(scenario.villainStack) === null) mismatches.push('missing_villain_stack');
+  else if (!sameNumber(scenario.villainStack, villain.stack)) mismatches.push('villain_stack_mismatch');
+  if (finite(scenario.potSize ?? scenario.pot) === null) mismatches.push('missing_pot_size');
+  else if (!sameNumber(scenario.potSize ?? scenario.pot, requested.potSize)) mismatches.push('pot_size_mismatch');
+  if (finite(scenario.numberOfOpponents ?? scenario.numOpponents) === null) mismatches.push('missing_opponent_count');
+  else if (!sameNumber(scenario.numberOfOpponents ?? scenario.numOpponents, requested.villains?.length)) mismatches.push('opponent_count_mismatch');
+
+  if ((requested.villains || []).length > 1) {
+    const cachedVillains = Array.isArray(scenario.villains) ? scenario.villains : null;
+    if (!cachedVillains) mismatches.push('missing_multiway_context');
+    else {
+      const compactVillain = seat => [
+        String(seat?.position || '').toUpperCase(),
+        finite(seat?.stack),
+        String(seat?.range || '').replace(/\s+/g, '').toUpperCase(),
+      ];
+      if (JSON.stringify(cachedVillains.map(compactVillain).sort()) !== JSON.stringify(requested.villains.map(compactVillain).sort())) {
+        mismatches.push('multiway_context_mismatch');
+      }
+    }
+  }
+
+  if (questionActions === null) mismatches.push('missing_action_history');
+  else if (JSON.stringify(questionActions) !== JSON.stringify(requestedActions)) mismatches.push('action_history_mismatch');
+
+  if (requested.villainRange) {
+    requireString(scenario.villainRange, requested.villainRange, 'missing_villain_range', 'villain_range_mismatch', value => String(value || '').replace(/\s+/g, '').toUpperCase());
+  }
+  if (requested.gameType !== 'cash' && Number(requested.bubbleFactor || 1) !== 1) {
+    if (finite(scenario.bubbleFactor) === null) mismatches.push('missing_bubble_factor');
+    else if (!sameNumber(scenario.bubbleFactor, requested.bubbleFactor)) mismatches.push('bubble_factor_mismatch');
+  }
+  if ((requested.villains || []).some(seat => seat?.nodeLock && seat.nodeLock !== 'None')) mismatches.push('node_lock_requires_resolve');
+  if (requested.exploitMode && requested.exploitMode !== 'gto') mismatches.push('exploit_mode_requires_resolve');
+
+  return { verified: mismatches.length === 0, mismatches };
+}
+
 /**
  * Deterministically choose the closest compatible cached question. A different
  * hero hand is never allowed: a solver range for another hand is not evidence
@@ -115,7 +193,15 @@ export function chooseTrainingCacheMatch(rows, context = {}) {
 
     const stack = finite(scenario.stackDepth ?? scenario.effectiveStack);
     const stackDelta = wantedStack !== null && stack !== null ? Math.abs(wantedStack - stack) : 999;
-    list.push({ row, question, matchTier, stackDelta });
+    const contextAssessment = assessDecisionContext(question, context.decisionContext);
+    list.push({
+      row,
+      question,
+      matchTier,
+      stackDelta,
+      contextVerified: matchTier === 1 && contextAssessment.verified,
+      contextMismatches: contextAssessment.mismatches,
+    });
     return list;
   }, []);
 

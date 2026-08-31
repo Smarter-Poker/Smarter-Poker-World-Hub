@@ -2458,6 +2458,12 @@ export default function VirtualSandbox() {
 
   // Close the node-lock EV comparison once a fresh solve lands.
   useEffect(() => {
+    if (results?.nodeLockApplied) {
+      setLockEvPreview(prev => (prev
+        ? { ...prev, after: null, unpriced: true }
+        : { before: null, after: null, unpriced: true }));
+      return;
+    }
     const evNow = Number(results?.ev?.hero);
     if (!Number.isFinite(evNow)) return;
     setLockEvPreview(prev => (prev && prev.after == null ? { ...prev, after: evNow } : prev));
@@ -2822,11 +2828,13 @@ export default function VirtualSandbox() {
       ? { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'Forced preview' }
       : displayResults.offline
       ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'Offline estimate' }
-      : displayResults.canonicalQuestionId
-        ? { bg: T.successSoft, border: T.accent, text: T.accent, label: 'Training Solver Synced' }
-      : displayResults.matchTier <= 2 ? { bg: T.successSoft, border: T.success, text: T.success, label: 'PIO Verified' }
-        : displayResults.matchTier === 3 ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'PIO Approximated' }
-          : { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'AI Analysis' }
+      : displayResults.truthLevel === 'solver_verified'
+        ? { bg: T.successSoft, border: T.success, text: T.success, label: 'Solver Verified' }
+      : displayResults.truthLevel === 'solver_approx'
+        ? { bg: T.warnSoft, border: T.warn, text: T.warn, label: 'Solver Approximation' }
+      : displayResults.truthLevel === 'model_approx'
+        ? { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'Node-Lock Model' }
+        : { bg: T.purpleSoft, border: T.purple, text: T.purple, label: 'AI Guidance' }
   ) : null;
 
   const anyModalOpen = showDeck || showCoachPicker || showSaveHand || showShareScenario || showGodMode
@@ -3863,7 +3871,9 @@ export default function VirtualSandbox() {
                 )}
 
                 <div style={{ ...cardCompact, background: T.surface2 }}>
-                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>GTO Frequencies</h4>
+                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>
+                    {displayResults.nodeLockApplied ? 'Modeled Exploit Frequencies' : 'Solver Frequencies'}
+                  </h4>
                   {displayResults.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
                 </div>
 
@@ -3901,7 +3911,7 @@ export default function VirtualSandbox() {
                     const data = await analyzeWithoutCoach(buildAnalyzePayload());
                     if (data?.success) {
                       playAnalysisDing();
-                      toast.success('Re-solved with your node locks');
+                      toast.success(data.nodeLockApplied ? 'Modeled with your node locks' : 'Analysis refreshed');
                     } else if (!data?.superseded) {
                       toast.error('Could not re-run the analysis');
                     }

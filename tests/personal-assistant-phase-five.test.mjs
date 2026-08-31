@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
+// Phase 1/8 analysis-correctness contract. Keeping this import on an existing
+// leak-engine entry point makes the new adversarial checks part of every build.
+import './personal-assistant-analysis-contract.test.mjs';
+
 import { sealDrillBatch, openDrillBatch, gradeDrillAnswer, gradeDrillRows }
   from '../src/lib/personal-assistant/drillTelemetry.js';
 import { lockedDrillResult } from '../src/lib/personal-assistant/lockedDrillResult.js';
