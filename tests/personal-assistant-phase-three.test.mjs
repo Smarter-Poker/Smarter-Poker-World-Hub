@@ -7,6 +7,7 @@ import {
   gradeReview,
   initialReview,
   leakToDrill,
+  leakToTrainingGame,
 } from '../src/lib/sandbox/leakReview.js';
 
 test('review schema v3 preserves an operation id and rejects duplicate grading', () => {
@@ -54,6 +55,25 @@ test('solver leak drill handoff preserves its exact Training Arena game', () => 
   assert.equal(spins.game, 'spins-003');
 });
 
+test('training handoff launches only a real canonical library game', () => {
+  const catalog = ['cash-001', 'cash-002', 'mtt-001'];
+  assert.equal(leakToTrainingGame({
+    sourceSystem: 'solver_engine',
+    recommendedDrill: 'cash_002',
+    leakCategory: 'flop',
+  }, catalog), 'cash-002');
+  assert.equal(leakToTrainingGame({
+    sourceSystem: 'live_play',
+    recommendedDrill: 'cash-002',
+    leakCategory: 'flop',
+  }, catalog), null);
+  assert.equal(leakToTrainingGame({
+    sourceSystem: 'solver_engine',
+    recommendedDrill: 'retired-game',
+    leakCategory: 'flop',
+  }, catalog), null);
+});
+
 test('review and drill routes carry idempotency and exact-game contracts', () => {
   const reviewApi = fs.readFileSync(new URL('../pages/api/assistant/leaks/review.js', import.meta.url), 'utf8');
   const drillApi = fs.readFileSync(new URL('../pages/api/sandbox/_routes/custom-drill.js', import.meta.url), 'utf8');
@@ -71,6 +91,23 @@ test('review and drill routes carry idempotency and exact-game contracts', () =>
   assert.match(drillUi, /pa-leak-review-v2/);
   assert.match(leaksUi, /pa-leak-review-v2/);
   assert.match(drillUi, /LEGACY_REVIEW_STORE_KEYS\.forEach\(key => safeStorage\.remove\(key\)\)/);
+});
+
+test('unified leak-to-training UI consumes launch links and waits for the review receipt', () => {
+  const trainingUi = fs.readFileSync(new URL('../pages/hub/training.js', import.meta.url), 'utf8');
+  const leaksUi = fs.readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
+  const drillUi = fs.readFileSync(new URL('../src/components/sandbox/QuickSpotDrill.jsx', import.meta.url), 'utf8');
+
+  assert.match(trainingUi, /router\.query\.autoLaunch/);
+  assert.match(trainingUi, /startDrill\(game\)/);
+  assert.match(leaksUi, /leakToTrainingGame\(target, TRAINING_GAME_IDS\)/);
+  assert.match(leaksUi, /q\.autoLaunch = exactGame/);
+  assert.match(leaksUi, /onReviewComplete=\{handleReviewComplete\}/);
+  assert.match(drillUi, /onReviewComplete\?\.\(completion\)/);
+  assert.match(drillUi, /review\?\.status === 'saving'/);
+  assert.match(drillUi, /setTimeout\(\(\) => reviewController\.abort\(\), 15000\)/);
+  assert.match(drillUi, /hideClose=\{reviewSaving\}/);
+  assert.match(leaksUi, /Fresh Club Arena Evidence Must Still Confirm The Leak Is Fixed/);
 });
 
 test('phase-three migration atomically replaces audits and commits review operations', () => {

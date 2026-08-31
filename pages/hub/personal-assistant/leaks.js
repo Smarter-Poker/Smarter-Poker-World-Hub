@@ -46,12 +46,15 @@ import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
 import {
-  dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
+  dueQueueAll, reviewStats, leakToDrill, leakToTrainingGame, migrateRecord, resolutionProgress,
   MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
   MAX_INTERVAL_DAYS as REVIEW_MAX_INTERVAL_DAYS,
   RETIRE_AFTER_STRONG as REVIEW_RETIRE_AFTER_STRONG,
 } from '../../../src/lib/sandbox/leakReview';
+
+const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CODE-SPLIT ANALYTICS (Insights tab only · keeps them off the critical path)
@@ -1218,7 +1221,7 @@ function ResolutionProgressSection({ record }) {
 }
 
 function LeakDetail({
-  leak, onPracticeSandbox, onPracticeExample, onTrainDrills,
+  leak, onPracticeSandbox, onPracticeExample, onStartReview, onTrainDrills,
   onMarkResolved, onReopen, isResolving, reviewRecord,
 }) {
   const isDemoLeak = isDemoLeakId(leak?.id);
@@ -1243,6 +1246,7 @@ function LeakDetail({
   if (!leak) return null;
 
   const drill = leak.recommendedDrill || null;
+  const exactTrainingGame = leakToTrainingGame(leak, TRAINING_GAME_IDS);
   const situation = leak.situationClass || 'these';
   const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
@@ -1252,8 +1256,10 @@ function LeakDetail({
     ? `Practice ${situation} spots in a controlled environment. The sandbox opens on the "${drill}" drill targeting this exact leak.`
     : `Practice ${situation} spots in a controlled environment with coach mode focused on this leak.`;
   const trainingCopy = drill
-    ? `Focus on fixing "${leak.title}" with targeted exercises. The "${drill}" drill emphasises the key decisions behind ${situation} spots.`
-    : `Open the Training Arena filtered to ${situation} spots so you can drill the decision repeatedly.`;
+    ? exactTrainingGame
+      ? `Open The Exact ${exactTrainingGame} Training Game That Produced This Solver Signal.`
+      : `Browse Training Games Related To ${situation} Without Pretending An Exact Game Match Exists.`
+    : `Browse Training Games Related To ${situation} Without Pretending An Exact Game Match Exists.`;
 
   const resolvedWhen = relativeDate(leak.resolvedAt);
   const trackingSince = relativeDate(leak.firstDetected);
@@ -1381,6 +1387,20 @@ function LeakDetail({
       <section aria-label="Suggested fixes">
         <h3 style={styles.detailSectionTitle}>Suggested Fixes</h3>
         <div style={styles.fixGrid}>
+          <div style={styles.fixCard}>
+            <div style={styles.fixHead}>
+              <Target size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.success }} />
+              <h4 style={styles.fixTitle}>Corrective Review</h4>
+              {exactTrainingGame && <span style={pill('success')}>Exact Training Game</span>}
+            </div>
+            <p style={styles.fixText}>
+              Run A Focused Batch. Eligible Solver Leaks Lock Every Answer On The Server; Other Signals Stay Clearly Practice-Only.
+            </p>
+            <button type="button" className="pa-btn" style={btn('success', { block: true })} onClick={() => onStartReview?.(leak)}>
+              Start Corrective Review
+            </button>
+          </div>
+
           <div style={{ ...styles.fixCard, ...(autoGuidance ? styles.fixCardRecommended : null) }}>
             <div style={styles.fixHead}>
               <Target size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.accent }} />
@@ -1405,7 +1425,7 @@ function LeakDetail({
               style={{ ...btn('secondary', { block: true }), color: T.warn, borderColor: 'rgba(255,198,109,0.45)' }}
               onClick={() => onTrainDrills(leak)}
             >
-              {drill ? 'Train with Focused Drills' : 'Open Training Arena'}
+              {exactTrainingGame ? 'Open Exact Training Game' : 'Browse Related Training'}
             </button>
           </div>
         </div>
@@ -1895,10 +1915,14 @@ export default function LeakFinderPage() {
   const handleTrainDrills = useCallback((leak) => {
     if (!guardAction()) return;
     const target = leak || selectedLeak;
-    const q = { from: 'leaks' };
-    const focus = target?.recommendedDrill || target?.leakType || slugFromTitle(target?.title);
-    if (focus) q.focus = focus;
+    if (!target) return;
+    const exactGame = leakToTrainingGame(target, TRAINING_GAME_IDS);
+    const q = { from: 'leak-finder' };
+    const focus = exactGame || target?.recommendedDrill || target?.leakType || slugFromTitle(target?.title);
+    if (exactGame) q.autoLaunch = exactGame;
+    else if (focus) q.focus = focus;
     if (target?.leakCategory) q.category = target.leakCategory;
+    if (target?.id != null) q.leak = String(target.id);
     router.push({ pathname: '/hub/training', query: q });
   }, [guardAction, router, selectedLeak]);
 
@@ -1938,6 +1962,7 @@ export default function LeakFinderPage() {
   const [reviewLoaded, setReviewLoaded] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   const [reviewSession, setReviewSession] = useState(null);
+  const [reviewReceipt, setReviewReceipt] = useState(null);
 
   // A pinned clock: "due" must not be recomputed on every keystroke, but it
   // must not go stale on a phone left open either.
@@ -2082,19 +2107,29 @@ export default function LeakFinderPage() {
   const handleStartReview = useCallback((entry) => {
     if (!guardAction()) return;
     const target = entry || reviewQueue[0];
-    if (!target || !target.leak) return;
-    const params = target.drill || leakToDrill(target.leak);
+    const targetLeak = target?.leak || (target?.id != null ? target : null);
+    if (!targetLeak) return;
+    const params = target.drill || leakToDrill(targetLeak);
     if (!params) {
       // No street can be inferred, so a drill would serve unrelated spots.
       // Fall back to the existing sandbox handoff instead of a dead end.
-      handlePracticeSandbox(target.leak);
+      handlePracticeSandbox(targetLeak);
       return;
     }
+    setReviewReceipt(null);
     setReviewSession({
-      leakId: String(target.leakId),
+      leakId: String(target.leakId ?? targetLeak.id),
       params,
     });
   }, [guardAction, reviewQueue, handlePracticeSandbox]);
+
+  const handleReviewComplete = useCallback((receipt) => {
+    if (!receipt || receipt.status !== 'done') return;
+    setReviewReceipt(receipt);
+    toast.success(receipt.verified
+      ? 'Verified Corrective Review Saved'
+      : 'Corrective Review Completed');
+  }, []);
 
   const closeReviewSession = useCallback(() => {
     setReviewSession(null);
@@ -2368,6 +2403,38 @@ export default function LeakFinderPage() {
                   onOpenLeak={(l) => l && setSelectedLeakId(l.id)}
                 />
               </LeakErrorBoundary>
+
+              {reviewReceipt && (
+                <section
+                  role="status"
+                  aria-live="polite"
+                  style={{ ...card, marginBottom: S.md, background: T.successSoft, borderColor: 'rgba(77,224,165,0.45)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: S.sm }}>
+                    <CheckCircle2 size={20} strokeWidth={2} color={T.success} aria-hidden="true" style={{ marginTop: 2, flex: '0 0 auto' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <strong style={{ display: 'block', color: T.success, fontSize: F.body }}>
+                        {reviewReceipt.verified ? 'Verified Corrective Review Complete' : 'Corrective Review Complete'}
+                      </strong>
+                      <span style={{ display: 'block', color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, marginTop: S.xs }}>
+                        {reviewReceipt.correct} Of {reviewReceipt.total} Correct. The Next Review Is Scheduled In {Math.max(0, Math.round(num(reviewReceipt.intervalDays)))} Day{Math.round(num(reviewReceipt.intervalDays)) === 1 ? '' : 's'}.
+                        {reviewReceipt.remediationMastered
+                          ? ' Corrective Mastery Is Recorded; Fresh Club Arena Evidence Must Still Confirm The Leak Is Fixed.'
+                          : ''}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      aria-label="Dismiss Corrective Review Receipt"
+                      onClick={() => setReviewReceipt(null)}
+                      style={iconBtn({ color: T.textMuted })}
+                    >
+                      <X size={18} strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  </div>
+                </section>
+              )}
 
               {/* Detection */}
               <div className={toolStyles.scanDeck}>
@@ -2728,6 +2795,7 @@ export default function LeakFinderPage() {
             <QuickSpotDrill
               customParams={reviewSession.params}
               reviewLeakId={reviewSession.leakId}
+              onReviewComplete={handleReviewComplete}
               onClose={closeReviewSession}
             />
           </LeakErrorBoundary>
@@ -2759,6 +2827,7 @@ export default function LeakFinderPage() {
                 leak={selectedLeak}
                 onPracticeSandbox={handlePracticeSandbox}
                 onPracticeExample={handlePracticeExample}
+                onStartReview={handleStartReview}
                 onTrainDrills={handleTrainDrills}
                 onMarkResolved={handleMarkResolved}
                 onReopen={handleReopen}
