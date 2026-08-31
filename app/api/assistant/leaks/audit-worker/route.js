@@ -95,11 +95,18 @@ async function processClaimedJob(job, workerToken, origin) {
 
   progress = { ...progress, consecutiveFailures: 0 };
   const nextCursor = body?.clubArenaSync?.auditCursor || null;
+  const nextCursorFingerprint = body?.clubArenaSync?.cursorFingerprint || null;
   if (body?.auditInProgress === true && nextCursor) {
     // Every invocation is already bounded to one database/solver page, so the
     // job can safely cover accounts of any size. Stop only if the continuation
     // fails to advance; a fixed total-page ceiling strands large accounts.
-    if (nextCursor === job.audit_cursor) {
+    const cursorDidNotAdvance = nextCursorFingerprint
+      ? nextCursorFingerprint === job.progress?.cursorFingerprint
+      : nextCursor === job.audit_cursor;
+    const durableWorkRecorded = Number(body?.clubArenaSync?.handsAudited) > 0
+      || Number(body?.clubArenaSync?.decisionsAnalyzed) > 0
+      || Number(body?.clubArenaSync?.obsoleteDecisionsRemoved) > 0;
+    if (cursorDidNotAdvance && !durableWorkRecorded) {
       await checkpoint(job.id, workerToken, {
         status: 'failed', stage: 'failed', auditCursor: null, progress,
         errorCode: 'audit_cursor_stalled',
@@ -108,13 +115,31 @@ async function processClaimedJob(job, workerToken, origin) {
       return;
     }
     const saved = await checkpoint(job.id, workerToken, {
-      status: 'queued', stage: 'importing_hands', auditCursor: nextCursor, progress,
+      status: 'queued', stage: 'importing_hands', auditCursor: nextCursor,
+      progress: { ...progress, cursorFingerprint: nextCursorFingerprint || undefined },
     });
     if (saved) await kickAuditWorker(saved, { origin });
     return;
   }
 
-  progress = { ...progress, complete: true };
+  const sync = body?.sync;
+  const persistenceComplete = body?.persisted === true
+    && body?.partial !== true
+    && (!sync || (sync.handExamples?.persisted !== false
+      && sync.suggestionsPersisted !== false
+      && sync.resolutionsPersisted !== false
+      && sync.statsPersisted !== false));
+  if (!persistenceComplete) {
+    await checkpoint(job.id, workerToken, {
+      status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
+      progress: { ...progress, complete: false },
+      errorCode: 'audit_persistence_incomplete',
+      errorMessage: 'The audit evidence was analyzed, but every result could not be durably reconciled. Restarting will retry the saved checkpoint.',
+    });
+    return;
+  }
+
+  progress = { ...progress, complete: true, cursorFingerprint: null };
   const reconciliation = await reconcileAuditEvidence(db(), job.user_id, progress);
   const result = {
     ...body,
@@ -128,6 +153,15 @@ async function processClaimedJob(job, workerToken, origin) {
     },
     reconciliation,
   };
+  if (reconciliation?.consistent !== true) {
+    await checkpoint(job.id, workerToken, {
+      status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
+      progress: { ...progress, complete: false }, reconciliation,
+      errorCode: 'audit_reconciliation_failed',
+      errorMessage: 'The deterministic audit finished, but its stored evidence did not reconcile. Restarting will verify the saved checkpoint again.',
+    });
+    return;
+  }
   const saved = await checkpoint(job.id, workerToken, {
     status: 'completed', stage: 'completed', auditCursor: null, progress, result, reconciliation,
   });

@@ -24,7 +24,7 @@ const ICONS = {
     Snowflake, Target, Zap, Fish, Phone, Flame, Scale,
 };
 
-// Display order — tightest to loosest, GTO baseline last.
+// Display order · tightest to loosest, GTO baseline last.
 const ORDER = ['nit', 'tag', 'lag', 'calling_station', 'fish', 'maniac', 'gto_neutral'];
 
 /** Tiny 13x13 preview so the user sees the shape of what they are applying. */
@@ -60,7 +60,7 @@ function RangeMiniMap({ range }) {
 export default function VillainPresetPicker({
     onSelectPreset,
     onClose,
-    /** Optional — enables the seat selector for multi-villain setups. */
+    /** Optional · enables the seat selector for multi-villain setups. */
     villains = [],
     initialVillainIdx = 0,
 }) {

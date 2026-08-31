@@ -101,8 +101,11 @@ test('server workers self-chain after the response and reconcile final evidence'
   assert.match(worker, /reconcileAuditEvidence/);
   assert.match(worker, /MAX_TRANSIENT_FAILURES = 3/);
   assert.doesNotMatch(worker, /MAX_BATCHES/);
-  assert.match(worker, /nextCursor === job\.audit_cursor/);
+  assert.match(worker, /nextCursorFingerprint === job\.progress\?\.cursorFingerprint/);
+  assert.match(worker, /durableWorkRecorded/);
   assert.match(worker, /audit_cursor_stalled/);
+  assert.match(worker, /audit_persistence_incomplete/);
+  assert.match(worker, /audit_reconciliation_failed/);
   assert.match(worker, /p_lease_seconds: 300/);
   assert.match(worker, /body\?\.code === 'invalid_audit_cursor'/);
   assert.match(worker, /invalidCursor \? null/);
@@ -115,6 +118,8 @@ test('internal detection is job-bound and the UI restores server checkpoints', (
   assert.match(detect, /openAuditJobToken\(req\.headers\['x-pa-audit-worker'\], 'detect'\)/);
   assert.match(detect, /pa_leak_audit_jobs.*status.*running/s);
   assert.match(detect, /7 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(detect, /cursorFingerprint = fingerprintAuditCursor/);
+  assert.match(detect, /club_arena_audit_partial/);
   assert.match(middleware, /pathname === '\/api\/assistant\/leaks\/audit-worker'/);
   assert.match(middleware, /pathname === '\/api\/assistant\/leaks\/detect'/);
   assert.match(middleware, /auditWorkerHeader\.length > 20/);

@@ -45,13 +45,13 @@ function toWeekly(data) {
 }
 
 /**
- * Accuracy trend — bar HEIGHT is accuracy (the thing the label promises);
+ * Accuracy trend · bar HEIGHT is accuracy (the thing the label promises);
  * sample size is carried by opacity and revealed on tap. Tapping a bar pins a
  * readout row underneath, so nothing is hover-only.
  *
  * MOBILE: bars are full 44px tap targets in a deliberate horizontal snap
- * carousel — they used to be 14px wide with a 3px gap, effectively unhittable
- * on a phone — and a Weekly view collapses 30 days into ~5 on-screen bars.
+ * carousel · they used to be 14px wide with a 3px gap, effectively unhittable
+ * on a phone · and a Weekly view collapses 30 days into ~5 on-screen bars.
  */
 function AccuracyTrend({ data, avg }) {
     const [activeIdx, setActiveIdx] = useState(null);
@@ -166,7 +166,7 @@ function AccuracyTrend({ data, avg }) {
             }}>
                 {active ? (
                     <span style={{ color: T.text, fontWeight: 700 }}>
-                        {active.date} — {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
+                        {active.date} · {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
                     </span>
                 ) : (
                     <>
@@ -209,7 +209,7 @@ export default function SessionAnalytics({ userId }) {
         return () => { mountedRef.current = false; };
     }, []);
 
-    // A null userId is the signed-out case (leaks.js resolves it async) — it
+    // A null userId is the signed-out case (leaks.js resolves it async) · it
     // must resolve the loading state, not leave a skeleton up forever.
     useEffect(() => { if (!userId) setLoading(false); }, [userId]);
 
@@ -312,7 +312,7 @@ export default function SessionAnalytics({ userId }) {
                 compact
                 icon={<Target size={22} strokeWidth={2} />}
                 title="No coached hands yet"
-                body="Turn on Coach Mode in the Sandbox and play a few spots — your accuracy, positions and streets show up here."
+                body="Turn on Coach Mode in the Sandbox and play a few spots · your accuracy, positions and streets show up here."
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => practice({})}>
                         Open the Sandbox
@@ -326,12 +326,12 @@ export default function SessionAnalytics({ userId }) {
                 <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                     <StatBox value={stats.totalHands} label="Total hands" color={T.accent} />
                     <StatBox
-                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : '—'}
+                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : 'Not Available'}
                         label="GTO accuracy"
                         color={pctColor(stats.accuracyPct)}
                     />
                     <StatBox
-                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : '—'}
+                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : 'Not Available'}
                         label="Avg leak EV"
                         color={stats.avgLeakEv != null && Number(stats.avgLeakEv) < 0 ? T.danger : T.textMuted}
                     />
@@ -343,7 +343,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.positionStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy — tap to drill</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy · tap to drill</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.positionStats.map(p => {
                                 const isWeak = p.position === stats.weakPosition;

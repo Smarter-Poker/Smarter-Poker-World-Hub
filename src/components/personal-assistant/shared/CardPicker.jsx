@@ -1,5 +1,5 @@
 /**
- * CardPicker — Reusable card selector component
+ * CardPicker · Reusable card selector component
  * Used in Virtual Sandbox for hero hand and board selection
  */
 

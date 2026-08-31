@@ -11,7 +11,7 @@
  * state is computed SERVER-SIDE (src/lib/sandbox/leakReview) so a client cannot
  * post an arbitrary score, due date, leak closure, or achievement claim.
  *
- * DEGRADATION CONTRACT — `leak_review_state` does not exist on first deploy:
+ * DEGRADATION CONTRACT · `leak_review_state` does not exist on first deploy:
  *   GET  -> 200 { success: true, records: [], persisted: false }
  *   POST -> 200 { success: true, persisted: false, state: <computed> }
  * A missing table must never 500 and must never block a drill from completing.
@@ -130,7 +130,7 @@ function resolveSchemaVersion() {
 
 /**
  * Last-resort SM-2-flavoured scheduler. Only runs if the shared module is
- * unavailable or exports nothing callable — the endpoint still has to answer.
+ * unavailable or exports nothing callable · the endpoint still has to answer.
  */
 function fallbackComputeNextReview(prev, outcome, now) {
     const total = Math.max(1, Number(outcome?.total) || 1);
@@ -215,7 +215,7 @@ function normalizeState(candidate, prev, now) {
         const parsed = new Date(dueRaw);
         if (!Number.isNaN(parsed.getTime())) {
             // Never accept a due date further out than the interval cap allows,
-            // and never one in the past — both would be a free skip.
+            // and never one in the past · both would be a free skip.
             const maxDue = now.getTime() + (INTERVAL_MAX_DAYS + 1) * DAY_MS;
             dueAt = new Date(Math.min(Math.max(parsed.getTime(), now.getTime()), maxDue)).toISOString();
         }
@@ -257,7 +257,7 @@ function mapRow(row, nowMs) {
     // Each key is emitted only when the COLUMN exists (PostgREST omits columns
     // the table does not have, so `undefined` means "not migrated yet"). An
     // absent key lets the client keep its own locally held value; a present key
-    // — even 0 or false — is the account's answer and overrides it.
+    // · even 0 or false · is the account's answer and overrides it.
     if (row.strong_streak !== undefined) {
         mapped.strongStreak = Math.max(0, Math.floor(Number(row.strong_streak) || 0));
     }
@@ -288,7 +288,7 @@ function readLeakId(value) {
 }
 
 /**
- * Returns { ok, outcome } — outcome is the sanitised, storable version.
+ * Returns { ok, outcome } · outcome is the sanitised, storable version.
  * EV provenance is deliberately absent here: the endpoint reads the current
  * measured value from the caller's owned leak row after validation.
  */
@@ -327,9 +327,9 @@ function readOutcome(raw, authoritative = null) {
 
 /**
  * Confirms the leak belongs to the caller before anything is written.
- * Returns { owned, checked } — checked:false means ownership is UNKNOWABLE
+ * Returns { owned, checked } · checked:false means ownership is UNKNOWABLE
  * (neither leak table is deployed, or a query failed unexpectedly), so we
- * decline to persist rather than trusting the id — but we also decline to tell
+ * decline to persist rather than trusting the id · but we also decline to tell
  * the user their leak does not exist.
  *
  * A transient query error must NOT read as evidence of non-ownership: doing so
@@ -371,7 +371,7 @@ async function verifyLeakOwnership(supabase, userId, leakId) {
             const { data, error } = result;
 
             if (error) {
-                if (isMissingSchema(error)) continue;      // table absent — try the next source
+                if (isMissingSchema(error)) continue;      // table absent · try the next source
                 if (error.code === '22P02') { anyTableExists = true; continue; } // id not a uuid here
                 // Anything else (timeout, connection reset, permission blip) is
                 // a failure to ANSWER the question, not a "no".
@@ -439,7 +439,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, userId) {
     // Signed-out callers get the same empty, non-persisting shape a missing
-    // table produces — the review surface renders instead of erroring.
+    // table produces · the review surface renders instead of erroring.
     if (!userId) {
         return res.status(200).json({ success: true, records: [], persisted: false, reason: 'guest', authenticated: false });
     }
@@ -460,7 +460,7 @@ async function handleGet(req, res, userId) {
 
         if (rawLeakId !== undefined) {
             const leakId = readLeakId(Array.isArray(rawLeakId) ? rawLeakId[0] : rawLeakId);
-            // A malformed id cannot name a real row — answer empty rather than
+            // A malformed id cannot name a real row · answer empty rather than
             // 400ing a read that is harmless either way.
             if (!leakId) return res.status(200).json({ success: true, records: [], persisted: true });
             query = query.eq('leak_id', leakId);
@@ -474,7 +474,7 @@ async function handleGet(req, res, userId) {
 
         if (error) {
             if (isMissingSchema(error)) {
-                console.warn(`[leaks/review] ${TABLE} not deployed — serving empty review state`);
+                console.warn(`[leaks/review] ${TABLE} not deployed · serving empty review state`);
                 return res.status(200).json({ success: true, records: [], persisted: false, reason: 'storage_unavailable', tableMissing: true });
             }
             console.warn('[leaks/review] GET failed:', error.message);
@@ -587,7 +587,7 @@ async function handlePost(req, res, userId) {
     }
 
     const now = new Date();
-    // 1. Existing state (best effort — no row, or no table, both mean "new").
+    // 1. Existing state (best effort · no row, or no table, both mean "new").
     let prev = null;
     let tableAvailable = true;
     let priorStateReadable = true;
@@ -655,7 +655,7 @@ async function handlePost(req, res, userId) {
     // evDelta is computed from two server-owned detection measurements: the
     // leak's current measured EV cost vs the previous review's snapshot.
     // Negative means the leak is measurably costing less in real hands since
-    // last time — corroboration that the drilling is working. When detection
+    // last time · corroboration that the drilling is working. When detection
     // has not re-run between reviews the two measurements are equal, the
     // delta is 0 and the ease nudge is a no-op, which is exactly right.
     // No baseline (first review, or older rows without evLossBB) -> no delta,
@@ -669,14 +669,14 @@ async function handlePost(req, res, userId) {
 
     if (verifiedDrill) outcome.serverVerified = true;
 
-    // 2. Next state — computed here, never accepted from the client.
+    // 2. Next state · computed here, never accepted from the client.
     const scheduler = resolveScheduler();
     let computed = null;
     if (scheduler) {
         try {
             // The clock is passed DIRECTLY (Date | epoch-ms | ISO string), never
             // wrapped in an options object: gradeReview() parses its third
-            // argument as a date, and `{ now }` parses as null — which silently
+            // argument as a date, and `{ now }` parses as null · which silently
             // nulled dueAt / lastReviewedAt / history[].at and left the due date
             // to normalizeState's fallback instead of the scheduler.
             computed = scheduler(prev, outcome, now);
@@ -704,7 +704,7 @@ async function handlePost(req, res, userId) {
     }
 
     if (!tableAvailable) {
-        console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
+        console.warn(`[leaks/review] ${TABLE} not deployed · returning computed state unpersisted`);
         return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
     }
 
@@ -712,7 +712,7 @@ async function handlePost(req, res, userId) {
     const { owned, checked } = ownership;
     if (!owned) {
         if (checked && UUID_RE.test(leakId)) {
-            // A real-looking id that is not this user's — refuse outright. Same
+            // A real-looking id that is not this user's · refuse outright. Same
             // answer as "no such leak" so the response cannot confirm the id.
             return res.status(404).json({ success: false, error: 'Leak not found' });
         }
@@ -761,7 +761,7 @@ async function handlePost(req, res, userId) {
 
         if (error) {
             if (isMissingSchema(error)) {
-                console.warn('[leaks/review] atomic review RPC not deployed — returning computed state unpersisted');
+                console.warn('[leaks/review] atomic review RPC not deployed · returning computed state unpersisted');
                 return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
             }
             console.warn('[leaks/review] persist failed:', error.message);

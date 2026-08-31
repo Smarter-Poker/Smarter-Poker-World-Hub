@@ -61,9 +61,11 @@ export default async function handler(req, res) {
         // Scope the update to ACTIVE rows only. A receipt cannot revive a
         // subscription we already retired, and letting it touch inactive rows
         // would let a stale worker keep a dead endpoint looking healthy.
-        await getSupabase().rpc('confirm_push_subscription_receipt', { p_endpoint: endpoint });
-    } catch {
+        const { error } = await getSupabase().rpc('confirm_push_subscription_receipt', { p_endpoint: endpoint });
+        if (error) console.warn('[Push Receipt] Confirmation RPC failed:', error.message);
+    } catch (error) {
         // Receipts are telemetry. Losing one is acceptable; erroring is not.
+        console.warn('[Push Receipt] Confirmation failed:', error?.message || error);
     }
 
     return res.status(204).end();

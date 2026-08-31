@@ -1,5 +1,5 @@
 /**
- * PA_DESIGN_SPEC v2 — "Jarvis Command Deck"
+ * PA_DESIGN_SPEC v2 · "Jarvis Command Deck"
  * ═══════════════════════════════════════════════════════════════════════════
  * Single source of truth for the Personal Assistant surfaces (Sandbox, Leak
  * Finder, hamburger menu). Mobile-first, 375x667 baseline.
