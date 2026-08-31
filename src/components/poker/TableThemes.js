@@ -10,6 +10,8 @@
  * Stored in localStorage for persistence across sessions
  */
 
+import { getClubArenaTheme } from '../../lib/clubArenaTheme';
+
 export const TABLE_THEMES = {
   classicGreen: {
     id: 'classicGreen',
@@ -347,5 +349,19 @@ export function setStoredCardBack(path) {
  */
 export function getActiveTheme() {
   const id = getStoredThemeId();
-  return TABLE_THEMES[id] || TABLE_THEMES.classicGreen;
+  const theme = TABLE_THEMES[id] || TABLE_THEMES.classicGreen;
+  // Club Arena theme lock-in (Dan 2026-08-30): when the player has a saved
+  // Arena table look, it overrides the local theme's felt and card back.
+  // Client-only — localStorage does not exist during SSG.
+  if (typeof window !== 'undefined') {
+    try {
+      const arena = getClubArenaTheme();
+      if (arena.fromCache) {
+        return { ...theme, feltLayers: arena.feltLayers, cardBack: arena.cardBackUrl };
+      }
+    } catch (e) {
+      // Bridge unavailable — fall through to the local theme.
+    }
+  }
+  return theme;
 }
