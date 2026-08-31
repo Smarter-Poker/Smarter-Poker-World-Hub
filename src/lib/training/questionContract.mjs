@@ -8,6 +8,8 @@
  * drift into different rules.
  */
 
+import { heroActsFirstPostflop } from '../../engines/positionOrder.js';
+
 const GENERIC_OPTION_RE = /^(?:option|choice|answer)\s*[a-d0-9]+$/i;
 // Detect presentation-layer grading labels, not ordinary strategy prose.
 // Words such as “best” and “correct” can legitimately occur inside a full
@@ -135,6 +137,35 @@ function questionContext(question) {
 
 function questionStreet(question) {
   return cleanSpaces(question?.scenario?.street || question?.street).toLowerCase();
+}
+
+function normalizePostflopActionState(question) {
+  const scenario = question?.scenario;
+  if (!scenario || typeof scenario !== 'object' || scenario.isPsychology === true) return scenario;
+
+  const street = questionStreet(question);
+  if (!street || street === 'preflop') return scenario;
+
+  const heroPosition = cleanSpaces(scenario.heroPosition);
+  const villainPosition = cleanSpaces(scenario.villainPosition);
+  const heroActsFirst = heroActsFirstPostflop(heroPosition, villainPosition);
+  const villainChecks = /\b(?:villain|opponent) checks(?: to you)?\b|\bchecks to you\b/i;
+
+  const normalizeField = (value) => {
+    const text = normalizeScenarioLanguage(value || '');
+    if (!villainChecks.test(text)) return text;
+    if (heroActsFirst) {
+      return text.replace(villainChecks, 'You are first to act');
+    }
+    return text.replace(villainChecks, `${positionLabel(villainPosition)} checks to you`);
+  };
+
+  return {
+    ...scenario,
+    action: normalizeField(scenario.action),
+    context: normalizeField(scenario.context),
+    description: normalizeField(scenario.description),
+  };
 }
 
 function decisionNode(question) {
@@ -405,6 +436,21 @@ export function validateTrainingQuestion(question) {
   if (/\b(?:button|btn) opens\b/i.test(prompt)) issues.push('Prompt uses ambiguous “Button opens” wording.');
   if (/\byour in\b/i.test(prompt)) issues.push('Prompt uses “your” instead of “you’re.”');
 
+  const street = questionStreet(question);
+  const scenario = question?.scenario || {};
+  const heroPosition = cleanSpaces(scenario.heroPosition);
+  const villainPosition = cleanSpaces(scenario.villainPosition);
+  if (heroPosition && villainPosition && heroPosition.toUpperCase() === villainPosition.toUpperCase()) {
+    issues.push('Hero and opponent cannot occupy the same position.');
+  }
+  if (
+    street && street !== 'preflop'
+    && heroActsFirstPostflop(heroPosition, villainPosition)
+    && /\b(?:villain|opponent) checks\b|\bchecks to you\b/i.test(questionContext(question))
+  ) {
+    issues.push('Postflop action says the opponent checks before a hero who must act first.');
+  }
+
   return { valid: issues.length === 0, issues, decisionType, expectedOptions: expected };
 }
 
@@ -420,7 +466,7 @@ export function enforceTrainingQuestionContract(question) {
     || question.scenario?.question
     || '';
 
-  const normalized = {
+  let normalized = {
     ...question,
     question: normalizeScenarioLanguage(rawPrompt),
     correctAnswer,
@@ -432,6 +478,11 @@ export function enforceTrainingQuestionContract(question) {
           description: normalizeScenarioLanguage(question.scenario.description || ''),
         }
       : question.scenario,
+  };
+
+  normalized = {
+    ...normalized,
+    scenario: normalizePostflopActionState(normalized),
   };
 
   let options = rawOptions

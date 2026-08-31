@@ -111,36 +111,42 @@ const SUITS = ['s', 'h', 'd', 'c'];
  * IMP-2 FIX: Avoids card collisions with the board.
  */
 function parseHandToCards(hand, boardCards = []) {
-    if (!hand || hand.length < 2) return ['As', 'Ks'];
+    if (!hand || hand.length < 2) return null;
 
     const r1 = hand[0];
     const r2 = hand[1];
     const suffix = hand.length >= 3 ? hand[2] : '';
-    const usedSuits = new Set(boardCards.map(c => (c && c.length >= 2) ? c[1].toLowerCase() : ''));
+    const board = new Set(boardCards
+        .filter((card) => card && card.length >= 2)
+        .map((card) => String(card).toLowerCase()));
 
-    // Find an available suit that doesn't collide with board cards of the same rank
-    const findSafeSuit = (rank, preferredSuits) => {
-        for (const s of preferredSuits) {
-            const card = `${rank}${s}`.toLowerCase();
-            if (!boardCards.some(bc => bc && bc.toLowerCase() === card)) return s;
-        }
-        return preferredSuits[0]; // fallback
-    };
+    const cardAvailable = (rank, suit) => !board.has(`${rank}${suit}`.toLowerCase());
 
     if (r1 === r2) {
         // Pair: use two different suits, avoiding board collisions
-        const s1 = findSafeSuit(r1, ['h', 's', 'd', 'c']);
-        const s2 = findSafeSuit(r2, ['s', 'h', 'd', 'c'].filter(s => s !== s1));
+        const available = ['h', 's', 'd', 'c'].filter((suit) => cardAvailable(r1, suit));
+        if (available.length < 2) return null;
+        const [s1, s2] = available;
         return [`${r1}${s1}`, `${r2}${s2}`];
     } else if (suffix === 's') {
-        // Suited: same suit, pick one that doesn't collide
-        const safeSuit = findSafeSuit(r1, ['s', 'h', 'd', 'c']);
+        // A suited combo needs BOTH ranks available in the same suit. The old
+        // implementation checked only r1, so a board containing r2 of that
+        // suit could silently duplicate a card in a generated river question.
+        const safeSuit = ['s', 'h', 'd', 'c']
+            .find((suit) => cardAvailable(r1, suit) && cardAvailable(r2, suit));
+        if (!safeSuit) return null;
         return [`${r1}${safeSuit}`, `${r2}${safeSuit}`];
     } else {
-        // Offsuit: different suits
-        const s1 = findSafeSuit(r1, ['s', 'd', 'h', 'c']);
-        const s2 = findSafeSuit(r2, ['h', 'c', 'd', 's'].filter(s => s !== s1));
-        return [`${r1}${s1}`, `${r2}${s2}`];
+        // Offsuit: find a legal ordered pair of different suits. Never fall
+        // back to a blocked card; an impossible abstract combo must be skipped.
+        for (const s1 of ['s', 'd', 'h', 'c']) {
+            if (!cardAvailable(r1, s1)) continue;
+            for (const s2 of ['h', 'c', 'd', 's']) {
+                if (s1 === s2 || !cardAvailable(r2, s2)) continue;
+                return [`${r1}${s1}`, `${r2}${s2}`];
+            }
+        }
+        return null;
     }
 }
 
@@ -1571,6 +1577,7 @@ export class DeterministicGTOEngine {
         const actions = strategyMatrix.actions || [];
         const frequencies = strategyMatrix.frequencies || {};
         const handEVs = strategyMatrix.hand_evs || {};
+        const board = parseBoardFromHash(scenario.scenario_hash);
 
         if (actions.length === 0) return null;
 
@@ -1578,7 +1585,9 @@ export class DeterministicGTOEngine {
         // Pick from the frequency data — these are the hands the solver analyzed
         const sampleAction = actions.find(a => frequencies[a]) || actions[0];
         const handFreqs = frequencies[sampleAction] || {};
-        let allHands = Object.keys(handFreqs || {}).filter(h => h && h.length >= 2);
+        let allHands = Object.keys(handFreqs || {}).filter(h => (
+            h && h.length >= 2 && parseHandToCards(h, board) !== null
+        ));
 
         // ═══ APPLY HAND CLASS FILTER ═══
         if (gameConfig.handClass && gameConfig.handClass !== 'all') {
@@ -1634,7 +1643,6 @@ export class DeterministicGTOEngine {
         if (!optimalAction || validActions.length === 0) return null;
 
         // ═══ EXTRACT BOARD & POSITION DATA (needed for node type detection) ═══
-        const board = parseBoardFromHash(scenario.scenario_hash);
         const heroPosition = extractPositionFromHash(scenario.scenario_hash);
         const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
         const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;

@@ -252,6 +252,48 @@ test('postflop choices obey the declared decision node', () => {
   assert.ok(validateTrainingQuestion(impossibleCorrect).issues.some((issue) => /illegal choices/i.test(issue)));
 });
 
+test('postflop narration follows the real seat order before choices are served', () => {
+  const staleOutOfPosition = {
+    question: 'You hold A♠K♠ on the flop. What is your best action?',
+    scenario: {
+      street: 'flop',
+      heroPosition: 'BB',
+      villainPosition: 'BTN',
+      action: 'Villain checks',
+      context: 'Villain checks to you on the flop.',
+    },
+    correctAnswer: 'check',
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet33', text: 'Bet 33% Pot' },
+      { id: 'bet67', text: 'Bet 67% Pot' },
+      { id: 'bet125', text: 'Bet 125% Pot' },
+    ],
+  };
+
+  const rawAudit = validateTrainingQuestion(staleOutOfPosition);
+  assert.equal(rawAudit.valid, false);
+  assert.ok(rawAudit.issues.some((issue) => /opponent checks before a hero who must act first/i.test(issue)));
+
+  const repaired = enforceTrainingQuestionContract(staleOutOfPosition);
+  assert.equal(repaired.scenario.action, 'You are first to act');
+  assert.equal(repaired.scenario.context, 'You are first to act on the flop.');
+  assert.equal(validateTrainingQuestion(repaired).valid, true);
+
+  const inPosition = enforceTrainingQuestionContract({
+    ...staleOutOfPosition,
+    scenario: {
+      ...staleOutOfPosition.scenario,
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      action: 'Villain checks',
+      context: '',
+    },
+  });
+  assert.equal(inPosition.scenario.action, 'Big Blind checks to you');
+  assert.equal(validateTrainingQuestion(inPosition).valid, true);
+});
+
 test('generic option IDs do not override the action described by the label', () => {
   const result = enforceTrainingQuestionContract({
     question: 'The Big Blind checks to you on the flop. What is your best action?',
