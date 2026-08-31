@@ -130,6 +130,8 @@ test('shopper storefront resolves membership server-side and cannot remain stuck
   assert.match(loader, /requestId !== clubShopLoadRequestRef\.current/);
   assert.match(loader, /setClubShopError\(null\)/);
   assert.match(loader, /const loadTimer = setTimeout/);
+  assert.match(store, /const CLUB_SHOP_LOAD_TIMEOUT_MS = 12000/);
+  assert.match(loader, /}, CLUB_SHOP_LOAD_TIMEOUT_MS\)/);
   assert.match(loader, /clubShopLoadRequestRef\.current \+= 1/);
   assert.match(loader, /setClubShopLoaded\(true\)/);
   assert.match(loader, /setClubShopError\('The Club Shop Timed Out\. Please Try Again\.'\)/);

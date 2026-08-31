@@ -221,3 +221,11 @@ purchase-history reads execute concurrently. Every result that affects balance
 or limits is error-checked, preserving fail-closed commerce behavior while
 removing avoidable database round trips. No purchase, Diamond burn, card
 settlement, inventory, entitlement, commission, or Printful contract changed.
+
+The first production invocation of the corrected API then exposed a distinct
+serverless cold-start boundary: the response completed successfully, but just
+after the original five-second browser deadline. A warmed retry immediately
+loaded 11 items, the authenticated Diamond balance, purchase history, Manage
+access, and both settlement choices. The loader now permits a bounded 12-second
+cold start before aborting. It still terminates genuine hangs, invalidates stale
+responses, and keeps the same visible retry path.

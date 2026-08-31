@@ -96,6 +96,10 @@ import {
 import styles from '../../src/components/diamond-store/diamondStoreStyles';
 
 // VIPCard is shared with the store card library.
+// A cold serverless Club Shop request can exceed five seconds even though the
+// warmed API completes normally. Keep the request bounded without turning a
+// healthy cold start into a false storefront failure.
+const CLUB_SHOP_LOAD_TIMEOUT_MS = 12000;
 
 // ───────────────────────────────────────────────────────────────────────────
 // DERIVED ECONOMY COPY HELPERS
@@ -1219,7 +1223,7 @@ export default function DiamondStorePage({ initialTab }) {
           setClubShopLoaded(true);
           setClubShopError('The Club Shop Timed Out. Please Try Again.');
         }
-      }, 5000);
+      }, CLUB_SHOP_LOAD_TIMEOUT_MS);
       clubShopLoadTimerRef.current = loadTimer;
       try {
         const token = getAccessToken();
