@@ -64,7 +64,7 @@ const LIBRARY_VIEW_OPTIONS = [
     { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites', symbol: '♥' },
     { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later', symbol: '▣' },
     { id: 'history', label: 'Watch History', shortLabel: 'History', symbol: '↺' },
-    { id: 'playlists', label: 'Playlists', shortLabel: 'Playlists', symbol: '≡' },
+    { id: 'playlists', label: 'Playlists', shortLabel: 'Playlists', symbol: '▦' },
 ];
 
 const LIBRARY_VIEW_META = {
