@@ -211,7 +211,7 @@
       "label": "Poker Near Me",
       "theme": "dark",
       "accent": "#f4f7fb",
-      "artwork": { "src": "/images/footers/world-hub/footer-poker-near-me.png", "width": 2057, "height": 764, "sha256": "e71e10e1b0983248fa79fac75f215bd239afe6b6ac0d94978736429ca7f77608", "contentBounds": { "x": 14, "y": 236, "width": 2029, "height": 275 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-poker-near-me.png", "width": 2057, "height": 764, "sha256": "e71e10e1b0983248fa79fac75f215bd239afe6b6ac0d94978736429ca7f77608", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 236, "width": 2029, "height": 275 } },
       "routePrefixes": ["/hub/poker-near-me", "/hub/events-calendar", "/hub/daily-tournaments", "/hub/poker-tours", "/hub/poker-series", "/hub/series", "/hub/tours"],
       "items": [
         { "href": "/hub/poker-near-me/lobby", "label": "Nearby", "title": "Poker Near Me Lobby", "icon": "radar" },

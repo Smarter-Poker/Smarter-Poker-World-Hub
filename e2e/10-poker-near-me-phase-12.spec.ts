@@ -58,8 +58,12 @@ test.describe('Poker Near Me phase 12 parity, performance, and regional surfaces
     await expect.poll(() => offsets.includes(0) && offsets.includes(160), { timeout: 20_000 }).toBe(true);
     expect(offsets.indexOf(0)).toBeLessThan(offsets.indexOf(160));
     await expect(page.locator('.pnm-directory-source')).toHaveCount(0);
-    await expect(page.getByText('Phase Twelve North', { exact: true })).toBeVisible();
-    await expect(page.getByText('Phase Twelve South', { exact: true })).toBeVisible();
+    // The panel and its card renderer are separate production chunks. Under the
+    // full desktop/mobile matrix they can arrive after the directory requests,
+    // so wait on the user-visible result instead of inheriting Playwright's 5s
+    // locator default.
+    await expect(page.getByText('Phase Twelve North', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Phase Twelve South', { exact: true })).toBeVisible({ timeout: 30_000 });
     await expectNoOverflow(page, route);
   });
 
@@ -82,6 +86,8 @@ test.describe('Poker Near Me phase 12 parity, performance, and regional surfaces
     await expect(status).toHaveAttribute('data-directory-source', 'partial_live', { timeout: 20_000 });
     await expect(status).toContainText('Existing results remain available');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
+    const map = page.locator('[data-map-ready]').first();
+    await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
     await expect(page.locator('.leaflet-container')).toBeVisible();
     expect(mapRuntimeErrors).toEqual([]);
     await expectNoOverflow(page, route);

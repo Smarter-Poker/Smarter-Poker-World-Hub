@@ -185,7 +185,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
-      expect(Math.abs(stageBox!.width / stageBox!.height - definition!.artwork.width / definition!.artwork.height)).toBeLessThan(0.01);
+      const displayBounds = definition!.artwork.cropToContentBounds
+        ? definition!.artwork.contentBounds
+        : definition!.artwork;
+      expect(Math.abs(stageBox!.width / stageBox!.height - displayBounds.width / displayBounds.height)).toBeLessThan(0.01);
+      await expect(nav).toHaveAttribute(
+        'data-footer-cropped',
+        definition!.artwork.cropToContentBounds ? 'true' : 'false'
+      );
       expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([
         definition!.artwork.width,
         definition!.artwork.height,

@@ -79,12 +79,30 @@ export const BOTTOM_NAV_Z = 2147483000;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
-const artworkStageStyle = (artwork) => ({
-  width: `min(100%, ${artwork.width}px)`,
-  maxWidth: '100%',
-  aspectRatio: `${artwork.width} / ${artwork.height}`,
-  flex: '0 0 auto',
-});
+const artworkDisplayBounds = (artwork) =>
+  artwork.cropToContentBounds && artwork.contentBounds
+    ? artwork.contentBounds
+    : { x: 0, y: 0, width: artwork.width, height: artwork.height };
+
+const artworkStageStyle = (artwork) => {
+  const display = artworkDisplayBounds(artwork);
+  return {
+    width: `min(100%, ${display.width}px)`,
+    maxWidth: '100%',
+    aspectRatio: `${display.width} / ${display.height}`,
+    flex: '0 0 auto',
+  };
+};
+
+const artworkImageStyle = (artwork) => {
+  const display = artworkDisplayBounds(artwork);
+  return {
+    left: `${(-display.x / display.width) * 100}%`,
+    top: `${(-display.y / display.height) * 100}%`,
+    width: `${(artwork.width / display.width) * 100}%`,
+    height: `${(artwork.height / display.height) * 100}%`,
+  };
+};
 
 export const BottomNavSpacer = ({ config = null, noSafeArea = false }) => {
   const artwork = config?.artwork;
@@ -239,9 +257,10 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
     width: artwork.width,
     height: artwork.height,
   };
+  const displayBounds = artworkDisplayBounds(artwork);
   const segmentWidth = bounds.width / items.length;
-  const topPercent = (bounds.y / artwork.height) * 100;
-  const heightPercent = (bounds.height / artwork.height) * 100;
+  const topPercent = ((bounds.y - displayBounds.y) / displayBounds.height) * 100;
+  const heightPercent = (bounds.height / displayBounds.height) * 100;
 
   return (
     <nav
@@ -251,6 +270,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
       data-footer-world={footer.id}
       data-footer-artwork={artwork.src}
       data-footer-artwork-sha256={artwork.sha256}
+      data-footer-cropped={artwork.cropToContentBounds ? 'true' : 'false'}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -296,10 +316,8 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
           height={artwork.height}
           style={{
             position: 'absolute',
-            inset: 0,
+            ...artworkImageStyle(artwork),
             display: 'block',
-            width: '100%',
-            height: '100%',
             objectFit: 'contain',
             userSelect: 'none',
             pointerEvents: 'none',
@@ -307,8 +325,9 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
         />
 
         {items.map((item, index) => {
-          const leftPercent = ((bounds.x + segmentWidth * index) / artwork.width) * 100;
-          const widthPercent = (segmentWidth / artwork.width) * 100;
+          const leftPercent =
+            ((bounds.x - displayBounds.x + segmentWidth * index) / displayBounds.width) * 100;
+          const widthPercent = (segmentWidth / displayBounds.width) * 100;
           const active = item.href === activeHref;
 
           return (
