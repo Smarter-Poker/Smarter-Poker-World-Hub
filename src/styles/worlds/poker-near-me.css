@@ -160,7 +160,7 @@ body.world-poker-near-me .pnm-location-topbar {
 
 .pnm-family-nav__link {
     position: relative;
-    min-height: 36px;
+    min-height: 44px;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
@@ -769,6 +769,30 @@ body.world-poker-near-me :is(.pnm-top-tab.active, .ec-day-tab.active, .day-tab.a
     border-color: rgba(47, 168, 255, 0.58) !important;
     background: linear-gradient(180deg, rgba(47, 168, 255, 0.17), rgba(47, 168, 255, 0.045)) !important;
     box-shadow: inset 0 -2px 0 var(--pnm-blue), 0 0 16px rgba(47, 168, 255, 0.09) !important;
+}
+
+/* Phase 3: one physical interaction floor across the shared secondary
+   surfaces. The controls keep their compact instrument appearance; only the
+   usable hit box grows. This applies on pointer and touch layouts so direct
+   deep links never inherit a smaller local component default. */
+body.world-poker-near-me :is(
+    .pnm-top-tab, .pnm-gps-btn, .pnm-filter-select, .ec-filter-select,
+    .hg-select, .hg-sort-select, .hg-gps-btn, .ec-gps-btn, .day-tab,
+    .ec-day-tab, .action-btn, .section-action-btn, .vr-write-btn,
+    .card-link, .map-action-btn, .tours-view-btn, .tours-sort-select,
+    .vc3-pill, .map-pref-option, .rtp-date
+) {
+    min-height: 44px !important;
+}
+
+body.world-poker-near-me :is(
+    .fav-btn, .vc3-fav, .vc3-icon-btn, .map-recenter-btn,
+    .map-pref-trigger
+) {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
 }
 
 body.world-poker-near-me :is(.gold, .gtd, .guarantee, .schedule-buyin, .ec-gtd) {

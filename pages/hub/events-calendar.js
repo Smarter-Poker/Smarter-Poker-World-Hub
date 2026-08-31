@@ -781,7 +781,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         bottomLinks={menuConfig.bottomLinks}
       />
 
-      <div className="ec-page">
+      <main className="ec-page" data-pnm-secondary-foundation="interaction-v1">
         <div className="ec-space-bg" />
         <div className="ec-space-overlay" />
 
@@ -1127,7 +1127,7 @@ export default function EventsCalendarPage({ fallbackData }) {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Location Modal */}
       <LocationModal

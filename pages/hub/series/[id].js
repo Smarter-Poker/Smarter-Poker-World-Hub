@@ -516,12 +516,12 @@ export default function SeriesDetailPage() {
         />
         <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-        <div className="series-page">
+        <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
           <div className="loading-container">
             <div className="loading-spinner" />
             <p className="loading-text">Loading Series Details...</p>
           </div>
-        </div>
+        </main>
         <style suppressHydrationWarning>{styles}</style>
       </>
     );
@@ -541,7 +541,7 @@ export default function SeriesDetailPage() {
         />
         <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-        <div className="series-page">
+        <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
           <div className="error-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
             <div style={{ fontSize: 64, marginBottom: 16 }}>🎴</div>
             <h2 className="error-title" style={{ fontSize: 24, color: '#fff', marginBottom: 8 }}>Series Not Found</h2>
@@ -563,7 +563,7 @@ export default function SeriesDetailPage() {
               </button>
             </div>
           </div>
-        </div>
+        </main>
         <style suppressHydrationWarning>{styles}</style>
       </>
     );
@@ -639,7 +639,7 @@ export default function SeriesDetailPage() {
           onClose={() => setMenuOpen(false)}
       />
 
-      <div className="series-page">
+      <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
 
 
         {/* Breadcrumb Navigation */}
@@ -1152,7 +1152,7 @@ export default function SeriesDetailPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       <style suppressHydrationWarning>{styles}</style>
     </>

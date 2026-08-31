@@ -753,6 +753,8 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
+                <main data-pnm-secondary-foundation="interaction-v1">
+
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER SERIES</h1>
@@ -1115,6 +1117,8 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                             </div>
                         )}
     
+                </main>
+
                 <FullScreenPageOverlay
                     isOpen={iframeModal.isOpen}
                     onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
