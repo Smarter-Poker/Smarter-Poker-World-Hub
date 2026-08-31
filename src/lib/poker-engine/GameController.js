@@ -16,7 +16,7 @@
  *   2. Creates LobbyManager with Supabase client
  *   3. Recovers active tables from DB
  *   4. Subsequent API calls reuse the same instance
- *   5. Hand completions persist to hand_histories automatically
+ *   5. Hand completions persist to hand_history automatically
  *   6. Table state snapshots saved periodically + on significant events
  * 
  * Usage from API routes:
@@ -325,7 +325,7 @@ class GameController {
     if (this.antiCheat) this.antiCheat.cleanup();
 
     // Stop health watchdog
-    if (this.healthWatchdog) this.healthWatchdog.destroy();
+    if (this.healthWatchdog) this.healthWatchdog.stop();
 
     // Phase 48f: End all active performance tracker sessions on shutdown
     try {

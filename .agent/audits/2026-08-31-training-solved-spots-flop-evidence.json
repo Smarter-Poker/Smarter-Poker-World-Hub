@@ -1,0 +1,6393 @@
+{
+  "schemaVersion": 1,
+  "readOnly": true,
+  "startedAt": "2026-08-31T16:27:44.297Z",
+  "completedAt": "2026-08-31T16:30:08.407Z",
+  "cutoff": "2026-08-31T16:27:44.297Z",
+  "consistencyModel": "fixed created_at high-water mark with atomic per-chunk checkpoints",
+  "scope": "Training flop contracts",
+  "validation": "deep-stream",
+  "canonicalGames": 107,
+  "pioContracts": 25,
+  "warehouseInventory": [
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 20,
+      "rows": 400,
+      "legacy_rows": 400,
+      "v2_rows": 400,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 40,
+      "rows": 457,
+      "legacy_rows": 457,
+      "v2_rows": 457,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 60,
+      "rows": 404,
+      "legacy_rows": 404,
+      "v2_rows": 404,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 80,
+      "rows": 360,
+      "legacy_rows": 360,
+      "v2_rows": 360,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 100,
+      "rows": 392,
+      "legacy_rows": 392,
+      "v2_rows": 392,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "6max_cash",
+      "stack_depth": 200,
+      "rows": 359,
+      "legacy_rows": 359,
+      "v2_rows": 359,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 20,
+      "rows": 394,
+      "legacy_rows": 394,
+      "v2_rows": 394,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 40,
+      "rows": 386,
+      "legacy_rows": 386,
+      "v2_rows": 386,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 60,
+      "rows": 393,
+      "legacy_rows": 393,
+      "v2_rows": 393,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 80,
+      "rows": 421,
+      "legacy_rows": 421,
+      "v2_rows": 421,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 100,
+      "rows": 426,
+      "legacy_rows": 426,
+      "v2_rows": 426,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "9max_cash",
+      "stack_depth": 200,
+      "rows": 416,
+      "legacy_rows": 416,
+      "v2_rows": 416,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "cash",
+      "stack_depth": 10,
+      "rows": 1147,
+      "legacy_rows": 1147,
+      "v2_rows": 1147,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "cash",
+      "stack_depth": 20,
+      "rows": 1172,
+      "legacy_rows": 1172,
+      "v2_rows": 1139,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "cash",
+      "stack_depth": 40,
+      "rows": 1180,
+      "legacy_rows": 1180,
+      "v2_rows": 1166,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "cash",
+      "stack_depth": 80,
+      "rows": 1168,
+      "legacy_rows": 1168,
+      "v2_rows": 1166,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "cash",
+      "stack_depth": 150,
+      "rows": 1183,
+      "legacy_rows": 1183,
+      "v2_rows": 1160,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 10,
+      "rows": 923,
+      "legacy_rows": 923,
+      "v2_rows": 186,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 20,
+      "rows": 849,
+      "legacy_rows": 849,
+      "v2_rows": 435,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 40,
+      "rows": 461,
+      "legacy_rows": 461,
+      "v2_rows": 461,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 60,
+      "rows": 485,
+      "legacy_rows": 485,
+      "v2_rows": 485,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 80,
+      "rows": 430,
+      "legacy_rows": 430,
+      "v2_rows": 430,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 100,
+      "rows": 1205,
+      "legacy_rows": 1205,
+      "v2_rows": 1205,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "hu_cash",
+      "stack_depth": 200,
+      "rows": 454,
+      "legacy_rows": 454,
+      "v2_rows": 454,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 8,
+      "rows": 189,
+      "legacy_rows": 189,
+      "v2_rows": 189,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 10,
+      "rows": 225,
+      "legacy_rows": 225,
+      "v2_rows": 225,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 12,
+      "rows": 203,
+      "legacy_rows": 203,
+      "v2_rows": 203,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 15,
+      "rows": 193,
+      "legacy_rows": 193,
+      "v2_rows": 193,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 20,
+      "rows": 200,
+      "legacy_rows": 200,
+      "v2_rows": 200,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 25,
+      "rows": 185,
+      "legacy_rows": 185,
+      "v2_rows": 185,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 30,
+      "rows": 183,
+      "legacy_rows": 183,
+      "v2_rows": 183,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 40,
+      "rows": 227,
+      "legacy_rows": 227,
+      "v2_rows": 227,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 50,
+      "rows": 177,
+      "legacy_rows": 177,
+      "v2_rows": 177,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 8,
+      "rows": 184,
+      "legacy_rows": 184,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 10,
+      "rows": 209,
+      "legacy_rows": 209,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 12,
+      "rows": 162,
+      "legacy_rows": 162,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 15,
+      "rows": 193,
+      "legacy_rows": 193,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 20,
+      "rows": 193,
+      "legacy_rows": 193,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 25,
+      "rows": 206,
+      "legacy_rows": 206,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 30,
+      "rows": 209,
+      "legacy_rows": 209,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 40,
+      "rows": 190,
+      "legacy_rows": 190,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 50,
+      "rows": 169,
+      "legacy_rows": 169,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 8,
+      "rows": 325,
+      "legacy_rows": 325,
+      "v2_rows": 325,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 10,
+      "rows": 337,
+      "legacy_rows": 337,
+      "v2_rows": 337,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 12,
+      "rows": 331,
+      "legacy_rows": 331,
+      "v2_rows": 331,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 15,
+      "rows": 326,
+      "legacy_rows": 326,
+      "v2_rows": 326,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 20,
+      "rows": 331,
+      "legacy_rows": 331,
+      "v2_rows": 331,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 25,
+      "rows": 327,
+      "legacy_rows": 327,
+      "v2_rows": 327,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 30,
+      "rows": 313,
+      "legacy_rows": 313,
+      "v2_rows": 313,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 40,
+      "rows": 360,
+      "legacy_rows": 360,
+      "v2_rows": 360,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 50,
+      "rows": 331,
+      "legacy_rows": 331,
+      "v2_rows": 331,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 60,
+      "rows": 288,
+      "legacy_rows": 288,
+      "v2_rows": 288,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 80,
+      "rows": 284,
+      "legacy_rows": 284,
+      "v2_rows": 284,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 100,
+      "rows": 327,
+      "legacy_rows": 327,
+      "v2_rows": 327,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 8,
+      "rows": 269,
+      "legacy_rows": 269,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 10,
+      "rows": 282,
+      "legacy_rows": 282,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 12,
+      "rows": 321,
+      "legacy_rows": 321,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 15,
+      "rows": 310,
+      "legacy_rows": 310,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 20,
+      "rows": 288,
+      "legacy_rows": 288,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 25,
+      "rows": 275,
+      "legacy_rows": 275,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 30,
+      "rows": 300,
+      "legacy_rows": 300,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 40,
+      "rows": 271,
+      "legacy_rows": 271,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 50,
+      "rows": 272,
+      "legacy_rows": 272,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 60,
+      "rows": 283,
+      "legacy_rows": 283,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 80,
+      "rows": 314,
+      "legacy_rows": 314,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 100,
+      "rows": 295,
+      "legacy_rows": 295,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 8,
+      "rows": 343,
+      "legacy_rows": 343,
+      "v2_rows": 343,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 10,
+      "rows": 336,
+      "legacy_rows": 336,
+      "v2_rows": 336,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 12,
+      "rows": 302,
+      "legacy_rows": 302,
+      "v2_rows": 302,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 15,
+      "rows": 337,
+      "legacy_rows": 337,
+      "v2_rows": 337,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 20,
+      "rows": 372,
+      "legacy_rows": 372,
+      "v2_rows": 372,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 25,
+      "rows": 326,
+      "legacy_rows": 326,
+      "v2_rows": 326,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 30,
+      "rows": 337,
+      "legacy_rows": 337,
+      "v2_rows": 337,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 40,
+      "rows": 328,
+      "legacy_rows": 328,
+      "v2_rows": 328,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 50,
+      "rows": 324,
+      "legacy_rows": 324,
+      "v2_rows": 324,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 60,
+      "rows": 329,
+      "legacy_rows": 329,
+      "v2_rows": 329,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 80,
+      "rows": 345,
+      "legacy_rows": 345,
+      "v2_rows": 345,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 100,
+      "rows": 321,
+      "legacy_rows": 321,
+      "v2_rows": 321,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 8,
+      "rows": 253,
+      "legacy_rows": 253,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 10,
+      "rows": 263,
+      "legacy_rows": 263,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 12,
+      "rows": 247,
+      "legacy_rows": 247,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 15,
+      "rows": 297,
+      "legacy_rows": 297,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 20,
+      "rows": 291,
+      "legacy_rows": 291,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 25,
+      "rows": 255,
+      "legacy_rows": 255,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 30,
+      "rows": 264,
+      "legacy_rows": 264,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 40,
+      "rows": 267,
+      "legacy_rows": 267,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 50,
+      "rows": 283,
+      "legacy_rows": 283,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 60,
+      "rows": 303,
+      "legacy_rows": 303,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 80,
+      "rows": 284,
+      "legacy_rows": 284,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 100,
+      "rows": 304,
+      "legacy_rows": 304,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_chipev",
+      "stack_depth": 10,
+      "rows": 1182,
+      "legacy_rows": 1182,
+      "v2_rows": 1182,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_chipev",
+      "stack_depth": 20,
+      "rows": 1175,
+      "legacy_rows": 1175,
+      "v2_rows": 742,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_chipev",
+      "stack_depth": 40,
+      "rows": 1168,
+      "legacy_rows": 1168,
+      "v2_rows": 589,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_chipev",
+      "stack_depth": 80,
+      "rows": 1159,
+      "legacy_rows": 1159,
+      "v2_rows": 588,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_chipev",
+      "stack_depth": 150,
+      "rows": 1172,
+      "legacy_rows": 1172,
+      "v2_rows": 592,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 8,
+      "rows": 176,
+      "legacy_rows": 176,
+      "v2_rows": 176,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 10,
+      "rows": 188,
+      "legacy_rows": 188,
+      "v2_rows": 188,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 12,
+      "rows": 194,
+      "legacy_rows": 194,
+      "v2_rows": 194,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 15,
+      "rows": 181,
+      "legacy_rows": 181,
+      "v2_rows": 181,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 20,
+      "rows": 182,
+      "legacy_rows": 182,
+      "v2_rows": 182,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 25,
+      "rows": 185,
+      "legacy_rows": 185,
+      "v2_rows": 185,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 30,
+      "rows": 170,
+      "legacy_rows": 170,
+      "v2_rows": 170,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 40,
+      "rows": 172,
+      "legacy_rows": 172,
+      "v2_rows": 172,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 50,
+      "rows": 164,
+      "legacy_rows": 164,
+      "v2_rows": 164,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 8,
+      "rows": 147,
+      "legacy_rows": 147,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 10,
+      "rows": 148,
+      "legacy_rows": 148,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 12,
+      "rows": 170,
+      "legacy_rows": 170,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 15,
+      "rows": 159,
+      "legacy_rows": 159,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 20,
+      "rows": 165,
+      "legacy_rows": 165,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 25,
+      "rows": 141,
+      "legacy_rows": 141,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 30,
+      "rows": 157,
+      "legacy_rows": 157,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 40,
+      "rows": 158,
+      "legacy_rows": 158,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 50,
+      "rows": 155,
+      "legacy_rows": 155,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_icm",
+      "stack_depth": 10,
+      "rows": 1185,
+      "legacy_rows": 1185,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_icm",
+      "stack_depth": 20,
+      "rows": 1179,
+      "legacy_rows": 1179,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_icm",
+      "stack_depth": 40,
+      "rows": 1164,
+      "legacy_rows": 1164,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_icm",
+      "stack_depth": 80,
+      "rows": 1177,
+      "legacy_rows": 1177,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "mtt_icm",
+      "stack_depth": 150,
+      "rows": 1165,
+      "legacy_rows": 1165,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 10,
+      "rows": 324,
+      "legacy_rows": 324,
+      "v2_rows": 324,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 15,
+      "rows": 306,
+      "legacy_rows": 306,
+      "v2_rows": 306,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 20,
+      "rows": 260,
+      "legacy_rows": 260,
+      "v2_rows": 260,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 25,
+      "rows": 290,
+      "legacy_rows": 290,
+      "v2_rows": 290,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 30,
+      "rows": 289,
+      "legacy_rows": 289,
+      "v2_rows": 289,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 40,
+      "rows": 270,
+      "legacy_rows": 270,
+      "v2_rows": 270,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 50,
+      "rows": 294,
+      "legacy_rows": 294,
+      "v2_rows": 294,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 60,
+      "rows": 297,
+      "legacy_rows": 297,
+      "v2_rows": 297,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 80,
+      "rows": 297,
+      "legacy_rows": 297,
+      "v2_rows": 297,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 100,
+      "rows": 272,
+      "legacy_rows": 272,
+      "v2_rows": 272,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 10,
+      "rows": 211,
+      "legacy_rows": 211,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 15,
+      "rows": 266,
+      "legacy_rows": 266,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 20,
+      "rows": 270,
+      "legacy_rows": 270,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 25,
+      "rows": 296,
+      "legacy_rows": 296,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 30,
+      "rows": 244,
+      "legacy_rows": 244,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 40,
+      "rows": 268,
+      "legacy_rows": 268,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 50,
+      "rows": 245,
+      "legacy_rows": 245,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 60,
+      "rows": 251,
+      "legacy_rows": 251,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 80,
+      "rows": 225,
+      "legacy_rows": 225,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 100,
+      "rows": 225,
+      "legacy_rows": 225,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 10,
+      "rows": 273,
+      "legacy_rows": 273,
+      "v2_rows": 273,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 15,
+      "rows": 289,
+      "legacy_rows": 289,
+      "v2_rows": 289,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 20,
+      "rows": 223,
+      "legacy_rows": 223,
+      "v2_rows": 223,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 25,
+      "rows": 281,
+      "legacy_rows": 281,
+      "v2_rows": 281,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 30,
+      "rows": 281,
+      "legacy_rows": 281,
+      "v2_rows": 281,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 40,
+      "rows": 291,
+      "legacy_rows": 291,
+      "v2_rows": 291,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 50,
+      "rows": 242,
+      "legacy_rows": 242,
+      "v2_rows": 242,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 60,
+      "rows": 269,
+      "legacy_rows": 269,
+      "v2_rows": 269,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 80,
+      "rows": 282,
+      "legacy_rows": 282,
+      "v2_rows": 282,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 100,
+      "rows": 268,
+      "legacy_rows": 268,
+      "v2_rows": 268,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 10,
+      "rows": 249,
+      "legacy_rows": 249,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 15,
+      "rows": 221,
+      "legacy_rows": 221,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 20,
+      "rows": 279,
+      "legacy_rows": 279,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 25,
+      "rows": 250,
+      "legacy_rows": 250,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 30,
+      "rows": 265,
+      "legacy_rows": 265,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 40,
+      "rows": 251,
+      "legacy_rows": 251,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 50,
+      "rows": 230,
+      "legacy_rows": 230,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 60,
+      "rows": 239,
+      "legacy_rows": 239,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 80,
+      "rows": 274,
+      "legacy_rows": 274,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 100,
+      "rows": 242,
+      "legacy_rows": 242,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 10,
+      "rows": 157,
+      "legacy_rows": 157,
+      "v2_rows": 157,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 15,
+      "rows": 169,
+      "legacy_rows": 169,
+      "v2_rows": 169,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 20,
+      "rows": 160,
+      "legacy_rows": 160,
+      "v2_rows": 160,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 25,
+      "rows": 174,
+      "legacy_rows": 174,
+      "v2_rows": 174,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 30,
+      "rows": 180,
+      "legacy_rows": 180,
+      "v2_rows": 180,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 40,
+      "rows": 159,
+      "legacy_rows": 159,
+      "v2_rows": 159,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "sng_hu",
+      "stack_depth": 50,
+      "rows": 201,
+      "legacy_rows": 201,
+      "v2_rows": 201,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin",
+      "stack_depth": 10,
+      "rows": 1181,
+      "legacy_rows": 1181,
+      "v2_rows": 592,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin",
+      "stack_depth": 20,
+      "rows": 1166,
+      "legacy_rows": 1166,
+      "v2_rows": 699,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin",
+      "stack_depth": 40,
+      "rows": 1166,
+      "legacy_rows": 1166,
+      "v2_rows": 661,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin",
+      "stack_depth": 80,
+      "rows": 1170,
+      "legacy_rows": 1170,
+      "v2_rows": 587,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin",
+      "stack_depth": 150,
+      "rows": 1173,
+      "legacy_rows": 1173,
+      "v2_rows": 629,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 8,
+      "rows": 242,
+      "legacy_rows": 242,
+      "v2_rows": 242,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 10,
+      "rows": 259,
+      "legacy_rows": 259,
+      "v2_rows": 259,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 12,
+      "rows": 249,
+      "legacy_rows": 249,
+      "v2_rows": 249,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 15,
+      "rows": 252,
+      "legacy_rows": 252,
+      "v2_rows": 252,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 18,
+      "rows": 251,
+      "legacy_rows": 251,
+      "v2_rows": 251,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 20,
+      "rows": 247,
+      "legacy_rows": 247,
+      "v2_rows": 247,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 25,
+      "rows": 260,
+      "legacy_rows": 260,
+      "v2_rows": 260,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 8,
+      "rows": 228,
+      "legacy_rows": 228,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 10,
+      "rows": 268,
+      "legacy_rows": 268,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 12,
+      "rows": 255,
+      "legacy_rows": 255,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 15,
+      "rows": 204,
+      "legacy_rows": 204,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 18,
+      "rows": 244,
+      "legacy_rows": 244,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 20,
+      "rows": 236,
+      "legacy_rows": 236,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 25,
+      "rows": 220,
+      "legacy_rows": 220,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 8,
+      "rows": 225,
+      "legacy_rows": 225,
+      "v2_rows": 225,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 10,
+      "rows": 197,
+      "legacy_rows": 197,
+      "v2_rows": 197,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 12,
+      "rows": 199,
+      "legacy_rows": 199,
+      "v2_rows": 199,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 15,
+      "rows": 207,
+      "legacy_rows": 207,
+      "v2_rows": 207,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 18,
+      "rows": 262,
+      "legacy_rows": 262,
+      "v2_rows": 262,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 20,
+      "rows": 207,
+      "legacy_rows": 207,
+      "v2_rows": 207,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 25,
+      "rows": 192,
+      "legacy_rows": 192,
+      "v2_rows": 192,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 8,
+      "rows": 200,
+      "legacy_rows": 200,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 10,
+      "rows": 191,
+      "legacy_rows": 191,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 12,
+      "rows": 193,
+      "legacy_rows": 193,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 15,
+      "rows": 212,
+      "legacy_rows": 212,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 18,
+      "rows": 207,
+      "legacy_rows": 207,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 20,
+      "rows": 194,
+      "legacy_rows": 194,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "flop",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 25,
+      "rows": 213,
+      "legacy_rows": 213,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 20,
+      "rows": 233,
+      "legacy_rows": 233,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 40,
+      "rows": 527,
+      "legacy_rows": 527,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 60,
+      "rows": 562,
+      "legacy_rows": 562,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 80,
+      "rows": 424,
+      "legacy_rows": 424,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 100,
+      "rows": 53773,
+      "legacy_rows": 53773,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "6max_cash",
+      "stack_depth": 200,
+      "rows": 67,
+      "legacy_rows": 67,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 20,
+      "rows": 291,
+      "legacy_rows": 291,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 40,
+      "rows": 178,
+      "legacy_rows": 178,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 60,
+      "rows": 62,
+      "legacy_rows": 62,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 80,
+      "rows": 673,
+      "legacy_rows": 673,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 100,
+      "rows": 38421,
+      "legacy_rows": 38421,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "9max_cash",
+      "stack_depth": 200,
+      "rows": 564,
+      "legacy_rows": 564,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 10,
+      "rows": 187878,
+      "legacy_rows": 187878,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 20,
+      "rows": 207733,
+      "legacy_rows": 207733,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 40,
+      "rows": 215219,
+      "legacy_rows": 215219,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 80,
+      "rows": 219648,
+      "legacy_rows": 219648,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 100,
+      "rows": 1,
+      "legacy_rows": 1,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "cash",
+      "stack_depth": 150,
+      "rows": 214417,
+      "legacy_rows": 214417,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 10,
+      "rows": 67585,
+      "legacy_rows": 67585,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 20,
+      "rows": 28595,
+      "legacy_rows": 28595,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 40,
+      "rows": 11354,
+      "legacy_rows": 11354,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 60,
+      "rows": 762,
+      "legacy_rows": 762,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 80,
+      "rows": 11174,
+      "legacy_rows": 11174,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 100,
+      "rows": 61773,
+      "legacy_rows": 61773,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 150,
+      "rows": 10822,
+      "legacy_rows": 10822,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "hu_cash",
+      "stack_depth": 200,
+      "rows": 122,
+      "legacy_rows": 122,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 8,
+      "rows": 293,
+      "legacy_rows": 293,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 10,
+      "rows": 300,
+      "legacy_rows": 300,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 12,
+      "rows": 131,
+      "legacy_rows": 131,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 15,
+      "rows": 396,
+      "legacy_rows": 396,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 20,
+      "rows": 149,
+      "legacy_rows": 149,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 25,
+      "rows": 184,
+      "legacy_rows": 184,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 40,
+      "rows": 85,
+      "legacy_rows": 85,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 50,
+      "rows": 313,
+      "legacy_rows": 313,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 8,
+      "rows": 298,
+      "legacy_rows": 298,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 10,
+      "rows": 42,
+      "legacy_rows": 42,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 12,
+      "rows": 170,
+      "legacy_rows": 170,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 15,
+      "rows": 405,
+      "legacy_rows": 405,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 20,
+      "rows": 350,
+      "legacy_rows": 350,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 25,
+      "rows": 321,
+      "legacy_rows": 321,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 30,
+      "rows": 142,
+      "legacy_rows": 142,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 40,
+      "rows": 95,
+      "legacy_rows": 95,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 50,
+      "rows": 160,
+      "legacy_rows": 160,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 8,
+      "rows": 68,
+      "legacy_rows": 68,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 10,
+      "rows": 142,
+      "legacy_rows": 142,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 12,
+      "rows": 73,
+      "legacy_rows": 73,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 15,
+      "rows": 285,
+      "legacy_rows": 285,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 20,
+      "rows": 163,
+      "legacy_rows": 163,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 25,
+      "rows": 105,
+      "legacy_rows": 105,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 30,
+      "rows": 112,
+      "legacy_rows": 112,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 40,
+      "rows": 215,
+      "legacy_rows": 215,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 50,
+      "rows": 778,
+      "legacy_rows": 778,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 60,
+      "rows": 212,
+      "legacy_rows": 212,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 80,
+      "rows": 169,
+      "legacy_rows": 169,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 100,
+      "rows": 102609,
+      "legacy_rows": 102609,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 8,
+      "rows": 244,
+      "legacy_rows": 244,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 10,
+      "rows": 239,
+      "legacy_rows": 239,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 12,
+      "rows": 320,
+      "legacy_rows": 320,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 15,
+      "rows": 415,
+      "legacy_rows": 415,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 20,
+      "rows": 138,
+      "legacy_rows": 138,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 25,
+      "rows": 151,
+      "legacy_rows": 151,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 30,
+      "rows": 591,
+      "legacy_rows": 591,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 40,
+      "rows": 362,
+      "legacy_rows": 362,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 50,
+      "rows": 90,
+      "legacy_rows": 90,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 60,
+      "rows": 560,
+      "legacy_rows": 560,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 100,
+      "rows": 36032,
+      "legacy_rows": 36032,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 8,
+      "rows": 372,
+      "legacy_rows": 372,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 10,
+      "rows": 333,
+      "legacy_rows": 333,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 12,
+      "rows": 220,
+      "legacy_rows": 220,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 15,
+      "rows": 699,
+      "legacy_rows": 699,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 20,
+      "rows": 485,
+      "legacy_rows": 485,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 25,
+      "rows": 550,
+      "legacy_rows": 550,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 30,
+      "rows": 419,
+      "legacy_rows": 419,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 40,
+      "rows": 640,
+      "legacy_rows": 640,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 50,
+      "rows": 582,
+      "legacy_rows": 582,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 60,
+      "rows": 300,
+      "legacy_rows": 300,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 80,
+      "rows": 151,
+      "legacy_rows": 151,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 8,
+      "rows": 152,
+      "legacy_rows": 152,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 10,
+      "rows": 282,
+      "legacy_rows": 282,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 12,
+      "rows": 284,
+      "legacy_rows": 284,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 15,
+      "rows": 314,
+      "legacy_rows": 314,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 25,
+      "rows": 338,
+      "legacy_rows": 338,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 30,
+      "rows": 412,
+      "legacy_rows": 412,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 40,
+      "rows": 151,
+      "legacy_rows": 151,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 50,
+      "rows": 132,
+      "legacy_rows": 132,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 60,
+      "rows": 301,
+      "legacy_rows": 301,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 80,
+      "rows": 227,
+      "legacy_rows": 227,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 100,
+      "rows": 15858,
+      "legacy_rows": 15858,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_chipev",
+      "stack_depth": 10,
+      "rows": 228975,
+      "legacy_rows": 228975,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_chipev",
+      "stack_depth": 20,
+      "rows": 229190,
+      "legacy_rows": 229190,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_chipev",
+      "stack_depth": 40,
+      "rows": 225714,
+      "legacy_rows": 225714,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_chipev",
+      "stack_depth": 80,
+      "rows": 229687,
+      "legacy_rows": 229687,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_chipev",
+      "stack_depth": 150,
+      "rows": 225864,
+      "legacy_rows": 225864,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 8,
+      "rows": 100,
+      "legacy_rows": 100,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 12,
+      "rows": 350,
+      "legacy_rows": 350,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 15,
+      "rows": 182,
+      "legacy_rows": 182,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 20,
+      "rows": 308,
+      "legacy_rows": 308,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 25,
+      "rows": 24,
+      "legacy_rows": 24,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 40,
+      "rows": 280,
+      "legacy_rows": 280,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 50,
+      "rows": 180,
+      "legacy_rows": 180,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 8,
+      "rows": 60,
+      "legacy_rows": 60,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 12,
+      "rows": 422,
+      "legacy_rows": 422,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 15,
+      "rows": 233,
+      "legacy_rows": 233,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 20,
+      "rows": 196,
+      "legacy_rows": 196,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 25,
+      "rows": 139,
+      "legacy_rows": 139,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 30,
+      "rows": 48,
+      "legacy_rows": 48,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 40,
+      "rows": 241,
+      "legacy_rows": 241,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 50,
+      "rows": 220,
+      "legacy_rows": 220,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_icm",
+      "stack_depth": 10,
+      "rows": 229119,
+      "legacy_rows": 229119,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_icm",
+      "stack_depth": 20,
+      "rows": 228403,
+      "legacy_rows": 228403,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_icm",
+      "stack_depth": 40,
+      "rows": 226346,
+      "legacy_rows": 226346,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_icm",
+      "stack_depth": 80,
+      "rows": 230033,
+      "legacy_rows": 230033,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "mtt_icm",
+      "stack_depth": 150,
+      "rows": 225620,
+      "legacy_rows": 225620,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "postflop_complete",
+      "stack_depth": 100,
+      "rows": 9438,
+      "legacy_rows": 9438,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 10,
+      "rows": 17,
+      "legacy_rows": 17,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 20,
+      "rows": 14,
+      "legacy_rows": 14,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 40,
+      "rows": 12,
+      "legacy_rows": 12,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 60,
+      "rows": 13,
+      "legacy_rows": 13,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 80,
+      "rows": 18,
+      "legacy_rows": 18,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_chipev",
+      "stack_depth": 100,
+      "rows": 26,
+      "legacy_rows": 26,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 10,
+      "rows": 17,
+      "legacy_rows": 17,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 20,
+      "rows": 16,
+      "legacy_rows": 16,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 40,
+      "rows": 13,
+      "legacy_rows": 13,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 60,
+      "rows": 17,
+      "legacy_rows": 17,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 80,
+      "rows": 19,
+      "legacy_rows": 19,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "river_mtt_icm",
+      "stack_depth": 100,
+      "rows": 18,
+      "legacy_rows": 18,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 10,
+      "rows": 345,
+      "legacy_rows": 345,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 15,
+      "rows": 324,
+      "legacy_rows": 324,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 20,
+      "rows": 491,
+      "legacy_rows": 491,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 25,
+      "rows": 107,
+      "legacy_rows": 107,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 30,
+      "rows": 543,
+      "legacy_rows": 543,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 40,
+      "rows": 342,
+      "legacy_rows": 342,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 50,
+      "rows": 345,
+      "legacy_rows": 345,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 60,
+      "rows": 536,
+      "legacy_rows": 536,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 80,
+      "rows": 537,
+      "legacy_rows": 537,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 100,
+      "rows": 138430,
+      "legacy_rows": 138430,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 10,
+      "rows": 251,
+      "legacy_rows": 251,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 15,
+      "rows": 201,
+      "legacy_rows": 201,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 20,
+      "rows": 101,
+      "legacy_rows": 101,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 25,
+      "rows": 21,
+      "legacy_rows": 21,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 30,
+      "rows": 251,
+      "legacy_rows": 251,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 40,
+      "rows": 378,
+      "legacy_rows": 378,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 50,
+      "rows": 334,
+      "legacy_rows": 334,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 60,
+      "rows": 442,
+      "legacy_rows": 442,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 100,
+      "rows": 20603,
+      "legacy_rows": 20603,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 10,
+      "rows": 261,
+      "legacy_rows": 261,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 20,
+      "rows": 144,
+      "legacy_rows": 144,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 25,
+      "rows": 295,
+      "legacy_rows": 295,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 30,
+      "rows": 151,
+      "legacy_rows": 151,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 40,
+      "rows": 488,
+      "legacy_rows": 488,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 50,
+      "rows": 154,
+      "legacy_rows": 154,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 60,
+      "rows": 267,
+      "legacy_rows": 267,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 80,
+      "rows": 175,
+      "legacy_rows": 175,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 100,
+      "rows": 66824,
+      "legacy_rows": 66824,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 10,
+      "rows": 91,
+      "legacy_rows": 91,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 15,
+      "rows": 149,
+      "legacy_rows": 149,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 20,
+      "rows": 295,
+      "legacy_rows": 295,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 25,
+      "rows": 196,
+      "legacy_rows": 196,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 30,
+      "rows": 123,
+      "legacy_rows": 123,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 40,
+      "rows": 15,
+      "legacy_rows": 15,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 50,
+      "rows": 344,
+      "legacy_rows": 344,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 60,
+      "rows": 325,
+      "legacy_rows": 325,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 80,
+      "rows": 357,
+      "legacy_rows": 357,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 100,
+      "rows": 10149,
+      "legacy_rows": 10149,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_hu",
+      "stack_depth": 15,
+      "rows": 296,
+      "legacy_rows": 296,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_hu",
+      "stack_depth": 25,
+      "rows": 126,
+      "legacy_rows": 126,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_hu",
+      "stack_depth": 30,
+      "rows": 45,
+      "legacy_rows": 45,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_hu",
+      "stack_depth": 40,
+      "rows": 160,
+      "legacy_rows": 160,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "sng_hu",
+      "stack_depth": 50,
+      "rows": 129,
+      "legacy_rows": 129,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin",
+      "stack_depth": 10,
+      "rows": 724130,
+      "legacy_rows": 724130,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin",
+      "stack_depth": 20,
+      "rows": 225294,
+      "legacy_rows": 225294,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin",
+      "stack_depth": 40,
+      "rows": 222301,
+      "legacy_rows": 222301,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin",
+      "stack_depth": 80,
+      "rows": 226505,
+      "legacy_rows": 226505,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin",
+      "stack_depth": 150,
+      "rows": 221597,
+      "legacy_rows": 221597,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 8,
+      "rows": 678,
+      "legacy_rows": 678,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 10,
+      "rows": 266,
+      "legacy_rows": 266,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 15,
+      "rows": 94,
+      "legacy_rows": 94,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 18,
+      "rows": 655,
+      "legacy_rows": 655,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 25,
+      "rows": 65,
+      "legacy_rows": 65,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 8,
+      "rows": 151,
+      "legacy_rows": 151,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 10,
+      "rows": 129,
+      "legacy_rows": 129,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 12,
+      "rows": 330,
+      "legacy_rows": 330,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 15,
+      "rows": 176,
+      "legacy_rows": 176,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 18,
+      "rows": 61,
+      "legacy_rows": 61,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 20,
+      "rows": 226,
+      "legacy_rows": 226,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 25,
+      "rows": 496,
+      "legacy_rows": 496,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 12,
+      "rows": 135,
+      "legacy_rows": 135,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 15,
+      "rows": 374,
+      "legacy_rows": 374,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 18,
+      "rows": 421,
+      "legacy_rows": 421,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 25,
+      "rows": 111,
+      "legacy_rows": 111,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 8,
+      "rows": 537,
+      "legacy_rows": 537,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 10,
+      "rows": 125,
+      "legacy_rows": 125,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 12,
+      "rows": 375,
+      "legacy_rows": 375,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 15,
+      "rows": 284,
+      "legacy_rows": 284,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 18,
+      "rows": 291,
+      "legacy_rows": 291,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "river",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 20,
+      "rows": 90,
+      "legacy_rows": 90,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 20,
+      "rows": 16494,
+      "legacy_rows": 16494,
+      "v2_rows": 16494,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 40,
+      "rows": 19305,
+      "legacy_rows": 19305,
+      "v2_rows": 19305,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 60,
+      "rows": 16688,
+      "legacy_rows": 16688,
+      "v2_rows": 16688,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 80,
+      "rows": 14311,
+      "legacy_rows": 14311,
+      "v2_rows": 14311,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 100,
+      "rows": 15896,
+      "legacy_rows": 15896,
+      "v2_rows": 15896,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "6max_cash",
+      "stack_depth": 200,
+      "rows": 14398,
+      "legacy_rows": 14398,
+      "v2_rows": 14398,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 20,
+      "rows": 16403,
+      "legacy_rows": 16403,
+      "v2_rows": 16403,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 40,
+      "rows": 15759,
+      "legacy_rows": 15759,
+      "v2_rows": 15759,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 60,
+      "rows": 16467,
+      "legacy_rows": 16467,
+      "v2_rows": 16467,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 80,
+      "rows": 16927,
+      "legacy_rows": 16927,
+      "v2_rows": 16927,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 100,
+      "rows": 17349,
+      "legacy_rows": 17349,
+      "v2_rows": 17349,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "9max_cash",
+      "stack_depth": 200,
+      "rows": 17607,
+      "legacy_rows": 17607,
+      "v2_rows": 17607,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "cash",
+      "stack_depth": 10,
+      "rows": 496,
+      "legacy_rows": 496,
+      "v2_rows": 496,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "cash",
+      "stack_depth": 20,
+      "rows": 35100,
+      "legacy_rows": 35100,
+      "v2_rows": 35100,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "cash",
+      "stack_depth": 40,
+      "rows": 55634,
+      "legacy_rows": 55634,
+      "v2_rows": 54948,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "cash",
+      "stack_depth": 80,
+      "rows": 55410,
+      "legacy_rows": 55410,
+      "v2_rows": 55312,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "cash",
+      "stack_depth": 150,
+      "rows": 55624,
+      "legacy_rows": 55624,
+      "v2_rows": 54497,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 10,
+      "rows": 66566,
+      "legacy_rows": 66566,
+      "v2_rows": 56586,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 20,
+      "rows": 43777,
+      "legacy_rows": 43777,
+      "v2_rows": 36574,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 40,
+      "rows": 18903,
+      "legacy_rows": 18903,
+      "v2_rows": 18903,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 60,
+      "rows": 19995,
+      "legacy_rows": 19995,
+      "v2_rows": 19995,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 80,
+      "rows": 17689,
+      "legacy_rows": 17689,
+      "v2_rows": 17689,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 100,
+      "rows": 27391,
+      "legacy_rows": 27391,
+      "v2_rows": 27391,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "hu_cash",
+      "stack_depth": 200,
+      "rows": 18719,
+      "legacy_rows": 18719,
+      "v2_rows": 18719,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 8,
+      "rows": 8192,
+      "legacy_rows": 8192,
+      "v2_rows": 8192,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 10,
+      "rows": 9383,
+      "legacy_rows": 9383,
+      "v2_rows": 9383,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 12,
+      "rows": 8812,
+      "legacy_rows": 8812,
+      "v2_rows": 8812,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 15,
+      "rows": 8347,
+      "legacy_rows": 8347,
+      "v2_rows": 8347,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 20,
+      "rows": 8796,
+      "legacy_rows": 8796,
+      "v2_rows": 8796,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 25,
+      "rows": 7791,
+      "legacy_rows": 7791,
+      "v2_rows": 7791,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 30,
+      "rows": 7759,
+      "legacy_rows": 7759,
+      "v2_rows": 7759,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 40,
+      "rows": 9757,
+      "legacy_rows": 9757,
+      "v2_rows": 9757,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_chipev",
+      "stack_depth": 50,
+      "rows": 7816,
+      "legacy_rows": 7816,
+      "v2_rows": 7816,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 8,
+      "rows": 7982,
+      "legacy_rows": 7982,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 10,
+      "rows": 8813,
+      "legacy_rows": 8813,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 12,
+      "rows": 7219,
+      "legacy_rows": 7219,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 15,
+      "rows": 8720,
+      "legacy_rows": 8720,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 20,
+      "rows": 8257,
+      "legacy_rows": 8257,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 25,
+      "rows": 9295,
+      "legacy_rows": 9295,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 30,
+      "rows": 9139,
+      "legacy_rows": 9139,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 40,
+      "rows": 8203,
+      "legacy_rows": 8203,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_3max_icm",
+      "stack_depth": 50,
+      "rows": 7346,
+      "legacy_rows": 7346,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 8,
+      "rows": 14465,
+      "legacy_rows": 14465,
+      "v2_rows": 14465,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 10,
+      "rows": 14689,
+      "legacy_rows": 14689,
+      "v2_rows": 14689,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 12,
+      "rows": 14853,
+      "legacy_rows": 14853,
+      "v2_rows": 14853,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 15,
+      "rows": 14742,
+      "legacy_rows": 14742,
+      "v2_rows": 14742,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 20,
+      "rows": 14685,
+      "legacy_rows": 14685,
+      "v2_rows": 14685,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 25,
+      "rows": 14709,
+      "legacy_rows": 14709,
+      "v2_rows": 14709,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 30,
+      "rows": 14051,
+      "legacy_rows": 14051,
+      "v2_rows": 14051,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 40,
+      "rows": 15841,
+      "legacy_rows": 15841,
+      "v2_rows": 15841,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 50,
+      "rows": 14540,
+      "legacy_rows": 14540,
+      "v2_rows": 14540,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 60,
+      "rows": 12707,
+      "legacy_rows": 12707,
+      "v2_rows": 12707,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 80,
+      "rows": 12237,
+      "legacy_rows": 12237,
+      "v2_rows": 12237,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_chipev",
+      "stack_depth": 100,
+      "rows": 14909,
+      "legacy_rows": 14909,
+      "v2_rows": 14909,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 8,
+      "rows": 12652,
+      "legacy_rows": 12652,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 10,
+      "rows": 12953,
+      "legacy_rows": 12953,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 12,
+      "rows": 14678,
+      "legacy_rows": 14678,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 15,
+      "rows": 14294,
+      "legacy_rows": 14294,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 20,
+      "rows": 13159,
+      "legacy_rows": 13159,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 25,
+      "rows": 13048,
+      "legacy_rows": 13048,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 30,
+      "rows": 13991,
+      "legacy_rows": 13991,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 40,
+      "rows": 12538,
+      "legacy_rows": 12538,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 50,
+      "rows": 12782,
+      "legacy_rows": 12782,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 60,
+      "rows": 13130,
+      "legacy_rows": 13130,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 80,
+      "rows": 14703,
+      "legacy_rows": 14703,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_6max_icm",
+      "stack_depth": 100,
+      "rows": 13529,
+      "legacy_rows": 13529,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 8,
+      "rows": 15286,
+      "legacy_rows": 15286,
+      "v2_rows": 15286,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 10,
+      "rows": 15277,
+      "legacy_rows": 15277,
+      "v2_rows": 15277,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 12,
+      "rows": 13162,
+      "legacy_rows": 13162,
+      "v2_rows": 13162,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 15,
+      "rows": 15089,
+      "legacy_rows": 15089,
+      "v2_rows": 15089,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 20,
+      "rows": 16277,
+      "legacy_rows": 16277,
+      "v2_rows": 16277,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 25,
+      "rows": 14299,
+      "legacy_rows": 14299,
+      "v2_rows": 14299,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 30,
+      "rows": 15300,
+      "legacy_rows": 15300,
+      "v2_rows": 15300,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 40,
+      "rows": 14474,
+      "legacy_rows": 14474,
+      "v2_rows": 14474,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 50,
+      "rows": 14509,
+      "legacy_rows": 14509,
+      "v2_rows": 14509,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 60,
+      "rows": 14791,
+      "legacy_rows": 14791,
+      "v2_rows": 14791,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 80,
+      "rows": 14641,
+      "legacy_rows": 14641,
+      "v2_rows": 14641,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_chipev",
+      "stack_depth": 100,
+      "rows": 14019,
+      "legacy_rows": 14019,
+      "v2_rows": 14019,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 8,
+      "rows": 11703,
+      "legacy_rows": 11703,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 10,
+      "rows": 12406,
+      "legacy_rows": 12406,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 12,
+      "rows": 11435,
+      "legacy_rows": 11435,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 15,
+      "rows": 13802,
+      "legacy_rows": 13802,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 20,
+      "rows": 13237,
+      "legacy_rows": 13237,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 25,
+      "rows": 11676,
+      "legacy_rows": 11676,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 30,
+      "rows": 11925,
+      "legacy_rows": 11925,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 40,
+      "rows": 12393,
+      "legacy_rows": 12393,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 50,
+      "rows": 12971,
+      "legacy_rows": 12971,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 60,
+      "rows": 13860,
+      "legacy_rows": 13860,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 80,
+      "rows": 13134,
+      "legacy_rows": 13134,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_9max_icm",
+      "stack_depth": 100,
+      "rows": 14016,
+      "legacy_rows": 14016,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_chipev",
+      "stack_depth": 10,
+      "rows": 55374,
+      "legacy_rows": 55374,
+      "v2_rows": 55374,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_chipev",
+      "stack_depth": 20,
+      "rows": 55388,
+      "legacy_rows": 55388,
+      "v2_rows": 34651,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_chipev",
+      "stack_depth": 40,
+      "rows": 55582,
+      "legacy_rows": 55582,
+      "v2_rows": 27757,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_chipev",
+      "stack_depth": 80,
+      "rows": 55375,
+      "legacy_rows": 55375,
+      "v2_rows": 27618,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_chipev",
+      "stack_depth": 150,
+      "rows": 55284,
+      "legacy_rows": 55284,
+      "v2_rows": 27528,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 8,
+      "rows": 7065,
+      "legacy_rows": 7065,
+      "v2_rows": 7065,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 10,
+      "rows": 7333,
+      "legacy_rows": 7333,
+      "v2_rows": 7333,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 12,
+      "rows": 7543,
+      "legacy_rows": 7543,
+      "v2_rows": 7543,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 15,
+      "rows": 6914,
+      "legacy_rows": 6914,
+      "v2_rows": 6914,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 20,
+      "rows": 7288,
+      "legacy_rows": 7288,
+      "v2_rows": 7288,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 25,
+      "rows": 6909,
+      "legacy_rows": 6909,
+      "v2_rows": 6909,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 30,
+      "rows": 6664,
+      "legacy_rows": 6664,
+      "v2_rows": 6664,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 40,
+      "rows": 6817,
+      "legacy_rows": 6817,
+      "v2_rows": 6817,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_chipev",
+      "stack_depth": 50,
+      "rows": 6668,
+      "legacy_rows": 6668,
+      "v2_rows": 6668,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 8,
+      "rows": 6176,
+      "legacy_rows": 6176,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 10,
+      "rows": 5982,
+      "legacy_rows": 5982,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 12,
+      "rows": 7220,
+      "legacy_rows": 7220,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 15,
+      "rows": 6824,
+      "legacy_rows": 6824,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 20,
+      "rows": 6768,
+      "legacy_rows": 6768,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 25,
+      "rows": 5886,
+      "legacy_rows": 5886,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 30,
+      "rows": 6572,
+      "legacy_rows": 6572,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 40,
+      "rows": 6862,
+      "legacy_rows": 6862,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_hu_icm",
+      "stack_depth": 50,
+      "rows": 6572,
+      "legacy_rows": 6572,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_icm",
+      "stack_depth": 10,
+      "rows": 55460,
+      "legacy_rows": 55460,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_icm",
+      "stack_depth": 20,
+      "rows": 55429,
+      "legacy_rows": 55429,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_icm",
+      "stack_depth": 40,
+      "rows": 55422,
+      "legacy_rows": 55422,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_icm",
+      "stack_depth": 80,
+      "rows": 55394,
+      "legacy_rows": 55394,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "mtt_icm",
+      "stack_depth": 150,
+      "rows": 55303,
+      "legacy_rows": 55303,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "postflop_complete",
+      "stack_depth": 100,
+      "rows": 371,
+      "legacy_rows": 371,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 10,
+      "rows": 14606,
+      "legacy_rows": 14606,
+      "v2_rows": 14606,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 15,
+      "rows": 14311,
+      "legacy_rows": 14311,
+      "v2_rows": 14311,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 20,
+      "rows": 12122,
+      "legacy_rows": 12122,
+      "v2_rows": 12122,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 25,
+      "rows": 13002,
+      "legacy_rows": 13002,
+      "v2_rows": 13002,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 30,
+      "rows": 13043,
+      "legacy_rows": 13043,
+      "v2_rows": 13043,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 40,
+      "rows": 12318,
+      "legacy_rows": 12318,
+      "v2_rows": 12318,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 50,
+      "rows": 13462,
+      "legacy_rows": 13462,
+      "v2_rows": 13462,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 60,
+      "rows": 13438,
+      "legacy_rows": 13438,
+      "v2_rows": 13438,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 80,
+      "rows": 13743,
+      "legacy_rows": 13743,
+      "v2_rows": 13743,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_chipev",
+      "stack_depth": 100,
+      "rows": 12530,
+      "legacy_rows": 12530,
+      "v2_rows": 12530,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 10,
+      "rows": 9884,
+      "legacy_rows": 9884,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 15,
+      "rows": 12329,
+      "legacy_rows": 12329,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 20,
+      "rows": 12016,
+      "legacy_rows": 12016,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 25,
+      "rows": 13113,
+      "legacy_rows": 13113,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 30,
+      "rows": 11140,
+      "legacy_rows": 11140,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 40,
+      "rows": 11921,
+      "legacy_rows": 11921,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 50,
+      "rows": 10856,
+      "legacy_rows": 10856,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 60,
+      "rows": 11009,
+      "legacy_rows": 11009,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 80,
+      "rows": 10513,
+      "legacy_rows": 10513,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_6max_icm",
+      "stack_depth": 100,
+      "rows": 10185,
+      "legacy_rows": 10185,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 10,
+      "rows": 12196,
+      "legacy_rows": 12196,
+      "v2_rows": 12196,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 15,
+      "rows": 12962,
+      "legacy_rows": 12962,
+      "v2_rows": 12962,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 20,
+      "rows": 9861,
+      "legacy_rows": 9861,
+      "v2_rows": 9861,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 25,
+      "rows": 13060,
+      "legacy_rows": 13060,
+      "v2_rows": 13060,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 30,
+      "rows": 12408,
+      "legacy_rows": 12408,
+      "v2_rows": 12408,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 40,
+      "rows": 13111,
+      "legacy_rows": 13111,
+      "v2_rows": 13111,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 50,
+      "rows": 11051,
+      "legacy_rows": 11051,
+      "v2_rows": 11051,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 60,
+      "rows": 12859,
+      "legacy_rows": 12859,
+      "v2_rows": 12859,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 80,
+      "rows": 13130,
+      "legacy_rows": 13130,
+      "v2_rows": 13130,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_chipev",
+      "stack_depth": 100,
+      "rows": 12558,
+      "legacy_rows": 12558,
+      "v2_rows": 12558,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 10,
+      "rows": 11207,
+      "legacy_rows": 11207,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 15,
+      "rows": 10155,
+      "legacy_rows": 10155,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 20,
+      "rows": 12282,
+      "legacy_rows": 12282,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 25,
+      "rows": 11350,
+      "legacy_rows": 11350,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 30,
+      "rows": 11818,
+      "legacy_rows": 11818,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 40,
+      "rows": 11079,
+      "legacy_rows": 11079,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 50,
+      "rows": 10482,
+      "legacy_rows": 10482,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 60,
+      "rows": 10724,
+      "legacy_rows": 10724,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 80,
+      "rows": 12185,
+      "legacy_rows": 12185,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_9max_icm",
+      "stack_depth": 100,
+      "rows": 10889,
+      "legacy_rows": 10889,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 10,
+      "rows": 6276,
+      "legacy_rows": 6276,
+      "v2_rows": 6276,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 15,
+      "rows": 6622,
+      "legacy_rows": 6622,
+      "v2_rows": 6622,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 20,
+      "rows": 6743,
+      "legacy_rows": 6743,
+      "v2_rows": 6743,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 25,
+      "rows": 7067,
+      "legacy_rows": 7067,
+      "v2_rows": 7067,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 30,
+      "rows": 7505,
+      "legacy_rows": 7505,
+      "v2_rows": 7505,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 40,
+      "rows": 6751,
+      "legacy_rows": 6751,
+      "v2_rows": 6751,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "sng_hu",
+      "stack_depth": 50,
+      "rows": 8173,
+      "legacy_rows": 8173,
+      "v2_rows": 8173,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin",
+      "stack_depth": 10,
+      "rows": 55356,
+      "legacy_rows": 55356,
+      "v2_rows": 27425,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin",
+      "stack_depth": 20,
+      "rows": 55406,
+      "legacy_rows": 55406,
+      "v2_rows": 33094,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin",
+      "stack_depth": 40,
+      "rows": 55664,
+      "legacy_rows": 55664,
+      "v2_rows": 31619,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin",
+      "stack_depth": 80,
+      "rows": 55284,
+      "legacy_rows": 55284,
+      "v2_rows": 27442,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin",
+      "stack_depth": 150,
+      "rows": 55238,
+      "legacy_rows": 55238,
+      "v2_rows": 29374,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 8,
+      "rows": 10996,
+      "legacy_rows": 10996,
+      "v2_rows": 10996,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 10,
+      "rows": 10901,
+      "legacy_rows": 10901,
+      "v2_rows": 10901,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 12,
+      "rows": 10887,
+      "legacy_rows": 10887,
+      "v2_rows": 10887,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 15,
+      "rows": 10717,
+      "legacy_rows": 10717,
+      "v2_rows": 10717,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 18,
+      "rows": 11054,
+      "legacy_rows": 11054,
+      "v2_rows": 11054,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 20,
+      "rows": 10430,
+      "legacy_rows": 10430,
+      "v2_rows": 10430,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_chipev",
+      "stack_depth": 25,
+      "rows": 10750,
+      "legacy_rows": 10750,
+      "v2_rows": 10750,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 8,
+      "rows": 9921,
+      "legacy_rows": 9921,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 10,
+      "rows": 11842,
+      "legacy_rows": 11842,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 12,
+      "rows": 11017,
+      "legacy_rows": 11017,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 15,
+      "rows": 9145,
+      "legacy_rows": 9145,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 18,
+      "rows": 10562,
+      "legacy_rows": 10562,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 20,
+      "rows": 10465,
+      "legacy_rows": 10465,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_3max_icm",
+      "stack_depth": 25,
+      "rows": 9578,
+      "legacy_rows": 9578,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 8,
+      "rows": 9528,
+      "legacy_rows": 9528,
+      "v2_rows": 9528,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 10,
+      "rows": 8969,
+      "legacy_rows": 8969,
+      "v2_rows": 8969,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 12,
+      "rows": 8550,
+      "legacy_rows": 8550,
+      "v2_rows": 8550,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 15,
+      "rows": 9029,
+      "legacy_rows": 9029,
+      "v2_rows": 9029,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 18,
+      "rows": 10767,
+      "legacy_rows": 10767,
+      "v2_rows": 10767,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 20,
+      "rows": 8758,
+      "legacy_rows": 8758,
+      "v2_rows": 8758,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_chipev",
+      "stack_depth": 25,
+      "rows": 8047,
+      "legacy_rows": 8047,
+      "v2_rows": 8047,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 8,
+      "rows": 8811,
+      "legacy_rows": 8811,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 10,
+      "rows": 7962,
+      "legacy_rows": 7962,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 12,
+      "rows": 8439,
+      "legacy_rows": 8439,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 15,
+      "rows": 9137,
+      "legacy_rows": 9137,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 18,
+      "rows": 8965,
+      "legacy_rows": 8965,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 20,
+      "rows": 8045,
+      "legacy_rows": 8045,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "spin_hu_icm",
+      "stack_depth": 25,
+      "rows": 9119,
+      "legacy_rows": 9119,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 10,
+      "rows": 16,
+      "legacy_rows": 16,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 20,
+      "rows": 21,
+      "legacy_rows": 21,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 40,
+      "rows": 20,
+      "legacy_rows": 20,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 60,
+      "rows": 10,
+      "legacy_rows": 10,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 80,
+      "rows": 20,
+      "legacy_rows": 20,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_mtt_icm",
+      "stack_depth": 100,
+      "rows": 13,
+      "legacy_rows": 13,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_spin",
+      "stack_depth": 10,
+      "rows": 13,
+      "legacy_rows": 13,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_spin",
+      "stack_depth": 20,
+      "rows": 11,
+      "legacy_rows": 11,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_spin",
+      "stack_depth": 40,
+      "rows": 15,
+      "legacy_rows": 15,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    },
+    {
+      "street": "turn",
+      "game_type": "turn_spin",
+      "stack_depth": 60,
+      "rows": 13,
+      "legacy_rows": 13,
+      "v2_rows": 0,
+      "no_matrix_rows": 0
+    }
+  ],
+  "auditedCells": [
+    {
+      "family": "hu_cash",
+      "stack": 100,
+      "street": "flop",
+      "games": [
+        "cash-001",
+        "cash-002",
+        "cash-003",
+        "cash-004",
+        "cash-005",
+        "cash-006",
+        "cash-007",
+        "cash-008",
+        "cash-011",
+        "cash-013",
+        "cash-014",
+        "cash-015",
+        "cash-016",
+        "cash-017",
+        "cash-018",
+        "cash-019",
+        "cash-021",
+        "cash-022",
+        "cash-023",
+        "cash-024"
+      ],
+      "rows": 1205,
+      "legacyRows": 0,
+      "v2Rows": 1205,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 667027,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 1205,
+      "salvageableRows": 1205,
+      "trainingUsableRows": 1205,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:37:59.009Z",
+      "latestCreatedAt": "2026-02-09T20:39:46.762Z",
+      "earliestSolvedV2At": "2026-07-29T13:59:46.823Z",
+      "latestSolvedV2At": "2026-08-01T19:33:30.358Z"
+    },
+    {
+      "family": "hu_cash",
+      "stack": 200,
+      "street": "flop",
+      "games": [
+        "cash-009"
+      ],
+      "rows": 454,
+      "legacyRows": 0,
+      "v2Rows": 454,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 333550,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 454,
+      "salvageableRows": 454,
+      "trainingUsableRows": 454,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:38:06.786Z",
+      "latestCreatedAt": "2026-02-04T18:25:08.878Z",
+      "earliestSolvedV2At": "2026-08-01T06:44:21.721Z",
+      "latestSolvedV2At": "2026-08-02T20:46:14.477Z"
+    },
+    {
+      "family": "hu_cash",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "cash-010"
+      ],
+      "rows": 461,
+      "legacyRows": 0,
+      "v2Rows": 461,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 306749,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 461,
+      "salvageableRows": 461,
+      "trainingUsableRows": 461,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:38:17.904Z",
+      "latestCreatedAt": "2026-02-04T18:26:22.806Z",
+      "earliestSolvedV2At": "2026-07-29T01:34:58.701Z",
+      "latestSolvedV2At": "2026-07-29T15:26:44.200Z"
+    },
+    {
+      "family": "mtt_3max_chipev",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "mtt-014"
+      ],
+      "rows": 200,
+      "legacyRows": 0,
+      "v2Rows": 200,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 83139,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 200,
+      "salvageableRows": 200,
+      "trainingUsableRows": 200,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:39:26.277Z",
+      "latestCreatedAt": "2026-02-04T18:31:47.808Z",
+      "earliestSolvedV2At": "2026-08-05T17:14:41.038Z",
+      "latestSolvedV2At": "2026-08-09T04:25:20.279Z"
+    },
+    {
+      "family": "mtt_6max_chipev",
+      "stack": 10,
+      "street": "flop",
+      "games": [
+        "mtt-008"
+      ],
+      "rows": 337,
+      "legacyRows": 0,
+      "v2Rows": 337,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 94114,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 337,
+      "salvageableRows": 337,
+      "trainingUsableRows": 337,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:40:46.314Z",
+      "latestCreatedAt": "2026-02-04T18:44:54.226Z",
+      "earliestSolvedV2At": "2026-08-02T20:01:54.240Z",
+      "latestSolvedV2At": "2026-08-05T03:51:02.399Z"
+    },
+    {
+      "family": "mtt_6max_chipev",
+      "stack": 100,
+      "street": "flop",
+      "games": [
+        "mtt-021",
+        "mtt-025"
+      ],
+      "rows": 327,
+      "legacyRows": 0,
+      "v2Rows": 327,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 124873,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 327,
+      "salvageableRows": 327,
+      "trainingUsableRows": 327,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:40:44.944Z",
+      "latestCreatedAt": "2026-02-04T18:44:46.058Z",
+      "earliestSolvedV2At": "2026-08-03T06:52:37.093Z",
+      "latestSolvedV2At": "2026-08-06T04:52:50.295Z"
+    },
+    {
+      "family": "mtt_6max_chipev",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "mtt-009"
+      ],
+      "rows": 331,
+      "legacyRows": 0,
+      "v2Rows": 331,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 105250,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 331,
+      "salvageableRows": 331,
+      "trainingUsableRows": 331,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:40:48.508Z",
+      "latestCreatedAt": "2026-02-04T18:45:12.409Z",
+      "earliestSolvedV2At": "2026-08-02T21:53:49.150Z",
+      "latestSolvedV2At": "2026-08-05T07:34:45.892Z"
+    },
+    {
+      "family": "mtt_6max_chipev",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "mtt-018"
+      ],
+      "rows": 360,
+      "legacyRows": 0,
+      "v2Rows": 360,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 129527,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 360,
+      "salvageableRows": 360,
+      "trainingUsableRows": 360,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:40:51.919Z",
+      "latestCreatedAt": "2026-02-04T18:45:21.705Z",
+      "earliestSolvedV2At": "2026-08-03T00:50:31.184Z",
+      "latestSolvedV2At": "2026-08-05T14:19:35.581Z"
+    },
+    {
+      "family": "mtt_6max_icm",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "mtt-002",
+        "mtt-006"
+      ],
+      "rows": 288,
+      "legacyRows": 288,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 288,
+      "credibleUnits": 0,
+      "corruptUnits": 48672,
+      "outOfRangeValues": 77848,
+      "rowsWithOutOfRangeValues": 288,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 288,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 288,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:05.656Z",
+      "latestCreatedAt": "2026-02-04T18:50:44.614Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "mtt_6max_icm",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "mtt-003",
+        "mtt-005",
+        "mtt-013",
+        "mtt-022"
+      ],
+      "rows": 271,
+      "legacyRows": 271,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 271,
+      "credibleUnits": 0,
+      "corruptUnits": 45799,
+      "outOfRangeValues": 73369,
+      "rowsWithOutOfRangeValues": 271,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 271,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 271,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:06.335Z",
+      "latestCreatedAt": "2026-02-04T18:50:59.218Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "mtt_9max_chipev",
+      "stack": 100,
+      "street": "flop",
+      "games": [
+        "mtt-007"
+      ],
+      "rows": 321,
+      "legacyRows": 0,
+      "v2Rows": 321,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 105011,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 321,
+      "salvageableRows": 321,
+      "trainingUsableRows": 321,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:42.129Z",
+      "latestCreatedAt": "2026-02-04T18:57:23.573Z",
+      "earliestSolvedV2At": "2026-08-04T09:35:08.722Z",
+      "latestSolvedV2At": "2026-08-08T04:33:25.761Z"
+    },
+    {
+      "family": "mtt_9max_chipev",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "mtt-017"
+      ],
+      "rows": 372,
+      "legacyRows": 0,
+      "v2Rows": 372,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 106224,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 372,
+      "salvageableRows": 372,
+      "trainingUsableRows": 372,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:43.347Z",
+      "latestCreatedAt": "2026-02-04T18:57:31.039Z",
+      "earliestSolvedV2At": "2026-08-04T00:16:50.129Z",
+      "latestSolvedV2At": "2026-08-07T07:42:03.286Z"
+    },
+    {
+      "family": "mtt_9max_chipev",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "mtt-010"
+      ],
+      "rows": 328,
+      "legacyRows": 0,
+      "v2Rows": 328,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 99753,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 328,
+      "salvageableRows": 328,
+      "trainingUsableRows": 328,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:44.952Z",
+      "latestCreatedAt": "2026-02-04T18:57:38.562Z",
+      "earliestSolvedV2At": "2026-08-04T03:21:52.503Z",
+      "latestSolvedV2At": "2026-08-07T13:47:34.618Z"
+    },
+    {
+      "family": "mtt_9max_chipev",
+      "stack": 80,
+      "street": "flop",
+      "games": [
+        "mtt-012",
+        "mtt-020",
+        "mtt-024"
+      ],
+      "rows": 345,
+      "legacyRows": 0,
+      "v2Rows": 345,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 112326,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 345,
+      "salvageableRows": 345,
+      "trainingUsableRows": 345,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:42:47.212Z",
+      "latestCreatedAt": "2026-02-04T18:57:45.485Z",
+      "earliestSolvedV2At": "2026-08-04T07:32:54.961Z",
+      "latestSolvedV2At": "2026-08-08T00:09:11.788Z"
+    },
+    {
+      "family": "mtt_9max_icm",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "tournament-prep"
+      ],
+      "rows": 267,
+      "legacyRows": 267,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 267,
+      "credibleUnits": 0,
+      "corruptUnits": 45123,
+      "outOfRangeValues": 72203,
+      "rowsWithOutOfRangeValues": 267,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 267,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 267,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:44:07.239Z",
+      "latestCreatedAt": "2026-02-04T19:02:33.273Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "mtt_9max_icm",
+      "stack": 60,
+      "street": "flop",
+      "games": [
+        "final-table-sim",
+        "mtt-004",
+        "mtt-011",
+        "mtt-019",
+        "mtt-023"
+      ],
+      "rows": 303,
+      "legacyRows": 303,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 303,
+      "credibleUnits": 0,
+      "corruptUnits": 51207,
+      "outOfRangeValues": 81976,
+      "rowsWithOutOfRangeValues": 303,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 303,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 303,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:44:07.979Z",
+      "latestCreatedAt": "2026-02-04T19:03:07.178Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "mtt_hu_chipev",
+      "stack": 40,
+      "street": "flop",
+      "games": [
+        "mtt-015"
+      ],
+      "rows": 172,
+      "legacyRows": 0,
+      "v2Rows": 172,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 115922,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 172,
+      "salvageableRows": 172,
+      "trainingUsableRows": 172,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:45:09.801Z",
+      "latestCreatedAt": "2026-02-04T19:08:26.999Z",
+      "earliestSolvedV2At": "2026-08-06T04:19:58.892Z",
+      "latestSolvedV2At": "2026-08-10T01:07:26.798Z"
+    },
+    {
+      "family": "postflop_complete",
+      "stack": 100,
+      "street": "flop",
+      "games": [
+        "adv-001",
+        "adv-002",
+        "adv-003",
+        "adv-004",
+        "adv-005",
+        "adv-006",
+        "adv-007",
+        "adv-008",
+        "adv-009",
+        "adv-010",
+        "adv-011",
+        "adv-012",
+        "adv-013",
+        "adv-014",
+        "adv-015",
+        "adv-016",
+        "adv-017",
+        "adv-018",
+        "adv-019",
+        "adv-020",
+        "bluff-catcher",
+        "cash-012",
+        "cash-025",
+        "hand-lab",
+        "mixed-strategy-lab",
+        "quiz-gauntlet",
+        "study-group"
+      ],
+      "rows": 0,
+      "legacyRows": 0,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 0,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": null,
+      "latestCreatedAt": null,
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "spin_3max_chipev",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "spins-001",
+        "spins-003"
+      ],
+      "rows": 247,
+      "legacyRows": 0,
+      "v2Rows": 247,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 102841,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 247,
+      "salvageableRows": 247,
+      "trainingUsableRows": 247,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:49:59.206Z",
+      "latestCreatedAt": "2026-02-04T19:47:14.672Z",
+      "earliestSolvedV2At": "2026-08-05T23:19:10.680Z",
+      "latestSolvedV2At": "2026-08-09T14:53:23.534Z"
+    },
+    {
+      "family": "spin_3max_chipev",
+      "stack": 25,
+      "street": "flop",
+      "games": [
+        "spins-005",
+        "spins-010"
+      ],
+      "rows": 260,
+      "legacyRows": 0,
+      "v2Rows": 260,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 108148,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 260,
+      "salvageableRows": 260,
+      "trainingUsableRows": 260,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:50:00.949Z",
+      "latestCreatedAt": "2026-02-04T19:47:23.098Z",
+      "earliestSolvedV2At": "2026-08-05T23:58:23.764Z",
+      "latestSolvedV2At": "2026-08-09T16:18:58.110Z"
+    },
+    {
+      "family": "spin_3max_icm",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "spins-002",
+        "spins-006"
+      ],
+      "rows": 236,
+      "legacyRows": 236,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 236,
+      "credibleUnits": 0,
+      "corruptUnits": 39884,
+      "outOfRangeValues": 63557,
+      "rowsWithOutOfRangeValues": 236,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 236,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 236,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:50:39.320Z",
+      "latestCreatedAt": "2026-02-04T20:42:23.893Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "spin_3max_icm",
+      "stack": 25,
+      "street": "flop",
+      "games": [
+        "spins-009"
+      ],
+      "rows": 220,
+      "legacyRows": 220,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 220,
+      "credibleUnits": 0,
+      "corruptUnits": 37180,
+      "outOfRangeValues": 59444,
+      "rowsWithOutOfRangeValues": 220,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 220,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 220,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:50:41.296Z",
+      "latestCreatedAt": "2026-02-04T20:41:35.651Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    },
+    {
+      "family": "spin_hu_chipev",
+      "stack": 10,
+      "street": "flop",
+      "games": [
+        "spins-004"
+      ],
+      "rows": 197,
+      "legacyRows": 0,
+      "v2Rows": 197,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 106943,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 197,
+      "salvageableRows": 197,
+      "trainingUsableRows": 197,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:51:11.087Z",
+      "latestCreatedAt": "2026-02-04T21:38:13.107Z",
+      "earliestSolvedV2At": "2026-08-06T06:37:36.923Z",
+      "latestSolvedV2At": "2026-08-10T04:41:57.359Z"
+    },
+    {
+      "family": "spin_hu_chipev",
+      "stack": 20,
+      "street": "flop",
+      "games": [
+        "spins-008"
+      ],
+      "rows": 207,
+      "legacyRows": 0,
+      "v2Rows": 207,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 0,
+      "credibleUnits": 125534,
+      "corruptUnits": 0,
+      "outOfRangeValues": 0,
+      "rowsWithOutOfRangeValues": 0,
+      "strictUsableRows": 207,
+      "salvageableRows": 207,
+      "trainingUsableRows": 207,
+      "replacementRequiredRows": 0,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 0,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:51:21.724Z",
+      "latestCreatedAt": "2026-02-04T21:35:38.355Z",
+      "earliestSolvedV2At": "2026-08-06T08:39:48.922Z",
+      "latestSolvedV2At": "2026-08-10T09:24:47.741Z"
+    },
+    {
+      "family": "spin_hu_icm",
+      "stack": 10,
+      "street": "flop",
+      "games": [
+        "spins-007"
+      ],
+      "rows": 191,
+      "legacyRows": 191,
+      "v2Rows": 0,
+      "noMatrixRows": 0,
+      "invalidBoards": 0,
+      "invalidScenarioHashes": 0,
+      "structurallyInvalidMatrices": 0,
+      "rowsWithNoCredibleStrategy": 191,
+      "credibleUnits": 0,
+      "corruptUnits": 32279,
+      "outOfRangeValues": 51605,
+      "rowsWithOutOfRangeValues": 191,
+      "strictUsableRows": 0,
+      "salvageableRows": 0,
+      "trainingUsableRows": 0,
+      "replacementRequiredRows": 191,
+      "unusableReasonCounts": {
+        "invalidScenarioHash": 0,
+        "invalidBoard": 0,
+        "invalidMatrixShape": 0,
+        "noCredibleStrategy": 191,
+        "partialV2Row": 0
+      },
+      "earliestCreatedAt": "2026-01-19T22:51:50.334Z",
+      "latestCreatedAt": "2026-02-04T22:39:30.549Z",
+      "earliestSolvedV2At": null,
+      "latestSolvedV2At": null
+    }
+  ],
+  "totals": {
+    "warehouseRows": 8924000,
+    "warehouseRiverRows": 5667577,
+    "auditedRows": 7900,
+    "invalidBoards": 0,
+    "structurallyInvalidMatrices": 0,
+    "rowsWithNoCredibleStrategy": 1776,
+    "credibleUnits": 2826931,
+    "corruptUnits": 300144,
+    "outOfRangeValues": 480002,
+    "rowsWithOutOfRangeValues": 1776,
+    "strictUsableRows": 6124,
+    "salvageableRows": 6124,
+    "trainingUsableRows": 6124,
+    "replacementRequiredRows": 1776
+  }
+}

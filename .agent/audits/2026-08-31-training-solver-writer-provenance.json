@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "capturedAt": "2026-08-31T20:30:19.692Z",
+  "readOnly": true,
+  "table": "public.solved_spots_gold",
+  "columns": [
+    {
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "scenario_hash",
+      "data_type": "text"
+    },
+    {
+      "column_name": "game_type",
+      "data_type": "text"
+    },
+    {
+      "column_name": "stack_depth",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "street",
+      "data_type": "text"
+    },
+    {
+      "column_name": "strategy_matrix",
+      "data_type": "jsonb"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "strategy_matrix_v2",
+      "data_type": "jsonb"
+    },
+    {
+      "column_name": "solved_v2_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "solver_version",
+      "data_type": "text"
+    },
+    {
+      "column_name": "solver_binary_checksum",
+      "data_type": "text"
+    },
+    {
+      "column_name": "machine_id",
+      "data_type": "text"
+    },
+    {
+      "column_name": "pipeline_commit",
+      "data_type": "text"
+    },
+    {
+      "column_name": "manifest_version",
+      "data_type": "text"
+    },
+    {
+      "column_name": "manifest_checksum",
+      "data_type": "text"
+    },
+    {
+      "column_name": "source_artifact_checksum",
+      "data_type": "text"
+    },
+    {
+      "column_name": "quality_status",
+      "data_type": "text"
+    },
+    {
+      "column_name": "audited_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "missingProvenanceColumns": [],
+  "triggers": [
+    {
+      "tgname": "solved_spots_gold_require_provenance",
+      "trigger_definition": "CREATE TRIGGER solved_spots_gold_require_provenance BEFORE INSERT OR UPDATE OF strategy_matrix, strategy_matrix_v2 ON public.solved_spots_gold FOR EACH ROW EXECUTE FUNCTION sp_require_solver_write_provenance()",
+      "function_name": "sp_require_solver_write_provenance"
+    },
+    {
+      "tgname": "sp_pending_family_del",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_del AFTER DELETE ON public.solved_spots_gold REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "sp_pending_family_ins",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_ins AFTER INSERT ON public.solved_spots_gold REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "sp_pending_family_upd",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_upd AFTER UPDATE ON public.solved_spots_gold REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "trg_sp_sync_matrix",
+      "trigger_definition": "CREATE TRIGGER trg_sp_sync_matrix BEFORE INSERT OR UPDATE ON public.solved_spots_gold FOR EACH ROW EXECUTE FUNCTION sp_sync_matrix()",
+      "function_name": "sp_sync_matrix"
+    }
+  ],
+  "matchingCronJobs": [],
+  "tableStats": {
+    "n_tup_ins": "2947",
+    "n_tup_upd": "0",
+    "n_tup_del": "0",
+    "n_live_tup": "2947",
+    "last_vacuum": null,
+    "last_autovacuum": null,
+    "last_analyze": null,
+    "last_autoanalyze": null
+  },
+  "statementStatsResetAt": "2026-08-31T17:58:57.066Z",
+  "historicalWriterStatements": [
+    {
+      "rolname": "service_role",
+      "calls": 2947,
+      "rows": 2947,
+      "total_exec_time": 560943.571218,
+      "mean_exec_time": 190.343933226332,
+      "statement_kind": "postgrest_insert",
+      "writes_strategy_matrix_v2": false,
+      "writes_solved_v2_at": false
+    },
+    {
+      "rolname": "postgres",
+      "calls": 1,
+      "rows": 0,
+      "total_exec_time": 25.570528,
+      "mean_exec_time": 25.570528,
+      "statement_kind": "other_write",
+      "writes_strategy_matrix_v2": true,
+      "writes_solved_v2_at": false
+    },
+    {
+      "rolname": "postgres",
+      "calls": 1,
+      "rows": 0,
+      "total_exec_time": 6.08151,
+      "mean_exec_time": 6.08151,
+      "statement_kind": "other_write",
+      "writes_strategy_matrix_v2": false,
+      "writes_solved_v2_at": false
+    },
+    {
+      "rolname": "postgres",
+      "calls": 1,
+      "rows": 0,
+      "total_exec_time": 9.812391,
+      "mean_exec_time": 9.812391,
+      "statement_kind": "other_write",
+      "writes_strategy_matrix_v2": true,
+      "writes_solved_v2_at": false
+    }
+  ],
+  "provenanceWriteGateInstalled": true,
+  "conclusion": "Historical writes remain unattributed, but production now rejects every new or materially changed solver artifact without the complete validated v2 provenance seal."
+}

@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { supabase } from '../../src/lib/supabase';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 export default function ClaimPage() {
     const router = useRouter();
@@ -23,12 +23,12 @@ export default function ClaimPage() {
 
         const checkAuth = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session && session.user) {
-                    setUser(session.user);
+                const authUser = getAuthUser();
+                if (authUser?.id) {
+                    setUser(authUser);
                 } else {
                     const returnUrl = encodeURIComponent('/claim/' + (token || ''));
-                    router.push('/login?redirect=' + returnUrl);
+                    router.push('/auth/login?redirect=' + returnUrl);
                     return;
                 }
             } catch (e) {
@@ -49,8 +49,7 @@ export default function ClaimPage() {
         setClaiming(true);
         setError(null);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const accessToken = session ? session.access_token : null;
+            const accessToken = getAccessToken();
             const res = await fetch('/api/employee/claim', {
                 method: 'POST',
                 headers: {

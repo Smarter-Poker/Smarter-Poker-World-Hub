@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import {
   MapPin,
   Users,
@@ -280,9 +281,9 @@ export default function HomeGamePage() {
   const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setUser({ token: session.access_token, id: session.user.id });
-    });
+    const authUser = getAuthUser();
+    const accessToken = getAccessToken();
+    if (authUser?.id && accessToken) setUser({ token: accessToken, id: authUser.id });
   }, []);
 
   // audit F-17: setIsMember was declared and NEVER CALLED, so isMember stayed

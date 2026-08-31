@@ -657,7 +657,7 @@ export default function ClubPage() {
       try {
         if (isVideo) {
           // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-          // Read token from localStorage — avoids supabase.auth.getSession() lock contention
+          // Read the cached token directly to avoid SDK session-lock contention.
           let _clubVidToken = null;
           try {
             const _raw = localStorage.getItem('smarter-poker-auth');

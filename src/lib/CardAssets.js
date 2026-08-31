@@ -16,7 +16,7 @@
  * Card Dimensions: 150 x 210 px (RGBA PNG)
  */
 
-const { getRank, getSuit, RANKS } = require('./Deck');
+const { getRank, getSuit, RANKS } = require('./poker-engine/Deck');
 
 // ============ ASSET PATH CONFIGURATION ============
 
@@ -176,7 +176,7 @@ function getPreloadManifest(options = {}) {
  */
 function getCardImageProps(card, options = {}) {
   const { optimized = false, cardBack = DEFAULT_CARD_BACK, scale = 1 } = options;
-  const { cardToDisplay, cardToFullName } = require('./Deck');
+  const { cardToDisplay, cardToFullName } = require('./poker-engine/Deck');
   
   if (card === null || card === undefined) {
     return {

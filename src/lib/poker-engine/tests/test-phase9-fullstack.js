@@ -18,8 +18,12 @@ delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const fs = require('fs');
-const { GameController } = require('../src/GameController');
-const { GAME_VARIANT } = require('../src/GameStateMachine');
+const path = require('path');
+const { GameController } = require('../GameController');
+const { GAME_VARIANT } = require('../GameStateMachine');
+
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
+const ENGINE_ROOT = path.join(REPO_ROOT, 'src/lib/poker-engine');
 
 let passed = 0;
 let failed = 0;
@@ -61,7 +65,7 @@ async function runTests() {
   section('1. VARIANT_MAP - All Club Arena Strings');
   // ═══════════════════════════════════════════════════════
 
-  const gcCode = fs.readFileSync('/home/claude/poker-engine/src/GameController.js', 'utf8');
+  const gcCode = fs.readFileSync(path.join(ENGINE_ROOT, 'GameController.js'), 'utf8');
 
   // Every string Club Arena uses
   const clubArenaVariants = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck'];
@@ -114,16 +118,17 @@ async function runTests() {
   };
 
   for (const [route, keyword] of Object.entries(apiRoutes || {})) {
-    const exists = fs.existsSync(`/home/claude/poker-engine/${route}`);
+    const routePath = path.join(REPO_ROOT, route);
+    const exists = fs.existsSync(routePath);
     assert(exists, `${route.split('/').pop()} exists`);
     if (exists) {
-      const code = fs.readFileSync(`/home/claude/poker-engine/${route}`, 'utf8');
+      const code = fs.readFileSync(routePath, 'utf8');
       assert(code.includes(keyword), `  → uses ${keyword}`);
     }
   }
 
   // club-connect specifically should call connectToClubTable
-  const ccCode = fs.readFileSync('/home/claude/poker-engine/pages/api/poker/engine/club-connect.js', 'utf8');
+  const ccCode = fs.readFileSync(path.join(REPO_ROOT, 'pages/api/poker/engine/club-connect.js'), 'utf8');
   assert(ccCode.includes('connectToClubTable'), 'club-connect calls connectToClubTable');
 
   // ═══════════════════════════════════════════════════════
@@ -133,14 +138,15 @@ async function runTests() {
   const pages = {
     'pages/hub/poker/table/[tableId].js': ['LivePokerTable', 'supabase', 'tableId'],
     'pages/hub/poker/lobby.js': ['PokerLobby', 'supabase'],
-    'pages/hub/club-arena/table/[tableId].js': ['LivePokerTable', 'club-connect', 'supabase'],
+    'public/hub/club-arena/index.html': ['id="root"', '/hub/club-arena/assets/'],
   };
 
   for (const [page, keywords] of Object.entries(pages || {})) {
-    const exists = fs.existsSync(`/home/claude/poker-engine/${page}`);
+    const pagePath = path.join(REPO_ROOT, page);
+    const exists = fs.existsSync(pagePath);
     assert(exists, `${page} exists`);
     if (exists) {
-      const code = fs.readFileSync(`/home/claude/poker-engine/${page}`, 'utf8');
+      const code = fs.readFileSync(pagePath, 'utf8');
       for (const kw of keywords) {
         assert(code.includes(kw), `  → contains '${kw}'`);
       }
@@ -151,8 +157,8 @@ async function runTests() {
   section('5. UI Variant Labels + Colors');
   // ═══════════════════════════════════════════════════════
 
-  const lobbyCode = fs.readFileSync('/home/claude/poker-engine/src/components/PokerLobby.jsx', 'utf8');
-  const tableCode = fs.readFileSync('/home/claude/poker-engine/src/components/LivePokerTable.jsx', 'utf8');
+  const lobbyCode = fs.readFileSync(path.join(REPO_ROOT, 'src/components/poker/PokerLobby.jsx'), 'utf8');
+  const tableCode = fs.readFileSync(path.join(REPO_ROOT, 'src/components/poker/LivePokerTable.jsx'), 'utf8');
 
   // PokerLobby VARIANT_LABELS covers all engine outputs
   const engineVariants = ['holdem', 'omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'short_deck'];
@@ -259,16 +265,18 @@ async function runTests() {
   section('8. Tournament DB Schema Awareness');
   // ═══════════════════════════════════════════════════════
 
-  // Tournament tables exist in DB (verified via curl earlier)
-  // Engine doesn't have tournament logic yet — verify it's a known gap
-  assert(!gcCode.includes('TournamentController') && !gcCode.includes('blind_level'),
-    'Tournament engine NOT yet implemented (expected - Phase 10+)');
+  // Club Arena exclusively owns tournaments. The World Hub controller must
+  // not revive the retired TournamentController or its legacy database path.
+  assert(!/require\(\s*['"]\.\/TournamentController['"]\s*\)/.test(gcCode)
+      && gcCode.includes('Tournaments have moved to Club Arena')
+      && gcCode.includes('async _recoverTournaments()'),
+    'Retired World Hub tournament engine stays disabled and routes to Club Arena');
 
   // But the engine supports the building blocks:
   assert(gcCode.includes('closeTable'), 'Engine can close tables (for elimination)');
   assert(gcCode.includes('processAction'), 'Engine processes actions (core of tournament play)');
   assert(gcCode.includes('addChips'), 'Engine supports add chips (for rebuys)');
-  const gsmCode = fs.readFileSync('/home/claude/poker-engine/src/GameStateMachine.js', 'utf8');
+  const gsmCode = fs.readFileSync(path.join(ENGINE_ROOT, 'GameStateMachine.js'), 'utf8');
   assert(gsmCode.includes('smallBlind') && gsmCode.includes('bigBlind'), 'Blinds are configurable (for level changes)');
 
   // Tournament DB tables have correct schema (verified via API probe)
@@ -280,7 +288,7 @@ async function runTests() {
   section('9. Module Exports Verification');
   // ═══════════════════════════════════════════════════════
 
-  const indexCode = fs.readFileSync('/home/claude/poker-engine/src/index.js', 'utf8');
+  const indexCode = fs.readFileSync(path.join(ENGINE_ROOT, 'index.js'), 'utf8');
   const requiredExports = [
     'GameController', 'getController',
     'Deck', 'HandEvaluator', 'PotCalculator', 'ActionValidator',
@@ -299,12 +307,12 @@ async function runTests() {
   // Verify every connection point
   const checks = [
     ['Club Arena → Engine', gcCode.includes('connectToClubTable')],
-    ['Engine → Supabase tables', gcCode.includes("from('poker_tables')")],
-    ['Engine → Club tables', gcCode.includes("from('tables')")],
-    ['Engine → hand_histories', fs.readFileSync('/home/claude/poker-engine/src/HandHistory.js', 'utf8').includes("from('hand_histories')")],
-    ['Engine → Realtime broadcast', fs.readFileSync('/home/claude/poker-engine/src/RealtimeSync.js', 'utf8').includes('_broadcast')],
-    ['Client → HTTP API → Engine', fs.readFileSync('/home/claude/poker-engine/src/hooks/useTableConnection.js', 'utf8').includes('/api/poker/engine/')],
-    ['Client ← Realtime ← Engine', fs.readFileSync('/home/claude/poker-engine/src/hooks/useTableConnection.js', 'utf8').includes('supabase.channel')],
+    ['Engine excludes retired poker_tables', !gcCode.includes("from('poker_tables')")],
+    ['Engine → canonical tables', gcCode.includes("from('tables')")],
+    ['Engine → canonical hand_history', fs.readFileSync(path.join(ENGINE_ROOT, 'HandHistory.js'), 'utf8').includes("from('hand_history')")],
+    ['Engine → Realtime broadcast', fs.readFileSync(path.join(ENGINE_ROOT, 'RealtimeSync.js'), 'utf8').includes('_broadcast')],
+    ['Client → HTTP API → Engine', fs.readFileSync(path.join(REPO_ROOT, 'src/hooks/useTableConnection.js'), 'utf8').includes('/api/poker/engine/')],
+    ['Client ← Realtime ← Engine', fs.readFileSync(path.join(REPO_ROOT, 'src/hooks/useTableConnection.js'), 'utf8').includes('supabase.channel')],
     ['PokerLobby → HTTP API', lobbyCode.includes('/api/poker/engine/tables')],
     ['LivePokerTable → useTableConnection', tableCode.includes('useTableConnection')],
   ];

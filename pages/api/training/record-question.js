@@ -10,6 +10,8 @@ import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { gradeSolverDecision } from '../../../src/lib/training/solverDecisionEvidence';
+import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -27,23 +29,23 @@ async function getCanonicalQuestion(questionId, gameId) {
   const db = getSupabase();
   const byQuestionId = await db
     .from('training_question_cache')
-    .select('question_id, question_data')
+    .select('question_id, question_data, engine_type')
     .eq('question_id', questionId)
     .eq('game_id', gameId)
     .maybeSingle();
-  if (!byQuestionId.error && byQuestionId.data?.question_data) return byQuestionId.data.question_data;
+  if (!byQuestionId.error && byQuestionId.data?.question_data) return byQuestionId.data;
 
   // A handful of old cache writers prefixed the row's question_id while the
   // client received question_data.id. JSON containment finds those rows without
   // trusting a solver snapshot supplied by the browser.
   const byPayloadId = await db
     .from('training_question_cache')
-    .select('question_id, question_data')
+    .select('question_id, question_data, engine_type')
     .eq('game_id', gameId)
     .contains('question_data', { id: questionId })
     .limit(1)
     .maybeSingle();
-  if (!byPayloadId.error && byPayloadId.data?.question_data) return byPayloadId.data.question_data;
+  if (!byPayloadId.error && byPayloadId.data?.question_data) return byPayloadId.data;
   return null;
 }
 export default async function handler(req, res) {
@@ -91,6 +93,26 @@ export default async function handler(req, res) {
     }
 
     try {
+      const canonicalRow = await getCanonicalQuestion(String(questionId), String(gameId));
+      const [eligibleCanonical] = canonicalRow
+        ? filterCachedRowsForGame(
+            [canonicalRow],
+            pioQueryService.getGameConfig(String(gameId)),
+            { allowSanitizedLegacyArchive: true },
+          )
+        : [];
+      if (!eligibleCanonical?.question_data) {
+        // This includes old offline packs whose unsealed PIO rows are no longer
+        // safe to grade. Do not accept the browser's answer key; make the
+        // client fetch a freshly sanitized canonical question.
+        return res.status(409).json({
+          success: false,
+          error: 'This question has expired. Refresh the training hand and try again.',
+          code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
+        });
+      }
+      const canonicalQuestion = eligibleCanonical.question_data;
+
       // Record the seen question (for no-repeat)
       const seenResult = await withRetry(
         () =>
@@ -127,10 +149,8 @@ export default async function handler(req, res) {
         villainPosition = null,
         street = null,
         classification = null,
-        evLoss = 0,
         spotType = null,
       } = req.body || {};
-      const canonicalQuestion = await getCanonicalQuestion(String(questionId), String(gameId));
       const canonicalGrade = canonicalQuestion
         ? gradeSolverDecision(canonicalQuestion, String(answerId))
         : null;
@@ -145,33 +165,42 @@ export default async function handler(req, res) {
       // The browser's classification is useful for legacy/scenario analytics,
       // but it is never accepted as solver evidence. When a canonical cached
       // question exists the server recomputes every graded field from it.
-      const persistedClassification = verified
+      const persistedClassification = canonicalGrade
         ? canonicalGrade.classification
         : (typeof classification === 'string' ? classification.slice(0, 32) : null);
+      // The answer endpoint now requires a server-canonical question, so a
+      // client-supplied EV number is never authoritative. Preserve exact EV
+      // only when the canonical provenance seal and per-action EV contract
+      // both verify; otherwise store the schema's neutral zero while marking
+      // ev_loss_measured=false below.
       const persistedEVLoss = verified && canonicalGrade.evLossMeasured
         ? canonicalGrade.evLoss
-        : (typeof evLoss === 'number' && isFinite(evLoss) ? evLoss : 0);
+        : 0;
 
       const baseRow = {
         user_id: userId,
         game_id: String(gameId).slice(0, 100),
         question_id: String(questionId).slice(0, 180),
         answer_id: String(answerId).slice(0, 100),
-        is_correct: verified ? canonicalGrade.isCorrect : !!isCorrect,
+        // A live legacy row is sanitized before it is canonicalized. It is not
+        // solver evidence, but its server-side answer key still outranks a
+        // browser assertion. Only the evidence fields below remain gated on
+        // the complete provenance seal.
+        is_correct: canonicalGrade ? canonicalGrade.isCorrect : !!isCorrect,
         level: Math.min(12, Math.max(1, Number(level) || 1)),
         answered_at: new Date().toISOString(),
-        hero_position: verified
+        hero_position: canonicalQuestion
           ? String(canonicalScenario.heroPosition || canonicalScenario.position || '').slice(0, 10) || null
           : (typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null),
-        villain_position: verified
+        villain_position: canonicalQuestion
           ? String(canonicalScenario.villainPosition || '').slice(0, 10) || null
           : (typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null),
-        street: verified
+        street: canonicalQuestion
           ? String(canonicalScenario.street || '').slice(0, 12) || null
           : (typeof street === 'string' ? street.slice(0, 12) : null),
         classification: persistedClassification,
         ev_loss: persistedEVLoss,
-        spot_type: verified
+        spot_type: canonicalQuestion
           ? String(canonicalSpotType).slice(0, 40)
           : (typeof spotType === 'string' ? spotType.slice(0, 40) : null),
       };

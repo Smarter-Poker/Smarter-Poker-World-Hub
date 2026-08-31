@@ -95,7 +95,8 @@ function staticAudit() {
 
   const requiredSourceMarkers = [
     "const street = config.pioStreet || getStreetForLevel(level);",
-    'scenario.strategy_matrix_v2 || scenario.strategy_matrix',
+    'const sm = toTrainingMatrix(scenario) || {};',
+    'return sanitizeLegacyMatrix(structuredClone(scenario.strategy_matrix));',
     'enforceTrainingQuestionContract(rawQuestion)',
     'const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];',
   ];
@@ -182,4 +183,3 @@ main().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
 });
-

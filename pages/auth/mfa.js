@@ -33,6 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 /* Seconds the "Resend code" button stays locked after a successful send. */
 const RESEND_COOLDOWN_SEC = 30;
@@ -189,13 +190,9 @@ export default function MfaChallengePage() {
     useEffect(() => {
         let cancelled = false;
         async function boot() {
-            let s = null;
-            try {
-                const { data } = await supabase.auth.getSession();
-                s = data?.session || null;
-            } catch (err) {
-                console.warn('[mfa] session lookup failed:', err);
-            }
+            const user = getAuthUser();
+            const accessToken = getAccessToken();
+            const s = user?.id && accessToken ? { user, access_token: accessToken } : null;
             if (cancelled) return;
             if (!s) {
                 router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);

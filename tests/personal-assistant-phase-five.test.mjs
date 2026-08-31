@@ -27,6 +27,19 @@ const now = Date.parse('2026-08-30T19:30:00.000Z');
 function solverQuestion() {
   return {
     source: 'DETERMINISTIC_SOLVER',
+    solverProvenance: {
+      verified: true,
+      scenarioHash: '6max_cash_flop_BTNvsBB_AsKs2d',
+      solverVersion: 'PioSOLVER-3.0',
+      solverBinaryChecksum: 'a'.repeat(64),
+      machineId: 'M1',
+      pipelineCommit: 'b'.repeat(40),
+      manifestVersion: 'training-phase4-test-v1',
+      manifestChecksum: 'c'.repeat(64),
+      sourceArtifactChecksum: 'd'.repeat(64),
+      qualityStatus: 'validated',
+      auditedAt: '2026-08-31T00:00:00.000Z',
+    },
     gtoFrequencies: { raise: 80, call: 20, fold: 0 },
     correctAnswer: 'raise',
     options: [
@@ -85,9 +98,9 @@ test('corrective drills resolve hyphen and underscore aliases without weakening 
 
 test('verified answer metadata comes from the canonical solver question, not the browser', () => {
   assert.match(recordQuestionApi, /const canonicalScenario = canonicalQuestion\?\.scenario \|\| \{\}/);
-  assert.match(recordQuestionApi, /hero_position: verified/);
-  assert.match(recordQuestionApi, /street: verified/);
-  assert.match(recordQuestionApi, /spot_type: verified/);
+  assert.match(recordQuestionApi, /hero_position: canonicalQuestion/);
+  assert.match(recordQuestionApi, /street: canonicalQuestion/);
+  assert.match(recordQuestionApi, /spot_type: canonicalQuestion/);
 });
 
 test('answers are immutable, private, token-bound, and revealed only after locking', () => {
@@ -140,7 +153,7 @@ test('The Optimizer fails closed until Club Arena recovery is recorder-attested'
 test('source-less verified compatibility questions receive a lockable canonical provenance label', () => {
   const question = solverQuestion();
   delete question.source;
-  question.solverProvenance = { verified: true };
+  question.solverProvenance = { ...question.solverProvenance, verified: true };
   const graded = gradeDrillAnswer(question, 'Raise');
   assert.equal(graded.ok, true);
   assert.equal(graded.solverSource, 'SOLVER_PROVENANCE_VERIFIED');

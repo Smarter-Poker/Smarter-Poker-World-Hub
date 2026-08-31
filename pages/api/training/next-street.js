@@ -15,7 +15,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
-import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+import { applyDeterministicEnginePatches, toHandClass } from '../../../src/engines/deterministicEnginePatches';
 // 2026-07-19 engine-audit runtime patches (see that module's header)
 applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
@@ -53,13 +53,32 @@ export default async function handler(req, res) {
 
       const { gameId, heroHand, heroCards: rawHeroCards, boardCards, street, pot, stackDepth, heroPosition, villainPosition } = req.query;
 
-      if (!gameId || !street || !boardCards) {
-          return res.status(400).json({ success: false, error: 'gameId, street, and boardCards are required' });
+      if (!gameId || !street || !boardCards || !heroHand || !rawHeroCards || !heroPosition || !villainPosition) {
+          return res.status(400).json({ success: false, error: 'Exact game, hand, board, and position state is required' });
       }
 
       try {
           // Parse board cards from comma-separated string
           const parsedBoardCards = boardCards.split(',').map(c => c.trim()).filter(Boolean);
+          const targetStreet = String(street).toLowerCase();
+          const CARD_RE = /^[2-9TJQKA][shdc]$/;
+          const parsedHeroCards = String(rawHeroCards).split(',').map(c => c.trim()).filter(Boolean);
+          const expectedPriorBoard = targetStreet === 'turn' ? 3 : targetStreet === 'river' ? 4 : 0;
+          const validPositions = new Set(['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+          const exactCards = [...parsedHeroCards, ...parsedBoardCards].map(card => card.toLowerCase());
+          const parsedPot = Number.parseFloat(pot);
+          if (expectedPriorBoard === 0
+              || parsedBoardCards.length !== expectedPriorBoard
+              || parsedHeroCards.length !== 2
+              || ![...parsedBoardCards, ...parsedHeroCards].every(card => CARD_RE.test(card))
+              || toHandClass(parsedHeroCards) !== toHandClass(String(heroHand))
+              || new Set(exactCards).size !== exactCards.length
+              || !validPositions.has(String(heroPosition).toUpperCase())
+              || !validPositions.has(String(villainPosition).toUpperCase())
+              || String(heroPosition).toUpperCase() === String(villainPosition).toUpperCase()
+              || !Number.isFinite(parsedPot) || parsedPot <= 0) {
+              return res.status(400).json({ success: false, error: 'Invalid exact next-street state' });
+          }
 
           // Get PIO game config
           const gameConfig = pioQueryService.getGameConfig(gameId);
@@ -71,24 +90,7 @@ export default async function handler(req, res) {
           const SUITS = ['s', 'h', 'd', 'c'];
           const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
           const deadCards = new Set([...parsedBoardCards.map(c => c.toLowerCase())]);
-          // Prefer real hero cards when provided (comma-separated, e.g. 'Ah,Kd')
-          const CARD_RE = /^[2-9TJQKA][shdc]$/;
-          const parsedHeroCards = rawHeroCards
-              ? String(rawHeroCards).split(',').map(c => c.trim()).filter(Boolean)
-              : [];
-          const realHeroCards = parsedHeroCards.length === 2 && parsedHeroCards.every(c => CARD_RE.test(c))
-              ? parsedHeroCards
-              : null;
-          // Add hero hand cards to dead cards
-          if (realHeroCards) {
-              realHeroCards.forEach(c => deadCards.add(c.toLowerCase()));
-          } else if (heroHand && heroHand.length >= 2) {
-              const r1 = heroHand[0], r2 = heroHand[1];
-              const suffix = heroHand.length >= 3 ? heroHand[2] : '';
-              if (r1 === r2) { deadCards.add(`${r1}h`); deadCards.add(`${r2}s`); }
-              else if (suffix === 's') { deadCards.add(`${r1}s`); deadCards.add(`${r2}s`); }
-              else { deadCards.add(`${r1}s`); deadCards.add(`${r2}h`); }
-          }
+          parsedHeroCards.forEach(c => deadCards.add(c.toLowerCase()));
 
           // Deal new card — IMP-5 FIX: Deterministic seeded RNG + PHASE 21 texture-weighted dealing
           const allCards = [];
@@ -166,13 +168,13 @@ export default async function handler(req, res) {
           deterministicEngine.setSupabaseClient(getSupabase());
           const question = await deterministicEngine.queryNextStreet({
               gameConfig,
-              heroHand: heroHand || 'AKs',
+              heroHand,
               boardCards: newBoardCards,
               street,
-              pot: parseFloat(pot) || 6,
+              pot: parsedPot,
               stackDepth: parseInt(stackDepth, 10) || 100,
-              heroPosition: heroPosition || 'BTN',
-              villainPosition: villainPosition || 'BB',
+              heroPosition,
+              villainPosition,
           });
 
           if (question) {

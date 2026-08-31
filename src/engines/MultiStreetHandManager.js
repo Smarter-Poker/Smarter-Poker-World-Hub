@@ -59,16 +59,19 @@ function heroHandToCards(heroHand) {
  * @param {string} action - Action code like 'c', 'b33', 'f'
  * @returns {number} New pot size
  */
-function computePotAfterAction(currentPot, action) {
+function computePotAfterAction(currentPot, action, { actionUnits = 'percent', facingBet = 0 } = {}) {
     if (!action) return currentPot;
     if (action === 'c' || action === 'x') return currentPot; // check
+    if (action === 'call') return currentPot + Math.max(0, Number(facingBet) || 0);
     if (action === 'f') return currentPot; // fold
 
     // Parse bet/raise percentage
     const betMatch = action.match(/^[br](\d+)$/);
     if (betMatch) {
-        const pct = parseInt(betMatch[1]);
-        const betSize = currentPot * (pct / 100);
+        const encodedAmount = parseInt(betMatch[1]);
+        const betSize = actionUnits === 'chips'
+            ? encodedAmount / 100
+            : currentPot * (encodedAmount / 100);
         // The model here is "hero bets X, villain calls" -- its own comment said
         // so -- but only ONE bet was ever added. A called bet puts X in from BOTH
         // players, so the pot grows by 2X. Understating it compounds: the turn is
@@ -156,13 +159,24 @@ export class MultiStreetHand {
             evLoss,
         });
 
-        // Update pot after action (hero bets, assume villain calls)
-        this.pot = computePotAfterAction(this.pot, actionCode);
-
-        // If hero folds, hand is over
-        if (actionCode === 'f' || actionCode === 'simple_fold') {
+        const scenario = this.currentQuestion?.scenario || {};
+        const continuationAction = scenario.nextStreetContinuationAction || null;
+        // A solved next street is valid only for the exact action line that
+        // produced it. If this node has no certified continuation, or the user
+        // chose another action, finish the hand instead of skipping hidden
+        // decisions and transplanting a different solve.
+        if (!continuationAction || String(actionCode) !== String(continuationAction)) {
             this.currentStreet = 'done';
+            return;
         }
+
+        // The supervised Pio export uses chip-denominated b/r tokens. Older
+        // authored scenarios use percentages. Respect the explicit unit tag
+        // so b412 means 4.12 BB here, never 412% of the pot.
+        this.pot = computePotAfterAction(this.pot, actionCode, {
+            actionUnits: scenario.solverActionUnits || 'percent',
+            facingBet: scenario.villainBet,
+        });
     }
 
     /**

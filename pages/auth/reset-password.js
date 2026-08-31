@@ -25,6 +25,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { validatePassword } from '../../src/lib/passwordStrength';
 
 export default function ResetPasswordPage() {
@@ -43,8 +44,7 @@ export default function ResetPasswordPage() {
 
         (async () => {
             try {
-                const { data, error: sErr } = await supabase.auth.getSession();
-                if (sErr || !data?.session?.user) {
+                if (!getAuthUser()?.id) {
                     setPhase('invalid');
                     return;
                 }

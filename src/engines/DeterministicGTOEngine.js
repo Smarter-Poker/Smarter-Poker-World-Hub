@@ -35,6 +35,7 @@ import {
 } from './PostflopScenarioGenerator';
 import { calculateActionEVs } from './EVCalculator';
 import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
+import { generateCuratedPokerConceptBatch } from '../lib/training/curatedPokerConcepts';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
 import { getPsychologyQuestions } from '../data/psychologyQuestionBank';
@@ -732,28 +733,31 @@ export class DeterministicGTOEngine {
                 .map(a => `${a.label} ${Math.round(freqs[a.solver] * 100)}%`);
             const explanation = `${contextText}: ${hand} - ${freqParts.join(', ')}.`;
 
-            // ═══ EV LOSS ESTIMATION ═══
-            // Approximate EV loss for each action based on frequency deviation.
-            // The EV of a pure strategy action vs the mixed strategy optimal:
-            // - Correct action (highest freq): 0 EV loss
-            // - Suboptimal action: EV loss proportional to (optimalFreq - thisFreq) * potSize
-            // This models "how much worse is taking this action vs optimal?"
-            const potSize = spotType === 'rfi' ? 1.5 : spotType === 'squeeze' ? 8.5 : 4.5;
-            const actionEVs = {};
-            for (const { solver, id } of actionLabels) {
-                const freq = freqs[solver] || 0;
-                // EV approximation: correct action = 0 loss, wrong action = cost
-                // proportional to frequency difference × pot
-                const evLoss = (maxFreq - freq) * potSize;
-                actionEVs[id] = -Math.round(evLoss * 100) / 100;
+            // Reconstruct the chips already in the pot from the exact preflop
+            // action contract. A 4-bet decision is not a 4.5 BB pot, and a
+            // squeeze is not a generic 8.5 BB pot. Posted blinds are included
+            // once; a player's raise-to amount replaces their posted blind.
+            const committed = new Map([['SB', 0.5], ['BB', 1]]);
+            const commitTo = (position, amount) => {
+                const seat = String(position || '').toUpperCase();
+                if (seat) committed.set(seat, Math.max(Number(committed.get(seat) || 0), amount));
+            };
+            if (spotType === '4bet') {
+                commitTo(heroPos, 2.5);
+                commitTo(villainPos, 9);
+            } else if (spotType === 'squeeze') {
+                commitTo(villainPos, 2.5);
+                for (const actor of extraActors || []) commitTo(actor?.position, 2.5);
+            } else if (spotType !== 'rfi') {
+                commitTo(villainPos, 2.5);
             }
-
-            // Estimate pot for EV reporting
-            const estimatedPot = potSize;
+            const potSize = [...committed.values()].reduce((sum, amount) => sum + amount, 0);
 
             return {
                 id: `local_solver_${spotType}_${heroPos}_${hand}_${Date.now()}`,
                 source: 'local_solver_ranges',
+                dataQuality: 'RANGE_EXACT',
+                evidenceDisclosure: 'Audited local preflop range frequencies; no per-action EV is claimed.',
                 heroHand: hand,
                 heroCards,
                 boardCards: [],
@@ -787,19 +791,7 @@ export class DeterministicGTOEngine {
                 frequencies: actions,
                 gtoFrequencies,
                 rawFrequencies,
-                actionEVs,
-                estimatedPot,
-                evData: {
-                    correctEV: 0,
-                    worstEV: -Math.round(maxFreq * potSize * 100) / 100,
-                    potSize: estimatedPot,
-                    // GTOW parity #32: every UI consumer reads
-                    // `question.evData.actionEVs` (see UniversalDynamicTable's
-                    // action-vs-optimal panel and the per-button EV chips).
-                    // This path only ever set the top-level `actionEVs`, so the
-                    // whole EV surface was dark for local-solver preflop spots.
-                    actionEVs,
-                },
+                estimatedPot: potSize,
                 explanation,
                 difficulty: effectiveLevel,
                 handCategory: this._classifyPreflopHand(hand),
@@ -1205,25 +1197,32 @@ export class DeterministicGTOEngine {
         const poolSize = Math.min(count * poolMultiplier, 125);
         const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet, { stackDepths, spotTypes });
 
-        if (!scenarios || scenarios.length === 0) return [];
+        const curatedFallback = () => generateCuratedPokerConceptBatch({
+            gameId,
+            level,
+            count,
+            gameConfig,
+            spotTypes,
+            stackDepths,
+            positions: targetPositions,
+        });
 
-        // ═══ PHASE 15: If target positions provided, prioritize those scenarios ═══
+        if (!scenarios || scenarios.length === 0) return curatedFallback();
+
+        // ═══ PHASE 15: If target positions are provided, require them ═══
         let sortedScenarios = scenarios;
         if (targetPositions && targetPositions.length > 0) {
             const posSet = new Set(targetPositions.map(p => p.toUpperCase()));
-            // Move target-position scenarios to the front
             const targeted = scenarios.filter(s => {
                 const pos = extractPositionFromHash(s.scenario_hash);
                 return posSet.has(pos);
             });
-            const others = scenarios.filter(s => {
-                const pos = extractPositionFromHash(s.scenario_hash);
-                return !posSet.has(pos);
-            });
-            sortedScenarios = [...targeted, ...others];
-            if (targeted.length > 0) {
-                console.debug(`[DeterministicEngine] Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
-            }
+            // A requested seat is part of the drill contract. Appending all
+            // other seats made targeted practice silently teach a different
+            // position once the small matching subset was exhausted.
+            if (targeted.length === 0) return curatedFallback();
+            sortedScenarios = targeted;
+            console.debug(`[DeterministicEngine] Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
         }
 
         // ═══ PHASE 19 + PHASE 75: Adaptive difficulty filtering ═══
@@ -1285,7 +1284,7 @@ export class DeterministicGTOEngine {
             usedHandScenarios.add(dedupeKey);
         }
 
-        return questions;
+        return questions.length > 0 ? questions : curatedFallback();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1547,13 +1546,12 @@ export class DeterministicGTOEngine {
                         const hash = (row.scenario_hash || '').toLowerCase();
                         return patterns.some(p => p.test(hash));
                     });
-                    // Only apply filter if it returns results; otherwise fall through with full pool
-                    if (filtered.length > 0) {
-                        allData = filtered;
-                        console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
-                    } else {
-                        console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} matched 0 scenarios, falling through with full pool`);
+                    if (filtered.length === 0) {
+                        console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} matched 0 scenarios; failing closed`);
+                        return null;
                     }
+                    allData = filtered;
+                    console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
                 }
             }
 
@@ -1580,13 +1578,19 @@ export class DeterministicGTOEngine {
         const board = parseBoardFromHash(scenario.scenario_hash);
 
         if (actions.length === 0) return null;
+        // A frequency-only legacy row can suggest an action, but it cannot
+        // support the solver-exact EV contract rendered and persisted by
+        // Training. Never manufacture zero EVs for an incomplete solve.
+        if (!handEVs || typeof handEVs !== 'object' || Object.keys(handEVs).length === 0) return null;
 
         // ═══ SELECT A HERO HAND ═══
         // Pick from the frequency data — these are the hands the solver analyzed
         const sampleAction = actions.find(a => frequencies[a]) || actions[0];
         const handFreqs = frequencies[sampleAction] || {};
         let allHands = Object.keys(handFreqs || {}).filter(h => (
-            h && h.length >= 2 && parseHandToCards(h, board) !== null
+            h && h.length >= 2
+            && parseHandToCards(h, board) !== null
+            && Number.isFinite(handEVs[h])
         ));
 
         // ═══ APPLY HAND CLASS FILTER ═══
@@ -1643,9 +1647,28 @@ export class DeterministicGTOEngine {
         if (!optimalAction || validActions.length === 0) return null;
 
         // ═══ EXTRACT BOARD & POSITION DATA (needed for node type detection) ═══
-        const heroPosition = extractPositionFromHash(scenario.scenario_hash);
-        const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
-        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
+        const heroPosition = strategyMatrix.position || extractPositionFromHash(scenario.scenario_hash);
+        const villainPosition = heroPosition === strategyMatrix.oop_player
+            ? strategyMatrix.ip_player
+            : heroPosition === strategyMatrix.ip_player
+                ? strategyMatrix.oop_player
+                : VILLAIN_MAP[heroPosition] || 'BB';
+        // Pot geometry is part of the solved node. Substituting a generic
+        // street pot changes the decision while retaining the old answer key.
+        const solverPotChips = Number(strategyMatrix.pot);
+        const displayPotBb = Number(strategyMatrix.pot_bb);
+        const heroSeat = String(strategyMatrix.hero || '').toUpperCase();
+        if (heroSeat !== 'OOP' && heroSeat !== 'IP') return null;
+        const expectedActor = heroSeat === 'OOP' ? 0 : 1;
+        if (
+            strategyMatrix.node_state_exact !== true
+            || strategyMatrix.node_actor !== expectedActor
+            || !strategyMatrix.position
+            || !strategyMatrix.oop_player
+            || !strategyMatrix.ip_player
+            || !Number.isFinite(solverPotChips) || solverPotChips <= 0
+            || !Number.isFinite(displayPotBb) || displayPotBb <= 0
+        ) return null;
 
         // ═══ PHASE 22: CONTEXT-AWARE ACTION FILTERING — GTO WIZARD PARITY ═══
         // GTO Wizard NEVER shows Fold when hero is not facing a bet.
@@ -1690,10 +1713,14 @@ export class DeterministicGTOEngine {
                 if (optimalAction === 'c') optimalAction = 'call';
             }
 
-            // If filtering removed ALL actions, restore original (defensive fallback)
+            // If the declared node type and exported action set disagree, the
+            // row is not a trustworthy description of this decision. Restoring
+            // the original actions could reintroduce Fold at a check node or
+            // Bet when facing a wager, so fail closed and let the curated
+            // curriculum handle the missing cell.
             if (validActions.length === 0) {
-                console.warn(`[DeterministicEngine] Context filter removed all actions for ${scenario.scenario_hash} nodeType=${nodeType}, restoring originals`);
-                validActions = clampedActions.length > 0 ? clampedActions : actions.filter(a => handActions[a] !== undefined);
+                console.warn(`[DeterministicEngine] Context filter rejected every action for ${scenario.scenario_hash} nodeType=${nodeType}`);
+                return null;
             }
 
             // Re-evaluate optimal action after filtering
@@ -1752,30 +1779,7 @@ export class DeterministicGTOEngine {
         }
 
         // ═══ COMPUTE EV DATA (Real solver values + per-action approximation) ═══
-        const heroHandEV = handEVs[heroHand] || 0;
-        const allEVs = Object.values(handEVs || {}).filter(v => typeof v === 'number');
-        const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
-
-        // ═══ PER-ACTION EV APPROXIMATION ═══
-        // At Nash equilibrium, any action in the mixed strategy yields the same EV.
-        // Actions with 0% frequency are strictly dominated (lower EV).
-        // Approximate: actionEV = heroHandEV for mixed actions,
-        //              actionEV = heroHandEV - penalty for 0% actions.
-        const actionEVs = {};
-        const heroFreqForHand = handActions; // { action: freq 0.0-1.0 }
-        validActions.forEach(action => {
-            const freq = heroFreqForHand[action] || 0;
-            if (freq > 0) {
-                // In the mix — all mixed actions yield approximately equal EV
-                actionEVs[action] = Math.round(heroHandEV * 100) / 100;
-            } else {
-                // Not in mix — estimate penalty proportional to pot and strategy purity
-                // The more "pure" the solver is (high correctFreq), the worse 0% actions are
-                const penalty = estimatedPot * 0.15 * (1 + (gtoFrequencies[optimalAction] || 50) / 100);
-                actionEVs[action] = Math.round((heroHandEV - penalty) * 100) / 100;
-            }
-        });
-
+        const heroHandEV = handEVs[heroHand];
         // ═══ BUILD OPTIONS — GTO WIZARD PARITY ═══
         // Show ALL real solver actions (context-filtered). Exact GTOW style:
         //   Check/Bet node: Check → Bet sizes ascending
@@ -1784,7 +1788,7 @@ export class DeterministicGTOEngine {
         const sortedActions = this.sortActionsGTOWStyle(validActions, nodeType);
         const options = sortedActions.slice(0, 9).map(action => ({
             id: action,
-            text: this.getActionLabelGTOW(action, estimatedPot),
+            text: this.getActionLabelGTOW(action, solverPotChips, true),
             frequency: gtoFrequencies[action],
         }));
 
@@ -1793,7 +1797,7 @@ export class DeterministicGTOEngine {
         // If solver only has 1 action, add the most contextually natural alternative.
         if (options.length < 2) {
             const existingIds = new Set(options.map(o => o.id));
-            const contextFillers = this.getContextualFillers(nodeType, existingIds, estimatedPot);
+            const contextFillers = this.getContextualFillers(nodeType, existingIds, displayPotBb);
 
             for (const filler of contextFillers) {
                 if (options.length >= 3) break;
@@ -1819,14 +1823,25 @@ export class DeterministicGTOEngine {
 
         const explanation = this.buildExplanation(heroHand, board, scenario.street,
             optimalAction, handActions, heroHandEV, validActions,
-            { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth,
+            { nodeType, heroPosition, villainPosition, estimatedPot: displayPotBb, stackDepth: scenario.stack_depth,
+              solverPotChips,
               potType: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition).potType,
-              actionEVs, gameCategory });
+              gameCategory });
 
         // ═══ DETERMINE MIXED STRATEGY CORRECTNESS ═══
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
         // The "correct" answer is the highest-frequency action, but partial credit applies
         const isMixedStrategy = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
+        const continuationBet = heroSeat === 'IP' && Number(strategyMatrix.facing_bet_bb || 0) === 0
+            ? validActions
+                .filter(action => /^b\d+$/.test(String(action)))
+                .map(action => ({
+                    action,
+                    distance: Math.abs((Number(String(action).slice(1)) / solverPotChips) - 0.75),
+                }))
+                .filter(candidate => candidate.distance <= 0.03)
+                .sort((a, b) => a.distance - b.distance)[0]?.action || null
+            : null;
 
         return {
             id: `pio_${scenario.id}_${heroHand}_${questionIndex}`,
@@ -1841,7 +1856,7 @@ export class DeterministicGTOEngine {
                 heroHand,
                 heroPosition,
                 heroStack: scenario.stack_depth || 100,
-                pot: estimatedPot,
+                pot: displayPotBb,
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
                 action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
@@ -1856,8 +1871,11 @@ export class DeterministicGTOEngine {
                 // player ("CO bets 4bb (66% pot)"). It was simply never handed
                 // to the felt. Same number, same source, now structured.
                 villainBet: nodeType === 'hero_faces_bet'
-                    ? this._villainBetBB(scenario, estimatedPot)
+                    ? this._villainBetBB(scenario, displayPotBb)
                     : 0,
+                solverNode: strategyMatrix.node,
+                solverActionUnits: 'chips',
+                nextStreetContinuationAction: continuationBet,
                 nodeType,  // Phase 22: use already-computed node type
                 context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,
@@ -1865,10 +1883,10 @@ export class DeterministicGTOEngine {
             heroCards: parseHandToCards(heroHand, board),
             // SYS-002 FIX: Populate boardCards array for PNG card rendering
             boardCards: board.length > 0 ? board : [],
-            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, estimatedPot, scenario.scenario_hash, scenario.stack_depth),
+            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, displayPotBb, scenario.scenario_hash, scenario.stack_depth),
             options,
             correctAnswer: optimalAction,
-            correctAnswerText: this.getActionLabel(optimalAction, estimatedPot),
+            correctAnswerText: this.getActionLabelGTOW(optimalAction, solverPotChips, true),
             // ═══ REAL SOLVER DATA ═══
             // Phase 22: Ensure rawFrequencies keys match remapped action IDs
             // (e.g., if 'c' was remapped to 'call' in facing-bet context)
@@ -1883,17 +1901,14 @@ export class DeterministicGTOEngine {
             })(),       // Full per-hand matrix
             evData: {
                 heroHandEV,
-                optimalEV: maxHandEV,
                 handEVs,
                 heroHand,
-                actionEVs,  // Per-action EV for GTOW-style display on buttons
+                quality: 'SOLVER_NODE_HAND_EV_ONLY',
             },
             explanation,
             difficulty: level,
             heroHand,
-            // Consumers read these at the top level (not just nested in evData)
-            actionEVs,
-            estimatedPot,
+            estimatedPot: displayPotBb,
             // Phase 51: Hand categorization for replay display
             handCategory: this.categorizeHand(heroHand, board),
         };
@@ -1976,7 +1991,9 @@ export class DeterministicGTOEngine {
         return {
             id: `chart_${chart.id || chart.chart_id}_${heroHand}`,
             type: 'CHART',
-            source: 'DETERMINISTIC_SOLVER',
+            // memory_charts_gold is the separately audited chart corpus. Do
+            // not mislabel it as a PioSOLVER warehouse artifact.
+            source: 'CHART',
             scenario: {
                 stackDepth: chart.stack_depth,
                 heroPosition: chart.hero_position || chart.position || 'BTN',
@@ -2009,14 +2026,7 @@ export class DeterministicGTOEngine {
                 : (correctAction === 'fold' ? 'Fold' : yesText),
             frequencies: { [yesId]: yesFreq, fold: 1 - yesFreq },
             gtoFrequencies,
-            // Charts have no real EV data — zero out so the client falls back
-            // to simulated EV loss instead of treating frequency as EV.
-            evData: {
-                heroHandEV: 0,
-                optimalEV: 0,
-                handEVs: null,
-                heroHand,
-            },
+            evidenceDisclosure: 'Audited local push/fold chart frequencies; no per-action EV is claimed.',
             explanation: this.buildChartExplanation(heroHand, chart, yesFreq, correctAction, isCallNode),
             difficulty: level,
             heroHand,
@@ -2401,6 +2411,8 @@ export class DeterministicGTOEngine {
         // matrix's own `pot` is written in -- so they are rebased onto the pot
         // the felt is actually showing rather than used raw.
         const sm = scenario.strategy_matrix || {};
+        const exactFacingBet = Number(sm.facing_bet_bb);
+        if (Number.isFinite(exactFacingBet) && exactFacingBet > 0) return exactFacingBet;
 
         // SOURCE 0 -- the 2026-08-15 harvest schema. The solver machines'
         // rebuilt pipeline replaced the singular `node` key with a `nodes[]`
@@ -2727,7 +2739,7 @@ export class DeterministicGTOEngine {
      *   "Check", "Bet 16%", "Bet 45%", "Bet 67%", "Bet Pot", "Overbet 150%"
      *   "Fold", "Call", "Raise 50%", "Raise Pot", "All-In"
      */
-    getActionLabelGTOW(actionCode, potSize = 6) {
+    getActionLabelGTOW(actionCode, potSize = 6, solverChipUnits = false) {
         const a = actionCode.toLowerCase();
         if (a === 'c' || a === 'x') return 'Check';
         if (a === 'f') return 'Fold';
@@ -2736,7 +2748,8 @@ export class DeterministicGTOEngine {
 
         const betMatch = a.match(/^b(\d+)$/);
         if (betMatch) {
-            const pct = parseInt(betMatch[1]);
+            const amount = parseInt(betMatch[1]);
+            const pct = solverChipUnits ? Math.round((amount / potSize) * 100) : amount;
             if (pct === 100) return 'Bet Pot';
             if (pct > 100) return `Overbet ${pct}%`;
             return `Bet ${pct}%`;
@@ -2744,7 +2757,12 @@ export class DeterministicGTOEngine {
 
         const raiseMatch = a.match(/^r(\d+)$/);
         if (raiseMatch) {
-            const pct = parseInt(raiseMatch[1]);
+            const amount = parseInt(raiseMatch[1]);
+            if (solverChipUnits) {
+                const bb = amount / 100;
+                return `Raise To ${Number.isInteger(bb) ? bb : bb.toFixed(1)} BB`;
+            }
+            const pct = amount;
             if (pct === 100) return 'Raise Pot';
             return `Raise ${pct}%`;
         }
@@ -2772,7 +2790,13 @@ export class DeterministicGTOEngine {
      */
     buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions, ctx = {}) {
         if (!heroHand || !optimalAction) return '';
-        const label = this.getActionLabelGTOW(optimalAction);
+        const hasExactSolverPot = Number.isFinite(Number(ctx.solverPotChips))
+            && Number(ctx.solverPotChips) > 0;
+        const label = this.getActionLabelGTOW(
+            optimalAction,
+            hasExactSolverPot ? Number(ctx.solverPotChips) : 6,
+            hasExactSolverPot,
+        );
         const freq = handActions[optimalAction] || 0;
         const freqPct = (freq * 100).toFixed(0);
         const handStrength = this.categorizeHand(heroHand, board);
@@ -2796,8 +2820,16 @@ export class DeterministicGTOEngine {
         const isRaise = a.startsWith('r');
 
         // Extract bet sizing percentage
-        const sizeMatch = a.match(/^[br](\d+)$/);
-        const sizePct = sizeMatch ? parseInt(sizeMatch[1]) : (a === 'allin' ? 999 : 0);
+        const sizeMatch = a.match(/^b(\d+)$/);
+        // Pio b/r tokens are chip amounts, not percentages. Only a bet can be
+        // converted to a truthful pot percentage from the exact node pot. A
+        // raise token is a raise-to amount and needs the prior wager to derive
+        // a percentage, so suppress percentage-based coaching for raises.
+        const sizePct = a === 'allin'
+            ? 999
+            : (sizeMatch && hasExactSolverPot
+                ? Math.round((parseInt(sizeMatch[1]) / Number(ctx.solverPotChips)) * 100)
+                : 0);
 
         // Board texture for reasoning
         const texture = this._analyzeTexture(board);

@@ -1437,8 +1437,10 @@ export default function useGTOTrainer(
         heroHand: hand.heroHand,
         boardCards: hand.boardCards.join(','),
         street: hand.nextStreetName,
-        pot: Math.round(hand.pot).toString(),
+        pot: hand.pot.toString(),
         stackDepth: hand.stackDepth.toString(),
+        heroPosition: hand.heroPosition,
+        villainPosition: hand.villainPosition,
       });
       // Pass hero's actual cards so the server deals a consistent runout
       if (Array.isArray(hand.heroCards) && hand.heroCards.length > 0) {
@@ -1475,7 +1477,7 @@ export default function useGTOTrainer(
             isMultiStreet: true,
             streetNumber: hand.streetData.length,
             previousActions: hand.streetActions,
-            pot: Math.round(hand.pot),
+            pot: hand.pot,
             board: hand.boardCards.join(' '),
             street: data.street || hand.currentStreet,
             heroPosition: hand.heroPosition,

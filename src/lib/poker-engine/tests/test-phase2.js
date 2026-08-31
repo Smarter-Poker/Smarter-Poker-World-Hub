@@ -5,12 +5,12 @@
  * Run: node tests/test-phase2.js
  */
 
-const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('../src/TableManager');
-const { ActionTimer } = require('../src/ActionTimer');
-const { HandHistoryRecorder } = require('../src/HandHistory');
-const CardAssets = require('../src/CardAssets');
-const { GAME_VARIANT } = require('../src/GameStateMachine');
-const { BETTING_STRUCTURES } = require('../src/ActionValidator');
+const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('../TableManager');
+const { ActionTimer } = require('../ActionTimer');
+const { HandHistoryRecorder } = require('../HandHistory');
+const CardAssets = require('../../CardAssets');
+const { GAME_VARIANT } = require('../GameStateMachine');
+const { BETTING_STRUCTURES } = require('../ActionValidator');
 
 // ============ TEST HARNESS ============
 

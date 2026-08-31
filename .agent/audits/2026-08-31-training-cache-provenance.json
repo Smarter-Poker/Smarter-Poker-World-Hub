@@ -1,0 +1,1696 @@
+{
+  "readOnly": true,
+  "checkedAt": "2026-08-31T17:28:51.825Z",
+  "warehouseProvenanceColumnsPresent": false,
+  "totals": {
+    "rows": 27137,
+    "missingScenarioHash": 6187,
+    "missingWarehouseRow": 0,
+    "v2Rows": 12603,
+    "legacyRows": 8347,
+    "provenanceCompleteV2Rows": 0,
+    "pioRows": 20990,
+    "exactPioContractRows": 12028,
+    "pioContractMismatchRows": 8962,
+    "pioRowsWithSubjectMetadata": 40
+  },
+  "pioContractAudit": {
+    "expectedGames": 84,
+    "gamesWithExactRows": 82,
+    "gamesWithoutExactRows": [
+      "cash-008",
+      "cash-010"
+    ],
+    "exactGameLevelCells": 648,
+    "mismatchReasons": {
+      "family_mismatch": 5191,
+      "stack_mismatch": 5005,
+      "forced_street_mismatch": 687,
+      "game_not_in_pio_runtime_contract": 200
+    },
+    "games": {
+      "adv-001": {
+        "rows": 250,
+        "exactContractRows": 122,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 128,
+          "stack_mismatch": 24
+        }
+      },
+      "adv-002": {
+        "rows": 250,
+        "exactContractRows": 131,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 119,
+          "stack_mismatch": 25
+        }
+      },
+      "adv-003": {
+        "rows": 250,
+        "exactContractRows": 122,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 128,
+          "stack_mismatch": 29
+        }
+      },
+      "adv-004": {
+        "rows": 250,
+        "exactContractRows": 123,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 127,
+          "stack_mismatch": 25
+        }
+      },
+      "adv-005": {
+        "rows": 250,
+        "exactContractRows": 122,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 128,
+          "stack_mismatch": 30
+        }
+      },
+      "adv-006": {
+        "rows": 250,
+        "exactContractRows": 128,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 122,
+          "stack_mismatch": 26
+        }
+      },
+      "adv-007": {
+        "rows": 250,
+        "exactContractRows": 123,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 127,
+          "stack_mismatch": 22
+        }
+      },
+      "adv-008": {
+        "rows": 250,
+        "exactContractRows": 125,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 125,
+          "stack_mismatch": 28
+        }
+      },
+      "adv-009": {
+        "rows": 250,
+        "exactContractRows": 112,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 138,
+          "stack_mismatch": 38
+        }
+      },
+      "adv-010": {
+        "rows": 250,
+        "exactContractRows": 132,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 118,
+          "stack_mismatch": 24
+        }
+      },
+      "adv-011": {
+        "rows": 250,
+        "exactContractRows": 126,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 124,
+          "stack_mismatch": 21
+        }
+      },
+      "adv-012": {
+        "rows": 250,
+        "exactContractRows": 125,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 125,
+          "stack_mismatch": 24
+        }
+      },
+      "adv-013": {
+        "rows": 250,
+        "exactContractRows": 118,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 132,
+          "stack_mismatch": 36
+        }
+      },
+      "adv-014": {
+        "rows": 250,
+        "exactContractRows": 114,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 136,
+          "stack_mismatch": 33
+        }
+      },
+      "adv-015": {
+        "rows": 250,
+        "exactContractRows": 123,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 127,
+          "stack_mismatch": 19
+        }
+      },
+      "adv-016": {
+        "rows": 250,
+        "exactContractRows": 125,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 125,
+          "stack_mismatch": 29
+        }
+      },
+      "adv-017": {
+        "rows": 250,
+        "exactContractRows": 120,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 130,
+          "stack_mismatch": 32
+        }
+      },
+      "adv-018": {
+        "rows": 250,
+        "exactContractRows": 116,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 134,
+          "stack_mismatch": 37
+        }
+      },
+      "adv-019": {
+        "rows": 250,
+        "exactContractRows": 123,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 127,
+          "stack_mismatch": 20
+        }
+      },
+      "adv-020": {
+        "rows": 250,
+        "exactContractRows": 134,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 116,
+          "stack_mismatch": 26
+        }
+      },
+      "bluff-catcher": {
+        "rows": 250,
+        "exactContractRows": 48,
+        "levelsWithExactRows": [
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 202,
+          "stack_mismatch": 19
+        }
+      },
+      "cash-001": {
+        "rows": 290,
+        "exactContractRows": 40,
+        "levelsWithExactRows": [
+          1
+        ],
+        "mismatchReasons": {
+          "forced_street_mismatch": 250,
+          "stack_mismatch": 62,
+          "family_mismatch": 25
+        }
+      },
+      "cash-002": {
+        "rows": 250,
+        "exactContractRows": 181,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 21,
+          "stack_mismatch": 61
+        }
+      },
+      "cash-003": {
+        "rows": 250,
+        "exactContractRows": 182,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 21,
+          "stack_mismatch": 60
+        }
+      },
+      "cash-004": {
+        "rows": 250,
+        "exactContractRows": 185,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 19,
+          "stack_mismatch": 54
+        }
+      },
+      "cash-005": {
+        "rows": 250,
+        "exactContractRows": 181,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 19,
+          "stack_mismatch": 61
+        }
+      },
+      "cash-006": {
+        "rows": 250,
+        "exactContractRows": 181,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 20,
+          "stack_mismatch": 59
+        }
+      },
+      "cash-007": {
+        "rows": 250,
+        "exactContractRows": 185,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 16,
+          "stack_mismatch": 55
+        }
+      },
+      "cash-008": {
+        "rows": 250,
+        "exactContractRows": 0,
+        "levelsWithExactRows": [],
+        "mismatchReasons": {
+          "forced_street_mismatch": 250,
+          "family_mismatch": 27,
+          "stack_mismatch": 57
+        }
+      },
+      "cash-009": {
+        "rows": 250,
+        "exactContractRows": 178,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 16,
+          "stack_mismatch": 72
+        }
+      },
+      "cash-011": {
+        "rows": 250,
+        "exactContractRows": 190,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 18,
+          "stack_mismatch": 51
+        }
+      },
+      "cash-012": {
+        "rows": 250,
+        "exactContractRows": 58,
+        "levelsWithExactRows": [
+          4,
+          5,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 126,
+          "forced_street_mismatch": 187,
+          "stack_mismatch": 26
+        }
+      },
+      "cash-013": {
+        "rows": 250,
+        "exactContractRows": 181,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 20,
+          "stack_mismatch": 63
+        }
+      },
+      "cash-014": {
+        "rows": 250,
+        "exactContractRows": 177,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 24,
+          "stack_mismatch": 66
+        }
+      },
+      "cash-015": {
+        "rows": 250,
+        "exactContractRows": 184,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 22,
+          "stack_mismatch": 61
+        }
+      },
+      "cash-016": {
+        "rows": 250,
+        "exactContractRows": 185,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 16,
+          "stack_mismatch": 62
+        }
+      },
+      "cash-017": {
+        "rows": 250,
+        "exactContractRows": 176,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 18,
+          "stack_mismatch": 69
+        }
+      },
+      "cash-018": {
+        "rows": 250,
+        "exactContractRows": 177,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 64,
+          "family_mismatch": 26
+        }
+      },
+      "cash-019": {
+        "rows": 250,
+        "exactContractRows": 183,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 17,
+          "stack_mismatch": 65
+        }
+      },
+      "cash-020": {
+        "rows": 200,
+        "exactContractRows": 0,
+        "levelsWithExactRows": [],
+        "mismatchReasons": {
+          "game_not_in_pio_runtime_contract": 200
+        }
+      },
+      "cash-021": {
+        "rows": 250,
+        "exactContractRows": 180,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 22,
+          "stack_mismatch": 62
+        }
+      },
+      "cash-022": {
+        "rows": 250,
+        "exactContractRows": 186,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 19,
+          "stack_mismatch": 58
+        }
+      },
+      "cash-023": {
+        "rows": 250,
+        "exactContractRows": 182,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 22,
+          "stack_mismatch": 64
+        }
+      },
+      "cash-024": {
+        "rows": 250,
+        "exactContractRows": 183,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 19,
+          "stack_mismatch": 59
+        }
+      },
+      "cash-025": {
+        "rows": 250,
+        "exactContractRows": 120,
+        "levelsWithExactRows": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 130,
+          "stack_mismatch": 31
+        }
+      },
+      "final-table-sim": {
+        "rows": 250,
+        "exactContractRows": 30,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 213,
+          "stack_mismatch": 216
+        }
+      },
+      "hand-lab": {
+        "rows": 250,
+        "exactContractRows": 57,
+        "levelsWithExactRows": [
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 193,
+          "stack_mismatch": 16
+        }
+      },
+      "mixed-strategy-lab": {
+        "rows": 250,
+        "exactContractRows": 49,
+        "levelsWithExactRows": [
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 201,
+          "stack_mismatch": 12
+        }
+      },
+      "mtt-002": {
+        "rows": 250,
+        "exactContractRows": 171,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 6,
+          "stack_mismatch": 79
+        }
+      },
+      "mtt-003": {
+        "rows": 250,
+        "exactContractRows": 178,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 72,
+          "family_mismatch": 1
+        }
+      },
+      "mtt-004": {
+        "rows": 250,
+        "exactContractRows": 138,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 59,
+          "stack_mismatch": 112
+        }
+      },
+      "mtt-005": {
+        "rows": 250,
+        "exactContractRows": 178,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 72,
+          "family_mismatch": 2
+        }
+      },
+      "mtt-006": {
+        "rows": 250,
+        "exactContractRows": 169,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 81,
+          "family_mismatch": 7
+        }
+      },
+      "mtt-007": {
+        "rows": 250,
+        "exactContractRows": 166,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 15,
+          "stack_mismatch": 75
+        }
+      },
+      "mtt-008": {
+        "rows": 250,
+        "exactContractRows": 169,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 6,
+          "stack_mismatch": 80
+        }
+      },
+      "mtt-009": {
+        "rows": 250,
+        "exactContractRows": 171,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 4,
+          "stack_mismatch": 78
+        }
+      },
+      "mtt-010": {
+        "rows": 250,
+        "exactContractRows": 142,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 49,
+          "stack_mismatch": 104
+        }
+      },
+      "mtt-011": {
+        "rows": 250,
+        "exactContractRows": 130,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 67,
+          "stack_mismatch": 119
+        }
+      },
+      "mtt-012": {
+        "rows": 250,
+        "exactContractRows": 184,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 25,
+          "stack_mismatch": 66
+        }
+      },
+      "mtt-013": {
+        "rows": 250,
+        "exactContractRows": 179,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 1,
+          "stack_mismatch": 70
+        }
+      },
+      "mtt-014": {
+        "rows": 250,
+        "exactContractRows": 173,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 4,
+          "stack_mismatch": 77
+        }
+      },
+      "mtt-015": {
+        "rows": 250,
+        "exactContractRows": 178,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 6,
+          "stack_mismatch": 72
+        }
+      },
+      "mtt-017": {
+        "rows": 250,
+        "exactContractRows": 122,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 56,
+          "stack_mismatch": 125
+        }
+      },
+      "mtt-018": {
+        "rows": 250,
+        "exactContractRows": 177,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 2,
+          "stack_mismatch": 73
+        }
+      },
+      "mtt-019": {
+        "rows": 250,
+        "exactContractRows": 131,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 64,
+          "stack_mismatch": 119
+        }
+      },
+      "mtt-020": {
+        "rows": 250,
+        "exactContractRows": 187,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 22,
+          "stack_mismatch": 63
+        }
+      },
+      "mtt-021": {
+        "rows": 250,
+        "exactContractRows": 168,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 9,
+          "stack_mismatch": 77
+        }
+      },
+      "mtt-022": {
+        "rows": 250,
+        "exactContractRows": 176,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 5,
+          "stack_mismatch": 74
+        }
+      },
+      "mtt-023": {
+        "rows": 250,
+        "exactContractRows": 129,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 60,
+          "stack_mismatch": 121
+        }
+      },
+      "mtt-024": {
+        "rows": 250,
+        "exactContractRows": 185,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 26,
+          "stack_mismatch": 65
+        }
+      },
+      "mtt-025": {
+        "rows": 250,
+        "exactContractRows": 170,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 77,
+          "family_mismatch": 6
+        }
+      },
+      "quiz-gauntlet": {
+        "rows": 250,
+        "exactContractRows": 45,
+        "levelsWithExactRows": [
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 205,
+          "stack_mismatch": 23
+        }
+      },
+      "spins-001": {
+        "rows": 250,
+        "exactContractRows": 176,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 4,
+          "stack_mismatch": 74
+        }
+      },
+      "spins-002": {
+        "rows": 250,
+        "exactContractRows": 204,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 4,
+          "stack_mismatch": 45
+        }
+      },
+      "spins-003": {
+        "rows": 250,
+        "exactContractRows": 174,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 5,
+          "stack_mismatch": 76
+        }
+      },
+      "spins-004": {
+        "rows": 250,
+        "exactContractRows": 183,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 5,
+          "stack_mismatch": 67
+        }
+      },
+      "spins-005": {
+        "rows": 250,
+        "exactContractRows": 172,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 6,
+          "stack_mismatch": 78
+        }
+      },
+      "spins-006": {
+        "rows": 250,
+        "exactContractRows": 202,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 6,
+          "stack_mismatch": 47
+        }
+      },
+      "spins-007": {
+        "rows": 250,
+        "exactContractRows": 173,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 2,
+          "stack_mismatch": 76
+        }
+      },
+      "spins-008": {
+        "rows": 250,
+        "exactContractRows": 193,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "stack_mismatch": 57,
+          "family_mismatch": 1
+        }
+      },
+      "spins-009": {
+        "rows": 250,
+        "exactContractRows": 182,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 3,
+          "stack_mismatch": 68
+        }
+      },
+      "spins-010": {
+        "rows": 250,
+        "exactContractRows": 173,
+        "levelsWithExactRows": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 5,
+          "stack_mismatch": 76
+        }
+      },
+      "study-group": {
+        "rows": 250,
+        "exactContractRows": 56,
+        "levelsWithExactRows": [
+          8,
+          9,
+          10
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 194,
+          "stack_mismatch": 14
+        }
+      },
+      "tournament-prep": {
+        "rows": 250,
+        "exactContractRows": 1,
+        "levelsWithExactRows": [
+          5
+        ],
+        "mismatchReasons": {
+          "family_mismatch": 221,
+          "stack_mismatch": 200
+        }
+      }
+    }
+  },
+  "groups": [
+    {
+      "engine_type": "CHART",
+      "question_source": "<missing>",
+      "rows": 250,
+      "missing_scenario_hash": 250,
+      "missing_warehouse_row": 0,
+      "v2_rows": 0,
+      "legacy_rows": 0,
+      "provenance_complete_v2_rows": 0
+    },
+    {
+      "engine_type": "CHART",
+      "question_source": "DETERMINISTIC_SOLVER",
+      "rows": 434,
+      "missing_scenario_hash": 434,
+      "missing_warehouse_row": 0,
+      "v2_rows": 0,
+      "legacy_rows": 0,
+      "provenance_complete_v2_rows": 0
+    },
+    {
+      "engine_type": "PIO",
+      "question_source": "DETERMINISTIC_SOLVER",
+      "rows": 20950,
+      "missing_scenario_hash": 0,
+      "missing_warehouse_row": 0,
+      "v2_rows": 12603,
+      "legacy_rows": 8347,
+      "provenance_complete_v2_rows": 0
+    },
+    {
+      "engine_type": "PIO",
+      "question_source": "local_solver_ranges",
+      "rows": 40,
+      "missing_scenario_hash": 40,
+      "missing_warehouse_row": 0,
+      "v2_rows": 0,
+      "legacy_rows": 0,
+      "provenance_complete_v2_rows": 0
+    },
+    {
+      "engine_type": "SCENARIO",
+      "question_source": "<missing>",
+      "rows": 5463,
+      "missing_scenario_hash": 5463,
+      "missing_warehouse_row": 0,
+      "v2_rows": 0,
+      "legacy_rows": 0,
+      "provenance_complete_v2_rows": 0
+    }
+  ],
+  "samples": [
+    {
+      "question_id": "adv-001_L1_v4_017b9f96_10",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_8cTdTs",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_10b45f41_5",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_Jh3sKc",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_158a86f2_2",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_3h7c7s",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_17377d35_25",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BB_100bb_KsQcQh",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_19ec725a_14",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BB_100bb_Ah8dTs",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_25697706_24",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BB_100bb_KsQcQh",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_2dbef291_13",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_5h5d9c",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_2f4bb097_15",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_3h7c7s",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_30f4db10_20",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_Qc5h3s",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_4acefe86_8",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BB_100bb_Kh8dAc",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_5114e9db_21",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BB_100bb_JsJcTc",
+      "street": "flop",
+      "game_type": "hu_cash"
+    },
+    {
+      "question_id": "adv-001_L1_v4_71e81c15_18",
+      "game_id": "adv-001",
+      "engine_type": "PIO",
+      "level": 1,
+      "source": "DETERMINISTIC_SOLVER",
+      "scenario_hash": "hu_cash_BTN_100bb_AdAh4s",
+      "street": "flop",
+      "game_type": "hu_cash"
+    }
+  ]
+}

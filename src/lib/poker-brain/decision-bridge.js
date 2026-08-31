@@ -25,7 +25,6 @@ import PokerBrainEngine from './engine.js';
 // NOTE: ../supabase.js is a no-op mock for Node ESM test runner.
 // In Next.js (Webpack), the alias in next.config.js forces resolution
 // to supabase.ts (real client). See next.config.js webpack section.
-import { supabase } from '../supabase.js';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required
 const STRONG_CONFIDENCE_FLOOR  = 0.90;  // Used for high-stakes decisions
@@ -118,10 +117,16 @@ async function callHorseBrain(params, authToken) {
  * Returns null if not authenticated.
  */
 async function getAuthToken() {
+  if (typeof localStorage === 'undefined') return null;
   try {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || null;
-  } catch (err) {
+    const primary = JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null');
+    if (primary?.access_token) return primary.access_token;
+    const legacyKey = Object.keys(localStorage).find(
+      (key) => key.startsWith('sb-') && key.endsWith('-auth-token'),
+    );
+    if (!legacyKey) return null;
+    return JSON.parse(localStorage.getItem(legacyKey) || 'null')?.access_token || null;
+  } catch (_error) {
     return null;
   }
 }

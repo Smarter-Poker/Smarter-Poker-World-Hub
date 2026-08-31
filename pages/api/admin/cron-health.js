@@ -9,6 +9,7 @@
 import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 /**
  * Registry of expected cron jobs.
@@ -121,8 +122,7 @@ export default async function handler(req, res) {
     const supabase = supabaseServerClient(req);
 
     // Auth — admin only
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    const user = authData?.user;
+    const { user, error: authError } = await getServerUserWithFallback(req, supabase);
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

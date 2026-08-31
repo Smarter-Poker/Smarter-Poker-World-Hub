@@ -141,7 +141,12 @@ function questionStreet(question) {
 
 function normalizePostflopActionState(question) {
   const scenario = question?.scenario;
-  if (!scenario || typeof scenario !== 'object' || scenario.isPsychology === true) return scenario;
+  if (
+    !scenario
+    || typeof scenario !== 'object'
+    || scenario.isPsychology === true
+    || scenario.isConceptQuestion === true
+  ) return scenario;
 
   const street = questionStreet(question);
   if (!street || street === 'preflop') return scenario;
@@ -169,7 +174,10 @@ function normalizePostflopActionState(question) {
 }
 
 function decisionNode(question) {
-  if (question?.scenario?.isPsychology === true) return null;
+  if (
+    question?.scenario?.isPsychology === true
+    || question?.scenario?.isConceptQuestion === true
+  ) return null;
   const street = questionStreet(question);
   if (street === 'preflop') return null;
 
@@ -220,6 +228,7 @@ function responseRaiseText(depth, allIn = false) {
 }
 
 function normalizePreflopResponseOptions(question, options) {
+  if (question?.scenario?.isConceptQuestion === true) return options;
   const depth = preflopResponseBetDepth(question);
   if (!depth) return options;
   return options.map((option) => {
@@ -281,7 +290,7 @@ function suggestedOptions(question, options) {
   const isPreflop = street === 'preflop' || options.length === 0 && !scenario.board;
   const facesBet = families.has('fold') && (families.has('call') || /faces|bets|raises|3-bet|4-bet/.test(`${spot} ${prompt}`));
 
-  if (scenario.isPsychology === true) return [];
+  if (scenario.isPsychology === true || scenario.isConceptQuestion === true) return [];
 
   // The middle difficulty tier teaches sizing bands. If a sparse grouped
   // node has only three choices, fill it with another non-overlapping band.
@@ -386,6 +395,7 @@ export function validateTrainingQuestion(question) {
 
   const prompt = cleanSpaces(question.question || question.text);
   const options = (question.options || []).map(normalizeOption);
+  const scenario = question?.scenario || {};
   const decisionType = getDecisionType({ ...question, options });
   const expected = decisionType === 'four-choice' ? 4 : 2;
 
@@ -425,7 +435,13 @@ export function validateTrainingQuestion(question) {
     issues.push('The correct answer was synthesized as a contract distractor.');
   }
 
-  const responseDepth = preflopResponseBetDepth(question);
+  // Curated concept questions may discuss an earlier 3-bet/4-bet in prose
+  // while asking about the underlying strategic principle. Their answer
+  // choices are concepts, not executable betting actions, so applying the
+  // action-depth label check would reject valid curriculum copy.
+  const responseDepth = scenario.isConceptQuestion === true
+    ? null
+    : preflopResponseBetDepth(question);
   if (responseDepth) {
     const staleDepth = responseDepth - 1;
     if (options.some((option) => new RegExp(`\\b${staleDepth}[- ]?Bet\\b`, 'i').test(option.text))) {
@@ -437,7 +453,6 @@ export function validateTrainingQuestion(question) {
   if (/\byour in\b/i.test(prompt)) issues.push('Prompt uses “your” instead of “you’re.”');
 
   const street = questionStreet(question);
-  const scenario = question?.scenario || {};
   const heroPosition = cleanSpaces(scenario.heroPosition);
   const villainPosition = cleanSpaces(scenario.villainPosition);
   if (heroPosition && villainPosition && heroPosition.toUpperCase() === villainPosition.toUpperCase()) {

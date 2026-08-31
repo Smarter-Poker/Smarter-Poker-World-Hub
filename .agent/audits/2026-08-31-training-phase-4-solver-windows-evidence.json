@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-08-31T10:29:09Z",
+  "evidence_classification": {
+    "windows_reports": "user-relayed outputs from two user-authorized Codex audits",
+    "central_status": "independently reproducible read-only database evidence",
+    "secrets_included": false
+  },
+  "machines": [
+    {
+      "machine_id": "M1",
+      "operational": true,
+      "actively_solving_and_exporting": false,
+      "current_state": "scanning exhausted or incompatible 529-phase manifest",
+      "sample_duration_seconds": 358,
+      "cursor_samples": [225, 29, 367],
+      "spots_done_samples": [0, 0, 0],
+      "rows_written_samples": [0, 0, 0],
+      "bad_samples": [0, 0, 0],
+      "piosolver_process_visible": false,
+      "last_verified_solve_export": {
+        "timestamp": "2026-08-15T09:57:41Z",
+        "spot": "turn_sng_hu_BTN_50bb_TsKsQs2s"
+      },
+      "manifest": {
+        "phase_count": 529,
+        "flop_parents": true,
+        "turn_targets": true,
+        "river_targets": false,
+        "training_contract_match": false,
+        "icm_payout_inputs_demonstrated": false
+      },
+      "defects": [
+        "exhausted or incompatible manifest",
+        "plaintext legacy Supabase service-role credential",
+        "database timeouts",
+        "schema-cache failures",
+        "JWT clock errors",
+        "absent Git provenance",
+        "administrator-only visibility gaps"
+      ],
+      "safe_to_restart": false,
+      "safe_to_retarget": false,
+      "required_files_created": false,
+      "file_limitation": "Codex sandbox refresh failure prevented approved writes to C:\\sp-solver\\audit-results"
+    },
+    {
+      "machine_id": "M2",
+      "operational": false,
+      "actively_solving_and_exporting": false,
+      "current_state": "watchdog relaunch loop failing with HTTP 401",
+      "root_cause": "legacy Supabase credentials disabled",
+      "credential_disabled_at": "2026-08-16T00:38:16.61147Z",
+      "last_heartbeat": "2026-08-16T00:38:44.304822Z",
+      "last_verified_solve_export": {
+        "timestamp": "2026-08-11T13:36:46Z",
+        "spot": "sng_hu_50bb_flop_BTNvsBB",
+        "board": "8cJc4h",
+        "targets": 50,
+        "bad": 0
+      },
+      "primary_causes_excluded": [
+        "shutdown",
+        "sleep",
+        "disk exhaustion",
+        "clock drift",
+        "PioSOLVER crash"
+      ],
+      "manifest": {
+        "phase_count": 529,
+        "local_canonical_manifest_present": false,
+        "git_provenance_present": false,
+        "training_contract_match": false,
+        "river_targets_demonstrated": false,
+        "icm_payout_inputs_demonstrated": false
+      },
+      "safe_to_restart": false,
+      "safe_to_retarget": false,
+      "required_files_created": true,
+      "file_location": "Windows Codex task output directory; administrator write to C:\\sp-solver\\audit-results denied"
+    }
+  ],
+  "shared_missing_training_contracts": [
+    "postflop_complete|100",
+    "mtt_6max_icm|20",
+    "mtt_6max_icm|40",
+    "mtt_9max_icm|40",
+    "mtt_9max_icm|60",
+    "spin_3max_icm|20",
+    "spin_3max_icm|25",
+    "spin_hu_icm|10"
+  ],
+  "restoration_gates": [
+    "rotate exposed and revoked credentials outside Codex output",
+    "publish canonical Training manifest through protected checks",
+    "add explicit river planning",
+    "add validated ICM payout inputs",
+    "seed exact canonical scenario hashes",
+    "complete administrator inspection of scheduled tasks and duplicate launch paths",
+    "deploy protected worker and manifest artifacts",
+    "enable one supervised worker per host",
+    "verify fresh heartbeats and increasing solve/export counters",
+    "validate one strategy_matrix_v2 canary export per new family",
+    "run strict 12-level cache reseed and 107-game truth audit"
+  ]
+}

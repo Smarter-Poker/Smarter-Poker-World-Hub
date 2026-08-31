@@ -8,8 +8,9 @@
  * (rank 2=0..A=12; suits c,d,h,s = 0..3); combo index = b*(b-1)/2 + a for card
  * indices a<b (2c2d=0 .. AhAs=1325). 1326 combos aggregate into 169 classes
  * (mean over live combos; board-dead / out-of-range combos have zero mass and
- * are skipped). Output is normalized (sums to 1 per class) and flagged
- * __sanitized so the engine's sanitizer passes it through untouched.
+ * are skipped). Output is normalized (sums to 1 per class). The engine
+ * records the returned object in a process-local WeakSet so an
+ * untrusted JSON property can never impersonate a completed validation.
  */
 const RANKS = '23456789TJQKA';
 
@@ -40,6 +41,49 @@ function comboClassMap() {
   return _map;
 }
 
+/** Reconstruct the exact pot and amount currently facing hero from a HU UPI path. */
+export function deriveNodePotState(node, rootPotChips) {
+  const root = Number(rootPotChips);
+  if (!Number.isFinite(root) || root <= 0 || typeof node !== 'string' || !node.startsWith('r:0')) return null;
+  const tokens = node.split(':').slice(2).filter(Boolean);
+  const contributions = [0, 0];
+  let actor = 0; // OOP acts first on every postflop street.
+  let pot = root;
+  for (const token of tokens) {
+    if (/^[2-9TJQKA][cdhs]$/i.test(token)) {
+      contributions[0] = 0;
+      contributions[1] = 0;
+      actor = 0;
+      continue;
+    }
+    if (token === 'c') {
+      const target = Math.max(...contributions);
+      const delta = target - contributions[actor];
+      if (delta < 0) return null;
+      pot += delta;
+      contributions[actor] = target;
+      actor = 1 - actor;
+      continue;
+    }
+    const aggressive = token.match(/^[br](\d+)$/i);
+    if (aggressive) {
+      const target = Number(aggressive[1]);
+      const delta = target - contributions[actor];
+      if (!Number.isFinite(target) || target <= 0 || delta <= 0) return null;
+      pot += delta;
+      contributions[actor] = target;
+      actor = 1 - actor;
+      continue;
+    }
+    // Fold/all-in tokens terminate a line or omit the exact amount; neither
+    // can describe a later decision node without additional state.
+    return null;
+  }
+  const facing = Math.max(...contributions) - contributions[actor];
+  if (!Number.isFinite(pot) || pot <= 0 || facing < 0) return null;
+  return { potChips: pot, facingBetChips: facing, actor };
+}
+
 export function v2ToAppMatrix(v2) {
   if (!v2 || !v2.frequencies) return null;
   const codes = (Array.isArray(v2.actions) && v2.actions.length)
@@ -47,24 +91,30 @@ export function v2ToAppMatrix(v2) {
     : Object.keys(v2.frequencies);
   const map = comboClassMap();
   const evs = Array.isArray(v2.hand_evs_bb) ? v2.hand_evs_bb : [];
+  if (codes.length < 2 || evs.length !== 1326) return null;
+  if (codes.some((code) => !Array.isArray(v2.frequencies[code])
+    || v2.frequencies[code].length !== 1326)) return null;
   const acc = {};
   for (let idx = 0; idx < 1326; idx++) {
     let total = 0;
     const per = {};
     for (const c of codes) {
       const arr = v2.frequencies[c];
-      const v = arr && typeof arr[idx] === 'number' ? arr[idx] : 0;
+      const v = arr[idx];
+      if (!Number.isFinite(v) || v < 0 || v > 1.02) return null;
       per[c] = v; total += v;
     }
     if (total <= 0.001) continue;
+    if (Math.abs(total - 1) > 0.05 || !Number.isFinite(evs[idx])) return null;
     const cls = map[idx];
     if (!cls) continue;
     if (!acc[cls]) { acc[cls] = { __s: 0, __ev: 0, __evn: 0 }; codes.forEach((c) => (acc[cls][c] = 0)); }
     codes.forEach((c) => (acc[cls][c] += per[c]));
     acc[cls].__s += total;
     const ev = evs[idx];
-    if (typeof ev === 'number') { acc[cls].__ev += ev; acc[cls].__evn += 1; }
+    acc[cls].__ev += ev; acc[cls].__evn += 1;
   }
+  if (Object.keys(acc).length === 0) return null;
   const frequencies = {};
   codes.forEach((c) => (frequencies[c] = {}));
   const hand_evs = {};
@@ -73,7 +123,7 @@ export function v2ToAppMatrix(v2) {
     codes.forEach((c) => { frequencies[c][cls] = acc[cls][c] / s; });
     if (acc[cls].__evn) hand_evs[cls] = acc[cls].__ev / acc[cls].__evn;
   });
-  // ── The pot, and why it needs two keys and a flag ──────────────────────
+  // ── Exact current-node pot reconstruction ─────────────────────────────
   //
   // Every v2 row carries `pot_bb` (measured 2026-08-15: 3000/3000 rows), and
   // this bridge used to drop it. That mattered because
@@ -94,21 +144,30 @@ export function v2ToAppMatrix(v2) {
   //    pot_bb * 100, in the same unit as the node path.
   //
   // 2. `pot_bb` is the pot at the ROOT of the solve (r:0), NOT at an arbitrary
-  //    node. A path like `r:0:c:b488:c:7c:c` is a turn node whose pot is much
-  //    larger than the root's. Rebasing a deep bet against the root pot would
-  //    overstate the bet as a fraction of pot -- a wrong number on the felt,
-  //    which is worse than a blank badge. `pot_is_root` tells the consumer to
-  //    use this denominator ONLY when the bet is the first action after the
-  //    root, and to decline otherwise.
-  const potBb = Number(v2.pot_bb);
-  const hasPot = Number.isFinite(potBb) && potBb > 0;
+  //    node. Replaying the UPI path is therefore mandatory for a turn/river
+  //    row. If a token cannot be interpreted exactly, reject the whole bridge.
+  const rootPotBb = Number(v2.pot_bb);
+  const state = deriveNodePotState(v2.node, rootPotBb * V2_CHIPS_PER_BB);
+  if (!state) return null;
 
   return {
     actions: codes, frequencies, hand_evs,
     ev_ip: v2.ev_ip_bb, ev_oop: v2.ev_oop_bb,
     board: v2.board, node: v2.node, street: v2.street,
-    ...(hasPot ? { pot: potBb * V2_CHIPS_PER_BB, pot_bb: potBb, pot_is_root: true } : {}),
-    source: 'pio_v2', __sanitized: true,
+    hero: v2.hero,
+    position: v2.position,
+    oop_player: v2.oop_player,
+    ip_player: v2.ip_player,
+    eff_stack_bb: v2.eff_stack_bb,
+    exploitability_pct: v2.exploitability_pct,
+    pot: state.potChips,
+    pot_bb: state.potChips / V2_CHIPS_PER_BB,
+    root_pot_bb: rootPotBb,
+    pot_is_root: state.potChips === rootPotBb * V2_CHIPS_PER_BB,
+    facing_bet_bb: state.facingBetChips / V2_CHIPS_PER_BB,
+    node_actor: state.actor,
+    node_state_exact: true,
+    source: 'pio_v2',
   };
 }
 

@@ -19,8 +19,11 @@
 delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const { GameController } = require('../src/GameController');
-const { GAME_PHASE } = require('../src/GameStateMachine');
+const { GameController } = require('../GameController');
+const { GAME_PHASE } = require('../GameStateMachine');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
 let passed = 0;
 let failed = 0;
@@ -371,7 +374,7 @@ async function runTests() {
   // ═══════════════════════════════════════════════════════
 
   const fs = require('fs');
-  const migrationPath = '/home/claude/poker-engine/supabase/migrations/20260228_poker_tables_phase6.sql';
+  const migrationPath = path.join(REPO_ROOT, 'supabase/migrations/archive/20260228_poker_tables_phase6.sql');
   const migrationExists = fs.existsSync(migrationPath);
   assert(migrationExists, 'Migration SQL file exists');
   

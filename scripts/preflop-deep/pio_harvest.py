@@ -11,6 +11,7 @@ strategy_matrix_v2: per-hand action sums == 1; real chip EVs in bb; dead combos 
 Combo order: card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325.
 """
 import json
+import math
 import tree_gen  # canonical shared geometry (build_lines)
 
 POT_CHIPS = 550
@@ -18,7 +19,7 @@ EFF_CHIPS = 9750
 CHIPS_PER_BB = 100
 GAME_TYPE = "6max_cash"
 STACK_BB = 100
-GEOMETRY_TAG = "srp_prod_v1"
+GEOMETRY_TAG = "srp_parameterized_v2"
 
 
 def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750, rake="0 0 0 0"):
@@ -34,7 +35,11 @@ def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750, rake
         "clear_lines",
     ]
     cmds += ["add_line " + " ".join(str(x) for x in ln) for ln in tree_gen.build_lines(pot, eff)]
-    cmds += ["build_tree", "set_rake %s" % rake, "go 0.5", "wait_for_solver"]
+    # Rake is part of the game definition and must be configured before the
+    # tree is built. Setting it after build_tree can leave the generated tree
+    # carrying the previous/default rake while the exported metadata claims
+    # the requested value.
+    cmds += ["set_rake %s" % rake, "build_tree", "go 0.5", "wait_for_solver"]
     return cmds
 
 
@@ -76,22 +81,32 @@ def action_meta(code):
         return {"code": "f", "key": "fold", "size_pct": 0}
     if code.startswith("b"):
         chips = int(code[1:])
-        return {"code": code, "key": "bet_%d" % round(chips / POT_CHIPS * 100),
-                "size_pct": round(chips / POT_CHIPS * 100)}
+        # A UPI b/r token is a chip amount at its own node. The root pot is not
+        # the denominator on later streets, so publishing a percentage here
+        # would be false. Training reconstructs the exact node pot from `node`.
+        return {"code": code, "key": "bet_chips_%d" % chips,
+                "size_chips": chips, "size_pct": None}
     return {"code": code, "key": code, "size_pct": None}
 
 
 def harvest_node(pio, node, player, board, position, oop_player, ip_player,
-                 ev_oop_bb, ev_ip_bb, exploit_pct):
+                 ev_oop_bb, ev_ip_bb, exploit_pct, pot_chips=POT_CHIPS,
+                 eff_chips=EFF_CHIPS, rake="0 0 0 0", street=None,
+                 game_type=GAME_TYPE, stack_bb=STACK_BB):
     """Harvest one decision node for `player` (OOP|IP) -> (scenario_hash, strategy_matrix_v2)."""
     codes = parse_children(pio("show_children %s" % node), parent=node)
     freqs = parse_strategy(pio("show_strategy %s" % node), codes)
     hand_ev_chips = parse_ev_array0(pio("calc_ev %s %s" % (player, node)))
     hand_evs_bb = [None if v != v else round(v / CHIPS_PER_BB, 4) for v in hand_ev_chips]
+    resolved_street = street or {6: "flop", 8: "turn", 10: "river"}.get(len(board))
+    if resolved_street not in ("flop", "turn", "river"):
+        raise ValueError("cannot infer street from board %s" % board)
     sm = {
-        "node": node, "board": board, "street": "flop", "hero": player,
+        "node": node, "board": board, "street": resolved_street, "hero": player,
         "position": position, "oop_player": oop_player, "ip_player": ip_player,
-        "pot_bb": POT_CHIPS / CHIPS_PER_BB, "eff_stack_bb": EFF_CHIPS / CHIPS_PER_BB, "rake": 0,
+        "pot_bb": pot_chips / CHIPS_PER_BB,
+        "eff_stack_bb": eff_chips / CHIPS_PER_BB,
+        "rake": rake,
         "actions": [action_meta(c) for c in codes],
         "frequencies": {c: [round(x, 6) for x in freqs[c]] for c in codes},
         "hand_evs_bb": hand_evs_bb,
@@ -99,26 +114,42 @@ def harvest_node(pio, node, player, board, position, oop_player, ip_player,
         "combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
         "tree_geometry": GEOMETRY_TAG, "solver": "PioSOLVER",
     }
-    scenario_hash = "%s_%s_%dbb_%s" % (GAME_TYPE, position, STACK_BB, board)
+    prefix = "" if resolved_street == "flop" else resolved_street + "_"
+    scenario_hash = "%s%s_%s_%dbb_%s" % (prefix, game_type, position, stack_bb, board)
     return scenario_hash, sm
 
 
-def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_bb, exploit_pct):
+def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_bb, exploit_pct,
+                 pot_chips=POT_CHIPS, eff_chips=EFF_CHIPS, rake="0 0 0 0",
+                 game_type=GAME_TYPE, stack_bb=STACK_BB):
     return harvest_node(pio, "r:0", "OOP", board, position, oop_player, ip_player,
-                        ev_oop_bb, ev_ip_bb, exploit_pct)
+                        ev_oop_bb, ev_ip_bb, exploit_pct, pot_chips, eff_chips,
+                        rake, "flop", game_type, stack_bb)
 
 
 def validate_row(sm):
-    """Acceptance gate: per-hand action frequencies must sum to ~1 for live hands."""
+    """Acceptance gate: normalized frequencies and a finite EV for every live combo."""
     codes = list(sm["frequencies"].keys())
     n = len(sm["frequencies"][codes[0]])
     bad = 0
     live = 0
+    missing_live_evs = 0
+    evs = sm.get("hand_evs_bb")
+    ev_shape_ok = isinstance(evs, list) and len(evs) == n
     for i in range(n):
         s = sum(sm["frequencies"][c][i] for c in codes)
         if s > 0.001:
             live += 1
             if not (0.98 <= s <= 1.02):
                 bad += 1
+            if (not ev_shape_ok or not isinstance(evs[i], (int, float))
+                    or not math.isfinite(evs[i])):
+                missing_live_evs += 1
     frac_ok = 1.0 if live == 0 else 1 - bad / live
-    return {"live_hands": live, "bad_sum_hands": bad, "frac_ok": round(frac_ok, 4)}
+    return {
+        "live_hands": live,
+        "bad_sum_hands": bad,
+        "frac_ok": round(frac_ok, 4),
+        "missing_live_evs": missing_live_evs,
+        "ev_ok": ev_shape_ok and missing_live_evs == 0,
+    }

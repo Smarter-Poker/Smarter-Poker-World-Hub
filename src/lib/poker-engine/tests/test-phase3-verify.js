@@ -12,10 +12,10 @@
  *   BUG 5: TableManager getState now includes config block
  */
 
-const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('../src/TableManager');
-const { GameStateMachine, GAME_PHASE, GAME_VARIANT } = require('../src/GameStateMachine');
-const { HandHistoryRecorder } = require('../src/HandHistory');
-const { CHANNEL_EVENTS } = require('../src/RealtimeSync');
+const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('../TableManager');
+const { GameStateMachine, GAME_PHASE, GAME_VARIANT } = require('../GameStateMachine');
+const { HandHistoryRecorder } = require('../HandHistory');
+const { CHANNEL_EVENTS } = require('../RealtimeSync');
 
 let passed = 0;
 let failed = 0;
@@ -279,8 +279,8 @@ section('LobbyManager Wiring - Hand History Recording');
 section('Card Mapping - Engine ↔ UI Consistency');
 
 (() => {
-  const { Deck, getRank, getSuit } = require('../src/Deck');
-  const CardAssets = require('../src/CardAssets');
+  const { Deck, getRank, getSuit } = require('../Deck');
+  const CardAssets = require('../../CardAssets');
   
   // Test all 52 cards map correctly
   const deck = new Deck();
