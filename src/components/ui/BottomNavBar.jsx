@@ -82,7 +82,7 @@ export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
 const artworkDisplayBounds = (artwork) =>
-  artwork.cropToContentBounds && artwork.contentBounds
+  artwork.cropToContentBounds !== false && artwork.contentBounds
     ? artwork.contentBounds
     : { x: 0, y: 0, width: artwork.width, height: artwork.height };
 
@@ -106,7 +106,7 @@ const artworkImageStyle = (artwork) => {
   };
 };
 
-export const BottomNavSpacer = ({ config = null, noSafeArea = false }) => {
+export const BottomNavSpacer = ({ config = null }) => {
   const artwork = config?.artwork;
   if (!artwork) {
     return (
@@ -133,15 +133,6 @@ export const BottomNavSpacer = ({ config = null, noSafeArea = false }) => {
       }}
     >
       <div style={artworkStageStyle(artwork)} />
-      <div
-        style={{
-          width: 1,
-          height: noSafeArea
-            ? 14
-            : 'calc(14px + env(safe-area-inset-bottom, 0px))',
-          flex: '0 0 auto',
-        }}
-      />
     </div>
   );
 };
@@ -250,7 +241,7 @@ const activeDestination = (items, currentLocation) => {
   return winner?.href || items[0]?.href;
 };
 
-function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
+function ArtworkBottomNav({ footer, activeHref, warm }) {
   const artwork = footer.artwork;
   const items = footer.items || [];
   const bounds = artwork.contentBounds || {
@@ -272,7 +263,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
       data-footer-world={footer.id}
       data-footer-artwork={artwork.src}
       data-footer-artwork-sha256={artwork.sha256}
-      data-footer-cropped={artwork.cropToContentBounds ? 'true' : 'false'}
+      data-footer-cropped={artwork.contentBounds && artwork.cropToContentBounds !== false ? 'true' : 'false'}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -287,9 +278,8 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
         justifyContent: 'center',
         alignItems: 'flex-start',
         zIndex: BOTTOM_NAV_Z,
-        paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
-        paddingRight: 'env(safe-area-inset-right, 0px)',
+        padding: 0,
+        background: 'transparent',
         transform: 'none',
         translate: 'none',
         transition: 'none',
@@ -307,6 +297,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
           ...artworkStageStyle(artwork),
           position: 'relative',
           minWidth: 0,
+          overflow: 'hidden',
           // Only the six explicit destination hit zones should capture input.
           // The transparent remainder of the full artwork frame otherwise
           // blocks buttons and links near the bottom of marketplace pages.
@@ -427,7 +418,6 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
       <ArtworkBottomNav
         footer={footer}
         activeHref={activeHref}
-        noSafeArea={noSafeArea}
         warm={warm}
       />
     );
