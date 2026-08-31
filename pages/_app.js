@@ -801,6 +801,14 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
+  // social defaults mounted as a separate next/head instance causes both the
+  // default and route-specific Open Graph/Twitter tags to survive SSR, leaving
+  // crawlers to choose between contradictory previews. Scope the suppression
+  // to this fully-covered route family; unrelated pages still inherit the
+  // platform defaults.
+  const pokerNearMeOwnsSocialMetadata =
+    resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
   const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
@@ -874,20 +882,24 @@ export default function App({ Component, pageProps }) {
             {/* These defaults must live inside next/head. _document metadata
                 cannot be deduplicated, so route-level SEOHead used to produce
                 two contradictory social previews. */}
-            <meta key="og-site-name" property="og:site_name" content="Smarter.Poker" />
-            <meta key="og-type" property="og:type" content="website" />
-            <meta key="og-locale" property="og:locale" content="en_US" />
-            <meta key="og-url" property="og:url" content="https://smarter.poker" />
-            <meta key="og-title" property="og:title" content="Smarter.Poker | The Future Of The Game" />
-            <meta key="og-description" property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-            <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-default.png" />
-            <meta key="og-image-width" property="og:image:width" content="1200" />
-            <meta key="og-image-height" property="og:image:height" content="2151" />
-            <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
-            <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
-            <meta key="twitter-title" name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-            <meta key="twitter-description" name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-            <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-default.png" />
+            {!pokerNearMeOwnsSocialMetadata && (
+              <>
+                <meta key="og-site-name" property="og:site_name" content="Smarter.Poker" />
+                <meta key="og-type" property="og:type" content="website" />
+                <meta key="og-locale" property="og:locale" content="en_US" />
+                <meta key="og-url" property="og:url" content="https://smarter.poker" />
+                <meta key="og-title" property="og:title" content="Smarter.Poker | The Future Of The Game" />
+                <meta key="og-description" property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
+                <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-default.png" />
+                <meta key="og-image-width" property="og:image:width" content="1200" />
+                <meta key="og-image-height" property="og:image:height" content="2151" />
+                <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
+                <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
+                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
+                <meta key="twitter-description" name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
+                <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-default.png" />
+              </>
+            )}
 
             {shouldCapitalize && (
               <style

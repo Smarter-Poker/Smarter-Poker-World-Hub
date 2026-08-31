@@ -27,6 +27,13 @@ test.describe('Poker Near Me phase 13 closeout', () => {
       expect(box?.width).toBeGreaterThanOrEqual(44);
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
+    const footer = page.locator('[data-global-bottom-nav="true"]');
+    await expect(footer).toHaveAttribute('data-footer-world', 'poker-near-me');
+    await expect(footer).toHaveAttribute('data-footer-cropped', 'true');
+    const footerBox = await footer.boundingBox();
+    expect(footerBox?.height).toBeLessThanOrEqual(220);
+    await expect(page.locator('meta[property="og:image"]')).toHaveCount(1);
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveCount(1);
     expect(remoteLeaflet).toEqual([]);
     await expectNoOverflow(page, 'map discovery');
   });
