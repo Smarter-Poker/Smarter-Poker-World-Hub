@@ -1,7 +1,7 @@
 name: Deploy Open Claw Cron Dispatcher
 
 # Auto-deploys scripts/openclaw-cron-dispatcher.py to the openclaw VM on
-# Hetzner (the same CX22 the YT worker runs on) whenever the dispatcher
+# Hetzner canonical Open Claw host whenever the dispatcher
 # changes on main, AND self-bootstraps Open Claw on a fresh box.
 #
 # Bootstrap behaviour: if openclaw.service is missing on the VM, this
@@ -49,10 +49,13 @@ jobs:
       - name: Bootstrap (idempotent — installs python3 + apscheduler + dirs)
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
           ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
           set -e
+          if ! id openclaw >/dev/null 2>&1; then
+            sudo useradd --system --home-dir /opt/openclaw --create-home --shell /bin/bash openclaw
+          fi
           # Python deps for apscheduler/requests — idempotent.
           if ! python3 -c 'import apscheduler, requests' 2>/dev/null; then
             sudo apt-get update -y
@@ -62,28 +65,53 @@ jobs:
           fi
           python3 -c 'import apscheduler, requests; print("openclaw deps OK")'
           sudo mkdir -p /opt/openclaw /var/log/openclaw
-          sudo chown "$(whoami):$(whoami)" /opt/openclaw /var/log/openclaw
+          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw
           EOSSH
 
-      - name: Write env file (root-owned, 0600) — CRON_SECRET for dispatcher auth
+      - name: Merge managed dispatcher secrets into the canonical env file
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
-          # CRON_SECRET is reused from the YT worker env when set; falls back
-          # to AUTOFIX_GITHUB_TOKEN-style placeholder check. The dispatcher
-          # also tolerates a missing CRON_SECRET (will fire without auth header
-          # which the receiving cron endpoints accept in that mode).
+          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET || secrets.HENDON_AUTO_SYNC_SECRET || '' }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
         run: |
-          ssh "$USER@$HOST" "sudo tee /etc/openclaw.env >/dev/null" <<EOF
-          CRON_SECRET=$CRON_SECRET
-          EOF
-          ssh "$USER@$HOST" 'sudo chmod 600 /etc/openclaw.env && sudo chown root:root /etc/openclaw.env'
+          umask 077
+          {
+            printf 'CRON_SECRET=%s\n' "$CRON_SECRET"
+            printf 'TWILIO_ACCOUNT_SID=%s\n' "$TWILIO_ACCOUNT_SID"
+            printf 'TWILIO_AUTH_TOKEN=%s\n' "$TWILIO_AUTH_TOKEN"
+            printf 'TWILIO_PHONE_NUMBER=%s\n' "$TWILIO_PHONE_NUMBER"
+            printf 'ADMIN_PHONE=%s\n' "$ADMIN_PHONE"
+          } > /tmp/openclaw-managed.env
+          scp /tmp/openclaw-managed.env "$USER@$HOST:/tmp/openclaw-managed.env"
+          ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
+          set -e
+          sudo touch /etc/openclaw.env
+          if [ -f /opt/openclaw/.env ]; then
+            while IFS= read -r line; do
+              key=${line%%=*}
+              [ -n "$key" ] || continue
+              sudo grep -q "^${key}=" /etc/openclaw.env || printf '%s\n' "$line" | sudo tee -a /etc/openclaw.env >/dev/null
+            done < /opt/openclaw/.env
+          fi
+          while IFS= read -r line; do
+            key=${line%%=*}
+            sudo sed -i "/^${key}=/d" /etc/openclaw.env
+            printf '%s\n' "$line" | sudo tee -a /etc/openclaw.env >/dev/null
+          done < /tmp/openclaw-managed.env
+          sudo rm -f /tmp/openclaw-managed.env
+          sudo chmod 600 /etc/openclaw.env
+          sudo chown root:root /etc/openclaw.env
+          EOSSH
+          rm -f /tmp/openclaw-managed.env
 
       - name: Sync dispatcher.py + systemd unit
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
           scp scripts/openclaw-cron-dispatcher.py \
             "$USER@$HOST:/tmp/openclaw-cron-dispatcher.py"
@@ -101,14 +129,23 @@ jobs:
       - name: Enable + (re)start openclaw.service and verify
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
+          expected_dispatcher=$(sha256sum scripts/openclaw-cron-dispatcher.py | cut -d' ' -f1)
+          expected_unit=$(sha256sum scripts/openclaw.service | cut -d' ' -f1)
           ssh "$USER@$HOST" '
             set -e
             sudo systemctl enable openclaw.service
             sudo systemctl restart openclaw.service
             sleep 3
             sudo systemctl is-active openclaw.service
-            echo "--- last 30 dispatcher log lines ---"
+            test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
+            for key in CRON_SECRET TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_PHONE_NUMBER ADMIN_PHONE; do
+              sudo grep -q "^${key}=.." /etc/openclaw.env
+            done
             sudo journalctl -u openclaw.service -n 30 --no-pager
           '
+          remote_dispatcher=$(ssh "$USER@$HOST" 'sha256sum /opt/openclaw/dispatcher.py' | cut -d' ' -f1)
+          remote_unit=$(ssh "$USER@$HOST" 'sha256sum /etc/systemd/system/openclaw.service' | cut -d' ' -f1)
+          test "$remote_dispatcher" = "$expected_dispatcher"
+          test "$remote_unit" = "$expected_unit"

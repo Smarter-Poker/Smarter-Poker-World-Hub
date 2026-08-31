@@ -1020,7 +1020,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                 userLocation={userLocation}
                 fullHeight={true}
                 hideLegend={false}
-                uniformColor={true}
+                        uniformColor="#ffffff"
               />
             </div>
           )}

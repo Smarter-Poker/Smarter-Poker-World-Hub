@@ -2,13 +2,21 @@
  * RoadTripPlanner.jsx — Feature #3: Smart Poker Road Trip Planner
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
-import { loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import {
+    filterSeriesForRoute,
+    interpolateRouteLeg,
+    isVenueNearRoute,
+    travelDayNames,
+    validateTravelDateRange,
+} from '../../lib/poker-near-me/roadTripRuntime';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
+const TRIP_DRAFT_KEY = 'pnm_trip_draft_v1';
 
 // SECURITY: Leaflet's bindPopup/divIcon take raw HTML strings. Venue and stop names
 // come from scraped external sources (Bravo/PokerAtlas), so a name such as
@@ -17,30 +25,6 @@ const CORRIDOR_OPTIONS = [25, 50, 100];
 const esc = (value) => escapeHtml(String(value == null ? '' : value));
 
 // haversineMiles is now imported from ./pnm-utils
-
-// Interpolate points along a great circle for corridor search
-function interpolateRoute(start, end, numPoints = 20) {
-    const points = [];
-    for (let i = 0; i <= numPoints; i++) {
-        const t = i / numPoints;
-        points.push({
-            lat: start.lat + t * (end.lat - start.lat),
-            lng: start.lng + t * (end.lng - start.lng),
-        });
-    }
-    return points;
-}
-
-// Check if a venue is within corridorMi of any route segment point
-function isNearRoute(venue, routePoints, corridorMi) {
-    if (!venue.latitude || !venue.longitude) return false;
-    for (const pt of routePoints) {
-        if (haversineMiles(pt.lat, pt.lng, parseFloat(venue.latitude), parseFloat(venue.longitude)) <= corridorMi) {
-            return true;
-        }
-    }
-    return false;
-}
 
 // City geocode lookup (uses the existing popular cities + free Nominatim fallback)
 const POPULAR_CITIES_GEO = {
@@ -156,10 +140,15 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [savedTripsOpen, setSavedTripsOpen] = useState(false);
     const [savedTrips, setSavedTrips] = useState([]);
     const [mapStatus, setMapStatus] = useState('idle'); // idle | loading | ready | error
+    const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
     const [shareStatus, setShareStatus] = useState(null);
+    const [draftHydrated, setDraftHydrated] = useState(false);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const originAutoRef = useRef(false);
+    const instanceId = useId().replace(/:/g, '');
+    const savedTripsId = `rtp-saved-${instanceId}`;
+    const mapPanelId = `rtp-map-${instanceId}`;
 
     // Load saved trips from localStorage
     useEffect(() => {
@@ -180,11 +169,35 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             const from = params.get('from');
             const to = params.get('to');
             const corridor = parseInt(params.get('corridor'), 10);
+            const sharedWaypoints = params.getAll('via').map(value => value.trim()).filter(Boolean).slice(0, 8);
             if (from) { setOrigin(from); originAutoRef.current = true; }
             if (to) setDestination(to);
             if (CORRIDOR_OPTIONS.includes(corridor)) setCorridorMi(corridor);
+            if (sharedWaypoints.length) setWaypoints(sharedWaypoints);
+            const start = params.get('start') || '';
+            const end = params.get('end') || '';
+            if (start || end) setDateRange({ start, end });
+            if (!from && !to) {
+                const draft = JSON.parse(sessionStorage.getItem(TRIP_DRAFT_KEY) || 'null');
+                if (draft && typeof draft === 'object') {
+                    setOrigin(String(draft.origin || ''));
+                    if (draft.origin) originAutoRef.current = true;
+                    setDestination(String(draft.destination || ''));
+                    setWaypoints(Array.isArray(draft.waypoints) ? draft.waypoints.map(String).slice(0, 8) : []);
+                    if (CORRIDOR_OPTIONS.includes(Number(draft.corridorMi))) setCorridorMi(Number(draft.corridorMi));
+                    setDateRange({ start: String(draft.dateRange?.start || ''), end: String(draft.dateRange?.end || '') });
+                }
+            }
         } catch { /* silent */ }
+        setDraftHydrated(true);
     }, []);
+
+    useEffect(() => {
+        if (!draftHydrated) return;
+        try {
+            sessionStorage.setItem(TRIP_DRAFT_KEY, JSON.stringify({ origin, destination, waypoints, corridorMi, dateRange }));
+        } catch { /* storage unavailable */ }
+    }, [draftHydrated, origin, destination, waypoints, corridorMi, dateRange]);
 
     // Auto-populate origin with GPS city on first mount (one-time only)
     useEffect(() => {
@@ -204,14 +217,16 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         setError(null);
         setCalculating(true);
         try {
+            const travelDates = validateTravelDateRange(dateRange);
+            if (!travelDates.ok) { setError(travelDates.error); return; }
             const stops = [origin, ...waypoints.filter(w => w.trim()), destination].filter(Boolean);
-            if (stops.length < 2) { setError('Enter at least an origin and destination.'); setCalculating(false); return; }
+            if (stops.length < 2) { setError('Enter at least an origin and destination.'); return; }
 
             // Geocode all stops
             const geoStops = [];
             for (const stop of stops) {
                 const geo = await geocodeCity(stop);
-                if (!geo) { setError(`Could not locate: "${stop}"`); setCalculating(false); return; }
+                if (!geo) { setError(`Could not locate: "${stop}"`); return; }
                 geoStops.push({ name: stop, ...geo });
             }
 
@@ -221,7 +236,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             let totalDistance = 0;
 
             for (let i = 0; i < geoStops.length - 1; i++) {
-                const segPoints = interpolateRoute(geoStops[i], geoStops[i + 1], 30);
+                const segPoints = interpolateRouteLeg(geoStops[i], geoStops[i + 1]);
                 allRoutePoints.push(...segPoints);
                 const dist = haversineMiles(geoStops[i].lat, geoStops[i].lng, geoStops[i + 1].lat, geoStops[i + 1].lng);
                 totalDistance += dist;
@@ -234,22 +249,16 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             }
 
             // Find venues within corridor
-            const nearbyVenues = venues.filter(v => isNearRoute(v, allRoutePoints, corridorMi));
+            const nearbyVenues = venues.filter(v => isVenueNearRoute(v, geoStops, corridorMi));
 
             // Filter tournaments by date range if set
             let matchingTournaments = [];
-            if (dateRange.start && dateRange.end) {
-                const startDate = new Date(dateRange.start.replace(/-/g, '\/'));
-                const endDate = new Date(dateRange.end.replace(/-/g, '\/'));
+            if (travelDates.startDate && travelDates.endDate) {
+                const { startDate, endDate } = travelDates;
                 const venueIds = new Set(nearbyVenues.map(v => String(v.id)));
-                // Build set of day abbreviations within travel window
-                const travelDays = new Set();
-                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                    travelDays.add(DAY_NAMES[d.getDay()]);
-                }
+                const travelDays = travelDayNames(startDate, endDate, DAY_NAMES);
                 matchingTournaments = dailyTournaments.filter(t => {
                     if (!venueIds.has(String(t.venue_id))) return false;
-                    if (travelDays.size === 0) return true;
                     // BUG FIX: day_of_week is mixed-case ('saturday'/'MONDAY'), the
                     // literal 'Daily' for recurring events, or a raw date string for
                     // charity/tour/home rows. Exact-string comparison against
@@ -265,15 +274,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
             // Filter series by date range
             let matchingSeries = [];
-            if (dateRange.start && dateRange.end) {
-                const startDate = new Date(dateRange.start.replace(/-/g, '\/'));
-                const endDate = new Date(dateRange.end.replace(/-/g, '\/'));
-                matchingSeries = series.filter(s => {
-                    if (!s.start_date) return false;
-                    const sStart = new Date(s.start_date.replace(/-/g, '\/'));
-                    const sEnd = s.end_date ? new Date(s.end_date.replace(/-/g, '\/')) : sStart;
-                    return sStart <= endDate && sEnd >= startDate;
-                });
+            if (travelDates.startDate && travelDates.endDate) {
+                matchingSeries = filterSeriesForRoute(
+                    series,
+                    nearbyVenues,
+                    travelDates.startDate,
+                    travelDates.endDate,
+                );
             }
 
             setRouteResult({
@@ -359,7 +366,21 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             cancelled = true;
             if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
         };
-    }, [routeResult]);
+    }, [routeResult, mapLoadAttempt]);
+
+    useEffect(() => {
+        if (!mapExpanded || !mapInstanceRef.current) return undefined;
+        const frame = requestAnimationFrame(() => {
+            const map = mapInstanceRef.current;
+            if (!map) return;
+            map.invalidateSize({ pan: false });
+            const routePoints = routeResult?.routePoints || [];
+            if (routePoints.length > 0 && window.L) {
+                map.fitBounds(window.L.latLngBounds(routePoints.map(point => [point.lat, point.lng])), { padding: [30, 30] });
+            }
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [mapExpanded, routeResult]);
 
     return (
         <div className="road-trip-planner">
@@ -378,6 +399,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     <div className="rtp-dot origin" />
                     <input
                         type="text"
+                        aria-label="Trip origin"
                         placeholder="Origin (e.g., Dallas, TX)"
                         value={origin}
                         onChange={e => setOrigin(e.target.value)}
@@ -390,12 +412,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <div className="rtp-dot waypoint" />
                         <input
                             type="text"
+                            aria-label={`Trip waypoint ${i + 1}`}
                             placeholder={`Waypoint ${i + 1}`}
                             value={wp}
                             onChange={e => updateWaypoint(i, e.target.value)}
                             className="rtp-input"
                         />
-                        <button type="button" className="rtp-remove-btn" onClick={() => removeWaypoint(i)}>×</button>
+                        <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>×</button>
                     </div>
                 ))}
 
@@ -403,6 +426,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     <div className="rtp-dot destination" />
                     <input
                         type="text"
+                        aria-label="Trip destination"
                         placeholder="Destination (e.g., Las Vegas, NV)"
                         value={destination}
                         onChange={e => setDestination(e.target.value)}
@@ -418,9 +442,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 <div className="rtp-options">
                     <div className="rtp-option-group">
                         <label>Search Corridor</label>
-                        <div className="rtp-chips">
+                        <div className="rtp-chips" role="radiogroup" aria-label="Search corridor">
                             {CORRIDOR_OPTIONS.map(mi => (
-                                <button type="button" key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} mi</button>
+                                <button type="button" role="radio" aria-checked={corridorMi === mi} key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} mi</button>
                             ))}
                         </div>
                     </div>
@@ -428,9 +452,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     <div className="rtp-option-group">
                         <label>Travel Dates (optional)</label>
                         <div className="rtp-date-row">
-                            <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
+                            <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
                             <span className="rtp-date-sep">→</span>
-                            <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
+                            <input type="date" aria-label="Trip end date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
                         </div>
                     </div>
                 </div>
@@ -446,7 +470,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     )}
                 </button>
 
-                {error && <div className="rtp-error">{error}</div>}
+                {error && <div className="rtp-error" role="alert">{error}</div>}
 
                 {/* Saved Trips Collapsible */}
                 {savedTrips.length > 0 && (
@@ -455,13 +479,15 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             type="button"
                             className="rtp-saved-trips-toggle"
                             onClick={() => setSavedTripsOpen(p => !p)}
+                            aria-expanded={savedTripsOpen}
+                            aria-controls={savedTripsId}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Saved Trips ({savedTrips.length})
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto', transform: savedTripsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
                         </button>
                         {savedTripsOpen && (
-                            <div className="rtp-saved-trips-list">
+                            <div className="rtp-saved-trips-list" id={savedTripsId}>
                                 {savedTrips.map((trip, i) => (
                                     <div key={i} className="rtp-saved-trip-item">
                                         <div className="rtp-saved-trip-route">
@@ -539,7 +565,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     </div>
 
                     {/* Save / Share Actions */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <div className="rtp-result-actions">
                         <button
                             type="button"
                             onClick={() => {
@@ -570,11 +596,11 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     params.set('pod', 'roadtrip');
                                     if (origin) params.set('from', origin);
                                     if (destination) params.set('to', destination);
+                                    waypoints.filter(Boolean).slice(0, 8).forEach((waypoint) => params.append('via', waypoint));
                                     if (corridorMi !== 50) params.set('corridor', String(corridorMi));
-                                    const basePath = window.location.pathname.includes('/hub/poker-near-me')
-                                        ? window.location.pathname
-                                        : '/hub/poker-near-me/lobby';
-                                    const url = `${window.location.origin}${basePath}?${params.toString()}`;
+                                    if (dateRange.start) params.set('start', dateRange.start);
+                                    if (dateRange.end) params.set('end', dateRange.end);
+                                    const url = `${window.location.origin}/hub/poker-near-me/lobby?${params.toString()}`;
                                     if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
                                     await navigator.clipboard.writeText(url);
                                     setShareStatus({ ok: true, msg: 'Trip link copied to clipboard.' });
@@ -609,7 +635,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
-                        <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>
+                        <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
                             </svg>
@@ -618,13 +644,16 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </button>
-                        <div className="rtp-map-shell" style={{ display: mapExpanded ? 'block' : 'none' }}>
-                            <div ref={mapRef} className="rtp-map" />
+                        <div className="rtp-map-shell" id={mapPanelId} style={{ display: mapExpanded ? 'block' : 'none' }}>
+                            <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" />
                             {mapStatus !== 'ready' && (
-                                <div className="rtp-map-overlay">
-                                    {mapStatus === 'error'
-                                        ? 'Route map could not be loaded. The stop and venue lists below are unaffected.'
-                                        : 'Loading route map...'}
+                                <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
+                                    {mapStatus === 'error' ? (
+                                        <div>
+                                            <p>Route map could not be loaded. The stop and venue lists below are unaffected.</p>
+                                            <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry route map</button>
+                                        </div>
+                                    ) : 'Loading route map...'}
                                 </div>
                             )}
                         </div>
@@ -668,6 +697,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             {routeResult.venues.length > 20 && (
                                 <div className="rtp-more">+{routeResult.venues.length - 20} more venues</div>
                             )}
+                            {routeResult.venues.length === 0 && (
+                                <div className="rtp-empty" role="status">No mapped poker rooms were found inside this route corridor.</div>
+                            )}
                         </div>
                     </div>
 
@@ -706,6 +738,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             ))}
                         </div>
                     )}
+                    {dateRange.start && dateRange.end && routeResult.tournaments.length === 0 && routeResult.series.length === 0 && (
+                        <div className="rtp-empty" role="status">No route-matched tournaments or series overlap these travel dates.</div>
+                    )}
                 </div>
             )}
 
@@ -719,10 +754,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-dot.origin { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
         .rtp-dot.waypoint { background: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
         .rtp-dot.destination { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
-        .rtp-input { flex: 1; padding: 12px 16px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.25s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
+        .rtp-input { flex: 1; min-width: 0; min-height: 44px; padding: 12px 16px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.25s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
         .rtp-input:focus { outline: none; border-color: rgba(255,255,255,0.5); }
         .rtp-input::placeholder { color: rgba(148,163,184,0.35); }
-        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); color: #ef4444; width: 44px; height: 44px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
         .rtp-remove-btn:hover { background: rgba(239,68,68,0.2); }
         .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); border-radius: 8px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
         .rtp-add-waypoint:hover { border-color: rgba(255,255,255,0.5); }
@@ -753,6 +788,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(148,163,184,0.12); background: #0d1117; }
         @media (max-width: 600px) { .rtp-map { height: 250px; } }
         .rtp-map-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 12px; background: rgba(13,17,23,0.92); color: rgba(148,163,184,0.75); font-size: 13px; pointer-events: none; }
+        .rtp-map-overlay.error { pointer-events: auto; }
+        .rtp-map-overlay p { margin: 0 0 12px; }
+        .rtp-map-overlay button { min-width: 44px; min-height: 44px; padding: 10px 16px; border: 1px solid rgba(59,130,246,0.55); border-radius: 6px; background: rgba(59,130,246,0.14); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
         .rtp-estimate-note { margin: -6px 0 14px; font-size: 11px; color: rgba(148,163,184,0.55); line-height: 1.5; }
         .rtp-share-status { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
         .rtp-share-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
@@ -790,6 +828,20 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-saved-trip-load:hover { background: rgba(255,255,255,0.2); }
         .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
         .rtp-saved-trip-delete:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .rtp-add-waypoint, .rtp-chip, .rtp-date, .rtp-map-toggle, .rtp-nav-btn, .rtp-saved-trips-toggle, .rtp-saved-trip-load, .rtp-saved-trip-delete { min-height: 44px; }
+        .rtp-date { min-width: 0; flex: 1; }
+        .rtp-result-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+        .rtp-result-actions > button { min-height: 44px; }
+        .rtp-empty { grid-column: 1 / -1; padding: 20px; border: 1px dashed rgba(148,163,184,0.2); border-radius: 10px; color: rgba(226,232,240,0.7); text-align: center; font-size: 13px; }
+        .road-trip-planner button:focus-visible, .road-trip-planner input:focus-visible { outline: 2px solid #6ee7ef; outline-offset: 2px; }
+        @media (max-width: 600px) {
+          .rtp-form { padding: 16px; }
+          .rtp-result-actions { flex-direction: column; }
+          .rtp-result-actions > button { width: 100%; flex: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .road-trip-planner *, .road-trip-planner *::before, .road-trip-planner *::after { animation: none !important; transition: none !important; }
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

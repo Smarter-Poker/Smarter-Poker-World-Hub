@@ -19,7 +19,7 @@ import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
 import MapCoverageReadout from './MapCoverageReadout';
-import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 
@@ -85,33 +85,6 @@ const LEAFLET_CUSTOM_CSS = `
 .leaflet-tile-pane {
   touch-action: none !important;
 }
-/* ═══ PREMIUM MAP CONTROLS ═══ */
-.leaflet-control-zoom {
-  border: none !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.3) !important;
-  border-radius: 10px !important;
-  overflow: hidden !important;
-}
-.leaflet-control-zoom a {
-  background: rgba(10,10,21,0.92) !important;
-  color: #ffffff !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(255,255,255,0.15) !important;
-  width: 44px !important;
-  height: 44px !important;
-  line-height: 44px !important;
-  font-size: 18px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-}
-.leaflet-control-zoom a:hover {
-  background: rgba(255,255,255,0.15) !important;
-  color: #ffffff !important;
-}
-.leaflet-control-zoom a:last-child {
-  border-bottom: none !important;
-}
-
 /* ═══ ATTRIBUTION — Smarter.Poker Branding ═══ */
 .leaflet-control-attribution {
   background: linear-gradient(90deg, rgba(10,10,21,0.85), rgba(10,10,21,0.7)) !important;
@@ -263,6 +236,12 @@ const LEAFLET_CUSTOM_CSS = `
   box-shadow: 0 2px 12px rgba(0,0,0,0.4);
   pointer-events: none;
 }
+@media (prefers-reduced-motion: reduce) {
+  .pnm-leaflet-map *, .pnm-leaflet-map *::before, .pnm-leaflet-map *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 `;
 
 // ─── Error Boundary ───
@@ -319,8 +298,9 @@ function truncateName(name, maxLen) {
 
 // ─── Helper: Create venue marker icon (Tour-style round circle with label) ───
 function createVenueIcon(L, venue, overrideColor) {
-  const colors = overrideColor
-    ? { fill: overrideColor, glow: overrideColor + '80' }
+  const normalizedOverride = typeof overrideColor === 'string' && overrideColor.trim() ? overrideColor.trim() : null;
+  const colors = normalizedOverride
+    ? { fill: normalizedOverride, glow: normalizedOverride + '80' }
     : (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR);
   const label = truncateName(venue.name, 22);
   const escapedLabel = escapeHtml(label || '');
@@ -603,6 +583,9 @@ function buildPopupHtml(venue) {
 
 // ─── Main Map Component ───
 export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, clusterTourStops = false, isFavorited }) {
+  const normalizedUniformColor = typeof uniformColor === 'string' && /^#[0-9a-f]{6}$/i.test(uniformColor.trim())
+    ? uniformColor.trim()
+    : null;
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [visibleCount, setVisibleCount] = useState(0);
   const [viewportCount, setViewportCount] = useState(0);
@@ -618,6 +601,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
   // Unconditional unmount handler for background polling safety
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
@@ -636,6 +620,8 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // Content signature of the markers currently drawn — see the marker effect below.
   const renderedSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState('');
+  const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
   const mapInstructionsId = `pnm-map-instructions-${useId().replace(/:/g, '')}`;
 
@@ -646,14 +632,18 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // Load the shared, locally bundled Leaflet runtime once per browser session.
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    setMapError('');
     loadPokerMapRuntime()
       .then((runtime) => {
         if (!mountedRef.current) return;
         setClusteringAvailable(runtime.clusteringAvailable);
         setMapReady(true);
       })
-      .catch((err) => console.warn('Failed to load local Leaflet runtime:', err));
-  }, []);
+      .catch((err) => {
+        console.warn('Failed to load local Leaflet runtime:', err);
+        if (mountedRef.current) setMapError('The map engine could not be loaded. Venue lists remain available.');
+      });
+  }, [mapLoadAttempt]);
 
   // Inject custom CSS once
   useEffect(() => {
@@ -943,12 +933,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           v.is_running ? 1 : 0,
           (v.live_data && v.live_data.tables_running) || 0,
           (v.live_data && v.live_data.last_updated) || '',
-          v.logo_url || '',
-          v.trust_score || '', v.hours || '', v.hours_weekday || '',
-          Array.isArray(v.games_offered) ? v.games_offered.length : 0, fav,
+          v.logo_url || '', v.avatar_url || '', v.profile_photo_url || '', v.cover_photo_url || '', v.image_url || '',
+          v.trust_score || '', v.hours || '', v.hours_weekday || '', v.address || '', v.city || '', v.state || '',
+          v.phone || '', v.website || '', v.detailUrl || '', JSON.stringify(v.games_offered || []), fav,
         ].join(':');
       }).join('|'),
-      uniformColor || '',
+      normalizedUniformColor || '',
       userLocation ? `${userLocation.lat},${userLocation.lng}` : '',
     ].join('#');
     if (signature === renderedSignatureRef.current) return;
@@ -985,12 +975,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const isTourStop = (venue.venue_type === 'tour_stop' || venue.venue_type === 'poker_tour') && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
-        : createVenueIcon(L, venue, uniformColor || null);
+        : createVenueIcon(L, venue, normalizedUniformColor);
 
       // Favorited venue pins get a gold pulse ring wrapped around the icon
       const isFav = !isTourStop && isFavorited && isFavorited('venue', venue.id);
       const finalIcon = isFav ? (() => {
-        const base = createVenueIcon(L, venue, uniformColor || null);
+        const base = createVenueIcon(L, venue, normalizedUniformColor);
         const size = base.options?.iconSize?.[0] || 36;
         const favHtml = `<div style="position:relative;width:${size + 10}px;height:${size + 10}px;">
           <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #ffffff;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
@@ -1033,7 +1023,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
       if (!isTourStop) {
         const radius = getGeofenceRadius(venue.venue_type);
-        const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
+        const circleColor = normalizedUniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
         const circle = L.circle([venue.latitude, venue.longitude], {
           radius: radius,
           color: circleColor,
@@ -1113,7 +1103,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // [VM2 FIX] Added isFavorited and userLocation to deps — missing caused:
   //   - Favorites gold ring never appearing after a favorite action
   //   - Distance/nearest venue not recomputing when GPS location resolves
-  }, [venues, uniformColor, mapReady, isFavorited, userLocation, clusterTourStops, integritySummary]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [venues, normalizedUniformColor, mapReady, isFavorited, userLocation, clusterTourStops, integritySummary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update user location marker
   useEffect(() => {
@@ -1202,7 +1192,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   return (
     <div style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}>
       {/* Premium loading skeleton */}
-      {!mapReady && (
+      {!mapReady && !mapError && (
         <div style={{
           width: '100%',
           ...(fullHeight ? { height: '100%', minHeight: 400 } : { aspectRatio: '16 / 9', maxHeight: '50vh' }),
@@ -1234,8 +1224,16 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
         </div>
       )}
+      {mapError && (
+        <div role="alert" style={{ minHeight: 260, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', color: '#e2e8f0', background: '#060810', border: '1px solid rgba(239,68,68,0.35)', borderRadius: fullHeight ? 0 : 12 }}>
+          <strong>Map unavailable</strong>
+          <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: 13 }}>{mapError}</span>
+          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try map again</button>
+        </div>
+      )}
       <div
         ref={mapContainerRef}
+        className="pnm-leaflet-map"
         role="region"
         aria-label="Interactive poker venue map"
         aria-describedby={mapInstructionsId}
@@ -1257,7 +1255,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           borderRadius: fullHeight ? 0 : 12,
           overflow: 'hidden',
           border: fullHeight ? 'none' : '1px solid rgba(255,255,255,0.15)',
-          display: mapReady ? 'block' : 'none',
+          display: mapReady && !mapError ? 'block' : 'none',
           boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
       />
