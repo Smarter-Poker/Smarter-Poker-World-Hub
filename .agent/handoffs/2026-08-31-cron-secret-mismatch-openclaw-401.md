@@ -135,3 +135,65 @@ measures, it did not catch an entire fleet returning 401. Worth a look: the
 failure mode here was invisible to everything except the VM's own journal, and
 a cron whose failures nobody sees is indistinguishable from a cron that was
 never scheduled.
+
+---
+
+## CORRECTION, 2026-08-31 ~15:05 UTC -- the documented fix does not work
+
+Written after executing it. Read this before you SSH anywhere.
+
+**The instruction "set CRON_SECRET in /etc/openclaw.env to the value in
+`.env.vercel.prod.local`" would NOT have fixed the outage.** That value is
+rejected by production too. Measured, against `/api/cron/marketplace-health`,
+which returns 401 for a wrong secret and would return 404 if the route were
+missing:
+
+    every distinct CRON_SECRET in every local .env* file  ->  401
+    (four distinct values: three 64-char, one 24-char)
+
+So the live secret is not on this Mac at all. The rotation that broke Open Claw
+also left every local copy stale.
+
+**A second thing this file had backwards.** It calls `/opt/openclaw/.env` an
+inert, misleading leftover. It is the opposite: `/opt/openclaw/.env` holds the
+value that `.env.vercel.prod.local` holds, and `/etc/openclaw.env` -- the file
+systemd actually loads -- holds a DIFFERENT, older one. Both are stale against
+production, so reconciling them changes nothing. Do not spend time on it.
+
+    /etc/openclaw.env      CRON_SECRET md5 1571d09b58c74831d063697aa1c83d43
+    /opt/openclaw/.env     CRON_SECRET md5 3f1e10f936bb47457928d6e68ff5f1cd
+    .env.vercel.prod.local CRON_SECRET md5 3f1e10f936bb47457928d6e68ff5f1cd   <- 401
+    production             unreadable (see below)
+
+**Why the value cannot be read, precisely.** The Vercel CLI DOES work from this
+Mac -- the failure recorded earlier was a stale `VERCEL_TOKEN` in the shell
+environment shadowing a perfectly good browser login:
+
+    vercel whoami                    -> "token is not valid"
+    env -u VERCEL_TOKEN vercel whoami -> admin-74513439
+
+With the token unset, `vercel link --project hub-vanguard` and
+`vercel env pull` both succeed. But `CRON_SECRET` is marked **sensitive** in the
+project, so the pull returns literally `CRON_SECRET="[SENSITIVE]"`. Vercel does
+not decrypt sensitive values for any client. There is no read path, by design.
+
+**Therefore the only fix is a ROTATION, and it is a human decision because it
+touches three systems at once:**
+
+1. set a new `CRON_SECRET` on `hub-vanguard` (production) and REDEPLOY -- a
+   serverless function only picks up an env change on a new deployment;
+2. write the same value into `/etc/openclaw.env` on `root@178.104.160.250` and
+   `systemctl restart openclaw`;
+3. update the `CRON_SECRET` GitHub Actions secret in every repo whose workflows
+   call a cron endpoint, or those workflows start 401ing the moment production
+   changes.
+
+Do all three in one sitting. Between step 1 and step 2 the ENTIRE fleet is down,
+which is the state it is in right now anyway, so the window costs nothing -- but
+stopping after step 1 makes it permanent.
+
+**Safe to restart.** The dispatcher runs with `misfire_grace_time=300` and
+`coalesce=True`, so a restart does not replay missed jobs. In particular
+`/api/cron/rakeback-period-settle` (Mondays 10:30 UTC, ~278k chips) will NOT
+fire on restart hours later; it waits for its next slot. Verified in
+`/opt/openclaw/dispatcher.py`.

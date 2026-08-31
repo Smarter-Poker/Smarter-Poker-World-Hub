@@ -8,10 +8,11 @@ import { ensureAuthReady, getAccessToken } from '../../../src/lib/authUtils';
 import { acquireScrollLock } from '../../../src/lib/scrollLock';
 import supabase from '../../../src/lib/supabase';
 import styles from './fulfillment.module.css';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 function itemLabel(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
-  return items.map((item) => `${item.name || item.id} × ${item.quantity || 1}`).join(', ');
+  return items.map((item) => `${marketplaceCopy(item.name || item.id)} × ${item.quantity || 1}`).join(', ');
 }
 
 export default function MerchandiseFulfillmentConsole() {
@@ -170,7 +171,7 @@ export default function MerchandiseFulfillmentConsole() {
           </div>
         </header>
 
-        <div className={styles.status} role="status" aria-live="polite">{state.message}</div>
+        <div className={styles.status} role="status" aria-live="polite">{marketplaceCopy(state.message)}</div>
         <section className={styles.grid} aria-label="Merchandise fulfillment orders">
           {orders.map((order) => {
             const address = order.shipping_address || {};
@@ -197,7 +198,7 @@ export default function MerchandiseFulfillmentConsole() {
                   {address.country_code || address.country || ''}
                 </address>
                 {order.tracking_number && (
-                  <p><Truck size={15} /> {order.carrier || 'Carrier'} · {order.tracking_number}</p>
+                  <p><Truck size={15} /> {marketplaceCopy(order.carrier || 'Carrier')} · {order.tracking_number}</p>
                 )}
                 {isQuarantined && (
                   <div className={styles.quarantine} role="status">

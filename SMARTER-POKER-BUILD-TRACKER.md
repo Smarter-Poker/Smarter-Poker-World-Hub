@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-08-31 — Phase 64 (Poker Near Me Phase 2 shared map foundation)
+**Last Updated:** 2026-08-31 — Phase 67 (Poker Near Me Phase 4 controller decomposition)
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1459,3 +1459,42 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Coverage:** Eight secondary route families plus the family-navigation contract across all 354 current directory-driven URLs; dynamic venue, home-game, series, and tour instances inherit from their family implementation.
 
 **Verification:** 77/77 focused Poker Near Me contracts, 538/538 repository prebuild checks, TypeScript, the exact webpack production build (402 static pages), 6/6 compiled-production journeys, and 6/6 live-production desktop/mobile journeys passed. PR #1103 auto-merged; Vercel production health reported a main head containing the Phase 3 merge. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-3-secondary-interaction.md`.
+
+---
+
+## PHASE 66 — Personal Assistant Phase 2 Of 8: Durable Audit Operations (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Durable audit jobs | Owner-private jobs persist signed Club Arena continuation cursors, cumulative coverage, results, reconciliation, attempts, leases, heartbeats, and failures. |
+| Atomic execution | Concurrent starts converge on one job; claims and checkpoints are worker-token guarded; stale leases and failed checkpoints resume safely. |
+| Server-owned continuation | A bounded post-response worker processes every signed page, checkpoints each batch, retries transient failures, and self-chains independently of the browser. |
+| Reload-safe UI | Leak Finder restores server progress after reload/device changes and renders the complete coverage/reconciliation receipt without exposing internal cursors or worker credentials. |
+| Real-account reconciliation | The authenticated production account completed 1,347 hands in seven persisted batches and reconciled 1,570 evidence decisions consistently. |
+| Notification idempotency | Audit completion creates one notification per job and rejects duplicate completion work. |
+| Duplicate-push repair | Delivery evidence proved one outbox row reached two iPhone registrations; the confirmed legacy pair was consolidated to one active endpoint with history retained. |
+| Permanent regression gates | Leak-engine, API/security, durable-operation, push-identity, TypeScript, production-build, and desktop/mobile browser checks cover the phase. |
+
+**Release state:** Complete. PR #1112 merged the durable audit system; PR #1122 hardened every nested public receipt projection. Vercel production revision `b262cb2b` passed authenticated/anonymous/forged-worker API probes, 1,347-hand receipt restoration and reconciliation, duplicate-push endpoint/outbox checks, and the 23-pass desktop/mobile Personal Assistant browser matrix. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-2-durable-audit-operations.md`.
+
+**Final closeout addendum:** A renewed live-device audit found five active browser subscriptions despite one notification/outbox event. Phase 66 now also includes receipt-confirmed endpoint reconciliation and a route-wide Personal Assistant copy policy for title capitalization and em-dash removal. Release verification is tracked in the Phase 2 audit evidence file.
+
+**Final published verification:** PR #1129 merged at `176c214d` and is present in the Vercel production ancestry. The refreshed authenticated production matrix passed 22 checks with two desktop-inapplicable mobile checks skipped. Live owner/anonymous/forged-worker probes passed, the 1,347-hand receipt reconciled with 1,570 persisted decisions, and account delivery state is one notification, one outbox event, one confirmed iPhone endpoint, and one confirmed Mac endpoint with no duplicate groups. Migration `20260831173000` makes the receipt RPC executable only by `service_role` in production.
+
+---
+
+## PHASE 67 — Poker Near Me Phase 4 Controller Decomposition (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Shared controller ownership | Route, tab, deep-link, filter, time, analytics, storage, crawl-graph, cache, batch, and GPS logic moved from the lobby and discovery pages into named pure modules. |
+| Interaction controllers | Lobby focus/Escape/share behavior and discovery swipe/pull-to-refresh behavior now live in dedicated reusable hooks with explicit lifecycle cleanup. |
+| Shared recovery | Tab/pod boundaries and live-favorite feedback use one reusable recovery component instead of page-local copies. |
+| Page-size reduction | Lobby dropped from 3,967 to 3,728 lines and discovery from 4,741 to 4,144, removing 836 controller lines from route components without changing data ownership. |
+| Real defect repair | The lobby modal now clears the fixed global header, the Commander root no longer enters a trailing-slash rewrite loop, and map/media/keyboard browser gates reflect supported user flows. |
+| Preserved behavior | Existing routes, handlers, APIs, Supabase/realtime data, maps/geolocation, filters, forms, venue data, permissions, navigation, responsive behavior, and deep-link aliases remain wired. |
+| Permanent regression gate | Phase 16 unit and desktop/mobile journeys cover controller delegation, canonical state, modal lifecycle, gestures, persistence, bounded analytics, and production rewrite order. |
+
+**Coverage:** The lobby plus 11 canonical discovery routes directly inherit the controller system; the 354 current directory/location URLs remain covered by their established shared systems and regression gates.
+
+**Release state:** Complete. PR #1126 auto-merged as `638889cc`; Vercel deployment `dpl_H6vmPtys6n1NP6k5cCrr9f1Se3GA` promoted to production with healthy database/header checks, five representative Poker Near Me routes at HTTP 200, the Commander root/login loop closed, 14/14 live desktop/mobile Phase 14+16 journeys passing, and visual zero-overflow proof at 390 CSS pixels. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../../src/components/store/MarketplaceDetailExperience.module.css';
+import { marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
 import { authedFetch, useRequireAuth } from '../../../../src/lib/authUtils';
 
 export const ORDER_SOURCES = Object.freeze({
@@ -181,7 +182,7 @@ export default function MarketplaceReceiptPage() {
           <ReceiptText size={22} aria-hidden="true" />
           {isMembershipStatus ? ' Membership Verification' : ' Receipt Verification'}
         </h2>
-        <p>{state.message}</p>
+        <p>{marketplaceCopy(state.message)}</p>
         <p>{isMembershipStatus ? 'Membership Record' : 'Receipt'} ID: <strong>{orderLabel}</strong></p>
       </div>
 
@@ -194,7 +195,7 @@ export default function MarketplaceReceiptPage() {
                 {(record.items || []).map((item, index) => (
                   <div key={`${item.name}-${index}`} style={receiptStyles.line}>
                     <span>
-                      <strong>{item.name}</strong>
+                      <strong>{marketplaceCopy(item.name)}</strong>
                       {item.option && <small style={receiptStyles.option}>{item.option}</small>}
                     </span>
                     <span>x{item.quantity}</span>

@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
-import { runLeakAuditBatches } from '../lib/personal-assistant/leakAuditRunner';
 import { gradeAction } from '../lib/sandbox/actionGrading';
 
 // Use the platform's lock-free token helper. It reads the canonical stored
@@ -994,15 +993,42 @@ export function useLeakDetection() {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionProgress, setDetectionProgress] = useState(null);
+  const [auditJob, setAuditJob] = useState(null);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
-  const abortRef = useRef(null);
-  const auditCursorRef = useRef(null);
+
+  const applyJob = useCallback(job => {
+    setAuditJob(job || null);
+    if (!job) return null;
+    const active = job.status === 'queued' || job.status === 'running';
+    setIsDetecting(active);
+    setDetectionProgress(job.progress || null);
+    if (job.status === 'completed' && job.result) {
+      const completed = { ...job.result, auditProgress: job.progress || job.result.auditProgress, auditJob: job };
+      setDetectionResult(completed);
+      setError(null);
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      return completed;
+    }
+    if (job.status === 'failed') {
+      setDetectionResult(previous => ({ ...(previous || {}), auditProgress: job.progress || null, auditJob: job }));
+      setError(job.error?.message || 'The durable audit stopped. Restarting will resume from its saved checkpoint.');
+    }
+    return job;
+  }, []);
+
+  const readJob = useCallback(async () => {
+    const token = await getAuthToken();
+    if (!token) return null;
+    const response = await fetch('/api/assistant/leaks/audit-jobs', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) throw new Error(payload.error || `Audit progress failed (${response.status})`);
+    return applyJob(payload.job);
+  }, [applyJob]);
 
   const runDetection = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     try {
       setIsDetecting(true);
@@ -1015,102 +1041,52 @@ export function useLeakDetection() {
         return { success: false, error: 'Not logged in' };
       }
 
-      setDetectionProgress({
-        batchesCompleted: 0,
-        handsScanned: 0,
-        handsAudited: 0,
-        decisionsAnalyzed: 0,
-        complete: false,
-      });
-
-      const data = await runLeakAuditBatches(async (auditCursor, signal) => {
-        const response = await fetch('/api/assistant/leaks/detect', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ auditCursor }),
-          ...(signal ? { signal } : {}),
-        });
-        const payload = await response.json();
-        return {
-          ok: response.ok,
-          status: response.status,
-          data: payload,
-          retryAfter: response.headers.get('Retry-After'),
-        };
-      }, {
-        initialCursor: auditCursorRef.current,
-        signal: controller?.signal,
-        onProgress: progress => {
-          if (requestId === requestIdRef.current) {
-            auditCursorRef.current = progress.latest?.clubArenaSync?.auditCursor || null;
-            setDetectionResult(progress.latest);
-            setDetectionProgress({
-              batchesCompleted: progress.batchesCompleted,
-              handsScanned: progress.handsScanned,
-              handsAudited: progress.handsAudited,
-              decisionsAnalyzed: progress.decisionsAnalyzed,
-              complete: progress.complete,
-            });
-          }
+      const response = await fetch('/api/assistant/leaks/audit-jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
+        body: '{}',
       });
+      const data = await response.json().catch(() => ({}));
       if (requestId !== requestIdRef.current) return { success: false, superseded: true };
-
-      if (!data.success) {
-        if (data?.code === 'invalid_audit_cursor') {
-          auditCursorRef.current = null;
-          setDetectionResult(null);
-        }
-        if (data?.auditCursor) auditCursorRef.current = data.auditCursor;
-        setDetectionResult(previous => ({
-          ...(previous || {}),
-          ...data,
-          clubArenaSync: {
-            ...(previous?.clubArenaSync || {}),
-            ...(data?.clubArenaSync || {}),
-          },
-        }));
-        setDetectionProgress(data?.auditProgress || null);
-        setError(data?.error || `Detection failed (${data?.status || 500})`);
-        return { success: false, code: data?.code, error: data?.error || `HTTP ${data?.status || 500}` };
+      if (!response.ok || data.success === false) {
+        setIsDetecting(false);
+        setError(data.error || `Detection failed (${response.status})`);
+        return { success: false, code: data.code, error: data.error || `HTTP ${response.status}` };
       }
-
-      if (data.success) {
-        auditCursorRef.current = data?.clubArenaSync?.auditCursor || null;
-        setDetectionResult(data);
-        setDetectionProgress(data?.auditProgress || null);
-
-        // 📢 Dispatch BUS LISTENER update (Leak finding affects Stats and Leak lists)
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('pa-data-updated'));
-        }
-      } else {
-        setError(data.error || 'Detection failed');
-      }
-
-      return data;
+      applyJob(data.job);
+      return { success: true, accepted: true, message: 'Your durable audit is running. You can safely leave this page and return later.', job: data.job };
     } catch (err) {
-      if (err?.name === 'AbortError' || requestId !== requestIdRef.current) {
-        return { success: false, superseded: true };
-      }
+      if (requestId !== requestIdRef.current) return { success: false, superseded: true };
       console.warn('Leak detection error:', err);
       setError(err.message);
+      setIsDetecting(false);
       return { success: false, error: err.message };
-    } finally {
-      if (requestId === requestIdRef.current) setIsDetecting(false);
     }
-  }, []);
+  }, [applyJob]);
 
-  useEffect(() => () => {
-    requestIdRef.current += 1;
-    auditCursorRef.current = null;
-    try { abortRef.current?.abort(); } catch (e) { /* already settled */ }
-  }, []);
+  // Restore the owner-scoped checkpoint on mount. Active jobs poll across
+  // reloads/devices; unmounting stops only this viewer, never the server job.
+  useEffect(() => {
+    let cancelled = false;
+    readJob().catch(err => { if (!cancelled) console.warn('[useLeakDetection] Restore failed:', err?.message || err); });
+    return () => { cancelled = true; requestIdRef.current += 1; };
+  }, [readJob]);
 
-  return { runDetection, isDetecting, detectionResult, detectionProgress, error };
+  useEffect(() => {
+    if (!isDetecting) return undefined;
+    let cancelled = false;
+    const poll = async () => {
+      try { if (!cancelled) await readJob(); }
+      catch (err) { if (!cancelled) console.warn('[useLeakDetection] Poll failed:', err?.message || err); }
+    };
+    const timer = setInterval(poll, 2000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [isDetecting, readJob]);
+
+  return { runDetection, isDetecting, detectionResult, detectionProgress, auditJob, error };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -36,6 +36,7 @@ const {
     isPrintfulReady,
     resolvePrintfulMapping,
 } = require('../../../src/lib/store/printfulFulfillment');
+const { withTransientRetry } = require('../../../src/lib/store/marketplaceReadiness');
 
 let _supabase = null;
 function getSupabase() {
@@ -50,6 +51,7 @@ function getSupabase() {
 
 const DIAMONDS_PER_DOLLAR = 100;
 const MAX_ITEMS = 200;
+const MAX_VARIANTS = 1_000;
 
 /**
  * The catalog migration may not be applied yet. A missing table must degrade to
@@ -91,23 +93,43 @@ export default async function handler(req, res) {
 
         const supabase = getSupabase();
 
-        // ── Items ────────────────────────────────────────────────────────────
+        // ── Catalog rows ─────────────────────────────────────────────────────
         // is_active is filtered EXPLICITLY: the service-role key bypasses RLS,
         // so the public-read policy cannot be relied on to hide draft items.
-        let itemQuery = supabase
-            .from('merchandise_items')
-            .select('id, name, description, category, image_url, price_usd, price_diamonds, sort_order, stock, has_variants, metadata')
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true })
-            .order('name', { ascending: true })
-            .limit(MAX_ITEMS);
-
         const category = typeof req.query.category === 'string' ? req.query.category.trim().slice(0, 64) : '';
-        if (category) itemQuery = itemQuery.eq('category', category);
+        let catalogRows;
+        try {
+            catalogRows = await withTransientRetry(async () => {
+                let itemQuery = supabase
+                    .from('merchandise_items')
+                    .select('id, name, description, category, image_url, price_usd, price_diamonds, sort_order, stock, has_variants, metadata')
+                    .eq('is_active', true)
+                    .order('sort_order', { ascending: true })
+                    .order('name', { ascending: true })
+                    .limit(MAX_ITEMS);
+                if (category) itemQuery = itemQuery.eq('category', category);
 
-        const { data: itemRows, error: itemErr } = await itemQuery;
-
-        if (itemErr) {
+                // Variant activity is public catalog data and the read is
+                // bounded. Fetching it alongside items removes a full serial
+                // Supabase round trip from cold storefront invocations.
+                const [itemResult, variantResult] = await Promise.all([
+                    itemQuery,
+                    supabase
+                        .from('merchandise_item_variants')
+                        .select('id, item_id, sku, size, color, price_usd, price_diamonds, stock, sort_order, metadata')
+                        .eq('is_active', true)
+                        .order('sort_order', { ascending: true })
+                        .order('sku', { ascending: true })
+                        .limit(MAX_VARIANTS),
+                ]);
+                if (itemResult.error) throw itemResult.error;
+                return {
+                    itemRows: itemResult.data,
+                    variantRows: variantResult.data,
+                    variantErr: variantResult.error,
+                };
+            });
+        } catch (itemErr) {
             if (isMissingTable(itemErr)) {
                 console.warn('[merch-catalog] merchandise_items missing — migration 20260803120000 not applied yet');
                 res.setHeader('Cache-Control', 'no-store');
@@ -120,20 +142,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to load catalog' });
         }
 
-        const items = Array.isArray(itemRows) ? itemRows : [];
+        const items = Array.isArray(catalogRows.itemRows) ? catalogRows.itemRows : [];
 
         // ── Variants ─────────────────────────────────────────────────────────
         const variantsByItem = {};
         let variantsAvailable = true;
         if (items.length > 0) {
-            const { data: variantRows, error: variantErr } = await supabase
-                .from('merchandise_item_variants')
-                .select('id, item_id, sku, size, color, price_usd, price_diamonds, stock, sort_order, metadata')
-                .in('item_id', items.map(i => i.id))
-                .eq('is_active', true)
-                .order('sort_order', { ascending: true })
-                .order('sku', { ascending: true });
-
+            const { variantRows, variantErr } = catalogRows;
             if (variantErr) {
                 if (!isMissingTable(variantErr)) {
                     console.warn('[merch-catalog] variant fetch failed:', variantErr.message);

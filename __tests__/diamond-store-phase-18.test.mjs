@@ -20,13 +20,13 @@ test('Club Shop card returns wait for verified club context and normalize Stripe
 test('Club Shop card completion is explicit and canceled retries settle cleanly', async () => {
   const source = await read('pages/hub/club-shop/[itemId].js');
   assert.match(source, /kind: 'complete'/);
-  assert.match(source, /Card settlement and inventory delivery are complete/);
+  assert.match(source, /Card Settlement And Inventory Delivery Are Complete/i);
   assert.match(source, /preserveContext: true/);
   assert.match(source, /if \(!preserveContext\) \{\s*setItem\(null\);\s*setClubId\(null\)/);
   assert.match(source, /let wakeRetry = null/);
   assert.match(source, /if \(wakeRetry\) wakeRetry\(\)/);
   assert.match(source, /redemptionStatus === 'needs_review'/);
-  assert.match(source, /without another card payment/);
+  assert.match(source, /Without Another Card Payment/i);
 });
 
 test('card checkout stays in the same browser surface on Club Shop and merchandise', async () => {

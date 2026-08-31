@@ -1,15 +1,15 @@
 /**
- * Virtual Sandbox — GTO Theoretical Lab (v3.0, mobile-first)
+ * Virtual Sandbox · GTO Theoretical Lab (v3.0, mobile-first)
  * ═══════════════════════════════════════════════════════════════════════════
  * PA_DESIGN_SPEC v2 "Jarvis Command Deck". Designed at 375x667 FIRST.
  *
  * Layout (<=768px, the primary target):
  *   1. status strip  (hand class, equity, live pot, SPR, accuracy, streak, due)
- *   2. poker table at FULL width  — id="sandbox-table"
+ *   2. poker table at FULL width  · id="sandbox-table"
  *   3. street timeline + board strip
- *   4. action-line builder        — id="action-history"
+ *   4. action-line builder        · id="action-history"
  *   5. secondary study panels (preflop chart, runouts)
- *   6. sticky thumb bar           — id="run-analysis"  [Undo][Deal][ANALYZE][Setup]
+ *   6. sticky thumb bar           · id="run-analysis"  [Undo][Deal][ANALYZE][Setup]
  * Everything that used to live in the two 90-110px side rails now lives in the
  * Setup bottom sheet. Every overlay on this page is a bottom sheet.
  */
@@ -65,7 +65,7 @@ import {
   VillainReadCard, ShortcutLegend,
 } from '../../../src/components/sandbox/SandboxComponents';
 // ═══════════════════════════════════════════════════════════════════════════
-// CODE-SPLIT PANELS — everything here is behind a tap, a tab or a toggle.
+// CODE-SPLIT PANELS · everything here is behind a tap, a tab or a toggle.
 //
 // All seventeen were static imports, so ~289KB of component source shipped in
 // the first payload of a page whose critical path is the felt: the table, the
@@ -76,7 +76,7 @@ import {
 // (`showQuickDrill`, `resultsTab === 'share'`, `coachMode`, an `isVisible`
 // prop that returns null when false), so deferring them cannot change what
 // renders on first paint. ssr:false because none of them are server-rendered
-// anyway — they all sit behind interaction state that starts false.
+// anyway · they all sit behind interaction state that starts false.
 // ═══════════════════════════════════════════════════════════════════════════
 const ExportCard = dynamic(
   () => import('../../../src/components/sandbox/ExportCard').then(m => m.ExportCard),
@@ -105,6 +105,7 @@ import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
 import { PAStyles as SharedPAStyles, useAbortableFetch, isAbortError } from '../../../src/components/sandbox/paKit';
 import { readPersistenceResponse, persistenceMessage } from '../../../src/lib/personal-assistant/persistenceContract';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
+import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -162,7 +163,7 @@ const TEXTURE_SHORT = {
 const withVillainIds = (arr) => (arr || []).map((v, i) => ({ ...v, id: v.id ?? i }));
 
 // ═══════════════════════════════════════════════════════════════
-// SAFE STORAGE — localStorage throws in Safari private mode / iframes
+// SAFE STORAGE · localStorage throws in Safari private mode / iframes
 // ═══════════════════════════════════════════════════════════════
 const safeLocal = {
   get(key, fallback = null) {
@@ -213,7 +214,7 @@ function boardToArray(b) {
 }
 
 /**
- * Hand-strength tier. Previously computed and thrown away — now it renders as a
+ * Hand-strength tier. Previously computed and thrown away · now it renders as a
  * chip in the status strip, which is free teaching content.
  */
 function getHandStrength(hand) {
@@ -340,12 +341,12 @@ function localSolve({ heroHand, heroPosition, board, handState, texture, equityP
     actions,
     optimalAction: actions[0] ? { ...actions[0] } : null,
     isMixed: (actions[0]?.frequency || 0) < 70,
-    // heroDisplay '—' suppresses the EV grid rather than printing a fake 0.00
-    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    // heroDisplay 'Not Available' suppresses the EV grid rather than printing a fake 0.00
+    ev: { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 },
     matchTier: 5,
     source: 'Offline estimate',
     offline: true,
-    explanation: `${explanation} Offline estimate — reconnect for solver data.`,
+    explanation: `${explanation} Offline estimate · reconnect for solver data.`,
   };
 }
 
@@ -393,7 +394,7 @@ function srsUpsert(list, item, correct) {
 const srsDue = (list) => (list || []).filter(e => (Number(e.dueAt) || 0) <= Date.now());
 
 // ═══════════════════════════════════════════════════════════════
-// CARD SLOT — one board card. Sized in JS (no !important CSS overrides that
+// CARD SLOT · one board card. Sized in JS (no !important CSS overrides that
 // used to crop the image inside its clipping wrapper).
 // ═══════════════════════════════════════════════════════════════
 function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
@@ -402,7 +403,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
       <span style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
         <button
           type="button" className="pa-btn" onClick={onTap}
-          aria-label={`${card} — tap to change`}
+          aria-label={`${card} · tap to change`}
           style={{ background: 'none', border: 'none', padding: 0, display: 'block', cursor: 'pointer', touchAction: 'manipulation' }}
         >
           <TableCard card={card} style={{ width: w, height: h }} />
@@ -442,7 +443,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CARD PICKER — two-step (rank, then suit) on phones.
+// CARD PICKER · two-step (rank, then suit) on phones.
 // The old 4x13 grid rendered 24x34px cards; the mobile override made each row
 // 530px wide and pushed the ace off-screen. Every target here clears 44px.
 // The classic grid is kept for >=769px via the .deck-* CSS classes.
@@ -529,7 +530,7 @@ function CardPickerSheet({ isOpen, onClose, onSelect, usedCards = [], mode, pick
                     key={s.code} type="button" className="pa-btn"
                     disabled={isUsed}
                     onClick={() => pick(cardStr)}
-                    aria-label={`${rank} of ${s.label}${isUsed ? ' — already used' : ''}`}
+                    aria-label={`${rank} of ${s.label}${isUsed ? ' · already used' : ''}`}
                     style={{
                       ...btn('secondary', { disabled: isUsed }),
                       minHeight: 64, gap: S.sm, fontSize: 22, fontWeight: 800, color: s.color,
@@ -587,7 +588,7 @@ function CardPickerSheet({ isOpen, onClose, onSelect, usedCards = [], mode, pick
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SHARED FORM STYLES — every control clears 48px and uses 16px text so iOS
+// SHARED FORM STYLES · every control clears 48px and uses 16px text so iOS
 // never auto-zooms on focus. (The old COL_SELECT/COL_INPUT were 11px/22px.)
 // ═══════════════════════════════════════════════════════════════
 const FIELD_LABEL = {
@@ -611,7 +612,7 @@ function Field({ label, children, htmlFor }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SETUP SHEET — everything that used to live in the two side rails.
+// SETUP SHEET · everything that used to live in the two side rails.
 // These are set once per session and do not deserve permanent screen space.
 // ═══════════════════════════════════════════════════════════════
 function SetupSheet({
@@ -793,7 +794,7 @@ function SetupSheet({
                   )}
                   {v.customRange && (
                     <p style={{ fontSize: F.caption, color: T.purple, margin: `6px 0 0`, fontWeight: 700 }}>
-                      Custom range applied — simulation still uses the {v.archetype?.name || 'selected'} tendencies.
+                      Custom range applied · simulation still uses the {v.archetype?.name || 'selected'} tendencies.
                     </p>
                   )}
                 </div>
@@ -893,7 +894,7 @@ function SetupSheet({
 // ═══════════════════════════════════════════════════════════════
 // SESSIONS + BOOKMARKS SHEET
 // The old sidebar rendered "No recent sessions." while the fetch was still in
-// flight — a false empty state on every open. isLoading is now honoured.
+// flight · a false empty state on every open. isLoading is now honoured.
 // ═══════════════════════════════════════════════════════════════
 function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboardLoading, leaderboardError, onLeakStats }) {
   const { user, initializing: authInitializing } = useAvatar();
@@ -967,7 +968,7 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboar
                 {s.title || 'Saved spot'}
               </span>
               <span style={{ display: 'block', color: T.textMuted, fontSize: F.caption, marginTop: 2 }}>
-                {s.type === 'bookmark' ? `Saved · ${s.stack}` : `${s.stack} · ${s.result || '—'}`}
+                {s.type === 'bookmark' ? `Saved · ${s.stack}` : `${s.stack} · ${s.result || 'Not Available'}`}
               </span>
             </span>
             <ChevronRight size={18} strokeWidth={2} style={{ color: T.textDim, flexShrink: 0 }} aria-hidden="true" />
@@ -996,7 +997,7 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboar
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TEMPLATES SHEET — two-tap delete, real API error surfacing
+// TEMPLATES SHEET · two-tap delete, real API error surfacing
 // ═══════════════════════════════════════════════════════════════
 function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, onSave, onLoad, onDelete }) {
   const [name, setName] = useState('');
@@ -1085,7 +1086,7 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STUDY ANALYTICS SHEET — explicit loading / error / signed-out / empty
+// STUDY ANALYTICS SHEET · explicit loading / error / signed-out / empty
 // (the old modal showed "Loading stats..." forever on any failure)
 // ═══════════════════════════════════════════════════════════════
 function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
@@ -1164,7 +1165,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DUE REVIEW SHEET — the spaced-repetition queue built from missed spots
+// DUE REVIEW SHEET · the spaced-repetition queue built from missed spots
 // ═══════════════════════════════════════════════════════════════
 function DueSheet({ isOpen, onClose, due, onReview, onDismiss }) {
   return (
@@ -1187,10 +1188,10 @@ function DueSheet({ isOpen, onClose, due, onReview, onDismiss }) {
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
-              {item.hand} — {item.position}
+              {item.hand} · {item.position}
             </div>
             <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2 }}>
-              {item.street} · {item.board || 'Preflop'} · GTO {item.gtoAction || '—'}
+              {item.street} · {item.board || 'Preflop'} · GTO {item.gtoAction || 'Not Available'}
             </div>
           </div>
           <button type="button" className="pa-btn" onClick={() => onReview(item)} style={{ ...btn('primary'), padding: '0 14px', fontSize: F.caption }}>
@@ -1209,7 +1210,7 @@ function DueSheet({ isOpen, onClose, due, onReview, onDismiss }) {
   );
 }
 
-// Memoized heavy children — the felt and the action builder must not re-render
+// Memoized heavy children · the felt and the action builder must not re-render
 // on every keystroke elsewhere on the page.
 const MemoSandboxPokerTable = memo(SandboxPokerTable);
 const MemoActionHistoryBuilder = memo(ActionHistoryBuilder);
@@ -1351,7 +1352,7 @@ export default function VirtualSandbox() {
   // heads-up path stays byte-identical); with 2+ it becomes the
   // { villains: [...] } shape EquityEngine dispatches on, one archetype/custom
   // range per seat. Single-villain consumers (analyze, range explorer,
-  // heatmap) intentionally keep reading villainRangeStr — the solver models
+  // heatmap) intentionally keep reading villainRangeStr · the solver models
   // the primary opponent; equity and runouts model the whole table.
   const equityRangeInput = useMemo(() => {
     if (villains.length <= 1) return villainRangeStr;
@@ -1361,7 +1362,7 @@ export default function VirtualSandbox() {
     };
   }, [villains, villainRangeStr]);
 
-  // ━━━ EQUITY — range-aware and progressive ━━━
+  // ━━━ EQUITY · range-aware and progressive ━━━
   // A fast 250-sim pass paints a number immediately (cheap enough to stay on
   // the main thread); the 2000-sim refinement goes to a Web Worker so a
   // mid-range phone never blocks on it. No worker available (SSR, CSP, ancient
@@ -1434,7 +1435,7 @@ export default function VirtualSandbox() {
     if (board.turn) boardCards.push(board.turn);
     const range = equityVsRange ? equityRangeInput : null;
 
-    // ~46 candidate cards x 200 sims each — by far the heaviest thing on this
+    // ~46 candidate cards x 200 sims each · by far the heaviest thing on this
     // page. Straight to the worker; the synchronous call is the fallback.
     let cancelled = false;
     const abort = makeEquityAbort();
@@ -1454,7 +1455,7 @@ export default function VirtualSandbox() {
   }, [heroHand.card1, heroHand.card2, board, equityVsRange, equityRangeInput]);
 
   // The worker is shared across both effects, so it is torn down once, on
-  // unmount — never per input change (that is what abort() above is for).
+  // unmount · never per input change (that is what abort() above is for).
   useEffect(() => () => terminateEquityWorker(), []);
 
   // ━━━ PREFLOP CHARTS ━━━
@@ -1510,7 +1511,7 @@ export default function VirtualSandbox() {
   const [sessionLog, setSessionLog] = useState([]);
   // Marker for "hands played in THIS sitting". Every locally-created entry now
   // carries `createdAt` (and the server returns one too), so the absence of
-  // `createdAt` is NOT a usable signal — entries are stamped explicitly.
+  // `createdAt` is NOT a usable signal · entries are stamped explicitly.
   const sessionStartedAtRef = useRef(Date.now());
   const [showSessionLog, setShowSessionLog] = useState(false);
   const [showRangeExplorer, setShowRangeExplorer] = useState(false);
@@ -1664,7 +1665,7 @@ export default function VirtualSandbox() {
   }, [parseVoiceCommand]);
 
   // ═══════════════════════════════════════════════════════════
-  // SCENARIO RESTORE — one code path for share links, templates, sessions,
+  // SCENARIO RESTORE · one code path for share links, templates, sessions,
   // saved folders, imports and the weekly spot.
   // ═══════════════════════════════════════════════════════════
   const restoreScenario = useCallback((s) => {
@@ -1684,7 +1685,7 @@ export default function VirtualSandbox() {
     }
     const actions = Array.isArray(s.actionHistory) ? s.actionHistory : [];
     setActionHistory(actions);
-    // A stored pot ALREADY contains the stored action line — replaying the line
+    // A stored pot ALREADY contains the stored action line · replaying the line
     // on top of it would double-count, so the base resets when actions exist.
     setPotBase(actions.length > 0 ? 1.5 : (Number(s.potSize) || 1.5));
     setReplayIndex(null);
@@ -1696,7 +1697,7 @@ export default function VirtualSandbox() {
   }, [pushUndo, clearResults]);
 
   // ═══════════════════════════════════════════════════════════
-  // HYDRATION — lz-string payload, legacy query params, leak hand-off
+  // HYDRATION · lz-string payload, legacy query params, leak hand-off
   // ═══════════════════════════════════════════════════════════
   useEffect(() => {
     if (!router.isReady) return;
@@ -1739,7 +1740,7 @@ export default function VirtualSandbox() {
         const cards = String(q.b).includes(',') ? String(q.b).split(',').filter(Boolean) : (String(q.b).match(/.{1,2}/g) || []);
         setBoard({ flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null });
       }
-      if (q.partial === '1') toast('Partial scenario restored — opponents and betting line were not in the link', { duration: 4000 });
+      if (q.partial === '1') toast('Partial scenario restored · opponents and betting line were not in the link', { duration: 4000 });
     }
 
     if (typeof window !== 'undefined' && (q.h || q.b || q.s || q.leak || q.leakType || q.drill)) {
@@ -1784,11 +1785,11 @@ export default function VirtualSandbox() {
     setQuizMode(true);
     setQuizRevealed(false);
     setUserGuess(null);
-    toast('Weekly spot loaded — tap Analyze to start the quiz');
+    toast('Weekly spot loaded · tap Analyze to start the quiz');
   }, [restoreScenario]);
 
   // ═══════════════════════════════════════════════════════════
-  // SESSION LOG — persisted locally on EVERY change (the old code only wrote
+  // SESSION LOG · persisted locally on EVERY change (the old code only wrote
   // after a successful server fetch, so offline journals were lost on reload)
   // ═══════════════════════════════════════════════════════════
   useEffect(() => {
@@ -1801,7 +1802,7 @@ export default function VirtualSandbox() {
 
   // `origin` explicitly labels where a row came from. Downstream components
   // (HandReplay, SessionReport) branch on `source`, never on the presence of a
-  // timestamp — every row has one.
+  // timestamp · every row has one.
   const mergeSessions = useCallback((incoming, origin = 'server') => {
     setSessionLog(prev => {
       const ts = (e) => Number(new Date(e?.createdAt || e?.created_at || 0)) || Number(e?.id) || 0;
@@ -1878,8 +1879,8 @@ export default function VirtualSandbox() {
           scenario: { heroHand, heroPosition, heroStack, gameType, board, villains, actionHistory, potSize },
         }),
       });
-      // The API really does return 409/413 — the old code toasted success blindly.
-      if (r.status === 409) { toast.error('Template limit reached (30) — delete one first'); return; }
+      // The API really does return 409/413 · the old code toasted success blindly.
+      if (r.status === 409) { toast.error('Template limit reached (30) · delete one first'); return; }
       if (r.status === 413) { toast.error('Scenario too large to save as a template'); return; }
       const result = await readPersistenceResponse(r);
       if (!result.success || !result.persisted) {
@@ -2056,11 +2057,11 @@ export default function VirtualSandbox() {
   /**
    * Archive the current street's analysis, deal the next card, and let the
    * villain lead/check into the new street.
-   * Texture is recomputed from the NEW board — the old code passed the stale
+   * Texture is recomputed from the NEW board · the old code passed the stale
    * pre-deal memo, so the villain modelled the wrong texture every time.
    */
   const dealAndAnalyze = useCallback(() => {
-    if (handOver) { toast('The hand is over — start the next one'); return null; }
+    if (handOver) { toast('The hand is over · start the next one'); return null; }
     if (results || resultsOverride) {
       const archived = {
         street: currentStreet,
@@ -2089,7 +2090,7 @@ export default function VirtualSandbox() {
   }, [handOver, results, resultsOverride, currentStreet, board, equity, dealNextStreet, villains]);
 
   // ═══════════════════════════════════════════════════════════
-  // ACTION LINE — the villain now answers EVERY hero action (the old code only
+  // ACTION LINE · the villain now answers EVERY hero action (the old code only
   // fired when the builder's position dropdown happened to equal heroPosition)
   // ═══════════════════════════════════════════════════════════
   const addAction = useCallback((a) => {
@@ -2228,7 +2229,7 @@ export default function VirtualSandbox() {
   const runAnalysis = useCallback(async (skipCoach = false, pickedAction = null, boardOverride = null) => {
     if (!guardAction(() => { })) return;
     if (!heroHand.card1 || !heroHand.card2) { toast('Pick your two hole cards first'); return; }
-    if (handOver) { toast('This hand is complete — deal the next one'); return; }
+    if (handOver) { toast('This hand is complete · deal the next one'); return; }
 
     if (coachMode && !skipCoach && !coachUserPick && !pickedAction) {
       try { navigator.vibrate?.(20); } catch (e) { /* unsupported */ }
@@ -2248,7 +2249,7 @@ export default function VirtualSandbox() {
     // into an offline solve, history row, analytics event, or completion sound.
     if (data?.superseded) return;
 
-    // Offline / server-error fallback — a badged local estimate instead of a
+    // Offline / server-error fallback · a badged local estimate instead of a
     // red box, so the tool still teaches something with no connection.
     if (!data?.success) {
       const fallback = localSolve({
@@ -2257,7 +2258,7 @@ export default function VirtualSandbox() {
         equityPct: equity?.heroEquity, preflopScenario,
       });
       setResultsOverride(fallback);
-      toast('Offline estimate — reconnect for solver data', { duration: 3200 });
+      toast('Offline estimate · reconnect for solver data', { duration: 3200 });
     }
 
     setShowResults(true);
@@ -2275,7 +2276,7 @@ export default function VirtualSandbox() {
       const next = [...prev, {
         id: Date.now(),
         createdAt: new Date().toISOString(),
-        // Explicit provenance — SessionReport scopes "this session" on
+        // Explicit provenance · SessionReport scopes "this session" on
         // sessionStartedAt and HandReplay labels rows on `source`.
         source: 'live',
         sessionStartedAt: sessionStartedAtRef.current,
@@ -2333,7 +2334,7 @@ export default function VirtualSandbox() {
     const isCorrect = hasPick ? gradeAction(currentPick, gtoLabel) : null;
 
     // Real per-action EV when the solver exposes one. When it does not, we do
-    // NOT invent a number — the UI says the impact is unavailable instead.
+    // NOT invent a number · the UI says the impact is unavailable instead.
     const gtoEV = Number(res.ev?.hero) || 0;
     const picked = hasPick ? (res.actions || []).find(a => gradeAction(a.label || a.id, currentPick)) : null;
     const pickedEV = picked && typeof picked.ev === 'number' ? picked.ev : null;
@@ -2411,7 +2412,7 @@ export default function VirtualSandbox() {
         if (!accessToken) return;
         // Exact verdict↔hand link for the archived Hand Replay. This must be the
         // sandbox_sessions row id that /api/assistant/sandbox/analyze created for
-        // THIS analysis and nothing else — a stand-in id would make the server
+        // THIS analysis and nothing else · a stand-in id would make the server
         // attribute this verdict to someone else's hand, which is worse than the
         // "not coached" it replaces. analyze returns it as `sessionId`; it is
         // null for guests, cached responses and failed writes, in which case the
@@ -2529,7 +2530,7 @@ export default function VirtualSandbox() {
   }, [heroHand.card1, heroHand.card2, heroPosition, board.flop.length]);
 
   // ═══════════════════════════════════════════════════════════
-  // QUIZ — graded against the curated answer when a weekly spot is loaded
+  // QUIZ · graded against the curated answer when a weekly spot is loaded
   // ═══════════════════════════════════════════════════════════
   const handleQuizGuess = useCallback((guess) => {
     setUserGuess(guess);
@@ -2541,7 +2542,7 @@ export default function VirtualSandbox() {
     // previewed, but it must never alter quiz totals, SRS review queues, or the
     // persisted leaderboard/accuracy history.
     if (displayed?.forcedMode) {
-      toast('Forced result — drill score not recorded');
+      toast('Forced result · drill score not recorded');
       return;
     }
     setQuizScore(prev => ({
@@ -2576,7 +2577,7 @@ export default function VirtualSandbox() {
   }, [resultsOverride, results, activeSpot, board, heroHand, heroPosition, currentStreet, scheduleReview]);
 
   // ═══════════════════════════════════════════════════════════
-  // POSITION COMPARISON — must not re-fire the coach effect (it used to
+  // POSITION COMPARISON · must not re-fire the coach effect (it used to
   // double-count the streak and POST a duplicate coach-result row)
   // ═══════════════════════════════════════════════════════════
 
@@ -2593,7 +2594,7 @@ export default function VirtualSandbox() {
     setComparePosition(pos);
     setResultsOverride(null);
     const data = await analyzeWithoutCoach(buildAnalyzePayload(pos));
-    if (!data?.success && !data?.superseded) toast.error('Could not compare that position — try again');
+    if (!data?.success && !data?.superseded) toast.error('Could not compare that position · try again');
   }, [comparePosition, resultsOverride, results, analyzeWithoutCoach, buildAnalyzePayload]);
 
   const restorePrimaryResults = useCallback(async () => {
@@ -2607,7 +2608,7 @@ export default function VirtualSandbox() {
   }, [analyzeWithoutCoach, buildAnalyzePayload]);
 
   // ═══════════════════════════════════════════════════════════
-  // HAND PLAYOUT — terminal states, a result banner, and Next Hand
+  // HAND PLAYOUT · terminal states, a result banner, and Next Hand
   // ═══════════════════════════════════════════════════════════
   const handResult = useMemo(() => {
     if (!handState.terminal) return null;
@@ -2701,7 +2702,7 @@ export default function VirtualSandbox() {
   }, [handResult, reduceMotion, pushUndo, clearResults, playCardDeal]);
 
   // ═══════════════════════════════════════════════════════════
-  // RESET — two-tap confirm in-page (window.confirm is blocked in several
+  // RESET · two-tap confirm in-page (window.confirm is blocked in several
   // in-app browsers, and the felt button used to reset with no confirmation)
   // ═══════════════════════════════════════════════════════════
   const resetAll = useCallback(() => {
@@ -2841,7 +2842,8 @@ export default function VirtualSandbox() {
     || showSolverImport || showHHImport || showTemplates || showLeakStats || showSessionLog
     || showRangeExplorer || showQuickDrill || showCustomDrill || showSessionReport
     || showVillainPresets || showHandReplay || showStudyFolders || showShareHand || showRangeGrid
-    || showSessions || showSetup || showDue || showResults;
+    || showSessions || showSetup || showDue || showResults || showMenu || showTour || showShare
+    || showShortcutLegend || !!ttsOverlay;
 
   // Keyboard shortcuts read their callbacks from here (registered once, fresh)
   const actionsRef = useRef({});
@@ -2859,6 +2861,7 @@ export default function VirtualSandbox() {
       const tag = document.activeElement?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       const acts = actionsRef.current;
+      if (document.querySelector('[aria-modal="true"]') && e.key !== 'Escape') return;
       if (acts.modalOpen && e.key !== 'Escape' && e.key !== '?') return;
       switch (e.key.toLowerCase()) {
         case 'a': acts.runAnalysis?.(); break;
@@ -2893,15 +2896,17 @@ export default function VirtualSandbox() {
   }, [practiceFocus, heroPosition]);
 
   const copyShareLink = useCallback(() => {
-    try {
+    (async () => {
+      try {
       const packed = LZString.compressToEncodedURIComponent(JSON.stringify(sandboxSnapshot));
       const url = `${window.location.origin}/hub/personal-assistant/sandbox?s=${packed}`;
-      navigator.clipboard?.writeText(url)
-        .then(() => toast.success('Full-fidelity link copied'))
-        .catch(() => toast.error('Copy failed'));
-    } catch (e) {
-      toast.error('Could not build a share link');
-    }
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(url);
+      toast.success('Full-Fidelity Link Copied');
+      } catch (e) {
+        toast.error(e?.message === 'Clipboard unavailable' ? 'Clipboard Is Unavailable' : 'Could Not Copy The Share Link');
+      }
+    })();
   }, [sandboxSnapshot]);
 
   // ── View helpers ──
@@ -2929,8 +2934,9 @@ export default function VirtualSandbox() {
         paddingBottom: 'calc(60px + 56px + 16px + env(safe-area-inset-bottom, 0px))',
       }}
     >
+      <PersonalAssistantCopyPolicy />
       <SEOHead
-        title="Virtual Sandbox — Poker Scenario Solver"
+        title="Virtual Sandbox · Poker Scenario Solver"
         description="Build poker scenarios, compare lines, and study solver-informed decisions in the Smarter.Poker Virtual Sandbox."
         canonical="/hub/personal-assistant/sandbox"
       />
@@ -3004,7 +3010,7 @@ export default function VirtualSandbox() {
         onNext={() => setTourStep(prevStep => {
           const next = prevStep + 1;
           // The results step spotlights #results-panel, which only exists while
-          // the sheet is mounted — open it so the step is not an orphan.
+          // the sheet is mounted · open it so the step is not an orphan.
           if (next === 4 && displayResults) setShowResults(true);
           return next;
         })}
@@ -3059,10 +3065,10 @@ export default function VirtualSandbox() {
               <div style={{ ...sectionTitle, color: T.warn }}>Practising a leak</div>
               <div style={{ fontSize: F.bodySm, color: T.text, fontWeight: 700, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {String(practiceFocus.leakType || 'Leak drill')}
-                {practiceFocus.drill ? ` — ${String(practiceFocus.drill)}` : ''}
+                {practiceFocus.drill ? ` · ${String(practiceFocus.drill)}` : ''}
               </div>
               <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2, lineHeight: 1.45 }}>
-                Coach mode is on — pick your action before each analysis.
+                Coach mode is on · pick your action before each analysis.
               </div>
               <button type="button" className="pa-btn" onClick={startLeakDrill} style={{ ...btn('secondary'), marginTop: S.sm, color: T.warn }}>
                 <Zap size={18} strokeWidth={2} aria-hidden="true" />Start drill
@@ -3114,7 +3120,7 @@ export default function VirtualSandbox() {
           </div>
         )}
 
-        {/* ── THE TABLE — full width, the hero element ── */}
+        {/* ── THE TABLE · full width, the hero element ── */}
         <div
           id="sandbox-table"
           className="sandbox-table-wrap"
@@ -3284,7 +3290,7 @@ export default function VirtualSandbox() {
           onSelectStreet={(i) => { setActiveStreet(i); setShowResults(true); }}
         />
 
-        {/* ── Action line — full width, no 110px rail, no 80px clamp ── */}
+        {/* ── Action line · full width, no 110px rail, no 80px clamp ── */}
         <div id="action-history" className={toolStyles.instrumentPanel}>
           <ActionReplayBar
             actions={actionHistory}
@@ -3377,7 +3383,7 @@ export default function VirtualSandbox() {
         {isAnalyzing && <AnalysisSkeleton />}
       </main>
 
-      {/* ═══ STICKY THUMB BAR — the whole tool is one-handed from here ═══ */}
+      {/* ═══ STICKY THUMB BAR · the whole tool is one-handed from here ═══ */}
       <div
         id="run-analysis"
         className="sandbox-command-bar"
@@ -3539,7 +3545,7 @@ export default function VirtualSandbox() {
           });
           setCoachMode(true);
           setShowDue(false);
-          toast('Review spot loaded — tap Analyze');
+          toast('Review spot loaded · tap Analyze');
         }}
         onDismiss={(item) => setSrs(prev => {
           const next = prev.filter(e => e.key !== item.key);
@@ -3614,7 +3620,7 @@ export default function VirtualSandbox() {
             const idx = Math.min(Math.max(0, Number(villainIdx) || 0), villains.length - 1);
             const archId = preset.archetype?.id || 'gto_neutral';
             const pos = villains[idx]?.position || 'BB';
-            // The WHOLE preset is applied — the old handler kept only `range`,
+            // The WHOLE preset is applied · the old handler kept only `range`,
             // so picking "Maniac" left the simulator behaving as GTO Neutral.
             patchVillain(idx, {
               range: preset.range,
@@ -3719,7 +3725,7 @@ export default function VirtualSandbox() {
         isOpen={!!displayResults && showResults}
         onClose={() => setShowResults(false)}
         title={`Analysis${comparePosition ? ` (${comparePosition})` : ''}`}
-        subtitle={isHistoricView ? `${streetHistory[activeStreet]?.street || 'Past street'} — archived` : `${currentStreet} · ${potSize.toFixed(1)} BB pot`}
+        subtitle={isHistoricView ? `${streetHistory[activeStreet]?.street || 'Past street'} · archived` : `${currentStreet} · ${potSize.toFixed(1)} BB pot`}
         labelledBy="pa-results-title"
         maxWidth={640}
         footer={canDeal ? (
@@ -3844,7 +3850,7 @@ export default function VirtualSandbox() {
                   </p>
                 )}
 
-                {displayResults.ev?.heroDisplay && displayResults.ev.heroDisplay !== '—' && (
+                {displayResults.ev?.heroDisplay && displayResults.ev.heroDisplay !== 'Not Available' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: S.sm }}>
                     {[
                       { l: 'Hand EV', v: displayResults.ev.heroDisplay, c: displayResults.ev.hero >= 0 ? T.success : T.danger },
@@ -4008,7 +4014,7 @@ export default function VirtualSandbox() {
                     {showVillainRange && (
                       <div style={{ ...cardCompact, marginTop: S.sm, background: T.bg }}>
                         <div style={{ ...sectionTitle, marginBottom: S.xs }}>
-                          VPIP {villains[0].vpip ?? '—'}% · opening range
+                          VPIP {villains[0].vpip ?? 'Not Available'}% · opening range
                         </div>
                         <p style={{ fontSize: F.caption, color: T.textMuted, fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all', margin: 0, textTransform: 'none' }}>
                           {villains[0].range}
@@ -4018,7 +4024,7 @@ export default function VirtualSandbox() {
                   </div>
                 )}
 
-                {/* Compare position — lives here so it is never full-bleed */}
+                {/* Compare position · lives here so it is never full-bleed */}
                 <div style={{ ...cardCompact, background: T.surface2 }}>
                   <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Compare Position</h4>
                   <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
@@ -4078,7 +4084,7 @@ export default function VirtualSandbox() {
                     ].filter(Boolean);
                     const ctx = {
                       ref: 'sandbox', vid: hand || 'sandbox',
-                      title: `${heroPosition || 'Hero'} vs ${boardStr || 'Preflop'} — ${gameType || 'NLH'}`.slice(0, 80),
+                      title: `${heroPosition || 'Hero'} vs ${boardStr || 'Preflop'} · ${gameType || 'NLH'}`.slice(0, 80),
                       source: 'Sandbox', tags,
                     };
                     let games = [];

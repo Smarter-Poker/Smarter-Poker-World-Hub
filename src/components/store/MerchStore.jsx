@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * MerchStore — official merchandise storefront (Diamond Store → Merch tab)
+ * MerchStore: official merchandise storefront (Diamond Store → Merch tab)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Catalog source
@@ -18,7 +18,7 @@
  *   slugs too; the checkout API resolves each id against the live catalog and
  *   rejects an unknown row instead of trusting browser-supplied pricing.
  *
- * Visual language matches src/components/diamond-store/diamondStoreStyles.js —
+ * Visual language matches src/components/diamond-store/diamondStoreStyles.js :
  * inline style objects, same dark/cyan palette. No CSS modules.
  */
 
@@ -54,6 +54,7 @@ import MerchPurchaseDialog from './MerchPurchaseDialog';
 import { wishlistService } from '../../services/preferences-service';
 import useCartStore from '../../stores/cartStore';
 import { supabase } from '../../lib/supabase';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -152,11 +153,11 @@ function firstBoolean(candidates) {
 }
 
 // A catalog id is any non-empty string, because merchandise_items.id is TEXT
-// and production rows are slugs — 'hoodie-neural', 'card-protector-gold',
+// and production rows are slugs: 'hoodie-neural', 'card-protector-gold',
 // 'chip-set-500'.
 //
 // SECURITY (2026-08-06): this used to require a UUID, on the assumption that
-// slugs were only ever static fallback rows. The assumption was inverted — the
+// slugs were only ever static fallback rows. The assumption was inverted: the
 // real catalog is slugs, so isCatalogId() returned false for EVERY product,
 // `catalogId` was null on every line item, and buildLineItem() sent
 // { name, price, quantity } with no id. Both checkout endpoints then priced
@@ -190,7 +191,13 @@ function stockOf(raw) {
 function normalizeVariant(raw, index) {
   if (raw === null || raw === undefined) return null;
   if (typeof raw === 'string' || typeof raw === 'number') {
-    return { key: `v${index}-${raw}`, id: null, label: String(raw), stock: null, inStock: true };
+    return {
+      key: `v${index}-${raw}`,
+      id: null,
+      label: marketplaceCopy(raw),
+      stock: null,
+      inStock: true,
+    };
   }
   const size = firstString([raw.size]);
   const color = firstString([raw.color, raw.colour]);
@@ -222,9 +229,9 @@ function normalizeVariant(raw, index) {
   return {
     key: id || `v${index}-${label}`,
     id,
-    label,
-    size,
-    color,
+    label: marketplaceCopy(label),
+    size: marketplaceCopy(size),
+    color: marketplaceCopy(color),
     priceUsd,
     priceDiamonds,
     stock,
@@ -291,9 +298,11 @@ function normalizeProduct(raw, index, source) {
     // recognise, so this does not have to guess.
     catalogId: isCatalogId(rawId) ? rawId.trim() : null,
     source,
-    name: branded?.name || name,
+    name: marketplaceCopy(branded?.name || name),
     description:
-      branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || '',
+      marketplaceCopy(
+        branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || ''
+      ),
     image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
     atlasPosition: rawId ? LEGACY_TABLETOP_ATLAS[rawId] || null : null,
     category: (
@@ -360,7 +369,7 @@ function errorMessageOf(data, status) {
   if (typeof raw === 'string' && raw) {
     // The diamond endpoint puts the short reason in `error` and the long
     // human explanation in `message` (email-verification gate, rate limit).
-    return data?.message && data.message !== raw ? `${raw} — ${data.message}` : raw;
+    return data?.message && data.message !== raw ? `${raw}: ${data.message}` : raw;
   }
   if (typeof data?.message === 'string' && data.message) return data.message;
   if (status === 401) return 'Your Session Expired. Please Sign In Again.';
@@ -640,9 +649,9 @@ function MerchProductCard({
                     disabled={!v.inStock || !v.fulfillmentReady}
                     title={
                       !v.inStock
-                        ? `${v.label} — Sold Out`
+                        ? `${v.label}: Sold Out`
                         : !v.fulfillmentReady
-                          ? `${v.label} — Fulfillment Setup Required`
+                          ? `${v.label}: Fulfillment Setup Required`
                           : v.label
                     }
                     aria-pressed={active}
@@ -862,7 +871,7 @@ function MerchProductCard({
             }}
           >
             <Gem size={15} />
-            {thisBusy ? 'Processing…' : `Pay With Diamonds — ${fmt(diamondCost)}`}
+            {thisBusy ? 'Processing…' : `Pay With Diamonds: ${fmt(diamondCost)}`}
           </button>
 
           {/* Honest, specific reason instead of a silently dead button */}
@@ -1001,7 +1010,7 @@ export default function MerchStore({
           headers: { Accept: 'application/json' },
           signal: controller.signal,
         });
-        // A not-yet-deployed API route answers 404 with an HTML page —
+        // A not-yet-deployed API route answers 404 with an HTML page :
         // guard the content type before parsing.
         const contentType = res.headers.get('content-type') || '';
         if (!res.ok || !contentType.includes('application/json')) {
@@ -1121,7 +1130,7 @@ export default function MerchStore({
       }
     } else {
       // No database row → the server prices this from the request within
-      // its $0.50–$500 sanity band.
+      // its $0.50-$500 sanity band.
       item.price = product.priceUsd;
     }
     if (variant) {
@@ -1133,11 +1142,11 @@ export default function MerchStore({
       // price_diamonds and stock, and checkout never consulted the table
       // at all. An XXL was charged the base price and its stock never
       // moved. reserve_merch_order() now prices and reserves per variant,
-      // and REFUSES an item with variants when no variant_id arrives —
+      // and REFUSES an item with variants when no variant_id arrives :
       // guessing would either mischarge the customer or ship them the
-      // wrong size — so this field is required, not decorative.
+      // wrong size: so this field is required, not decorative.
       if (variant.id) item.variantId = variant.id;
-      item.description = `${product.description ? `${product.description} — ` : ''}Option: ${variant.label}`;
+      item.description = `${product.description ? `${product.description}: ` : ''}Option: ${variant.label}`;
     } else if (product.description) {
       item.description = product.description;
     }
@@ -1160,7 +1169,7 @@ export default function MerchStore({
         id: `${catalogId}::${variantToken}`,
         catalogId,
         name: product.name,
-        type: variant?.label ? `Merchandise — ${variant.label}` : 'Merchandise',
+        type: variant?.label ? `Merchandise: ${variant.label}` : 'Merchandise',
         price: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
         diamonds:
           firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
@@ -1176,7 +1185,7 @@ export default function MerchStore({
         quantity,
         value_usd: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
       });
-      showStoreToast('success', `${product.name} Added To Cart.`);
+      showStoreToast('success', `${marketplaceCopy(product.name)} Added To Cart.`);
     },
     [addCartItem, authResolved, buildLineItem, setCartOwner, user?.id]
   );
@@ -1283,7 +1292,7 @@ export default function MerchStore({
         let data = await res.json().catch(() => null);
 
         // Compatibility retry: the deployed endpoint still demands a price
-        // on every line item. Retry once with the displayed price — for a
+        // on every line item. Retry once with the displayed price: for a
         // catalogued item the server ignores it and charges the DB price.
         const code = errorCodeOf(data);
         if (
@@ -1312,7 +1321,10 @@ export default function MerchStore({
       } catch (err) {
         console.warn('[MerchStore] Card checkout failed:', err?.message || err);
         captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
-        showStoreToast('error', err?.message || 'Could Not Start Checkout. Please Try Again.');
+        showStoreToast(
+          'error',
+          marketplaceCopy(err?.message || 'Could Not Start Checkout. Please Try Again.')
+        );
         if (mountedRef.current) setStoreBusy(null);
       }
     },
@@ -1337,7 +1349,7 @@ export default function MerchStore({
       if (Number(balance || 0) < cost) {
         showStoreToast(
           'error',
-          `Not Enough Diamonds — ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
+          `Not Enough Diamonds: ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
         );
         return;
       }
@@ -1409,7 +1421,7 @@ export default function MerchStore({
           const details = data?.details;
           if (details && details.required != null && details.current != null) {
             throw new Error(
-              `Not enough diamonds — ${fmt(details.required)} needed, you have ${fmt(details.current)}` +
+              `Not Enough Diamonds: ${fmt(details.required)} Needed, You Have ${fmt(details.current)}` +
                 (details.shortfall != null ? ` (${fmt(details.shortfall)} short).` : '.')
             );
           }
@@ -1428,7 +1440,7 @@ export default function MerchStore({
         showStoreToast(
           'success',
           replayed
-            ? 'Order Already Placed — No Additional Diamonds Were Deducted.'
+            ? 'Order Already Placed: No Additional Diamonds Were Deducted.'
             : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
         );
         try {
@@ -1446,11 +1458,14 @@ export default function MerchStore({
         broadcastSync('smarter_poker_chips_sync', 'refresh');
         refreshBalance();
         if (mountedRef.current) setPendingDiamondPurchase(null);
-        // Stock may have moved — pull the catalog again.
+        // Stock may have moved: pull the catalog again.
         if (mountedRef.current) setReloadToken((t) => t + 1);
       } catch (err) {
         console.warn('[MerchStore] Diamond purchase failed:', err?.message || err);
-        showStoreToast('error', err?.message || 'Diamond Purchase Failed. Please Try Again.');
+        showStoreToast(
+          'error',
+          marketplaceCopy(err?.message || 'Diamond Purchase Failed. Please Try Again.')
+        );
       } finally {
         if (mountedRef.current) setStoreBusy(null);
       }
@@ -1677,7 +1692,7 @@ export default function MerchStore({
         >
           <AlertTriangle size={14} />
           <span style={{ flex: 1 }}>
-            {loadError} — Showing The Standard Lineup. Live Fulfillment Options Are Required Before
+            {marketplaceCopy(loadError)}: Showing The Standard Lineup. Live Fulfillment Options Are Required Before
             Checkout.
           </span>
           <button
@@ -1736,7 +1751,7 @@ export default function MerchStore({
           <div style={{ marginTop: 10, fontWeight: 700, color: TEXT }}>
             No Merch Available Right Now
           </div>
-          <div style={{ marginTop: 6 }}>New Gear Drops Regularly — Check Back Soon.</div>
+          <div style={{ marginTop: 6 }}>New Gear Drops Regularly: Check Back Soon.</div>
         </div>
       )}
 

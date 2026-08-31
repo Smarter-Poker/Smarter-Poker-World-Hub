@@ -45,12 +45,10 @@ data/pokeratlas-logs/
 .ocr/
 
 # ── Database migrations (executed separately via Supabase) ────
-# The marketplace build contract reads selected migrations as deployment evidence.
-# Keep every migration referenced by the compact Vercel test suite; the rest of
-# the migration tree remains excluded from the deployment bundle.
-/supabase/*
-!/supabase/migrations/
-/supabase/migrations/*
+# The Marketplace build gate reads migrations as deployment evidence. Keep the
+# complete 10 MB migration tree: Vercel CLI cannot reliably re-include children
+# of an ignored parent directory, and an incomplete direct upload fails closed.
+# The explicit entries below document the minimum commerce contract as well.
 !/supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql
 !/supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql
 !/supabase/migrations/20260830040000_atomic_diamond_merch_orders.sql
@@ -99,6 +97,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-19.test.mjs
 !/__tests__/diamond-store-phase-20.test.mjs
 !/__tests__/diamond-store-phase-21.test.mjs
+!/__tests__/diamond-store-phase-22.test.mjs
 !/__tests__/printful-fulfillment.test.mjs
 !/__tests__/merch-catalog-admin.test.mjs
 !/__tests__/marketplace-operations.test.mjs

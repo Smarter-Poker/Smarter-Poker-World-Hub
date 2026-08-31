@@ -25,12 +25,29 @@ export default function WorldCommandDock() {
     }
 
     let frame = 0;
+    let absenceTimer = 0;
     const inspect = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setHasHeaderTrigger(
-          Boolean(document.querySelector('[data-world-menu-trigger="approved-header"]'))
+        const approvedTrigger = document.querySelector(
+          '[data-world-menu-trigger="approved-header"]'
         );
+        if (approvedTrigger) {
+          window.clearTimeout(absenceTimer);
+          setHasHeaderTrigger(true);
+          return;
+        }
+
+        // Per-page headers remount during route hydration. Treat a short DOM
+        // absence as a transition, not proof that the page needs a fallback;
+        // otherwise both controls can coexist for a frame after the header
+        // returns. A truly headerless route still receives its dock promptly.
+        window.clearTimeout(absenceTimer);
+        absenceTimer = window.setTimeout(() => {
+          setHasHeaderTrigger(
+            Boolean(document.querySelector('[data-world-menu-trigger="approved-header"]'))
+          );
+        }, 120);
       });
     };
     inspect();
@@ -38,6 +55,7 @@ export default function WorldCommandDock() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(absenceTimer);
       observer.disconnect();
     };
   }, [world, router.pathname]);
@@ -48,7 +66,10 @@ export default function WorldCommandDock() {
     return () => router.events.off('routeChangeStart', close);
   }, [router.events]);
 
-  if (!world) return null;
+  // Social owns the approved header in both its loading and loaded shells.
+  // Never race that canonical Facebook-styled drawer with a DOM-probed
+  // fallback while the feed swaps skeletons during hydration.
+  if (!world || world.id === 'social-media') return null;
 
   return (
     <>

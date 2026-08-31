@@ -72,7 +72,7 @@ test('client integrity summary distinguishes verified, privacy-safe, missing, an
 });
 
 test('venue API and both shared maps enforce the integrity contract', async () => {
-  const [api, map, panel, readout, detail, activity, tabPage] = await Promise.all([
+  const [api, map, panel, readout, detail, activity, tabPage, controller] = await Promise.all([
     read('pages/api/poker/venues.js'),
     read('src/components/poker-near-me/VenueMap.jsx'),
     read('src/components/poker-near-me/VenueMapPanel.jsx'),
@@ -80,6 +80,7 @@ test('venue API and both shared maps enforce the integrity contract', async () =
     read('pages/hub/venues/[id].js'),
     read('src/lib/poker-near-me/activity.js'),
     read('pages/hub/poker-near-me/[pnmTab].js'),
+    read('src/components/poker-near-me/discoveryController.js'),
   ]);
 
   assert.match(api, /applyVenueIntegrity\(venues\)/);
@@ -99,7 +100,8 @@ test('venue API and both shared maps enforce the integrity contract', async () =
   assert.match(activity, /held_count:/);
   assert.doesNotMatch(activity, /\blatitude\b|\blongitude\b/);
   assert.match(tabPage, /sp-offline-venues-integrity-v2/);
-  assert.match(tabPage, /DIRECTORY_PAGE_SIZE = 160/);
+  assert.match(controller, /DIRECTORY_PAGE_SIZE = 160/);
+  assert.match(tabPage, /DIRECTORY_PAGE_SIZE[\s\S]*discoveryController/);
   assert.match(tabPage, /view=directory&limit=\$\{DIRECTORY_PAGE_SIZE\}&offset=\$\{offset\}/);
   assert.match(tabPage, /Venue directory did not include signal integrity metadata/);
   assert.match(tabPage, /reason: 'offline_snapshot'/);

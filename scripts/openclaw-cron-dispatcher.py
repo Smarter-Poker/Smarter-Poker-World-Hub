@@ -172,6 +172,133 @@ for _config_warning in _CONFIG_WARNINGS:
     log.warning(f'[config] {_config_warning}')
 
 
+# ─── Alert de-duplication that SURVIVES A RESTART (2026-08-31) ────────────────
+#
+# WHY. The three watchdogs below each carried their own in-memory
+# {'consec_fail', 'alert_sent'} dict. That state is destroyed on every process
+# start, so a restart re-armed every alert and the next probe re-paged for a
+# condition the operator had already been told about. It is not theoretical:
+# `systemctl restart openclaw` runs several times a day (deploy-openclaw.sh,
+# and any agent touching /etc/openclaw.env), and on 2026-08-31 a single
+# three-hour CRON_SECRET drift produced FOUR identical SMS to Dan's phone —
+# 09:15, 11:55, 13:45 and 13:55 UTC — one per restart, not one per incident.
+# Repeat pages for a known condition are how an operator learns to ignore the
+# alert that matters.
+#
+# WHAT. Alert state is written to disk after every watchdog run and reloaded at
+# boot, and _alert() additionally refuses to repeat the SAME alert text for the
+# same monitor inside ALERT_MIN_REPEAT_S. Two independent belts: the file
+# covers the ordinary restart, the cooldown covers a wiped/unwritable file.
+#
+# WHAT THIS MUST NEVER BECOME: a mute. A NEW failure text pages immediately, a
+# recovery ALWAYS pages (it is what closes the incident), and the cooldown is a
+# floor on repetition, never a ceiling on detection — the ERROR lines in the
+# journal are written on every single failing run regardless.
+ALERT_STATE_PATH = Path(os.environ.get('OPENCLAW_ALERT_STATE',
+                                       '/var/lib/openclaw/alert-state.json'))
+ALERT_MIN_REPEAT_S = _env_number('ALERT_MIN_REPEAT_S', 21600, int, 60, 604800)
+
+_alert_persist = {}
+
+def _alert_state_load():
+    """Best-effort. A missing or corrupt file must never stop the dispatcher."""
+    global _alert_persist
+    global ALERT_STATE_PATH
+    if not ALERT_STATE_PATH.exists() and (LOG_DIR / 'alert-state.json').exists():
+        ALERT_STATE_PATH = LOG_DIR / 'alert-state.json'
+    try:
+        _alert_persist = json.loads(ALERT_STATE_PATH.read_text(encoding='utf-8'))
+        if not isinstance(_alert_persist, dict):
+            raise ValueError('alert state is not an object')
+        log.info(f'[alert] restored de-dup state for {len(_alert_persist)} monitor(s) '
+                 f'from {ALERT_STATE_PATH}')
+    except FileNotFoundError:
+        _alert_persist = {}
+        log.info(f'[alert] no prior state at {ALERT_STATE_PATH}; starting clean')
+    except Exception as e:
+        _alert_persist = {}
+        log.warning(f'[alert] state unreadable ({type(e).__name__}: {e}); '
+                    'starting clean — a repeat page is possible this cycle')
+
+
+def _alert_state_save():
+    # The service runs as the unprivileged `openclaw` user, which cannot create
+    # /var/lib/openclaw itself on a box where the bootstrap never made it — and
+    # an unwritable state file silently returns us to re-paging on restart,
+    # which is the whole defect. So fall back to LOG_DIR, which the unit already
+    # owns, rather than giving up.
+    global ALERT_STATE_PATH
+    for attempt, target in enumerate((ALERT_STATE_PATH, LOG_DIR / 'alert-state.json')):
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_suffix('.tmp')
+            tmp.write_text(json.dumps(_alert_persist, sort_keys=True), encoding='utf-8')
+            tmp.replace(target)
+            if attempt:
+                log.warning(f'[alert] {ALERT_STATE_PATH} is not writable; '
+                            f'de-dup state now lives at {target}')
+                ALERT_STATE_PATH = target
+            return
+        except Exception as e:
+            last = f'{type(e).__name__}: {e}'
+    # Losing the file costs a duplicate page, not a missed one. Never fatal.
+    log.warning(f'[alert] could not persist state anywhere: {last}')
+
+
+def _alert_bind(key, state):
+    """Rehydrate one watchdog's in-memory dict from the persisted copy."""
+    saved = _alert_persist.get(key) or {}
+    state['_key'] = key
+    if isinstance(saved.get('consec_fail'), int):
+        state['consec_fail'] = saved['consec_fail']
+    state['alert_sent'] = bool(saved.get('alert_sent'))
+    return state
+
+
+def _alert_flush(state):
+    key = state.get('_key')
+    if not key:
+        return
+    entry = _alert_persist.setdefault(key, {})
+    entry['consec_fail'] = state.get('consec_fail', 0)
+    entry['alert_sent'] = bool(state.get('alert_sent'))
+    _alert_state_save()
+
+
+def _alert(state, body, recovery=False):
+    """Page, unless this exact text already went out inside the cooldown.
+
+    Returns the value the caller should store in state['alert_sent'] — True
+    once the operator has been told, so a suppressed duplicate still counts as
+    "already notified" and does not re-arm on the next run.
+    """
+    key = state.get('_key', 'unknown')
+    entry = _alert_persist.setdefault(key, {})
+    digest = hashlib.sha256(body.encode('utf-8')).hexdigest()[:16]
+    now = time.time()
+
+    if recovery:
+        # A recovery always goes out: it is the message that closes the loop.
+        sent = _send_sms(body)
+        entry['last_digest'] = None
+        entry['last_sent_at'] = now if sent else entry.get('last_sent_at')
+        return sent
+
+    age = now - float(entry.get('last_sent_at') or 0)
+    if entry.get('last_digest') == digest and age < ALERT_MIN_REPEAT_S:
+        log.warning(f'[alert] suppressed duplicate for {key} '
+                    f'(same text, {int(age)}s < {ALERT_MIN_REPEAT_S}s cooldown); '
+                    f'condition still failing — see the ERROR lines above')
+        return True
+
+    sent = _send_sms(body)
+    if sent:
+        entry['last_digest'] = digest
+        entry['last_sent_at'] = now
+    return sent
+
+
+
 # ─── All jobs: (path, trigger_kwargs) ─────────────────────────────────────────
 # Phase 2A.4 Wave 1 (2026-04-24): renamed OVERFLOW_CRONS → ALL_CRONS and
 # absorbed 18 previously-on-Vercel scrapers / content-gen / cleanup crons.
@@ -849,19 +976,22 @@ def _workers_healthcheck_job():
 
     if ok:
         if state['alert_sent']:
-            _send_sms(f'✅ workers RECOVERED at {WORKERS_HEALTH_URL}')
+            _alert(state, f'✅ workers RECOVERED at {WORKERS_HEALTH_URL}', recovery=True)
         state['consec_fail'] = 0
         state['alert_sent'] = False
+        _alert_flush(state)
         return
 
     state['consec_fail'] += 1
     log.warning(f'[healthcheck] workers DOWN (consec={state["consec_fail"]})')
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        state['alert_sent'] = _send_sms(
+        state['alert_sent'] = _alert(
+            state,
             f'🚨 SMARTER.POKER WORKERS DOWN ~10min — {WORKERS_HEALTH_URL} not responding. '
             f'Affects {len(WORKERS_PREFERRED)} cron routes. Check '
             f'`docker ps` on workers VM (Hetzner id 127930016, IP from Keychain).'
         )
+    _alert_flush(state)
 
 
 def _auth_drift_watchdog_job():
@@ -951,9 +1081,12 @@ def _auth_drift_watchdog_job():
 
     if not failures:
         if state['alert_sent']:
-            _send_sms('smarter.poker auth drift RESOLVED - dispatcher secrets accepted again')
+            _alert(state,
+                   'smarter.poker auth drift RESOLVED - dispatcher secrets accepted again',
+                   recovery=True)
         state['consec_fail'] = 0
         state['alert_sent'] = False
+        _alert_flush(state)
         cov = 'verified: ' + (', '.join(verified) if verified else 'NOTHING')
         if absent:
             cov += ' | not checked: ' + '; '.join(absent)
@@ -970,11 +1103,13 @@ def _auth_drift_watchdog_job():
     # Two strikes before paging. A single failure can be a transient network
     # blip, and a false alert at 3am trains people to ignore the real one.
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        state['alert_sent'] = _send_sms(
+        state['alert_sent'] = _alert(
+            state,
             'SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
             '. A rotation likely did not reach this host; cron jobs and/or '
             'workers are silently 401ing.'
         )
+    _alert_flush(state)
 
 
 def _percentile(values, percentile):
@@ -1167,16 +1302,21 @@ def _pnm_directory_health_job():
 
     if not failures:
         if state['alert_sent']:
-            _send_sms('Poker Near Me directory health recovered; live projection and published snapshot are healthy again.')
+            _alert(state,
+                   'Poker Near Me directory health recovered; live projection and published snapshot are healthy again.',
+                   recovery=True)
         state['consec_fail'] = 0
         state['alert_sent'] = False
+        _alert_flush(state)
         return
 
     state['consec_fail'] += 1
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        state['alert_sent'] = _send_sms(
+        state['alert_sent'] = _alert(
+            state,
             'Poker Near Me directory health failed twice: ' + '; '.join(failures)[:1200]
         )
+    _alert_flush(state)
 
 
 def _heartbeat_job():
@@ -1187,6 +1327,12 @@ def _heartbeat_job():
 
 
 # Internal jobs — fire by name, no HTTP path. Distinguished by underscore prefix.
+_alert_state_load()
+_alert_bind('workers-health', _workers_health_state)
+_alert_bind('auth-drift', _auth_drift_state)
+_alert_bind('pnm-directory-health', _pnm_directory_health_state)
+
+
 INTERNAL_JOBS = {
     '_internal/workers-healthcheck': _workers_healthcheck_job,
     '_internal/auth-drift-watchdog': _auth_drift_watchdog_job,

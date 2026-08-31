@@ -250,3 +250,73 @@ The optimized production build passed with all 402 static pages after this
 change. Prices, Diamond burns, Stripe settlement, inventory grants,
 entitlements, commissions, database objects, and Printful behavior remain
 unchanged; automatic Printful fulfillment is still deliberately deferred.
+
+### Public Merchandise Cold-Read Closure — 2026-08-31
+
+The strict verifier against the published item-detail fix passed every page,
+asset, private authorization boundary, checkout capability, and readiness
+probe, but its first public `merch-catalog` request returned 500 after a slow
+cold database read. A direct retry returned the complete live catalog, proving
+the data and schema were intact while exposing a transient read gap.
+
+The public catalog now reads its bounded item and active-variant sets in
+parallel instead of paying two serial Supabase round trips. The read reuses the
+Marketplace readiness policy of at most two attempts with a short backoff;
+variant failures continue to degrade without taking down the base catalog.
+The Marketplace release gate now contains 192 contracts. This change affects
+only public display availability and does not relax the server-side price,
+stock, payment, or fulfillment authorities used at checkout.
+
+### Authenticated Club Item Cold-Read Closure — 2026-08-31
+
+A final signed-in replay after publication proved that the item-detail timeout
+was terminal and retryable, but two consecutive cold requests exhausted its
+12-second allowance before authenticated inventory reached the purchase
+controls. Phase 1 therefore remained open even though the broader storefront,
+authorization boundaries, and both settlement APIs were healthy.
+
+The item-detail request now includes its verified item ID. After membership is
+resolved server-side, balance, the single active item, its club-wide sales
+count, the buyer's non-refunded count, and the buyer's item-specific history
+execute concurrently. The full storefront retains its existing active-catalog
+scoping so aggregate counts cannot be distorted by unrelated historical rows.
+The browser keeps an abortable terminal state with a 20-second cold-start
+allowance, rather than converting ordinary serverless latency into a false
+inventory failure.
+
+The Marketplace release gate now contains 193 contracts, including validation,
+detail scoping, parallel-read, fallback-scope, and bounded timeout coverage.
+This is a read-path optimization only: price authority, Diamond burns, Stripe
+settlement, inventory grants, purchase limits, idempotency, commissions, and
+Printful behavior are unchanged.
+
+### Direct Vercel Upload Packaging Closure — 2026-08-31
+
+The failed production entry `hub-vanguard-413enesz9-smarter-poker.vercel.app`
+was an incomplete direct CLI upload, not a Next.js compilation or settlement
+failure. Its Marketplace gate reported 11 failures because the uploaded bundle
+did not contain commerce migrations that the build reads as deployment
+evidence. The prior `.vercelignore` attempted to re-include individual files
+under an ignored Supabase parent, a pattern the direct-upload packager did not
+honor even though Git-backed deployments happened to remain healthy.
+
+Vercel uploads now retain the complete Supabase migration tree (approximately
+10 MB and 1,403 files), keeping the project below its documented 12,000-file
+safety ceiling while eliminating fragile nested re-inclusion. The explicit
+commerce migration markers remain as minimum-contract documentation. A new
+Marketplace regression forbids either broad parent ignore that caused the
+incomplete upload, bringing the mandatory release gate to 194 contracts.
+
+### Browser Fixture Contract Closure — 2026-08-31
+
+The broad Playwright run exposed two stale Club Shop fixtures. Item detail
+returned catalog data without the server-resolved `clubId`, so the browser
+correctly rendered its missing-club state. The operator fixture intercepted
+only query-bearing Marketplace URLs even though the first server-owned
+membership request intentionally has no club query; it also retained an
+obsolete direct `club_members` mock.
+
+Both journeys now mock the actual authenticated API response. The item detail
+receives its verified club context, while the operator journey intercepts both
+initial and club-scoped reads and no longer depends on a browser-side membership
+request. The mandatory Marketplace release gate now contains 195 contracts.

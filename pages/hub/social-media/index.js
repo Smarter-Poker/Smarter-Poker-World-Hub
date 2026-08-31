@@ -3501,6 +3501,7 @@ function SocialMediaPage() {
   // Zustand Global State (replaces UI-related useState)
   const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
   const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);
+  const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   // Migration safety: older sessions can retain the pre-command-drawer
   // sidebar flag in the shared store. Clear it on entry so the Facebook-style
   // canonical command menu is the only global navigation surface.
@@ -5851,22 +5852,14 @@ function SocialMediaPage() {
                     border-radius: 6px;
                 }
             `}</style>
-        {/* Header skeleton */}
-        <div
-          style={{
-            height: 56,
-            background: C.card,
-            borderBottom: `1px solid ${C.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 16px',
-            gap: 12,
-          }}
-        >
-          <div className="sf-skel" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-          <div className="sf-skel" style={{ flex: 1, height: 14, maxWidth: 140 }} />
-          <div className="sf-skel" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-        </div>
+        {/* Global navigation is functional during feed hydration. The Social
+            drawer remains the single Facebook-styled command surface. */}
+        <UniversalHeader
+          pageDepth={1}
+          showSearch={false}
+          commandMenuOpen={commandMenuOpen}
+          onCommandMenuOpenChange={setCommandMenuOpen}
+        />
         {/* Stories row skeleton */}
         <div style={{ display: 'flex', gap: 12, padding: '16px 16px 8px', overflowX: 'hidden' }}>
           {[1, 2, 3, 4, 5].map((i) => (
@@ -6692,7 +6685,8 @@ function SocialMediaPage() {
           pageDepth={1}
           onBackClick={showClubPages ? () => setShowClubPages(false) : undefined}
           showSearch={false}
-          onMenuClick={() => setSidebarOpen(true)}
+          commandMenuOpen={commandMenuOpen}
+          onCommandMenuOpenChange={setCommandMenuOpen}
         />
 
         {/* Global Search Overlay */}

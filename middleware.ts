@@ -252,8 +252,20 @@ export async function middleware(request: NextRequest) {
   ]);
   const isTombstoned = TOMBSTONED_PATHS.has(pathname);
 
+  // Durable Leak Finder workers authenticate with a short-lived, purpose-
+  // bound HMAC token instead of a browser JWT. Let only those exact internal
+  // endpoints reach their handlers when that credential is present; each
+  // handler verifies the signature, owner, purpose and expiry before DB work.
+  const auditWorkerHeader = request.headers.get('x-pa-audit-worker');
+  const hasInternalAuditCredential =
+    (pathname === '/api/assistant/leaks/audit-worker' || pathname === '/api/assistant/leaks/detect')
+    && typeof auditWorkerHeader === 'string'
+    && auditWorkerHeader.length > 20;
+
   const needsAuth =
-    !isTombstoned && requiresAuthPrefix.some((prefix) => pathname.startsWith(prefix));
+    !isTombstoned
+    && !hasInternalAuditCredential
+    && requiresAuthPrefix.some((prefix) => pathname.startsWith(prefix));
 
   if (needsAuth) {
     const authHeader = request.headers.get('authorization');

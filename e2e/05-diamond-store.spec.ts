@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test';
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
 
 const ROUTES = [
-  { path: '/hub/diamond-store', title: 'Diamond Store — Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
-  { path: '/hub/vip-membership', title: 'VIP Membership — Smarter.Poker', heading: 'Your Edge, Compounded.', hero: 'vip-hero.webp' },
-  { path: '/hub/merch-store', title: 'Merch Store — Smarter.Poker', heading: 'Built For The Long Session.', hero: 'merch-hero.webp' },
-  { path: '/hub/smarter-rewards', title: 'Smarter Rewards — Smarter.Poker', heading: 'Make Every Hand Count.', hero: 'rewards-hero.webp' },
-  { path: '/hub/club-shop', title: 'Club Shop — Smarter.Poker', heading: 'Your Game. Your Rules.', hero: 'club-shop-hero.webp' },
+  { path: '/hub/diamond-store', title: 'Diamond Store: Smarter.Poker', heading: 'Play At Your Own Altitude.', hero: 'diamond-vault-hero.webp' },
+  { path: '/hub/vip-membership', title: 'VIP Membership: Smarter.Poker', heading: 'Your Edge, Compounded.', hero: 'vip-hero.webp' },
+  { path: '/hub/merch-store', title: 'Merch Store: Smarter.Poker', heading: 'Built For The Long Session.', hero: 'merch-hero.webp' },
+  { path: '/hub/smarter-rewards', title: 'Smarter Rewards: Smarter.Poker', heading: 'Make Every Hand Count.', hero: 'rewards-hero.webp' },
+  { path: '/hub/club-shop', title: 'Club Shop: Smarter.Poker', heading: 'Your Game. Your Rules.', hero: 'club-shop-hero.webp' },
 ] as const;
 
 test.describe('5. Storefront Routes And Design Contract', () => {
@@ -79,6 +79,17 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       expect(consoleErrors).toEqual([]);
     });
   }
+
+  test('marketplace copy is title-cased and contains no banned long bars', async ({ page }) => {
+    for (const route of ROUTES) {
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      const main = page.locator('main');
+      await expect(main).toBeVisible();
+      expect(await main.evaluate((element) => getComputedStyle(element).textTransform)).toBe('capitalize');
+      expect(await main.innerText()).not.toMatch(/[\u2013\u2014]/u);
+      expect(await page.title()).not.toMatch(/[\u2013\u2014]/u);
+    }
+  });
 
   test('global header structure is identical across all five storefront routes', async ({ page }) => {
     const headerStructures: string[] = [];
@@ -505,6 +516,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        clubId,
         balance: 5000,
         items: [{ id: itemId, name: 'Phase 13 Time Bank', description: 'Verified test item', price: 1500, category: 'Time Banks' }],
       }),
@@ -696,16 +708,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         diamond_multiplier: 1,
       }),
     }));
-    await page.route('**/rest/v1/club_members?*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ club_id: clubId }),
-    }));
-    await page.route('**/api/club-arena/marketplace-items?*', (route) => route.fulfill({
+    await page.route('**/api/club-arena/marketplace-items*', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        clubId,
         role: 'owner',
         balance: 5000,
         items: [{
@@ -793,9 +801,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.goto('/hub/club-shop', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Manage' }).click();
     const reportAlert = page.getByRole('alert').filter({
-      hasText: 'Verified ledger temporarily unavailable',
+      hasText: 'Verified Ledger Temporarily Unavailable',
     });
-    await expect(reportAlert).toContainText('Verified ledger temporarily unavailable');
+    await expect(reportAlert).toContainText('Verified Ledger Temporarily Unavailable');
     await expect(page.getByText('Net Diamond Sales')).toHaveCount(0);
     await expect(page.getByText('No shop items yet. Create one above.')).toHaveCount(0);
     await reportAlert.getByRole('button', { name: 'Retry Report' }).click();

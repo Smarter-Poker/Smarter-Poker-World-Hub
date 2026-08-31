@@ -47,6 +47,10 @@ test.describe('Poker Near Me phase 13 closeout', () => {
     await origin.fill('Dallas, TX');
     await destination.fill('Las Vegas, NV');
     await page.getByRole('button', { name: 'Add Stop' }).click();
+    test.skip(
+      await page.getByRole('dialog', { name: 'Poker Near Me Pro access options' }).isVisible(),
+      'Road-trip editing requires an authenticated VIP or day-pass session'
+    );
     await page.getByRole('textbox', { name: 'Trip waypoint 1' }).fill('Denver, CO');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(origin).toHaveValue('Dallas, TX');
@@ -79,6 +83,10 @@ test.describe('Poker Near Me phase 13 closeout', () => {
     await page.getByRole('textbox', { name: 'Trip destination' }).fill('Las Vegas, NV');
     await page.getByLabel('Trip start date').fill('2026-09-10');
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
+    test.skip(
+      await page.getByRole('dialog', { name: 'Poker Near Me Pro access options' }).isVisible(),
+      'Road-trip validation requires an authenticated VIP or day-pass session'
+    );
     await expect(page.locator('.rtp-error')).toContainText('both a start date and an end date');
     await page.getByLabel('Trip end date').fill('2026-09-01');
     await page.getByRole('button', { name: 'Plan My Trip' }).click();

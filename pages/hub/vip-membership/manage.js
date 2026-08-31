@@ -3,6 +3,7 @@ import { CalendarClock, Crown, RefreshCw, ShieldCheck, Sparkles, WalletCards, X 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import styles from '../../../src/components/store/VipMembershipConsole.module.css';
 import { authedFetch, ensureAuthReady, getAuthUser } from '../../../src/lib/authUtils';
 import { acquireScrollLock } from '../../../src/lib/scrollLock';
@@ -200,7 +201,7 @@ export default function VipManagePage() {
         <section className={styles.signedOut} role="alert">
           <ShieldCheck size={29} aria-hidden="true" />
           <h2>Membership Link Interrupted</h2>
-          <p>{view.message}</p>
+          <p>{marketplaceCopy(view.message)}</p>
           <button className={styles.button} type="button" onClick={loadMembership}><RefreshCw size={15} aria-hidden="true" /> Retry Secure Read</button>
         </section>
       )}
@@ -209,7 +210,7 @@ export default function VipManagePage() {
         <div className={styles.console}>
           <section className={`${styles.panel} ${styles.panelGold}`} aria-labelledby="entitlement-signal-title">
             <h2 id="entitlement-signal-title"><Crown size={22} aria-hidden="true" /> Entitlement Signal</h2>
-            <p>The server—not this browser—decides whether your VIP access is active.</p>
+            <p>The Server, Not This Browser, Decides Whether Your VIP Access Is Active.</p>
             <div className={styles.statusLine}>
               <div><span>Access State</span><strong>{membership.isVip ? 'Active' : 'Inactive'}</strong></div>
               <div><span>Settlement Source</span><strong>{sourceLabel(membership.source)}</strong></div>
@@ -262,7 +263,7 @@ export default function VipManagePage() {
             )}
 
             {action.message && (
-              <div className={`${styles.notice} ${action.status === 'error' ? styles.noticeError : ''}`} role={action.status === 'error' ? 'alert' : 'status'} aria-live="polite">{action.message}</div>
+              <div className={`${styles.notice} ${action.status === 'error' ? styles.noticeError : ''}`} role={action.status === 'error' ? 'alert' : 'status'} aria-live="polite">{marketplaceCopy(action.message)}</div>
             )}
           </section>
         </div>
@@ -291,7 +292,7 @@ export default function VipManagePage() {
                 </select>
               </>
             )}
-            {action.status === 'error' && <div className={`${styles.notice} ${styles.noticeError}`} role="alert">{action.message}</div>}
+            {action.status === 'error' && <div className={`${styles.notice} ${styles.noticeError}`} role="alert">{marketplaceCopy(action.message)}</div>}
             <div className={styles.dialogActions}>
               <button className={styles.secondaryButton} type="button" disabled={action.status === 'busy'} onClick={() => { setConfirmOpen(false); setPendingPlan(null); }}><X size={15} aria-hidden="true" /> {pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}</button>
               {pendingPlan ? (

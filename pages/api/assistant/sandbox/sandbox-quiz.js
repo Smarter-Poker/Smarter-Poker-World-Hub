@@ -1,5 +1,5 @@
 /**
- * Sandbox Quiz API — Save quiz results for "What Would You Do?" mode
+ * Sandbox Quiz API · Save quiz results for "What Would You Do?" mode
  * POST: Save a quiz result
  * GET: Fetch user's quiz stats
  */
@@ -22,7 +22,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  // [Phase 6.1.15] Rate limit writes · prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }

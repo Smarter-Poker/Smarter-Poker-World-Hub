@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import useCartStore from '../../stores/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 
 // Mirrors MAX_DIAMOND_QUANTITY_PER_PACKAGE in cartStore.js and in
 // pages/api/store/create-checkout-session.js. The store clamps the value;
@@ -217,7 +218,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                                         color: '#E4E6EB',
                                                         margin: '0 0 4px 0'
                                                     }}>
-                                                        {item.name}
+                                                        {marketplaceCopy(item.name)}
                                                     </h3>
                                                     {item.diamonds > 0 && (
                                                         <p style={{
@@ -286,7 +287,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                                         title={atQuantityCap(item)
                                                             ? `Limit ${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per diamond package`
                                                             : undefined}
-                                                        aria-label={`Increase quantity of ${item.name || 'item'}`}
+                                                        aria-label={`Increase Quantity Of ${marketplaceCopy(item.name || 'Item')}`}
                                                         style={{
                                                             width: 28,
                                                             height: 28,
@@ -376,7 +377,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                         {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
                                     </button>
 
-                                    {/* Pay with Diamonds — hidden when the cart holds diamond packages
+                                    {/* Pay with Diamonds: hidden when the cart holds diamond packages
                                         or VIP subscriptions. Diamonds can't buy diamonds, and VIP is
                                         activated only by the Stripe webhook / purchase-daily-vip
                                         endpoint, so /api/store/purchase-with-diamonds rejects both.

@@ -27,6 +27,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
@@ -148,6 +149,15 @@ export default async function handler(req, res) {
         const VALID_ACTIONS = ['open', 'close', 'claim'];
         if (!VALID_ACTIONS.includes(action)) {
           return res.status(400).json({ success: false, error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+        }
+
+        // ZERO-DRIFT (2026-08-31): durable cross-instance idempotency on top
+        // of the in-memory fast path. All three POST actions move money.
+        {
+          const { proceed } = await beginIdempotent(
+            getSupabase(), req, res, `rakeback:${user.id}:${clubId}:${action}`
+          );
+          if (!proceed) return;
         }
 
         // Settlement lock check

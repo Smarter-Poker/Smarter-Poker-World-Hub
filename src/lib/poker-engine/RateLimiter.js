@@ -45,7 +45,6 @@ const ENDPOINT_LIMITS = {
   'club-arena/join-club': 10,
   'club-arena/leave-club': 10,
   'club-arena/buyin': 30,
-  'club-arena/distribute-chips': 20,
   'club-arena/distribute-promo': 20,
   'club-arena/promo-wallet': 20,
   'club-arena/manage-agent': 20,

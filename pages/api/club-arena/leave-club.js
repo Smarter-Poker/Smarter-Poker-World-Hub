@@ -23,6 +23,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -54,6 +55,16 @@ export default async function handler(req, res) {
   if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
 
   if (!applyRateLimit(req, res, 'club-arena/leave-club')) return;
+
+  // ZERO-DRIFT (2026-08-31): durable idempotency — a double-tap landing on
+  // two lambda instances passes the in-memory guard on both; this claim is
+  // decided by Postgres.
+  {
+    const { proceed } = await beginIdempotent(
+      supabaseAdmin, req, res, `leave-club:${user.id}:${clubId}`
+    );
+    if (!proceed) return;
+  }
 
   try {
     // ═══════════════════════════════════════════════════════════════

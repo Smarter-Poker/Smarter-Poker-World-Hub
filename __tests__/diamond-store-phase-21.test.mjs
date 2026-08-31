@@ -155,13 +155,64 @@ test('Club Shop detail resolves server-owned membership and terminates stalled i
   assert.doesNotMatch(detail, /ensureAuthReady/);
   assert.doesNotMatch(detail, /src\/lib\/supabase/);
   assert.doesNotMatch(loader, /\.from\('club_members'\)/);
-  assert.match(detail, /const CLUB_DETAIL_LOAD_TIMEOUT_MS = 12000/);
+  assert.match(detail, /const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000/);
+  assert.match(loader, /params\.set\('itemId', itemId\)/);
   assert.match(loader, /const loadController = new AbortController\(\)/);
   assert.match(loader, /signal: loadController\.signal/);
   assert.match(loader, /Club inventory timed out\. Retry the verified inventory request\./);
   assert.match(loader, /const targetClub = body\.clubId \|\| null/);
   assert.match(loader, /window\.clearTimeout\(loadTimer\)/);
   assert.match(detail, /loadAbortRef\.current\?\.abort\(\)/);
+});
+
+test('Club Shop detail API scopes and parallelizes cold authenticated item reads', async () => {
+  const api = await read('pages/api/club-arena/marketplace-items.js');
+
+  assert.match(api, /if \(requestedItemId && !isUUID\(requestedItemId\)\)/);
+  assert.match(api, /itemsPromise = itemsPromise\.eq\('id', requestedItemId\)\.limit\(1\)/);
+  assert.match(api, /if \(requestedItemId\) \{[\s\S]*?Promise\.all\(\[/);
+  assert.match(api, /\.eq\('item_id', requestedItemId\)/);
+  assert.match(api, /if \(!requestedItemId\) \{/);
+  assert.match(api, /if \(requestedItemId\) fallbackQuery = fallbackQuery\.eq\('item_id', requestedItemId\)/);
+});
+
+test('direct Vercel uploads retain the complete migration evidence tree', async () => {
+  const ignore = await read('.vercelignore');
+
+  assert.doesNotMatch(ignore, /^\/supabase\/\*$/m);
+  assert.doesNotMatch(ignore, /^\/supabase\/migrations\/\*$/m);
+  assert.match(ignore, /!\/supabase\/migrations\/20260829130000_club_shop_atomic_purchase\.sql/);
+});
+
+test('Club Shop browser fixtures follow the server-owned membership response', async () => {
+  const e2e = await read('e2e/05-diamond-store.spec.ts');
+  const detailFixture = e2e.slice(
+    e2e.indexOf("test('club item detail reviews one diamond settlement"),
+    e2e.indexOf("test('marketplace readiness is public", e2e.indexOf("test('club item detail reviews one diamond settlement"))
+  );
+  const adminFixture = e2e.slice(
+    e2e.indexOf("test('Club Shop operators delete"),
+    e2e.lastIndexOf('\n});')
+  );
+
+  assert.match(detailFixture, /clubId,/);
+  assert.match(adminFixture, /marketplace-items\*'/);
+  assert.match(adminFixture, /clubId,/);
+  assert.doesNotMatch(adminFixture, /rest\/v1\/club_members/);
+});
+
+test('public merchandise catalog retries cold reads without serial variant latency', async () => {
+  const [catalog, readiness] = await Promise.all([
+    read('pages/api/store/merch-catalog.js'),
+    read('src/lib/store/marketplaceReadiness.js'),
+  ]);
+
+  assert.match(catalog, /withTransientRetry/);
+  assert.match(catalog, /const MAX_VARIANTS = 1_000/);
+  assert.match(catalog, /const \[itemResult, variantResult\] = await Promise\.all/);
+  assert.match(catalog, /\.limit\(MAX_VARIANTS\)/);
+  assert.doesNotMatch(catalog, /\.in\('item_id'/);
+  assert.match(readiness, /const DEFAULT_MAX_ATTEMPTS = 2/);
 });
 
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {

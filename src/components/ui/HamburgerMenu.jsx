@@ -28,6 +28,12 @@ import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
+import {
+  evaluateWorldMenuActivation,
+  getActiveWorldMenuHref,
+  parseWorldMenuHref,
+} from '../../lib/world-menu/navigationState.mjs';
+import WorldCommandMenuBoundary from './WorldCommandMenuBoundary';
 
 const FALLBACK_AVATAR = '/default-avatar.png';
 
@@ -97,7 +103,7 @@ function collectLinkables(items) {
   return out;
 }
 
-export default function HamburgerMenu({
+function HamburgerMenuContent({
   isOpen,
   onClose,
   direction = 'left',
@@ -134,6 +140,8 @@ export default function HamburgerMenu({
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
   const restoreFocusRef = useRef(null);
+  const navigationLockRef = useRef(null);
+  const navigationTimerRef = useRef(null);
 
   const [query, setQuery] = useState('');
   const [editFavs, setEditFavs] = useState(false);
@@ -144,9 +152,20 @@ export default function HamburgerMenu({
   const [reduceMotion, setReduceMotion] = useState(false);
   // Latch: only mount the heavy in-drawer widgets once the menu has been opened.
   const [everOpened, setEverOpened] = useState(false);
+  const [pendingHref, setPendingHref] = useState('');
 
   useEffect(() => { setLocalUser(getAuthUser()); }, []);
   useEffect(() => { if (isOpen) setEverOpened(true); }, [isOpen]);
+
+  useEffect(() => {
+    navigationLockRef.current = null;
+    setPendingHref('');
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+  }, [router?.asPath, isOpen]);
+
+  useEffect(() => () => {
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+  }, []);
 
   const activeUser = user || localUser;
   const automaticConfig = useMemo(
@@ -229,14 +248,22 @@ export default function HamburgerMenu({
   // ── Focus management ──────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      restoreFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
+      if (typeof document !== 'undefined') {
+        const activeElement = document.activeElement;
+        restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
+          ? activeElement
+          : document.querySelector('[data-world-menu-trigger="approved-header"]') || activeElement;
+      }
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
     }
     const prev = restoreFocusRef.current;
     restoreFocusRef.current = null;
-    if (prev && typeof prev.focus === 'function') {
-      try { prev.focus(); } catch (_) {}
+    const focusTarget = prev?.isConnected
+      ? prev
+      : document.querySelector('[data-world-menu-trigger="approved-header"]');
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      try { focusTarget.focus(); } catch (_) {}
     }
     setQuery('');
     setEditFavs(false);
@@ -333,10 +360,14 @@ export default function HamburgerMenu({
   const groups = useMemo(() => buildGroups(menuItems), [menuItems]);
   const linkables = useMemo(() => collectLinkables(menuItems), [menuItems]);
   const currentPath = router?.asPath || '';
+  const activeMenuHref = useMemo(
+    () => getActiveWorldMenuHref(currentPath, linkables),
+    [currentPath, linkables],
+  );
 
   const groupHasActiveRoute = useCallback(
-    (group) => group.items.some(({ item }) => item?.href && currentPath.split('?')[0] === item.href.split('?')[0]),
-    [currentPath],
+    (group) => group.items.some(({ item }) => item?.href && item.href === activeMenuHref),
+    [activeMenuHref],
   );
 
   const isCollapsed = useCallback((group, groupIdx) => {
@@ -412,7 +443,7 @@ export default function HamburgerMenu({
 
   const recentItems = useMemo(
     () => (recents || [])
-      .filter((r) => r?.href && r.href.split('?')[0] !== currentPath.split('?')[0])
+      .filter((r) => r?.href && parseWorldMenuHref(r.href).pathname !== parseWorldMenuHref(currentPath).pathname)
       .slice(0, 4),
     [recents, currentPath],
   );
@@ -425,6 +456,28 @@ export default function HamburgerMenu({
     (item) => !online && !!item?.requiresNetwork,
     [online],
   );
+
+  const beginNavigation = useCallback((event, item) => {
+    const decision = evaluateWorldMenuActivation({
+      event,
+      href: item?.href,
+      lock: navigationLockRef.current,
+    });
+    if (!decision.allow) {
+      event?.preventDefault?.();
+      return decision;
+    }
+    if (decision.modified) return decision;
+
+    navigationLockRef.current = decision.nextLock;
+    setPendingHref(item?.href || '');
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+    navigationTimerRef.current = setTimeout(() => {
+      navigationLockRef.current = null;
+      setPendingHref('');
+    }, 1_200);
+    return decision;
+  }, []);
 
   // ── Row renderers ─────────────────────────────────────────────────────────
   const rowBase = {
@@ -446,7 +499,7 @@ export default function HamburgerMenu({
   };
 
   const renderNavigation = (item, key) => {
-    const isCurrent = item.href && currentPath.split('?')[0] === item.href.split('?')[0];
+    const isCurrent = item.href && item.href === activeMenuHref;
     const pinned = favs.includes(item.href);
     const disabled = isBlockedOffline(item);
     const content = (
@@ -506,6 +559,8 @@ export default function HamburgerMenu({
         return;
       }
       if (disabled) { e.preventDefault(); return; }
+      const activation = beginNavigation(e, item);
+      if (!activation.allow || activation.modified) return;
       if (item.onClick) item.onClick();
       rememberRecent(item);
       onClose?.();
@@ -514,6 +569,8 @@ export default function HamburgerMenu({
     const aria = {
       'aria-current': isCurrent ? 'page' : undefined,
       'aria-disabled': disabled ? 'true' : undefined,
+      'aria-busy': pendingHref === item.href ? 'true' : undefined,
+      'data-command-pending': pendingHref === item.href ? 'true' : undefined,
       'aria-label': editFavs
         ? `${pinned ? 'Unpin' : 'Pin'} ${item.label}`
         : (item.badge ? `${item.label}, ${item.badge} new` : undefined),
@@ -638,10 +695,12 @@ export default function HamburgerMenu({
       case 'divider':
         return <div key={key} style={{ height: 1, background: colors.border, margin: '12px 16px' }} />;
 
-      case 'grid':
+      case 'grid': {
+        const activeGridHref = getActiveWorldMenuHref(currentPath, item.items || []);
         return (
           <div
             key={key}
+            data-world-primary-commands={item.worldPrimary ? activeWorld?.id : undefined}
             style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${item.columns || 2}, minmax(0, 1fr))`,
@@ -651,6 +710,8 @@ export default function HamburgerMenu({
             }}
           >
             {(item.items || []).map((gridItem, gridIndex) => {
+              const isCurrentGridItem = Boolean(gridItem.href && gridItem.href === activeGridHref);
+              const isPendingGridItem = Boolean(gridItem.href && gridItem.href === pendingHref);
               const tileStyle = {
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                 justifyContent: 'center', gap: 6,
@@ -703,13 +764,15 @@ export default function HamburgerMenu({
               const tileBlocked = isBlockedOffline(gridItem);
               const onTile = (e) => {
                 if (tileBlocked) { e.preventDefault(); return; }
+                const activation = beginNavigation(e, gridItem);
+                if (!activation.allow || activation.modified) return;
                 if (gridItem.onClick) gridItem.onClick();
                 rememberRecent(gridItem);
                 onClose?.();
               };
               if (needsHardNav(gridItem)) {
                 return (
-                  <a key={gridIndex} href={gridItem.href} className="sp-grid-tile" style={{ ...tileStyle, opacity: tileBlocked ? 0.45 : 1 }} onClick={onTile} aria-disabled={tileBlocked ? 'true' : undefined}>
+                  <a key={gridIndex} href={gridItem.href} className="sp-grid-tile" style={{ ...tileStyle, opacity: tileBlocked ? 0.45 : 1 }} onClick={onTile} aria-disabled={tileBlocked ? 'true' : undefined} aria-current={isCurrentGridItem ? 'page' : undefined} aria-busy={isPendingGridItem ? 'true' : undefined} data-command-target={gridItem.href} data-command-pending={isPendingGridItem ? 'true' : undefined}>
                     {iconSlot}
                     {labelSlot}
                   </a>
@@ -724,6 +787,10 @@ export default function HamburgerMenu({
                   style={{ ...tileStyle, opacity: tileBlocked ? 0.45 : 1 }}
                   onClick={onTile}
                   aria-disabled={tileBlocked ? 'true' : undefined}
+                  aria-current={isCurrentGridItem ? 'page' : undefined}
+                  aria-busy={isPendingGridItem ? 'true' : undefined}
+                  data-command-target={gridItem.href}
+                  data-command-pending={isPendingGridItem ? 'true' : undefined}
                 >
                   {iconSlot}
                   {labelSlot}
@@ -732,6 +799,7 @@ export default function HamburgerMenu({
             })}
           </div>
         );
+      }
 
       default:
         return null;
@@ -822,6 +890,7 @@ export default function HamburgerMenu({
         role="dialog"
         aria-modal="true"
         aria-label={`${activeWorld?.label || 'Smarter.Poker'} Command Menu`}
+        aria-busy={pendingHref ? 'true' : 'false'}
         data-world-command-menu={activeWorld?.id || 'global'}
         data-menu-symbol="command-grid"
         onTouchStart={handleTouchStart}
@@ -1564,6 +1633,16 @@ export default function HamburgerMenu({
           background: linear-gradient(90deg, transparent, var(--world-accent, #2e9bff), transparent);
           opacity: .72;
         }
+        .sp-grid-tile[aria-current='page'] {
+          border-color: color-mix(in srgb, var(--world-accent, #2e9bff) 74%, #dbe9f5) !important;
+          background: linear-gradient(145deg, color-mix(in srgb, var(--world-accent, #2e9bff) 16%, #18222b), #05090d) !important;
+          box-shadow: inset 3px 0 var(--world-accent, #2e9bff), inset 0 1px rgba(255,255,255,.13), 0 0 18px color-mix(in srgb, var(--world-accent, #2e9bff) 26%, transparent);
+        }
+        .sp-grid-tile[aria-current='page']::after { height: 2px; opacity: 1; }
+        .sp-grid-tile[data-command-pending='true'] {
+          cursor: progress !important;
+          filter: saturate(1.2) brightness(1.08);
+        }
         .sp-drawer[data-world-command-menu='social-media'] {
           background:
             linear-gradient(90deg, rgba(24,119,242,.045), transparent 2px),
@@ -1636,5 +1715,21 @@ export default function HamburgerMenu({
         }
       ` }} />
     </>
+  );
+}
+
+export default function HamburgerMenu(props) {
+  const router = useRouter();
+  const currentRoute = router?.asPath || router?.pathname || '/';
+  const recoveryWorld = useMemo(() => resolveWorldMenu(currentRoute), [currentRoute]);
+  return (
+    <WorldCommandMenuBoundary
+      isOpen={props.isOpen}
+      onClose={props.onClose}
+      world={recoveryWorld}
+      resetKey={`${props.isOpen ? 'open' : 'closed'}:${currentRoute}`}
+    >
+      <HamburgerMenuContent {...props} />
+    </WorldCommandMenuBoundary>
   );
 }

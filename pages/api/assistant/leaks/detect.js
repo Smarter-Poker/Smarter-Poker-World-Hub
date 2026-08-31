@@ -20,6 +20,7 @@ import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant
 
 import { applyRateLimit, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
+import { openAuditJobToken } from '../../../../src/lib/personal-assistant/auditJobToken.mjs';
 
 export const config = { maxDuration: 60 };
 
@@ -30,14 +31,18 @@ const AUDIT_DECISION_BATCH_SIZE = 500;
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Leak audit service configuration is unavailable');
         _supabase = createClient(url, key);
     }
     return _supabase;
 }
 
-const AUDIT_CURSOR_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// Durable jobs can survive deploys and multi-day infrastructure outages. The
+// cursor remains owner-bound and HMAC-signed, so extending its recovery window
+// does not turn it into a bearer credential for another account.
+const AUDIT_CURSOR_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function auditCursorSecret() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET || '';
@@ -53,6 +58,22 @@ function sealAuditCursor(state, userId) {
   })).toString('base64url');
   const signature = createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
+}
+
+function fingerprintAuditCursor(state, userId) {
+  const secret = auditCursorSecret();
+  if (!secret || !state) return null;
+  const stableState = {
+    snapshotAt: state.snapshotAt || null,
+    modern: state.modern || null,
+    legacy: state.legacy || null,
+    modernDone: state.modernDone === true,
+    legacyDone: state.legacyDone === true,
+    cumulativeHandsFound: Math.max(0, Number(state.cumulativeHandsFound) || 0),
+  };
+  return createHmac('sha256', secret)
+    .update(`${userId}:${JSON.stringify(stableState)}`)
+    .digest('base64url');
 }
 
 function openAuditCursor(token, userId) {
@@ -200,7 +221,7 @@ const LEAK_PATTERNS = {
 };
 
 // Stat keys each pattern's check() reads. A pattern only fires when every
-// required stat was genuinely measured (non-null) — this prevents fabricating
+// required stat was genuinely measured (non-null) · this prevents fabricating
 // leaks from defaulted/unmeasured inputs.
 const PATTERN_STAT_KEYS = {
   overfolding_preflop: ['vpip'],
@@ -219,9 +240,28 @@ const PATTERN_STAT_KEYS = {
   missing_thin_value: ['riverValueBetFreq', 'riverBetOpps'],
 };
 
+const PATTERN_MINIMUM_EVIDENCE = {
+  overfolding_preflop: ['handsPlayed', 501],
+  overlimping: ['handsPlayed', 201],
+  cold_call_too_wide: ['handsPlayed', 301],
+  three_bet_too_tight: ['handsPlayed', 501],
+  three_bet_too_loose: ['handsPlayed', 501],
+  overfolding_to_cbets: ['cbetsFaced', 51],
+  cbet_too_often: ['cbetOpps', 51],
+  cbet_too_rarely: ['cbetOpps', 51],
+  check_raise_too_rare: ['checkRaiseOpps', 31],
+  turn_barrel_too_rare: ['turnBarrelOpps', 31],
+  turn_overfold: ['turnFaced', 41],
+  lack_of_river_bluffs: ['riverBluffOpps', 21],
+  river_overfold: ['riverFaced', 31],
+  missing_thin_value: ['riverBetOpps', 26],
+};
+
 function patternIsMeasured(stats, leakType) {
   const required = PATTERN_STAT_KEYS[leakType] || [];
-  return !required.some(key => stats[key] === null || stats[key] === undefined);
+  if (required.some(key => stats[key] === null || stats[key] === undefined)) return false;
+  const [sampleKey, minimum] = PATTERN_MINIMUM_EVIDENCE[leakType] || [];
+  return !sampleKey || Number(stats[sampleKey]) >= minimum;
 }
 
 // Distance from the nearest bound of the optimal range (0 when inside range)
@@ -242,7 +282,7 @@ async function getPlayerStats(supabase, userId) {
   // 0. PREFERRED: the same RPC the Club Arena stats page reads.
   //
   // Two reasons this comes first. Correctness: the player_stats read below is
-  // `.eq('user_id', …).maybeSingle()`, and player_stats holds ONE ROW PER CLUB —
+  // `.eq('user_id', …).maybeSingle()`, and player_stats holds ONE ROW PER CLUB ·
   // so for any player in two or more clubs it errors and silently falls through,
   // which is the same bug that made the stats page show "No Stats Yet".
   // Consistency: the assistant told a player one story about their game while
@@ -250,7 +290,7 @@ async function getPlayerStats(supabase, userId) {
   //
   // Only exactly-mappable fields are passed through. Anything this RPC does not
   // measure (opportunity counts, street-by-street fold frequencies) is left
-  // absent so patternIsMeasured skips those patterns — the house rule that a
+  // absent so patternIsMeasured skips those patterns · the house rule that a
   // number which was never measured is never presented as if it was.
   try {
     const { data: rpcStats, error: rpcErr } = await supabase.rpc('ca_player_stats_full', {
@@ -302,7 +342,7 @@ async function getPlayerStats(supabase, userId) {
     if (altStats) {
       finalStats = normalizeStats(altStats);
     } else {
-      // Try to compute from live hand history — only fetch what we read
+      // Try to compute from live hand history · only fetch what we read
       const queryHands = (key) => supabase
         .from('hand_history')
         .select('id, actions, players, summary, created_at')
@@ -328,7 +368,7 @@ async function getPlayerStats(supabase, userId) {
 }
 
 function normalizeStats(stats) {
-  // Return the first numeric value, or null when the column is absent —
+  // Return the first numeric value, or null when the column is absent ·
   // never fabricate frequencies or sample sizes for missing columns.
   const num = (...vals) => {
     for (const v of vals) {
@@ -342,7 +382,7 @@ function normalizeStats(stats) {
    * threeBetFreq > 14, foldToCbet > 55). `player_stats` stores these as
    * FRACTIONS: production ranges 0.00–0.55 for vpip and 0.00–0.32 for pfr,
    * with not one row above 1 in 1,156. Read raw, `vpip < 18` is therefore
-   * true for every player alive — a 55% VPIP maniac gets told he is
+   * true for every player alive · a 55% VPIP maniac gets told he is
    * "Overfolding Preflop". Anything at or below 1 is a fraction and is
    * scaled; anything above 1 is already a percent and is left alone. The
    * two ranges cannot collide: a real VPIP of 1% does not occur over the
@@ -359,7 +399,7 @@ function normalizeStats(stats) {
    * measurement, it is an unwritten column: 974 of the 1,089 accounts past
    * the 500-hand gate carry vpip = 0, several with 60k+ hands, which no
    * human produces. Returning null routes these through patternIsMeasured,
-   * which skips the pattern — the codebase's standing rule that a number
+   * which skips the pattern · the codebase's standing rule that a number
    * which was never measured must never be presented as if it was.
    * Frequencies that ARE gated by an opportunity count (river bluffs, c-bets)
    * keep their honest zeros; only the ungated preflop rates are treated
@@ -451,7 +491,7 @@ function normalizeAuditHand(row, userId) {
 }
 
 function computeStatsFromAuditHands(hands, userId) {
-  // Stat computation from raw hands — everything here is genuinely derived
+  // Stat computation from raw hands · everything here is genuinely derived
   // from the actions arrays; stats we can't derive are returned as null so
   // the measured-stat guard skips their patterns.
   const total = hands.length;
@@ -623,7 +663,7 @@ function computeStatsFromAuditHands(hands, userId) {
     turnFaced,
     riverFoldFreq: pct(riverFolds, riverFaced),
     riverFaced,
-    // Bluff / thin-value stats need hand-strength info we don't have —
+    // Bluff / thin-value stats need hand-strength info we don't have ·
     // leave unmeasured so their patterns are skipped, never fabricated.
     riverBluffFreq: null,
     riverBluffOpps: 0,
@@ -657,7 +697,7 @@ function classifyLeakStatus(existingLeak, currentValue, optimalRange) {
     deviationFromRange(currentValue, optimalRange) < deviationFromRange(oldValue, optimalRange);
 
   if (deviation < 3) {
-    // The pattern check just fired, so this is not resolved — it's close to
+    // The pattern check just fired, so this is not resolved · it's close to
     // optimal and trending the right way at best.
     return 'improving';
   } else if (improvement && deviation < 8) {
@@ -886,25 +926,41 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 
 export default async function handler(req, res) {
   try {
+    const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
     // The generic AI limit (5/minute) made accounts with >500 hands impossible
     // to finish, while 12 bounded, authenticated batches still keeps the route
     // protected at both token and infrastructure-IP levels.
-    if (!applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
+    if (!workerAuth && !applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
 
     // Require JWT auth for write operations
     let authenticatedUser = null;
     if (req.method !== 'GET') {
-      const _token = req.headers.authorization?.replace('Bearer ', '');
-      if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-      authenticatedUser = _authUser;
-      if (!await applyDurableRateLimit(getSupabase(), res, {
-        key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
-      })) return;
-      // Rebuild the body so an empty/non-JSON body still carries the JWT userId
-      req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
+      if (workerAuth) {
+        const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
+        if (requestBody.jobId !== workerAuth.jobId) {
+          return res.status(401).json({ success: false, error: 'Invalid worker job identity' });
+        }
+        const { data: workerJob, error: workerJobError } = await getSupabase()
+          .from('pa_leak_audit_jobs').select('id, user_id, status')
+          .eq('id', workerAuth.jobId).eq('user_id', workerAuth.userId).eq('status', 'running').maybeSingle();
+        if (workerJobError || !workerJob) {
+          return res.status(409).json({ success: false, error: 'Audit job is not claimable' });
+        }
+        authenticatedUser = { id: workerAuth.userId };
+        req.body = { ...requestBody, userId: workerAuth.userId };
+      } else {
+        const _token = req.headers.authorization?.replace('Bearer ', '');
+        if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+        if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        authenticatedUser = _authUser;
+        if (!await applyDurableRateLimit(getSupabase(), res, {
+          key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
+        })) return;
+        // Rebuild the body so an empty/non-JSON body still carries the JWT userId
+        req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
+      }
     }
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -916,14 +972,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId required' });
     }
 
-    const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
-    if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
-      return res.status(403).json({
-        success: false,
-        blocked: true,
-        contextState: contextAccess.contextState,
-        error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
-      });
+    if (!workerAuth) {
+      const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
+      if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+        return res.status(403).json({
+          success: false,
+          blocked: true,
+          contextState: contextAccess.contextState,
+          error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
+        });
+      }
     }
 
     let auditCursor = null;
@@ -946,7 +1004,19 @@ export default async function handler(req, res) {
       if (clubArenaSync?.continuation) {
         const continuation = clubArenaSync.continuation;
         delete clubArenaSync.continuation;
+        clubArenaSync.cursorFingerprint = fingerprintAuditCursor(continuation, userId);
         clubArenaSync.auditCursor = sealAuditCursor(continuation, userId);
+      }
+
+      if (clubArenaSync?.partial === true) {
+        res.setHeader('Retry-After', '2');
+        return res.status(503).json({
+          success: false,
+          code: 'club_arena_audit_partial',
+          retryable: true,
+          error: 'One Club Arena hand source is temporarily unavailable. The saved checkpoint will be retried.',
+          clubArenaSync,
+        });
       }
 
       if (clubArenaSync?.available === false || clubArenaSync?.persisted === false) {
@@ -1036,7 +1106,7 @@ export default async function handler(req, res) {
       const { data: existingLeaks, error: existingErr } = existingResult;
       if (existingErr) {
         console.warn('[LeakDetect] existing user_leaks query failed:', existingErr.message);
-        return res.status(503).json({ success: false, error: 'Leak history is temporarily unavailable. No changes were made.' });
+        return res.status(503).json({ success: false, retryable: true, error: 'Leak history is temporarily unavailable. No changes were made.' });
       }
 
       const existingLeakMap = {};
@@ -1136,7 +1206,7 @@ export default async function handler(req, res) {
           detector_managed: true,
           updated_at: now,
         }));
-        // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
+        // Batch upsert all detected leaks · eliminates N+1 (one round-trip)
         const { error: upsertErr } = await getSupabase()
           .from('user_leaks')
           .upsert(
@@ -1148,6 +1218,7 @@ export default async function handler(req, res) {
           console.warn('[LeakDetect] Failed to persist detected leaks:', upsertErr.message);
           return res.status(503).json({
             success: false,
+            retryable: true,
             persisted: false,
             reason: 'write_failed',
             error: 'The audit completed, but Leak Finder could not save the results. No leak history was changed.',
@@ -1216,9 +1287,9 @@ export default async function handler(req, res) {
         };
       }
 
-      // Batch-update resolved leaks — eliminates N+1.
+      // Batch-update resolved leaks · eliminates N+1.
       // Only resolve leak types this engine owns (LEAK_PATTERNS) AND whose
-      // inputs were measured this run — never touch POSTed/training/custom
+      // inputs were measured this run · never touch POSTed/training/custom
       // leak types, and never resolve a leak we simply couldn't measure.
       const solverRecoveryByType = new Map(
         (solverEvidence.groups || []).map(group => [group.leakType, group.recoveryEligible === true]),
@@ -1298,7 +1369,7 @@ export default async function handler(req, res) {
         } else {
           const currentHands = existingStats?.total_hands_analyzed || 0;
 
-          // Atomic Upsert for Stats Sync — SET (not accumulate) hands analyzed so
+          // Atomic Upsert for Stats Sync · SET (not accumulate) hands analyzed so
           // re-running detection on the same hands doesn't inflate the counter.
           // Solver decisions are not hands; one hand can expose many decisions.
           const { error: statsWriteErr } = await getSupabase()
@@ -1414,12 +1485,12 @@ function updateTrendData(existingTrend, currentValue) {
  * The leak-example renderer does `cards.filter(Boolean).join(' ')`, so a hero
  * holding rendered as literally "[object Object] [object Object]", and the
  * one-tap "practice this hand" link built `?h=[obj` from
- * `snap.hero_cards.join('')`. The board fared slightly better — "6spades
- * Ahearts" is at least legible — but it is not what the drill parser accepts
+ * `snap.hero_cards.join('')`. The board fared slightly better · "6spades
+ * Ahearts" is at least legible · but it is not what the drill parser accepts
  * either.
  *
  * Normalising HERE, at the write, rather than at each of the several read
- * sites, is deliberate: `leak_hand_examples` was empty (0 rows platform-wide —
+ * sites, is deliberate: `leak_hand_examples` was empty (0 rows platform-wide ·
  * the insert had never once succeeded, fixed earlier today), so there is no
  * legacy shape to stay compatible with. Every future row is canonical.
  *
@@ -1435,7 +1506,7 @@ const SUIT_LETTER = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' };
 function toCardCode(card) {
   if (!card) return null;
 
-  // { rank: "4", suit: "clubs" } — the hole_cards shape.
+  // { rank: "4", suit: "clubs" } · the hole_cards shape.
   if (typeof card === 'object') {
     const rank = String(card.rank ?? '').trim();
     const suit = SUIT_LETTER[String(card.suit ?? '').trim().toLowerCase()];
@@ -1446,7 +1517,7 @@ function toCardCode(card) {
   const raw = card.trim();
   if (!raw) return null;
 
-  // "6spades" — the board shape. Also accepts an already-canonical "6s", which
+  // "6spades" · the board shape. Also accepts an already-canonical "6s", which
   // makes this safe to apply twice.
   const m = /^([2-9TJQKA]|10)(clubs|diamonds|hearts|spades|[cdhs])$/i.exec(raw);
   if (!m) return null;
@@ -1476,7 +1547,7 @@ async function linkHandExamples(userId, leaksWithIds) {
       .from('hand_history')
       // user_id → players containment (there is no user_id column).
       // 2026-08-16: hole_cards is a MAP keyed by user id (showdown-revealed
-      // holdings only), not a bare array — see the engine writer in
+      // holdings only), not a bare array · see the engine writer in
       // services/supabase/handHistory.ts. Select it raw and pick the hero's
       // entry below; aliasing the whole map to `hero_cards` would have put
       // every player's shown cards into the example.
@@ -1523,8 +1594,8 @@ async function linkHandExamples(userId, leaksWithIds) {
           hand_data: {
             // Hero's own showdown holding, if this hand reached showdown and
             // they were in it. Null when the hand ended before showdown or the
-            // hero mucked — mucked cards are deliberately never persisted.
-            // Both normalised to "Ah"-style codes — see toCardCode() above for
+            // hero mucked · mucked cards are deliberately never persisted.
+            // Both normalised to "Ah"-style codes · see toCardCode() above for
             // why the raw engine shapes could not be stored as-is.
             hero_cards: toCardCodes(rawHand.hole_cards?.[userId] || summaryHero?.holeCards),
             board: toCardCodes(rawHand.board || summary?.communityCards),
@@ -1729,7 +1800,7 @@ function checkHandForLeak(hand, leakType) {
     }
   } catch (e) {
     console.warn('[checkHandForLeak] Pattern check failed for', leakType, e.message);
-    // Pattern check failed — non-fatal, continue
+    // Pattern check failed · non-fatal, continue
   }
 
   return null;

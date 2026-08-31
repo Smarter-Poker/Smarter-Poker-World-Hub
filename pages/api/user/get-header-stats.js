@@ -65,7 +65,7 @@ export default async function handler(req, res) {
           const [profileResult, socialCountResult, followResult, convResult] = await Promise.all([
               // 1. Profile
               sb.from('profiles')
-                  .select('username, full_name, avatar_url, diamonds, is_vip, is_admin')
+                  .select('username, full_name, avatar_url, arena_avatar_url, use_avatar_as_profile_pic, diamonds, is_vip, vip_expires_at, is_admin')
                   .eq('id', userId)
                   .maybeSingle(),
               // 2. Unread social notifications count.
@@ -239,8 +239,11 @@ export default async function handler(req, res) {
                   username: profile.username,
                   full_name: profile.full_name,
                   avatar_url: profile.avatar_url,
+                  arena_avatar_url: profile.arena_avatar_url,
+                  use_avatar_as_profile_pic: profile.use_avatar_as_profile_pic === true,
                   diamonds: profile.diamonds ?? 0,
                   is_vip: profile.is_vip || false,
+                  vip_expires_at: profile.vip_expires_at,
                   is_admin: profile.is_admin || false
               },
               notificationCount: notificationCount || 0,

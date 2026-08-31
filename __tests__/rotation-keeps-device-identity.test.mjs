@@ -43,6 +43,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROTATE = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
 const SUBSCRIBE = readFileSync(join(ROOT, 'pages/api/push/subscribe.js'), 'utf8');
 const HEALTH = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
+const CONFIRMED_LEGACY_REPAIR = readFileSync(
+  join(ROOT, 'supabase/migrations/20260831151000_consolidate_confirmed_legacy_push_endpoint.sql'),
+  'utf8'
+);
 
 /** Source with comments stripped, so a test never passes on its own prose. */
 function code(src) {
@@ -165,4 +169,15 @@ test('push-health only REPORTS duplicates, it does not silently retire them', ()
     'the duplicate-device check must not deactivate rows. Report it; let a ' +
       'human or a targeted migration decide which row is the real device.'
   );
+});
+
+test('confirmed legacy endpoint pairs are consolidated without guessing at unconfirmed devices', () => {
+  assert.match(CONFIRMED_LEGACY_REPAIR, /count\(\*\) = 2/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /count\(\*\) FILTER \(WHERE device_id IS NULL\) = 1/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /legacy_receipt_at IS NULL/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /identified_receipt_at >= v_group\.legacy_receipt_at/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /abs\(extract\(epoch FROM/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /superseded_by_confirmed_legacy_endpoint/);
+  assert.match(CONFIRMED_LEGACY_REPAIR, /SET device_id = v_group\.stable_device_id/);
+  assert.doesNotMatch(CONFIRMED_LEGACY_REPAIR, /DELETE FROM public\.push_subscriptions/);
 });
