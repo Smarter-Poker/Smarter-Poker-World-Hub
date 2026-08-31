@@ -17,6 +17,21 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('strategy hub keeps its primary command fully inside the mobile hero bay', async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('mobile'), 'mobile project only');
+    await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
+    const command = page.getByRole('button', { name: 'Start New Scenario' });
+    const hero = page.locator('section').filter({ has: command }).first();
+    await expect(command).toBeVisible();
+    const [commandBox, heroBox] = await Promise.all([command.boundingBox(), hero.boundingBox()]);
+    expect(commandBox).not.toBeNull();
+    expect(heroBox).not.toBeNull();
+    expect(commandBox!.y + commandBox!.height).toBeLessThanOrEqual(heroBox!.y + heroBox!.height - 8);
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    expect(commandBox!.y + commandBox!.height).toBeLessThanOrEqual(viewportHeight - 72);
+    await expectHealthyLayout(page);
+  });
+
   test('strategy hub renders the live question-shaped Hand Of The Day payload', async ({ page }) => {
     await page.route('**/api/training/hand-of-the-day', route => route.fulfill({
       status: 200,
@@ -148,6 +163,58 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByText('Weekly Leaderboard')).toBeVisible();
     await expect(page.getByText('Macro Leak Detector')).toBeVisible();
     await expect(page.getByText('Position Leak Map')).toBeVisible();
+    await expectHealthyLayout(page);
+  });
+
+  test('Leak Finder detail sheet exposes every remediation subflow and closes cleanly', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
+      window.localStorage.removeItem('pa-auto-guidance');
+    });
+    await page.route('**/api/assistant/leaks', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        leaks: [{
+          id: 'e2e-leak-detail',
+          leak_type: 'solver_club_arena_preflop_open',
+          leak_name: 'Button Open Frequency',
+          situation_class: 'Button Open Frequency',
+          status: 'persistent',
+          confidence: 'high',
+          optimal_frequency: 58,
+          current_frequency: 41,
+          avg_ev_loss_bb: 0.31,
+          ev_loss_measured: true,
+          occurrence_count: 18,
+          source_system: 'solver_engine',
+          leak_category: 'preflop',
+          recommended_drill: 'cash-rfi',
+          suggested_fix: 'Open the solver-approved button range and compare every boundary hand.',
+          why_leaking_ev: 'Folding profitable opens gives up uncontested blinds and positional equity.',
+          trend_data: [{ date: '2026-08-29', value: 38 }, { date: '2026-08-30', value: 41 }],
+          first_detected_at: '2026-08-29T12:00:00.000Z',
+        }],
+        demoLeaks: [],
+      }),
+    }));
+
+    await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Button Open Frequency.*Open details/i }).click();
+    const details = page.getByRole('dialog', { name: 'Leak details: Button Open Frequency' });
+    await expect(details).toBeVisible();
+    await expect(details.getByRole('heading', { name: 'How To Fix It' })).toBeVisible();
+    await expect(details.getByRole('heading', { name: 'Recent Example Hands' })).toBeVisible();
+    await expect(details.getByRole('heading', { name: 'Suggested Fixes' })).toBeVisible();
+    await expect(details.getByRole('button', { name: 'Practice Leak in Sandbox' })).toBeVisible();
+    await expect(details.getByRole('button', { name: 'Train with Focused Drills' })).toBeVisible();
+    const guidance = details.getByRole('switch');
+    await expect(guidance).toHaveAttribute('aria-checked', 'false');
+    await guidance.click();
+    await expect(guidance).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.press('Escape');
+    await expect(details).toHaveCount(0);
     await expectHealthyLayout(page);
   });
 
