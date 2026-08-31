@@ -10,6 +10,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const {
     VALID_CATEGORIES,
@@ -25,6 +26,7 @@ const {
     LEGACY_SHOP_CURRENCY,
     summarizeShopPurchases,
     totalsForCurrency,
+    buildLedgerCompleteness,
 } = require('../../../src/lib/club-arena/shopReporting');
 
 const REPORT_PAGE_SIZE = 1000;
@@ -76,6 +78,7 @@ async function loadPurchaseLedger(clubId) {
   const rows = [];
   let exactCount = null;
   let exhausted = false;
+  const snapshotAt = new Date().toISOString();
 
   while (rows.length < MAX_REPORT_ROWS) {
     const from = rows.length;
@@ -85,6 +88,7 @@ async function loadPurchaseLedger(clubId) {
       .from('club_shop_purchases')
       .select('id, item_id, price_paid, currency, refunded_at, created_at', selectOptions)
       .eq('club_id', clubId)
+      .lte('created_at', snapshotAt)
       .order('created_at', { ascending: true })
       .order('id', { ascending: true })
       .range(from, to);
@@ -100,11 +104,15 @@ async function loadPurchaseLedger(clubId) {
     }
   }
 
-  const totalRows = exactCount ?? rows.length;
+  const completeness = buildLedgerCompleteness({
+    processedRows: rows.length,
+    exactCount,
+    exhausted,
+  });
   return {
     rows,
-    totalRows,
-    complete: exhausted || rows.length >= totalRows,
+    snapshotAt,
+    ...completeness,
   };
 }
 
@@ -129,6 +137,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
     const user = authData?.user;
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
     try {
       // ═══════════════════════════════════════════════════════════
@@ -137,6 +146,7 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+        if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
         const { data: member, error: memberError } = await getSupabase()
           .from('club_members')
@@ -204,6 +214,8 @@ export default async function handler(req, res) {
             complete: ledger.complete,
             processedRows: ledger.rows.length,
             totalRows: ledger.totalRows,
+            totalRowsExact: ledger.totalRowsExact,
+            snapshotAt: ledger.snapshotAt,
             byCurrency: summary.byCurrency,
             diamondTotals,
             legacyChipTotals,
