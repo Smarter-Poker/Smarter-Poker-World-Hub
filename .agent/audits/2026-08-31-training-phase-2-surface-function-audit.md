@@ -29,7 +29,7 @@ The first deterministic inventory pass is checked into
 | Dialog/modal instances | 12 |
 | Files with persistence writes | 77 |
 | Files with realtime transports | 8 |
-| Training-aware test files | 24 |
+| Training-aware test files | 25 |
 
 The generator currently reports zero unresolved literal Training links and zero
 unresolved literal API references. It fails if the canonical game count drifts,
@@ -156,5 +156,25 @@ rather than being erased from this inventory.
 
 ## Remaining Phase 2 Work
 
-1. Publish through the protected pipeline and verify the production manifest
-   baseline before marking Phase 2 complete.
+Phase 2 inventory PR 1055 merged normally as
+`31543bd4f64419692c454b97ed00119cf08e400a`. Production served exact build
+`31543bd4` with HTTP 200 health, an 80ms database probe, and an 81ms response.
+The fresh real-account production certification then passed mobile and desktop
+login, 107/107 Training card images, zero scanlines, zero overflow, three
+12-level campaign families, four gameplay families, Club Arena poker UI,
+psychology UI, four-answer contracts, explicit verdicts, persistent manual
+Next, and zero console or page errors.
+
+The first attempted certification exposed that the tracked storage-state token
+was expired and public campaign fallback could still render levels. The
+production smoke now performs a live authenticated request to
+`/api/training/get-sessions?limit=1` before any authenticated assertion, so a
+stale token fails loudly instead of being mislabeled as a real-account pass.
+The same closeout also handles a delayed auth document replacement between the
+first visible Training card and the catalog assertion. It retries only when the
+browser demonstrably leaves `/hub/training`; a count other than 107 while still
+on the Training Hub remains an immediate failure.
+
+The only remaining Phase 2 exit item is normal protected publication of this
+auth-verification closeout, followed by confirmation that production still
+serves the expected build.
