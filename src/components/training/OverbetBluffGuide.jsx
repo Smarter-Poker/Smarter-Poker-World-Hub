@@ -30,7 +30,7 @@ export default function OverbetBluffGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #dc2626)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Overbet Bluff Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximum pressure bluffs — when the board tells your story.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximum pressure bluffs - when the board tells your story.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLUFF_SPOTS.map((s, i) => (

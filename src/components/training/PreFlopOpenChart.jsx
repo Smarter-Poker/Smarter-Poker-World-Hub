@@ -50,7 +50,7 @@ function PreFlopOpenChart() {
 
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: posColors[position] }}>{position}</span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}> — {count} hands ({pct}%)</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}> - {count} hands ({pct}%)</span>
         </div>
 
         {/* 13x13 Grid */}

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 
 const PSYCH_TOPICS = [
   { title: 'Tilt Management', icon: '◇', color: '#ef4444',
-    detail: 'Tilt is the #1 profit killer in poker. It\'s not a character flaw — it\'s a predictable emotional response that can be managed with the right tools.',
+    detail: 'Tilt is the #1 profit killer in poker. It\'s not a character flaw - it\'s a predictable emotional response that can be managed with the right tools.',
     signs: 'Playing too many hands, calling too light, revenge-raising, chasing losses, playing above your stakes after a bad beat.',
     tools: 'Set a stop-loss (3 buy-ins). Take breaks every 90 minutes. Have a pre-session routine. Use breathing exercises.',
     science: 'Tilt triggers the amygdala (fight-or-flight), bypassing the prefrontal cortex (logical thinking). You literally can\'t think straight.' },
@@ -22,7 +22,7 @@ const PSYCH_TOPICS = [
     tools: 'Review decisions, not results. Ask "Would I make the same play again?" If yes, the result doesn\'t matter.',
     science: 'Outcome bias is a well-documented cognitive bias. The brain naturally attributes success to skill and failure to bad luck.' },
   { title: 'Focus & Flow State', icon: '⌁', color: '#f59e0b',
-    detail: 'Peak poker performance comes in "flow state" — full immersion where decisions feel effortless. Getting there requires preparation.',
+    detail: 'Peak poker performance comes in "flow state" - full immersion where decisions feel effortless. Getting there requires preparation.',
     signs: 'You\'re in flow when: time disappears, decisions feel automatic, you\'re reading opponents easily, there\'s no emotional noise.',
     tools: 'Warm up with hand reviews. Eliminate distractions (phone, TV, social media). Play at consistent times. Good sleep and nutrition.',
     science: 'Flow state increases dopamine and norepinephrine, enhancing pattern recognition and decision speed by up to 500%.' },

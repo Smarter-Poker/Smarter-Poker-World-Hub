@@ -33,7 +33,7 @@ const QUESTION_BANK = [
   { type: 'sizing', q: 'River with the nuts on a dry board. Opponent has shown strength. Size?', options: ['33%', '50%', '75%', 'Overbet'], correct: 3, explanation: 'With the nuts against a strong range, overbet to extract maximum value.' },
 
   // Range questions
-  { type: 'range', q: 'At 6-max, approximately what percentage of hands should Under The Gun raise first in?', options: ['8-10%', '13-16%', '20-25%', '30-35%'], correct: 1, explanation: 'The Under The Gun raise-first-in range is typically 13-16% — pairs 22+, ATs+, KQs, AQo+.' },
+  { type: 'range', q: 'At 6-max, approximately what percentage of hands should Under The Gun raise first in?', options: ['8-10%', '13-16%', '20-25%', '30-35%'], correct: 1, explanation: 'The Under The Gun raise-first-in range is typically 13-16% - pairs 22+, ATs+, KQs, AQo+.' },
   { type: 'range', q: 'At 6-max, approximately what percentage of hands should the Button raise first in?', options: ['20-25%', '30-35%', '40-50%', '55-65%'], correct: 2, explanation: 'The Button has the widest raise-first-in range at ~40-50% since only the blinds remain.' },
   { type: 'range', q: 'The Button raises first in. What percentage of hands should the Big Blind defend by calling or 3-betting?', options: ['20-30%', '35-45%', '50-60%', '65-75%'], correct: 2, explanation: 'The Big Blind gets the best odds and should defend ~50-60% against the Button, using a mix of calls and 3-bets.' },
 
@@ -43,7 +43,7 @@ const QUESTION_BANK = [
   { type: 'ev', q: 'Pot is 100bb. You bet 50bb. Opponent needs to fold at least X% for a pure bluff to profit.', options: ['25%', '33%', '40%', '50%'], correct: 1, explanation: 'Bet/(Bet+Pot) = 50/(50+100) = 33%. Villain needs to fold 33%+ for your bluff to be profitable.' },
 
   // Concept questions
-  { type: 'concept', q: 'What is "range advantage"?', options: ['Having more nut hands', 'Higher average equity', 'More combo draws', 'Better position'], correct: 1, explanation: 'Range advantage means your whole range has higher average equity on a board. Having more nut combos is nut advantage — a related but distinct concept.' },
+  { type: 'concept', q: 'What is "range advantage"?', options: ['Having more nut hands', 'Higher average equity', 'More combo draws', 'Better position'], correct: 1, explanation: 'Range advantage means your whole range has higher average equity on a board. Having more nut combos is nut advantage - a related but distinct concept.' },
   { type: 'concept', q: 'In a 3-bet pot, the 3-bettor typically has what advantage on most boards?', options: ['Position', 'Range advantage', 'Stack advantage', 'Information'], correct: 1, explanation: 'The 3-bettor has range advantage on most boards because their range is narrower and stronger.' },
   { type: 'concept', q: 'What does "polarized" mean in poker strategy?', options: ['Playing only premium hands', 'Betting with only strong hands and bluffs, not medium strength', 'Always raising or folding', 'Playing from the blinds'], correct: 1, explanation: 'A polarized range contains strong value hands and bluffs, with medium-strength hands checking.' },
 ];

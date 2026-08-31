@@ -97,7 +97,7 @@ const CATEGORIES = [
     ipCbet: 42, oopCbet: 25,
     preferredSize: '67%',
     checkFreq: 58,
-    keyStrategy: 'Selective c-betting. Many draws available. Polarize sizing — small or large, not medium.',
+    keyStrategy: 'Selective c-betting. Many draws available. Polarize sizing - small or large, not medium.',
     subCategories: [
       { name: 'Broadway connected', cbet: 45, size: '67%', examples: 2880 },
       { name: 'Middle connected', cbet: 40, size: '67%', examples: 2400 },
@@ -201,7 +201,7 @@ export default function FlopCategoryBrowser() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Category Browser</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Browse GTO solutions by flop texture — {totalFlops.toFixed(1)}% of all flops covered</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Browse GTO solutions by flop texture - {totalFlops.toFixed(1)}% of all flops covered</div>
           </div>
         </div>
 

@@ -339,7 +339,7 @@ export default function StrategyComparison() {
           <div>
             <StrategyGrid
               grid={leftGrid}
-              label={`${preset?.leftLabel} vs ${preset?.rightLabel} — Difference`}
+              label={`${preset?.leftLabel} vs ${preset?.rightLabel} - Difference`}
               mode="diff"
               otherGrid={rightGrid}
               showLabels={showLabels}
@@ -356,7 +356,7 @@ export default function StrategyComparison() {
             Key Insights
           </div>
           <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.6 }}>
-            {selectedPreset === 'ip_vs_oop' && 'IP has a significant betting advantage — BTN c-bets at high frequency while BB must defend carefully. Premium pairs and top pair+ hands see the largest strategic divergence.'}
+            {selectedPreset === 'ip_vs_oop' && 'IP has a significant betting advantage - BTN c-bets at high frequency while BB must defend carefully. Premium pairs and top pair+ hands see the largest strategic divergence.'}
             {selectedPreset === 'srp_vs_3bp' && 'In 3-bet pots, ranges are narrower and aggression increases. Marginal hands that check in SRPs become bets in 3BPs. Nut advantage shifts significantly.'}
             {selectedPreset === 'btn_vs_co' && 'BTN opens wider than CO, especially suited connectors and small pairs. CO compensates with tighter ranges and more aggression with premium holdings.'}
             {selectedPreset === 'wet_vs_dry' && 'Wet boards demand smaller, more frequent bets. Dry boards allow larger polarized sizing. Drawing hands see the biggest strategic shift between textures.'}

@@ -17,7 +17,7 @@ const OVERBET_SPOTS = [
     key: 'Only works if the board supports your nut story (flush/straight completing).' },
   { scenario: 'Turned nut straight, brick river', sizing: '125% pot', type: 'VALUE', color: '#22c55e',
     reason: 'You have the nuts and villain has been calling. Overbet to extract from two pair and sets.',
-    key: 'Brick rivers are great for overbets — nothing changed, so villain\'s range is defined.' },
+    key: 'Brick rivers are great for overbets - nothing changed, so villain\'s range is defined.' },
   { scenario: 'Top pair on dry board', sizing: 'DON\'T OVERBET', type: 'AVOID', color: '#64748b',
     reason: 'Top pair is not nutted enough. Overbetting only gets called by better. Use 50-66% instead.',
     key: 'Overbetting with medium hands is a massive leak. Save it for the nuts and bluffs.' },

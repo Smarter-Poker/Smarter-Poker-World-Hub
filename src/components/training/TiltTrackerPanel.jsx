@@ -33,11 +33,11 @@ const TILT_LEVELS = [
 ];
 
 const COOL_DOWN_TIPS = [
-  'Take 5 slow, deep breaths — in for 4, hold for 4, out for 4',
+  'Take 5 slow, deep breaths - in for 4, hold for 4, out for 4',
   'Stand up and stretch for 60 seconds',
   'Drink water. Hydration helps emotional regulation.',
   'Remind yourself: one hand doesn\'t define your skill',
-  'Review your last 3 hands objectively — were they good decisions?',
+  'Review your last 3 hands objectively - were they good decisions?',
   'Walk away for 10 minutes. The game will be there when you return.',
   'Focus on process, not results. Did you play correctly?',
   'Visualize your best session ever. Channel that energy.',
@@ -82,7 +82,7 @@ export default function TiltTrackerPanel() {
   const [tiltScore, setTiltScore] = useState(12);
   const [activeTriggers, setActiveTriggers] = useState([]);
   const [emotionLog, setEmotionLog] = useState([
-    { time: '2:15 PM', trigger: 'bad_beat', score: 35, note: 'Lost set over set — $200 pot' },
+    { time: '2:15 PM', trigger: 'bad_beat', score: 35, note: 'Lost set over set - $200 pot' },
     { time: '2:22 PM', trigger: 'cooldown', score: 20, note: 'Took 5-minute break, deep breathing' },
     { time: '2:45 PM', trigger: 'suckout', score: 48, note: 'Villain rivered flush vs my top 2 pair' },
     { time: '2:50 PM', trigger: 'cooldown', score: 30, note: 'Walked away, drank water' },

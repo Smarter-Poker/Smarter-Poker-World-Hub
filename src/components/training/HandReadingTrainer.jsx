@@ -16,7 +16,7 @@ const EXERCISES = [
       { street: 'River: 7♠', action: 'BTN bets 100% pot', range: 'KQ+, sets, bluffs with missed draws (AQ, AJ, QJ type)', rangeWidth: 6, note: 'Pot-sized river bet = very polarized. Either nutted (KK, 99, K9) or a bluff (missed draws). Very few medium hands.' },
     ],
     question: 'Should you call with K♥ T♥ (top pair, medium kicker)?',
-    answer: 'CALL — Villain is polarized and you beat bluffs (missed draws). KT is strong enough as a bluff-catcher. Folding allows villain to print money with bluffs.',
+    answer: 'CALL - Villain is polarized and you beat bluffs (missed draws). KT is strong enough as a bluff-catcher. Folding allows villain to print money with bluffs.',
   },
   {
     id: 2, title: 'The Slow Play Tell',
@@ -27,7 +27,7 @@ const EXERCISES = [
       { street: 'River: K♣', action: 'CO shoves all-in', range: 'Sets (TT, 88, 55), maybe 76 straight', rangeWidth: 2, note: 'All-in after check-raise = monster. Narrowed to sets almost exclusively. This is a fold with anything less than top set.' },
     ],
     question: 'Should you call with AA (overpair)?',
-    answer: 'FOLD — The check-raise turn into river shove line at low-to-mid stakes is almost always sets or better. AA loses to TT, 88, 55, and any straight. Save your stack.',
+    answer: 'FOLD - The check-raise turn into river shove line at low-to-mid stakes is almost always sets or better. AA loses to TT, 88, 55, and any straight. Save your stack.',
   },
   {
     id: 3, title: 'The Missed Draw Bluff',
@@ -38,7 +38,7 @@ const EXERCISES = [
       { street: 'River: 2♥', action: 'SB bets 100% pot', range: 'Sets/two pair for value, missed club draws for bluff', rangeWidth: 8, note: 'All draws missed (no club, no straight). Big river bet = polarized. Flush draws became bluffs. Value hands bet big.' },
     ],
     question: 'Should you call with J♥ 9♥ (top pair)?',
-    answer: 'CALL — Many club draws (AcXc, KcQc, T9cc, etc.) bricked the river. Villain is forced to bluff or give up. Your top pair beats all bluffs. Good bluff-catching spot.',
+    answer: 'CALL - Many club draws (AcXc, KcQc, T9cc, etc.) bricked the river. Villain is forced to bluff or give up. Your top pair beats all bluffs. Good bluff-catching spot.',
   },
 ];
 

@@ -50,7 +50,7 @@ const TILT_TYPES = [
     recovery: [
       'STOP: Take a mandatory 15-minute break right now',
       'Set a stop-loss: decide max loss BEFORE sitting down',
-      'Move DOWN stakes if anything — never up when losing',
+      'Move DOWN stakes if anything - never up when losing',
       'Tomorrow: losses today will mean nothing in your poker career',
     ],
     severity: 'Critical',

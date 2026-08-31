@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const MW_RULES = [
   { rule: 'Tighten Your C-Bet Range', icon: '◆', color: '#ef4444',
     detail: 'C-bet only 25-35% of flops multi-way vs 65%+ heads-up. Multiple players = someone has something.',
-    example: 'HU: C-bet AK on J74 for value. Multi-way: Check AK — too many players can have Jx.' },
+    example: 'HU: C-bet AK on J74 for value. Multi-way: Check AK - too many players can have Jx.' },
   { rule: 'Top Pair Isn\'t Always Good', icon: '▲', color: '#f59e0b',
     detail: 'In HU pots, top pair is strong. In 4-way pots, top pair weak kicker is often second-best.',
     example: '4-way on K♠9♦4♣: Your K8 is borderline. Check-call at best, often check-fold to big action.' },

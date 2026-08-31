@@ -53,7 +53,7 @@ export default function OppTendencyTracker() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <span style={{ fontSize: 18, fontWeight: 800, color: TYPE_COLORS[player.type] }}>{player.pos}</span>
-            <span style={{ fontSize: 14, color: '#64748b', marginLeft: 8 }}>— {player.type}</span>
+            <span style={{ fontSize: 14, color: '#64748b', marginLeft: 8 }}>- {player.type}</span>
           </div>
           <div style={{ padding: '4px 10px', borderRadius: 6, background: `${TYPE_COLORS[player.type]}20`,
             fontSize: 12, fontWeight: 700, color: TYPE_COLORS[player.type] }}>

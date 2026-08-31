@@ -769,13 +769,13 @@ export default function PreflopRangeTrainer({ onExit }) {
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                             {currentHand} • {activeSpot?.label || position}:{' '}
                             {handActions.raise === 0 && handActions.call === 0
-                                ? 'Not in range — Fold'
+                                ? 'Not in range - Fold'
                                 : (() => {
                                     const parts = [];
                                     if (handActions.raise > 0) parts.push(`Raise ${Math.round(handActions.raise * 100)}%`);
                                     if (handActions.call > 0) parts.push(`Call ${Math.round(handActions.call * 100)}%`);
                                     if (handActions.fold > 0.01) parts.push(`Fold ${Math.round(handActions.fold * 100)}%`);
-                                    return parts.length > 1 ? `Mixed — ${parts.join(' / ')}` : parts[0];
+                                    return parts.length > 1 ? `Mixed - ${parts.join(' / ')}` : parts[0];
                                 })()}
                         </div>
 

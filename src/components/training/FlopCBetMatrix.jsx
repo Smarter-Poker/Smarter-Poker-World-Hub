@@ -21,7 +21,7 @@ const STRATEGIES = {
   'IP-HU': {
     dry: { freq: 70, sizing: '33%', strategy: 'C-bet frequently with small sizing. Range advantage on high cards. Air + value both profitable.' },
     wet: { freq: 40, sizing: '67%', strategy: 'C-bet less but bigger. Need strong hands or draws. Air folds out less on connected boards.' },
-    mid: { freq: 55, sizing: '50%', strategy: 'Medium frequency and sizing. Board is somewhat dynamic — choose hands with equity when called.' },
+    mid: { freq: 55, sizing: '50%', strategy: 'Medium frequency and sizing. Board is somewhat dynamic - choose hands with equity when called.' },
   },
   'IP-MW': {
     dry: { freq: 40, sizing: '50%', strategy: 'Reduce frequency multiway. Only bet strong top pairs+ and best draws. Too many players to bluff through.' },
@@ -31,7 +31,7 @@ const STRATEGIES = {
   'OOP-HU': {
     dry: { freq: 55, sizing: '33%', strategy: 'Still profitable to c-bet frequently on dry boards even OOP. Small sizing lets you bet wide.' },
     wet: { freq: 30, sizing: '67%', strategy: 'Careful OOP on wet boards. IP villain can float and outplay you on later streets. Be selective.' },
-    mid: { freq: 40, sizing: '50%', strategy: 'Moderate frequency. Being OOP is a disadvantage — choose hands that play well across multiple streets.' },
+    mid: { freq: 40, sizing: '50%', strategy: 'Moderate frequency. Being OOP is a disadvantage - choose hands that play well across multiple streets.' },
   },
   'OOP-MW': {
     dry: { freq: 30, sizing: '33%', strategy: 'Check more multiway OOP. Let the field act and then decide. Only bet strong value hands.' },

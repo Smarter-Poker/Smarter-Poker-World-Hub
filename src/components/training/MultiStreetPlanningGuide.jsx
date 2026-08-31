@@ -42,7 +42,7 @@ const PLANS = [
     pot: 6, stack: 100, color: '#10b981',
     streets: [
       { street: 'Flop', plan: 'Bet 50% (3 bb)', potAfter: 12, reasoning: 'Flush draw + gutshot + two overcards. Semi-bluff for value of fold equity. Massive draw with 15 outs to the nuts.' },
-      { street: 'Turn (hit: Q♠)', plan: 'Bet 75% (9 bb) — VALUE', potAfter: 30, reasoning: 'Hit the flush! Switch from semi-bluff to value. Bet big to build pot. Target two pairs, sets, and smaller flushes.' },
+      { street: 'Turn (hit: Q♠)', plan: 'Bet 75% (9 bb) - VALUE', potAfter: 30, reasoning: 'Hit the flush! Switch from semi-bluff to value. Bet big to build pot. Target two pairs, sets, and smaller flushes.' },
       { street: 'River', plan: 'Bet 100% pot (30 bb) for max value', potAfter: 90, reasoning: 'Three streets of value with the second nut flush. River overbet is justified because villain called two streets = strong range.' },
     ],
     summary: 'Semi-bluff → value transition. Started as draw, hit the nuts, switch to max value extraction.',

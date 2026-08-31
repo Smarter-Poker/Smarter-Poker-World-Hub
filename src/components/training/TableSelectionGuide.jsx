@@ -36,7 +36,7 @@ export default function TableSelectionGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Table Selection Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The easiest way to increase your win rate — play at better tables.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The easiest way to increase your win rate - play at better tables.</p>
 
       <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
         {TABLE_INDICATORS.map((ind, i) => (
