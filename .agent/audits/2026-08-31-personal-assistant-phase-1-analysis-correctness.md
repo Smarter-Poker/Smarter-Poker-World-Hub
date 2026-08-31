@@ -61,4 +61,10 @@ Scope: Virtual Sandbox request validation, decision identity, Training Solver ca
 
 ## Deployment Evidence
 
-Pending final build and release verification.
+- Release PR: `#1101`.
+- Protected squash merge: `cd7ba32dd76a618af889cf09501ffa34fd299182` (`fix(pa): close phase one recertification gaps`).
+- Production health: `status: ok`, database `status: ok`, deployed version `cd7ba32d`.
+- Authenticated production account flow: leak history read before/after, ten-question server-verified corrective drill available, all answer keys hidden.
+- Authenticated production Sandbox API: three adversarial contracts returned 422; the legal locked multiway contract returned 200 with legal context-aware labels, exact 100% frequency allocation, honest unpriced node-lock output, and a persisted session.
+- Production persistence readback: final explanation matched `full_analysis`; decision fingerprint, node-lock state, and node-lock model version were present in the truth seal.
+- Authenticated production browser matrix: 23 passed across desktop Chromium and mobile Chrome; 2 desktop-only skips were intentional and inapplicable.
