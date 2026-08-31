@@ -786,13 +786,13 @@ export default function PublicHomeGamePage({ data, serverError }) {
         <div className="hgs-page">
           <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} />
           <PokerNearMeFamilyNav />
-          <div className="hgs-notfound">
+          <main className="hgs-notfound" data-pnm-secondary-foundation="interaction-v1">
             <h1>Temporarily Unavailable</h1>
             <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>
             {/* There is no /hub/home-games index route — near-me is the
                 real discovery surface. */}
             <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
-          </div>
+          </main>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
           <style suppressHydrationWarning>{pageStyles}</style>
         </div>
@@ -1048,6 +1048,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
       <div className="hgs-page">
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
         <PokerNearMeFamilyNav />
+
+        <main data-pnm-secondary-foundation="interaction-v1">
 
         <DeepRouteSignalDeck
           eyebrow="Private game network"
@@ -1638,6 +1640,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
             </div>
           </div>
         )}
+
+        </main>
 
         <style suppressHydrationWarning>{pageStyles}</style>
       </div>

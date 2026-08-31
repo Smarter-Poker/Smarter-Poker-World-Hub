@@ -1442,3 +1442,20 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Permanent regression gate | Phase 14 unit contracts and compiled desktop/mobile browser journeys cover all three consumers, popup paths, rapid recreation, stale trip storage, degraded tiles, touch targets, and overflow. |
 
 **Verification:** 73/73 Poker Near Me contracts, 533/533 full prebuild contracts, TypeScript, strict focused lint, the exact webpack production build (402 static pages), and 8/8 compiled-production desktop/mobile Phase 14 journeys passed before release. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-2-map-foundation.md`.
+
+---
+
+## PHASE 65 — Poker Near Me Phase 3 Secondary Interaction Foundation (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Semantic secondary surfaces | Venue, home-game directory/near-me/detail, series directory/detail, events calendar, and tour detail routes expose one named page-content landmark contract. |
+| Resilient venue identity | Venue profiles use the shared deterministic identity component, preserving a premium rendered monogram when remote artwork is absent or fails. |
+| Shared interaction geometry | Family navigation, tabs, selectors, dates, section actions, favorites, and map controls inherit a 44-pixel minimum target without becoming oversized SaaS controls. |
+| Visual-system continuity | The secondary family keeps the existing black-first, chrome/gunmetal, restrained blue-energy, small-radius #SmarterCasinoRealism language and shared typography. |
+| Permanent regression gate | Phase 15 source contracts and desktop/mobile browser journeys cover semantic ownership, hostile media failure, interaction geometry, focus visibility, and horizontal overflow. |
+| Preserved behavior | Routes, APIs, Supabase/realtime data, maps/geolocation, filters, forms, permissions, navigation, and data-driven detail instances remain wired through their existing implementations. |
+
+**Coverage:** Eight secondary route families plus the family-navigation contract across all 354 current directory-driven URLs; dynamic venue, home-game, series, and tour instances inherit from their family implementation.
+
+**Verification:** Final release evidence is recorded in `.agent/audits/2026-08-31-poker-near-me-phase-3-secondary-interaction.md`.

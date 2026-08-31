@@ -389,7 +389,7 @@ export default function TourDetailPage() {
         />
       )}
 
-      <div className="tour-page">
+      <main className="tour-page" data-pnm-secondary-foundation="interaction-v1">
         {loading && (
           <div className="loading-container">
             <div className="loading-spinner" />
@@ -904,7 +904,7 @@ export default function TourDetailPage() {
             </section>
           </>
         )}
-      </div>
+      </main>
 
       <style suppressHydrationWarning>{styles}</style>
     </>

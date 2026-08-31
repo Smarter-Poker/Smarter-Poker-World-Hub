@@ -853,6 +853,8 @@ export default function HomeGamesPage() {
                     user={user}
                 />
 
+                <main data-pnm-secondary-foundation="interaction-v1">
+
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="hg-title-bar">
                     <h1 className="hg-title">HOME GAMES</h1>
@@ -1082,6 +1084,8 @@ export default function HomeGamesPage() {
                         <div className="hg-location-city">{gpsLocationLabel}</div>
                     )}
                 </div>
+
+                </main>
 
                 {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}
                 <LocationEnableModal
