@@ -151,36 +151,41 @@ export default async function handler(req, res) {
       // ─── WELCOME_BACK: Send promo chips to inactive player ───
       if (action === 'welcome_back') {
           if (!playerId) return res.status(400).json({ error: 'playerId required' });
-          const promoAmount = amount || retConfig.welcome_back_amount;
+          // ZERO-DRIFT (2026-08-31): hard server-side cap, whole chips only.
+          // Caller may request less than the cap, never more.
+          const WELCOME_BACK_MAX = 1000;
+          const requested = Math.floor(Number(amount ?? retConfig.welcome_back_amount));
+          if (!Number.isFinite(requested) || requested <= 0) {
+              return res.status(400).json({ error: 'Positive amount required' });
+          }
+          const promoAmount = Math.min(requested, WELCOME_BACK_MAX);
 
           try {
-              // Credit the player's promo wallet or chip balance
+              // Verify the player is actually a member of this club
               const { data: playerMember } = await getSupabase()
                   .from('club_members')
-                  .select('chip_balance, user_id')
+                  .select('user_id')
                   .eq('club_id', clubId)
                   .eq('user_id', playerId)
                   .maybeSingle();
 
               if (!playerMember) return res.status(404).json({ error: 'Player not found in club' });
 
-              const { error: updateErr } = await getSupabase()
-                  .from('club_members')
-                  .update({ chip_balance: (playerMember.chip_balance || 0) + promoAmount })
-                  .eq('club_id', clubId)
-                  .eq('user_id', playerId);
-              if (updateErr) throw updateErr;
-
-              // Record the transaction
-              const { error: txErr } = await getSupabase().from('chip_transactions').insert({
-                  from_user_id: user.id,
-                  to_user_id: playerId,
-                  club_id: clubId,
-                  amount: promoAmount,
-                  transaction_type: 'promo',
-                  notes: 'Welcome-back bonus',
+              // ZERO-DRIFT (2026-08-31): atomic credit via SECURITY DEFINER RPC.
+              // fn_credit_chips writes chip_transactions itself and auto-journals
+              // to chip_ledger, replacing the old raw read-modify-write (racy,
+              // minted chips with no source debit, best-effort ledger insert).
+              const { data: creditRes, error: creditErr } = await getSupabase().rpc('fn_credit_chips', {
+                  p_club_id: clubId,
+                  p_user_id: playerId,
+                  p_amount: promoAmount,
+                  p_reason: 'Welcome-back bonus',
+                  p_metadata: { transaction_type: 'welcome_back_promo', source: 'player-retention' },
               });
-              if (txErr) console.warn('[PlayerRetention] Failed to record promo transaction:', txErr.message);
+              if (creditErr) throw creditErr;
+              if (creditRes && creditRes.success === false) {
+                  return res.status(400).json({ error: creditRes.error || 'Credit failed' });
+              }
 
               await notifyUser(supabaseAdmin, {
                   userId: playerId,

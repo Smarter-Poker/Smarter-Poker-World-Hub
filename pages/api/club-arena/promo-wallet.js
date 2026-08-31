@@ -131,8 +131,8 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Only the club owner can mint promo chips' });
           }
 
-          const amount = parseFloat(params.amount);
-          if (!amount || amount <= 0 || amount > 10000000) {
+          const amount = Math.floor(Number(params.amount));
+          if (!Number.isFinite(amount) || amount <= 0 || amount > 10000000) {
             return res.status(400).json({ success: false, error: 'Amount must be between 1 and 10,000,000' });
           }
 
@@ -169,10 +169,10 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════
         case 'grant_to_agent': {
           const { agentUserId, amount: grantAmount, note } = params;
-          const amt = parseFloat(grantAmount);
+          const amt = Math.floor(Number(grantAmount));
 
           if (!agentUserId) return res.status(400).json({ success: false, error: 'agentUserId required' });
-          if (!amt || amt <= 0) return res.status(400).json({ success: false, error: 'Positive amount required' });
+          if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ success: false, error: 'Positive amount required' });
 
           const { data: result, error: rpcErr } = await getSupabase().rpc('transfer_promo_club_to_agent', {
             p_club_id: clubId,
