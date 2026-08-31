@@ -19,7 +19,10 @@
 delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const { GameController } = require('../src/GameController');
+const { GameController } = require('../GameController');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
 let passed = 0;
 let failed = 0;
@@ -312,7 +315,7 @@ async function runTests() {
   section('GameController - Singleton (globalThis)');
   // ═══════════════════════════════════════════════════════
 
-  const { getController, getControllerSync } = require('../src/GameController');
+  const { getController, getControllerSync } = require('../GameController');
 
   const c1 = await getController();
   const c2 = await getController();
@@ -339,7 +342,7 @@ async function runTests() {
   ];
 
   for (const route of apiRoutes) {
-    const exists = fs.existsSync(`/home/claude/poker-engine/${route}`);
+    const exists = fs.existsSync(path.join(REPO_ROOT, route));
     assert(exists, `${route.split('/').pop()} exists`);
   }
 

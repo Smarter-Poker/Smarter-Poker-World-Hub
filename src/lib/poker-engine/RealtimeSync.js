@@ -49,18 +49,7 @@ const CHANNEL_EVENTS = {
   CHAT_MESSAGE: 'chat_message',
   TABLE_ERROR: 'table_error',
   
-  // Client → Server (NOW VIA HTTP API, kept for reference)
-  // These events are no longer listened to on the Realtime channel.
-  // All client actions go through /api/poker/engine/* HTTP endpoints.
-  PLAYER_ACTION: 'player_action',       // { type, amount? }
-  SIT_DOWN: 'sit_down',                 // { seatIndex, buyIn }
-  STAND_UP: 'stand_up',
-  SIT_OUT: 'sit_out',
-  SIT_IN: 'sit_in',
-  ADD_CHIPS: 'add_chips',              // { amount }
-  JOIN_WAITLIST: 'join_waitlist',
-  LEAVE_WAITLIST: 'leave_waitlist',
-  SEND_CHAT: 'send_chat',             // { message }
+  // Client coordination events. Gameplay writes use authenticated HTTP APIs.
   HEARTBEAT: 'heartbeat',
   REQUEST_STATE: 'request_state',      // Request full state resync
 };
@@ -554,105 +543,6 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
   // Return controller object
   return {
     channel,
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/action instead
-     */
-    sendAction(action) {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.PLAYER_ACTION,
-        payload: { playerId, action },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/sit-down instead
-     */
-    sitDown(seatIndex, buyIn, displayName, avatarUrl) {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.SIT_DOWN,
-        payload: { playerId, seatIndex, buyIn, displayName, avatarUrl },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/stand-up instead
-     */
-    standUp() {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.STAND_UP,
-        payload: { playerId },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/sit-out instead
-     */
-    sitOut() {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.SIT_OUT,
-        payload: { playerId },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/sit-in instead
-     */
-    sitIn() {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.SIT_IN,
-        payload: { playerId },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/add-chips instead
-     */
-    addChips(amount) {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.ADD_CHIPS,
-        payload: { playerId, amount },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/join-waitlist instead
-     */
-    joinWaitlist(displayName, seatPreference) {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.JOIN_WAITLIST,
-        payload: { playerId, displayName, seatPreference },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/leave-waitlist instead
-     */
-    leaveWaitlist() {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.LEAVE_WAITLIST,
-        payload: { playerId },
-      });
-    },
-    
-    /**
-     * @deprecated Use POST /api/poker/engine/chat instead
-     */
-    sendChat(message) {
-      channel.send({
-        type: 'broadcast',
-        event: CHANNEL_EVENTS.SEND_CHAT,
-        payload: { playerId, message },
-      });
-    },
     
     // Request full state resync
     requestState() {

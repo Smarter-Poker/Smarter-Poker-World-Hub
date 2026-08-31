@@ -203,7 +203,7 @@ export default async function handler(req, res) {
       // If that reader rejects the warehouse row, return an honest unavailable
       // response instead of grading from corrupt data or inventing an action.
       if (!question && preferredEngine === 'SCENARIO') {
-        console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
+    console.debug(`[Training] SCENARIO engine for ${gameId} - engine-only, no Grok.`);
       }
 
       // ═══════════════════════════════════════════════════════════════════

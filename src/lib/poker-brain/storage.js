@@ -8,7 +8,7 @@
  * Requires: @supabase/supabase-js
  *
  * Usage:
- *   import { PokerBrainStorage, usePokerBrainStorage } from './poker-brain-supabase';
+ *   import { PokerBrainStorage, usePokerBrainStorage } from './storage';
  *
  *   const storage = new PokerBrainStorage(supabase);
  *   await storage.startSession({ gameType: 'nlhe', playerCount: 6, ... });

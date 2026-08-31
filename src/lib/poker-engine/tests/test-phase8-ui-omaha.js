@@ -15,11 +15,15 @@
 delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const { GameController } = require('../src/GameController');
-const { GAME_VARIANT } = require('../src/GameStateMachine');
-const { BETTING_STRUCTURES } = require('../src/ActionValidator');
-const { Deck, getRank, getSuit, RANKS, SUITS } = require('../src/Deck');
-const { TableManager } = require('../src/TableManager');
+const { GameController } = require('../GameController');
+const { GAME_VARIANT } = require('../GameStateMachine');
+const { BETTING_STRUCTURES } = require('../ActionValidator');
+const { Deck, getRank, getSuit, RANKS, SUITS } = require('../Deck');
+const { TableManager } = require('../TableManager');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
+const ENGINE_ROOT = path.join(REPO_ROOT, 'src/lib/poker-engine');
 
 let passed = 0;
 let failed = 0;
@@ -270,7 +274,7 @@ async function runTests() {
 
   // HandHistoryRecorder: what does it need?
   const fs = require('fs');
-  const hhCode = fs.readFileSync('/home/claude/poker-engine/src/HandHistory.js', 'utf8');
+  const hhCode = fs.readFileSync(path.join(ENGINE_ROOT, 'HandHistory.js'), 'utf8');
 
   assert(hhCode.includes('.insert('), 'HandHistory has DB insert');
   assert(hhCode.includes('hand_data'), 'Inserts hand_data JSONB');
@@ -280,7 +284,7 @@ async function runTests() {
   assert(hhCode.includes('rake'), 'Inserts rake');
 
   // Verify the state API returns legalActions
-  const stateCode = fs.readFileSync('/home/claude/poker-engine/pages/api/poker/engine/state.js', 'utf8');
+  const stateCode = fs.readFileSync(path.join(REPO_ROOT, 'pages/api/poker/engine/state.js'), 'utf8');
   assert(stateCode.includes('legalActions'), 'State API returns legalActions');
   assert(stateCode.includes('presets'), 'State API returns presets');
 
@@ -332,7 +336,7 @@ async function runTests() {
   section('9. UI Source Verification');
   // ═══════════════════════════════════════════════════════
 
-  const uiCode = fs.readFileSync('/home/claude/poker-engine/src/components/LivePokerTable.jsx', 'utf8');
+  const uiCode = fs.readFileSync(path.join(REPO_ROOT, 'src/components/poker/LivePokerTable.jsx'), 'utf8');
 
   // Pot presets use potTotal
   assert(uiCode.includes('potTotal || bigBlind'), 'Presets use potTotal');

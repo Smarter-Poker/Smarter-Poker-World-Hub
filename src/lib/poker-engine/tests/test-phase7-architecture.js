@@ -14,7 +14,11 @@
 delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const { GameController } = require('../src/GameController');
+const { GameController } = require('../GameController');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
+const ENGINE_ROOT = path.join(REPO_ROOT, 'src/lib/poker-engine');
 
 let passed = 0;
 let failed = 0;
@@ -164,7 +168,7 @@ async function runTests() {
   // ═══════════════════════════════════════════════════════
 
   const fs = require('fs');
-  const rsCode = fs.readFileSync('/home/claude/poker-engine/src/RealtimeSync.js', 'utf8');
+  const rsCode = fs.readFileSync(path.join(ENGINE_ROOT, 'RealtimeSync.js'), 'utf8');
 
   // These handlers should NOT exist anymore
   assert(!rsCode.includes('_handlePlayerAction('), 'No _handlePlayerAction');
@@ -268,12 +272,12 @@ async function runTests() {
   ];
 
   for (const route of apiRoutes) {
-    const content = fs.readFileSync(`/home/claude/poker-engine/${route}`, 'utf8');
+    const content = fs.readFileSync(path.join(REPO_ROOT, route), 'utf8');
     assert(content.includes('getController'), `${route.split('/').pop()} uses GameController`);
   }
 
   // Barrel exports
-  const indexCode = fs.readFileSync('/home/claude/poker-engine/src/index.js', 'utf8');
+  const indexCode = fs.readFileSync(path.join(ENGINE_ROOT, 'index.js'), 'utf8');
   assert(indexCode.includes('GameController'), 'index.js exports GameController');
   assert(indexCode.includes('getController'), 'index.js exports getController');
 
@@ -290,7 +294,7 @@ async function runTests() {
 
   let totalLines = 0;
   for (const mod of modules) {
-    const lines = fs.readFileSync(`/home/claude/poker-engine/src/${mod}`, 'utf8').split('\n').length;
+    const lines = fs.readFileSync(path.join(ENGINE_ROOT, mod), 'utf8').split('\n').length;
     totalLines += lines;
   }
 
