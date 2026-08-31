@@ -1477,6 +1477,8 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 
 **Release state:** Complete. PR #1112 merged the durable audit system; PR #1122 hardened every nested public receipt projection. Vercel production revision `b262cb2b` passed authenticated/anonymous/forged-worker API probes, 1,347-hand receipt restoration and reconciliation, duplicate-push endpoint/outbox checks, and the 23-pass desktop/mobile Personal Assistant browser matrix. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-2-durable-audit-operations.md`.
 
+**Final closeout addendum:** A renewed live-device audit found five active browser subscriptions despite one notification/outbox event. Phase 66 now also includes receipt-confirmed endpoint reconciliation and a route-wide Personal Assistant copy policy for title capitalization and em-dash removal. Release verification is tracked in the Phase 2 audit evidence file.
+
 ---
 
 ## PHASE 67 — Poker Near Me Phase 4 Controller Decomposition (2026-08-31)

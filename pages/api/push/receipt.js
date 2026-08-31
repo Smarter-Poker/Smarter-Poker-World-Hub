@@ -61,11 +61,7 @@ export default async function handler(req, res) {
         // Scope the update to ACTIVE rows only. A receipt cannot revive a
         // subscription we already retired, and letting it touch inactive rows
         // would let a stale worker keep a dead endpoint looking healthy.
-        await getSupabase()
-            .from('push_subscriptions')
-            .update({ last_receipt_at: new Date().toISOString() })
-            .eq('endpoint', endpoint)
-            .eq('is_active', true);
+        await getSupabase().rpc('confirm_push_subscription_receipt', { p_endpoint: endpoint });
     } catch {
         // Receipts are telemetry. Losing one is acceptable; erroring is not.
     }

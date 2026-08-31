@@ -37,6 +37,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
+import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 const SYSTEMS = [
   {
@@ -453,6 +454,7 @@ export default function PersonalAssistantPage() {
         />
       </Head>
 
+      <PersonalAssistantCopyPolicy />
       <div className={styles.page}>
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
         <HamburgerMenu

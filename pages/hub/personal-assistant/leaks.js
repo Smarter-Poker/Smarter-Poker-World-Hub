@@ -45,6 +45,7 @@ import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
 import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
+import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import {
   dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
   MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
@@ -2196,8 +2197,9 @@ export default function LeakFinderPage() {
 
   return (
     <PageTransition>
+      <PersonalAssistantCopyPolicy />
       <SEOHead
-        title="Leak Finder — Fix Your Game"
+        title="Leak Finder · Fix Your Game"
         description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
         canonical="/hub/personal-assistant/leaks"
       />

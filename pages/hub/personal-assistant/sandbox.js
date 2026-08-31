@@ -105,6 +105,7 @@ import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
 import { PAStyles as SharedPAStyles, useAbortableFetch, isAbortError } from '../../../src/components/sandbox/paKit';
 import { readPersistenceResponse, persistenceMessage } from '../../../src/lib/personal-assistant/persistenceContract';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
+import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -2929,8 +2930,9 @@ export default function VirtualSandbox() {
         paddingBottom: 'calc(60px + 56px + 16px + env(safe-area-inset-bottom, 0px))',
       }}
     >
+      <PersonalAssistantCopyPolicy />
       <SEOHead
-        title="Virtual Sandbox — Poker Scenario Solver"
+        title="Virtual Sandbox · Poker Scenario Solver"
         description="Build poker scenarios, compare lines, and study solver-informed decisions in the Smarter.Poker Virtual Sandbox."
         canonical="/hub/personal-assistant/sandbox"
       />
