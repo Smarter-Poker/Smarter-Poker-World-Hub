@@ -160,3 +160,14 @@ test('internal detection is job-bound and the UI restores server checkpoints', (
   assert.match(page, /Resume Saved Audit/);
   assert.match(page, /Reconciliation/);
 });
+
+test('optional evidence gaps stay visible without falsifying durable persistence', () => {
+  assert.match(detect, /const evidencePartial = !sourceCompleteness\.trainingSolver/);
+  const persistenceGate = detect.slice(
+    detect.indexOf('const partial = !resolutionsSynced'),
+    detect.indexOf('return res.status(200).json({', detect.indexOf('const partial = !resolutionsSynced')),
+  );
+  assert.doesNotMatch(persistenceGate, /training\?\.complete|handAudit\?\.complete|existingResult\.complete/);
+  assert.match(detect, /evidencePartial,/);
+  assert.match(page, /Historical Evidence Coverage Is Partial/);
+});

@@ -923,6 +923,11 @@ function AuditReceipt({ result }) {
           Coverage Funnel · {num(progress.coverage.scanned).toLocaleString()} Scanned → {num(progress.coverage.eligible).toLocaleString()} Eligible → {num(progress.coverage.privateCardsAvailable).toLocaleString()} Private Cards Available → {num(progress.coverage.heroDecisions).toLocaleString()} Hero Decisions → {num(progress.coverage.exactSolverMatches).toLocaleString()} Exact Solver Matches → {num(progress.coverage.unpriced).toLocaleString()} Unpriced → {num(progress.coverage.leaks).toLocaleString()} Leaks
         </p>
       )}
+      {result.evidencePartial && (
+        <p className={toolStyles.auditReceiptNote} data-tone="warn">
+          Historical Evidence Coverage Is Partial. Unverified Or Missing Canonical Training Rows Were Excluded; Club Arena Findings And Saved Leak Records Still Reconciled Independently.
+        </p>
+      )}
       {reconciliation.checkedAt && (
         <p className={toolStyles.auditReceiptNote} data-tone={reconciliation.consistent ? 'success' : 'warn'}>
           Reconciliation {reconciliation.consistent ? 'Passed' : 'Needs Review'} · {num(reconciliation.persistedDecisions).toLocaleString()} Persisted Decisions · Last Checked {new Date(reconciliation.checkedAt).toLocaleString()}
