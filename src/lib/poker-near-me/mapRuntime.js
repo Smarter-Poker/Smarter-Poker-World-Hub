@@ -109,9 +109,68 @@ export function addPokerMapLayers(layer, markers) {
   validMarkers.forEach((marker) => layer.addLayer(marker));
 }
 
+export function createPokerMapSession({
+  L,
+  container,
+  mapOptions = {},
+  tileStyle = 'dark_nolabels',
+  tileOptions = {},
+  attribution = true,
+} = {}) {
+  if (!L || !container) throw new Error('Poker map session requires Leaflet and a container');
+  const map = L.map(container, { zoomControl: true, attributionControl: false, ...mapOptions });
+  const tiles = L.tileLayer(
+    `https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`,
+    { subdomains: 'abcd', maxZoom: 19, attribution: '', ...tileOptions },
+  ).addTo(map);
+  if (attribution) {
+    L.control.attribution({ prefix: false })
+      .addAttribution('Powered By <a href="https://smarter.poker">Smarter.Poker</a>')
+      .addTo(map);
+  }
+  let destroyed = false;
+  return {
+    map,
+    tiles,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      // Leaflet has no public API for cancelling its 250ms zoom-transition
+      // fallback. A map can therefore unmount between fitBounds() starting and
+      // _onZoomTransitionEnd() firing; that callback then reads the removed
+      // map pane and throws on `_leaflet_pos`. Settle the pinned runtime's
+      // animation flags before remove() so every queued callback becomes a
+      // no-op. _stop() also cancels any in-flight pan/fly animation.
+      if (typeof map._stop === 'function') map._stop();
+      if (map._animatingZoom) map._animatingZoom = false;
+      map.off();
+      map.remove();
+    },
+  };
+}
+
+export function createPokerMarkerLayer({
+  L,
+  map,
+  clusteringAvailable = false,
+  disableClustering = false,
+  iconCreateFunction,
+  disableClusteringAtZoom = 9,
+} = {}) {
+  if (!L || !map) throw new Error('Poker marker layer requires Leaflet and a map');
+  const canCluster = clusteringAvailable && !disableClustering && typeof L.markerClusterGroup === 'function';
+  const layer = canCluster
+    ? L.markerClusterGroup(createPokerClusterOptions({ iconCreateFunction, disableClusteringAtZoom }))
+    : L.layerGroup();
+  layer.addTo(map);
+  return { layer, clustering: canCluster ? 'available' : disableClustering ? 'disabled' : 'fallback' };
+}
+
 export const pokerMapRuntimeContract = Object.freeze({
   executableSource: 'local-npm',
   styleSource: 'local-public',
   chunkedLoading: true,
   densityAwareClustering: true,
+  sharedSessionLifecycle: true,
+  sharedMarkerLayerFactory: true,
 });

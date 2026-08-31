@@ -2,11 +2,11 @@
  * RoadTripPlanner.jsx — Feature #3: Smart Poker Road Trip Planner
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
-import React, { useState, useCallback, useRef, useEffect, useId } from 'react';
+import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
-import { loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { createPokerMapSession, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 import {
     filterSeriesForRoute,
     interpolateRouteLeg,
@@ -145,6 +145,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [draftHydrated, setDraftHydrated] = useState(false);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
+    const mapSessionRef = useRef(null);
     const originAutoRef = useRef(false);
     const instanceId = useId().replace(/:/g, '');
     const savedTripsId = `rtp-saved-${instanceId}`;
@@ -315,10 +316,14 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 const { L } = await loadPokerMapRuntime();
                 if (cancelled || !mapRef.current) return;
 
-                if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
-
-                const map = L.map(mapRef.current, { zoomControl: true, attributionControl: false });
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+                mapSessionRef.current?.destroy();
+                mapSessionRef.current = createPokerMapSession({
+                    L,
+                    container: mapRef.current,
+                    tileStyle: 'dark_all',
+                });
+                const { map } = mapSessionRef.current;
+                mapInstanceRef.current = map;
 
                 // Draw route polyline
                 const latlngs = routeResult.routePoints.map(p => [p.lat, p.lng]);
@@ -352,7 +357,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
                 }
 
-                mapInstanceRef.current = map;
                 setMapStatus('ready');
             } catch (err) {
                 console.warn('Route map failed to load:', err);
@@ -364,7 +368,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
         return () => {
             cancelled = true;
-            if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+            mapSessionRef.current?.destroy();
+            mapSessionRef.current = null;
+            mapInstanceRef.current = null;
         };
     }, [routeResult, mapLoadAttempt]);
 
@@ -645,7 +651,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             </svg>
                         </button>
                         <div className="rtp-map-shell" id={mapPanelId} style={{ display: mapExpanded ? 'block' : 'none' }}>
-                            <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" />
+                            <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v2" />
                             {mapStatus !== 'ready' && (
                                 <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
                                     {mapStatus === 'error' ? (

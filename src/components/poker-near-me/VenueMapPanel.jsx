@@ -1,11 +1,28 @@
-import React, { useState, useEffect, useRef, useId, useMemo } from 'react';
-import { radiusToZoom, escapeHtml } from './pnm-utils';
-import { openNativeMaps } from '../../utils/openNativeMaps';
-import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { useState, useEffect, useRef, useId, useMemo } from 'react';
+import { radiusToZoom } from './pnm-utils';
+import {
+  addPokerMapLayers,
+  createPokerMapSession,
+  createPokerMarkerLayer,
+  loadPokerMapRuntime,
+  resetPokerMapRuntime,
+} from '../../lib/poker-near-me/mapRuntime';
 import { appendPokerMapBounds, isVenueWithinPokerMapBounds, pokerMapBoundsFromLeaflet } from '../../lib/poker-near-me/mapBounds';
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 import MapCoverageReadout from './MapCoverageReadout';
+import {
+  buildPokerTourPopupHtml,
+  buildPokerVenuePopupHtml,
+  createPokerClusterIcon,
+  createPokerPopupClickHandler,
+  createPokerTourIcon,
+  createPokerUserLocationIcon,
+  createPokerVenueContentSignature,
+  createPokerVenueGeographySignature,
+  createPokerVenueIcon,
+  isPokerTourStop,
+} from './mapPresentation';
 
 /**
  * VenueMapPanel — Leaflet map rendering for Poker Near Me venues.
@@ -14,28 +31,6 @@ import MapCoverageReadout from './MapCoverageReadout';
  * Each venue shows its logo in a circular pin with the name underneath.
  * Labels only appear at zoom >= 9 to prevent clutter with many venues.
  */
-
-// ─── Venue type → marker color ───
-const VENUE_TYPE_COLORS = {
-  casino: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)' },
-  card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
-  poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
-  charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
-  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)' },
-  tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
-  poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
-};
-const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
-
-const VENUE_TYPE_LABELS = {
-  casino: 'Casino',
-  card_room: 'Poker Club',
-  poker_club: 'Poker Club',
-  home_game: 'Home Game',
-  charity: 'Charity',
-  tour_stop: 'Poker Tour',
-  poker_tour: 'Poker Tour'
-};
 
 // ─── Custom CSS for logo pins ───
 const LOGO_PIN_CSS = `
@@ -115,193 +110,12 @@ const LOGO_PIN_CSS = `
 }
 `;
 
-// ─── Truncate venue name for label ───
-function truncateName(name, maxLen) {
-  if (!name) return '';
-  let short = name.replace(/\s*(Casino|Hotel|Resort|&\s*Casino|&\s*Resort|&\s*Hotel|Poker\s*Room|Card\s*Room|Room)\s*$/i, '');
-  if (short.length <= maxLen) return short;
-  return short.slice(0, maxLen - 1).trim() + '…';
-}
-
-// ─── Create logo-based venue icon (Tour-style round circle) ───
-function createVenueIcon(L, venue) {
-  const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
-  const label = truncateName(venue.name, 20);
-  const escapedLabel = escapeHtml(label || '');
-
-  const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
-
-  // Logo or fallback smarter poker logo — matches the Poker Tours round-circle style
-  const finalLogoUrl = logoUrl || '/smarter-poker-logo-nobg.png';
-  const innerContent = `<img src="${escapeHtml(finalLogoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
-
-  // Name label — dark pill badge underneath (same style as tour pins)
-  const labelHtml = escapedLabel
-    ? `<div class="vmp-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:2px 7px;border-radius:12px;font-size:9px;font-weight:800;white-space:nowrap;border:1px solid ${colors.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>`
-    : '';
-
-  return L.divIcon({
-    className: 'vmp-venue-marker',
-    html: `<div style="position:relative;width:40px;height:40px;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${colors.fill};box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
-        ${innerContent}
-      </div>
-      ${labelHtml}
-    </div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -22],
-  });
-}
-
-// ─── Tour marker colors ───
-const TOUR_MARKER_COLORS = {
-  WSOP: '#c9a227', WPT: '#dc2626', WSOPC: '#c9a227', MSPT: '#3b82f6', RGPS: '#10b981',
-  PGT: '#8b5cf6', NAPT: '#f87171', BPO: '#38bdf8', FPN: '#818cf8', LIPS: '#ec4899',
-  ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
-};
-
-// ─── Create tour-specific icon: DOUBLE ICON (tour on top, venue below) ───
-// Two equal circles stacked vertically — tour circle (colored ring) on top,
-// venue circle (gray ring) directly below with slight overlap.
-// Double-label pill underneath both.
-function createTourIcon(L, venue) {
-  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ef4444';
-  const tourLogoUrl = venue.logo_url || '';
-  // tour_code comes from external scrapers — escape before it reaches innerHTML
-  const tourCode = escapeHtml((venue.tour_code || 'TOUR').slice(0, 4));
-  const isRunning = venue.is_running;
-
-  // Circle sizing
-  const circleSize = 32;
-  const overlap = 8; // px overlap between circles
-  const totalWidth = circleSize + 4; // 4 for border overflow
-  const totalHeight = (circleSize * 2) - overlap + 4;
-
-  // ═══ TOUR CIRCLE (top, with colored ring) ═══
-  const pulseRing = isRunning
-    ? `<div style="position:absolute;top:-4px;left:-4px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
-    : '';
-
-  const tourInner = tourLogoUrl
-    ? `<img src="${escapeHtml(tourLogoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
-    : `<div style="font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
-
-  const hostLogoUrl = venue.host_venue_logo_url || '';
-  const hostName = venue.host_venue_name || venue.stop_venue || '';
-  const finalHostLogoUrl = hostLogoUrl || '/smarter-poker-logo-nobg.png';
-
-  const venueInner = `<img src="${escapeHtml(finalHostLogoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
-
-  const venueCircleHtml = hostName
-    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${(totalWidth - circleSize) / 2}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;">${venueInner}</div>`
-    : '';
-
-  // ═══ DOUBLE-LABEL PILL ═══
-  const tourLabel = escapeHtml(venue.tour_name || venue.tour_code || '');
-  const venueLabel = escapeHtml(truncateName(venue.stop_venue || venue.stop_name || '', 22));
-
-  const doublePillHtml = `<div class="vmp-pin-label" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 8px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:160px;">
-    <div style="font-size:9px;color:${tourColor};letter-spacing:0.4px;font-weight:900;overflow:hidden;text-overflow:ellipsis;max-width:150px;text-shadow:0 0 6px ${tourColor}40;">${tourLabel}</div>
-    ${venueLabel ? `<div style="font-size:8px;color:rgba(200,214,229,0.65);font-weight:600;letter-spacing:0.2px;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${venueLabel}</div>` : ''}
-  </div>`;
-
-  return L.divIcon({
-    className: 'vmp-venue-marker',
-    html: `<div style="position:relative;width:${totalWidth}px;height:${totalHeight}px;">
-      ${pulseRing}
-      <div style="position:absolute;top:0;left:${(totalWidth - circleSize) / 2}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
-        ${tourInner}
-      </div>
-      ${venueCircleHtml}
-      ${doublePillHtml}
-    </div>`,
-    iconSize: [totalWidth, totalHeight],
-    iconAnchor: [totalWidth / 2, totalHeight / 2],
-    popupAnchor: [0, -(totalHeight / 2)],
-  });
-}
-
-// ─── Build tour popup HTML ───
-function buildTourPopupHtml(v) {
-  const tourColor = TOUR_MARKER_COLORS[v.tour_code] || '#ef4444';
-  const logoHtml = v.logo_url
-    ? `<img src="${escapeHtml(v.logo_url)}" alt="" style="width:34px;height:34px;border-radius:6px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${escapeHtml((v.tour_code || '').slice(0, 4))}</div>`
-    : `<div style="display:flex;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${escapeHtml((v.tour_code || '').slice(0, 4))}</div>`;
-
-  const statusBadge = v.is_running
-    ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
-    : `<span style="padding:2px 8px;border-radius:4px;background:rgba(59,130,246,0.12);color:#60a5fa;font-size:10px;font-weight:700;border:1px solid rgba(59,130,246,0.25);">UPCOMING</span>`;
-
-  return `<div style="min-width:220px;max-width:300px;padding:14px 16px 12px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      ${logoHtml}
-      <div>
-        <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${escapeHtml(v.tour_name || v.tour_code || v.name)}</div>
-        <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${escapeHtml(v.city || '')}, ${escapeHtml(v.state || '')}</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <span style="padding:2px 8px;border-radius:4px;background:${tourColor}20;color:${tourColor};font-size:10px;font-weight:700;border:1px solid ${tourColor}30;">${escapeHtml(v.tour_code || 'TOUR')}</span>
-      ${statusBadge}
-    </div>
-    ${v.stop_name ? `<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(v.stop_name)}</div>` : ''}
-    ${v.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:10px;">Dates: ${escapeHtml(v.dates)}</div>` : ''}
-    <div style="display:flex;gap:6px;">
-      <button class="fsp-trigger" data-url="/hub/tours/${escapeHtml(v.tour_code || '')}" data-title="${escapeHtml(v.tour_name || v.tour_code || '')}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#fff;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Tour</button>
-      <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
-    </div>
-  </div>`;
-}
-
-// ─── Create cluster icon ───
-function createClusterIcon(L, cluster) {
-  const count = cluster.getChildCount();
-  let size, fontSize, borderWidth;
-  if (count >= 100) { size = 54; fontSize = 14; borderWidth = 3; }
-  else if (count >= 50) { size = 46; fontSize = 13; borderWidth = 2.5; }
-  else if (count >= 20) { size = 40; fontSize = 12; borderWidth = 2; }
-  else if (count >= 10) { size = 34; fontSize = 11; borderWidth = 2; }
-  else { size = 28; fontSize = 10; borderWidth = 2; }
-
-  let bgGradient, glowColor, textColor;
-  if (count >= 100) {
-    bgGradient = 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #8B6914 100%)';
-    glowColor = 'rgba(255,255,255,0.5)'; textColor = '#000';
-  } else if (count >= 50) {
-    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #ffffff 50%, #cbd5e1 100%)';
-    glowColor = 'rgba(255,255,255,0.4)'; textColor = '#000';
-  } else if (count >= 20) {
-    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(200,214,229,0.85) 100%)';
-    glowColor = 'rgba(255,255,255,0.35)'; textColor = '#000';
-  } else {
-    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(200,214,229,0.7) 100%)';
-    glowColor = 'rgba(255,255,255,0.25)'; textColor = '#1a1a2e';
-  }
-
-  return L.divIcon({
-    html: `<div style="
-      width:${size}px;height:${size}px;border-radius:50%;
-      background:${bgGradient};
-      border:${borderWidth}px solid rgba(255,255,255,0.9);
-      display:flex;align-items:center;justify-content:center;
-      font-size:${fontSize}px;font-weight:800;color:${textColor};
-      box-shadow:0 0 ${size / 2}px ${glowColor}, 0 4px 16px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.2);
-      text-shadow:0 1px 2px rgba(255,255,255,0.3);
-      font-family:'Inter',-apple-system,sans-serif;
-      letter-spacing:-0.5px;
-    ">${count}</div>`,
-    className: 'vmp-cluster-icon',
-    iconSize: [size, size],
-  });
-}
-
 export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect, radiusMiles, enableViewportSearch = false, viewportState }) {
   const [viewportVenues, setViewportVenues] = useState(null);
   const activeVenues = viewportVenues || venues;
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const mapSessionRef = useRef(null);
   const markersLayerRef = useRef(null);
   const userMarkerRef = useRef(null);
   const mountedRef = useRef(true);
@@ -379,40 +193,32 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         ? [userLocation.lat, userLocation.lng]
         : [36.1699, -115.1398]; // Default: Las Vegas
 
-      const map = L.map(mapRef.current, {
-        center,
-        zoom: userLocation ? 10 : 5,
-        zoomControl: true,
-        attributionControl: false,
-        dragging: true,
-        tap: true,
-        touchZoom: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: true,
-        boxZoom: true,
+      const session = createPokerMapSession({
+        L,
+        container: mapRef.current,
+        mapOptions: {
+          center,
+          zoom: userLocation ? 10 : 5,
+          dragging: true,
+          tap: true,
+          touchZoom: true,
+          scrollWheelZoom: true,
+          doubleClickZoom: true,
+          boxZoom: true,
+        },
       });
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-      }).addTo(map);
-
-      // Custom attribution
-      L.control.attribution({ prefix: false })
-        .addAttribution('Powered By <a href="https://smarter.poker">Smarter.Poker</a>')
-        .addTo(map);
+      const { map } = session;
+      mapSessionRef.current = session;
 
       // Create a density-aware cluster group. The shared runtime falls back to
       // a plain layer if the optional clustering plugin cannot initialize.
-      markersLayerRef.current = runtime.clusteringAvailable
-        ? L.markerClusterGroup(createPokerClusterOptions({
-            iconCreateFunction: function (cluster) {
-              return createClusterIcon(L, cluster);
-            },
-            disableClusteringAtZoom: 9,
-          }))
-        : L.layerGroup();
-      markersLayerRef.current.addTo(map);
+      markersLayerRef.current = createPokerMarkerLayer({
+        L,
+        map,
+        clusteringAvailable: runtime.clusteringAvailable,
+        iconCreateFunction: (cluster) => createPokerClusterIcon(L, cluster, { variant: 'compact' }),
+        disableClusteringAtZoom: 9,
+      }).layer;
 
       // ═══ LABEL VISIBILITY BASED ON ZOOM ═══
       function updateLabelVisibility() {
@@ -452,30 +258,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       setMapReady(true);
 
       // ═══ CLICK DELEGATION for popup buttons ═══
-      popupClickHandlerRef.current = (e) => {
-        // FSP trigger — open in iframe modal or navigate
-        const fspTrigger = e.target.closest('.fsp-trigger');
-        if (fspTrigger) {
-          e.preventDefault();
-          const url = fspTrigger.getAttribute('data-url');
-          // SECURITY: only ever navigate to a same-origin relative path — never let a
-          // scheme or protocol-relative URL out of a popup attribute turn this into an
-          // open-redirect.
-          if (url && /^\/(?!\/)/.test(url)) window.location.href = url;
-          return;
-        }
-        // Directions trigger — open native maps
-        const dirTrigger = e.target.closest('.directions-trigger');
-        if (dirTrigger) {
-          e.preventDefault();
-          e.stopPropagation();
-          const addr = decodeURIComponent(dirTrigger.getAttribute('data-addr') || '');
-          const lat = parseFloat(dirTrigger.getAttribute('data-lat'));
-          const lng = parseFloat(dirTrigger.getAttribute('data-lng'));
-          openNativeMaps({ address: addr, lat, lng, mode: 'directions' });
-          return;
-        }
-      };
+      popupClickHandlerRef.current = createPokerPopupClickHandler();
       const container = mapRef.current;
       if (container) container.addEventListener('click', popupClickHandlerRef.current);
     };
@@ -490,10 +273,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       viewportAbortRef.current?.abort();
       const container = mapRef.current;
       if (container && popupClickHandlerRef.current) container.removeEventListener('click', popupClickHandlerRef.current);
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+      mapSessionRef.current?.destroy();
+      mapSessionRef.current = null;
+      mapInstanceRef.current = null;
       markersLayerRef.current = null;
       leafletRef.current = null;
     };
@@ -520,32 +302,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     // and popups render is part of the signature now.
     // The GEOGRAPHY signature still gates fitBounds on its own, so refreshing pin content
     // (a room going live, a logo landing) never yanks the viewport of a user who is panning.
-    const geoSignature = [
-      validVenues.map(v => `${v.id || v.name || ''}:${v.latitude},${v.longitude}`).sort().join('|'),
-      userLocation ? `${userLocation.lat},${userLocation.lng}` : '',
-      radiusMiles == null ? '' : String(radiusMiles),
-    ].join('#');
-    const signature = [
-      geoSignature,
-      validVenues
-        .map(v => [
-          v.id || v.name || '', v.venue_type || '', v.tour_code || '',
-          // Live counts live on `venue.live_data` (see lobby.js's live merge) — the
-          // old `totalTables` / `games` reads were always 0 and never invalidated
-          // the marker cache when a room's live table count changed.
-          v.is_running ? 1 : 0,
-          (v.live_data && v.live_data.tables_running) || 0,
-          JSON.stringify((v.live_data && v.live_data.games) || []),
-          (v.live_data && v.live_data.last_updated) || '',
-          v.logo_url || '', v.profile_photo_url || '', v.cover_photo_url || '', v.image_url || '',
-          v.name || '', v.city || '', v.state || '', v.address || '', v.phone || '',
-          v.trust_score || '', v.hours || '', v.hours_weekday || '', JSON.stringify(v.games_offered || []),
-          v.detailUrl || '', v.stop_name || '', v.dates || '', v.host_venue_name || '', v.host_venue_logo_url || '',
-          v.is_social_page ? 1 : 0,
-        ].join(':'))
-        .sort()
-        .join('|'),
-    ].join('##');
+    const geoSignature = createPokerVenueGeographySignature(validVenues, { userLocation, radiusMiles });
+    const signature = createPokerVenueContentSignature(validVenues, { userLocation, radiusMiles });
     if (signature === renderedSignatureRef.current) return;
     renderedSignatureRef.current = signature;
     const geoChanged = geoSignature !== fittedGeoSignatureRef.current;
@@ -563,60 +321,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     const venueMarkers = [];
     validVenues.forEach(v => {
       // ═══ TOUR STOPS — distinct red pin + tour popup ═══
-      const isTourStop = (v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour') && v.tour_code;
-      const venueIcon = isTourStop ? createTourIcon(L, v) : createVenueIcon(L, v);
-
-      let popupHtml;
-      if (isTourStop) {
-        popupHtml = buildTourPopupHtml(v);
-      } else {
-        const colors = VENUE_TYPE_COLORS[v.venue_type] || DEFAULT_VENUE_COLOR;
-        const typeBadge = VENUE_TYPE_LABELS[v.venue_type] || v.venue_type || '';
-        // WIRING FIX: lobby.js merges live data onto `venue.live_data`
-        // ({ tables_running, players_waiting, games, ... }) — it never writes a
-        // top-level `games` array or `totalTables`, so the LIVE badge below was
-        // unreachable on every lobby map popup.
-        const liveGames = (v.live_data && Array.isArray(v.live_data.games)) ? v.live_data.games : [];
-        const tables = Number(v.live_data && v.live_data.tables_running) || 0;
-        // SECURITY: these ids reach innerHTML inside a data-url attribute (and then
-        // window.location.href) — encode them so a quote in an id cannot break out of the
-        // attribute. Mirrors VenueMap.jsx.
-        const detailPath = v.is_social_page
-          ? '/club/' + encodeURIComponent(v.social_page_id || '')
-          : '/hub/venues/' + encodeURIComponent(v.id || '');
-
-        // Build logo/initials badge
-        const logoUrl = v.logo_url || v.profile_photo_url || '';
-        const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-        const finalLogoBadgeUrl = logoUrl || '/smarter-poker-logo-nobg.png';
-        const logoBadge = `<img src="${escapeHtml(finalLogoBadgeUrl)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;padding:0px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
-
-        // Live games info
-        const gamesInfo = liveGames.length
-          ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-              <span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE · ${tables} Table${tables === 1 ? '' : 's'}</span>
-              <span style="font-size:10px;color:rgba(148,163,184,0.6);">${liveGames.length} game${liveGames.length === 1 ? '' : 's'}</span>
-            </div>`
-          : '';
-
-        popupHtml = `<div style="min-width:200px;max-width:300px;padding:14px 16px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            ${logoBadge}
-            <div>
-              <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(v.name)}</div>
-              <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${escapeHtml(v.city || '')}, ${escapeHtml(v.state || '')}</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span style="padding:2px 8px;border-radius:4px;background:${colors.glow?.replace(/[\d.]+\)$/, '0.15)') || 'rgba(255,255,255,0.15)'};color:${colors.fill};font-size:10px;font-weight:600;">${typeBadge}</span>
-          </div>
-          ${gamesInfo}
-          <div style="display:flex;gap:6px;">
-            <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#ffffff,#cbd5e1);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
-            <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.address || '') + ' ' + (v.name || '') + ' ' + (v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
-          </div>
-        </div>`;
-      }
+      const isTourStop = isPokerTourStop(v);
+      const venueIcon = isTourStop
+        ? createPokerTourIcon(L, v, { variant: 'compact' })
+        : createPokerVenueIcon(L, v, { variant: 'compact' });
+      const popupHtml = isTourStop
+        ? buildPokerTourPopupHtml(v, { variant: 'compact' })
+        : buildPokerVenuePopupHtml(v, { variant: 'compact' });
 
       // Tour pins render at exact venue coordinates — tour takes visual precedence
       const lat = v.latitude;
@@ -670,17 +381,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
 
     // Add user location marker
     if (userLocation) {
-      const userIcon = L.divIcon({
-        className: 'user-location-pin',
-        html: '<div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">' +
-          '<svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">' +
-          '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>' +
-          '<circle cx="12" cy="10" r="4" fill="#ffffff" stroke="none"></circle>' +
-          '</svg></div>',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40]
-      });
+      const userIcon = createPokerUserLocationIcon(L);
 
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
         icon: userIcon,
@@ -797,6 +498,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         data-map-load-ms={mapLoadMs == null ? '' : mapLoadMs}
         data-map-clustering={clusteringAvailable ? 'available' : 'fallback'}
         data-map-style-source="local"
+        data-map-foundation="shared-v2"
         data-map-integrity-held={integritySummary.held}
         tabIndex={0}
         style={{

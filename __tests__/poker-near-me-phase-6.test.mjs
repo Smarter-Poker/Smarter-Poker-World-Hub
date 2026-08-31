@@ -22,6 +22,8 @@ test('shared poker map runtime uses local executable modules and density-aware c
   assert.match(runtime, /maxClusterRadius: \(zoom\)/);
   assert.match(runtime, /removeOutsideVisibleBounds: true/);
   assert.match(runtime, /layer\.addLayers\(validMarkers\)/);
+  assert.match(runtime, /export function createPokerMapSession/);
+  assert.match(runtime, /export function createPokerMarkerLayer/);
 });
 
 test('both shared map surfaces expose readiness telemetry and bulk marker insertion', () => {
@@ -31,7 +33,7 @@ test('both shared map surfaces expose readiness telemetry and bulk marker insert
   ]) {
     const source = read(file);
     assert.match(source, /loadPokerMapRuntime/);
-    assert.match(source, /createPokerClusterOptions/);
+    assert.match(source, /createPokerMarkerLayer/);
     assert.match(source, /addPokerMapLayers/);
     assert.match(source, /data-map-ready=/);
     assert.match(source, /data-map-marker-count=/);

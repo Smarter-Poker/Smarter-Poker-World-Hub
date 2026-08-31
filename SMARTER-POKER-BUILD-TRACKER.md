@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-08-31 — Phase 63 (Poker Near Me Phase 1 adversarial closeout and release repair)
+**Last Updated:** 2026-08-31 — Phase 64 (Poker Near Me Phase 2 shared map foundation)
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1427,3 +1427,18 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | CI artifact budget | Failure artifacts retain compact diagnostics and screenshots without duplicating videos/traces into multi-gigabyte archives. |
 
 **Verification:** 66/66 Poker Near Me contracts, 524/524 full prebuild contracts, TypeScript, Python compile/config loading, workflow parsing, 19/19 representative production journeys, compiled desktop/mobile Phase 13 closeout, and the exact webpack build (402 static pages) passed before release. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-1-closeout.md`.
+
+---
+
+## PHASE 64 — Poker Near Me Phase 2 Shared Map Foundation (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Shared presentation contract | Primary discovery and compact lobby maps now inherit one venue/tour/user marker, density-tier cluster, popup, theme, and safe click-delegation system. |
+| Shared runtime ownership | Primary discovery, lobby map panel, and Road Trip Planner use one session factory for Leaflet creation, Carto tiles, attribution, marker layers, and idempotent teardown. |
+| Lifecycle race repair | Session teardown settles Leaflet pan/fly and zoom-transition state before DOM removal, preventing `_leaflet_pos` crashes during rapid pod switching. |
+| Stable dynamic updates | Shared geography/content signatures refresh changed live data, artwork, trust, hours, favorites, and popup content without re-fitting an unchanged viewport. |
+| Degraded operation | The map shell, markers, zoom controls, and local control skin remain usable when Carto background tiles are unavailable. |
+| Permanent regression gate | Phase 14 unit contracts and compiled desktop/mobile browser journeys cover all three consumers, popup paths, rapid recreation, stale trip storage, degraded tiles, touch targets, and overflow. |
+
+**Verification:** 73/73 Poker Near Me contracts, 533/533 full prebuild contracts, TypeScript, strict focused lint, the exact webpack production build (402 static pages), and 8/8 compiled-production desktop/mobile Phase 14 journeys passed before release. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-2-map-foundation.md`.
