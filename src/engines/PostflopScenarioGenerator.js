@@ -949,35 +949,6 @@ export function getFilteredPostflopScenario(level, filter = {}) {
  * Returns what positions, spot types, board textures, etc. are available.
  * Useful for building filter UI dropdowns.
  */
-export function getAvailableFilters(level) {
-    const scenarios = getPostflopScenariosForLevel(level);
-
-    const positions = new Set();
-    const vsPositions = new Set();
-    const spotTypes = new Set();
-    const boardTextures = new Set();
-    const handClasses = new Set();
-    const correctActions = new Set();
-
-    for (const s of scenarios) {
-        if (s.position) positions.add(s.position);
-        if (s.vsPosition) vsPositions.add(s.vsPosition);
-        if (s.spotType) spotTypes.add(s.spotType);
-        if (s.boardTextureKey) boardTextures.add(s.boardTextureKey);
-        if (s.handClass) handClasses.add(s.handClass);
-        if (s.correctAction) correctActions.add(s.correctAction);
-    }
-
-    return {
-        positions: [...positions].sort(),
-        vsPositions: [...vsPositions].sort(),
-        spotTypes: [...spotTypes].sort(),
-        boardTextures: [...boardTextures].sort(),
-        handClasses: [...handClasses].sort(),
-        correctActions: [...correctActions].sort(),
-        totalScenarios: scenarios.length,
-    };
-}
 
 /**
  * Clear the cached scenarios (useful if the strategy engine is updated).

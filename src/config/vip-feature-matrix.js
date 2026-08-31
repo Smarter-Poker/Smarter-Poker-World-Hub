@@ -309,31 +309,11 @@ export const VIP_FEATURE_MATRIX = {
 /**
  * Get the gate configuration for a specific feature
  */
-export function getFeatureGate(featureKey) {
-  return VIP_FEATURE_MATRIX[featureKey] || null;
-}
 
 /**
  * Get all features grouped by gate type
  */
-export function getFeaturesByGateType() {
-  const grouped = { FREE: [], VIP: [], DIAMOND: [], MIXED: [] };
-  Object.entries(VIP_FEATURE_MATRIX || {}).forEach(([key, config]) => {
-    grouped[config.gate]?.push({ key, ...config });
-  });
-  return grouped;
-}
 
 /**
  * Summary counts for the audit
  */
-export function getFeatureGateSummary() {
-  const entries = Object.entries(VIP_FEATURE_MATRIX || {});
-  return {
-    total: entries.length,
-    free: entries.filter(([, c]) => c.gate === 'FREE').length,
-    vip: entries.filter(([, c]) => c.gate === 'VIP').length,
-    diamond: entries.filter(([, c]) => c.gate === 'DIAMOND').length,
-    mixed: entries.filter(([, c]) => c.gate === 'MIXED').length,
-  };
-}

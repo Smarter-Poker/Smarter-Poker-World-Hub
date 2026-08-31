@@ -743,19 +743,13 @@ export const TRAINING_CLINICS = [
 export const getClinicById = (id) =>
     TRAINING_CLINICS.find(c => c.id === id);
 
-export const getClinicsByCategory = (category) =>
-    TRAINING_CLINICS.filter(c => c.category === category);
 
-export const getClinicsByDifficulty = (min, max) =>
-    TRAINING_CLINICS.filter(c => c.difficulty >= min && c.difficulty <= max);
 
 export const getClinicForLeak = (leakCategory) => {
     const clinicId = LEAK_CATEGORY_MAP[leakCategory];
     return clinicId ? getClinicById(clinicId) : null;
 };
 
-export const getAllCategories = () =>
-    [...new Set(TRAINING_CLINICS.map(c => c.category))];
 
 export const getRemediationXPMultiplier = (clinicId) => {
     const clinic = getClinicById(clinicId);

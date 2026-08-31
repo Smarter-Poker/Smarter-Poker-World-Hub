@@ -126,7 +126,6 @@ const ICON_PROPS = {
 function _Svg({ size=18, vb='0 0 24 24', children }) {
   return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
 }
-function DollarIcon({ size=40 })   { return <_Svg size={size}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></_Svg>; }
 function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 
 

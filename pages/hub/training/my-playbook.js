@@ -50,14 +50,6 @@ const ICON_PROPS = {
 function _Svg({ size=14, vb='0 0 24 24', children }) {
   return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
 }
-function BookOpenIcon({ size=40 }) {
-  return (
-    <_Svg size={size}>
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-    </_Svg>
-  );
-}
 function PinIcon({ size=14, filled=false }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"

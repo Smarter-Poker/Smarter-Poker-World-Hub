@@ -73,8 +73,4 @@ export function getDiamondReward(level, correctAnswers, streakBonus = 0, totalQu
     return Math.round((baseDiamonds + accuracyBonus + streakBonus) * multiplier);
 }
 
-// XP system fully removed — diamonds are the only reward currency
-// Legacy stub prevents import errors in any files still referencing getXPReward
-export const getXPReward = getDiamondReward;
-
 export default TRAINING_CONFIG;

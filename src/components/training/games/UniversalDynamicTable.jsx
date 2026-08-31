@@ -783,43 +783,6 @@ function evaluateHandStrength(hCards, bCards) {
 }
 
 // Render miniature inline card images for question text
-function renderInlineCards(text) {
-    if (!text) return text;
-
-    // Pattern to match card notation: Ah, Ks, Td, 2c, etc.
-    const cardPattern = /\b([AKQJT2-9])([hdcs])\b/gi;
-
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    // Create a fresh regex for exec
-    const regex = new RegExp(cardPattern);
-    while ((match = regex.exec(text)) !== null) {
-        // Add text before this match
-        if (match.index > lastIndex) {
-            parts.push(text.slice(lastIndex, match.index));
-        }
-
-        // Add the card image element
-        const cardNotation = match[0];
-        parts.push({
-            type: 'card',
-            notation: cardNotation,
-            path: getCardPath(cardNotation)
-        });
-
-        lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-        parts.push(text.slice(lastIndex));
-    }
-
-    return parts;
-}
-
 // Parse hero position from string to seat index
 // Account for different table sizes having different position mappings
 function getHeroSeatIndex(heroPosition, playerCount) {

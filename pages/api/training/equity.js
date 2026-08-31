@@ -54,10 +54,6 @@ function parseCardStr(str) {
     return r * 4 + s;
 }
 
-function cardIntToStr(c) {
-    return RANK_DISPLAY[Math.floor(c / 4)] + SUIT_DISPLAY[c % 4];
-}
-
 // ●●● Inline Monte Carlo evaluator (to avoid CJS require path issues) ●●●●●●●●
 const CATEGORY_WEIGHT = 1e10;
 

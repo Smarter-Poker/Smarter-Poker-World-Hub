@@ -298,35 +298,6 @@ export function getICMCallRange(stackBB, villainStackBB, icmPressure = 0) {
  * @param {number} equity - Hero's hand equity (0-1) in the pot
  * @returns {{ cEV: number, dollarEV: number, icmTax: number, shouldCall: boolean }}
  */
-export function compareCEVvsDollarEV(currentStacks, payouts, heroIdx, potChips, equity) {
-    const currentICM = calculateICM(currentStacks, payouts);
-    const heroCurrentICM = currentICM[heroIdx];
-
-    // cEV of calling (simplified: potChips * equity - investment)
-    const investment = potChips * (1 - equity); // approx chips hero has at risk
-    const cEV = potChips * equity - investment;
-
-    // $EV: calculate ICM after winning vs losing
-    const winStacks = [...currentStacks];
-    winStacks[heroIdx] += potChips;
-    const winICM = calculateICM(winStacks, payouts);
-    const heroWinICM = winICM[heroIdx];
-
-    const loseStacks = [...currentStacks];
-    loseStacks[heroIdx] = Math.max(0, loseStacks[heroIdx] - potChips);
-    const loseICM = calculateICM(loseStacks, payouts);
-    const heroLoseICM = loseICM[heroIdx];
-
-    const dollarEV = equity * (heroWinICM - heroCurrentICM) + (1 - equity) * (heroLoseICM - heroCurrentICM);
-    const icmTax = cEV > 0 && dollarEV < cEV ? ((cEV - dollarEV) / cEV) * 100 : 0;
-
-    return {
-        cEV: cEV,
-        dollarEV,
-        icmTax,
-        shouldCall: dollarEV > 0,
-    };
-}
 
 // ●● Standard Payout Structures ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 

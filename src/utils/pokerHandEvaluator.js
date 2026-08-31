@@ -65,10 +65,6 @@ function parseCard(card) {
 }
 
 /** Get sorted rank values from an array of parsed cards (descending) */
-function getSortedValues(cards) {
-    return cards.map(c => c.value).sort((a, b) => b - a);
-}
-
 /** Count occurrences of each rank value */
 function countRanks(cards) {
     const counts = {};
@@ -515,17 +511,11 @@ export function getClassificationColor(classification) {
  * @param {string} classification
  * @returns {{ rank: number, label: string, category: string, color: string }}
  */
-export function getClassificationMeta(classification) {
-    return CLASSIFICATIONS[classification] || CLASSIFICATIONS.AIR;
-}
 
 /**
  * Get all classification definitions (for building legends/sidebars).
  * @returns {Object} The CLASSIFICATIONS constant
  */
-export function getAllClassifications() {
-    return CLASSIFICATIONS;
-}
 
 /**
  * Group classified hands by their classification for the sidebar.

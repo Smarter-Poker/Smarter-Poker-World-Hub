@@ -28,9 +28,6 @@ export function checkSpeedBonus(meta) {
  * @param {Object} meta - Answer metadata
  * @returns {number} - Total accumulated speed bonus diamonds
  */
-export function calculateSpeedBonus(meta) {
-    return checkSpeedBonus(meta);
-}
 
 /**
  * Check for streak-based achievements

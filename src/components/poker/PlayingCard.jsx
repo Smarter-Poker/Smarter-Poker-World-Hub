@@ -244,22 +244,6 @@ export default PlayingCard;
 
 // ─── Named helpers (re-exported for convenience) ────────────────────────────
 
-export function getCardImagePath(parts, { optimized = false } = {}) {
-  if (!parts) return '/cards/back.png';
-  const base = optimized ? '/cards/optimized' : '/cards';
-  return `${base}/${parts.suit}_${parts.rank}.png`;
-}
 
-export function preloadDeck({ optimized = true } = {}) {
-  if (typeof window === 'undefined') return;
-  ENGINE_SUITS.forEach((s) => {
-    ENGINE_RANKS.forEach((r) => {
-      const img = new window.Image();
-      img.src = `${optimized ? '/cards/optimized' : '/cards'}/${s}_${r}.png`;
-    });
-  });
-  const back = new window.Image();
-  back.src = '/cards/back.png';
-}
 
 export const PLAYING_CARD_VERSION = '1.0.0';

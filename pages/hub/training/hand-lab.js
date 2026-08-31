@@ -357,11 +357,6 @@ function getSuitColor(suit) {
   if (suit === '♣') return 'var(--sp-accent-emerald)';
   return 'var(--sp-fg)';
 }
-function getColor(cardStr) {
-  if (!cardStr) return {};
-  return { color: getSuitColor(cardStr[1]) };
-}
-
 const styles = {
   container: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',

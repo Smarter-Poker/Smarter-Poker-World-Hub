@@ -107,21 +107,3 @@ export async function idbDelete(key) {
         // Silently skip
     }
 }
-
-/**
- * Clear all cache entries (useful for logout / cache reset).
- */
-export async function idbClear() {
-    try {
-        const db = await openDB();
-        return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            store.clear();
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => resolve();
-        });
-    } catch {
-        // Silently skip
-    }
-}

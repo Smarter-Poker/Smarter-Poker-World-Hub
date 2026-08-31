@@ -29,7 +29,6 @@ function _Svg({ size=16, vb='0 0 24 24', children }) {
   return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
 }
 function CrownIcon({ size=12 })    { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
-function UploadIcon({ size=48 })   { return <_Svg size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></_Svg>; }
 function SendIcon({ size=16 })     { return <_Svg size={size}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></_Svg>; }
 function BackArrowIcon({ size=14 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 

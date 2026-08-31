@@ -116,14 +116,6 @@ function generateHand() {
   return RANKS[hi] + RANKS[lo] + (suited ? 's' : 'o');
 }
 
-function getSuitSymbol(idx) {
-  return ['♠', '♥', '♦', '♣'][idx % 4];
-}
-
-function getSuitColor(idx) {
-  return [1, 2].includes(idx % 4) ? '#ef4444' : '#fff';
-}
-
 function RangeMemorizationDrill() {
   const [rangeName, setRangeName] = useState(RANGE_NAMES[0]);
   const [hand, setHand] = useState(() => generateHand());

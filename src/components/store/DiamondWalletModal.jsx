@@ -437,59 +437,6 @@ function getDateGroup(dateStr) {
 }
 
 // ── ENH-6: Sparkline SVG component ──
-const BalanceSparkline = ({ transactions }) => {
-    // Extract balance_after from the last 20 transactions (reversed to chronological order)
-    const points = useMemo(() => {
-        const withBalance = transactions
-            .filter(tx => tx.balance_after != null)
-            .slice(0, 20)
-            .reverse();
-        if (withBalance.length < 2) return null;
-        return withBalance.map(tx => tx.balance_after);
-    }, [transactions]);
-
-    if (!points) return null;
-
-    const width = 200;
-    const height = 32;
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const range = max - min || 1;
-    const padding = 2;
-
-    const pathData = points.map((val, i) => {
-        const x = padding + (i / (points.length - 1)) * (width - padding * 2);
-        const y = padding + (1 - (val - min) / range) * (height - padding * 2);
-        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(' ');
-
-    // Determine trend color
-    const isUp = points[points.length - 1] >= points[0];
-    const lineColor = isUp ? '#58d9ff' : '#f87171';
-
-    return (
-        <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
-            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ opacity: 0.7 }}>
-                <defs>
-                    <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
-                        <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
-                    </linearGradient>
-                </defs>
-                {/* Fill area */}
-                <path
-                    d={`${pathData} L ${(width - padding).toFixed(1)} ${height} L ${padding} ${height} Z`}
-                    fill="url(#sparkGrad)"
-                />
-                {/* Line */}
-                <path d={pathData} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span style={{ fontSize: 10, color: isUp ? '#58d9ff' : '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                {isUp ? '▲' : '▼'} {Math.abs(points[points.length - 1] - points[0]).toLocaleString()}
-            </span>
-        </div>
-    );
-};
 
 // ── ENH-5: Dynamic skeleton row count ──
 function getSkeletonCount() {

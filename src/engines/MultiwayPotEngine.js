@@ -275,42 +275,9 @@ function generateMultiwayExplanation(numPlayers, motivation, handClass, position
  * @param {number} potOdds - Pot odds being offered (0-1)
  * @returns {number} Minimum equity needed to call
  */
-export function getMultiwayCallEquity(numPlayers, potOdds) {
-    // Base equity needed from pot odds
-    const baseEquity = potOdds;
-
-    // Multiway: opponents' ranges are stronger on average
-    const rangeStrengthAdj = {
-        2: 0,
-        3: 0.03,
-        4: 0.05,
-        5: 0.07,
-        6: 0.08,
-    };
-
-    return Math.min(0.95, baseEquity + (rangeStrengthAdj[numPlayers] || 0.08));
-}
 
 /**
  * Calculate implied odds adjustment for multiway pots.
  * Implied odds are better multiway (more money to win), but reverse
  * implied odds are worse (more likely someone has you crushed).
  */
-export function getMultiwayImpliedOdds(numPlayers, drawStrength, effectiveStack, potSize) {
-    const spr = effectiveStack / potSize;
-
-    // More players = more money behind, but also higher chance of being dominated
-    const impliedOddsMult = {
-        2: 1.0,
-        3: 1.3,  // More money to win
-        4: 1.2,  // Starts to decrease — more reverse implied odds
-        5: 1.0,  // Wash
-        6: 0.8,  // Reverse implied odds dominate
-    };
-
-    // Nut draws get big implied odds multiway
-    const isNutDraw = drawStrength >= 0.25;
-    const nutBonus = isNutDraw ? 1.3 : 0.8;
-
-    return (impliedOddsMult[numPlayers] || 0.8) * nutBonus * Math.min(1.5, spr / 5);
-}

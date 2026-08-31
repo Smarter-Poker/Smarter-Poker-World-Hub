@@ -38,14 +38,6 @@ function BackArrowIcon({ size=18 }) {
     </svg>
   );
 }
-function SearchIcon({ size=32 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="7"/>
-      <line x1="20" y1="20" x2="16.65" y2="16.65"/>
-    </svg>
-  );
-}
 function StarToggleIcon({ filled=false, size=14 }) {
   // Filled uses currentColor for both fill+stroke; outline uses stroke only.
   return (
