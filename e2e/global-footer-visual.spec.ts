@@ -1,14 +1,25 @@
 import { expect, test, type Page } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 import footerRegistry from '../src/config/world-footer-navigation.json';
 
 const VIEWPORTS = [
   { width: 320, height: 568 },
+  { width: 360, height: 800 },
+  { width: 375, height: 812 },
   { width: 390, height: 844 },
+  { width: 414, height: 896 },
   { width: 430, height: 932 },
   { width: 768, height: 1024 },
-  { width: 1100, height: 720 },
+  { width: 844, height: 390 },
+  { width: 932, height: 430 },
+  { width: 1024, height: 768 },
+  { width: 1280, height: 800 },
   { width: 1366, height: 768 },
+  { width: 1440, height: 900 },
+  { width: 1600, height: 900 },
   { width: 1920, height: 1080 },
+  { width: 2560, height: 1440 },
 ];
 
 const WORLD_ROUTES = [
@@ -27,6 +38,60 @@ const WORLD_ROUTES = [
   { id: 'poker-near-me', route: '/hub/poker-near-me/lobby', childRoute: '/hub/poker-near-me/events' },
   { id: 'marketplace', route: '/hub/marketplace', childRoute: '/hub/merch-store' },
 ];
+
+const walkPages = (directory: string): string[] =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const absolute = path.join(directory, entry.name);
+    return entry.isDirectory() ? walkPages(absolute) : [absolute];
+  });
+
+const dynamicSamples: Record<string, string> = {
+  categoryId: 'preflop',
+  city: 'oak-lawn',
+  clinicId: 'sample',
+  code: 'wsop',
+  gameId: 'preflop-race',
+  id: 'sample',
+  itemId: 'sample',
+  mode: 'cash',
+  orderId: 'sample',
+  pageId: 'sample',
+  pnmTab: 'venues',
+  productId: 'card-protector-gold',
+  rewardId: 'daily_login',
+  slug: 'sample',
+  state: 'il',
+  tableId: 'sample',
+  username: 'sample',
+};
+
+const reachableRouteOverrides: Record<string, string> = {
+  '/hub/home-games/[slug]': '/hub/home-games/the-midway-club',
+  '/hub/poker-near-me/in/[state]/[city]': '/hub/poker-near-me/in/il/des-plaines',
+  '/hub/venues/[id]': '/hub/venues/1868',
+};
+
+const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
+  .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file) && !file.includes(`${path.sep}api${path.sep}`))
+  .map((file) => {
+    const relative = path.relative(path.join(process.cwd(), 'pages'), file).replace(/\\/g, '/');
+    return (`/${relative}`
+      .replace(/\.(?:js|jsx|ts|tsx)$/, '')
+      .replace(/\/index$/, '') || '/');
+  })
+  .filter((route) => !/^\/(?:_|404$|500$)/.test(route))
+  .flatMap((sourceRoute) => {
+    const world = footerRegistry.worlds.find((candidate) =>
+      candidate.routePrefixes.some(
+        (prefix) => sourceRoute === prefix || sourceRoute.startsWith(`${prefix}/`)
+      )
+    );
+    if (!world) return [];
+    const reachableRoute =
+      reachableRouteOverrides[sourceRoute] ||
+      sourceRoute.replace(/\[([^.[\]]+)\]/g, (_, name: string) => dynamicSamples[name] || 'sample');
+    return [{ sourceRoute, reachableRoute, world }];
+  });
 
 const expectedClubFooterHeight = (viewportWidth: number) =>
   Math.min(263, Math.max(44, viewportWidth * 0.1372));
@@ -50,6 +115,32 @@ const visit = async (page: Page, route: string) => {
 };
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
+  test('all 203 applicable routes server-render exactly one correct artwork footer', async ({ request }) => {
+    test.setTimeout(300_000);
+    expect(routeMatrix).toHaveLength(203);
+
+    for (let offset = 0; offset < routeMatrix.length; offset += 8) {
+      const batch = routeMatrix.slice(offset, offset + 8);
+      await Promise.all(
+        batch.map(async ({ sourceRoute, reachableRoute, world }) => {
+          const response = await request.get(reachableRoute, {
+            failOnStatusCode: false,
+            timeout: 30_000,
+          });
+          expect(response.status(), `${sourceRoute} returned a server error`).toBeLessThan(500);
+          const html = await response.text();
+          const matches = html.match(
+            new RegExp(`<nav[^>]+data-footer-world="${world.id}"`, 'g')
+          );
+          expect(matches || [], `${sourceRoute} did not render the ${world.id} footer`).toHaveLength(1);
+          expect(html, `${sourceRoute} used the wrong exact asset`).toContain(
+            `data-footer-artwork="${world.artwork.src}"`
+          );
+        })
+      );
+    }
+  });
+
   test('all 14 worlds render their own complete, wired footer at 320px', async ({ page }) => {
     // The first request to each production page can perform SSR/data work on a
     // cold CI runner. This matrix deliberately visits 28 distinct URLs, so its
@@ -66,6 +157,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveCount(1);
       await expect(nav).toBeVisible();
       await expect(nav).toHaveAttribute('data-footer-world', entry.id);
+      await expect(nav).toHaveAttribute('data-footer-artwork', definition!.artwork.src);
       await expect(nav).toHaveCSS('position', 'fixed');
 
       const links = nav.getByRole('link');
@@ -80,20 +172,32 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(321);
       expect(Math.abs(navBox!.y + navBox!.height - 568)).toBeLessThan(4);
 
+      const stage = nav.locator('.bn-artwork-stage');
+      const artwork = nav.locator('[data-exact-approved-artwork="true"]');
+      await expect(stage).toHaveCount(1);
+      await expect(artwork).toHaveCount(1);
+      await expect(artwork).toBeVisible();
+      await expect(artwork).toHaveCSS('object-fit', 'contain');
+      await expect(artwork).toHaveCSS('filter', 'none');
+
+      const stageBox = await stage.boundingBox();
+      expect(stageBox).not.toBeNull();
+      expect(Math.abs(stageBox!.width / stageBox!.height - definition!.artwork.width / definition!.artwork.height)).toBeLessThan(0.01);
+      expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([
+        definition!.artwork.width,
+        definition!.artwork.height,
+      ]);
+
       for (let index = 0; index < 6; index += 1) {
         const link = links.nth(index);
         const linkBox = await link.boundingBox();
-        const iconBox = await link.locator('svg').boundingBox();
-        const labelBox = await link.locator('.bn-label').boundingBox();
         expect(linkBox).not.toBeNull();
-        expect(iconBox).not.toBeNull();
-        expect(labelBox).not.toBeNull();
         expect(linkBox!.width).toBeGreaterThanOrEqual(44);
         expect(linkBox!.height).toBeGreaterThanOrEqual(44);
-        expect(iconBox!.x).toBeGreaterThanOrEqual(linkBox!.x - 1);
-        expect(iconBox!.x + iconBox!.width).toBeLessThanOrEqual(linkBox!.x + linkBox!.width + 1);
-        expect(labelBox!.x).toBeGreaterThanOrEqual(linkBox!.x - 1);
-        expect(labelBox!.x + labelBox!.width).toBeLessThanOrEqual(linkBox!.x + linkBox!.width + 1);
+        expect(linkBox!.x).toBeGreaterThanOrEqual(stageBox!.x - 1);
+        expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(stageBox!.x + stageBox!.width + 1);
+        await expect(link.locator('svg')).toHaveCount(0);
+        expect((await link.textContent()) || '').toBe('');
       }
 
       await visit(page, entry.childRoute);
@@ -118,6 +222,10 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const nav = page.locator('[data-global-bottom-nav="true"]');
       await expect(nav).toHaveCount(1);
       await expect(nav).toHaveAttribute('data-footer-world', 'training');
+      await expect(nav).toHaveAttribute(
+        'data-footer-artwork',
+        '/images/footers/world-hub/footer-training-games.png'
+      );
       await expect(nav).toHaveCSS('position', 'fixed');
       await expect(nav).toHaveCSS('transform', 'none');
       await expect(nav).toHaveCSS('transition-duration', '0s');
@@ -160,6 +268,52 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(nav).toHaveCount(1);
     await expect(nav).toHaveAttribute('data-footer-world', 'global');
     await expect(nav.getByRole('link')).toHaveCount(6);
+  });
+
+  test('the World Hub landing page stays footerless', async ({ page }) => {
+    await visit(page, '/hub');
+    await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-bottom-nav-clearance="true"]')).toHaveCount(0);
+  });
+
+  test('all 84 transparent controls dispatch their exact existing destinations', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    for (const entry of WORLD_ROUTES) {
+      const definition = footerRegistry.worlds.find((world) => world.id === entry.id)!;
+      await visit(page, entry.route);
+      const nav = page.locator(`[data-footer-world="${entry.id}"]`);
+      await expect(nav).toHaveCount(1);
+
+      await page.evaluate(() => {
+        (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
+        document.addEventListener(
+          'click',
+          (event) => {
+            const target = event.target as Element | null;
+            const link = target?.closest?.('[data-footer-destination]') as HTMLAnchorElement | null;
+            if (!link) return;
+            event.preventDefault();
+            (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.push(
+              link.getAttribute('href') || ''
+            );
+          },
+          { capture: true, once: false }
+        );
+      });
+
+      const links = nav.getByRole('link');
+      for (let index = 0; index < definition.items.length; index += 1) {
+        await links.nth(index).click();
+      }
+
+      expect(
+        await page.evaluate(
+          () => (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit
+        )
+      ).toEqual(definition.items.map((item) => item.href));
+    }
   });
 
   test('Club Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {

@@ -1,5 +1,16 @@
 import registry from './world-footer-navigation.json';
 
+/**
+ * @typedef {{x: number, y: number, width: number, height: number}} FooterContentBounds
+ * @typedef {{src: string, width: number, height: number, sha256: string, contentBounds: FooterContentBounds}} FooterArtwork
+ * @typedef {{href: string, label: string, title: string, icon?: string, badge?: string}} FooterItem
+ * @typedef {{id: string, label: string, theme: string, accent: string, routePrefixes: string[], artwork: FooterArtwork, items: FooterItem[]}} ArtworkFooterDefinition
+ * @typedef {{fallback: Record<string, unknown>, worlds: ArtworkFooterDefinition[]}} FooterRegistry
+ */
+
+/** @type {FooterRegistry} */
+const footerRegistry = registry;
+
 const cleanPath = (value) => {
   const raw = String(value || '/').split(/[?#]/, 1)[0];
   return raw.replace(/\/+$/, '') || '/';
@@ -15,7 +26,7 @@ export const resolveWorldFooter = (value) => {
   if (isClubArenaOwnedRoute(path)) return null;
 
   return (
-    registry.worlds.find((world) =>
+    footerRegistry.worlds.find((world) =>
       world.routePrefixes.some(
         (prefix) => path === prefix || path.startsWith(`${prefix}/`)
       )
@@ -23,6 +34,6 @@ export const resolveWorldFooter = (value) => {
   );
 };
 
-export const getFallbackFooter = () => registry.fallback;
-export const WORLD_FOOTERS = registry.worlds;
-export default registry;
+export const getFallbackFooter = () => footerRegistry.fallback;
+export const WORLD_FOOTERS = footerRegistry.worlds;
+export default footerRegistry;

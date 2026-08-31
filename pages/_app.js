@@ -998,7 +998,12 @@ export default function App({ Component, pageProps }) {
                                   </>
                                 )}
                               </PageErrorBoundary>
-                              {showBottomNav && <BottomNavSpacer />}
+                              {showBottomNav && (
+                                <BottomNavSpacer
+                                  config={bottomNavConfig}
+                                  noSafeArea={Boolean(bottomNavRouteConfig?.noSafeArea)}
+                                />
+                              )}
                               {showBottomNav && (
                                 <BottomNavBar
                                   config={bottomNavConfig}
