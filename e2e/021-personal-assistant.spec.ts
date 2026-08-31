@@ -7,6 +7,35 @@ async function expectHealthyLayout(page: Page) {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+async function expectAccessibleMain(page: Page) {
+  const audit = await page.locator('main').evaluate((main) => {
+    const visible = (element: Element) => {
+      const style = window.getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+    };
+    const controls = [...main.querySelectorAll('button,a[href],input,select,textarea,[role="button"],[role="switch"],[role="tab"]')]
+      .filter(visible);
+    const unnamed = controls.filter((element) => !(
+      element.getAttribute('aria-label')
+      || element.getAttribute('title')
+      || element.textContent
+      || element.getAttribute('value')
+    )?.trim()).length;
+    const undersized = controls.filter((element) => {
+      const box = element.getBoundingClientRect();
+      return box.width < 44 || box.height < 44;
+    }).length;
+    const imagesWithoutAlt = [...main.querySelectorAll('img')]
+      .filter(visible)
+      .filter((image) => !image.hasAttribute('alt')).length;
+    const ids = [...main.querySelectorAll('[id]')].map((element) => element.id);
+    const duplicateIds = new Set(ids.filter((id, index) => ids.indexOf(id) !== index)).size;
+    return { unnamed, undersized, imagesWithoutAlt, duplicateIds };
+  });
+  expect(audit).toEqual({ unnamed: 0, undersized: 0, imagesWithoutAlt: 0, duplicateIds: 0 });
+}
+
 test.describe('Personal Assistant primary and secondary surfaces', () => {
   test('strategy hub exposes both systems without layout regression', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
@@ -15,6 +44,19 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByRole('heading', { name: 'Virtual Sandbox', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Leak Finder', exact: true })).toBeVisible();
     await expectHealthyLayout(page);
+  });
+
+  test('every Personal Assistant workspace meets its page-owned accessibility floor', async ({ page }) => {
+    for (const route of [
+      '/hub/personal-assistant',
+      '/hub/personal-assistant/sandbox',
+      '/hub/personal-assistant/leaks',
+    ]) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('main')).toBeVisible();
+      await expectAccessibleMain(page);
+      await expectHealthyLayout(page);
+    }
   });
 
   test('strategy hub keeps its primary command fully inside the mobile hero bay', async ({ page }, testInfo) => {
