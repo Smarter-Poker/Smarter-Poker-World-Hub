@@ -77,5 +77,17 @@ Printful connection remains deliberately deferred.
 
 ## Published Verification
 
-Production deployment identifiers, strict live verifier results, and the
-credentialed unauthenticated API probe are appended after publication.
+- Pull request 1143 merged to `main` as `806f807bb2`.
+- Vercel production deployment `dpl_6Hgp4VByt7jiAkCgAms6wUpuoUiD` reached
+  Ready at `hub-vanguard-8uggbrun0-smarter-poker.vercel.app`.
+- `https://smarter.poker/api/health` reported version `806f807b`, application
+  status `ok`, and database status `ok` against that deployment.
+- The strict production Marketplace verifier passed 27 of 27 checks: fourteen
+  routes, five cinematic assets, six private commerce API authorization
+  checks, the public catalog, readiness, card checkout, Diamond checkout, and
+  the deliberately deferred automatic-merch-fulfillment boundary.
+- Thirteen representative Marketplace pages and subpages returned HTTP 200
+  with zero banned long bars and zero new-tab targets.
+- The live unauthenticated checkout-status probe returned HTTP 401 with
+  `Cache-Control: private, no-store, max-age=0`, `Vary: Authorization`, and no
+  private purchase data.
