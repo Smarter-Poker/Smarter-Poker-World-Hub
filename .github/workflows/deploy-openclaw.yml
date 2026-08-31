@@ -11,7 +11,7 @@ name: Deploy Open Claw Cron Dispatcher
 #
 # OPENCLAW_HOST is deliberately separate from HETZNER_HOST. The latter belongs
 # to the PepNation/worker host and must never receive the cron dispatcher.
-# HETZNER_SSH_PRIVATE_KEY remains the shared deployment key.
+# OPENCLAW_SSH_PRIVATE_KEY is likewise scoped to the scheduler host.
 #
 # Note: `on: push`, NOT `schedule:`, so it does not violate
 # the cron-governance rule in CLAUDE.md §11.5.
@@ -40,7 +40,7 @@ jobs:
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
 
       - name: Require the canonical Open Claw host
         env:

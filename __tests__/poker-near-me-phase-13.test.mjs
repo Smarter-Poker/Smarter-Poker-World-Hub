@@ -202,7 +202,9 @@ assert len(attempts) == 2
 test('deployment workflow targets only Open Claw, preserves env, and verifies live hashes', async () => {
   const workflow = await source('.github/workflows/deploy-openclaw.yml');
   assert.match(workflow, /secrets\.OPENCLAW_HOST/);
+  assert.match(workflow, /secrets\.OPENCLAW_SSH_PRIVATE_KEY/);
   assert.doesNotMatch(workflow, /secrets\.HETZNER_HOST\b/);
+  assert.doesNotMatch(workflow, /secrets\.HETZNER_SSH_PRIVATE_KEY\b/);
   assert.match(workflow, /test -n "\$HOST"/);
   assert.match(workflow, /HETZNER_SSH_USER \|\| 'root'/);
   assert.match(workflow, /TWILIO_ACCOUNT_SID/);
