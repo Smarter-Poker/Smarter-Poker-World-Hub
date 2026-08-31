@@ -1501,7 +1501,23 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 
 ---
 
-## PHASE 68 — Marketplace Completion Phase 2 Of 8: Purchase Assurance (2026-08-31)
+## PHASE 68 — Poker Near Me Phase 5 Cross-Engine Navigation + Accessibility (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Browser-history contract | User surface changes push canonical entries, filter/search synchronization replaces in place, and Back/Forward restores matching React state without discarding live map/realtime ownership. |
+| Navigation-race repair | Page lifecycle guards prevent a stale debounced discovery writer from undoing a full state/city/detail navigation. |
+| Assistive route state | A polite live region announces same-document route changes and restored history state. |
+| Safari/WebKit hardening | The interactive tab rail owns its hit-test layer, visual masks have WebKit prefixes, and dedicated desktop/iPhone WebKit projects permanently cover the phase. |
+| Contrast resilience | Increased-contrast and forced-colors contracts preserve text, boundaries, selection, focus, and live indicators without relying on glow or background artwork. |
+| Shared-family preservation | The lobby, 11 canonical discovery destinations, and 12 representative discovery/location/detail/event source families retain their existing APIs, data, maps, filters, forms, permissions, and templates. |
+| Regression gate | Phase 17 is included in both `test:pnm` and repository prebuild, with compiled desktop/mobile navigation, semantics, reduced-motion, forced-colors, and overflow journeys. |
+
+**Pre-publication verification:** 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, and the exact webpack production build (403 static pages) passed. Preview WebKit and production evidence are tracked in `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
+
+---
+
+## PHASE 69 — Marketplace Completion Phase 2 Of 8: Purchase Assurance (2026-08-31)
 
 | Deliverable | Detail |
 |---|---|
