@@ -58,7 +58,7 @@ async function runTests() {
   await gc.initialize();
 
   // ═══════════════════════════════════════════════════════
-  section('1. VARIANT_MAP - All Club Arena Strings');
+  section('1. VARIANT_MAP — All Club Arena Strings');
   // ═══════════════════════════════════════════════════════
 
   const gcCode = fs.readFileSync('/home/claude/poker-engine/src/GameController.js', 'utf8');
@@ -82,7 +82,7 @@ async function runTests() {
   }
 
   // ═══════════════════════════════════════════════════════
-  section('2. connectToClubTable - Bridge Method');
+  section('2. connectToClubTable — Bridge Method');
   // ═══════════════════════════════════════════════════════
 
   assert(typeof gc.connectToClubTable === 'function', 'connectToClubTable method exists');
@@ -100,7 +100,7 @@ async function runTests() {
   assert(ploStruct === 'pot_limit', `PLO → pot_limit (got ${ploStruct})`);
 
   // ═══════════════════════════════════════════════════════
-  section('3. API Routes - All 7 Endpoints');
+  section('3. API Routes — All 7 Endpoints');
   // ═══════════════════════════════════════════════════════
 
   const apiRoutes = {
@@ -127,7 +127,7 @@ async function runTests() {
   assert(ccCode.includes('connectToClubTable'), 'club-connect calls connectToClubTable');
 
   // ═══════════════════════════════════════════════════════
-  section('4. Pages - Table + Lobby');
+  section('4. Pages — Table + Lobby');
   // ═══════════════════════════════════════════════════════
 
   const pages = {
@@ -174,7 +174,7 @@ async function runTests() {
   assert(tableCode.includes('numHoleCards'), 'Card width scaled by numHoleCards');
 
   // ═══════════════════════════════════════════════════════
-  section('6. All 6 Variants - Full Hand Through Engine');
+  section('6. All 6 Variants — Full Hand Through Engine');
   // ═══════════════════════════════════════════════════════
 
   const variantTests = [
@@ -262,7 +262,7 @@ async function runTests() {
   // Tournament tables exist in DB (verified via curl earlier)
   // Engine doesn't have tournament logic yet — verify it's a known gap
   assert(!gcCode.includes('TournamentController') && !gcCode.includes('blind_level'),
-    'Tournament engine NOT yet implemented (expected - Phase 10+)');
+    'Tournament engine NOT yet implemented (expected — Phase 10+)');
 
   // But the engine supports the building blocks:
   assert(gcCode.includes('closeTable'), 'Engine can close tables (for elimination)');

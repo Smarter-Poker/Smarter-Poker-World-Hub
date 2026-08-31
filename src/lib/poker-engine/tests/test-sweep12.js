@@ -42,7 +42,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 1: MODULE 8 — COUNTER-EXPLOIT PROFILER (Standard Mode)
     // ═══════════════════════════════════════════════════════════════
-    console.debug('--- TEST 1: Module 8 - selectCounterStrategy (clean state) ---');
+    console.debug('--- TEST 1: Module 8 — selectCounterStrategy (clean state) ---');
     const cs1 = Brain.selectCounterStrategy(HORSE, HUMAN, TABLE);
     assert(typeof cs1 === 'object', 'selectCounterStrategy returns object');
     assert(typeof cs1.mode === 'string', `mode is string: "${cs1.mode}"`);
@@ -52,7 +52,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 2: MODULE 3 — SHOWDOWN EXPOSURE TRACKER
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 2: Module 3 - Showdown Exposure Tracker ---');
+    console.debug('\n--- TEST 2: Module 3 — Showdown Exposure Tracker ---');
 
     // Simulate showdowns in processHandResult
     for (let i = 0; i < 4; i++) {
@@ -75,7 +75,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 3: MODULE 8 — COUNTER-EXPLOIT PROFILER (Stealth Mode Triggered)
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 3: Module 8 - Counter-Exploit Profiler (stealth trigger) ---');
+    console.debug('\n--- TEST 3: Module 8 — Counter-Exploit Profiler (stealth trigger) ---');
 
     // Simulate heavy showdown exposure (8+ showdowns)
     const expMapHorse = Brain.showdownExposureMap;
@@ -92,7 +92,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 4: MODULE 4 — PATTERN EXPLOITATION DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 4: Module 4 - Pattern Exploitation Detector ---');
+    console.debug('\n--- TEST 4: Module 4 — Pattern Exploitation Detector ---');
 
     // Simulate a human exploiting via c-bets for 6BB
     const pMap = Brain.patternProfitMap;
@@ -106,7 +106,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 5: MODULE 7 — BOT/SOLVER OPPONENT DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 5: Module 7 - Bot/Solver Opponent Detector ---');
+    console.debug('\n--- TEST 5: Module 7 — Bot/Solver Opponent Detector ---');
 
     // Inject a high bot score manually
     const bMap = Brain.suspectBotMap;
@@ -124,7 +124,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 6: MODULE 7 — BOT SCORE CALCULATION
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 6: Module 7 - Bot Score Math ---');
+    console.debug('\n--- TEST 6: Module 7 — Bot Score Math ---');
 
     const testBot = { perfectFolds: 10, gtoSizes: 15, humanErrors: 5, handsObserved: 20, suspectScore: 0 };
     const obsCount = Math.max(1, testBot.handsObserved);
@@ -136,7 +136,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 6 — ENHANCED CHAOS (Cooldown Suppression)
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 7: Module 6 - Chaos Cooldown State ---');
+    console.debug('\n--- TEST 7: Module 6 — Chaos Cooldown State ---');
 
     const cMap = Brain.chaosSuppressionMap;
     assert(typeof cMap === 'object' || cMap instanceof Map, 'chaosSuppressionMap is exported Map');
@@ -166,13 +166,13 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 8: MODULE 1 — FREQUENCY OBFUSCATOR (Map Exists)
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 8: Module 1 - Frequency Obfuscator Map ---');
+    console.debug('\n--- TEST 8: Module 1 — Frequency Obfuscator Map ---');
     assert(Brain.frequencyObfuscatorMap instanceof Map, 'frequencyObfuscatorMap is a Map');
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 9: MODULE 2 — BET SIZE NOISE INJECTOR (Jitter Bounds)
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 9: Module 2 - Bet Size Noise Injector (Statistical) ---');
+    console.debug('\n--- TEST 9: Module 2 — Bet Size Noise Injector (Statistical) ---');
 
     let betAmounts = [];
     for (let i = 0; i < 20; i++) {
@@ -199,18 +199,18 @@ function assert(condition, label) {
     if (betAmounts.length >= 3) {
         const minBet = Math.min(...betAmounts);
         const maxBet = Math.max(...betAmounts);
-        assert(maxBet > minBet, `Bet sizes vary with noise (range: ${minBet}-${maxBet})`);
+        assert(maxBet > minBet, `Bet sizes vary with noise (range: ${minBet}–${maxBet})`);
         // In anti_bot mode chaos can fire (18% rate), producing wider swings — cap at 6x
         assert(maxBet / Math.max(1, minBet) < 6.0, `Noise within realistic bounds (max/min ratio: ${(maxBet / Math.max(1, minBet)).toFixed(2)})`);
     } else {
-        assert(true, 'Not enough bet hands sampled - skipped bet noise range check');
+        assert(true, 'Not enough bet hands sampled — skipped bet noise range check');
     }
 
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 10: MODULE 5 — STACK SANDWICH DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 10: Module 5 - Stack Sandwich Detector ---');
+    console.debug('\n--- TEST 10: Module 5 — Stack Sandwich Detector ---');
 
     // Simulate 3-player situation where horse is in middle (sandwiched)
     let sandwichResult;
@@ -251,7 +251,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 12: REGRESSION — ALL SWEEP 11 KEY EXPORTS
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 12: Regression - All Sweep 11 Key Exports ---');
+    console.debug('\n--- TEST 12: Regression — All Sweep 11 Key Exports ---');
 
     const keyExports = [
         'getDecision', 'loadHorseIds', 'processHandResult', 'evaluatePostflopHand',
@@ -266,7 +266,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 13: REGRESSION — GARBAGE FOLDING
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 13: Regression - Garbage Folding ---');
+    console.debug('\n--- TEST 13: Regression — Garbage Folding ---');
 
     let folds = 0;
     for (let i = 0; i < 10; i++) {
@@ -291,7 +291,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 14: REGRESSION — STRONG HAND BETTING
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 14: Regression - Strong Hand Betting ---');
+    console.debug('\n--- TEST 14: Regression — Strong Hand Betting ---');
 
     let bets = 0;
     for (let i = 0; i < 10; i++) {
@@ -316,7 +316,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 15: REGRESSION — PLO DECISION ROUTING
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 15: Regression - PLO Routing ---');
+    console.debug('\n--- TEST 15: Regression — PLO Routing ---');
 
     let ploActions = 0;
     for (let i = 0; i < 5; i++) {
@@ -349,7 +349,7 @@ function assert(condition, label) {
         console.debug('\n❌ FAILURES:');
         failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.debug('\n✅ ALL 8 MODULES VERIFIED - SWEEP 12 CLEAN');
+        console.debug('\n✅ ALL 8 MODULES VERIFIED — SWEEP 12 CLEAN');
     }
 
     console.debug('');

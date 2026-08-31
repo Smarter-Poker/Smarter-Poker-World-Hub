@@ -41,7 +41,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 1: MODULE 17 — PLO Runout Equity Re-Evaluator
     // ═══════════════════════════════════════════════════════════════
-    console.debug('--- TEST 1: Module 17 - reevaluatePLORunoutEquity ---');
+    console.debug('--- TEST 1: Module 17 — reevaluatePLORunoutEquity ---');
     const blank = Brain.reevaluatePLORunoutEquity(55, 56, 'turn');
     assert(blank.runoutType === 'blank', `Blank runout (+1 delta) = blank (got: ${blank.runoutType})`);
     assert(blank.multiplier === 1.0, `Blank runout multiplier = 1.0 (got: ${blank.multiplier})`);
@@ -64,7 +64,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 2: MODULE 18 — SPR Pot-Commitment Trap Detector
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 2: Module 18 - detectSPRTrap ---');
+    console.debug('\n--- TEST 2: Module 18 — detectSPRTrap ---');
     const noTrap = Brain.detectSPRTrap(20, 100, 500, 2, 60);
     assert(noTrap.shouldFoldTrap === false, 'Undersized bet = no trap');
 
@@ -81,7 +81,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 3: MODULE 19 — Probe-Bet Frequency Harvester
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 3: Module 19 - recordProbeBet / getProbeFarmScore ---');
+    console.debug('\n--- TEST 3: Module 19 — recordProbeBet / getProbeFarmScore ---');
     // Simulate 6 probe bets, 5 wins
     for (let i = 0; i < 6; i++) {
         Brain.recordProbeBet(HUMAN, 0.25, i < 5, 10);
@@ -103,7 +103,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 4: MODULE 20 — Table Image Exposure Monitor
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 4: Module 20 - recordTableImageHand / isImageExposed ---');
+    console.debug('\n--- TEST 4: Module 20 — recordTableImageHand / isImageExposed ---');
     // Play 10 hands, 4 showdowns = 40% → exposed
     for (let i = 0; i < 10; i++) {
         Brain.recordTableImageHand(HORSE, TABLE_A, i < 4);
@@ -124,7 +124,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 5: MODULE 21 — PLO Preflop Limp-Trap Detector
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 5: Module 21 - detectLimpTrap ---');
+    console.debug('\n--- TEST 5: Module 21 — detectLimpTrap ---');
     const dangerousTrap = Brain.detectLimpTrap(3, 'btn', 4, false);
     assert(dangerousTrap.isLimpTrap === true, '3 limpers + short SPR = limp trap');
     assert(dangerousTrap.recommendation === 'prefer_call_or_fold', 'Recommendation: call or fold');
@@ -140,7 +140,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 6: MODULE 22 — Isolation Sizing Tell Tracker
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 6: Module 22 - recordIsoSize / isMechanicalIsolator ---');
+    console.debug('\n--- TEST 6: Module 22 — recordIsoSize / isMechanicalIsolator ---');
     // Simulate mechanical isolator (always raises exactly 4BB)
     for (let i = 0; i < 6; i++) Brain.recordIsoSize(HUMAN, 4.0);
     const mechResult = Brain.isMechanicalIsolator(HUMAN);
@@ -163,7 +163,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 23 — OOP Positional Equity Leak Guard
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 7: Module 23 - getOOPPositionalGuard ---');
+    console.debug('\n--- TEST 7: Module 23 — getOOPPositionalGuard ---');
     const inPosition = Brain.getOOPPositionalGuard(true, false, 45, 'flop');
     assert(inPosition.shouldGuard === false, 'In-position: no guard needed');
     assert(inPosition.equityBoost === 0, 'In-position: no equity boost');
@@ -184,7 +184,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 8: MODULE 24 — River Donk-Bet Exploitation Block
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 8: Module 24 - evaluateDonkBet ---');
+    console.debug('\n--- TEST 8: Module 24 — evaluateDonkBet ---');
     const strongVsDonk = Brain.evaluateDonkBet(30, 100, true, 70);
     assert(strongVsDonk.action === 'raise', `Strong equity (70) vs donk = raise (got: ${strongVsDonk.action})`);
 
@@ -222,7 +222,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 10: REGRESSION — Phase 2 Exports Still Intact
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 10: Regression - Phase 2 Exports ---');
+    console.debug('\n--- TEST 10: Regression — Phase 2 Exports ---');
     const p2exports = [
         '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
         'crossTableRadar', 'getRangeRotationGear', 'rangeRotationMap',
@@ -236,7 +236,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 11: REGRESSION — Core Brain Functions
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 11: Regression - Core Brain Functions ---');
+    console.debug('\n--- TEST 11: Regression — Core Brain Functions ---');
     const coreExports = ['getDecision', 'processHandResult', 'evaluatePostflopHand', 'isHorse', 'evolveHorseSkill'];
     for (const fn of coreExports) {
         assert(typeof Brain[fn] === 'function', `Brain.${fn} is function`);
@@ -245,7 +245,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 12: INTEGRATION — PLO Decision Still Works
     // ═══════════════════════════════════════════════════════════════
-    console.debug('\n--- TEST 12: Integration - PLO Decision ---');
+    console.debug('\n--- TEST 12: Integration — PLO Decision ---');
     let ploDecisions = 0;
     for (let i = 0; i < 5; i++) {
         const r = await Brain.getDecision(HORSE, {
@@ -273,7 +273,7 @@ function assert(condition, label) {
         console.debug('\n❌ FAILURES:');
         failures.forEach(f => console.warn(`  - ${f}`));
     } else {
-        console.debug('\n✅ ALL PHASE 3 MODULES VERIFIED - SWEEP 14 CLEAN');
+        console.debug('\n✅ ALL PHASE 3 MODULES VERIFIED — SWEEP 14 CLEAN');
     }
     console.debug('');
     process.exit(failed > 0 ? 1 : 0);

@@ -65,7 +65,7 @@ function createTable(overrides = {}) {
 
 // ============ CARD ASSETS TESTS ============
 
-group('CardAssets - Custom Deck Mapping');
+group('CardAssets — Custom Deck Mapping');
 
 test('getCardFilename: Ace of Hearts', () => {
   // Engine: Ace = rank 12, Hearts = suit 2 → card = 12*4+2 = 50
@@ -202,7 +202,7 @@ test('All filenames match expected pattern', () => {
 
 // ============ TABLE MANAGER TESTS ============
 
-group('TableManager - Seat Management');
+group('TableManager — Seat Management');
 
 test('Create table with correct seat count', () => {
   const table = createTable({ maxSeats: 6 });
@@ -301,7 +301,7 @@ test('Reject chips above max buy-in', () => {
   table.destroy();
 });
 
-group('TableManager - Waitlist');
+group('TableManager — Waitlist');
 
 test('Join waitlist', () => {
   const table = createTable();
@@ -353,7 +353,7 @@ test('Sitting down removes from waitlist', () => {
   table.destroy();
 });
 
-group('TableManager - Disconnect Handling');
+group('TableManager — Disconnect Handling');
 
 test('Handle disconnect marks seat', () => {
   const table = createTable();
@@ -373,7 +373,7 @@ test('Handle reconnect restores seat', () => {
   table.destroy();
 });
 
-group('TableManager - State');
+group('TableManager — State');
 
 test('getState returns full table info', () => {
   const table = createTable();
@@ -390,7 +390,7 @@ test('getState returns full table info', () => {
   table.destroy();
 });
 
-group('TableManager - Hand Lifecycle');
+group('TableManager — Hand Lifecycle');
 
 test('Start hand with 2+ players', () => {
   const table = createTable({ autoStartDelay: 999999 }); // Disable auto
@@ -456,7 +456,7 @@ test('Admin close cashes out all players', () => {
 
 // ============ ACTION TIMER TESTS ============
 
-group('ActionTimer - Turn Timer');
+group('ActionTimer — Turn Timer');
 
 test('Timer starts and tracks state', () => {
   let expired = false;
@@ -599,7 +599,7 @@ test('Timer expiry calls onExpire (fast timer)', (done) => {
 
 // ============ HAND HISTORY TESTS ============
 
-group('HandHistory - Recording');
+group('HandHistory — Recording');
 
 test('Begin hand creates record', () => {
   const recorder = new HandHistoryRecorder({
@@ -755,7 +755,7 @@ test('Complete hand calculates net results', async () => {
 
 // ============ INTEGRATION: TABLE + HAND FLOW ============
 
-group('Integration - Full Hand at Table');
+group('Integration — Full Hand at Table');
 
 test('Complete hand flow: 2 players, fold preflop', () => {
   const table = createTable({ autoStartDelay: 999999 });

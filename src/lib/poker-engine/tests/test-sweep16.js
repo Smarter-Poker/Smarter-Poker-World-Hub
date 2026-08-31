@@ -28,7 +28,7 @@ function assert(condition, label, extra = '') {
     } else {
         failed++;
         failures.push(label);
-        console.warn(`  ❌ FAIL: ${label}${extra ? ' - ' + extra : ''}`);
+        console.warn(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
     }
 }
 
@@ -91,7 +91,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
 
 (async () => {
     console.debug('\n═══════════════════════════════════════════════════════════════');
-    console.debug('  🔬 SWEEP 16: DEEP BEHAVIORAL SIMULATION - FULL WIRING AUDIT');
+    console.debug('  🔬 SWEEP 16: DEEP BEHAVIORAL SIMULATION — FULL WIRING AUDIT');
     console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const horses = await Brain.loadHorseIds();
@@ -106,7 +106,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
 
     // ─── MODULE 25: MIN-RAISE HARASSMENT ───
     // When opponent is a habitual min-raiser, horse should NOT fold to min-raises
-    console.debug('--- A1: Module 25 - Min-Raise does NOT cause fold when detected ---');
+    console.debug('--- A1: Module 25 — Min-Raise does NOT cause fold when detected ---');
     // Baseline: no min-raise history — horse facing a 2BB squeeze on a marginal hand
     const baselineA1 = await Brain.getDecision(HR, ploState(HR, DRY_FLOP, DRAW_HAND, 10, 2, 50, 'bb'), legal(2, 50, 10), tc());
     // Load min-raise history for HU1
@@ -117,7 +117,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(['call', 'raise'].includes(minRaiseActive.action?.type), `M25: Horse does not fold to known min-raiser (got: ${minRaiseActive.action?.type})`);
 
     // ─── MODULE 26: SQUEEZE OVERKILL ───
-    console.debug('\n--- A2: Module 26 - Squeeze Overkill detection wired ---');
+    console.debug('\n--- A2: Module 26 — Squeeze Overkill detection wired ---');
     for (let i = 0; i < 4; i++) Brain.recordSqueeze(HU1, 80, 10); // 8× pot squeeze = massive overkill
     assert(Brain.isSqueezeOverkill(HU1).isOverkill === true, 'M26: HU1 correctly classified as squeeze overkiller');
     assert(Brain.isSqueezeOverkill(HU1).avgMult === 8, `M26: Avg mult = 8 (got: ${Brain.isSqueezeOverkill(HU1).avgMult})`);
@@ -128,7 +128,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(sqzDecision.action?.type !== undefined, `M26: Decision produced with squeeze overkill state (got: ${sqzDecision.action?.type})`);
 
     // ─── MODULE 27: REVERSE IMPLIED ODDS ───
-    console.debug('\n--- A3: Module 27 - RIO Guard blocks bad draw calls ---');
+    console.debug('\n--- A3: Module 27 — RIO Guard blocks bad draw calls ---');
     // RIO guard: 6 outs, calling 40% of pot, 10BB effective, 3 opponents, wet board
     const rio1 = Brain.detectReverseImplied(6, 0.40, 10, 3, true);
     assert(rio1.shouldBlock === true, `M27 function: 6 outs vs 40% pot wet board 3-way = block (rioFactor: ${rio1.rioFactor})`);
@@ -142,7 +142,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(rio1.rioFactor > rioNut.rioFactor, 'M27 function: Weak draw has higher RIO factor than nut draw');
 
     // ─── MODULE 28: COLD-CALL TRAP ───
-    console.debug('\n--- A4: Module 28 - Cold-Call trap reduces continuance ---');
+    console.debug('\n--- A4: Module 28 — Cold-Call trap reduces continuance ---');
     for (let i = 0; i < 5; i++) {
         Brain.recordColdCall(HU2);
         Brain.recordBarrelVsColdCall(HU2, false); // Barrels always fail
@@ -163,7 +163,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(true, `M28: Horse varies between check/bet vs cold-callers (aggression: ${coldBets > 0 ? 'active' : 'reduced'})`);
 
     // ─── MODULE 29: BOMB-POT / STRADDLE ───
-    console.debug('\n--- A5: Module 29 - Bomb-pot raises commit threshold ---');
+    console.debug('\n--- A5: Module 29 — Bomb-pot raises commit threshold ---');
     const standard = Brain.detectBombPotOrStraddle(4, 2, false);
     const bombPot = Brain.detectBombPotOrStraddle(30, 2, false); // 15×BB
     const straddle = Brain.detectBombPotOrStraddle(6, 2, true);
@@ -179,7 +179,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(bombDecision.action?.type !== undefined, `M29: Decision produced in bomb-pot context (got: ${bombDecision.action?.type})`);
 
     // ─── MODULE 30: ANGLE-SHOOT TIMING ───
-    console.debug('\n--- A6: Module 30 - Angle-shoot timing adds entropy ---');
+    console.debug('\n--- A6: Module 30 — Angle-shoot timing adds entropy ---');
     const ANGLER = 'cccccccc-0000-0000-0000-000000000001';
     for (let i = 0; i < 8; i++) Brain.recordActionTiming(ANGLER, 200); // All instant
     const angleResult = Brain.detectAngleShoot(ANGLER);
@@ -196,7 +196,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(angleSumDelay > 0, `M30: delayMs is positive when angler detected (total: ${angleSumDelay}ms)`);
 
     // ─── MODULE 31: RIT REFUSAL ───
-    console.debug('\n--- A7: Module 31 - RIT Refusal raises all-in threshold ---');
+    console.debug('\n--- A7: Module 31 — RIT Refusal raises all-in threshold ---');
     const REFUSER = 'cccccccc-0000-0000-0000-000000000002';
     Brain.recordRITResponse(REFUSER, false);
     Brain.recordRITResponse(REFUSER, false);
@@ -209,7 +209,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(baseThreshold + ritBoost === 57, `M31: Base ${baseThreshold} + RIT boost ${ritBoost} = ${baseThreshold + ritBoost}`);
 
     // ─── MODULE 32: CHIP-LEAK FORENSICS ───
-    console.debug('\n--- A8: Module 32 - Chip-leak forensics applies boosts ---');
+    console.debug('\n--- A8: Module 32 — Chip-leak forensics applies boosts ---');
     const LEAKY = 'cccccccc-0000-0000-0000-000000000003';
     const LEAK_TABLE = 'leak-sim-table';
     Brain.recordChipLeak(LEAKY, LEAK_TABLE, 'oop_check_call', 25);
@@ -230,7 +230,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     console.debug('\n═══ SECTION B: PHASE 3 BEHAVIORAL IMPACT TESTS ═══\n');
 
     // ─── MODULE 17: RUNOUT EQUITY ───
-    console.debug('--- B1: Module 17 - Runout re-evaluation ---');
+    console.debug('--- B1: Module 17 — Runout re-evaluation ---');
     const blank = Brain.reevaluatePLORunoutEquity(60, 60, 'turn');
     const scare = Brain.reevaluatePLORunoutEquity(60, 30, 'turn');
     const improve = Brain.reevaluatePLORunoutEquity(60, 80, 'turn');
@@ -242,7 +242,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(scare.multiplier < improve.multiplier, 'M17: Scare < Improve multiplier (ordering correct)');
 
     // ─── MODULE 18: SPR TRAP DETECTOR ───
-    console.debug('\n--- B2: Module 18 - SPR pot-commitment trap ---');
+    console.debug('\n--- B2: Module 18 — SPR pot-commitment trap ---');
     // detectSPRTrap(toCall, potTotal, stack, numPlayers, equity)
     const spr1 = Brain.detectSPRTrap(50, 50, 100, 2, 45); // pot-size jam at 45% equity = trap
     const spr2 = Brain.detectSPRTrap(50, 50, 100, 2, 75); // same bet but 75% equity = no trap
@@ -252,7 +252,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(spr3.isTrap === false, `M18: Small bet = no trap even at 45% equity (got: ${spr3.isTrap})`);
 
     // ─── MODULE 19: PROBE-BET HARVESTER ───
-    console.debug('\n--- B3: Module 19 - Probe-bet farming defense ---');
+    console.debug('\n--- B3: Module 19 — Probe-bet farming defense ---');
     const FARMER = 'dddddddd-0000-0000-0000-000000000001';
     for (let i = 0; i < 5; i++) Brain.recordProbeBet(FARMER, 0.20, true, 5); // Consistent small probes that win
     const farmScore = Brain.getProbeFarmScore(FARMER);
@@ -260,7 +260,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(farmScore > 0.5, `M19: Consistent winning probes = high farm score (got: ${farmScore.toFixed(2)})`);
 
     // ─── MODULE 20: TABLE IMAGE ───
-    console.debug('\n--- B4: Module 20 - Table image exposure ---');
+    console.debug('\n--- B4: Module 20 — Table image exposure ---');
     // 10 hands, 5 showdowns = 50% rate (exposed)
     for (let i = 0; i < 10; i++) Brain.recordTableImageHand(HR, TABLE + '-img', i < 5);
     assert(Brain.isImageExposed(HR, TABLE + '-img') === true, 'M20: 50% showdown rate = image exposed');
@@ -269,7 +269,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(Brain.isImageExposed(HR2, TABLE + '-img2') === false, 'M20: <8 hands = not classified');
 
     // ─── MODULE 21: LIMP TRAP ───
-    console.debug('\n--- B5: Module 21 - PLO preflop limp trap ---');
+    console.debug('\n--- B5: Module 21 — PLO preflop limp trap ---');
     const limpTrap3 = Brain.detectLimpTrap(3, 'EP', 2.5, false); // 3 limpers, short SPR
     const limpTrapSafe = Brain.detectLimpTrap(1, 'BTN', 15, false); // 1 limper, deep stack
     const limpTrapNut = Brain.detectLimpTrap(3, 'EP', 2.5, true); // Nut hand ignores trap
@@ -279,7 +279,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(limpTrapNut.isLimpTrap === false, 'M21: Nut hand overrides limp trap');
 
     // ─── MODULE 22: ISO SIZING TELL ───
-    console.debug('\n--- B6: Module 22 - Isolation sizing tell ---');
+    console.debug('\n--- B6: Module 22 — Isolation sizing tell ---');
     const MECHISO = 'dddddddd-0000-0000-0000-000000000002';
     for (let i = 0; i < 6; i++) Brain.recordIsoSize(MECHISO, 4.0); // Always exactly 4BB
     const isoResult = Brain.isMechanicalIsolator(MECHISO);
@@ -287,7 +287,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(isoResult.avgSize === 4.0, `M22: Avg size = 4BB (got: ${isoResult.avgSize})`);
 
     // ─── MODULE 23: OOP POSITIONAL GUARD ───
-    console.debug('\n--- B7: Module 23 - OOP positional equity guard ---');
+    console.debug('\n--- B7: Module 23 — OOP positional equity guard ---');
     const oopGuard = Brain.getOOPPositionalGuard(false, false, 45, 'flop'); // OOP, no initiative, 45% equity
     const ipGuard = Brain.getOOPPositionalGuard(true, false, 45, 'flop');  // IP = no guard
     const oopInit = Brain.getOOPPositionalGuard(false, true, 45, 'flop'); // OOP but has initiative
@@ -299,7 +299,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(oopGuard.equityBoost > ipGuard.equityBoost, 'M23: OOP guard boost larger than IP');
 
     // ─── MODULE 24: DONK-BET EXPLOITATION ───
-    console.debug('\n--- B8: Module 24 - River donk-bet exploitation ---');
+    console.debug('\n--- B8: Module 24 — River donk-bet exploitation ---');
     const donkRaise = Brain.evaluateDonkBet(5, 10, true, 70);  // Good equity + IP = raise
     const donkFold = Brain.evaluateDonkBet(5, 10, true, 30);   // Weak equity + IP = fold
     const donkCall = Brain.evaluateDonkBet(5, 10, true, 55);   // Medium equity = call
@@ -393,7 +393,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         const r = await Brain.getDecision(HR, ploState(HR, WET_FLOP, WEAK_HAND, 10, 0, 30, 'sb'), legal(0, 30, 10), tc());
         if (r.action?.type === 'bet' || r.action?.type === 'raise') oopBets++;
     }
-    assert(oopBets <= 6, `C4: OOP weak hand limits bet frequency (bets: ${oopBets}/10 - should be ≤6)`);
+    assert(oopBets <= 6, `C4: OOP weak hand limits bet frequency (bets: ${oopBets}/10 — should be ≤6)`);
 
     console.debug('\n--- C5: Bomb-pot forces higher equity threshold ---');
     // Horse should be tighter in bomb with medium-strength hand
@@ -557,7 +557,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         failures.forEach(f => console.warn(`  - ${f}`));
         process.exit(1);
     } else {
-        console.debug('\n✅ ALL SYSTEMS VERIFIED - SWEEP 16 DEEP AUDIT CLEAN');
+        console.debug('\n✅ ALL SYSTEMS VERIFIED — SWEEP 16 DEEP AUDIT CLEAN');
     }
     console.debug('');
 })();

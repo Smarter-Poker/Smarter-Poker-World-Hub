@@ -28,7 +28,7 @@ function assert(condition, label, extra = '') {
     } else {
         failed++;
         failures.push(label);
-        console.warn(`  ❌ FAIL: ${label}${extra ? ' - ' + extra : ''}`);
+        console.warn(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
     }
 }
 
@@ -90,7 +90,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
 
 (async () => {
     console.debug('\n═══════════════════════════════════════════════════════════════');
-    console.debug('  🔬 SWEEP 17: 9-BUG REGRESSION - TARGETED FIX VERIFICATION');
+    console.debug('  🔬 SWEEP 17: 9-BUG REGRESSION — TARGETED FIX VERIFICATION');
     console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const horses = await Brain.loadHorseIds();
@@ -193,7 +193,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         const r = await Brain.getDecision(HR, multiwayState, legal(0, 100, 8), tc());
         if (r.action?.type === 'bet' || r.action?.type === 'raise') mwBets++;
     }
-    assert(mwBets >= 1, `BUG-3: Nut hand in 4-way bets at least once (bets: ${mwBets}/10 - multiway governor throttles, was 0 before fix)`);
+    assert(mwBets >= 1, `BUG-3: Nut hand in 4-way bets at least once (bets: ${mwBets}/10 — multiway governor throttles, was 0 before fix)`);
 
     // BUG-4: getPLOLimpedPotStrategy — with 0 equity, never stabs limped pots
     console.debug('\n--- BUG-4: Limped pot strategy receives real equity ---');
@@ -204,7 +204,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         const r = await Brain.getDecision(HR, limpState, legal(0, 100, 8), tc());
         if (r.action?.type === 'bet' || r.action?.type === 'raise') limpBets++;
     }
-    assert(limpBets >= 1, `BUG-4: Nut hand in limped pot bets at least once (bets: ${limpBets}/10 - range rotation may throttle, was 0 before fix)`);
+    assert(limpBets >= 1, `BUG-4: Nut hand in limped pot bets at least once (bets: ${limpBets}/10 — range rotation may throttle, was 0 before fix)`);
 
     // BUG-5: getPLOSidePotAwareness — with 0 equity was suggesting fold
     console.debug('\n--- BUG-5: Side-pot awareness receives real equity ---');
@@ -225,7 +225,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     }
     // Note: AAKK in BB HU is a valid slow-play scenario — checking is correct PLO strategy
     // The key verification is that the function receives real equity (not 0)
-    assert(true, `BUG-6: Blind battle produces valid decision with real equity (bets: ${bbBets}/10 - BB slow-play is valid PLO strategy)`);
+    assert(true, `BUG-6: Blind battle produces valid decision with real equity (bets: ${bbBets}/10 — BB slow-play is valid PLO strategy)`);
 
     // BUG-7: getPLODonkBetOpportunity — with 0 equity never donk bets
     console.debug('\n--- BUG-7: Donk bet opportunity receives real equity ---');
@@ -247,7 +247,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         const r = await Brain.getDecision(HR, coldCallState, legal(4, 100, 6), tc());
         if (r.action?.type === 'call' || r.action?.type === 'raise') coldCalls++;
     }
-    assert(coldCalls >= 3, `BUG-8: Nut hand facing raise calls/raises (continues: ${coldCalls}/10 - was 0 before fix)`);
+    assert(coldCalls >= 3, `BUG-8: Nut hand facing raise calls/raises (continues: ${coldCalls}/10 — was 0 before fix)`);
 
     // ══════════════════════════════════════════════════════════════
     // BUG-9: Module 32 leak classification priority
@@ -381,7 +381,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         failures.forEach(f => console.warn(`  - ${f}`));
         process.exit(1);
     } else {
-        console.debug('\n✅ ALL 9 BUG FIXES VERIFIED - SWEEP 17 REGRESSION CLEAN');
+        console.debug('\n✅ ALL 9 BUG FIXES VERIFIED — SWEEP 17 REGRESSION CLEAN');
     }
     console.debug('');
 })();
