@@ -59,3 +59,12 @@ The final Phase 2 audit reopened the notification evidence instead of relying on
 - Regression coverage checks route installation, dynamic mutations, accessible copy, browser titles, responsive layout, and every primary/secondary Personal Assistant surface.
 
 Closeout verification before release: 103 deterministic/Personal Assistant/push tests passed, TypeScript passed, the full webpack production build passed with 403 generated pages, and the local desktop/mobile Personal Assistant matrix passed every unauthenticated-compatible case. The authenticated durable-job browser case is reserved for the production-origin fixture after deployment.
+
+## Final Published Verification
+
+- PR [#1129](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1129) merged the copy policy, receipt reconciliation, route wiring, and regression coverage at `176c214d`.
+- Vercel health reported a deployed revision descended from `176c214d` before the final live probes.
+- After refreshing the production-origin authenticated fixture, the complete desktop/mobile Personal Assistant matrix finished with 22 passing checks and two intentionally skipped desktop-inapplicable mobile geometry checks.
+- The owner audit endpoint returned 200 and restored completed job `7a9364fa-a910-480b-8cdd-d9f0bda35734`: seven batches, 1,347 scanned hands, 1,570 persisted decisions, and `consistent=true`. Anonymous access and a forged worker token both returned 401. The public projection exposed zero owner, cursor, lease, or worker-token keys at any nesting depth.
+- Production contained exactly one audit-completion notification, one matching outbox event, zero duplicate notification/outbox groups, one confirmed active iPhone endpoint, and one confirmed active Mac endpoint. Three older unconfirmed duplicates remain preserved as inactive history.
+- Follow-up migration `20260831173000` reconciled production privileges after deployment: `anon=false`, `authenticated=false`, and `service_role=true` for the receipt-confirmation RPC. The migration is recorded in remote migration history.
