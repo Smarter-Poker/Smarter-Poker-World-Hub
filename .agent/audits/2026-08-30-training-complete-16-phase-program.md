@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phase 1 Complete; Phase 2 In Progress
+Status: Phases 1-2 Complete; Phase 3 In Progress
 
 ## Objective
 
@@ -212,3 +212,41 @@ complete.
 ## Phase 1 Remaining Exit Items
 
 None. Phase 2 may begin from the published `09eb5bdf` production baseline.
+
+## Phase 2 Evidence
+
+- Inventory PR 1055 merged normally as
+  `31543bd4f64419692c454b97ed00119cf08e400a`; authenticated production-closeout
+  PR 1056 merged normally as
+  `9bee6d2022a6e1b78fcec453b4184a551e697585`.
+- The authoritative machine-readable inventory covers 107 canonical games, 94
+  Training route templates, 214 canonical play/arena expansions, 51 API route
+  templates, 588 dependencies, 337 components, 15 hooks, 765 CTAs, 12 dialogs,
+  77 persistence files, 8 realtime files, and 25 Training-aware test files.
+- All 765 CTAs have explicit wiring or intentional disabled-state evidence.
+  All 315 audit-marker candidates and 342 one-reference function candidates
+  have recorded dispositions; 65 dead or unwired functions were removed.
+- The 752-cell route-state ledger records 236 currently unevidenced cells and
+  assigns every one to its exact later implementation phase. The unassigned
+  queue is zero, so the program does not infer untested states as complete.
+- The complete runtime inventory opened 306 unique Training paths on desktop
+  and mobile: 612/612 jobs passed with zero scanlines, overflow failures,
+  broken images, page errors, or relevant console errors.
+- Thirty-eight focused Training tests, TypeScript compilation, inventory
+  freshness, syntax checks, Build Safety, Global Footer E2E, Supabase
+  invariants, and every required protected-publication guard passed.
+- The production harness now rejects expired authentication before any
+  real-account assertion and rejects an unexplained 107-card drift. A fresh
+  authenticated certification passed 107/107 card images, three 12-level
+  campaign families, four gameplay families, Club Arena poker UI, psychology
+  UI, four-answer contracts, explicit feedback, persistent manual Next, and
+  zero Training page or relevant console errors.
+- Production serves exact build `9bee6d20` with HTTP 200 health, a 61ms database
+  probe, and no degraded checks. The approved global header was not changed.
+- The broad repository Playwright workflow retains unrelated legacy failures;
+  its exact results and the passing Training-specific evidence are recorded in
+  the Phase 2 audit instead of being hidden or misattributed.
+
+## Phase 2 Remaining Exit Items
+
+None. Phase 3 begins from the published `9bee6d20` production baseline.
