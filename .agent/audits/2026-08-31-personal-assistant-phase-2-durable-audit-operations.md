@@ -38,8 +38,12 @@ Leak Finder audits are server-owned, checkpointed, owner-private, resumable acro
 - TypeScript: green.
 - Next.js webpack production build: green, 403 static pages, both durable endpoints present.
 - Personal Assistant desktop/mobile Playwright matrix: 23 passed, 2 intentionally skipped because the assertions apply only to mobile geometry.
-- Production deploy and live artifact verification: pending release closeout.
+- Production deploy: revision `b262cb2b` contains the Phase 2 merge and nested-projection hardening.
+- Live authenticated API: completed 1,347-hand/seven-batch receipt restored with `consistent=true`; owner GET 200, anonymous GET 401, forged worker POST 401.
+- Live privacy projection: zero nested ownership, cursor, lease, or worker-token keys returned.
+- Live push reconciliation: one audit-completion notification, one matching outbox row, and one active iPhone endpoint.
+- Live Personal Assistant desktop/mobile Playwright matrix: 23 passed, 2 intentionally desktop-inapplicable checks skipped.
 
-## Remaining Phase Boundary
+## Production Closeout
 
-Phase 2 closes only after the branch is merged, Vercel reports a production revision containing the merge, and the live authenticated durable-job/API/browser probes pass against that revision.
+PR [#1112](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1112) merged the durable workflow at `255f661e`. Live probing then found nested owner identifiers in otherwise owner-scoped result rows; PR [#1122](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1122) added recursive public projection hardening at `b262cb2b`. Vercel health reported that exact revision before the final API, browser, reconciliation, and duplicate-push probes passed.
