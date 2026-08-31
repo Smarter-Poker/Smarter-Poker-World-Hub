@@ -63,7 +63,12 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const skipLink = page.getByRole('link', { name: 'Skip to Poker Near Me choices' });
     await expect(skipLink).toBeAttached();
     if (!testInfo.project.name.includes('mobile')) {
-      await page.keyboard.press('Tab');
+      // Next/Chromium can preserve focus on the remounted header menu trigger.
+      // Reverse traversal still has to reach the preceding skip link without
+      // using a pointer, so allow the retained trigger to be crossed first.
+      for (let index = 0; index < 3 && !(await skipLink.evaluate((node) => node === document.activeElement)); index += 1) {
+        await page.keyboard.press('Shift+Tab');
+      }
       await expect(skipLink).toBeFocused();
     }
 
