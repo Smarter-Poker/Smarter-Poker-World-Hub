@@ -20,6 +20,7 @@ const MARKETPLACE_ROUTE_ROOTS = [
   'src/components/store',
   'src/components/diamond-store',
   'src/data/diamondStoreData.js',
+  'scripts/verify-marketplace-deployment.mjs',
 ];
 
 async function collectRuntimeFiles(path) {
@@ -30,7 +31,7 @@ async function collectRuntimeFiles(path) {
   const files = await Promise.all(entries
     .filter(entry => entry.name !== '__tests__')
     .map(entry => collectRuntimeFiles(`${path}/${entry.name}`)));
-  return files.flat().filter(file => /\.(?:css|js|jsx)$/.test(file));
+  return files.flat().filter(file => /\.(?:css|js|jsx|mjs)$/.test(file));
 }
 
 test('every Marketplace route and shared runtime source rejects banned long bars', async () => {
@@ -70,7 +71,7 @@ test('Marketplace copy normalization capitalizes words and removes both banned b
   const marketplaceCopy = vm.runInNewContext(source);
 
   assert.equal(
-    marketplaceCopy('casino—realism and club–shop'),
+    marketplaceCopy('casino\u2014realism and club\u2013shop'),
     'Casino: Realism And Club: Shop'
   );
   assert.equal(
