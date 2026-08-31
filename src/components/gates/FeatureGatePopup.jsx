@@ -16,7 +16,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAvatar } from '../../contexts/AvatarContext';
 import useVIP from '../../hooks/useVIP';
@@ -227,6 +227,39 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
     const [isUnlockingAll, setIsUnlockingAll] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const closeButtonRef = useRef(null);
+    const dialogRef = useRef(null);
+
+    useEffect(() => {
+        const previouslyFocused = document.activeElement;
+        closeButtonRef.current?.focus();
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose?.();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = [...(dialogRef.current?.querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ) || [])].filter((element) => element.getAttribute('aria-disabled') !== 'true');
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            previouslyFocused?.focus?.();
+        };
+    }, [onClose]);
 
     // Re-fetch balance on mount to be current (with 1 retry for resilience)
     useEffect(() => {
@@ -375,7 +408,11 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
             >
                 {/* Card */}
                 <div
+                    ref={dialogRef}
                     onClick={e => e.stopPropagation()}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`${config.label} access options`}
                     style={{
                         width: '100%',
                         maxWidth: 380,
@@ -390,10 +427,13 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 >
                     {/* Close button */}
                     <button
+                        ref={closeButtonRef}
+                        type="button"
+                        aria-label="Close access options"
                         onClick={onClose}
                         style={{
                             position: 'absolute', top: 10, right: 10, zIndex: 10,
-                            width: 28, height: 28, borderRadius: '50%',
+                            width: 44, height: 44, borderRadius: '50%',
                             background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)',
                             color: 'rgba(255,255,255,0.5)', fontSize: 16,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -429,6 +469,16 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                         {/* ═══ GOLD BOX: ALL-ACCESS PASS ═══ */}
                         <div
                             onClick={!isUnlockingAll && !isUnlocking && !success ? handleUnlockAll : undefined}
+                            role="button"
+                            tabIndex={isUnlockingAll || isUnlocking || success ? -1 : 0}
+                            aria-disabled={isUnlockingAll || isUnlocking || success}
+                            aria-label="Unlock all premium features for 150 diamonds"
+                            onKeyDown={(event) => {
+                                if ((event.key === 'Enter' || event.key === ' ') && !isUnlockingAll && !isUnlocking && !success) {
+                                    event.preventDefault();
+                                    handleUnlockAll();
+                                }
+                            }}
                             style={{
                                 background: 'linear-gradient(180deg, #2a2520 0%, #1a1815 100%)',
                                 border: '2px solid #c9a227',
@@ -511,6 +561,16 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                         {/* ═══ BLUE BOX: SINGLE FEATURE ACCESS ═══ */}
                         <div
                             onClick={!isUnlocking && !isUnlockingAll && !success ? handleUnlockSingle : undefined}
+                            role="button"
+                            tabIndex={isUnlocking || isUnlockingAll || success ? -1 : 0}
+                            aria-disabled={isUnlocking || isUnlockingAll || success}
+                            aria-label={`Unlock ${config.label} for ${cost} diamonds`}
+                            onKeyDown={(event) => {
+                                if ((event.key === 'Enter' || event.key === ' ') && !isUnlocking && !isUnlockingAll && !success) {
+                                    event.preventDefault();
+                                    handleUnlockSingle();
+                                }
+                            }}
                             style={{
                                 background: 'linear-gradient(180deg, #141a25 0%, #0d1118 100%)',
                                 border: '2px solid #2374e1',
@@ -579,7 +639,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
 
                         {/* Error message */}
                         {error && (
-                            <div style={{
+                            <div role="alert" style={{
                                 padding: '10px 14px', marginBottom: 12,
                                 background: 'rgba(239,68,68,0.1)',
                                 border: '1px solid rgba(239,68,68,0.4)',
@@ -591,6 +651,14 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                         {/* ═══ VIP LINK ═══ */}
                         <div
                             onClick={handleGetVip}
+                            role="link"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    handleGetVip();
+                                }
+                            }}
                             style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 gap: 8, padding: '12px 0',
