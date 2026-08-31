@@ -1548,3 +1548,5 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Permanent regression gate | Phase 3 unit contracts and desktop/mobile browser journeys cover canonical alias resolution, exact game launch, corrective review wiring, completion receipts, copy policy, accessibility, and overflow. |
 
 **Verification:** 110/110 Leak Engine contracts, 54/54 focused Phase 3/5/completion contracts, the exact optimized webpack production build with 403 static pages, and the complete Personal Assistant desktop/mobile browser matrix with 23 passes and two expected skips passed before release. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-3-unified-leak-training-loop.md`.
+
+**Release state:** Complete and published. Pull request 1156 merged as `7002d6f07e`; Vercel deployment `dpl_EF7LQV2aoDGE1sCSqtfuQ7KKDvA8` reached Ready and `smarter.poker` reported matching healthy version `7002d6f0`. The deployed exact-game flow passed on desktop Chromium and Pixel-class mobile Chrome. Protected account verification found 19 persisted leaks and a 10-question server-verified corrective drill with every answer key hidden.
