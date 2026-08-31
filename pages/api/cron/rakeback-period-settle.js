@@ -94,22 +94,33 @@ async function handler(req, res) {
     // period_end < today is the same test settle_club_rakeback applies
     // internally; reporting on a different set than the one that settles is
     // how a job comes to claim work it did not do.
-    const { data: pending, error: pendErr } = await admin
-      .from('rakeback_periods')
-      .select('club_id, rakeback_amount, rakeback_earned, period_end')
-      .eq('status', 'pending')
-      .lt('period_end', today);
+    // PAGED, because PostgREST caps a select at 1000 rows and silently
+    // returns the first page. The first live dry run reported 1,000 periods
+    // and 113,122.34 owed against a real backlog of 2,456 and 281,108.01 —
+    // an under-report that would have looked like progress on every tick.
+    const PAGE = 1000;
+    const MAX_PAGES = 50; // 50k periods is far beyond any real backlog
+    const rows = [];
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const { data: chunk, error: pendErr } = await admin
+        .from('rakeback_periods')
+        .select('club_id, rakeback_amount, rakeback_earned, period_end')
+        .eq('status', 'pending')
+        .lt('period_end', today)
+        .order('period_end', { ascending: true })
+        .range(page * PAGE, page * PAGE + PAGE - 1);
 
-    if (pendErr) {
-      return res.status(500).json({
-        status: 'failed',
-        stage: 'read_pending',
-        error: pendErr.message,
-        duration_ms: Date.now() - started,
-      });
+      if (pendErr) {
+        return res.status(500).json({
+          status: 'failed',
+          stage: 'read_pending',
+          error: pendErr.message,
+          duration_ms: Date.now() - started,
+        });
+      }
+      rows.push(...(chunk || []));
+      if (!chunk || chunk.length < PAGE) break;
     }
-
-    const rows = pending || [];
     const clubs = [...new Set(rows.map((r) => r.club_id).filter(Boolean))];
     const owed = rows.reduce(
       (sum, r) => sum + Number(r.rakeback_amount ?? r.rakeback_earned ?? 0),
