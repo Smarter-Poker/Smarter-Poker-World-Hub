@@ -747,7 +747,7 @@ function TrendChart({ data, optimal, current, status }) {
       {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
       <div style={styles.trendScaleRow}>
         <span style={styles.trendScaleText}>
-          Range {minVal.toFixed(0)}%–{maxVal.toFixed(0)}%
+          Range {minVal.toFixed(0)}%-{maxVal.toFixed(0)}%
         </span>
         {optimalVal !== null && (
           <span style={styles.trendScaleText}>

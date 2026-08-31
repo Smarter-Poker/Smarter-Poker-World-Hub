@@ -282,8 +282,8 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
 
                 {!shareUrl && !loading && (
                     <p style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45, margin: 0 }}>
-                        The link captures the board, ranges, stacks and villain setup exactly as they are now.
-                        Later edits at the table do not change it.
+                        The Link Captures The Board, Ranges, Stacks And Villain Setup Exactly As They Are Now.
+                        Later Edits At The Table Do Not Change It.
                     </p>
                 )}
 
@@ -400,7 +400,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                                         style={{ ...btn('danger', { block: true }), minHeight: 48 }}
                                     >
                                         <Trash2 size={18} strokeWidth={2} />
-                                        Revoke this link
+                                        Revoke This Link
                                     </button>
                                 ) : (
                                     <div
@@ -413,8 +413,8 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                                         }}
                                     >
                                         <p style={{ fontSize: F.bodySm, color: T.text, margin: 0, lineHeight: 1.45 }}>
-                                            Revoke this link? Anyone holding it loses access straight away, and it cannot
-                                            be brought back.
+                                            Revoke This Link? Anyone Holding It Loses Access Straight Away, And It Cannot
+                                            Be Brought Back.
                                         </p>
                                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                                             <button

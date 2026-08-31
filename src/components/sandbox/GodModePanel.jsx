@@ -95,7 +95,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
             headerRight={<span style={pill('purple')}>ADMIN</span>}
             footer={allowed ? (
                 <button type="button" className="pa-btn" onClick={applyForceOverride} style={{ ...btn('primary', { block: true }) }}>
-                    <Sparkles size={18} strokeWidth={2} /> Inject forced result
+                    <Sparkles size={18} strokeWidth={2} /> Inject Forced Result
                 </button>
             ) : null}
         >
@@ -115,7 +115,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                         borderRadius: R.md, padding: S.md,
                     }}>
                         <h4 style={{ fontSize: F.bodySm, fontWeight: 800, color: T.purple, margin: `0 0 ${S.md}px` }}>
-                            Force solver result
+                            Force Solver Result
                         </h4>
 
                         <div
@@ -154,7 +154,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                                 margin: `${S.lg}px 0 ${S.xs}px`,
                             }}
                         >
-                            <span>Forced EV delta</span>
+                            <span>Forced EV Delta</span>
                             <span style={{ ...numeric, color: T.purple }}>{Number(overrideEv).toFixed(2)} BB</span>
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
@@ -174,7 +174,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm }}>
                             <h4 style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, margin: 0 }}>
-                                Raw sandbox state
+                                Raw Sandbox State
                             </h4>
                             <button
                                 type="button"
@@ -198,8 +198,8 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                     </div>
 
                     <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                        Injected results are tagged forcedMode and must never be persisted as coach results or
-                        counted in accuracy stats.
+                        Injected Results Are Tagged ForcedMode And Must Never Be Persisted As Coach Results Or
+                        Counted In Accuracy Stats.
                     </p>
                 </div>
             )}
