@@ -85,7 +85,7 @@ class TrainingErrorBoundary extends React.Component {
                             fontWeight: 700,
                             margin: '0 0 8px',
                         }}>
-                            {pageName} Encountered an Error
+                            {pageName} Encountered An Error
                         </h2>
 
                         <p style={{
@@ -94,7 +94,7 @@ class TrainingErrorBoundary extends React.Component {
                             lineHeight: 1.6,
                             margin: '0 0 24px',
                         }}>
-                            Something went wrong. This is usually temporary - try refreshing or come back in a moment.
+                            Something Went Wrong. This Is Usually Temporary - Try Refreshing Or Come Back In A Moment.
                         </p>
 
                         {/* Action buttons */}
@@ -134,7 +134,7 @@ class TrainingErrorBoundary extends React.Component {
                                     transition: 'background 0.2s',
                                 }}
                             >
-                                Back to Hub
+                                Back To Hub
                             </Link>
                         </div>
 

@@ -207,23 +207,23 @@ export default function DiamondLiabilityDashboard() {
     if (noToken) {
         return shell(
             <Message tone="warn" title="Not signed in">
-                This dashboard exposes the platform&apos;s diamond liability and per-user earning totals, so it
-                requires an admin session.{' '}
-                <a href="/auth/login?redirect=/hub/admin/diamond-liability" style={{ color: C.cyan }}>Sign in</a> and
-                reload.
+                This Dashboard Exposes The Platform&apos;S Diamond Liability And Per-User Earning Totals, So It
+                Requires An Admin Session.{' '}
+                <a href="/auth/login?redirect=/hub/admin/diamond-liability" style={{ color: C.cyan }}>Sign In</a> And
+                Reload.
             </Message>
         );
     }
     if (denied) {
         return shell(
             <Message tone="error" title="Forbidden - admin only">
-                Your account is signed in but is not flagged <code>is_admin</code>. Nothing on this page is available
-                to normal users.
+                Your Account Is Signed In But Is Not Flagged <code>Is_Admin</code>. Nothing On This Page Is Available
+                To Normal Users.
             </Message>
         );
     }
     if (loading && !data) {
-        return shell(<div style={{ color: C.dim, padding: '64px 0', textAlign: 'center', fontSize: 14 }}>Loading diamond liability&hellip;</div>);
+        return shell(<div style={{ color: C.dim, padding: '64px 0', textAlign: 'center', fontSize: 14 }}>Loading Diamond Liability&hellip;</div>);
     }
     if (error && !data) {
         return shell(
@@ -235,7 +235,7 @@ export default function DiamondLiabilityDashboard() {
             </Message>
         );
     }
-    if (!data) return shell(<div style={{ color: C.dim }}>No data.</div>);
+    if (!data) return shell(<div style={{ color: C.dim }}>No Data.</div>);
 
     const { outstanding, flow, recirculation, budget, topEarners = [], notes = [] } = data;
 
@@ -257,7 +257,7 @@ export default function DiamondLiabilityDashboard() {
                 <div>
                     <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#fff' }}>Diamond Liability</h1>
                     <div style={{ fontSize: 12, color: C.faint, marginTop: 6 }}>
-                        1 &#9670; = {usd(data.usdPerDiamond ?? 0.01)} &middot; period {data.period} ({data.timezone}) &middot; generated{' '}
+                        1 &#9670; = {usd(data.usdPerDiamond ?? 0.01)} &middot; Period {data.period} ({data.timezone}) &middot; generated{' '}
                         {data.generatedAt ? new Date(data.generatedAt).toLocaleString() : '-'}
                     </div>
                 </div>
@@ -335,7 +335,7 @@ export default function DiamondLiabilityDashboard() {
                 {outflowTotal > 0 && (
                     <div style={{ marginTop: 22 }}>
                         <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-                            Share of all outflow
+                            Share Of All Outflow
                         </div>
                         <Bar label="Recirculated - arena / gameplay" value={recirculation?.recirculated || 0} total={outflowTotal} color={C.cyan} right={usd(recirculation?.recirculatedUsd)} />
                         <Bar label="Leaked - VIP + merchandise" value={recirculation?.leaked || 0} total={outflowTotal} color={C.red} right={usd(recirculation?.leakedUsd)} />
@@ -348,15 +348,15 @@ export default function DiamondLiabilityDashboard() {
                 {recirculation?.byType?.length > 0 && (
                     <div style={{ marginTop: 24, overflowX: 'auto' }}>
                         <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-                            Outflow by transaction_type
+                            Outflow By Transaction_Type
                         </div>
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
-                                    <th style={thStyle}>transaction_type</th>
-                                    <th style={thStyle}>bucket</th>
-                                    <th style={{ ...thStyle, textAlign: 'right' }}>diamonds</th>
-                                    <th style={{ ...thStyle, textAlign: 'right' }}>usd</th>
+                                    <th style={thStyle}>Transaction_Type</th>
+                                    <th style={thStyle}>Bucket</th>
+                                    <th style={{ ...thStyle, textAlign: 'right' }}>Diamonds</th>
+                                    <th style={{ ...thStyle, textAlign: 'right' }}>USD</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -382,10 +382,10 @@ export default function DiamondLiabilityDashboard() {
             >
                 {!budget ? (
                     <div style={{ fontSize: 13, color: C.gold, lineHeight: 1.7 }}>
-                        No budget row available. The circuit breaker is not reporting - see Notes above. Configured
-                        ceiling is {num(data.platformMonthlyBudgetConfig?.diamonds)} &#9670; (
-                        {usd(data.platformMonthlyBudgetConfig?.usd)}) per month from{' '}
-                        <code>src/config/diamondRewards.js</code>.
+                        No Budget Row Available. The Circuit Breaker Is Not Reporting - See Notes Above. Configured
+                        Ceiling Is {num(data.platformMonthlyBudgetConfig?.diamonds)} &#9670; (
+                        {usd(data.platformMonthlyBudgetConfig?.usd)}) Per Month from{' '}
+                        <code>Src/Config/DiamondRewards.Js</code>.
                     </div>
                 ) : (
                     <>
@@ -413,18 +413,18 @@ export default function DiamondLiabilityDashboard() {
                 subtitle={`Abuse-detection surface. Monthly cap: ${num(data.monthlyCap?.free)} ◆ free / ${num(data.monthlyCap?.vip)} ◆ VIP.`}
             >
                 {topEarners.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.faint }}>No positive diamond awards in the last 30 days.</div>
+                    <div style={{ fontSize: 13, color: C.faint }}>No Positive Diamond Awards In The Last 30 Days.</div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
                                     <th style={thStyle}>#</th>
-                                    <th style={thStyle}>user</th>
-                                    <th style={{ ...thStyle, textAlign: 'right' }}>earned 30d</th>
-                                    <th style={{ ...thStyle, textAlign: 'right' }}>usd</th>
-                                    <th style={{ ...thStyle, textAlign: 'right' }}>balance</th>
-                                    <th style={thStyle}>vs cap</th>
+                                    <th style={thStyle}>User</th>
+                                    <th style={{ ...thStyle, textAlign: 'right' }}>Earned 30d</th>
+                                    <th style={{ ...thStyle, textAlign: 'right' }}>USD</th>
+                                    <th style={{ ...thStyle, textAlign: 'right' }}>Balance</th>
+                                    <th style={thStyle}>Vs Cap</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -433,7 +433,7 @@ export default function DiamondLiabilityDashboard() {
                                         <td style={{ ...tdStyle, color: C.faint }}>{i + 1}</td>
                                         <td style={tdStyle}>
                                             <div style={{ color: C.text, fontWeight: 600 }}>
-                                                {e.username || <span style={{ color: C.faint }}>(no username)</span>}
+                                                {e.username || <span style={{ color: C.faint }}>(No Username)</span>}
                                                 {e.isVip && <span style={vipPill}>VIP</span>}
                                             </div>
                                             <div style={{ fontSize: 10, color: C.faint, fontFamily: 'ui-monospace, monospace' }}>{e.userId}</div>
@@ -444,10 +444,10 @@ export default function DiamondLiabilityDashboard() {
                                         <td style={tdStyle}>
                                             {e.overCap ? (
                                                 <span style={{ color: C.red, fontWeight: 700 }}>
-                                                    OVER by {num(e.overCapBy)} &#9670;
+                                                    OVER By {num(e.overCapBy)} &#9670;
                                                 </span>
                                             ) : (
-                                                <span style={{ color: C.faint }}>within {num(e.monthlyCap)} &#9670;</span>
+                                                <span style={{ color: C.faint }}>Within {num(e.monthlyCap)} &#9670;</span>
                                             )}
                                         </td>
                                     </tr>
@@ -459,7 +459,7 @@ export default function DiamondLiabilityDashboard() {
             </Panel>
 
             {error && (
-                <div style={{ fontSize: 12, color: C.red, marginTop: 8 }}>Last refresh failed: {error}</div>
+                <div style={{ fontSize: 12, color: C.red, marginTop: 8 }}>Last Refresh Failed: {error}</div>
             )}
         </>
     );

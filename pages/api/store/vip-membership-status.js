@@ -37,6 +37,15 @@ export default async function handler(req, res) {
     }
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
+    // Reject anonymous reads before constructing the database client. Besides
+    // keeping the private boundary explicit, this guarantees a stable 401
+    // even when a local or recovery environment is missing Supabase secrets.
+    // An absent session must never be misreported as a server failure.
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Authorization required' });
+    }
+
     const { user, error: authError } = await getServerUserWithFallback(req, getSupabase());
     if (authError || !user?.id) {
       return res.status(401).json({ success: false, error: 'Authorization required' });

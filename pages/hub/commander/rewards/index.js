@@ -63,7 +63,7 @@ function TransactionRow({ transaction }) {
         <div>
           <p className="font-medium text-white">{transaction.description}</p>
           <p className="text-sm text-[#64748B]">
-            {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            {date.toLocaleDateString()} At {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
       </div>
@@ -296,7 +296,7 @@ export default function PlayerRewardsPage() {
                     {isActive && (
                       <div className="px-4 pb-4">
                         <label className="block text-sm text-[#64748B] mb-2">
-                          Enter amount to redeem (max ${balance})
+                          Enter Amount To Redeem (Max ${balance})
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -353,7 +353,7 @@ export default function PlayerRewardsPage() {
           <div className="cmd-inset rounded-xl p-5">
             <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How It Works</h3>
             <ul className="text-sm text-[#CBD5E1] space-y-2">
-              <li>Earn ${earnRate} for every hour you play</li>
+              <li>Earn ${earnRate} For Every Hour You Play</li>
               <li>Bonus Rewards During Promotional Hours</li>
               <li>Redeem Anytime For Food, Merchandise, Or Free Play</li>
               <li>Balance Never Expires</li>

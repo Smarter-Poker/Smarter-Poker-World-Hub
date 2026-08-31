@@ -330,12 +330,12 @@ export default function HandDetailPage() {
               ) : (
                 <>
                   <Lightbulb className="w-5 h-5" />
-                  Analyze with GodMode
+                  Analyze With GodMode
                 </>
               )}
             </button>
             <p className="text-center text-xs text-[#64748B] mt-2">
-              Get AI-powered analysis of your decisions
+              Get AI-Powered Analysis Of Your Decisions
             </p>
           </div>
 

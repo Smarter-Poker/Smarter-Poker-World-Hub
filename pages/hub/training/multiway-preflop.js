@@ -232,7 +232,7 @@ function RangeGrid({ rangeStr, color, label }) {
         }}
       >
         <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}</span>
-        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{pct}% of hands</span>
+        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{pct}% Of Hands</span>
       </div>
       <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
         {grid.map((cell, i) => (
@@ -412,15 +412,15 @@ export default function MultiwayPreflopPage() {
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
-              In multiway pots (3 or more players to a flop), opening and
-              defending ranges <strong>tighten significantly</strong> compared
-              to heads-up. More opponents means more hands beat top pair, so
-              speculative hands lose value and premium pairs/big aces gain it.
+              In Multiway Pots (3 Or More Players To A Flop), Opening And
+              Defending Ranges <strong>Tighten Significantly</strong> Compared
+              To Heads-Up. More Opponents Means More Hands Beat Top Pair, So
+              Speculative Hands Lose Value And Premium Pairs/Big Aces Gain It.
             </p>
             <p>
-              Each quiz spot shows a multiway scenario and asks whether a given
-              hand belongs IN or OUT of the GTO opening range. Hit 80&#37;+ to
-              confidently apply this in live play.
+              Each Quiz Spot Shows A Multiway Scenario And Asks Whether A Given
+              Hand Belongs IN Or OUT Of The GTO Opening Range. Hit 80&#37;+ To
+              Confidently Apply This In Live Play.
             </p>
           </div>
         </BottomSheet>
@@ -465,7 +465,7 @@ export default function MultiwayPreflopPage() {
               textTransform: 'uppercase',
             }}
           >
-            How it works
+            How It Works
           </button>
           <h1
             style={{
@@ -675,7 +675,7 @@ export default function MultiwayPreflopPage() {
                     {quizHand.scenario}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg-muted)', marginBottom: 8 }}>
-                    You are in{' '}
+                    You Are in{' '}
                     <span
                       style={{ color: posColors[quizHand.position] || '#fff', fontWeight: 800 }}
                     >
@@ -703,7 +703,7 @@ export default function MultiwayPreflopPage() {
                     <span style={{ fontWeight: 700, color: 'var(--sp-accent-purple)' }}>
                       {quizHand.action.replace(/([A-Z])/g, ' $1').trim()}
                     </span>{' '}
-                    this hand?
+                    This Hand?
                   </div>
                 </div>
 
@@ -764,8 +764,8 @@ export default function MultiwayPreflopPage() {
                       {quizAnswer === quizHand.correct ? 'CORRECT!' : 'WRONG!'}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginBottom: 12 }}>
-                      {quizHand.hand} is {quizHand.correct ? 'IN' : 'NOT IN'} the{' '}
-                      {quizHand.position} {quizHand.action.replace(/([A-Z])/g, ' $1').trim()} range
+                      {quizHand.hand} Is {quizHand.correct ? 'IN' : 'NOT IN'} the{' '}
+                      {quizHand.position} {quizHand.action.replace(/([A-Z])/g, ' $1').trim()} Range
                     </div>
                     <motion.button
                       whileHover={{ scale: 1.03 }}

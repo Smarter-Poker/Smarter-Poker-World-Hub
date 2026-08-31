@@ -443,7 +443,7 @@ test('secondary analytics and community rooms never invent player results', () =
     'utf8'
   );
 
-  assert.match(positionMastery, /No position-tagged decisions have been recorded yet/);
+  assert.match(positionMastery, /No Position-Tagged Decisions Have Been Recorded Yet/);
   assert.doesNotMatch(positionMastery, /Distribute overall accuracy|realistic position variance/);
   assert.match(studyGroup, /Open Hand History Upload/);
   assert.doesNotMatch(studyGroup, /loadDemoHand|local-demo|Solver says: CALL is \+1\.2 EV/);

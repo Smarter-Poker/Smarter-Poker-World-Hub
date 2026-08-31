@@ -182,7 +182,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                         {weekStart && weekEnd ? `${formatDate(weekStart)} - ${formatDate(weekEnd)}` : 'This Week'}
                     </div>
                     <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
-                        {totalShifts} shifts · {totalHours}h scheduled
+                        {totalShifts} Shifts · {totalHours}h Scheduled
                     </div>
                 </div>
                 <button onClick={() => setWeekOffset(w => w + 1)} style={navBtn}>
@@ -203,7 +203,7 @@ function ScheduleTab({ staffId, venueId, token }) {
             ) : shifts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
                     <Calendar size={32} color={C.textMuted} style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 14, color: C.textMuted }}>No shifts scheduled this week</div>
+                    <div style={{ fontSize: 14, color: C.textMuted }}>No Shifts Scheduled This Week</div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -268,7 +268,7 @@ function DownsTab({ staffId, venueId, token }) {
             ))}
         </div>
     );
-    if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable to load data</div>;
+    if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable To Load Data</div>;
 
     const { stats, downs, active_tables } = data;
 
@@ -305,7 +305,7 @@ function DownsTab({ staffId, venueId, token }) {
             </div>
             {downs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 20px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14 }}>
-                    No downs recorded yet
+                    No Downs Recorded Yet
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -370,7 +370,7 @@ function TimeClockTab({ staffId, venueId, token }) {
             ))}
         </div>
     );
-    if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable to load data</div>;
+    if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable To Load Data</div>;
 
     const { stats, entries } = data;
 
@@ -392,7 +392,7 @@ function TimeClockTab({ staffId, venueId, token }) {
             </div>
             {entries.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 20px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14 }}>
-                    No time clock entries - clock in at the venue kiosk
+                    No Time Clock Entries - Clock In At The Venue Kiosk
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -456,10 +456,10 @@ function ClaimCodeInput({ token, onLinked }) {
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Link2 size={18} color={C.blue} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Link to a Venue</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Link To A Venue</span>
             </div>
             <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>
-                Enter the claim code from your manager to connect your account.
+                Enter The Claim Code From Your Manager To Connect Your Account.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
                 <input
@@ -520,13 +520,13 @@ function EmailMatchBanner({ matches, token, onLinked }) {
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.yellow }}>Staff Accounts Found</span>
             </div>
             <div style={{ fontSize: 12, color: C.textSec, marginBottom: 12 }}>
-                Your email matches staff records at these venues. Click to link your account.
+                Your Email Matches Staff Records At These Venues. Click To Link Your Account.
             </div>
             {matches.map(m => (
                 <div key={m.staff_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${C.borderLight}` }}>
                     <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{m.venue_name}</div>
-                        <div style={{ fontSize: 11, color: C.textMuted }}>as {m.display_name} ({m.role})</div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>As {m.display_name} ({m.role})</div>
                     </div>
                     <button onClick={() => handleLink(m.staff_id)} disabled={linking === m.staff_id} style={{
                         padding: '6px 14px', borderRadius: 8, border: 'none',
@@ -669,7 +669,7 @@ export default function MyVenuesPage() {
                                     <Building2 size={48} color={C.textMuted} style={{ marginBottom: 12 }} />
                                     <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>No Linked Venues</div>
                                     <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6 }}>
-                                        Ask your manager for a claim code to connect your account to a venue.
+                                        Ask Your Manager For A Claim Code To Connect Your Account To A Venue.
                                     </div>
                                 </div>
                             ) : (

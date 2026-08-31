@@ -256,7 +256,7 @@ export default function SavedPostsPage() {
                             <div>
                                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Saved Posts</h1>
                                 <div style={{ fontSize: 14, color: C.textSec }}>
-                                    {savedPosts.length} {savedPosts.length === 1 ? 'item' : 'items'} saved
+                                    {savedPosts.length} {savedPosts.length === 1 ? 'item' : 'items'} Saved
                                 </div>
                             </div>
                         </div>
@@ -281,7 +281,7 @@ export default function SavedPostsPage() {
                                 <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>🔒</div>
                                 <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20 }}>Sign In Required</h3>
                                 <p style={{ margin: 0, color: C.textSec, fontSize: 15 }}>
-                                    Sign in to view your saved posts
+                                    Sign In To View Your Saved Posts
                                 </p>
                             </div>
                         ) : savedPosts.length === 0 ? (
@@ -292,7 +292,7 @@ export default function SavedPostsPage() {
                                 <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>🔖</div>
                                 <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20, fontWeight: 700 }}>No Saved Posts Yet</h3>
                                 <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 15 }}>
-                                    When you save posts from the feed, they will appear here
+                                    When You Save Posts From The Feed, They Will Appear Here
                                 </p>
                                 <Link
                                     href="/hub/social-media"

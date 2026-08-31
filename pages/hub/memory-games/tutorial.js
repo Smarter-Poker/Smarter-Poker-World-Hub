@@ -32,15 +32,15 @@ export default function MemoryGamesTutorial() {
           ))}
         </section>
         <section className="preflop-subpage-panel preflop-guide-feedback" aria-labelledby="feedback-legend-title">
-          <div className="preflop-panel-heading"><div><span>RESULT LAYER</span><h2 id="feedback-legend-title">Read the review colors</h2></div></div>
+          <div className="preflop-panel-heading"><div><span>RESULT LAYER</span><h2 id="feedback-legend-title">Read The Review Colors</h2></div></div>
           <div className="preflop-feedback-legend">
             {FEEDBACK.map((item) => <div key={item.state} data-feedback={item.state}><i aria-hidden /><span><strong>{item.label}</strong>{item.detail}</span></div>)}
           </div>
         </section>
         <section className="preflop-subpage-panel preflop-guide-shortcuts" aria-labelledby="shortcut-title">
-          <Keyboard size={24} aria-hidden /><div><span>DESKTOP CONTROL MAP</span><h2 id="shortcut-title">Keyboard shortcuts</h2><p><kbd>1-6</kbd> select actions · <kbd>Arrow keys</kbd> move through the matrix · <kbd>Space</kbd> marks a focused hand or submits outside the grid · <kbd>Ctrl/⌘ Z</kbd> undo · <kbd>Shift + Ctrl/⌘ Z</kbd> redo.</p></div>
+          <Keyboard size={24} aria-hidden /><div><span>DESKTOP CONTROL MAP</span><h2 id="shortcut-title">Keyboard Shortcuts</h2><p><kbd>1-6</kbd> Select Actions · <kbd>Arrow Keys</kbd> Move Through The Matrix · <kbd>Space</kbd> Marks A Focused Hand Or Submits Outside The Grid · <kbd>Ctrl/⌘ Z</kbd> Undo · <kbd>Shift + Ctrl/⌘ Z</kbd> Redo.</p></div>
         </section>
-        <div className="preflop-subpage-cta-row"><Link href="/hub/preflop-charts" className="preflop-subpage-primary-cta">Start range training <ArrowRight size={17} aria-hidden /></Link></div>
+        <div className="preflop-subpage-cta-row"><Link href="/hub/preflop-charts" className="preflop-subpage-primary-cta">Start Range Training <ArrowRight size={17} aria-hidden /></Link></div>
       </PreflopSubpageShell>
     </>
   );

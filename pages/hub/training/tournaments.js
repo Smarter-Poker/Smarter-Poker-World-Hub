@@ -339,7 +339,7 @@ export default function TournamentsPage() {
                       <div style={styles.detailRow}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Time:</span>
                         <span>
-                          {formatDate(tournament.start_time)} at {formatTime(tournament.start_time)}
+                          {formatDate(tournament.start_time)} At {formatTime(tournament.start_time)}
                         </span>
                       </div>
                       <div style={styles.detailRow}>

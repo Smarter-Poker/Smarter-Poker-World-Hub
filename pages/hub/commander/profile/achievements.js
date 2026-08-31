@@ -57,7 +57,7 @@ export default function AchievementsPage() {
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Achievements</h1>
-              <p className="text-xs text-[#64748B]">{unlocked.length}/{achievements.length} unlocked</p>
+              <p className="text-xs text-[#64748B]">{unlocked.length}/{achievements.length} Unlocked</p>
             </div>
           </div>
         </header>
@@ -138,7 +138,7 @@ export default function AchievementsPage() {
                             style={{ width: `${Math.min(achievement.progress, 100)}%` }}
                           />
                         </div>
-                        <p className="text-xs text-[#4A5E78] mt-1">{achievement.progress}% complete</p>
+                        <p className="text-xs text-[#4A5E78] mt-1">{achievement.progress}% Complete</p>
                       </div>
                     )}
                   </div>

@@ -46,16 +46,16 @@ function VenueCard({ venue, onSelect }) {
       <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
-          {venue.active_games || 0} games
+          {venue.active_games || 0} Games
         </span>
         <span className="flex items-center gap-1">
           <Clock className="w-4 h-4" />
-          {venue.waitlist_count || 0} waiting
+          {venue.waitlist_count || 0} Waiting
         </span>
         {venue.distance_mi && (
           <span className="flex items-center gap-1">
             <Navigation className="w-4 h-4" />
-            {venue.distance_mi} mi
+            {venue.distance_mi} Mi
           </span>
         )}
       </div>
@@ -69,7 +69,7 @@ function VenueCard({ venue, onSelect }) {
           ))}
           {venue.stakes_spread.length > 3 && (
             <span className="px-2 py-1 bg-[#0D192E] text-[#64748B] text-xs rounded">
-              +{venue.stakes_spread.length - 3} more
+              +{venue.stakes_spread.length - 3} More
             </span>
           )}
         </div>
@@ -219,7 +219,7 @@ export default function VenueDiscoveryPage() {
               <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
               <p className="text-[#64748B]">No Venues Found</p>
               <p className="text-sm text-[#4A5E78] mt-1">
-                Try adjusting your search or filters
+                Try Adjusting Your Search Or Filters
               </p>
             </div>
           ) : (

@@ -26,7 +26,7 @@ export default function NodelockingPage() {
           <div style={{ position: 'relative' }}>
             <div style={{ color: '#79e6ff', fontSize: 10, fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Verified Club Arena Drill</div>
             <h1 style={{ margin: '12px 0 10px', fontSize: 'clamp(30px, 6vw, 54px)', lineHeight: 1 }}>Node Locking</h1>
-            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>Opening the authored Node Locking curriculum. Configuration changes are no longer recorded as perfect training sessions.</p>
+            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>Opening The Authored Node Locking Curriculum. Configuration Changes Are No Longer Recorded As Perfect Training Sessions.</p>
             <a href={VERIFIED_DRILL} style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 24, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
               Continue To Node Locking →
             </a>

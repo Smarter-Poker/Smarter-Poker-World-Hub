@@ -46,12 +46,12 @@ export default function VipComparePage() {
           return (
             <section className={detailStyles.detailCard} key={plan.id}>
               <h2>{plan.name}</h2>
-              <p><strong>${cardEquivalent}</strong> by card or <strong>{diamondCost.toLocaleString()} Diamonds</strong>.</p>
+              <p><strong>${cardEquivalent}</strong> By Card Or <strong>{diamondCost.toLocaleString()} Diamonds</strong>.</p>
               <ul>
-                <li>{plan.interval === 'day' ? '24 hours' : plan.interval === 'year' ? '365 days' : '30 days'} of full VIP access</li>
-                <li>Extends existing access instead of replacing it</li>
-                <li>Includes all {VIP_BENEFITS.length} currently enforced VIP benefits</li>
-                {plan.savings > 0 && <li>Saves ${Number(plan.savings).toFixed(2)} against monthly billing</li>}
+                <li>{plan.interval === 'day' ? '24 hours' : plan.interval === 'year' ? '365 days' : '30 days'} Of Full VIP Access</li>
+                <li>Extends Existing Access Instead Of Replacing It</li>
+                <li>Includes All {VIP_BENEFITS.length} Currently Enforced VIP Benefits</li>
+                {plan.savings > 0 && <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>}
               </ul>
               <Link href={`/hub/vip-membership?plan=${plan.id}`}>Select {plan.name}</Link>
             </section>
@@ -59,9 +59,9 @@ export default function VipComparePage() {
         })}
       </div>
       <div className={detailStyles.assuranceGrid}>
-        <div><strong>Card</strong><span>Stripe Checkout verifies monthly, annual, and card-funded daily access.</span></div>
-        <div><strong>Diamonds</strong><span>Every plan can settle against your verified diamond wallet.</span></div>
-        <div><strong>Entitlements</strong><span>Access expiry, tier, and benefits are updated from server-owned records.</span></div>
+        <div><strong>Card</strong><span>Stripe Checkout Verifies Monthly, Annual, And Card-Funded Daily Access.</span></div>
+        <div><strong>Diamonds</strong><span>Every Plan Can Settle Against Your Verified Diamond Wallet.</span></div>
+        <div><strong>Entitlements</strong><span>Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.</span></div>
       </div>
     </MarketplaceDetailExperience>
   );

@@ -159,9 +159,9 @@ export default function RiskAnalyzerPage() {
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                  True Win Rate (bb/100)
+                  True Win Rate (BB/100)
                 </label>
-                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{winRate} bb</span>
+                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{winRate} BB</span>
               </div>
               <input
                 aria-label="Expected Return Percentage"
@@ -180,7 +180,7 @@ export default function RiskAnalyzerPage() {
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   Standard Deviation
                 </label>
-                <span style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{stdDev} bb/100</span>
+                <span style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{stdDev} BB/100</span>
               </div>
               <input
                 aria-label="Standard Deviation"
@@ -215,7 +215,7 @@ export default function RiskAnalyzerPage() {
                 style={{ width: '100%', accentColor: 'var(--sp-accent-cyan)' }}
               />
               <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                E.g. 25 Buy-ins at 100BB = 2500 BBs
+                E.G. 25 Buy-Ins At 100BB = 2500 BBs
               </div>
             </div>
 
@@ -273,7 +273,7 @@ export default function RiskAnalyzerPage() {
                           letterSpacing: 2,
                         }}
                       >
-                        Risk of Ruin
+                        Risk Of Ruin
                       </div>
                       <div
                         style={{
@@ -391,7 +391,7 @@ export default function RiskAnalyzerPage() {
                   <div
                     style={{ fontSize: 11, color: 'var(--sp-fg-dim)', textAlign: 'center', marginTop: 32 }}
                   >
-                    Sample subset of 20 careers plotted out of 1,000 simulated.
+                    Sample Subset Of 20 Careers Plotted Out Of 1,000 Simulated.
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -427,7 +427,7 @@ export default function RiskAnalyzerPage() {
                       Simulating 1,000 Careers...
                     </div>
                     <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
-                      Rolling 10,000,000 hands of variance.
+                      Rolling 10,000,000 Hands Of Variance.
                     </div>
                   </>
                 ) : (
@@ -439,9 +439,9 @@ export default function RiskAnalyzerPage() {
                     <div
                       style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8, textAlign: 'center' }}
                     >
-                      Find out if your bankroll can survive
+                      Find Out If Your Bankroll Can Survive
                       <br />
-                      the mathematical realities of the game.
+                      The Mathematical Realities Of The Game.
                     </div>
                   </>
                 )}

@@ -38,7 +38,7 @@ export default function PhotoGalleryModal({ isOpen, onClose, userPhotos }) {
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
                                 <div style={{ fontSize: 18 }}>No Photos Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-                                    Photos from your posts will appear here
+                                    Photos From Your Posts Will Appear Here
                                 </div>
                             </div>
                         ) : (

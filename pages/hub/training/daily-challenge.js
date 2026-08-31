@@ -93,7 +93,7 @@ function CountdownTimer({ expiresAt }) {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="#64748b">
         <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
       </svg>
-      <span>Next challenge in {remaining}</span>
+      <span>Next Challenge In {remaining}</span>
     </div>
   );
 }
@@ -613,7 +613,7 @@ export default function DailyChallengePage() {
                     textAlign: 'center',
                   }}
                 >
-                  You already completed today's challenge
+                  You Already Completed Today's Challenge
                 </div>
               )}
 
@@ -1010,9 +1010,9 @@ export default function DailyChallengePage() {
                   About Daily Challenge
                 </h2>
                 <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-                  A new solver-verified GTO spot every day at midnight UTC. Answer correctly to
-                  extend your streak and earn {DAILY_CHALLENGE_DIAMOND_REWARD} diamonds. Compete with players worldwide for the
-                  fastest correct answer on the daily leaderboard.
+                  A New Solver-Verified GTO Spot Every Day At Midnight UTC. Answer Correctly To
+                  Extend Your Streak And Earn {DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds. Compete With Players Worldwide For The
+                  Fastest Correct Answer On The Daily Leaderboard.
                 </p>
               </div>
             </motion.div>
@@ -1029,7 +1029,7 @@ export default function DailyChallengePage() {
                 fontWeight: 600,
               }}
             >
-              No daily challenge available right now. Check back soon.
+              No Daily Challenge Available Right Now. Check Back Soon.
             </div>
           )}
         </div>

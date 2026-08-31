@@ -2558,7 +2558,7 @@ export default function ReelsPage() {
               maxWidth: 280,
             }}
           >
-            Check your connection and try again.
+            Check Your Connection And Try Again.
           </p>
           <button
             onClick={() => {
@@ -2623,7 +2623,7 @@ export default function ReelsPage() {
               maxWidth: 300,
             }}
           >
-            Fresh poker clips are posted hourly!
+            Fresh Poker Clips Are Posted Hourly!
           </p>
           <Link
             href="/hub/social-media"
@@ -2636,7 +2636,7 @@ export default function ReelsPage() {
               textDecoration: 'none',
             }}
           >
-            Back to Feed
+            Back To Feed
           </Link>
         </div>
       </>
@@ -4302,7 +4302,7 @@ export default function ReelsPage() {
                     >
                       <path d="M20 6L9 17l-5-5" />
                     </svg>{' '}
-                    Shared to My Feed!
+                    Shared To My Feed!
                   </>
                 ) : (
                   <>
@@ -4318,7 +4318,7 @@ export default function ReelsPage() {
                       <polyline points="16 6 12 2 8 6" />
                       <line x1="12" y1="2" x2="12" y2="15" />
                     </svg>{' '}
-                    Share to My Feed
+                    Share To My Feed
                   </>
                 )}
               </button>
@@ -4477,7 +4477,7 @@ export default function ReelsPage() {
                 }}
               >
                 <div style={{ color: 'white', fontWeight: 700, fontSize: 17 }}>
-                  Share to My Feed
+                  Share To My Feed
                 </div>
                 <button
                   onClick={() => setShowShareDescriptionModal(false)}
@@ -4604,7 +4604,7 @@ export default function ReelsPage() {
                       <polyline points="16 6 12 2 8 6" />
                       <line x1="12" y1="2" x2="12" y2="15" />
                     </svg>{' '}
-                    Post to My Feed
+                    Post To My Feed
                   </>
                 )}
               </button>
@@ -4734,7 +4734,7 @@ export default function ReelsPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  x
+                  X
                 </button>
               </div>
             </div>
@@ -4748,7 +4748,7 @@ export default function ReelsPage() {
                     fontSize: 14,
                   }}
                 >
-                  No comments yet. Be the first!
+                  No Comments Yet. Be The First!
                 </div>
               )}
               {comments.map((c, i) => (
@@ -4981,7 +4981,7 @@ export default function ReelsPage() {
                   style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover' }}
                 />
                 <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                  {commentMediaType === 'gif' ? 'GIF' : 'Image'} attached
+                  {commentMediaType === 'gif' ? 'GIF' : 'Image'} Attached
                 </span>
                 <button
                   onClick={() => {
@@ -4997,7 +4997,7 @@ export default function ReelsPage() {
                     marginLeft: 'auto',
                   }}
                 >
-                  x
+                  X
                 </button>
               </div>
             )}
@@ -5051,7 +5051,7 @@ export default function ReelsPage() {
                     marginLeft: 'auto',
                   }}
                 >
-                  x
+                  X
                 </button>
               </div>
             )}
@@ -5258,7 +5258,7 @@ export default function ReelsPage() {
                   <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
                   <div style={{ fontSize: 16, fontWeight: 600 }}>Report Submitted</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                    Thank you. We will review this content.
+                    Thank You. We Will Review This Content.
                   </div>
                 </div>
               ) : (
@@ -5267,7 +5267,7 @@ export default function ReelsPage() {
                     Report This Reel
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 12 }}>
-                    Why are you reporting this content?
+                    Why Are You Reporting This Content?
                   </div>
                   {[
                     'Inappropriate Content',
@@ -5592,7 +5592,7 @@ export default function ReelsPage() {
                     Train This Spot
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                    AI-matched drills for this reel
+                    AI-Matched Drills For This Reel
                   </div>
                 </div>
                 <button

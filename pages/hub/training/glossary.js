@@ -395,7 +395,7 @@ export default function GlossaryPage() {
             {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              {TERMS.length} terms · {favorites.size} saved
+              {TERMS.length} Terms · {favorites.size} Saved
             </div>
           </div>
         </div>
@@ -450,7 +450,7 @@ export default function GlossaryPage() {
           {/* Results count */}
           {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
           <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
-            {filtered.length} terms
+            {filtered.length} Terms
           </div>
 
           {/* Terms */}

@@ -397,7 +397,7 @@ function EmptyState({ onSearchFocus }) {
                 No Clubs Yet
             </div>
             <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 24px' }}>
-                Follow your favorite poker venues, casinos, and clubs to get quick access to live games, waitlists, and more.
+                Follow Your Favorite Poker Venues, Casinos, And Clubs To Get Quick Access To Live Games, Waitlists, And More.
             </div>
             <button
                 onClick={onSearchFocus}
@@ -1078,7 +1078,7 @@ export default function MyClubsPage() {
                                         No Venues Found
                                     </div>
                                     <div style={{ fontSize: 13, color: C.textSec }}>
-                                        Try a different search term or browse by city name
+                                        Try A Different Search Term Or Browse By City Name
                                     </div>
                                 </div>
                             )}
@@ -1114,7 +1114,7 @@ export default function MyClubsPage() {
                                         Discover Poker Venues
                                     </div>
                                     <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 340, margin: '0 auto' }}>
-                                        Search for casinos, card rooms, poker clubs, and home games near you. Follow them to get quick access to live games and waitlists.
+                                        Search For Casinos, Card Rooms, Poker Clubs, And Home Games Near You. Follow Them To Get Quick Access To Live Games And Waitlists.
                                     </div>
                                 </div>
                             )}

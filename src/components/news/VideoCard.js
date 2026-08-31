@@ -64,7 +64,7 @@ function VideoCardBody({ video, onClick }) {
                 <h4>{title}</h4>
                 <div className="video-meta">
                     <span className="channel">{channel}</span>
-                    <span>{formatViews(video.views || 0)} views</span>
+                    <span>{formatViews(video.views || 0)} Views</span>
                 </div>
             </div>
 

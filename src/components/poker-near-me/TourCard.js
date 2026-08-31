@@ -116,7 +116,7 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
             {/* Buy-in range — from poker_tours data */}
             {tour.typical_buyins && (tour.typical_buyins.min || tour.typical_buyins.max) && (
                 <p className="card-detail">
-                    Buy-ins: {formatMoney(tour.typical_buyins.min)}{tour.typical_buyins.min && tour.typical_buyins.max ? ' - ' : ''}{formatMoney(tour.typical_buyins.max)}
+                    Buy-Ins: {formatMoney(tour.typical_buyins.min)}{tour.typical_buyins.min && tour.typical_buyins.max ? ' - ' : ''}{formatMoney(tour.typical_buyins.max)}
                 </p>
             )}
             {/* Stakes — from poker_venues data */}

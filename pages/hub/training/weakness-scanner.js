@@ -271,7 +271,7 @@ export default function WeaknessScannerPage() {
           <div>
             {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>AI leak detection</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>AI Leak Detection</div>
           </div>
         </div>
 
@@ -357,8 +357,8 @@ export default function WeaknessScannerPage() {
                   </div>
                 </div>
                 <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
-                  Based on analysis of your last {data.totalHands} hands, we've identified specific
-                  areas where your decisions consistently deviate from GTO frequencies.
+                  Based On Analysis Of Your Last {data.totalHands} Hands, We've Identified Specific
+                  Areas Where Your Decisions Consistently Deviate From GTO Frequencies.
                 </div>
               </div>
 
@@ -529,7 +529,7 @@ export default function WeaknessScannerPage() {
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
-                          Category: {leak.cat} • {leak.sample} hand sample
+                          Category: {leak.cat} • {leak.sample} Hand Sample
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>

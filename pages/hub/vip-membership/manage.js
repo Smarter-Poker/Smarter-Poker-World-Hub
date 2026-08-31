@@ -184,7 +184,7 @@ export default function VipManagePage() {
         <section className={`${styles.panel} ${styles.loading}`} role="status" aria-live="polite">
           <RefreshCw size={25} aria-hidden="true" />
           <h2>Synchronizing VIP Record</h2>
-          <p>Reading your private entitlement and recurring billing state…</p>
+          <p>Reading Your Private Entitlement And Recurring Billing State…</p>
         </section>
       )}
 
@@ -192,7 +192,7 @@ export default function VipManagePage() {
         <section className={styles.signedOut}>
           <ShieldCheck size={29} aria-hidden="true" />
           <h2>Connect Your Private Membership Record</h2>
-          <p>Sign in to review your VIP source, renewal date, plan, and secure management controls.</p>
+          <p>Sign In To Review Your VIP Source, Renewal Date, Plan, And Secure Management Controls.</p>
           <Link href={`/auth/login?redirect=${encodeURIComponent(canonical)}`}>Sign In To Manage VIP</Link>
         </section>
       )}
@@ -220,15 +220,15 @@ export default function VipManagePage() {
                 <strong>{formatDate(membership.currentPeriodEnd || membership.expiresAt)}</strong>
               </div>
             </div>
-            {membership.cancelAtPeriodEnd && <div className={styles.notice}>Cancellation is scheduled. VIP remains active through the date shown above and no new renewal will be created.</div>}
-            {membership.partial && <div className={styles.notice}>Your entitlement is verified, but detailed subscription telemetry is temporarily partial.</div>}
+            {membership.cancelAtPeriodEnd && <div className={styles.notice}>Cancellation Is Scheduled. VIP Remains Active Through The Date Shown Above And No New Renewal Will Be Created.</div>}
+            {membership.partial && <div className={styles.notice}>Your Entitlement Is Verified, But Detailed Subscription Telemetry Is Temporarily Partial.</div>}
           </section>
 
           <section className={styles.panel} aria-labelledby="secure-controls-title">
             <h2 id="secure-controls-title"><WalletCards size={22} aria-hidden="true" /> Secure Controls</h2>
             {!membership.isVip && (
               <>
-                <p>No active VIP entitlement was found. Choose a daily, monthly, or annual plan to activate the suite.</p>
+                <p>No Active VIP Entitlement Was Found. Choose A Daily, Monthly, Or Annual Plan To Activate The Suite.</p>
                 <p><Link href="/hub/vip-membership">Choose A VIP Plan</Link></p>
               </>
             )}
@@ -236,29 +236,29 @@ export default function VipManagePage() {
             {membership.isVip && !membership.recurring && (
               <>
                 <p>{membership.source === 'lifetime' ? 'Lifetime VIP has no recurring bill to manage.' : 'Diamond VIP passes expire automatically and never renew a card.'}</p>
-                <div className={styles.notice}><Sparkles size={15} aria-hidden="true" /> No cancellation is needed for this membership source.</div>
+                <div className={styles.notice}><Sparkles size={15} aria-hidden="true" /> No Cancellation Is Needed For This Membership Source.</div>
               </>
             )}
 
             {membership.recurring && (
               <>
-                <p>Switching plans keeps your renewal date. Stripe applies unused paid time as a prorated credit to the next invoice.</p>
+                <p>Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A Prorated Credit To The Next Invoice.</p>
                 <div className={styles.planGrid} aria-label="VIP recurring plan controls">
                   <div className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Flexible Access</span>
                     <strong>$19.99 / Month</strong>
-                    <p>Monthly renewal with full VIP access.</p>
+                    <p>Monthly Renewal With Full VIP Access.</p>
                     <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'monthly' || action.status === 'busy'} onClick={() => setPendingPlan('monthly')}>Switch To Monthly</button>
                   </div>
                   <div className={`${styles.plan} ${membership.tier === 'annual' ? styles.planActive : ''}`}>
                     <span className={styles.planLabel}>Best Card Rate</span>
                     <strong>$199.99 / Year</strong>
-                    <p>Annual renewal with the same full VIP suite.</p>
+                    <p>Annual Renewal With The Same Full VIP Suite.</p>
                     <button className={styles.button} type="button" disabled={!membership.canSwitch || membership.tier === 'annual' || action.status === 'busy'} onClick={() => setPendingPlan('annual')}>Switch To Annual</button>
                   </div>
                 </div>
                 {membership.canCancel && <button ref={cancelTriggerRef} className={styles.dangerButton} type="button" onClick={() => setConfirmOpen(true)}>Schedule End Of Membership</button>}
-                <p className={styles.finePrint}>Plan changes and cancellations require your verified session. Cancellation takes effect at the end of the paid billing period.</p>
+                <p className={styles.finePrint}>Plan Changes And Cancellations Require Your Verified Session. Cancellation Takes Effect At The End Of The Paid Billing Period.</p>
               </>
             )}
 
@@ -282,12 +282,12 @@ export default function VipManagePage() {
             </p>
             {confirmOpen && (
               <>
-                <label htmlFor="cancel-reason">Why are you leaving?</label>
+                <label htmlFor="cancel-reason">Why Are You Leaving?</label>
                 <select id="cancel-reason" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
-                  <option value="not_using">Not using it enough</option>
+                  <option value="not_using">Not Using It Enough</option>
                   <option value="too_expensive">Price</option>
-                  <option value="missing_features">Missing features</option>
-                  <option value="technical_issues">Technical issues</option>
+                  <option value="missing_features">Missing Features</option>
+                  <option value="technical_issues">Technical Issues</option>
                   <option value="other">Other</option>
                 </select>
               </>

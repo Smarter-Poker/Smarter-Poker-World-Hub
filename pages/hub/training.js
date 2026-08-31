@@ -335,7 +335,7 @@ export default function TrainingPage() {
 
       {!showArena && (
         <>
-          <a href="#main" className="sp-skip">Skip to main content</a>
+          <a href="#main" className="sp-skip">Skip To Main Content</a>
 
           <UniversalHeader />
 
@@ -557,10 +557,10 @@ function DrillCard({ game }) {
             <span className="sp-tag"><Layers size={12} aria-hidden /> {formatTag}</span>
           )}
           {game.estMinutes != null && (
-            <span className="sp-tag"><Clock size={12} aria-hidden /> ~{game.estMinutes} min</span>
+            <span className="sp-tag"><Clock size={12} aria-hidden /> ~{game.estMinutes} Min</span>
           )}
           {game.handsTarget != null && (
-            <span className="sp-tag"><Zap size={12} aria-hidden /> {game.handsTarget} hands</span>
+            <span className="sp-tag"><Zap size={12} aria-hidden /> {game.handsTarget} Hands</span>
           )}
         </div>
       </div>
@@ -575,7 +575,7 @@ function GradeCard({ stats, loading }) {
         <div className="sp-grade-row">
           <div className="sp-grade-letter sp-num sp-skel-text">·</div>
           <div className="sp-grade-text">
-            <p className="sp-grade-label">Current GTO grade</p>
+            <p className="sp-grade-label">Current GTO Grade</p>
             <p className="sp-grade-value sp-skel-line" />
             <div className="sp-progress sp-skel-block" />
           </div>
@@ -609,7 +609,7 @@ function GradeCard({ stats, loading }) {
           {hasData && next && delta && (
             <div className="sp-grade-meta">
               <span>{grade}</span>
-              <span>{delta} {delta === 1 ? 'correct hand' : 'correct hands'} to {next}</span>
+              <span>{delta} {delta === 1 ? 'correct hand' : 'correct hands'} To {next}</span>
               <span>{next}</span>
             </div>
           )}
@@ -656,20 +656,20 @@ function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recomme
     ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
     : 'Build Better Decisions, One Hand At A Time.';
   if (statsLoading || recommendationLoading) {
-    return <>{greet} Loading your daily plan…</>;
+    return <>{greet} Loading Your Daily Plan…</>;
   }
   const hasGradeData = (stats?.rolling_total ?? 0) > 0;
   const delta = stats?.delta_correct_to_next;
   const nextGrade = stats?.next_grade;
   if (jarvisPick && hasGradeData && delta != null && nextGrade) {
     const noun = delta === 1 ? 'correct hand' : 'correct hands';
-    return <>{greet} <em>{delta} {noun}</em> away from Grade {nextGrade}.</>;
+    return <>{greet} <em>{delta} {noun}</em> Away From Grade {nextGrade}.</>;
   }
   if (jarvisPick && !hasGradeData) {
-    return <>{greet} Ready to start training?</>;
+    return <>{greet} Ready To Start Training?</>;
   }
   if (!jarvisPick) {
-    return <>{greet} Browse the library to start your first drill.</>;
+    return <>{greet} Browse The Library To Start Your First Drill.</>;
   }
   return <>{greet}</>;
 }
@@ -746,8 +746,8 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         <h3 className="sp-card-title">{game.name}</h3>
         <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
-          <span><Clock size={12} aria-hidden /> {game.estMinutes || 10} min</span>
-          {game.handsTarget && <><span className="sp-card-sep" aria-hidden /><span><Layers size={12} aria-hidden /> {game.handsTarget} hands</span></>}
+          <span><Clock size={12} aria-hidden /> {game.estMinutes || 10} Min</span>
+          {game.handsTarget && <><span className="sp-card-sep" aria-hidden /><span><Layers size={12} aria-hidden /> {game.handsTarget} Hands</span></>}
         </div>
         <div className="sp-card-progress">
           <div className="sp-card-progress-head"><span>Training Calibration</span><span>{progress}%</span></div>
@@ -766,7 +766,7 @@ function ArenaSkeleton() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--sp-ink-2, #94a3b8)' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="sp-spin" />
-        <div style={{ marginTop: 12 }}>Loading arena…</div>
+        <div style={{ marginTop: 12 }}>Loading Arena…</div>
       </div>
     </div>
   );
@@ -781,7 +781,7 @@ function ArenaSkeleton() {
  */
 function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
   if (loading) {
-    return <div className="sp-progress" aria-busy="true"><span className="sp-progress-note">Loading progress…</span></div>;
+    return <div className="sp-progress" aria-busy="true"><span className="sp-progress-note">Loading Progress…</span></div>;
   }
   const rows = sessions || [];
   if (!signedIn || rows.length === 0) {
@@ -822,7 +822,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
     <div className="sp-progress">
       <div className="sp-progress-grid">
         <div>
-          <div className="sp-progress-label">GTOW score · last {chrono.length} sessions</div>
+          <div className="sp-progress-label">GTOW Score · Last {chrono.length} Sessions</div>
           <Sparkline data={sparkData} />
           <div className="sp-progress-meta">
             Latest <b className="sp-num">{fmtScore(signedScore(rows[0]))}</b>
@@ -830,9 +830,9 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
           </div>
         </div>
         <div>
-          <div className="sp-progress-label">Accuracy by position · lifetime</div>
+          <div className="sp-progress-label">Accuracy By Position · Lifetime</div>
           {posRows.length === 0 ? (
-            <div className="sp-progress-note">No per-position data recorded yet.</div>
+            <div className="sp-progress-note">No Per-Position Data Recorded Yet.</div>
           ) : posRows.map(r => {
             const acc = r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0;
             return (
@@ -847,7 +847,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
         </div>
       </div>
 
-      <div className="sp-progress-label" style={{ marginTop: 14 }}>Recent sessions</div>
+      <div className="sp-progress-label" style={{ marginTop: 14 }}>Recent Sessions</div>
       <ul className="sp-plist">
         {rows.slice(0, 6).map((r, i) => (
           <li key={r.id || i} className="sp-plist-row">

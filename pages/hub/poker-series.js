@@ -921,7 +921,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                                 <h3>No Matching Series</h3>
-                                <p>No series match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
+                                <p>No Series Match Your Current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
                                 <button className="tours-empty-reset" onClick={resetFilters}>
                                     Reset All Filters
                                 </button>
@@ -1087,7 +1087,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                                     ))}
                                                     {events.length > 5 && (
                                                         <div className="tour-series-more">
-                                                            +{events.length - 5} more event{events.length - 5 > 1 ? 's' : ''}
+                                                            +{events.length - 5} More event{events.length - 5 > 1 ? 's' : ''}
                                                         </div>
                                                     )}
                                                 </div>

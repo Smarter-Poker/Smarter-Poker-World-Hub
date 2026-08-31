@@ -511,7 +511,7 @@ export default function SkillTreePage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Master your GTO progression</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Master Your GTO Progression</div>
           </div>
           {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
           <div

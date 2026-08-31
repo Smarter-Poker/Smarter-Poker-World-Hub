@@ -241,7 +241,7 @@ export default function JarvisDashboard() {
                     {insights.topLeaks.map((leak, i) => (
                       <div key={i} style={styles.leakCard}>
                         <span style={styles.leakName}>{leak.name}</span>
-                        <span style={styles.leakCount}>{leak.count} occurrences</span>
+                        <span style={styles.leakCount}>{leak.count} Occurrences</span>
                       </div>
                     ))}
                   </div>

@@ -26,7 +26,7 @@ export default function JurisdictionBlocked() {
     return (
         <>
             <Head>
-                <title>Service Unavailable in Your Region - Smarter.Poker</title>
+                <title>Service Unavailable In Your Region - Smarter.Poker</title>
                 <meta name="robots" content="noindex" />
             </Head>
             <main
@@ -44,16 +44,16 @@ export default function JurisdictionBlocked() {
                 <div style={{ maxWidth: 560, textAlign: 'center', lineHeight: 1.55 }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🌐</div>
                     <h1 style={{ fontSize: 28, margin: '0 0 12px' }}>
-                        Smarter.Poker isn’t available in your region
+                        Smarter.Poker Isn’t Available In Your Region
                     </h1>
                     <p style={{ fontSize: 16, color: '#9ca3af', margin: '0 0 20px' }}>
-                        Based on {label}, we’re unable to offer access from here.
-                        This is a legal/regulatory restriction, not a technical one.
+                        Based On {label}, We’re Unable To Offer Access From Here.
+                        This Is A Legal/Regulatory Restriction, Not A Technical One.
                     </p>
                     <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 32px' }}>
-                        If you believe this block is incorrect (for example, you’re travelling
-                        through a VPN, or your mobile carrier resolves to the wrong region),
-                        please contact support from a connection in an allowed jurisdiction.
+                        If You Believe This Block Is Incorrect (For Example, You’re Travelling
+                        Through A VPN, Or Your Mobile Carrier Resolves To The Wrong Region),
+                        Please Contact Support From A Connection In An Allowed Jurisdiction.
                     </p>
                     <a
                         href="mailto:support@smarter.poker?subject=Jurisdiction%20block%20appeal"
@@ -67,7 +67,7 @@ export default function JurisdictionBlocked() {
                             fontWeight: 600,
                         }}
                     >
-                        Contact support
+                        Contact Support
                     </a>
                     <div style={{ marginTop: 28, fontSize: 12, color: '#4b5563' }}>
                         Reference: {reason || 'unknown'}

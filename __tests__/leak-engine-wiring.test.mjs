@@ -136,7 +136,7 @@ test('unpriced preflop decisions are never silently marked correct', () => {
   assert.match(analyzer, /pricedDecisions/);
   assert.match(analyzer, /key:\s*'unpriced'/);
   assert.match(analyzer, /classification:\s*classification\.key/);
-  assert.match(upload, /excluded from GTO accuracy, EV loss, and Leak Finder evidence/);
+  assert.match(upload, /Excluded From GTO Accuracy, EV Loss, And Leak Finder Evidence/);
 });
 
 test('non-exact Club Arena matches persist no solver conclusion or EV claim', () => {

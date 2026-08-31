@@ -73,7 +73,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
 
           <div className="flex items-center justify-between mt-3">
             <span className="text-xs text-[#64748B]">
-              {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              {date.toLocaleDateString()} At {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </span>
 
             <div className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function PlayerNotificationsPage() {
                   onClick={handleMarkAllRead}
                   className="text-sm font-bold text-[#22D3EE] hover:text-white uppercase tracking-wide transition-colors"
                 >
-                  Mark all read
+                  Mark All Read
                 </button>
               )}
             </div>
@@ -292,7 +292,7 @@ export default function PlayerNotificationsPage() {
                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
               </p>
               <p className="text-sm text-[#64748B] mt-1">
-                Join a waitlist to receive updates
+                Join A Waitlist To Receive Updates
               </p>
             </div>
           ) : (

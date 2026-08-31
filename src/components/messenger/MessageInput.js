@@ -347,10 +347,10 @@ export function MessageInput({
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>
                                 <div style={{ fontSize: 24, marginBottom: 8 }}>🎞️</div>
                                 <div style={{ fontSize: 13 }}>{gifError}</div>
-                                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY in Vercel to enable</div>
+                                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY In Vercel To Enable</div>
                             </div>
                         ) : gifs.length === 0 ? (
-                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>No GIFs found</div>
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>No GIFs Found</div>
                         ) : gifs.map(gif => (
                             <img
                                 key={gif.id} src={gif.preview || gif.url} alt={gif.title}
@@ -369,7 +369,7 @@ export function MessageInput({
                         ))}
                     </div>
                     <div style={{ padding: '4px 12px', textAlign: 'center', fontSize: 10, color: C.textSec, borderTop: `1px solid ${C.border}` }}>
-                        Powered by GIPHY
+                        Powered By GIPHY
                     </div>
                 </div>
             )}

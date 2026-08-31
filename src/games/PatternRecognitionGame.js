@@ -160,7 +160,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                 <div style={{ marginTop: 60 }}>
                     <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83E\uDDE9'}</div>
                     <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>See a partial range → Identify the dominant action!<br />Is this a RAISING range, CALLING range, or FOLDING range?<br />8 patterns. Test your GTO intuition!</p>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>See A Partial Range → Identify The Dominant Action!<br />Is This A RAISING Range, CALLING Range, Or FOLDING Range?<br />8 Patterns. Test Your GTO Intuition!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
                 </div>
             )}
@@ -178,7 +178,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         />
                     )}
                     <div style={{ fontSize: 16, color: '#00D4FF', marginBottom: 12, fontWeight: 600 }}>{currentPattern.scenario.title}</div>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>What action does this range primarily represent?</div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>What Action Does This Range Primarily Represent?</div>
                     {renderMiniGrid()}
                     {gameState === 'revealed' && (
                         <div style={{ marginBottom: 16 }}>
@@ -264,7 +264,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                                             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
                                         </div>
                                     ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus on these spots in your next session</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
                                 </div>
                             );
                         })()}

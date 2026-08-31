@@ -99,7 +99,7 @@ export default function ManualLocationModal({
           <div>
             <span className="pnm-location-sheet__eyebrow">Manual Search Origin</span>
             <h2 id="pnm-manual-location-title">Set Your Location</h2>
-            <p id="pnm-manual-location-description">Choose a city to anchor nearby rooms, events, and route distances.</p>
+            <p id="pnm-manual-location-description">Choose A City To Anchor Nearby Rooms, Events, And Route Distances.</p>
           </div>
           <button type="button" className="pnm-location-sheet__close" onClick={closeModal} disabled={manualGeocoding} aria-label="Close manual location dialog">&times;</button>
         </header>
@@ -114,7 +114,7 @@ export default function ManualLocationModal({
 
           {gpsError && <p className="pnm-location-sheet__error" role="alert">{gpsError}</p>}
 
-          <div className="pnm-location-sheet__divider"><span>or enter manually</span></div>
+          <div className="pnm-location-sheet__divider"><span>Or Enter Manually</span></div>
 
           <div className="pnm-location-sheet__fields">
             <label>

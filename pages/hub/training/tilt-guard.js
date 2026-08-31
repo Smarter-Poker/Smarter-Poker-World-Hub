@@ -252,7 +252,7 @@ function BreathingExercise({ onClose }) {
           Exercise Complete
         </div>
         <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
-          4 cycles done. Feeling calmer?
+          4 Cycles Done. Feeling Calmer?
         </div>
         <motion.button
           whileTap={{ scale: 0.97 }}
@@ -284,7 +284,7 @@ function BreathingExercise({ onClose }) {
         border: `1px solid ${phaseColor[phase]}30`,
       }}
     >
-      <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} of 4</div>
+      <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} Of 4</div>
       <motion.div
         animate={{
           scale: phase === 'inhale' ? [1, 1.3] : phase === 'exhale' ? [1.3, 1] : 1.3,
@@ -402,7 +402,7 @@ export default function TiltGuardPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Tilt Guard</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Emotional intelligence coach</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
           </div>
         </div>
 

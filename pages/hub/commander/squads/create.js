@@ -210,7 +210,7 @@ export default function CreateSquadPage() {
               ))}
             </div>
             <p className="text-sm text-[#64748B] mt-2">
-              Step {step} of 3: {step === 1 ? 'Choose Venue' : step === 2 ? 'Game Details' : 'Invite Members'}
+              Step {step} Of 3: {step === 1 ? 'Choose Venue' : step === 2 ? 'Game Details' : 'Invite Members'}
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function CreateSquadPage() {
 
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Squad Name (optional)
+                  Squad Name (Optional)
                 </label>
                 <input
                   type="text"

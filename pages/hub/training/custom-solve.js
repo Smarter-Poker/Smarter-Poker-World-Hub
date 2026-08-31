@@ -74,7 +74,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
           padding: '0 4px',
         }}
       >
-        Board Cards (optional)
+        Board Cards (Optional)
       </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
         {slotLabels.map((label, i) => {
@@ -233,7 +233,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
       >
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
-            {heroPos} vs {villainPos}
+            {heroPos} Vs {villainPos}
           </div>
           <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
             6-Max Cash · {config.stackDepth}BB · {config.boardCards?.filter(Boolean).length ? 'Exact Board Query' : 'Preflop Range Query'}
@@ -365,7 +365,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
               letterSpacing: 0.5,
             }}
           >
-            Hands ({result.rangePercent || 0}% of combos)
+            Hands ({result.rangePercent || 0}% Of Combos)
           </div>
           <div
             style={{
@@ -542,7 +542,7 @@ export default function CustomSolvePage() {
               Supported Corpus
             </div>
             <div style={{ color: 'var(--sp-fg)', fontSize: 13, fontWeight: 800 }}>6-Max Cash</div>
-            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>Position, effective stack, and concrete board cards are applied to every request.</div>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>Position, Effective Stack, And Concrete Board Cards Are Applied To Every Request.</div>
           </div>
 
           {/* Positions */}

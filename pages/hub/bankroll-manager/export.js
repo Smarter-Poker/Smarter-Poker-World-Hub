@@ -133,7 +133,7 @@ export default function BankrollExport() {
                             📥 Export Data
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
-                            Download your bankroll data in various formats
+                            Download Your Bankroll Data In Various Formats
                         </p>
 
                         <div style={{ display: 'grid', gap: '16px' }}>

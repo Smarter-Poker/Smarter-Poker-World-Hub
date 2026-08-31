@@ -341,7 +341,7 @@ export default function MentalJournalPage() {
                     Sleep Quality
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                    {sleep} hrs
+                    {sleep} Hrs
                   </span>
                 </div>
                 <input
@@ -361,7 +361,7 @@ export default function MentalJournalPage() {
                     Caffeine Level
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
-                    {caffeine} cups
+                    {caffeine} Cups
                   </span>
                 </div>
                 <input
@@ -441,7 +441,7 @@ export default function MentalJournalPage() {
                   marginBottom: 12,
                 }}
               >
-                Tilt Triggers (Select all that apply)
+                Tilt Triggers (Select All That Apply)
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                 {TRIGGERS.map((t) => {
@@ -601,7 +601,7 @@ export default function MentalJournalPage() {
                         </div>
                         <div>
                           {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ● */}
-                          <span style={{ color: 'var(--sp-accent-amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} cups
+                          <span style={{ color: 'var(--sp-accent-amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} Cups
                         </div>
                       </div>
                       {e.triggers && e.triggers.length > 0 && (

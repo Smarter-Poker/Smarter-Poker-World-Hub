@@ -408,7 +408,7 @@ export default function LeaderboardsPage() {
                                 fontSize: 14, color: C.textSec, margin: '6px 0 0',
                                 lineHeight: 1.4
                             }}>
-                                Top poker community members ranked by engagement
+                                Top Poker Community Members Ranked By Engagement
                             </p>
                         </div>
 
@@ -524,7 +524,7 @@ export default function LeaderboardsPage() {
                                 >
                                     <AlertTriangle size={48} aria-hidden style={{ color: C.red, marginBottom: 12 }} strokeWidth={1.5} />
                                     <p style={{ color: C.text, fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>
-                                        Failed to load leaderboards
+                                        Failed To Load Leaderboards
                                     </p>
                                     <p style={{ color: C.textSec, fontSize: 14, margin: '0 0 16px' }}>{error?.message || 'Failed to load leaderboard. Please retry.'}</p>
                                     <button
@@ -552,10 +552,10 @@ export default function LeaderboardsPage() {
                                 >
                                     <Trophy size={64} aria-hidden style={{ color: C.textSec, marginBottom: 16, opacity: 0.5 }} strokeWidth={1} />
                                     <p style={{ color: C.text, fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>
-                                        No rankings yet
+                                        No Rankings Yet
                                     </p>
                                     <p style={{ color: C.textSec, fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                                        Be the first to earn a spot! Check in at venues, write reviews, and post in the community.
+                                        Be The First To Earn A Spot! Check In At Venues, Write Reviews, And Post In The Community.
                                     </p>
                                 </motion.div>
                             ) : (
@@ -616,15 +616,15 @@ export default function LeaderboardsPage() {
                                         }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                 <span style={{ width: 8, height: 8, borderRadius: 2, background: C.blue, display: 'inline-block' }} />
-                                                Check-ins (x2)
+                                                Check-Ins (X2)
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                 <span style={{ width: 8, height: 8, borderRadius: 2, background: C.green, display: 'inline-block' }} />
-                                                Reviews (x3)
+                                                Reviews (X3)
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                 <span style={{ width: 8, height: 8, borderRadius: 2, background: C.purple, display: 'inline-block' }} />
-                                                Posts (x1)
+                                                Posts (X1)
                                             </span>
                                         </div>
                                     )}
@@ -673,7 +673,7 @@ export default function LeaderboardsPage() {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: 13, color: C.textSec }}>Your Rank</div>
-                                            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>You are in the Top 50!</div>
+                                            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>You Are In The Top 50!</div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div style={{ fontSize: 16, fontWeight: 700, color: C.gold }}>
@@ -699,7 +699,7 @@ export default function LeaderboardsPage() {
                                         <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Unranked</div>
                                     </div>
                                     <div style={{ textAlign: 'right', fontSize: 12, color: C.textSec, maxWidth: 120 }}>
-                                        Check in or post to earn a spot!
+                                        Check In Or Post To Earn A Spot!
                                     </div>
                                 </>
                             )}

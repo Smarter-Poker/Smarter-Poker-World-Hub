@@ -92,7 +92,7 @@ export default function ClaimPage() {
                     border: '3px solid #3a3b3c', borderTopColor: C.blue,
                     animation: 'spin 0.8s linear infinite',
                 }} />
-                <p style={{ color: C.textMuted, marginTop: 12, fontSize: 14 }}>Verifying your session...</p>
+                <p style={{ color: C.textMuted, marginTop: 12, fontSize: 14 }}>Verifying Your Session...</p>
                 <style dangerouslySetInnerHTML={{ __html: '@keyframes spin { to { transform: rotate(360deg); } }' }} />
             </div>
         );
@@ -143,7 +143,7 @@ export default function ClaimPage() {
                                 borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer',
                             }}
                         >
-                            Go to My Venues →
+                            Go To My Venues →
                         </button>
                     </>
                 ) : (
@@ -152,7 +152,7 @@ export default function ClaimPage() {
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(35,116,225,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🛡️</div>
                         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: C.text }}>Link Your Account</h1>
                         <p style={{ fontSize: 14, color: C.textSec, margin: 0, lineHeight: 1.5 }}>
-                            Your manager has invited you to connect your Smarter.Poker account to their venue.
+                            Your Manager Has Invited You To Connect Your Smarter.Poker Account To Their Venue.
                         </p>
 
                         <div style={{

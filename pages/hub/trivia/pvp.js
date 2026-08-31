@@ -944,7 +944,7 @@ export default function PvPPage() {
                                 <div style={{ fontSize: 14 }}>{pvpError}</div>
                                 {refundFailed && (
                                     <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
-                                        Please double-check your diamond balance. If it looks wrong, contact support with the time of this match.
+                                        Please Double-Check Your Diamond Balance. If It Looks Wrong, Contact Support With The Time Of This Match.
                                     </div>
                                 )}
                             </div>
@@ -964,7 +964,7 @@ export default function PvPPage() {
                         <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
                             <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You don't have enough diamonds for this stake. Visit the Diamond Store to get more!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Don't Have Enough Diamonds For This Stake. Visit The Diamond Store To Get More!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
@@ -1023,7 +1023,7 @@ export default function PvPPage() {
                                         </button>
                                     ))}
                                 </div>
-                                <p className="rake-notice">10% house rake on prize pool</p>
+                                <p className="rake-notice">10% House Rake On Prize Pool</p>
                             </div>
 
                             {/* Record */}
@@ -1095,7 +1095,7 @@ export default function PvPPage() {
                                     <span className="name">{opponent?.username}</span>
                                     <span className="score">{opponentScore != null ? opponentScore : '?'}</span>
                                     {opponentScore == null && (
-                                        <span className="ellipsis-pulse" aria-hidden="true">thinking</span>
+                                        <span className="ellipsis-pulse" aria-hidden="true">Thinking</span>
                                     )}
                                 </div>
                             </div>
@@ -1108,7 +1108,7 @@ export default function PvPPage() {
 
                             {/* Progress */}
                             <div className="battle-progress">
-                                Question {currentQuestionIndex + 1} of {questions.length}
+                                Question {currentQuestionIndex + 1} Of {questions.length}
                             </div>
 
                             {/* Per-question result dots — data already lived in
@@ -1190,7 +1190,7 @@ export default function PvPPage() {
                                             client-side refund here - that could only
                                             double-pay against the server settlement. */}
                                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 16 }}>
-                                            Your run is graded and locked in on the server. If your opponent finishes, the match settles instantly and pays the winner. If they never finish, the automatic settlement sweep closes the match within about 30 minutes - you can leave this screen safely and check your balance later.
+                                            Your Run Is Graded And Locked In On The Server. If Your Opponent Finishes, The Match Settles Instantly And Pays The Winner. If They Never Finish, The Automatic Settlement Sweep Closes The Match Within About 30 Minutes - You Can Leave This Screen Safely And Check Your Balance Later.
                                         </p>
                                         <button
                                             onClick={handlePlayAgain}

@@ -75,13 +75,13 @@ test('club item detail closes double-submit windows and persists card intent ser
   assert.match(clubDetail, /Confirm Diamond Purchase/);
   assert.match(clubDetail, /ref=\{diamondReviewTitleRef\}/);
   assert.match(clubDetail, /router\.query\.canceled === ['"]true['"]/);
-  assert.match(clubDetail, /Card checkout canceled\. Your diamonds and club inventory were not changed\./);
-  assert.match(clubDetail, /Card checkout is unavailable for this item price\./);
-  assert.match(clubDetail, /Sign in again before authorizing a diamond purchase\./);
+  assert.match(clubDetail, /Card Checkout Canceled\. Your Diamonds And Club Inventory Were Not Changed\./);
+  assert.match(clubDetail, /Card Checkout Is Unavailable For This Item Price\./);
+  assert.match(clubDetail, /Sign In Again Before Authorizing A Diamond Purchase\./);
   assert.match(clubDetail, /const diamondReviewTriggerRef = useRef\(null\)/);
   assert.match(clubDetail, /const cardCharge = cardTopUp \? cardTopUp\.price \* cardTopUp\.quantity/);
-  assert.match(clubDetail, /Card checkout charges/);
-  assert.match(clubDetail, /leaves <strong>\{cardRemainder\.toLocaleString\(\)\} Diamonds/);
+  assert.match(clubDetail, /Card Checkout Charges/);
+  assert.match(clubDetail, /Leaves <strong>\{cardRemainder\.toLocaleString\(\)\} Diamonds/);
   assert.match(clubDetail, /noindex/);
 });
 

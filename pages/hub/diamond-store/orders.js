@@ -211,8 +211,8 @@ export default function OrderHistory() {
     );
     const currentStep = currentRank >= 3 ? -1 : currentRank;
     return [
-      { label: 'Order placed', complete: true, date: order?.created_at },
-      { label: 'In production', complete: currentRank >= 1, date: null },
+      { label: 'Order Placed', complete: true, date: order?.created_at },
+      { label: 'In Production', complete: currentRank >= 1, date: null },
       { label: 'Shipped', complete: currentRank >= 2, date: order?.shippedAt },
       { label: 'Delivered', complete: currentRank >= 3, date: order?.deliveredAt },
     ].map((step, index) => ({ ...step, current: index === currentStep }));
@@ -401,7 +401,7 @@ export default function OrderHistory() {
               {visibleOrders.length === 0 && (
                 <div role="status" style={styles.filteredEmpty}>
                   <h2 style={styles.emptyTitle}>No Orders Match Those Filters</h2>
-                  <p style={styles.emptyText}>Clear the search or choose a different ledger signal.</p>
+                  <p style={styles.emptyText}>Clear The Search Or Choose A Different Ledger Signal.</p>
                   <button type="button" onClick={clearFilters} style={styles.shopButton}>
                     Clear Filters
                   </button>
@@ -443,7 +443,7 @@ export default function OrderHistory() {
                     >
                       <div style={styles.fulfillmentHeadingRow}>
                         <div>
-                          <div style={styles.fulfillmentEyebrow}>Fulfillment telemetry</div>
+                          <div style={styles.fulfillmentEyebrow}>Fulfillment Telemetry</div>
                           <div style={styles.fulfillmentTitle}>
                             {order.deliveredAt || order.status === 'delivered'
                               ? 'Delivery complete'
@@ -456,7 +456,7 @@ export default function OrderHistory() {
                         </div>
                         {order.trackingUrl && (
                           <a href={order.trackingUrl} style={styles.trackingButton}>
-                            Track package →
+                            Track Package →
                           </a>
                         )}
                       </div>

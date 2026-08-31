@@ -288,7 +288,7 @@ export default function SquadDetailPage() {
             onClick={() => router.push('/hub/commander/squads')}
             className="cmd-btn cmd-btn-primary"
           >
-            Back to Squads
+            Back To Squads
           </button>
         </div>
       </div>
@@ -378,7 +378,7 @@ export default function SquadDetailPage() {
             {squad?.estimated_wait && squad?.group_status === 'waiting' && (
               <div className="flex items-center gap-2 mt-3 text-sm text-[#64748B]">
                 <Clock className="w-4 h-4" />
-                Estimated wait: ~{squad.estimated_wait} min
+                Estimated Wait: ~{squad.estimated_wait} Min
               </div>
             )}
           </div>
@@ -454,10 +454,10 @@ export default function SquadDetailPage() {
             {isLeader && squad?.group_status === 'forming' && !canJoinWaitlist && (
               <div className="bg-[#F59E0B]/10 rounded-xl p-4 text-center">
                 <p className="text-[#F59E0B] font-medium">
-                  Waiting for {members.length - confirmedCount} member(s) to confirm
+                  Waiting For {members.length - confirmedCount} Member(S) To Confirm
                 </p>
                 <p className="text-sm text-[#64748B] mt-1">
-                  Need at least 2 confirmed members to join waitlist
+                  Need At Least 2 Confirmed Members To Join Waitlist
                 </p>
               </div>
             )}

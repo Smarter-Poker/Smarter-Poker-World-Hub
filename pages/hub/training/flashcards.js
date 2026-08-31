@@ -648,7 +648,7 @@ export default function FlashcardsPage() {
                       {current.q}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)', textAlign: 'center' }}>
-                      Tap to reveal answer
+                      Tap To Reveal Answer
                     </div>
                   </>
                 ) : (
@@ -706,7 +706,7 @@ export default function FlashcardsPage() {
                   />
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
-                  {stats.mastered}/{CARDS.length} cards mastered (21+ day interval)
+                  {stats.mastered}/{CARDS.length} Cards Mastered (21+ Day Interval)
                 </div>
               </div>
             </div>

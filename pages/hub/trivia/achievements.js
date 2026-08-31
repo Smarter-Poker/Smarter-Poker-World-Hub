@@ -291,7 +291,7 @@ export default function TriviaAchievements() {
                                 marginBottom: '20px'
                             }}
                         >
-                            Back to Trivia
+                            Back To Trivia
                         </button>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
@@ -367,7 +367,7 @@ export default function TriviaAchievements() {
 
                         {isLoading ? (
                             <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading achievements...
+                                Loading Achievements...
                             </div>
                         ) : loadError ? (
                             <div role="alert" style={{

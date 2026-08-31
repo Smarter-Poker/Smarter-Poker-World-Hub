@@ -367,15 +367,15 @@ export default function QuizGauntlet({ onExit } = {}) {
                       marginBottom: 20,
                     }}
                   >
-                    Answer <strong style={{ color: 'var(--sp-accent-orange)' }}>10 GTO questions</strong> as fast
-                    and accurately as possible.
+                    Answer <strong style={{ color: 'var(--sp-accent-orange)' }}>10 GTO Questions</strong> As Fast
+                    And Accurately As Possible.
                     <br />
-                    You have <strong style={{ color: 'var(--sp-accent-cyan)' }}>30 seconds</strong> per question.
+                    You Have <strong style={{ color: 'var(--sp-accent-cyan)' }}>30 Seconds</strong> Per Question.
                     <br />
-                    Correct answers build your{' '}
-                    <strong style={{ color: 'var(--sp-accent-purple)' }}>COMBO multiplier</strong> for bonus points.
+                    Correct Answers Build your{' '}
+                    <strong style={{ color: 'var(--sp-accent-purple)' }}>COMBO Multiplier</strong> For Bonus Points.
                     <br />
-                    Max score: <strong style={{ color: 'var(--sp-accent-green)' }}>1000 pts</strong>.
+                    Max Score: <strong style={{ color: 'var(--sp-accent-green)' }}>1000 Pts</strong>.
                   </div>
                   <div
                     style={{

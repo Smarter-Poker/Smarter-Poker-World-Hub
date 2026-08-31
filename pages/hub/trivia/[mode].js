@@ -1133,7 +1133,7 @@ export default function TriviaModePage() {
             }}>
                 <h1 style={{ color: '#ffffff', fontSize: 28, margin: 0 }}>Mode Not Found</h1>
                 <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 12px', fontSize: 15 }}>
-                    That trivia mode doesn't exist. It may have been renamed or retired.
+                    That Trivia Mode Doesn't Exist. It May Have Been Renamed Or Retired.
                 </p>
                 <button
                     onClick={() => router.replace('/hub/trivia')}
@@ -1209,7 +1209,7 @@ export default function TriviaModePage() {
                             }}>
                                 <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We couldn't save your trivia results because you lost connection. Please check your internet and try again so you don't lose your progress!
+                                    We Couldn't Save Your Trivia Results Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose Your Progress!
                                 </p>
                                 <button
                                     onClick={handleRetrySave}
@@ -1234,7 +1234,7 @@ export default function TriviaModePage() {
                         <div className="error-state">
                             <p>{error}</p>
                             <button onClick={() => router.push('/hub/trivia')}>
-                                Back to Trivia
+                                Back To Trivia
                             </button>
                         </div>
                     )}
@@ -1364,12 +1364,12 @@ export default function TriviaModePage() {
                             )}
                             {result.capReached && (
                                 <div className="cap-callout">
-                                    Daily earning cap reached for this mode - {result.diamondsEarned} of {result.rawDiamonds} diamonds awarded. Come back tomorrow for full rewards!
+                                    Daily Earning Cap Reached For This Mode - {result.diamondsEarned} Of {result.rawDiamonds} Diamonds Awarded. Come Back Tomorrow For Full Rewards!
                                 </div>
                             )}
                             {result.skippedCount > 0 && (
                                 <div className="cap-callout">
-                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} skipped and scored neutral - they are not counted in your accuracy.
+                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} Skipped And Scored Neutral - They Are Not Counted In Your Accuracy.
                                 </div>
                             )}
                             {wheelError && (

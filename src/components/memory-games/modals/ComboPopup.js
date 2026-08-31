@@ -5,7 +5,7 @@ export default function ComboPopup({
     return (
         <div className="preflop-combo-popup" role="status" aria-live="polite">
             <div>{comboName}</div>
-            <span>{multiplier}× multiplier</span>
+            <span>{multiplier}× Multiplier</span>
         </div>
     );
 }

@@ -110,16 +110,16 @@ export default function TrainingTournamentDetail() {
           href="/hub/training/tournaments"
           style={{ color: 'var(--sp-text-dim, #9aa4b2)', fontSize: 13, textDecoration: 'none' }}
         >
-          &larr; All tournaments
+          &larr; All Tournaments
         </Link>
 
         {isLoading && <SkeletonLoader />}
 
         {!isLoading && (error || !tournament) && (
           <div style={{ padding: 28, textAlign: 'center' }}>
-            <h1 style={{ fontSize: '1.2rem', margin: '12px 0 6px' }}>Tournament not found</h1>
+            <h1 style={{ fontSize: '1.2rem', margin: '12px 0 6px' }}>Tournament Not Found</h1>
             <p style={{ opacity: 0.7, fontSize: 14 }}>
-              It may have been removed, or the link is out of date.
+              It May Have Been Removed, Or The Link Is Out Of Date.
             </p>
           </div>
         )}
@@ -212,7 +212,7 @@ export default function TrainingTournamentDetail() {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 13, opacity: 0.8 }}>Your entry</div>
+                <div style={{ fontSize: 13, opacity: 0.8 }}>Your Entry</div>
                 <div style={{ fontSize: 14 }}>
                   Status <strong>{userEntry.status}</strong>
                   {userEntry.score != null && <> &middot; Score <strong>{userEntry.score}</strong></>}
@@ -261,15 +261,15 @@ export default function TrainingTournamentDetail() {
                   marginBottom: 8,
                 }}
               >
-                Resume my run
+                Resume My Run
               </Link>
             )}
 
             {isLive && !userEntry && (
               <p style={{ fontSize: 13, opacity: 0.75 }}>
-                You are not registered for this tournament. Register from the{' '}
+                You Are Not Registered For This Tournament. Register From the{' '}
                 <Link href="/hub/training/tournaments" style={{ color: '#ffd700' }}>
-                  tournaments lobby
+                  Tournaments Lobby
                 </Link>
                 .
               </p>
@@ -284,7 +284,7 @@ export default function TrainingTournamentDetail() {
                 {isComplete ? 'Final results' : 'Leaderboard'}
               </h2>
               {entries.length === 0 && (
-                <p style={{ fontSize: 14, opacity: 0.7 }}>No entries yet.</p>
+                <p style={{ fontSize: 14, opacity: 0.7 }}>No Entries Yet.</p>
               )}
               {entries.map((e, i) => {
                 const mine = userId && e.user_id === userId;
@@ -310,7 +310,7 @@ export default function TrainingTournamentDetail() {
                       {mine ? ' (you)' : ''}
                     </span>
                     {e.accuracy != null && (
-                      <span style={{ fontSize: 12, opacity: 0.65 }}>{e.accuracy}% acc</span>
+                      <span style={{ fontSize: 12, opacity: 0.65 }}>{e.accuracy}% Acc</span>
                     )}
                     <strong style={{ minWidth: 54, textAlign: 'right' }}>{e.score ?? 0}</strong>
                   </div>

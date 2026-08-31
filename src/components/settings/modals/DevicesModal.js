@@ -122,7 +122,7 @@ export default function DevicesModal({
             }}>
                 <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>Connected Devices</h2>
                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                    Devices that have signed in to your account.
+                    Devices That Have Signed In To Your Account.
                 </p>
 
                 {devicesLoading ? (
@@ -138,11 +138,11 @@ export default function DevicesModal({
                         textAlign: 'center'
                     }}>
                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: '0 0 6px', fontWeight: 600 }}>
-                            No devices recorded yet
+                            No Devices Recorded Yet
                         </p>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                            Sign-ins are only listed here once your browser has reported one. Nothing is hidden -
-                            there is simply no session history stored for this account yet.
+                            Sign-Ins Are Only Listed Here Once Your Browser Has Reported One. Nothing Is Hidden -
+                            There Is Simply No Session History Stored For This Account Yet.
                         </p>
                     </div>
                 ) : (
@@ -193,11 +193,11 @@ export default function DevicesModal({
                 {revokeDeviceTarget && (
                     <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
                         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 6 }}>
-                            Remove <strong style={{ color: '#fff' }}>{revokeDeviceTarget.device_name || 'this device'}</strong> from your list?
+                            Remove <strong style={{ color: '#fff' }}>{revokeDeviceTarget.device_name || 'this device'}</strong> From Your List?
                         </p>
                         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-                            This takes it off the list. It does not sign that device out - its existing sign-in stays
-                            valid until it expires. To force a sign-out everywhere, change your password.
+                            This Takes It Off The List. It Does Not Sign That Device Out - Its Existing Sign-In Stays
+                            Valid Until It Expires. To Force A Sign-Out Everywhere, Change Your Password.
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button
@@ -227,17 +227,17 @@ export default function DevicesModal({
                     marginBottom: 16
                 }}>
                     <h3 style={{ color: '#00D4FF', fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
-                        Devices trusted for two-factor
+                        Devices Trusted For Two-Factor
                     </h3>
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, margin: '0 0 8px', lineHeight: 1.55 }}>
-                        When you tick <em>Remember this device for 30 days</em> after entering a texted code, that
-                        browser stops asking you for a code for 30 days - at sign-in and on every gated action.
+                        When You Tick <em>Remember This Device For 30 Days</em> After Entering A Texted Code, That
+                        Browser Stops Asking You For A Code For 30 Days - At Sign-In And On Every Gated Action.
                     </p>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, margin: 0, lineHeight: 1.55 }}>
-                        We cannot list those devices here: the trust is a signed cookie stored on each device, not a
-                        record on our servers, so there is nothing for this screen to read. To end it on a device,
-                        sign out or clear cookies in that browser. To end it everywhere at once, turn two-factor off
-                        and back on in Security settings.
+                        We Cannot List Those Devices Here: The Trust Is A Signed Cookie Stored On Each Device, Not A
+                        Record On Our Servers, So There Is Nothing For This Screen To Read. To End It On A Device,
+                        Sign Out Or Clear Cookies In That Browser. To End It Everywhere At Once, Turn Two-Factor Off
+                        And Back On In Security Settings.
                     </p>
                 </div>
 

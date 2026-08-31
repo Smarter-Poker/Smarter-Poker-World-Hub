@@ -181,7 +181,7 @@ export default function SignupHealthDashboard(props) {
                 <div>
                     <h1 style={S.h1}>Signup Health</h1>
                     <p style={S.p}>
-                        Generated {fmtAge(generatedAt)}. Reload to refresh.
+                        Generated {fmtAge(generatedAt)}. Reload To Refresh.
                         {' '}<a href="/admin/signup-health" style={S.link}>↻</a>
                     </p>
                 </div>
@@ -200,19 +200,19 @@ export default function SignupHealthDashboard(props) {
                         <Stat label="Trigger errors (24h)" value={health.errors_24h} />
                     </div>
                     <p style={{ ...S.p, marginTop: 16 }}>
-                        Last real signup: <strong>{fmtAge(health.last_signup_at)}</strong>
+                        Last Real Signup: <strong>{fmtAge(health.last_signup_at)}</strong>
                         {' · '}
-                        Last probe: <strong>{fmtAge(health.last_probe_at)}</strong>
+                        Last Probe: <strong>{fmtAge(health.last_probe_at)}</strong>
                         {' · '}
-                        Last error: <strong>{fmtAge(health.last_error_at)}</strong>
+                        Last Error: <strong>{fmtAge(health.last_error_at)}</strong>
                     </p>
                 </section>
             )}
 
             <section style={S.section}>
-                <h2 style={S.h2}>Recent probe heartbeats (last 20)</h2>
+                <h2 style={S.h2}>Recent Probe Heartbeats (Last 20)</h2>
                 {heartbeats.length === 0 ? (
-                    <p style={S.p}>No heartbeats recorded yet. Wait for the cron to fire (5-15 min after first deploy).</p>
+                    <p style={S.p}>No Heartbeats Recorded Yet. Wait For The Cron To Fire (5-15 Min After First Deploy).</p>
                 ) : (
                     <table style={S.table}>
                         <thead>
@@ -238,9 +238,9 @@ export default function SignupHealthDashboard(props) {
             </section>
 
             <section style={S.section}>
-                <h2 style={S.h2}>Recent signup_errors (last 50)</h2>
+                <h2 style={S.h2}>Recent Signup_Errors (Last 50)</h2>
                 {errors.length === 0 ? (
-                    <p style={{ ...S.p, color: '#22c55e' }}>✓ No trigger errors logged. Signups are flowing cleanly through all 3 triggers.</p>
+                    <p style={{ ...S.p, color: '#22c55e' }}>✓ No Trigger Errors Logged. Signups Are Flowing Cleanly Through All 3 Triggers.</p>
                 ) : (
                     <table style={S.table}>
                         <thead>
@@ -268,8 +268,8 @@ export default function SignupHealthDashboard(props) {
             </section>
 
             <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#6b7280', fontSize: 12 }}>
-                Backed by <code>public.signup_health_view</code>, <code>public.probe_heartbeats</code>, <code>public.signup_errors</code>.
-                {' '}Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.md</a>
+                Backed By <code>Public.Signup_Health_View</code>, <code>Public.Probe_Heartbeats</code>, <code>Public.Signup_Errors</code>.
+                {' '}Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>
             </footer>
         </main>
     );

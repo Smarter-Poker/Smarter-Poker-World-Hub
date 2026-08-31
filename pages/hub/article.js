@@ -475,7 +475,7 @@ export default function ArticlePage() {
         return (
             <div className="article-page error-state">
                 <h1>Something Went Wrong</h1>
-                <p>We could not load this article. Check your connection and try again.</p>
+                <p>We Could Not Load This Article. Check Your Connection And Try Again.</p>
                 <button type="button" onClick={fetchArticle}>Try Again</button>
                 <Link href="/hub/news">← Back To News</Link>
                 <style jsx>{`
@@ -647,8 +647,8 @@ export default function ArticlePage() {
                         {publishedDate && (
                             <span><Calendar size={14} /> {publishedDate}</span>
                         )}
-                        <span><Clock size={14} /> {article.read_time || 3} min read</span>
-                        <span><Eye size={14} /> {(article.views || 0).toLocaleString()} views</span>
+                        <span><Clock size={14} /> {article.read_time || 3} Min Read</span>
+                        <span><Eye size={14} /> {(article.views || 0).toLocaleString()} Views</span>
                     </div>
 
                     <div className="body">

@@ -226,7 +226,7 @@ export default function BankrollCoachPage() {
               Bankroll Impact Coach
             </h1>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              See what your leaks cost in real dollars
+              See What Your Leaks Cost In Real Dollars
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function BankrollCoachPage() {
                   borderRadius: '50%',
                 }}
               />
-              Calculating your leak impact...
+              Calculating Your Leak Impact...
             </div>
           )}
 
@@ -338,10 +338,10 @@ export default function BankrollCoachPage() {
                     ? Math.abs(impact.dollarLossPerHour)
                     : 0
                   ).toFixed(2)}
-                  <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sp-fg-muted)' }}>/hr</span>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sp-fg-muted)' }}>/Hr</span>
                 </motion.div>
                 <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 4 }}>
-                  at {selectedStake.label} NLH playing {HANDS_PER_HOUR} hands/hr
+                  At {selectedStake.label} NLH Playing {HANDS_PER_HOUR} Hands/Hr
                 </div>
               </motion.div>
 
@@ -465,7 +465,7 @@ export default function BankrollCoachPage() {
                       ? Math.abs(impact.dollarLossPerHour) * 0.3
                       : 0
                     ).toFixed(2)}
-                    /hr
+                    /Hr
                   </span>
                   {', or '}
                   <span style={{ fontWeight: 800, color: 'var(--sp-accent-green)' }}>
@@ -474,7 +474,7 @@ export default function BankrollCoachPage() {
                       ? Math.abs(impact.dollarLossPerHour) * 0.3 * 160
                       : 0
                     ).toFixed(0)}
-                    /month
+                    /Month
                   </span>
                   {' (20hr/week).'}
                 </div>
@@ -533,7 +533,7 @@ export default function BankrollCoachPage() {
                           {leak.name}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
-                          {leak.accuracy}% accuracy · {leak.hands} hands
+                          {leak.accuracy}% Accuracy · {leak.hands} Hands
                         </div>
                       </div>
                     </div>
@@ -541,7 +541,7 @@ export default function BankrollCoachPage() {
                       <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                         -${(Number.isFinite(leak.dollarImpact) ? leak.dollarImpact : 0).toFixed(2)}
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>per hour</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>Per Hour</div>
                     </div>
                   </motion.div>
                 ))}

@@ -208,7 +208,7 @@ export default function RakeSolutionsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Rake-Aware Solutions</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>How rake changes optimal strategy</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>How Rake Changes Optimal Strategy</div>
           </div>
         </div>
 
@@ -256,7 +256,7 @@ export default function RakeSolutionsPage() {
                   {rk.desc}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, color: 'var(--sp-fg)' }}>
-                  {rk.pct}% / ${rk.cap} cap
+                  {rk.pct}% / ${rk.cap} Cap
                 </div>
               </motion.button>
             ))}
@@ -264,7 +264,7 @@ export default function RakeSolutionsPage() {
 
           {/* Compare toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>Compare with:</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>Compare With:</span>
             <select
               aria-label="Rake Structure"
               value={compareRake?.id || ''}
@@ -325,7 +325,7 @@ export default function RakeSolutionsPage() {
               {selectedPosition} - {activeRake.label}
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
-              Optimal frequencies adjusted for rake pressure
+              Optimal Frequencies Adjusted For Rake Pressure
             </div>
 
             {STATS.map((stat) => {

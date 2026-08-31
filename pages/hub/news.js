@@ -1439,7 +1439,7 @@ export default function NewsHub() {
                                     <span className="live-pulse" aria-hidden="true" />
                                     <div>
                                         <div className="news-desk-kicker">
-                                            Live desk · {filteredNews.length} stories moving
+                                            Live Desk · {filteredNews.length} Stories Moving
                                             {newArticleCount > 0 ? ` · ${newArticleCount} new` : ''}
                                         </div>
                                         <h1 className="news-desk-title">Live Intelligence Wire</h1>
@@ -1529,7 +1529,7 @@ export default function NewsHub() {
                             {/* Bookmarks deep-link filter chip (?filter=bookmarks) */}
                             {feedFilter === 'bookmarks' && (
                                 <div className="feed-filter-chip">
-                                    <BookmarkCheck size={12} /> Showing bookmarks only
+                                    <BookmarkCheck size={12} /> Showing Bookmarks Only
                                     <button onClick={clearFeedFilter}>Clear</button>
                                 </div>
                             )}
@@ -1652,7 +1652,7 @@ export default function NewsHub() {
                             <div className="story-signal-bar">
                                 <div className="story-signal-readout" aria-hidden="true">
                                     <span className="story-signal-pulse" />
-                                    <span>Story signal</span>
+                                    <span>Story Signal</span>
                                     <strong>{filteredNews.length}{newsHasMore ? '+' : ''}</strong>
                                     <span className="story-signal-copy">
                                         {storySort === 'popular' ? 'ranked by audience reads' : 'sequenced newest first'}
@@ -1681,20 +1681,20 @@ export default function NewsHub() {
                             {((newsFeedFailed && !hasLoadedNews) || sourceBoxesUnavailable) && (
                                 <div className="feed-status-alert" role="alert">
                                     <div>
-                                        <strong>Part of the live wire is unavailable.</strong>
-                                        <span>Showing clearly marked sample headlines while the feed reconnects.</span>
+                                        <strong>Part Of The Live Wire Is Unavailable.</strong>
+                                        <span>Showing Clearly Marked Sample Headlines While The Feed Reconnects.</span>
                                     </div>
-                                    <button type="button" onClick={() => refreshNewsFeed()}>Try again</button>
+                                    <button type="button" onClick={() => refreshNewsFeed()}>Try Again</button>
                                 </div>
                             )}
 
                             {/* Phase 5: Reading Stats Bar */}
                             {(readArticles.length > 0 || bookmarks.length > 0 || readLater.length > 0) && (
                                 <div className="reading-stats-bar">
-                                    {readArticles.length > 0 && <span>{readArticles.length} read</span>}
-                                    {bookmarks.length > 0 && <span>{bookmarks.length} bookmarked</span>}
-                                    {readLater.length > 0 && <span>{readLater.length} saved for later</span>}
-                                    {uniqueSourcesRead > 0 && <span>{uniqueSourcesRead} sources explored</span>}
+                                    {readArticles.length > 0 && <span>{readArticles.length} Read</span>}
+                                    {bookmarks.length > 0 && <span>{bookmarks.length} Bookmarked</span>}
+                                    {readLater.length > 0 && <span>{readLater.length} Saved For Later</span>}
+                                    {uniqueSourcesRead > 0 && <span>{uniqueSourcesRead} Sources Explored</span>}
                                 </div>
                             )}
 
@@ -1705,17 +1705,17 @@ export default function NewsHub() {
                                         {feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
                                             <div className="no-results">
                                                 <BookmarkCheck size={48} />
-                                                <p>No bookmarked articles yet</p>
+                                                <p>No Bookmarked Articles Yet</p>
                                                 <button onClick={clearFeedFilter}>
-                                                    Show all news
+                                                    Show All News
                                                 </button>
                                             </div>
                                         ) : filteredNews.length === 0 && searchQuery ? (
                                             <div className="no-results">
                                                 <Globe size={48} />
-                                                <p>No articles found for "{searchQuery}"</p>
+                                                <p>No Articles Found For "{searchQuery}"</p>
                                                 <button onClick={() => { setSearchQuery(''); setActiveTab('all'); }}>
-                                                    Clear filters
+                                                    Clear Filters
                                                 </button>
                                             </div>
                                         ) : (
@@ -1870,7 +1870,7 @@ export default function NewsHub() {
                                         {newsHasMore && (
                                             <div ref={loadMoreRef} className="load-more-sentinel">
                                                 <div className="loading-spinner" />
-                                                <span>Loading more stories...</span>
+                                                <span>Loading More Stories...</span>
                                             </div>
                                         )}
                                     </section>
@@ -1905,16 +1905,16 @@ export default function NewsHub() {
                                         ) : reelsLoading ? (
                                             <div className="reels-empty-state">
                                                 <div className="loading-spinner" />
-                                                <span>Loading reels...</span>
+                                                <span>Loading Reels...</span>
                                             </div>
                                         ) : reelsError ? (
                                             <div className="reels-empty-state">
-                                                <span>Could not load reels.</span>
+                                                <span>Could Not Load Reels.</span>
                                                 <button onClick={() => refreshReels()}>Retry</button>
                                             </div>
                                         ) : (
                                             <div className="reels-empty-state">
-                                                <span>No reels yet - check back soon.</span>
+                                                <span>No Reels Yet - Check Back Soon.</span>
                                             </div>
                                         )}
                                     </section>
@@ -1928,18 +1928,18 @@ export default function NewsHub() {
                                         <Film size={18} /> Poker Reels
                                     </h2>
                                     <p className="section-desc">
-                                        Short-form poker content from top YouTube channels - updated daily
+                                        Short-Form Poker Content From Top YouTube Channels - Updated Daily
                                     </p>
 
                                     {reelsLoading ? (
                                         <div className="no-results" role="status">
                                             <div className="loading-spinner" />
-                                            <p>Loading reels...</p>
+                                            <p>Loading Reels...</p>
                                         </div>
                                     ) : reelsError ? (
                                         <div className="no-results" role="alert">
                                             <Film size={48} />
-                                            <p>Reels are temporarily unavailable.</p>
+                                            <p>Reels Are Temporarily Unavailable.</p>
                                             <button type="button" onClick={() => refreshReels()}>Retry</button>
                                         </div>
                                     ) : reels.length === 0 ? (
@@ -1967,17 +1967,17 @@ export default function NewsHub() {
                                         <PlayCircle size={18} /> Poker Videos
                                     </h2>
                                     <p className="section-desc">
-                                        The latest video content from top poker channels.
+                                        The Latest Video Content From Top Poker Channels.
                                     </p>
                                     {videosLoading ? (
                                         <div className="no-results" role="status">
                                             <div className="loading-spinner" />
-                                            <p>Loading videos...</p>
+                                            <p>Loading Videos...</p>
                                         </div>
                                     ) : videosError ? (
                                         <div className="no-results" role="alert">
                                             <PlayCircle size={48} />
-                                            <p>Videos are temporarily unavailable.</p>
+                                            <p>Videos Are Temporarily Unavailable.</p>
                                             <button type="button" onClick={() => refreshVideos()}>Retry</button>
                                         </div>
                                     ) : videos.length === 0 ? (
@@ -2008,12 +2008,12 @@ export default function NewsHub() {
                                         {eventsLoading ? (
                                             <div className="no-results" role="status">
                                                 <div className="loading-spinner" />
-                                                <p>Loading events...</p>
+                                                <p>Loading Events...</p>
                                             </div>
                                         ) : eventsError ? (
                                             <div className="no-results" role="alert">
                                                 <Calendar size={48} />
-                                                <p>Events are temporarily unavailable.</p>
+                                                <p>Events Are Temporarily Unavailable.</p>
                                                 <button type="button" onClick={() => refreshEvents()}>Retry</button>
                                             </div>
                                         ) : events.map(event => (
@@ -2089,13 +2089,13 @@ export default function NewsHub() {
                                         {(activeSection === 'bookmarks' ? bookmarkedArticles : readLaterArticles).length === 0 && (
                                             <div className="no-results" style={{ gridColumn: '1 / -1' }}>
                                                 {activeSection === 'bookmarks' ? (
-                                                    <p>No articles found in Bookmarks.</p>
+                                                    <p>No Articles Found In Bookmarks.</p>
                                                 ) : (
                                                     <>
                                                         <Clock size={48} />
-                                                        <p>Nothing saved for later yet.</p>
+                                                        <p>Nothing Saved For Later Yet.</p>
                                                         <p style={{ fontSize: '12px', opacity: 0.7, margin: 0 }}>
-                                                            Use the clock icon on any story to save it here.
+                                                            Use The Clock Icon On Any Story To Save It Here.
                                                         </p>
                                                     </>
                                                 )}
@@ -2212,7 +2212,7 @@ export default function NewsHub() {
                             <div className="widget events">
                                     <h4>
                                         <MapPin size={14} /> Poker Near Me
-                                        {nearbyLocation && <span className="live-tag">Within 100 mi</span>}
+                                        {nearbyLocation && <span className="live-tag">Within 100 Mi</span>}
                                     </h4>
                                     {!nearbyLocation && (
                                         <button type="button" className="location-enable" onClick={enableNearbyEvents} disabled={locationStatus === 'locating'}>
@@ -2226,17 +2226,17 @@ export default function NewsHub() {
                                             <li key={event.id}>
                                                 <span>
                                                     {event.name}
-                                                    {event.distance_miles != null && <small>{event.distance_miles} mi · {event.location}</small>}
+                                                    {event.distance_miles != null && <small>{event.distance_miles} Mi · {event.location}</small>}
                                                 </span>
                                                 <span className="date">{formatEventDate(event.event_date)}</span>
                                             </li>
                                         ))}
                                     </ul>
-                                    {eventsLoading && <div className="widget-empty" role="status">Loading tournaments…</div>}
+                                    {eventsLoading && <div className="widget-empty" role="status">Loading Tournaments…</div>}
                                     {!eventsLoading && !eventsError && sidebarEvents.length === 0 && (
-                                        <div className="widget-empty">No tournaments found{nearbyLocation ? ' within 100 miles' : ''}.</div>
+                                        <div className="widget-empty">No Tournaments found{nearbyLocation ? ' within 100 miles' : ''}.</div>
                                     )}
-                                    {eventsError && <div className="widget-empty">Tournament feed is temporarily unavailable.</div>}
+                                    {eventsError && <div className="widget-empty">Tournament Feed Is Temporarily Unavailable.</div>}
                                     <Link href="/hub/poker-near-me/lobby" className="view-all">
                                         View All Events <ExternalLink size={12} />
                                     </Link>
@@ -2245,7 +2245,7 @@ export default function NewsHub() {
                             {/* Newsletter Signup */}
                             <div className="widget newsletter">
                                 <h4><Mail size={14} /> Newsletter <span className="live-tag">Weekly Wire</span></h4>
-                                <p className="newsletter-promise">The sharpest stories from the live wire. One concise dispatch, easy unsubscribe.</p>
+                                <p className="newsletter-promise">The Sharpest Stories From The Live Wire. One Concise Dispatch, Easy Unsubscribe.</p>
                                 {subscribed ? (
                                     <div className="subscribed">
                                         <CheckCircle size={16} /> {subscribeMessage || 'Subscribed!'}

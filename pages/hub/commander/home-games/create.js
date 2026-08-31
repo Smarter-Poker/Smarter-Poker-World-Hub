@@ -746,7 +746,7 @@ export default function CreateHomeGamePage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="font-semibold text-white">
-                      Your Club Commander Home Games host account is active
+                      Your Club Commander Home Games Host Account Is Active
                     </h2>
                     {(() => {
                       const from = router?.query?.from;
@@ -768,9 +768,9 @@ export default function CreateHomeGamePage() {
                     })()}
                   </div>
                   <p className="text-sm text-[#94A3B8] mt-1">
-                    Signup complete. Let's create your first home game - this 3-step form sets up
-                    your group details, location, and schedule. The same flow no matter where you
-                    started.
+                    Signup Complete. Let's Create Your First Home Game - This 3-Step Form Sets Up
+                    Your Group Details, Location, And Schedule. The Same Flow No Matter Where You
+                    Started.
                   </p>
                 </div>
               </div>
@@ -791,20 +791,20 @@ export default function CreateHomeGamePage() {
                   <Plus className="w-5 h-5 text-[#22D3EE]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-white">Add another home game</h2>
+                  <h2 className="font-semibold text-white">Add Another Home Game</h2>
                   <p className="text-sm text-[#94A3B8] mt-1">
-                    You already host{' '}
+                    You Already host{' '}
                     {existingGroupCount === 1
                       ? '1 home group'
                       : `${existingGroupCount} home groups`}
-                    . This 3-step form will create an additional group with its own location,
-                    schedule, and members.{' '}
+                    . This 3-Step Form Will Create An Additional Group With Its Own Location,
+                    Schedule, And Members.{' '}
                     <button
                       type="button"
                       onClick={() => router.push('/hub/commander/home-games')}
                       className="text-[#22D3EE] hover:underline"
                     >
-                      Or manage your existing groups
+                      Or Manage Your Existing Groups
                     </button>
                     .
                   </p>
@@ -827,7 +827,7 @@ export default function CreateHomeGamePage() {
               className="mb-4 p-3 bg-[#EF4444]/10 border border-[#EF4444]/40 rounded-lg"
               role="alert"
             >
-              <p className="text-sm font-semibold text-[#EF4444]">Submission failed</p>
+              <p className="text-sm font-semibold text-[#EF4444]">Submission Failed</p>
               <p className="text-sm text-[#FCA5A5] mt-1">{error}</p>
             </div>
           )}
@@ -948,7 +948,7 @@ export default function CreateHomeGamePage() {
                     editor below where each table picks its own game/stakes. */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Number of Tables Running
+                    Number Of Tables Running
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -999,7 +999,7 @@ export default function CreateHomeGamePage() {
                   </p>
                   {formData.tables_count > 1 && (
                     <p className="text-[10px] text-[#64748B]/70 mt-1 italic">
-                      Tip: reducing the count will discard the higher-numbered tables' settings.
+                      Tip: Reducing The Count Will Discard The Higher-Numbered Tables' Settings.
                     </p>
                   )}
                 </div>
@@ -1147,7 +1147,7 @@ export default function CreateHomeGamePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     {/* Dan-fix/dollar-prefix-overlap (2026-05-12): removed DollarSign icon (was overlapping value text) */}
-                    <label className="block text-sm font-medium text-white mb-2">Min Buy-in</label>
+                    <label className="block text-sm font-medium text-white mb-2">Min Buy-In</label>
                     <input
                       type="number"
                       value={formData.min_buyin}
@@ -1156,7 +1156,7 @@ export default function CreateHomeGamePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Max Buy-in</label>
+                    <label className="block text-sm font-medium text-white mb-2">Max Buy-In</label>
                     <input
                       type="number"
                       value={formData.max_buyin}
@@ -1218,7 +1218,7 @@ export default function CreateHomeGamePage() {
                   <MapPin className="w-4 h-4 text-[#EF4444] mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-[#94A3B8]">
-                      Drag the pin to set your approximate area. Your exact address is never shared.
+                      Drag The Pin To Set Your Approximate Area. Your Exact Address Is Never Shared.
                     </p>
                     {formData.neighborhood && (
                       <p className="text-sm text-[#22D3EE] mt-1 font-medium">
@@ -1497,9 +1497,9 @@ export default function CreateHomeGamePage() {
                             }}
                             className="cmd-input w-full h-10 px-4"
                           >
-                            <option value="turbo">Turbo (10 min levels)</option>
-                            <option value="standard">Standard (15-20 min levels)</option>
-                            <option value="deep">Deep Stack (25-30 min levels)</option>
+                            <option value="turbo">Turbo (10 Min Levels)</option>
+                            <option value="standard">Standard (15-20 Min Levels)</option>
+                            <option value="deep">Deep Stack (25-30 Min Levels)</option>
                             <option value="bounty">Bounty</option>
                             <option value="rebuy">Rebuy</option>
                           </select>
@@ -1541,7 +1541,7 @@ export default function CreateHomeGamePage() {
                         <div>
                           <label className="block text-sm font-medium text-white mb-1">
                             Max Entries{' '}
-                            <span className="text-xs text-[#64748B]">(blank = unlimited)</span>
+                            <span className="text-xs text-[#64748B]">(Blank = Unlimited)</span>
                           </label>
                           <input
                             type="number"
@@ -1622,7 +1622,7 @@ export default function CreateHomeGamePage() {
                                 host the date above is required to schedule. */}
                             {!t.scheduled_date && (
                               <p className="text-xs text-[#F59E0B] mt-2">
-                                Set the Date above for the first occurrence - recurring days are saved with your group, but the tournament is only scheduled once a first date is chosen.
+                                Set The Date Above For The First Occurrence - Recurring Days Are Saved With Your Group, But The Tournament Is Only Scheduled Once A First Date Is Chosen.
                               </p>
                             )}
                           </div>
@@ -1662,10 +1662,10 @@ export default function CreateHomeGamePage() {
                   Group Logo <span className="text-xs font-normal text-[#F59E0B]">· Required</span>
                 </h2>
                 <p className="text-sm text-[#94A3B8]">
-                  Upload a logo that represents your home game. This appears on your public page, in
-                  push notifications to followers, and across Poker Near Me / Daily Tournaments when
-                  your games surface there. A real image is required before you can finish creating
-                  your group.
+                  Upload A Logo That Represents Your Home Game. This Appears On Your Public Page, In
+                  Push Notifications To Followers, And Across Poker Near Me / Daily Tournaments When
+                  Your Games Surface There. A Real Image Is Required Before You Can Finish Creating
+                  Your Group.
                 </p>
 
                 <input
@@ -1711,10 +1711,10 @@ export default function CreateHomeGamePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#10B981] flex items-center gap-1.5">
                         <Check className="w-4 h-4" />
-                        Logo uploaded
+                        Logo Uploaded
                       </p>
                       <p className="text-xs text-[#64748B] truncate">
-                        Click replace to pick a different image
+                        Click Replace To Pick A Different Image
                       </p>
                     </div>
                     <button
@@ -1790,15 +1790,15 @@ export default function CreateHomeGamePage() {
                 </div>
                 <h2 className="text-xl font-bold text-white">Group Created</h2>
                 <p className="text-[#64748B] mt-1">
-                  Your home game group has been created. View it in your dashboard to add
-                  tournaments, photos, and invite members.
+                  Your Home Game Group Has Been Created. View It In Your Dashboard To Add
+                  Tournaments, Photos, And Invite Members.
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push('/hub/commander/home-games')}
                   className="mt-4 cmd-btn cmd-btn-primary h-12 px-6"
                 >
-                  Go to My Home Games
+                  Go To My Home Games
                 </button>
               </div>
             </div>
@@ -1813,7 +1813,7 @@ export default function CreateHomeGamePage() {
                 </div>
                 <h2 className="text-xl font-bold text-white">Game Created</h2>
                 <p className="text-[#64748B] mt-1">
-                  {createdGroup.name} is live. Your Social Page was auto-created.
+                  {createdGroup.name} Is Live. Your Social Page Was Auto-Created.
                 </p>
               </div>
 
@@ -1847,7 +1847,7 @@ export default function CreateHomeGamePage() {
                             Social Page: {sp.name}
                           </h3>
                           <p className="text-xs text-[#64748B] mt-0.5">
-                            Complete your page so players can follow and find your game
+                            Complete Your Page So Players Can Follow And Find Your Game
                           </p>
                         </div>
                         <span className="text-xs font-bold text-[#C4B5FD]">{pct}%</span>
@@ -1936,7 +1936,7 @@ export default function CreateHomeGamePage() {
                   role="alert"
                 >
                   <p className="text-sm font-semibold text-[#EF4444]">
-                    Could not schedule the first game
+                    Could Not Schedule The First Game
                   </p>
                   <p className="text-sm text-[#FCA5A5] mt-1">{firstGameError}</p>
                 </div>
@@ -2077,7 +2077,7 @@ export default function CreateHomeGamePage() {
                 onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
                 className="w-full text-center text-sm text-[#64748B] hover:text-white transition-colors py-2 flex items-center justify-center gap-2"
               >
-                Skip - Go to Group
+                Skip - Go To Group
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

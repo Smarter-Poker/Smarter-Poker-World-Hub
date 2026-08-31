@@ -1889,7 +1889,7 @@ export default function HorsesAdmin() {
 
               {personasError && (
                 <div className={styles.errorState}>
-                  <div>The stable could not be loaded: {personasError}</div>
+                  <div>The Stable Could Not Be Loaded: {personasError}</div>
                   <button className={styles.actionBtn} onClick={loadData}>Retry</button>
                 </div>
               )}
@@ -1904,24 +1904,24 @@ export default function HorsesAdmin() {
 
               {avatarBusy && (
                 <div className={styles.warnBanner} role="status">
-                  Generating avatars. Each horse takes roughly 15 to 25 seconds and they run one
-                  at a time, so a batch of {AVATAR_BATCH} can take a couple of minutes. Leave this tab open.
+                  Generating Avatars. Each Horse Takes Roughly 15 To 25 Seconds And They Run One
+                  At A Time, So A Batch Of {AVATAR_BATCH} Can Take A Couple Of Minutes. Leave This Tab Open.
                 </div>
               )}
               {avatarResult && !avatarBusy && (
                 <div className={styles.warnBanner} role="status">
-                  {num(avatarResult.generated, '0')} generated
+                  {num(avatarResult.generated, '0')} Generated
                   {/* null now means "the count could not be read", which is a
                       different thing from zero. Rendering it as a dash would
                       read as "none left" and stop the operator running the
                       batch again; say plainly that the number is unknown. */}
                   {avatarResult.remaining === null
-                    ? <>, remaining count unavailable</>
+                    ? <>, Remaining Count Unavailable</>
                     : avatarResult.remaining !== undefined
-                      ? <>, {num(avatarResult.remaining)} still without an avatar</>
+                      ? <>, {num(avatarResult.remaining)} Still Without An Avatar</>
                       : null}
                   {(avatarResult.results || []).some((r) => !r.success) && (
-                    <> - failures: {(avatarResult.results || []).filter((r) => !r.success)
+                    <> - Failures: {(avatarResult.results || []).filter((r) => !r.success)
                       .map((r) => `${r.horse}: ${r.error}`).join('; ')}</>
                   )}
                   {avatarResult.remaining > 0 && ' Run it again to continue.'}
@@ -1938,13 +1938,13 @@ export default function HorsesAdmin() {
                     onChange={toggleSelectPage}
                     aria-label={allPagedSelected ? 'Deselect this page' : 'Select this page'}
                   />
-                  <span>Select page</span>
+                  <span>Select Page</span>
                 </label>
                 {selectedIds.size > 0 ? (
                   <>
-                    <span className={styles.countPill}>{num(selectedIds.size)} selected</span>
+                    <span className={styles.countPill}>{num(selectedIds.size)} Selected</span>
                     <button className={styles.filterBtn} onClick={selectAllFiltered} disabled={bulkBusy}>
-                      Select all {num(filteredPersonas.length)}
+                      Select All {num(filteredPersonas.length)}
                     </button>
                     <button className={styles.filterBtn} onClick={clearSelection} disabled={bulkBusy}>Clear</button>
                     <span className={styles.bulkSpacer} />
@@ -1962,7 +1962,7 @@ export default function HorsesAdmin() {
                   </>
                 ) : (
                   <span className={styles.bulkHint}>
-                    Select horses to activate, rest or retire them together.
+                    Select Horses To Activate, Rest Or Retire Them Together.
                   </span>
                 )}
               </div>
@@ -2047,7 +2047,7 @@ export default function HorsesAdmin() {
                   <button onClick={() => setPage(0)} disabled={safePage === 0}>First</button>
                   <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>Previous</button>
                   <span className={styles.pageInfo}>
-                    Page {safePage + 1} of {totalPages} - {num(filteredPersonas.length)} horses
+                    Page {safePage + 1} Of {totalPages} - {num(filteredPersonas.length)} Horses
                   </span>
                   <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}>Next</button>
                   <button onClick={() => setPage(totalPages - 1)} disabled={safePage >= totalPages - 1}>Last</button>
@@ -2062,13 +2062,13 @@ export default function HorsesAdmin() {
               <div className={styles.grinderHeader}>
                 <h2>Grinder Horses</h2>
                 <p className={styles.grinderSubtitle}>
-                  The same horses, second job: playing poker across the Midway Union clubs.
+                  The Same Horses, Second Job: Playing Poker Across The Midway Union Clubs.
                 </p>
               </div>
 
               {grinderError && (
                 <div className={styles.errorState}>
-                  <div>Grinder stats unavailable: {grinderError}</div>
+                  <div>Grinder Stats Unavailable: {grinderError}</div>
                   <button className={styles.actionBtn} onClick={loadGrinderData}>Retry</button>
                 </div>
               )}
@@ -2122,12 +2122,12 @@ export default function HorsesAdmin() {
 
                 <h3 style={{ marginTop: 24 }}>Club Management</h3>
                 <div className={styles.warnBanner}>
-                  These four actions are not implemented server-side, so they are disabled
-                  rather than left clickable. The endpoint returns an explicit 501 instead of
-                  reporting success, because it used to claim it had added horses and granted
-                  chips without touching the database. Seating horses and moving chips is real
-                  money movement and is not being implemented speculatively. Use Fleet Launch,
-                  which is wired and works.
+                  These Four Actions Are Not Implemented Server-Side, So They Are Disabled
+                  Rather Than Left Clickable. The Endpoint Returns An Explicit 501 Instead Of
+                  Reporting Success, Because It Used To Claim It Had Added Horses And Granted
+                  Chips Without Touching The Database. Seating Horses And Moving Chips Is Real
+                  Money Movement And Is Not Being Implemented Speculatively. Use Fleet Launch,
+                  Which Is Wired And Works.
                 </div>
                 <div className={styles.clubActions}>
                   <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'shark_club')} disabled
@@ -2252,7 +2252,7 @@ export default function HorsesAdmin() {
                 {grinderPersonas.length > HORSES_PER_PAGE && (
                   <div className={styles.pagination}>
                     <button onClick={() => setGrinderPage((p) => Math.max(0, p - 1))} disabled={grinderSafePage === 0}>Previous</button>
-                    <span className={styles.pageInfo}>Page {grinderSafePage + 1} of {grinderTotalPages}</span>
+                    <span className={styles.pageInfo}>Page {grinderSafePage + 1} Of {grinderTotalPages}</span>
                     <button onClick={() => setGrinderPage((p) => Math.min(grinderTotalPages - 1, p + 1))} disabled={grinderSafePage >= grinderTotalPages - 1}>Next</button>
                   </div>
                 )}
@@ -2270,10 +2270,10 @@ export default function HorsesAdmin() {
                     returns 501 now instead of a fabricated success, but until
                     it is implemented the only way to learn that was to click. */}
                 <div className={styles.warnBanner}>
-                  The content pipeline is not implemented server-side, so these four actions
-                  are disabled rather than left clickable. The endpoint returns an explicit
-                  501 rather than reporting a run that did not happen -- it previously logged
-                  a pipeline_runs row for work it never did, which made the lie durable.
+                  The Content Pipeline Is Not Implemented Server-Side, So These Four Actions
+                  Are Disabled Rather Than Left Clickable. The Endpoint Returns An Explicit
+                  501 Rather Than Reporting A Run That Did Not Happen -- It Previously Logged
+                  A Pipeline_Runs Row For Work It Never Did, Which Made The Lie Durable.
                 </div>
                 <div className={styles.actionButtons}>
                   {[
@@ -2301,7 +2301,7 @@ export default function HorsesAdmin() {
               <div className={styles.recentRuns}>
                 <h3>Recent Pipeline Runs</h3>
                 {pipelineRuns.length === 0 ? (
-                  <p className={styles.noData}>No pipeline runs recorded yet.</p>
+                  <p className={styles.noData}>No Pipeline Runs Recorded Yet.</p>
                 ) : (
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
@@ -2331,7 +2331,7 @@ export default function HorsesAdmin() {
             <div className={styles.settingsView}>
               <h2>Engine Settings</h2>
               <p style={{ color: T.dim, fontSize: 13, marginBottom: 12 }}>
-                Changes save automatically about a second after you stop editing.
+                Changes Save Automatically About A Second After You Stop Editing.
               </p>
               {/* Until today every one of these saves was discarded silently:
                   content_settings is service_role-write only, and the browser
@@ -2339,11 +2339,11 @@ export default function HorsesAdmin() {
                   error. The save state is now visible either way. */}
               {settingsError ? (
                 <div className={styles.errorState} role="alert" style={{ marginBottom: 16 }}>
-                  Settings not saved: {settingsError}
+                  Settings Not Saved: {settingsError}
                 </div>
               ) : settingsSavedAt ? (
                 <div style={{ color: T.accent, fontSize: 12, marginBottom: 16 }} role="status">
-                  Saved at {settingsSavedAt.toLocaleTimeString()}
+                  Saved At {settingsSavedAt.toLocaleTimeString()}
                 </div>
               ) : null}
               <div className={styles.settingsGrid}>
@@ -2369,7 +2369,7 @@ export default function HorsesAdmin() {
                   ))}
                   {settings.min_delay_minutes > settings.max_delay_minutes && (
                     <div className={styles.warnBanner}>
-                      Min delay is greater than max delay. The scheduler will not behave sensibly.
+                      Min Delay Is Greater Than Max Delay. The Scheduler Will Not Behave Sensibly.
                     </div>
                   )}
                 </div>
@@ -2445,7 +2445,7 @@ export default function HorsesAdmin() {
               <h3 className={styles.sectionTitle}>Live Now</h3>
               {platformError ? (
                 <div className={styles.errorState} role="alert">
-                  <div>Platform pulse unavailable: {platformError}</div>
+                  <div>Platform Pulse Unavailable: {platformError}</div>
                   <button className={styles.actionBtn} onClick={loadPlatform}>Retry</button>
                 </div>
               ) : platformLoading && !platform ? (
@@ -2463,7 +2463,7 @@ export default function HorsesAdmin() {
                     </div>
                     <div className={styles.kpi}>
                       <div className={styles.kpiValue} style={{ color: T.accent }}>{num(platform.hands1h)}</div>
-                      <div className={styles.kpiLabel}>Hands (last hour)</div>
+                      <div className={styles.kpiLabel}>Hands (Last Hour)</div>
                     </div>
                     <div className={styles.kpi}>
                       <div className={styles.kpiValue}>{num(platform.hands24h)}</div>
@@ -2545,7 +2545,7 @@ export default function HorsesAdmin() {
                 <div className={styles.loadingSpinner}>Loading Analytics</div>
               ) : analyticsError ? (
                 <div className={styles.errorState}>
-                  <div>Analytics unavailable: {analyticsError}</div>
+                  <div>Analytics Unavailable: {analyticsError}</div>
                   <button className={styles.actionBtn} onClick={() => { setAnalyticsLoaded(false); setAnalyticsError(null); loadAnalytics(); }}>Retry</button>
                 </div>
               ) : (
@@ -2576,7 +2576,7 @@ export default function HorsesAdmin() {
                         const dist = analyticsData?.sourceDistribution || {};
                         const entries = Object.entries(dist);
                         if (entries.length === 0) {
-                          return <p className={styles.noData}>No data for the last 7 days.</p>;
+                          return <p className={styles.noData}>No Data For The Last 7 Days.</p>;
                         }
                         // Math.max of an empty list is -Infinity, which produced
                         // a NaN width. Guarded.
@@ -2618,13 +2618,13 @@ export default function HorsesAdmin() {
 
               {bugReportsError ? (
                 <div className={styles.errorState}>
-                  <div>Tickets unavailable: {bugReportsError}</div>
+                  <div>Tickets Unavailable: {bugReportsError}</div>
                   <button className={styles.actionBtn} onClick={() => loadBugReports(bugReportsFilter)}>Retry</button>
                 </div>
               ) : bugReportsLoading ? (
                 <div className={styles.loadingSpinner}>Loading Tickets</div>
               ) : bugReports.length === 0 ? (
-                <div className={styles.emptyState}>No tickets in this view.</div>
+                <div className={styles.emptyState}>No Tickets In This View.</div>
               ) : (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -2727,7 +2727,7 @@ export default function HorsesAdmin() {
                 <form onSubmit={createPromoCode}>
                   <div className={styles.formRow} style={{ marginBottom: 12 }}>
                     <div className={styles.formGroup}>
-                      <label htmlFor="promo-code">Code (blank auto-generates)</label>
+                      <label htmlFor="promo-code">Code (Blank Auto-Generates)</label>
                       <input
                         id="promo-code" type="text" maxLength={20} placeholder="Auto-generated"
                         value={promoForm.code}
@@ -2771,13 +2771,13 @@ export default function HorsesAdmin() {
                   </div>
                   <div className={styles.formRow} style={{ marginBottom: 16 }}>
                     <div className={styles.formGroup}>
-                      <label htmlFor="promo-max">Max Uses (blank is unlimited)</label>
+                      <label htmlFor="promo-max">Max Uses (Blank Is Unlimited)</label>
                       <input id="promo-max" type="number" min="1" placeholder="Unlimited"
                         value={promoForm.maxUses}
                         onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} />
                     </div>
                     <div className={styles.formGroup}>
-                      <label htmlFor="promo-exp">Expires At (optional)</label>
+                      <label htmlFor="promo-exp">Expires At (Optional)</label>
                       <input id="promo-exp" type="datetime-local" value={promoForm.expiresAt}
                         onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })} />
                     </div>
@@ -2794,13 +2794,13 @@ export default function HorsesAdmin() {
                 </h3>
                 {promoError ? (
                   <div className={styles.errorState}>
-                    <div>Promo codes unavailable: {promoError}</div>
+                    <div>Promo Codes Unavailable: {promoError}</div>
                     <button className={styles.actionBtn} onClick={loadPromoCodes}>Retry</button>
                   </div>
                 ) : promoLoading ? (
                   <div className={styles.loadingSpinner}>Loading Codes</div>
                 ) : promoCodes.length === 0 ? (
-                  <div className={styles.emptyState}>No promo codes yet. Create one above.</div>
+                  <div className={styles.emptyState}>No Promo Codes Yet. Create One Above.</div>
                 ) : (
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
@@ -2886,16 +2886,16 @@ export default function HorsesAdmin() {
                 <div className={styles.loadingSpinner}>Loading Economy Data</div>
               ) : economyError ? (
                 <div className={styles.errorState}>
-                  <div>Economy data unavailable: {economyError}</div>
+                  <div>Economy Data Unavailable: {economyError}</div>
                   <button className={styles.actionBtn} onClick={() => { setEconomyError(null); loadEconomyData(); }}>Retry</button>
                 </div>
               ) : !economyData ? (
-                <div className={styles.emptyState}>No economy data available.</div>
+                <div className={styles.emptyState}>No Economy Data Available.</div>
               ) : (
                 <>
                   {economyData.failedSources?.length > 0 && (
                     <div className={styles.warnBanner}>
-                      Some figures could not be read: {economyData.failedSources.join('; ')}
+                      Some Figures Could Not Be Read: {economyData.failedSources.join('; ')}
                     </div>
                   )}
                   {/* Every one of these used to be `stats.x.toLocaleString()`
@@ -2992,7 +2992,7 @@ export default function HorsesAdmin() {
                   <div className={styles.contentBreakdown} style={{ marginTop: 24 }}>
                     <h3>Diamond Transaction Log</h3>
                     {(economyData.transactions || []).length === 0 ? (
-                      <div className={styles.emptyState}>No transactions in range.</div>
+                      <div className={styles.emptyState}>No Transactions In Range.</div>
                     ) : (
                       <div className={styles.tableWrapper} style={{ maxHeight: 500, overflowY: 'auto' }}>
                         <table className={styles.table}>
@@ -3065,11 +3065,11 @@ export default function HorsesAdmin() {
                 <div className={styles.loadingSpinner}>Loading Anti-Abuse Data</div>
               ) : abuseError ? (
                 <div className={styles.errorState}>
-                  <div>Anti-abuse data unavailable: {abuseError}</div>
+                  <div>Anti-Abuse Data Unavailable: {abuseError}</div>
                   <button className={styles.actionBtn} onClick={() => { setAbuseError(null); loadAntiAbuseData(); }}>Retry</button>
                 </div>
               ) : !abuseData ? (
-                <div className={styles.emptyState}>No data available.</div>
+                <div className={styles.emptyState}>No Data Available.</div>
               ) : (
                 <>
                   {/* A failed read on THIS tab is a false negative -- an empty
@@ -3078,8 +3078,8 @@ export default function HorsesAdmin() {
                       what it could not read; say so loudly. */}
                   {abuseData.failedSources?.length > 0 && (
                     <div className={styles.warnBanner} role="alert">
-                      This view is incomplete. These sources could not be read, so an
-                      empty panel below does NOT mean nothing was found:{' '}
+                      This View Is Incomplete. These Sources Could Not Be Read, So An
+                      Empty Panel Below Does NOT Mean Nothing Was Found:{' '}
                       {abuseData.failedSources
                         .map((f) => (typeof f === 'string' ? f : `${f.source} (${f.error})`))
                         .join('; ')}
@@ -3087,7 +3087,7 @@ export default function HorsesAdmin() {
                   )}
                   {abuseData.abuse?.disposableScope && (
                     <div className={styles.warnBanner}>
-                      Disposable-email count is scoped to {abuseData.abuse.disposableScope}.
+                      Disposable-Email Count Is Scoped To {abuseData.abuse.disposableScope}.
                     </div>
                   )}
                   <div className={styles.statsOverview}>
@@ -3146,7 +3146,7 @@ export default function HorsesAdmin() {
                   <div className={styles.contentBreakdown} style={{ marginTop: 24 }}>
                     <h3>Signup Abuse Log</h3>
                     {(abuseData.abuse?.log || []).length === 0 ? (
-                      <div className={styles.emptyState}>No signup abuse recorded.</div>
+                      <div className={styles.emptyState}>No Signup Abuse Recorded.</div>
                     ) : (
                       <div className={styles.tableWrapper} style={{ maxHeight: 400, overflowY: 'auto' }}>
                         <table className={styles.table}>
@@ -3199,7 +3199,7 @@ export default function HorsesAdmin() {
                                 backgroundColor: ip.count > 3 ? T.danger : ip.count > 1 ? T.warn : T.accent,
                               }} />
                               <span className={styles.breakdownLabel} style={{ fontFamily: 'monospace' }}>{ip.ip}</span>
-                              <span className={styles.breakdownCount}>{num(ip.count, '0')} signups</span>
+                              <span className={styles.breakdownCount}>{num(ip.count, '0')} Signups</span>
                             </div>
                           ));
                         })()}
@@ -3329,12 +3329,12 @@ export default function HorsesAdmin() {
             <div className={styles.statsView}>
               <h2>Club Arena Admin</h2>
               <p style={{ color: T.dim, fontSize: 13, marginBottom: 20 }}>
-                Platform-level oversight of every club, union, agent and chip movement.
+                Platform-Level Oversight Of Every Club, Union, Agent And Chip Movement.
               </p>
 
               {caWarnings?.length > 0 && (
                 <div className={styles.warnBanner}>
-                  Some sources could not be read, so the figures below are incomplete: {caWarnings.join('; ')}
+                  Some Sources Could Not Be Read, So The Figures Below Are Incomplete: {caWarnings.join('; ')}
                 </div>
               )}
 
@@ -3369,7 +3369,7 @@ export default function HorsesAdmin() {
 
               {caError ? (
                 <div className={styles.errorState}>
-                  <div>Club Arena data unavailable: {caError}</div>
+                  <div>Club Arena Data Unavailable: {caError}</div>
                   <button className={styles.actionBtn} onClick={loadClubArenaData}>Retry</button>
                 </div>
               ) : caLoading && !caLoaded ? (
@@ -3400,7 +3400,7 @@ export default function HorsesAdmin() {
                         <span className={styles.countPill}>{num(caFinance?.recentTxns?.length, '0')}</span>
                       </h3>
                       {(caFinance?.recentTxns || []).length === 0 ? (
-                        <div className={styles.emptyState}>No recent chip transactions.</div>
+                        <div className={styles.emptyState}>No Recent Chip Transactions.</div>
                       ) : (
                         <div className={styles.tableWrapper}>
                           <table className={styles.table}>
@@ -3429,7 +3429,7 @@ export default function HorsesAdmin() {
                   {/* ── CLUBS ── */}
                   {caSection === 'clubs' && !caSelectedClub && (
                     caClubs.length === 0 ? (
-                      <div className={styles.emptyState}>No clubs found.</div>
+                      <div className={styles.emptyState}>No Clubs Found.</div>
                     ) : (
                       <div className={styles.cardGrid}>
                         {/* These cards used to be role="button" with a real
@@ -3446,10 +3446,10 @@ export default function HorsesAdmin() {
                               {club.name}
                             </button>
                             <div style={{ fontSize: 12, color: T.dim, marginBottom: 10 }}>
-                              Code {club.club_id || club.code || '-'} - {num(club.member_count, '0')} members - {num(club.table_count, '0')} tables
+                              Code {club.club_id || club.code || '-'} - {num(club.member_count, '0')} Members - {num(club.table_count, '0')} Tables
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>
-                              Owner {club.owner_name || '-'} - created {when(club.created_at)}
+                              Owner {club.owner_name || '-'} - Created {when(club.created_at)}
                             </div>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                               <span style={{
@@ -3488,7 +3488,7 @@ export default function HorsesAdmin() {
                         <div>
                           <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{caSelectedClub.name}</span>
                           <span style={{ fontSize: 12, color: T.dim, marginLeft: 10 }}>
-                            Code {caSelectedClub.club_id || '-'} - {num(caSelectedClub.member_count, '0')} members
+                            Code {caSelectedClub.club_id || '-'} - {num(caSelectedClub.member_count, '0')} Members
                           </span>
                         </div>
                         <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
@@ -3535,7 +3535,7 @@ export default function HorsesAdmin() {
                           </div>
                           <h3 className={styles.sectionTitle}>Recent Transactions</h3>
                           {(caClubDetail.recentTxns || []).length === 0 ? (
-                            <div className={styles.emptyState}>No recent transactions.</div>
+                            <div className={styles.emptyState}>No Recent Transactions.</div>
                           ) : (
                             <div className={styles.tableWrapper}>
                               <table className={styles.table}>
@@ -3558,7 +3558,7 @@ export default function HorsesAdmin() {
                         </>
                       ) : caClubTab === 'members' ? (
                         (caClubDetail.members || []).length === 0 ? (
-                          <div className={styles.emptyState}>No members in this club.</div>
+                          <div className={styles.emptyState}>No Members In This Club.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -3585,7 +3585,7 @@ export default function HorsesAdmin() {
                         )
                       ) : caClubTab === 'agents' ? (
                         (caClubDetail.agents || []).length === 0 ? (
-                          <div className={styles.emptyState}>No agents in this club.</div>
+                          <div className={styles.emptyState}>No Agents In This Club.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -3608,7 +3608,7 @@ export default function HorsesAdmin() {
                         )
                       ) : caClubTab === 'tables' ? (
                         (caClubDetail.tables || []).length === 0 ? (
-                          <div className={styles.emptyState}>No tables in this club.</div>
+                          <div className={styles.emptyState}>No Tables In This Club.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -3686,7 +3686,7 @@ export default function HorsesAdmin() {
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <caption className={styles.srOnly}>Players currently seated at this club</caption>
+                              <caption className={styles.srOnly}>Players Currently Seated At This Club</caption>
                               <thead><tr>
                                 <th scope="col">Player</th><th scope="col">Table</th>
                                 <th scope="col">Duration</th><th scope="col">Action</th>
@@ -3712,7 +3712,7 @@ export default function HorsesAdmin() {
                         )
                       ) : (
                         (caClubDetail.pendingCashouts || []).length === 0 ? (
-                          <div className={styles.emptyState}>No pending cashouts for this club.</div>
+                          <div className={styles.emptyState}>No Pending Cashouts For This Club.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -3767,7 +3767,7 @@ export default function HorsesAdmin() {
                         )}
                       </h3>
                       {caPendingCashouts.length === 0 ? (
-                        <div className={styles.emptyState}>No pending cashouts anywhere on the platform.</div>
+                        <div className={styles.emptyState}>No Pending Cashouts Anywhere On The Platform.</div>
                       ) : (
                         <div className={styles.tableWrapper}>
                           <table className={styles.table}>
@@ -3799,7 +3799,7 @@ export default function HorsesAdmin() {
 
                       <h3 className={styles.sectionTitle}>Recent Chip Movement</h3>
                       {(caFinance?.recentTxns || []).length === 0 ? (
-                        <div className={styles.emptyState}>No recent transactions.</div>
+                        <div className={styles.emptyState}>No Recent Transactions.</div>
                       ) : (
                         <div className={styles.tableWrapper} style={{ maxHeight: 420, overflowY: 'auto' }}>
                           <table className={styles.table}>
@@ -3832,7 +3832,7 @@ export default function HorsesAdmin() {
                   {caSection === 'revenue' && (
                     caRevenueError ? (
                       <div className={styles.errorState} role="alert">
-                        <div>Revenue unavailable: {caRevenueError}</div>
+                        <div>Revenue Unavailable: {caRevenueError}</div>
                         <button className={styles.actionBtn} onClick={loadCaRevenue}>Retry</button>
                       </div>
                     ) : caRevenueLoading || !caRevenue ? (
@@ -3867,10 +3867,10 @@ export default function HorsesAdmin() {
                         {(caRevenue.rake24h?.truncated || caRevenue.rake7d?.truncated
                           || caRevenue.unsettledCommissions?.truncated) && (
                           <div className={styles.warnBanner}>
-                            One or more of these totals is summed over the most recent{' '}
-                            {num(caRevenue.pageSize)} rows only, so it is a floor rather than an exact
-                            figure. PostgREST aggregate functions are disabled on this project, so the
-                            sums are computed row by row.
+                            One Or More Of These Totals Is Summed Over The Most recent{' '}
+                            {num(caRevenue.pageSize)} Rows Only, So It Is A Floor Rather Than An Exact
+                            Figure. PostgREST Aggregate Functions Are Disabled On This Project, So The
+                            Sums Are Computed Row By Row.
                           </div>
                         )}
 
@@ -3886,11 +3886,11 @@ export default function HorsesAdmin() {
                             }}>Export CSV</button>
                         </h3>
                         {(caRevenue.byClub || []).length === 0 ? (
-                          <div className={styles.emptyState}>No rake recorded in the last 24 hours.</div>
+                          <div className={styles.emptyState}>No Rake Recorded In The Last 24 Hours.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <caption className={styles.srOnly}>Rake taken per club over the last 24 hours</caption>
+                              <caption className={styles.srOnly}>Rake Taken Per Club Over The Last 24 Hours</caption>
                               <thead><tr>
                                 <th scope="col">Club</th><th scope="col">Rake</th>
                                 <th scope="col">Into BBJ</th><th scope="col">Hands</th>
@@ -3913,16 +3913,16 @@ export default function HorsesAdmin() {
                           Unsettled Agent Commission
                           {caRevenue.unsettledCommissions?.rowCount > 0 && (
                             <span className={`${styles.countPill} ${styles.warnPill}`}>
-                              {num(caRevenue.unsettledCommissions.rowCount)} rows
+                              {num(caRevenue.unsettledCommissions.rowCount)} Rows
                             </span>
                           )}
                         </h3>
                         {(caRevenue.unsettledCommissions?.byAgent || []).length === 0 ? (
-                          <div className={styles.emptyState}>Nothing outstanding.</div>
+                          <div className={styles.emptyState}>Nothing Outstanding.</div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <caption className={styles.srOnly}>Agent commission that has not been settled</caption>
+                              <caption className={styles.srOnly}>Agent Commission That Has Not Been Settled</caption>
                               <thead><tr>
                                 <th scope="col">Agent</th><th scope="col">Club</th>
                                 <th scope="col">Owed</th><th scope="col">Entries</th>
@@ -3954,7 +3954,7 @@ export default function HorsesAdmin() {
                   {caSection === 'ledger' && (
                     caLedgerError ? (
                       <div className={styles.errorState} role="alert">
-                        <div>Ledger unavailable: {caLedgerError}</div>
+                        <div>Ledger Unavailable: {caLedgerError}</div>
                         <button className={styles.actionBtn} onClick={loadCaLedger}>Retry</button>
                       </div>
                     ) : caLedgerLoading || !caLedger ? (
@@ -3963,9 +3963,9 @@ export default function HorsesAdmin() {
                       <>
                         {caLedger.counts?.critical > 0 && (
                           <div className={styles.errorState} role="alert" style={{ textAlign: 'left' }}>
-                            <strong>{num(caLedger.counts.critical)} critical reconciliation rows.</strong>{' '}
-                            The nightly job found the chip ledger and the stored balances disagreeing.
-                            Every row below is a wallet whose recorded history does not add up to its balance.
+                            <strong>{num(caLedger.counts.critical)} Critical Reconciliation Rows.</strong>{' '}
+                            The Nightly Job Found The Chip Ledger And The Stored Balances Disagreeing.
+                            Every Row Below Is A Wallet Whose Recorded History Does Not Add Up To Its Balance.
                           </div>
                         )}
 
@@ -3997,7 +3997,7 @@ export default function HorsesAdmin() {
                             <h3 className={styles.sectionTitle}>Chip Circulation</h3>
                             <div className={styles.tableWrapper}>
                               <table className={styles.table}>
-                                <caption className={styles.srOnly}>Where the chips are, per club</caption>
+                                <caption className={styles.srOnly}>Where The Chips Are, Per Club</caption>
                                 <thead><tr>
                                   <th scope="col">Club</th><th scope="col">Member Wallets</th>
                                   <th scope="col">On The Felt</th><th scope="col">Treasury</th><th scope="col">Total</th>
@@ -4021,7 +4021,7 @@ export default function HorsesAdmin() {
                         <h3 className={styles.sectionTitle}>
                           Largest Drift
                           <span className={styles.countPill}>
-                            top {num(caLedger.sampleSize)} of {num(caLedger.counts?.critical)}
+                            Top {num(caLedger.sampleSize)} Of {num(caLedger.counts?.critical)}
                           </span>
                           <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
                             onClick={() => {
@@ -4035,11 +4035,11 @@ export default function HorsesAdmin() {
                             }}>Export CSV</button>
                         </h3>
                         {(caLedger.critical || []).length === 0 ? (
-                          <div className={styles.emptyState}>No critical drift. The ledger reconciles.</div>
+                          <div className={styles.emptyState}>No Critical Drift. The Ledger Reconciles.</div>
                         ) : (
                           <div className={styles.tableWrapper} style={{ maxHeight: 520, overflowY: 'auto' }}>
                             <table className={styles.table}>
-                              <caption className={styles.srOnly}>Wallets with the largest drift between ledger and stored balance</caption>
+                              <caption className={styles.srOnly}>Wallets With The Largest Drift Between Ledger And Stored Balance</caption>
                               <thead><tr>
                                 <th scope="col">Entity</th><th scope="col">Type</th>
                                 <th scope="col">Ledger</th><th scope="col">Stored</th>
@@ -4070,16 +4070,16 @@ export default function HorsesAdmin() {
 
                         <h3 className={styles.sectionTitle}>
                           Unaccounted Seat Exits
-                          <span style={{ color: T.dim, fontWeight: 400, fontSize: 13 }}>last 7 days</span>
+                          <span style={{ color: T.dim, fontWeight: 400, fontSize: 13 }}>Last 7 Days</span>
                         </h3>
                         {(caLedger.unaccountedSeatExits || []).length === 0 ? (
                           <div className={styles.emptyState}>
-                            Every non-zero stack that left a seat has a matching wallet credit.
+                            Every Non-Zero Stack That Left A Seat Has A Matching Wallet Credit.
                           </div>
                         ) : (
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                              <caption className={styles.srOnly}>Stacks that left a seat with no matching wallet credit</caption>
+                              <caption className={styles.srOnly}>Stacks That Left A Seat With No Matching Wallet Credit</caption>
                               <thead><tr>
                                 <th scope="col">When</th><th scope="col">Player</th>
                                 <th scope="col">Stack</th><th scope="col">Exit</th>
@@ -4153,7 +4153,7 @@ export default function HorsesAdmin() {
                                 <span className={styles.countPill}>{num(caSelectedUser.memberships?.length, '0')}</span>
                               </h3>
                               {(caSelectedUser.memberships || []).length === 0 ? (
-                                <div className={styles.emptyState}>Not a member of any club.</div>
+                                <div className={styles.emptyState}>Not A Member Of Any Club.</div>
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
@@ -4176,7 +4176,7 @@ export default function HorsesAdmin() {
 
                               <h3 className={styles.sectionTitle}>Chip Transactions</h3>
                               {(caSelectedUser.txns || []).length === 0 ? (
-                                <div className={styles.emptyState}>No chip transactions.</div>
+                                <div className={styles.emptyState}>No Chip Transactions.</div>
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
@@ -4200,7 +4200,7 @@ export default function HorsesAdmin() {
 
                               <h3 className={styles.sectionTitle}>Cashout History</h3>
                               {(caSelectedUser.cashouts || []).length === 0 ? (
-                                <div className={styles.emptyState}>No cashout requests.</div>
+                                <div className={styles.emptyState}>No Cashout Requests.</div>
                               ) : (
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
@@ -4254,7 +4254,7 @@ export default function HorsesAdmin() {
                   {/* ── UNIONS ── (caUnions was loaded and never rendered) */}
                   {caSection === 'unions' && (
                     caUnions.length === 0 ? (
-                      <div className={styles.emptyState}>No unions found.</div>
+                      <div className={styles.emptyState}>No Unions Found.</div>
                     ) : (
                       <div className={styles.cardGrid}>
                         {caUnions.map((u) => (
@@ -4264,10 +4264,10 @@ export default function HorsesAdmin() {
                               Code {u.union_code || u.code || '-'}
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
-                              {num(u.club_count, '0')} clubs - {num(u.member_count, '0')} members
+                              {num(u.club_count, '0')} Clubs - {num(u.member_count, '0')} Members
                             </div>
                             <div style={{ fontSize: 12, color: T.accent, marginTop: 4 }}>
-                              Chip balance {num(u.chip_balance, '0')}
+                              Chip Balance {num(u.chip_balance, '0')}
                             </div>
                             <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>Created {when(u.created_at)}</div>
                           </div>
@@ -4281,7 +4281,7 @@ export default function HorsesAdmin() {
                     <>
                       <h3 className={styles.sectionTitle}>
                         Union Applications
-                        {pendingAppCount > 0 && <span className={`${styles.countPill} ${styles.warnPill}`}>{pendingAppCount} pending</span>}
+                        {pendingAppCount > 0 && <span className={`${styles.countPill} ${styles.warnPill}`}>{pendingAppCount} Pending</span>}
                       </h3>
                       <div className={styles.filterBar}>
                         {['pending', 'all'].map((f) => (
@@ -4315,8 +4315,8 @@ export default function HorsesAdmin() {
                             }}>{app.status || 'unknown'}</span>
                           </div>
                           <div style={{ fontSize: 12, color: T.dim }}>
-                            {num(app.member_count, '0')} members - applied {when(app.applied_at)}
-                            {app.profiles?.display_name && <> - owner <strong style={{ color: T.text }}>{app.profiles.display_name}</strong></>}
+                            {num(app.member_count, '0')} Members - Applied {when(app.applied_at)}
+                            {app.profiles?.display_name && <> - Owner <strong style={{ color: T.text }}>{app.profiles.display_name}</strong></>}
                             {app.profiles?.email && <> ({app.profiles.email})</>}
                           </div>
                           {app.message && (
@@ -4326,7 +4326,7 @@ export default function HorsesAdmin() {
                             }}>{app.message}</div>
                           )}
                           {app.review_note && (
-                            <div style={{ marginTop: 6, fontSize: 12, color: T.muted }}>Review note: {app.review_note}</div>
+                            <div style={{ marginTop: 6, fontSize: 12, color: T.muted }}>Review Note: {app.review_note}</div>
                           )}
                           {app.status === 'pending' && (
                             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
@@ -4365,7 +4365,7 @@ export default function HorsesAdmin() {
 
                       <h3 className={styles.sectionTitle}>
                         Union Leave Requests
-                        {pendingLeaveCount > 0 && <span className={`${styles.countPill} ${styles.warnPill}`}>{pendingLeaveCount} pending</span>}
+                        {pendingLeaveCount > 0 && <span className={`${styles.countPill} ${styles.warnPill}`}>{pendingLeaveCount} Pending</span>}
                       </h3>
                       <div className={styles.filterBar}>
                         {['pending', 'all'].map((f) => (
@@ -4400,8 +4400,8 @@ export default function HorsesAdmin() {
                           </div>
                           <div style={{ fontSize: 12, color: T.dim }}>
                             Requested {when(req.requested_at)}
-                            {req.profiles?.display_name && <> - owner <strong style={{ color: T.text }}>{req.profiles.display_name}</strong></>}
-                            {req.unions?.name && <> - union <strong style={{ color: T.text }}>{req.unions.name}</strong></>}
+                            {req.profiles?.display_name && <> - Owner <strong style={{ color: T.text }}>{req.profiles.display_name}</strong></>}
+                            {req.unions?.name && <> - Union <strong style={{ color: T.text }}>{req.unions.name}</strong></>}
                           </div>
                           {req.reason && (
                             <div style={{
@@ -4437,7 +4437,7 @@ export default function HorsesAdmin() {
                 <div>
                   <h2 style={{ margin: 0 }}>Geeves Knowledge Base</h2>
                   <p style={{ margin: '4px 0 0', color: T.dim, fontSize: 14 }}>
-                    Questions that fell through to Grok. Add them to the KB to make Geeves smarter.
+                    Questions That Fell Through To Grok. Add Them To The KB To Make Geeves Smarter.
                   </p>
                 </div>
                 <button className={styles.actionBtn} onClick={loadGeevesAnalytics} disabled={geevesLoading}>
@@ -4447,7 +4447,7 @@ export default function HorsesAdmin() {
 
               {geevesError ? (
                 <div className={styles.errorState}>
-                  <div>Geeves analytics unavailable: {geevesError}</div>
+                  <div>Geeves Analytics Unavailable: {geevesError}</div>
                   <button className={styles.actionBtn} onClick={loadGeevesAnalytics}>Retry</button>
                 </div>
               ) : (
@@ -4476,7 +4476,7 @@ export default function HorsesAdmin() {
                     <div className={styles.loadingSpinner}>Loading Geeves Analytics</div>
                   ) : geevesAnalytics.questions.length === 0 ? (
                     <div className={styles.emptyState}>
-                      No unanswered questions. Geeves is handling everything locally.
+                      No Unanswered Questions. Geeves Is Handling Everything Locally.
                     </div>
                   ) : (
                     <div className={styles.tableWrapper}>
@@ -4491,7 +4491,7 @@ export default function HorsesAdmin() {
                                 <div>{q.question}</div>
                                 {q.grok_answer && (
                                   <details style={{ marginTop: 4 }}>
-                                    <summary style={{ fontSize: 11, color: T.accent, cursor: 'pointer' }}>View Grok answer</summary>
+                                    <summary style={{ fontSize: 11, color: T.accent, cursor: 'pointer' }}>View Grok Answer</summary>
                                     <div style={{
                                       fontSize: 12, color: T.dim, marginTop: 6, lineHeight: 1.5,
                                       maxHeight: 140, overflowY: 'auto', background: T.inset,
@@ -4538,7 +4538,7 @@ export default function HorsesAdmin() {
                 <div>
                   <h2 style={{ margin: 0 }}>Venue Review Moderation</h2>
                   <p style={{ margin: '4px 0 0', color: T.dim, fontSize: 14 }}>
-                    Every player-submitted venue review on the platform.
+                    Every Player-Submitted Venue Review On The Platform.
                   </p>
                 </div>
                 <button className={styles.actionBtn} onClick={loadAdminReviews} disabled={reviewsLoading}>
@@ -4565,7 +4565,7 @@ export default function HorsesAdmin() {
               </div>
               {reviewsStats.avg_rating_sampled && (
                 <div className={styles.warnBanner}>
-                  The average rating is sampled, not exact - the review table is larger than the sample cap.
+                  The Average Rating Is Sampled, Not Exact - The Review Table Is Larger Than The Sample Cap.
                 </div>
               )}
 
@@ -4596,13 +4596,13 @@ export default function HorsesAdmin() {
 
               {reviewsError ? (
                 <div className={styles.errorState}>
-                  <div>Reviews unavailable: {reviewsError}</div>
+                  <div>Reviews Unavailable: {reviewsError}</div>
                   <button className={styles.actionBtn} onClick={loadAdminReviews}>Retry</button>
                 </div>
               ) : reviewsLoading ? (
                 <div className={styles.loadingSpinner}>Loading Reviews</div>
               ) : visibleReviews.length === 0 ? (
-                <div className={styles.emptyState}>No reviews match the current filters.</div>
+                <div className={styles.emptyState}>No Reviews Match The Current Filters.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {visibleReviews.map((review) => (
@@ -4646,7 +4646,7 @@ export default function HorsesAdmin() {
                             <div style={{
                               marginTop: 6, fontSize: 12, color: T.warn,
                               background: T.warnSoft, padding: '4px 10px', borderRadius: 6,
-                            }}>Flag reason: {review.flag_reason}</div>
+                            }}>Flag Reason: {review.flag_reason}</div>
                           )}
                           <div style={{ marginTop: 6, fontSize: 11, color: T.muted }}>
                             Helpful {num(review.helpful_count, '0')} - Unhelpful {num(review.unhelpful_count, '0')}
@@ -4693,7 +4693,7 @@ export default function HorsesAdmin() {
                       return pageBasis !== null && pageBasis !== undefined
                         ? ` of ${Math.max(1, Math.ceil(pageBasis / REVIEWS_PER_PAGE))}` : '';
                     })()}
-                    {' '}- showing {num(visibleReviews.length)} of {num(reviewsData.length)} on this page
+                    {' '}- Showing {num(visibleReviews.length)} Of {num(reviewsData.length)} On This Page
                   </span>
                   <button onClick={() => setReviewsPage((p) => p + 1)}
                     disabled={reviewsData.length < REVIEWS_PER_PAGE || reviewsLoading}>Next</button>
@@ -4709,9 +4709,9 @@ export default function HorsesAdmin() {
                 <div>
                   <h2 style={{ margin: 0 }}>Admin Audit Log</h2>
                   <p style={{ margin: '4px 0 0', color: T.dim, fontSize: 14 }}>
-                    Every privileged action taken through this console. Cashout approvals,
-                    player kicks, fleet launches, moderation decisions and horse edits all
-                    file here.
+                    Every Privileged Action Taken Through This Console. Cashout Approvals,
+                    Player Kicks, Fleet Launches, Moderation Decisions And Horse Edits All
+                    File Here.
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -4797,8 +4797,8 @@ export default function HorsesAdmin() {
                       coverage only became complete in this release, so an empty
                       window is the expected answer for older ranges, not a bug
                       the operator should go hunting for. */}
-                  No audit entries in this range. Full coverage of every mutating
-                  admin route began 2026-08-26; earlier actions were not recorded.
+                  No Audit Entries In This Range. Full Coverage Of Every Mutating
+                  Admin Route Began 2026-08-26; Earlier Actions Were Not Recorded.
                 </div>
               ) : (
                 <>
@@ -4901,10 +4901,10 @@ export default function HorsesAdmin() {
                   <h2 style={{ margin: 0 }}>Scraper Health</h2>
                   <p style={{ margin: '4px 0 0', color: T.dim, fontSize: 14 }}>
                     {/* The old copy hardcoded "all 9 daemons". */}
-                    Status of the data collection daemons. Auto-refreshes every 60 seconds.
+                    Status Of The Data Collection Daemons. Auto-Refreshes Every 60 Seconds.
                     {scraperHealthLastFetch && (
                       <span style={{ marginLeft: 8, color: T.muted }}>
-                        Last fetched {scraperHealthLastFetch.toLocaleTimeString()}
+                        Last Fetched {scraperHealthLastFetch.toLocaleTimeString()}
                       </span>
                     )}
                   </p>
@@ -4916,13 +4916,13 @@ export default function HorsesAdmin() {
 
               {scraperHealthError ? (
                 <div className={styles.errorState}>
-                  <div>Scraper health unavailable: {scraperHealthError}</div>
+                  <div>Scraper Health Unavailable: {scraperHealthError}</div>
                   <button className={styles.actionBtn} onClick={loadScraperHealth}>Retry</button>
                 </div>
               ) : scraperHealthLoading && !scraperHealth ? (
                 <div className={styles.loadingSpinner}>Loading Scraper Status</div>
               ) : !scraperHealth ? (
-                <div className={styles.emptyState}>No scraper data available.</div>
+                <div className={styles.emptyState}>No Scraper Data Available.</div>
               ) : (
                 <>
                   {scraperHealth.notice && <div className={styles.warnBanner}>{scraperHealth.notice}</div>}
@@ -4951,7 +4951,7 @@ export default function HorsesAdmin() {
                   )}
 
                   {(scraperHealth.daemons || []).length === 0 ? (
-                    <div className={styles.emptyState}>No daemons registered.</div>
+                    <div className={styles.emptyState}>No Daemons Registered.</div>
                   ) : (
                     <div className={styles.cardGrid}>
                       {scraperHealth.daemons.map((daemon) => {
@@ -5015,13 +5015,13 @@ export default function HorsesAdmin() {
                               </div>
                             ) : (
                               <div style={{ color: T.muted, fontSize: 13, fontStyle: 'italic' }}>
-                                No heartbeat published. This daemon may be interval-based or not running.
+                                No Heartbeat Published. This Daemon May Be Interval-Based Or Not Running.
                               </div>
                             )}
 
                             {daemon.database?.staleMinutes !== null && daemon.database?.staleMinutes !== undefined && (
                               <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.line}`, fontSize: 12 }}>
-                                <span style={{ color: T.dim }}>Database data age: </span>
+                                <span style={{ color: T.dim }}>Database Data Age: </span>
                                 <span style={{
                                   color: daemon.database.staleMinutes > 25 ? T.danger : T.accent, fontWeight: 600,
                                 }}>{daemon.database.staleMinutes}m</span>
@@ -5097,20 +5097,20 @@ export default function HorsesAdmin() {
                       onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_value: e.target.value })} />
                   </div>
                   <div className={styles.formGroup}>
-                    <label htmlFor="pe-max">Max Uses (blank clears the cap)</label>
+                    <label htmlFor="pe-max">Max Uses (Blank Clears The Cap)</label>
                     <input id="pe-max" type="number" min="1" placeholder="Unlimited"
                       value={promoEditForm.max_uses}
                       onChange={(e) => setPromoEditForm({ ...promoEditForm, max_uses: e.target.value })} />
                   </div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label htmlFor="pe-exp">Expires At (blank clears it)</label>
+                  <label htmlFor="pe-exp">Expires At (Blank Clears It)</label>
                   <input id="pe-exp" type="datetime-local" value={promoEditForm.expires_at}
                     onChange={(e) => setPromoEditForm({ ...promoEditForm, expires_at: e.target.value })} />
                   {/* Unlike POST, PATCH accepts a past date, so a code can be
                       retired by expiring it rather than deactivating it. */}
                   <small style={{ color: T.muted, fontSize: 11 }}>
-                    A past date retires the code immediately.
+                    A Past Date Retires The Code Immediately.
                   </small>
                 </div>
                 <div className={styles.formActions}>

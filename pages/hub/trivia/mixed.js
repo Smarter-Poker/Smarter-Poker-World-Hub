@@ -503,7 +503,7 @@ export default function MixedModePage() {
                             }}>
                                 <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We couldn't save your score of {saveErrorPayload?.actualCorrect} correct answers because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.actualDiamonds} Diamonds!
+                                    We Couldn't Save Your Score Of {saveErrorPayload?.actualCorrect} Correct Answers Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose {saveErrorPayload?.actualDiamonds} Diamonds!
                                 </p>
                                 <button
                                     onClick={handleRetrySave}
@@ -590,7 +590,7 @@ export default function MixedModePage() {
                                 />
                             </div>
                             <div className="progress-text">
-                                Question {currentQuestionIndex + 1} of {questions.length}
+                                Question {currentQuestionIndex + 1} Of {questions.length}
                             </div>
 
                             {/* Question */}
@@ -657,7 +657,7 @@ export default function MixedModePage() {
 
                                 {capReached && (
                                     <div className="cap-note">
-                                        Daily diamond cap reached ({DAILY_DIAMOND_CAP}/day) - correct answers still count toward your category mastery!
+                                        Daily Diamond Cap Reached ({DAILY_DIAMOND_CAP}/Day) - Correct Answers Still Count Toward Your Category Mastery!
                                     </div>
                                 )}
 
@@ -692,7 +692,7 @@ export default function MixedModePage() {
                                         Share Result
                                     </HexButton>
                                     <HexButton onClick={() => router.push('/hub/trivia')} variant="secondary" size="md">
-                                        Back to Trivia
+                                        Back To Trivia
                                     </HexButton>
                                 </div>
                             </MetalFrame>

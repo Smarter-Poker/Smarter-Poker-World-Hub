@@ -316,7 +316,7 @@ export default function ScenarioDemoPage() {
               textTransform: 'uppercase',
             }}
           >
-            How it works
+            How It Works
           </button>
           <BottomSheet
             open={infoOpen}
@@ -326,14 +326,14 @@ export default function ScenarioDemoPage() {
           >
             <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
               <p style={{ marginTop: 0 }}>
-                Walk through {/* num steps */} short concept lessons covering
-                pot odds, ranges, frequencies, board texture, position, and
-                solver-vs-exploit theory. Each step ends with a quick comprehension
-                quiz before unlocking the next one.
+                Walk Through {/* num steps */} Short Concept Lessons Covering
+                Pot Odds, Ranges, Frequencies, Board Texture, Position, And
+                Solver-Vs-Exploit Theory. Each Step Ends With A Quick Comprehension
+                Quiz Before Unlocking The Next One.
               </p>
               <p>
-                Aim for at least 70&#37; accuracy on the quizzes before stepping
-                up to the full Trainer hub. Progress saves automatically.
+                Aim For At Least 70&#37; Accuracy On The Quizzes Before Stepping
+                Up To The Full Trainer Hub. Progress Saves Automatically.
               </p>
             </div>
           </BottomSheet>

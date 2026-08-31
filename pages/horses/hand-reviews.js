@@ -177,7 +177,7 @@ function HandDetail({ row }) {
         );
       })}
       <div style={{ fontSize: '0.75rem', color: MUTED, marginTop: 6 }}>
-        hand {row.hand_id} - pot {row.pot_size ?? '?'} - bb {row.big_blind}
+        Hand {row.hand_id} - Pot {row.pot_size ?? '?'} - BB {row.big_blind}
       </div>
     </div>
   );
@@ -342,9 +342,9 @@ export default function HorseHandReviews() {
     return (
       <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column',
         justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: TEXT }}>
-        <div role="alert" style={{ color: RED, fontWeight: 700, fontSize: 18 }}>Could not verify your role</div>
+        <div role="alert" style={{ color: RED, fontWeight: 700, fontSize: 18 }}>Could Not Verify Your Role</div>
         <div style={{ color: MUTED, fontSize: 14, maxWidth: 480 }}>
-          {roleError}. This is a failed check, not a refusal - your access has not changed.
+          {roleError}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
         </div>
         <button onClick={() => router.reload()} style={{ background: ACCENT, color: BG, border: 'none',
           padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
@@ -385,7 +385,7 @@ export default function HorseHandReviews() {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: TEXT }}>Horse Hand Reviews</h1>
             <p style={{ margin: '0.5rem 0 0 0', color: MUTED, fontSize: '0.875rem' }}>
-              Every hand where a horse won or lost 20bb+, flagged at settlement with leak tags. Raw hands kept 30 days; rollups permanent.
+              Every Hand Where A Horse Won Or Lost 20bb+, Flagged At Settlement With Leak Tags. Raw Hands Kept 30 Days; Rollups Permanent.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -420,7 +420,7 @@ export default function HorseHandReviews() {
           </div>
           {auditsError && <div style={{ color: RED, fontSize: '0.85rem' }}>{auditsError}</div>}
           {audits.length === 0 && !auditsError && (
-            <div style={{ color: MUTED, fontSize: '0.85rem' }}>No audit rows yet. The first row appears after the next 06:00 UTC engine run.</div>
+            <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Audit Rows Yet. The First Row Appears After The Next 06:00 UTC Engine Run.</div>
           )}
           {/* ── Brain Layer Fires: proof the deployed logic executes ── */}
           <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
@@ -493,7 +493,7 @@ export default function HorseHandReviews() {
                     <tr style={{ color: MUTED, textAlign: 'left' }}>
                       <th style={{ padding: '0.3rem' }}>Run</th>
                       <th style={{ padding: '0.3rem' }}>Matchup</th>
-                      <th style={{ padding: '0.3rem' }}>bb/100</th>
+                      <th style={{ padding: '0.3rem' }}>BB/100</th>
                       <th style={{ padding: '0.3rem' }}>Stderr</th>
                       <th style={{ padding: '0.3rem' }}>Verdict</th>
                       <th style={{ padding: '0.3rem' }}>Illegal</th>
@@ -621,7 +621,7 @@ export default function HorseHandReviews() {
                   <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
                   <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
                   <span style={{ color: MUTED, fontSize: '0.8rem' }}>
-                    {a.stats?.flagged_hands ?? 0} flagged hands / net {a.stats?.net_bb_sum ?? 0} bb
+                    {a.stats?.flagged_hands ?? 0} Flagged Hands / Net {a.stats?.net_bb_sum ?? 0} BB
                   </span>
                   <span className="hr-push" style={{ color: a.agent_analysis ? POSITIVE : MUTED, fontSize: '0.8rem' }}>
                     {a.agent_analysis ? 'Claude Analysis Ready' : 'Awaiting Claude Analysis'}
@@ -629,7 +629,7 @@ export default function HorseHandReviews() {
                 </button>
                 {open && (
                   <div id={`audit-panel-${a.day}`} style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
-                    {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No findings. A clean day.</div>}
+                    {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Findings. A Clean Day.</div>}
                     {findings.map((f, i) => (
                       <div key={i} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -689,7 +689,7 @@ export default function HorseHandReviews() {
           {summaryError && <div style={{ color: RED, fontSize: '0.85rem' }}>{summaryError}</div>}
           <div style={{ marginBottom: '0.75rem' }}>
             <span style={{ color: MUTED, fontSize: '0.85rem', marginRight: 8 }}>Fleet Leak Tags:</span>
-            {Object.keys(fleetLeaks).length === 0 && <span style={{ color: MUTED, fontSize: '0.85rem' }}>none recorded yet</span>}
+            {Object.keys(fleetLeaks).length === 0 && <span style={{ color: MUTED, fontSize: '0.85rem' }}>None Recorded Yet</span>}
             {Object.entries(fleetLeaks)
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
@@ -707,7 +707,7 @@ export default function HorseHandReviews() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <caption style={SR_ONLY}>
-                Per-horse totals for the selected window. The horse name in each row is a button that filters the flagged hands table below.
+                Per-Horse Totals For The Selected Window. The Horse Name In Each Row Is A Button That Filters The Flagged Hands Table Below.
               </caption>
               <thead>
                 <tr style={{ color: MUTED, textAlign: 'left' }}>
@@ -752,7 +752,7 @@ export default function HorseHandReviews() {
                 {horses.length === 0 && (
                   <tr>
                     <td colSpan={5} style={{ padding: '0.6rem', color: MUTED }}>
-                      No flagged hands in this window yet. Rows appear as horses win or lose 20bb+ pots.
+                      No Flagged Hands In This Window Yet. Rows Appear As Horses Win Or Lose 20bb+ Pots.
                     </td>
                   </tr>
                 )}
@@ -795,7 +795,7 @@ export default function HorseHandReviews() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <caption style={SR_ONLY}>
-                Hands where a horse won or lost twenty big blinds or more. The timestamp in each row is a button that expands the full hand detail.
+                Hands Where A Horse Won Or Lost Twenty Big Blinds Or More. The Timestamp In Each Row Is A Button That Expands The Full Hand Detail.
               </caption>
               <thead>
                 <tr style={{ color: MUTED, textAlign: 'left' }}>
@@ -861,7 +861,7 @@ export default function HorseHandReviews() {
                 {rows.length === 0 && !busy && (
                   <tr>
                     <td colSpan={7} style={{ padding: '0.6rem', color: MUTED }}>
-                      No hands match these filters.
+                      No Hands Match These Filters.
                     </td>
                   </tr>
                 )}

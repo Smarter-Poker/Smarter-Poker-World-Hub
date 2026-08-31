@@ -322,7 +322,7 @@ export default function MfaChallengePage() {
     return (
         <>
             <Head>
-                <title>Verify with a text code · Smarter.Poker</title>
+                <title>Verify With A Text Code · Smarter.Poker</title>
                 <meta name="robots" content="noindex,nofollow" />
             </Head>
             <div style={bgStyle}>
@@ -341,7 +341,7 @@ export default function MfaChallengePage() {
                                         ? 'We could not send your code.'
                                         : (
                                             <>
-                                                We texted a {expectedLen ? `${expectedLen}-digit ` : ''}code to{' '}
+                                                We Texted A {expectedLen ? `${expectedLen}-digit ` : ''}code to{' '}
                                                 <strong style={{ color: '#e2e8f0' }}>{destination}</strong>.
                                             </>
                                         )}
@@ -351,10 +351,10 @@ export default function MfaChallengePage() {
                     {notEnrolled && (
                         <div style={warnStyle}>
                             <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
-                                Two-factor is not turned on for this account
+                                Two-Factor Is Not Turned On For This Account
                             </strong>
-                            There is no code to send you. Head back and carry on - you can turn on
-                            text-message two-factor any time under Settings → Security.
+                            There Is No Code To Send You. Head Back And Carry On - You Can Turn On
+                            Text-Message Two-Factor Any Time Under Settings → Security.
                             <div style={{ marginTop: 10 }}>
                                 <button
                                     type="button"
@@ -370,10 +370,10 @@ export default function MfaChallengePage() {
                     {needsPhone && (
                         <div style={warnStyle}>
                             <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
-                                No verified mobile number on file
+                                No Verified Mobile Number On File
                             </strong>
-                            Add and verify a phone number in Settings → Account, then sign in again.
-                            If you cannot get to Settings, use a backup code below.
+                            Add And Verify A Phone Number In Settings → Account, Then Sign In Again.
+                            If You Cannot Get To Settings, Use A Backup Code Below.
                         </div>
                     )}
 
@@ -412,7 +412,7 @@ export default function MfaChallengePage() {
 
                         {!useBackup && (
                             <div style={resendRowStyle}>
-                                <span style={{ color: '#64748b' }}>Didn&apos;t get it?</span>
+                                <span style={{ color: '#64748b' }}>Didn&apos;T Get It?</span>
                                 <button
                                     type="button"
                                     onClick={handleResend}
@@ -443,7 +443,7 @@ export default function MfaChallengePage() {
                                     style={{ marginRight: '0.6rem', marginTop: '0.15rem', cursor: 'pointer' }}
                                 />
                                 <span>
-                                    <strong style={{ color: '#e2e8f0' }}>Remember this device for 30 days</strong>
+                                    <strong style={{ color: '#e2e8f0' }}>Remember This Device For 30 Days</strong>
                                     <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
                                         {rememberDevice
                                             ? 'We will not ask you for another code on this device for 30 days - not at sign-in, and not for admin, cashout or account actions.'
@@ -492,16 +492,16 @@ export default function MfaChallengePage() {
                             style={mutedLinkBtnStyle}
                             disabled={isLoading}
                         >
-                            Sign out and start over
+                            Sign Out And Start Over
                         </button>
                     </div>
 
                     <p style={helpTextStyle}>
-                        No longer have that phone number or your backup codes?{' '}
+                        No Longer Have That Phone Number Or Your Backup Codes?{' '}
                         <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>
-                            Contact support
+                            Contact Support
                         </a>
-                        {' '}- account recovery requires identity verification.
+                        {' '}- Account Recovery Requires Identity Verification.
                     </p>
                 </div>
             </div>

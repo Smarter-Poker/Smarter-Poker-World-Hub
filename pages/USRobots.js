@@ -33,20 +33,20 @@ function SlideContent({ idx }) {
     /* SLIDE 1 — Cover */
     case 0: return (
       <div className="sc-block mw640">
-        <Tag t="cyan">Smarter Software Inc. · Exclusive Proposal for US Robots</Tag>
+        <Tag t="cyan">Smarter Software Inc. · Exclusive Proposal For US Robots</Tag>
         <div className="big-title hero-title"><span className="cyan">JAR</span>VIS</div>
         <div className="hero-sub-title">AI-Powered Personal Assistant</div>
-        <Sub>The world's first AI home assistant that looks and feels like a real person - inside a premium floor-standing display, with a companion app always in your pocket.</Sub>
+        <Sub>The World's First AI Home Assistant That Looks And Feels Like A Real Person - Inside A Premium Floor-Standing Display, With A Companion App Always In Your Pocket.</Sub>
         <div className="pill-row">
           <Pill>🖥️ 49" · 55" · 65" Displays</Pill>
           <Pill>🤖 AI Video Avatar</Pill>
-          <Pill>📱 iOS + Android App</Pill>
+          <Pill>📱 IOS + Android App</Pill>
           <Pill>⏱️ 90-Day Delivery</Pill>
         </div>
         <div className="invest-box">
           <span className="invest-label">Total Investment</span>
           <span className="invest-num">$100,000</span>
-          <span className="invest-note">4 payments of $25,000 · First due on signing</span>
+          <span className="invest-note">4 Payments Of $25,000 · First Due On Signing</span>
         </div>
       </div>
     );
@@ -57,13 +57,13 @@ function SlideContent({ idx }) {
         <Tag t="white">The Problem</Tag>
         <BT>Your Life Is<br/><span className="cyan">Scattered</span><br/>Everywhere</BT>
         <Hr c="cyan"/>
-        <Sub>The average person juggles <strong style={{color:'#fff'}}>14+ apps</strong> daily. Emails pile up. Appointments are missed. Your digital life is chaos - and no single product has solved it.</Sub>
+        <Sub>The Average Person Juggles <strong style={{color:'#fff'}}>14+ Apps</strong> Daily. Emails Pile Up. Appointments Are Missed. Your Digital Life Is Chaos - And No Single Product Has Solved It.</Sub>
         <div className="col-stack">
-          <CSm><span className="feat-icon-sm">📱</span><div><b className="feat-h">14+ apps to manage your life</b><div className="feat-p">Email, Calendar, Tasks, Smart Home, Music, Fitness…</div></div></CSm>
-          <CSm><span className="feat-icon-sm">🔔</span><div><b className="feat-h">100+ notifications per day</b><div className="feat-p">Most go unread. Important things get buried.</div></div></CSm>
-          <CSm><span className="feat-icon-sm">🤖</span><div><b className="feat-h">No AI assistant feels human</b><div className="feat-p">Alexa and Siri are voices in a box. JARVIS is a person.</div></div></CSm>
+          <CSm><span className="feat-icon-sm">📱</span><div><b className="feat-h">14+ Apps To Manage Your Life</b><div className="feat-p">Email, Calendar, Tasks, Smart Home, Music, Fitness…</div></div></CSm>
+          <CSm><span className="feat-icon-sm">🔔</span><div><b className="feat-h">100+ Notifications Per Day</b><div className="feat-p">Most Go Unread. Important Things Get Buried.</div></div></CSm>
+          <CSm><span className="feat-icon-sm">🤖</span><div><b className="feat-h">No AI Assistant Feels Human</b><div className="feat-p">Alexa And Siri Are Voices In A Box. JARVIS Is A Person.</div></div></CSm>
         </div>
-        <div className="orbitron cyan fs18">JARVIS solves all of this. In one product.</div>
+        <div className="orbitron cyan fs18">JARVIS Solves All Of This. In One Product.</div>
       </div>
     );
 
@@ -71,9 +71,9 @@ function SlideContent({ idx }) {
     case 2: return (
       <div className="sc-block sc-block-right mw520">
         <Tag t="cyan">The AI Avatar</Tag>
-        <BT>She Looks,<br/>Talks, and<br/><span className="cyan">Feels Real</span></BT>
+        <BT>She Looks,<br/>Talks, And<br/><span className="cyan">Feels Real</span></BT>
         <Hr c="cyan"/>
-        <Sub>JARVIS features a photorealistic AI avatar - beautiful, voice-activated, lip-synced, and emotionally intelligent. She knows your schedule, your habits, and your name.</Sub>
+        <Sub>JARVIS Features A Photorealistic AI Avatar - Beautiful, Voice-Activated, Lip-Synced, And Emotionally Intelligent. She Knows Your Schedule, Your Habits, And Your Name.</Sub>
         <div className="pill-col">
           <Pill>🎤 Wake Word Detection</Pill>
           <Pill>💬 Real-Time Lip Sync</Pill>
@@ -100,11 +100,11 @@ function SlideContent({ idx }) {
               <div className="orbitron fs48" style={{color:h.c}}>{h.sz}</div>
               <div className="hw-sub">{h.sub}</div>
               <div className="hw-desc">{h.desc}</div>
-              <div className="orbitron fs24 gold">{h.price}<span className="hw-unit">/unit</span></div>
+              <div className="orbitron fs24 gold">{h.price}<span className="hw-unit">/Unit</span></div>
             </div>
           ))}
         </div>
-        <div className="hw-note">Hardware sourced from manufacturer · JARVIS software pre-loaded · Import & logistics: US Robots</div>
+        <div className="hw-note">Hardware Sourced From Manufacturer · JARVIS Software Pre-Loaded · Import & Logistics: US Robots</div>
       </div>
     );
 
@@ -112,14 +112,14 @@ function SlideContent({ idx }) {
     case 4: return (
       <div className="sc-block sc-block-center mw-full">
         <Tag t="cyan">The Connected Universe</Tag>
-        <BT>JARVIS Connects to<br/><span className="cyan">Everything You Use</span></BT>
+        <BT>JARVIS Connects To<br/><span className="cyan">Everything You Use</span></BT>
         <Hr c="cyan"/>
         <div className="int-grid">
           {['📨 Gmail','📅 Google Calendar','🔵 Outlook','🍎 Apple Mail','✅ Todoist','📝 Notion','🏠 Amazon Alexa','🔊 Google Home','🏡 Apple HomeKit','🎵 Spotify','🎶 Apple Music','🚗 Uber','🍔 DoorDash','📦 Amazon Tracking','💪 Fitbit','❤️ Apple Health','🏃 Garmin','🌤️ Weather','📰 News Feed','💰 Finance Alerts','📸 Family Photos','🔒 Smart Locks','💡 Smart Lights','📺 Smart TV','🌡️ Thermostat'].map(s=>(
             <div key={s} className="int-pill">{s}</div>
           ))}
         </div>
-        <Sub>25+ integrations at launch. One intelligent hub. Zero friction.</Sub>
+        <Sub>25+ Integrations At Launch. One Intelligent Hub. Zero Friction.</Sub>
       </div>
     );
 
@@ -129,7 +129,7 @@ function SlideContent({ idx }) {
         <Tag t="cyan">Smart Home Control</Tag>
         <BT>Your Home.<br/><span className="cyan">Your Command.</span></BT>
         <Hr c="cyan"/>
-        <Sub>Just say it. JARVIS controls every smart device in your home - lights, locks, temperature, TV, cameras - all through natural voice conversation.</Sub>
+        <Sub>Just Say It. JARVIS Controls Every Smart Device In Your Home - Lights, Locks, Temperature, TV, Cameras - All Through Natural Voice Conversation.</Sub>
         <div className="feat-list">
           {[
             {icon:'💡',h:'Lighting Control',p:'"JARVIS, set the living room to movie mode." Done.'},
@@ -152,7 +152,7 @@ function SlideContent({ idx }) {
         <Tag t="purple">Mobile Companion App</Tag>
         <BT>JARVIS Goes<br/><span className="purple">Everywhere</span><br/>You Do</BT>
         <Hr c="purple"/>
-        <Sub>Leave the house and JARVIS comes with you. iOS + Android keeps you fully connected - same AI, same intelligence, everywhere.</Sub>
+        <Sub>Leave The House And JARVIS Comes With You. IOS + Android Keeps You Fully Connected - Same AI, Same Intelligence, Everywhere.</Sub>
         <div className="pill-col">
           <Pill>🔔 Real-Time Push Notifications</Pill>
           <Pill>🔁 Instant Kiosk Sync</Pill>
@@ -160,7 +160,7 @@ function SlideContent({ idx }) {
           <Pill>🔐 Face ID · Fingerprint Login</Pill>
           <Pill>📍 Location-Aware Smart Alerts</Pill>
         </div>
-        <div className="pill-row"><Pill>🍎 iOS App Store</Pill><Pill>🤖 Google Play</Pill></div>
+        <div className="pill-row"><Pill>🍎 IOS App Store</Pill><Pill>🤖 Google Play</Pill></div>
       </div>
     );
 
@@ -170,10 +170,10 @@ function SlideContent({ idx }) {
         <Tag t="purple">Exclusive Feature</Tag>
         <BT>Virtual <span className="purple">Collaborative</span><br/>Painting Studio</BT>
         <Hr c="purple"/>
-        <Sub>Up to 8 users paint together simultaneously - kiosk or phone - with real-time sync, AI art generation, and full time-lapse replay. No other product has this.</Sub>
+        <Sub>Up To 8 Users Paint Together Simultaneously - Kiosk Or Phone - With Real-Time Sync, AI Art Generation, And Full Time-Lapse Replay. No Other Product Has This.</Sub>
         <div className="pill-row pill-row-center">
           <Pill>🎨 Real-Time Multi-User Canvas</Pill>
-          <Pill>🤖 AI Art Generation by Voice</Pill>
+          <Pill>🤖 AI Art Generation By Voice</Pill>
           <Pill>⏯️ Time-Lapse Replay Mode</Pill>
           <Pill>✏️ Full Brush + Layer Toolkit</Pill>
           <Pill>🖼️ Gallery + Social Sharing</Pill>
@@ -186,7 +186,7 @@ function SlideContent({ idx }) {
     case 8: return (
       <div className="sc-block sc-block-center mw-full">
         <Tag t="gold">90-Day Roadmap</Tag>
-        <BT>From Signing to <span className="gold">Launch</span><br/>in 90 Days</BT>
+        <BT>From Signing To <span className="gold">Launch</span><br/>In 90 Days</BT>
         <Hr c="gold"/>
         <div className="phase-grid">
           {[
@@ -283,19 +283,19 @@ function SlideContent({ idx }) {
     /* SLIDE 12 — CTA */
     case 11: return (
       <div className="sc-block sc-block-right mw560">
-        <Tag t="gold">Let's Build the Future</Tag>
-        <BT>Ready to <span className="gold">Sign</span> and<br/>Change the World?</BT>
+        <Tag t="gold">Let's Build The Future</Tag>
+        <BT>Ready To <span className="gold">Sign</span> And<br/>Change The World?</BT>
         <Hr c="gold"/>
-        <Sub>This proposal is addressed exclusively to <strong style={{color:'#fff'}}>Michael Yorga, US Robots</strong>. Smarter Software Inc. is ready to begin immediately upon contract execution and receipt of Payment 1.</Sub>
+        <Sub>This Proposal Is Addressed Exclusively To <strong style={{color:'#fff'}}>Michael Yorga, US Robots</strong>. Smarter Software Inc. Is Ready To Begin Immediately Upon Contract Execution And Receipt Of Payment 1.</Sub>
         <div className="pill-col">
           <Pill>📋 Contract: SSI-USR-2026-001</Pill>
           <Pill>📅 Proposed Start: Upon Signing</Pill>
-          <Pill>📧 Schonesanfleet@yahoo.com</Pill>
+          <Pill>📧 Schonesanfleet@Yahoo.Com</Pill>
           <Pill>🎯 90-Day Delivery · $100,000 Total</Pill>
         </div>
         <div className="btn-row">
           <button className="btn-primary">✍️ Sign & Get Started</button>
-          <button className="btn-outline">📞 Schedule a Call</button>
+          <button className="btn-outline">📞 Schedule A Call</button>
         </div>
         <div className="cta-note">Smarter Software Inc. · August 6, 2026<br/>Confidential - For US Robots · Michael Yorga Use Only</div>
       </div>
@@ -342,7 +342,7 @@ export default function USRobots() {
   return (
     <>
       <Head>
-        <title>JARVIS AI - Proposal for US Robots | Smarter Software Inc.</title>
+        <title>JARVIS AI - Proposal For US Robots | Smarter Software Inc.</title>
         <meta name="description" content="Official proposal from Smarter Software Inc. to US Robots for the JARVIS AI-Powered Personal Assistant." />
         <meta name="robots" content="noindex,nofollow" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -577,7 +577,7 @@ export default function USRobots() {
         <span className="tb-logo">⬡ JARVIS</span>
         <span className="tb-sep">·</span>
         <span className="tb-brand">Smarter Software Inc. × US Robots</span>
-        <span className="tb-meta">Prepared for Michael Yorga · SSI-USR-2026-001</span>
+        <span className="tb-meta">Prepared For Michael Yorga · SSI-USR-2026-001</span>
         <div className="tb-dot" />
       </div>
 

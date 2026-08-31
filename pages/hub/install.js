@@ -155,8 +155,8 @@ export default function InstallPage() {
                             Get Smarter.Poker<br />On Your Device
                         </h1>
                         <p className="text-[#B0B3B8] text-lg max-w-md mx-auto mb-6">
-                            Add Smarter.Poker to your home screen for a full-screen, native app experience - completely free.
-                            Notifications only work from the installed app.
+                            Add Smarter.Poker To Your Home Screen For A Full-Screen, Native App Experience - Completely Free.
+                            Notifications Only Work From The Installed App.
                         </p>
 
                         {installed ? (
@@ -193,7 +193,7 @@ export default function InstallPage() {
                                 }`}
                         >
                             <Tablet className="w-5 h-5" />
-                            iPad / iPhone
+                            IPad / IPhone
                         </button>
                         <button
                             onClick={() => setTab('android')}
@@ -271,7 +271,7 @@ export default function InstallPage() {
                             Open Smarter.Poker <ArrowRight className="w-5 h-5" />
                         </Link>
                         <p className="text-[#6A6B6D] text-xs mt-4">
-                            Then follow the steps above to add it to your home screen
+                            Then Follow The Steps Above To Add It To Your Home Screen
                         </p>
                     </div>
                 </div>

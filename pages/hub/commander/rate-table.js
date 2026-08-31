@@ -154,7 +154,7 @@ export default function RateTable() {
           <RatingSlider label="Pace" value={pace} onChange={setPace} config={LABELS.pace} />
 
           <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', marginBottom: 6 }}>Comment (optional)</div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', marginBottom: 6 }}>Comment (Optional)</div>
             <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
               placeholder="How Was The Table?"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />

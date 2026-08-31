@@ -41,7 +41,7 @@ export default function NotificationSettingsPage() {
 
                     <h1 className="text-2xl font-bold">Notifications</h1>
                     <p className="mt-1 text-sm text-gray-400">
-                        Choose what reaches your phone and what stays in the app.
+                        Choose What Reaches Your Phone And What Stays In The App.
                     </p>
 
                     <div className="mt-6">
@@ -49,7 +49,7 @@ export default function NotificationSettingsPage() {
                             <p className="text-sm text-gray-500">Loading...</p>
                         ) : !userId ? (
                             <div className="rounded-xl border border-white/10 bg-[#111827] p-5">
-                                <p className="text-sm text-gray-300">Sign in to manage your notification settings.</p>
+                                <p className="text-sm text-gray-300">Sign In To Manage Your Notification Settings.</p>
                                 <button
                                     type="button"
                                     onClick={() => router.push('/login')}
@@ -64,7 +64,7 @@ export default function NotificationSettingsPage() {
                     </div>
 
                     <p className="mt-6 text-xs text-gray-500">
-                        Notifications you have already received stay in the bell for 90 days.
+                        Notifications You Have Already Received Stay In The Bell For 90 Days.
                     </p>
                 </div>
             </div>

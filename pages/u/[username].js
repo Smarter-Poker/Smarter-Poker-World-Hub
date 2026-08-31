@@ -98,7 +98,7 @@ export default function PublicProfilePage() {
         <UniversalHeader pageDepth={2} />
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: C.textSec }}>Loading profile…</div>
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: C.textSec }}>Loading Profile…</div>
         )}
 
         {!loading && err && (
@@ -106,7 +106,7 @@ export default function PublicProfilePage() {
             <div style={{ fontSize: 36, marginBottom: 12 }}>🃏</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>Player Not Found</div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 24 }}>{err}</div>
-            <Link href="/hub/social-media" style={{ color: C.teal, fontWeight: 600, textDecoration: 'none' }}>← Back to Feed</Link>
+            <Link href="/hub/social-media" style={{ color: C.teal, fontWeight: 600, textDecoration: 'none' }}>← Back To Feed</Link>
           </div>
         )}
 
@@ -182,7 +182,7 @@ export default function PublicProfilePage() {
 
             {/* Back link */}
             <div style={{ textAlign: 'center', marginTop: 24 }}>
-              <Link href="/hub/social-media" style={{ color: C.textMuted, fontSize: 13, textDecoration: 'none' }}>← Back to Feed</Link>
+              <Link href="/hub/social-media" style={{ color: C.textMuted, fontSize: 13, textDecoration: 'none' }}>← Back To Feed</Link>
             </div>
           </div>
         )}

@@ -257,7 +257,7 @@ export default function ResponsibleGamingPage() {
                     }
                   </p>
                   <p className="text-xs text-[#64748B] mt-2">
-                    This cannot be reversed early. Contact support for assistance.
+                    This Cannot Be Reversed Early. Contact Support For Assistance.
                   </p>
                 </div>
               </div>
@@ -331,7 +331,7 @@ export default function ResponsibleGamingPage() {
               />
               {limits.session_duration_limit && (
                 <p className="text-sm text-[#64748B] px-1">
-                  You will receive an alert after {limits.session_duration_limit} minutes of play
+                  You Will Receive An Alert After {limits.session_duration_limit} Minutes Of Play
                 </p>
               )}
               <LimitCard
@@ -380,7 +380,7 @@ export default function ResponsibleGamingPage() {
                 Self-Exclusion
               </h2>
               <p className="text-sm text-[#64748B] mb-4">
-                If you need a break from poker, you can temporarily or permanently exclude yourself from all Club Commander venues.
+                If You Need A Break From Poker, You Can Temporarily Or Permanently Exclude Yourself From All Club Commander Venues.
               </p>
               <div className="space-y-2">
                 <ExclusionOption
@@ -435,12 +435,12 @@ export default function ResponsibleGamingPage() {
           <section className="cmd-panel p-4">
             <h3 className="font-semibold text-white mb-2">Need Help?</h3>
             <p className="text-sm text-[#64748B] mb-3">
-              If you or someone you know has a gambling problem, help is available.
+              If You Or Someone You Know Has A Gambling Problem, Help Is Available.
             </p>
             <div className="space-y-2 text-sm">
               <p className="text-[#22D3EE] font-medium">National Problem Gambling Helpline</p>
               <p className="text-white">1-800-522-4700 (24/7)</p>
-              <p className="text-[#64748B]">Ncpgambling.org</p>
+              <p className="text-[#64748B]">Ncpgambling.Org</p>
             </div>
           </section>
         </main>

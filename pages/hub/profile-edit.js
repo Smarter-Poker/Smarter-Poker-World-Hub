@@ -690,12 +690,12 @@ export default function ProfilePage() {
                     </div>
                     {/* Clarification: CA avatar and profile photo are separate */}
                     <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
-                        🎮 Club Arena avatar is separate from your profile photo. Switch between them on your{' '}
+                        🎮 Club Arena Avatar Is Separate From Your Profile Photo. Switch Between Them On your{' '}
                         <button
                             onClick={() => router.push(`/hub/user/${profile?.username || ''}`)}
                             style={{ background: 'none', border: 'none', color: '#1877F2', cursor: 'pointer', fontSize: 12, padding: 0, textDecoration: 'underline' }}
                         >
-                            profile page
+                            Profile Page
                         </button>.
                     </div>
                 </div>
@@ -748,7 +748,7 @@ export default function ProfilePage() {
                                     href="/hub/friends"
                                     style={{ color: C.blue, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
                                 >
-                                    See all
+                                    See All
                                 </a>
                             </div>
                             <div style={{
@@ -787,7 +787,7 @@ export default function ProfilePage() {
                                         </div>
                                         {friend.mutualCount > 0 && (
                                             <div style={{ fontSize: 11, color: C.textSec }}>
-                                                {friend.mutualCount} mutual friends
+                                                {friend.mutualCount} Mutual Friends
                                             </div>
                                         )}
                                     </a>

@@ -62,11 +62,11 @@ export default function MemoryGamesAchievements() {
       <SEOHead title="Preflop Charts Achievements" description="Track verified Preflop Charts milestones and mastery awards." canonical="/hub/preflop-charts/achievements" />
       <PreflopSubpageShell eyebrow="AWARD VAULT // PLAYER MILESTONES" title="Range distinctions" description="Permanent records for precision, consistency, speed, and progression." metric={`${percent}%`}>
         <section className="preflop-award-progress" aria-label={`${unlocked} of ${achievements.length} achievements unlocked`}>
-          <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} unlocked</strong><div role="progressbar" aria-label={`Achievement vault completion: ${percent}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next target<strong>{nextLocked.name}</strong></span>}
+          <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} Unlocked</strong><div role="progressbar" aria-label={`Achievement vault completion: ${percent}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next Target<strong>{nextLocked.name}</strong></span>}
         </section>
         {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchAchievements}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
         <PreflopTabRail items={CATEGORIES} selected={selectedCategory} onSelect={setSelectedCategory} ariaLabel="Achievement category" />
-        {loading ? <div className="preflop-subpage-loading">Synchronizing award vault…</div> : <section className="preflop-award-grid" aria-label="Achievements">
+        {loading ? <div className="preflop-subpage-loading">Synchronizing Award Vault…</div> : <section className="preflop-award-grid" aria-label="Achievements">
           {filtered.map((item, index) => <article key={item.key || `${item.name}-${index}`} data-unlocked={item.unlocked || undefined}>
             <div className="preflop-award-code"><span>{item.code || String(index + 1).padStart(2, '0')}</span>{item.unlocked ? <Check size={15} aria-label="Unlocked" /> : <LockKeyhole size={14} aria-label="Locked" />}</div>
             <Award size={19} aria-hidden /><small>{(item.category || 'achievement').toUpperCase()}</small><h2>{item.name}</h2><p>{item.description}</p>

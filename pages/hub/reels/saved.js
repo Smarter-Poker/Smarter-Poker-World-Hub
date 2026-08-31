@@ -36,12 +36,12 @@ export default function SavedReels() {
     return <PageTransition>
         <SEOHead title="Saved Reels" description="View your saved poker reels and short clips." canonical="/hub/reels/saved" noindex />
         <main className="saved-wire"><UniversalHeader pageDepth={2} /><div className="saved-shell">
-            <header className="saved-hero"><span><i /> Personal archive</span><h1>Saved Reels</h1><p>Your watch-later signal bank, synchronized to your account.</p></header>
+            <header className="saved-hero"><span><i /> Personal Archive</span><h1>Saved Reels</h1><p>Your Watch-Later Signal Bank, Synchronized To Your Account.</p></header>
             <div className="saved-meter"><b>ARCHIVE ONLINE</b><span>{savedReels.length} SAVED</span></div>
             {loading ? <SavedState icon={<RefreshCw className="spin" />} text="Synchronizing your archive…" />
-                : error ? <SavedState icon={<Bookmark />} text={error} action={<button onClick={loadSavedReels}>Try again</button>} />
-                : !user ? <SavedState icon={<Bookmark />} text="Sign in to open your saved reel archive." action={<Link href="/login">Sign in</Link>} />
-                : savedReels.length === 0 ? <SavedState icon={<Bookmark />} text="No saved signals yet. Save a reel and it will appear here." action={<Link href="/hub/reels">Explore reels</Link>} />
+                : error ? <SavedState icon={<Bookmark />} text={error} action={<button onClick={loadSavedReels}>Try Again</button>} />
+                : !user ? <SavedState icon={<Bookmark />} text="Sign in to open your saved reel archive." action={<Link href="/login">Sign In</Link>} />
+                : savedReels.length === 0 ? <SavedState icon={<Bookmark />} text="No saved signals yet. Save a reel and it will appear here." action={<Link href="/hub/reels">Explore Reels</Link>} />
                 : <div className="saved-grid">{savedReels.map((item, index) => <SavedTile key={item.id} item={item} index={index} onRemove={unsaveReel} />)}</div>}
         </div></main><SavedStyles /></PageTransition>;
 }
@@ -51,7 +51,7 @@ function SavedTile({ item, index, onRemove }) {
     const poster = reel.thumbnail_url || getYouTubeThumbnail(reel.video_url);
     return <article className="saved-card"><Link href={`/hub/reels?id=${encodeURIComponent(reel.id)}`} className="saved-link">
         <div className="saved-poster" style={poster ? { backgroundImage: `url(${poster})` } : undefined}><span>SV {String(index + 1).padStart(2, '0')}</span><i><Play size={22} fill="currentColor" /></i></div>
-        <div><h2>{reel.caption?.split('\n')[0] || 'Saved reel'}</h2><p>{reel.like_count || 0} likes · saved {new Date(item.saved_at).toLocaleDateString()}</p></div>
+        <div><h2>{reel.caption?.split('\n')[0] || 'Saved reel'}</h2><p>{reel.like_count || 0} Likes · Saved {new Date(item.saved_at).toLocaleDateString()}</p></div>
     </Link><button className="remove" onClick={() => onRemove(item.reel_id)} aria-label={`Remove ${reel.caption || 'reel'} from saved reels`}><Trash2 size={17} /> Remove</button></article>;
 }
 function SavedState({ icon, text, action }) { return <div className="saved-state" role="status">{icon}<p>{text}</p>{action}</div>; }

@@ -123,9 +123,9 @@ test('News sections surface loading, failure, retry and true-empty states', () =
   assert.match(PAGE, /const sourceBoxesUnavailable = !!sourceBoxesError/);
   assert.match(PAGE, /error: videosError, isLoading: videosLoading, mutate: refreshVideos/);
   assert.match(PAGE, /error: eventsError, isLoading: eventsLoading, mutate: refreshEvents/);
-  assert.match(PAGE, /Reels are temporarily unavailable\./);
-  assert.match(PAGE, /Videos are temporarily unavailable\./);
-  assert.match(PAGE, /Events are temporarily unavailable\./);
+  assert.match(PAGE, /Reels Are Temporarily Unavailable\./);
+  assert.match(PAGE, /Videos Are Temporarily Unavailable\./);
+  assert.match(PAGE, /Events Are Temporarily Unavailable\./);
   assert.match(PAGE, /onClick=\{\(\) => refreshVideos\(\)\}/);
   assert.match(PAGE, /onClick=\{\(\) => refreshEvents\(\)\}/);
   assert.match(PAGE, /const sidebarEvents = events\.slice\(0, 3\)/);

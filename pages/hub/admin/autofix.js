@@ -115,7 +115,7 @@ export default function AutofixDashboard() {
               Autofix Pipeline
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78909c' }}>
-              Autonomous build error detection and repair
+              Autonomous Build Error Detection And Repair
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -157,7 +157,7 @@ export default function AutofixDashboard() {
             </div>
             {lastRefresh && (
               <div style={{ fontSize: 11, color: '#546e7a', marginTop: 4 }}>
-                Last refresh: {lastRefresh.toLocaleTimeString()}
+                Last Refresh: {lastRefresh.toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -242,7 +242,7 @@ export default function AutofixDashboard() {
         )}
 
         {loading && !data && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#78909c' }}>Loading pipeline data...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: '#78909c' }}>Loading Pipeline Data...</div>
         )}
       </div>
     </>

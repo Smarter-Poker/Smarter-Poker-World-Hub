@@ -551,7 +551,7 @@ export default function FamousFinalsPage() {
                     >
                       <span>Blinds: {ft.blinds}</span>
                       <span>Ante: {ft.ante}</span>
-                      <span>{ft.spots.length} decision points</span>
+                      <span>{ft.spots.length} Decision Points</span>
                     </div>
                   </motion.button>
                 ))}
@@ -714,7 +714,7 @@ export default function FamousFinalsPage() {
                       <span>{opt.text}</span>
                       {showFeedback && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{opt.freq}% freq</span>
+                          <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{opt.freq}% Freq</span>
                           <span
                             style={{
                               fontSize: 11,
@@ -901,7 +901,7 @@ export default function FamousFinalsPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Back to Events
+                  Back To Events
                 </button>
               </div>
             </motion.div>

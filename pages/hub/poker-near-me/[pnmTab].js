@@ -3707,7 +3707,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                     : `Live registry refresh is unavailable. Showing the published venue snapshot${snapshotGeneratedLabel ? ` from ${snapshotGeneratedLabel}` : ''}.`}
               </span>
               {directorySource !== 'supabase' && (
-                <button type="button" onClick={() => router.reload()}>Retry live registry</button>
+                <button type="button" onClick={() => router.reload()}>Retry Live Registry</button>
               )}
             </div>
           )}
@@ -3715,10 +3715,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             <section className="pnm-ssr-directory" aria-labelledby="pnm-ssr-directory-title">
               <div className="pnm-ssr-directory-heading">
                 <div>
-                  <span>National room registry</span>
-                  <h2 id="pnm-ssr-directory-title">Featured poker rooms</h2>
+                  <span>National Room Registry</span>
+                  <h2 id="pnm-ssr-directory-title">Featured Poker Rooms</h2>
                 </div>
-                <a href="/hub/poker-near-me/in">Browse by state</a>
+                <a href="/hub/poker-near-me/in">Browse By State</a>
               </div>
               <div className="pnm-ssr-directory-grid">
                 {initialVenues.slice(0, 8).map((venue) => (

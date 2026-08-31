@@ -22,9 +22,9 @@ function GameRow({ game, onJoinWaitlist }) {
         </p>
         <div className="flex items-center gap-3 text-sm text-[#64748B]">
           <span>Table {game.table_number}</span>
-          <span>{game.player_count || 0}/{game.max_players || 9} players</span>
+          <span>{game.player_count || 0}/{game.max_players || 9} Players</span>
           {waitlistCount > 0 && (
-            <span className="text-[#F59E0B]">{waitlistCount} waiting</span>
+            <span className="text-[#F59E0B]">{waitlistCount} Waiting</span>
           )}
         </div>
       </div>
@@ -282,7 +282,7 @@ export default function VenueDetailPage() {
               {venue.total_tables && (
                 <div className="flex items-center gap-3 p-4">
                   <Users className="w-5 h-5 text-[#64748B]" />
-                  <span className="text-white">{venue.total_tables} tables</span>
+                  <span className="text-white">{venue.total_tables} Tables</span>
                 </div>
               )}
             </div>
@@ -292,7 +292,7 @@ export default function VenueDetailPage() {
           <div className="cmd-panel overflow-hidden">
             <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
               <h2 className="font-semibold text-white">Live Games</h2>
-              <span className="text-sm text-[#64748B]">{activeGames.length} running</span>
+              <span className="text-sm text-[#64748B]">{activeGames.length} Running</span>
             </div>
             {activeGames.length === 0 ? (
               <div className="p-8 text-center">
@@ -358,9 +358,9 @@ export default function VenueDetailPage() {
                         {game.commander_tables?.table_number && (
                           <span>Table {game.commander_tables.table_number}</span>
                         )}
-                        <span>{game.player_count || 0}/{game.max_players || 9} players</span>
+                        <span>{game.player_count || 0}/{game.max_players || 9} Players</span>
                         {game.waitlist_count > 0 && (
-                          <span className="text-[#F59E0B]">{game.waitlist_count} waiting</span>
+                          <span className="text-[#F59E0B]">{game.waitlist_count} Waiting</span>
                         )}
                         <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
                           {game.status === 'running' ? 'Running' : 'Starting'}

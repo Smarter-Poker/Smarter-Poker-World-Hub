@@ -124,7 +124,7 @@ export default function GodModePage() {
             onClick={() => router.push('/hub/commander/hand-history')}
             className="cmd-btn cmd-btn-primary mt-4"
           >
-            Go to Hand History
+            Go To Hand History
           </button>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function GodModePage() {
               </div>
               <div>
                 <h1 className="font-bold text-white tracking-wide">GODMODE ANALYSIS</h1>
-                <p className="text-sm text-[#64748B]">AI-powered Hand Review</p>
+                <p className="text-sm text-[#64748B]">AI-Powered Hand Review</p>
               </div>
             </div>
           </div>

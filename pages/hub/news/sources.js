@@ -155,7 +155,7 @@ export default function NewsSources() {
                             News Sources
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
-                            Manage which news sources appear in your feed
+                            Manage Which News Sources Appear In Your Feed
                         </p>
 
                         {loading && (
@@ -187,7 +187,7 @@ export default function NewsSources() {
                                 }}
                             >
                                 <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '8px' }}>
-                                    Could not load news sources
+                                    Could Not Load News Sources
                                 </div>
                                 <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px' }}>{error}</div>
                                 <button
@@ -220,7 +220,7 @@ export default function NewsSources() {
                                     color: '#9ca3af'
                                 }}
                             >
-                                No news sources available right now. Check back soon.
+                                No News Sources Available Right Now. Check Back Soon.
                             </div>
                         )}
 
@@ -264,7 +264,7 @@ export default function NewsSources() {
                                                     </div>
                                                 ) : (
                                                     <div style={{ color: '#6b7280', fontSize: '14px' }}>
-                                                        Awaiting new articles
+                                                        Awaiting New Articles
                                                     </div>
                                                 )}
                                             </div>

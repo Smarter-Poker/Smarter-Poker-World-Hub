@@ -121,7 +121,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
         }
     };
 
-    if (gateLoading || loading) return <div style={{ color: T.textSec, fontSize: 12 }}>Loading notes...</div>;
+    if (gateLoading || loading) return <div style={{ color: T.textSec, fontSize: 12 }}>Loading Notes...</div>;
 
     // Gated Experience
     if (!allowed) {
@@ -133,7 +133,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                 <div style={{ fontSize: 24, marginBottom: 8 }}></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>Player Notes</div>
                 <div style={{ fontSize: 13, color: T.textSec, marginBottom: 12 }}>
-                    Keep private strategic notes on {targetPlayerName || 'this opponent'} to gain an edge.
+                    Keep Private Strategic Notes On {targetPlayerName || 'this opponent'} To Gain An Edge.
                 </div>
                 <button
                     onClick={showUpgradeModal}
@@ -142,7 +142,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                         border: `1px solid ${T.gold}44`, color: T.gold, fontSize: 13, fontWeight: 700, cursor: 'pointer'
                     }}
                 >
-                    Unlock with Bankroll Pro
+                    Unlock With Bankroll Pro
                 </button>
                 <VIPGateModal 
                     visible={upgradeModalVisible} 
@@ -165,7 +165,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontSize: 16 }}></div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-                        Notes on {targetPlayerName || 'Opponent'}
+                        Notes On {targetPlayerName || 'Opponent'}
                     </div>
                 </div>
                 {!isEditingMode && (
@@ -247,12 +247,12 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                             {note.note_content}
                         </div>
                         <div style={{ fontSize: 11, color: T.textSec }}>
-                            Last updated {new Date(note.updated_at).toLocaleDateString()}
+                            Last Updated {new Date(note.updated_at).toLocaleDateString()}
                         </div>
                     </div>
                 ) : (
                     <div style={{ fontSize: 13, color: T.textSec, fontStyle: 'italic' }}>
-                        No notes yet. Click "+ Add Note" to record reads on this player.
+                        No Notes Yet. Click "+ Add Note" To Record Reads On This Player.
                     </div>
                 )
             )}

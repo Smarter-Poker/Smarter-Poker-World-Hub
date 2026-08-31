@@ -198,7 +198,7 @@ export default function TourCard({
                         <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                     </svg>
                     <span>
-                        Buy-ins: {formatMoney(buyinMin)}{buyinMin != null && buyinMax != null ? ' - ' : ''}{formatMoney(buyinMax)}
+                        Buy-Ins: {formatMoney(buyinMin)}{buyinMin != null && buyinMax != null ? ' - ' : ''}{formatMoney(buyinMax)}
                     </span>
                 </div>
             )}
@@ -244,7 +244,7 @@ export default function TourCard({
                         ))}
                         {displayStops.length > 5 && (
                             <div className="tour-series-more">
-                                +{displayStops.length - 5} more stop{displayStops.length - 5 > 1 ? 's' : ''}
+                                +{displayStops.length - 5} More stop{displayStops.length - 5 > 1 ? 's' : ''}
                             </div>
                         )}
                     </div>

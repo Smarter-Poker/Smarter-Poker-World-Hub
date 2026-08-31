@@ -137,7 +137,7 @@ function UpcomingGameCard({ game }) {
             )}
             {isTournament && game.starting_stack != null && (
               <span className="flex items-center gap-1">
-                {Number(game.starting_stack).toLocaleString()} starting stack
+                {Number(game.starting_stack).toLocaleString()} Starting Stack
               </span>
             )}
           </div>
@@ -154,7 +154,7 @@ function UpcomingGameCard({ game }) {
                 ))}
               </div>
               <span className="text-sm text-[#6B7280]">
-                {game.rsvp_yes || 0} going
+                {game.rsvp_yes || 0} Going
                 {game.rsvp_maybe > 0 && ` | ${game.rsvp_maybe} maybe`}
               </span>
             </div>
@@ -225,8 +225,8 @@ function PostCard({ post }) {
 
       {/* Engagement Stats */}
       <div className="px-4 py-2 flex items-center justify-between text-sm text-[#6B7280]">
-        <span>{post.likes_count || 0} likes</span>
-        <span>{post.comments_count || 0} comments</span>
+        <span>{post.likes_count || 0} Likes</span>
+        <span>{post.comments_count || 0} Comments</span>
       </div>
 
       {/* Action Buttons */}
@@ -448,7 +448,7 @@ export default function HomeGamePage() {
                     )}
                     <span className="flex items-center gap-1 text-[#6B7280]">
                       <Users className="w-4 h-4" />
-                      {group.member_count} members
+                      {group.member_count} Members
                     </span>
                   </div>
                 </div>
@@ -610,7 +610,7 @@ export default function HomeGamePage() {
                     <h3 className="font-semibold text-[#1F2937]">Private Group</h3>
                   </div>
                   <p className="text-sm text-[#6B7280]">
-                    This is a private group. Request to join to see upcoming games and participate in discussions.
+                    This Is A Private Group. Request To Join To See Upcoming Games And Participate In Discussions.
                   </p>
                 </div>
               )}
@@ -628,7 +628,7 @@ export default function HomeGamePage() {
                         onClick={handleJoinRequest}
                         className="mt-4 px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors"
                       >
-                        Request to Join
+                        Request To Join
                       </button>
                     </div>
                   ) : upcomingGames.length === 0 ? (
@@ -654,7 +654,7 @@ export default function HomeGamePage() {
                     <p className="text-[#6B7280] whitespace-pre-wrap">{group.description}</p>
                   ) : (
                     <p className="text-[#6B7280]">
-                      {group.name} is a home game group
+                      {group.name} Is A Home Game Group
                       {group.city && ` based in ${group.city}, ${group.state}`}.
                       {group.frequency && ` Games are typically held ${FREQUENCY_LABELS[group.frequency]?.toLowerCase()}`}
                       {group.typical_day && ` on ${group.typical_day}s`}.
@@ -667,11 +667,11 @@ export default function HomeGamePage() {
                     <div className="space-y-2 text-sm text-[#6B7280]">
                       <p className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        {group.member_count} members
+                        {group.member_count} Members
                       </p>
                       <p className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {group.games_hosted || 0} games hosted
+                        {group.games_hosted || 0} Games Hosted
                       </p>
                       <p className="flex items-center gap-2">
                         {group.is_private ? (
@@ -682,7 +682,7 @@ export default function HomeGamePage() {
                         ) : (
                           <>
                             <Unlock className="w-4 h-4" />
-                            Public - Anyone can join
+                            Public - Anyone Can Join
                           </>
                         )}
                       </p>
@@ -694,7 +694,7 @@ export default function HomeGamePage() {
                     <h3 className="font-semibold text-[#1F2937] mb-3">Share This Group</h3>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 px-4 py-2 bg-[#F3F4F6] rounded-lg font-mono text-sm">
-                        smarter.poker/home-game/{group.club_code}
+                        Smarter.Poker/Home-Game/{group.club_code}
                       </div>
                       <button
                         onClick={() => navigator.clipboard.writeText(`https://smarter.poker/home-game/${group.club_code}`)}

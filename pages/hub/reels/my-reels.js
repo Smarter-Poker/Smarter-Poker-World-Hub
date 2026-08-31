@@ -46,17 +46,17 @@ export default function MyReels() {
                 <UniversalHeader pageDepth={2} />
                 <div className="wire-shell">
                     <header className="wire-hero">
-                        <span className="eyebrow"><span className="live-dot" /> Creator channel</span>
+                        <span className="eyebrow"><span className="live-dot" /> Creator Channel</span>
                         <div className="hero-row">
-                            <div><h1>My Reels</h1><p>Your published poker clips, ready for review and playback.</p></div>
-                            <Link className="primary" href="/hub/reels?upload=1"><Upload size={17} /> Upload reel</Link>
+                            <div><h1>My Reels</h1><p>Your Published Poker Clips, Ready For Review And Playback.</p></div>
+                            <Link className="primary" href="/hub/reels?upload=1"><Upload size={17} /> Upload Reel</Link>
                         </div>
                     </header>
                     <section className="signal-bar" aria-label="Collection status"><span>MY CHANNEL</span><strong>{reels.length} SIGNALS</strong></section>
                     {loading ? <State icon={<RefreshCw className="spin" />} text="Tuning your channel…" />
-                        : error ? <State icon={<Film />} text={error} action={<button onClick={loadReels}>Try again</button>} />
-                        : !signedIn ? <State icon={<Film />} text="Sign in to see the reels you have published." action={<Link href="/login">Sign in</Link>} />
-                        : reels.length === 0 ? <State icon={<Film />} text="Your channel is quiet. Publish your first reel to start the feed." action={<Link href="/hub/reels?upload=1">Upload reel</Link>} />
+                        : error ? <State icon={<Film />} text={error} action={<button onClick={loadReels}>Try Again</button>} />
+                        : !signedIn ? <State icon={<Film />} text="Sign in to see the reels you have published." action={<Link href="/login">Sign In</Link>} />
+                        : reels.length === 0 ? <State icon={<Film />} text="Your channel is quiet. Publish your first reel to start the feed." action={<Link href="/hub/reels?upload=1">Upload Reel</Link>} />
                         : <div className="wire-grid">{reels.map((reel, index) => <ReelTile key={reel.id} reel={reel} index={index} />)}</div>}
                 </div>
             </main>
@@ -69,7 +69,7 @@ function ReelTile({ reel, index }) {
     const poster = reel.thumbnail_url || getYouTubeThumbnail(reel.video_url);
     return <Link className="wire-card" href={`/hub/reels?id=${encodeURIComponent(reel.id)}`} aria-label={`Play ${reel.caption || 'reel'}`}>
         <div className="poster" style={poster ? { backgroundImage: `url(${poster})` } : undefined}><span className="channel-no">CH {String(index + 1).padStart(2, '0')}</span><span className="play"><Play size={24} fill="currentColor" /></span></div>
-        <div className="card-copy"><h2>{reel.caption?.split('\n')[0] || 'Untitled reel'}</h2><p>{reel.view_count || 0} views · {reel.like_count || 0} likes</p></div>
+        <div className="card-copy"><h2>{reel.caption?.split('\n')[0] || 'Untitled reel'}</h2><p>{reel.view_count || 0} Views · {reel.like_count || 0} Likes</p></div>
     </Link>;
 }
 

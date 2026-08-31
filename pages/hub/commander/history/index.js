@@ -54,7 +54,7 @@ function SessionCard({ session }) {
         <div>
           <p className="text-[#64748B] flex items-center gap-1">
             <DollarSign className="w-4 h-4" />
-            Buy-in
+            Buy-In
           </p>
           <p className="font-semibold text-white">
             ${session.total_buyin || 0}
@@ -194,7 +194,7 @@ export default function PlayerHistoryPage() {
               </div>
               <p className="text-[#64748B]">No Sessions Found</p>
               <p className="text-sm text-[#64748B] mt-1">
-                Check in at a venue to start tracking
+                Check In At A Venue To Start Tracking
               </p>
             </div>
           ) : (

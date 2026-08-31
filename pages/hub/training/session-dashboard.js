@@ -365,7 +365,7 @@ function StreakTracker({ sessions }) {
           );
         })}
       </div>
-      <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginTop: 4 }}>Last 14 days</div>
+      <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginTop: 4 }}>Last 14 Days</div>
     </div>
   );
 }
@@ -491,7 +491,7 @@ function CoachingCard({ session }) {
             textTransform: 'uppercase',
             letterSpacing: 1,
           }}>
-            Coach&apos;s Notes
+            Coach&apos;S Notes
           </div>
           {coaching?.overallGrade && (
             <span style={{
@@ -522,7 +522,7 @@ function CoachingCard({ session }) {
           >
             <div style={{ padding: '0 16px 14px' }}>
               {loadingCoach ? (
-                <div style={{ padding: '12px 0', color: 'var(--sp-fg-dim)', fontSize: 11 }}>Loading coach&apos;s analysis...</div>
+                <div style={{ padding: '12px 0', color: 'var(--sp-fg-dim)', fontSize: 11 }}>Loading Coach&apos;S Analysis...</div>
               ) : coaching ? (
                 <div style={{ display: 'grid', gap: 10, fontSize: 12 }}>
                   {coaching.headline && (
@@ -762,7 +762,7 @@ export default function SessionDashboard() {
             </h1>
           </div>
           <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6 }}>
-            Track your training progress, identify trends, and maintain your streak.
+            Track Your Training Progress, Identify Trends, And Maintain Your Streak.
           </p>
         </div>
 

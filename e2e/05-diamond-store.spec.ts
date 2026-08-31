@@ -10,6 +10,23 @@ const ROUTES = [
   { path: '/hub/club-shop', title: 'Club Shop: Smarter.Poker', heading: 'Your Game. Your Rules.', hero: 'club-shop-hero.webp' },
 ] as const;
 
+const MARKETPLACE_COPY_ROUTES = [
+  '/hub/diamond-store',
+  '/hub/diamond-store/cart',
+  '/hub/diamond-store/orders',
+  '/hub/diamond-store/orders/phase-2-proof?source=merchandise',
+  '/hub/diamond-store/wishlist',
+  '/hub/vip-membership',
+  '/hub/vip-membership/compare',
+  '/hub/vip-membership/manage',
+  '/hub/merch-store',
+  '/hub/merch-store/hoodie-neural',
+  '/hub/merch-store/fulfillment',
+  '/hub/smarter-rewards',
+  '/hub/smarter-rewards/daily_login',
+  '/hub/club-shop',
+] as const;
+
 test.describe('5. Storefront Routes And Design Contract', () => {
   test('raw HTML owns route metadata and primary content before hydration', async ({ request }) => {
     for (const route of ROUTES) {
@@ -81,13 +98,40 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   }
 
   test('marketplace copy is title-cased and contains no banned long bars', async ({ page }) => {
-    for (const route of ROUTES) {
-      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+    // The matrix includes private cart, order, wishlist and membership routes.
+    // Seed the same deterministic local session used by the authenticated
+    // commerce tests so this assertion audits the actual page instead of the
+    // correct unauthenticated redirect boundary.
+    await page.addInitScript(() => {
+      const user = {
+        id: '00000000-0000-4000-8000-000000000022',
+        email: 'phase22-copy@example.test',
+        role: 'authenticated',
+      };
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjIiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjQxMDI0NDQ4MDB9.phase22signature',
+        refresh_token: 'phase-22-copy-refresh',
+        expires_at: 4102444800,
+        expires_in: 2147483647,
+        token_type: 'bearer',
+        user,
+      }));
+    });
+
+    for (const path of MARKETPLACE_COPY_ROUTES) {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
       const main = page.locator('main');
       await expect(main).toBeVisible();
-      expect(await main.evaluate((element) => getComputedStyle(element).textTransform)).toBe('capitalize');
+      // Authenticated commerce pages briefly own a deliberately minimal
+      // loading main while their local cart or ledger hydrates. Wait for the
+      // real Marketplace shell before asserting its inherited copy contract.
+      await expect.poll(
+        () => main.evaluate((element) => getComputedStyle(element).textTransform),
+        { message: `${path} should render inside the Title Case Marketplace shell` },
+      ).toBe('capitalize');
       expect(await main.innerText()).not.toMatch(/[\u2013\u2014]/u);
       expect(await page.title()).not.toMatch(/[\u2013\u2014]/u);
+      await expect(main.locator('a[target="_blank"]')).toHaveCount(0);
     }
   });
 
@@ -271,6 +315,19 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   test('populated cart fits 320px and exposes accessible payment choices', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.addInitScript(() => {
+      const user = {
+        id: '00000000-0000-4000-8000-000000000022',
+        email: 'phase22-cart@example.test',
+        role: 'authenticated',
+      };
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjIiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjQxMDI0NDQ4MDB9.phase22signature',
+        refresh_token: 'phase-22-cart-refresh',
+        expires_at: 4102444800,
+        expires_in: 2147483647,
+        token_type: 'bearer',
+        user,
+      }));
       const explicitAuth = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
       const cachedUser = JSON.parse(window.localStorage.getItem('sp-cached-header-user') || '{}');
       const ownerId = explicitAuth?.user?.id || cachedUser?.id || 'guest';

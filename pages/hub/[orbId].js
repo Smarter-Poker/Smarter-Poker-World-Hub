@@ -241,7 +241,7 @@ export default function OrbPage() {
           {/* Quick Actions */}
           <div style={styles.actions}>
             <Link href="/hub" style={styles.primaryButton}>
-              Return to Hub
+              Return To Hub
             </Link>
           </div>
         </div>

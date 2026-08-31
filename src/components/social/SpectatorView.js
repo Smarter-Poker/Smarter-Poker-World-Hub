@@ -161,7 +161,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                     <button onClick={onClose} style={{
                         background: 'none', border: 'none', color: T.textSec,
                         fontSize: 18, cursor: 'pointer', padding: '0 4px',
-                    }}>x</button>
+                    }}>X</button>
                 </div>
             </div>
 
@@ -202,7 +202,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
             {showVideo && livekitToken && (
                 <div style={{ padding: 16, background: '#000', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
                     <div style={{ color: T.textSec, fontSize: 13, padding: '40px 0' }}>
-                        Video stream connected. Watching {session.profiles?.username || 'player'}...
+                        Video Stream Connected. Watching {session.profiles?.username || 'player'}...
                     </div>
                     <button onClick={() => setShowVideo(false)} style={{
                         padding: '6px 16px', borderRadius: 6, background: 'rgba(255,255,255,0.1)',
@@ -216,7 +216,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
                     {chatMessages.length === 0 && (
                         <div style={{ textAlign: 'center', color: T.textDim, fontSize: 12, padding: 20 }}>
-                            No messages yet. Be the first to cheer them on!
+                            No Messages Yet. Be The First To Cheer Them On!
                         </div>
                     )}
                     {chatMessages.map((m, i) => (

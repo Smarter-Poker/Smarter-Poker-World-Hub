@@ -46,7 +46,7 @@ export default function OutroDemo() {
             </h1>
 
             <p style={{ color: '#888', fontSize: 14, marginBottom: 20 }}>
-                Click a button to see the PS5-style exit transition
+                Click A Button To See The PS5-Style Exit Transition
             </p>
 
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -74,7 +74,7 @@ export default function OutroDemo() {
                         e.target.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.4)';
                     }}
                 >
-                    Go to Hub →
+                    Go To Hub →
                 </button>
 
                 <button
@@ -101,7 +101,7 @@ export default function OutroDemo() {
                         e.target.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.4)';
                     }}
                 >
-                    Go to Training →
+                    Go To Training →
                 </button>
 
                 <button

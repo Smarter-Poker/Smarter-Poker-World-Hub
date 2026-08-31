@@ -268,7 +268,7 @@ export default function HomeGamesNearMePage() {
           </Link>
           <div className="flex-1" />
           <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-9 px-4 text-xs">
-            Host a Game
+            Host A Game
           </Link>
         </div>
       </div>
@@ -282,7 +282,7 @@ export default function HomeGamesNearMePage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Home Games Near Me</h1>
-              <p className="text-sm text-[#64748B]">Find local home games and tournaments hosted by players in your area</p>
+              <p className="text-sm text-[#64748B]">Find Local Home Games And Tournaments Hosted By Players In Your Area</p>
             </div>
           </div>
         </div>
@@ -317,7 +317,7 @@ export default function HomeGamesNearMePage() {
                 onClick={() => setManualOpen(true)}
                 className="text-xs font-semibold text-[#22D3EE] hover:text-white underline underline-offset-2"
               >
-                Search another city
+                Search Another City
               </button>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function HomeGamesNearMePage() {
           <div className="cmd-panel p-5">
             {coords && (
               <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-                <p className="text-sm font-medium text-white">Search another city</p>
+                <p className="text-sm font-medium text-white">Search Another City</p>
                 <button
                   type="button"
                   onClick={() => { setManualOpen(false); handleUseMyLocation(); }}
@@ -339,7 +339,7 @@ export default function HomeGamesNearMePage() {
                   className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Navigation className="w-3.5 h-3.5" />
-                  Back to near me
+                  Back To Near Me
                 </button>
               </div>
             )}
@@ -383,7 +383,7 @@ export default function HomeGamesNearMePage() {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Search failed</p>
+                <p className="text-sm font-semibold text-white">Search Failed</p>
                 <p className="text-sm text-[#94A3B8] mt-0.5">{error}</p>
               </div>
               <button
@@ -410,12 +410,12 @@ export default function HomeGamesNearMePage() {
         {status === 'ready' && groups.length === 0 && (
           <div className="cmd-panel p-8 text-center">
             <Home className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-white">No home games found nearby</h3>
+            <h3 className="text-base font-semibold text-white">No Home Games Found Nearby</h3>
             <p className="text-sm text-[#64748B] mt-1">
               {isNearbyMode ? 'Try expanding your radius or starting one yourself.' : 'Try a different state or city.'}
             </p>
             <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-10 px-5 text-sm inline-flex items-center gap-2 mt-4">
-              Host a Home Game
+              Host A Home Game
             </Link>
           </div>
         )}
@@ -423,7 +423,7 @@ export default function HomeGamesNearMePage() {
         {status === 'ready' && groups.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs text-[#64748B] font-medium">
-              {groups.length} {groups.length === 1 ? 'game' : 'games'} found
+              {groups.length} {groups.length === 1 ? 'game' : 'games'} Found
               {isNearbyMode
                 ? ` within ${radius} miles`
                 : (manualCity || manualState
@@ -445,7 +445,7 @@ export default function HomeGamesNearMePage() {
                   >
                     {g.distance_miles != null && (
                       <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm">
-                        <p className="text-xs font-semibold text-[#22D3EE]">{g.distance_miles} mi</p>
+                        <p className="text-xs font-semibold text-[#22D3EE]">{g.distance_miles} Mi</p>
                       </div>
                     )}
                   </div>
@@ -500,7 +500,7 @@ export default function HomeGamesNearMePage() {
                       <div className="mt-3 p-2 rounded-md bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5 text-[#C4B5FD] flex-shrink-0" />
                         <span className="text-xs text-[#C4B5FD] truncate">
-                          Next game: {formatDate(g.next_game_date)}{g.next_game_time ? ` · ${formatTime(g.next_game_time)}` : ''}
+                          Next Game: {formatDate(g.next_game_date)}{g.next_game_time ? ` · ${formatTime(g.next_game_time)}` : ''}
                           {g.next_game_seats_left != null ? ` · ${g.next_game_seats_left} seats left` : ''}
                         </span>
                       </div>

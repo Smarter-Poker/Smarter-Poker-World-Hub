@@ -807,7 +807,7 @@ export default function TournamentsPage() {
                         <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
                             <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You don't have enough diamonds for this entry fee. Visit the Diamond Store to get more!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Don't Have Enough Diamonds For This Entry Fee. Visit The Diamond Store To Get More!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
@@ -924,7 +924,7 @@ export default function TournamentsPage() {
                                     {isEliminated && (
                                         <div className="eliminated-notice">
                                             <AlertTriangle size={20} />
-                                            <span>Eliminated in Round {userEntry.eliminated_round}</span>
+                                            <span>Eliminated In Round {userEntry.eliminated_round}</span>
                                         </div>
                                     )}
 
@@ -949,7 +949,7 @@ export default function TournamentsPage() {
                                                         <span className="prize-place">{p.place}</span>
                                                         {/* FIX(audit): pct is now an integer percent from the shared schedule */}
                                                         <span className="prize-pct">{p.pct}%</span>
-                                                        <span className="prize-amount">{p.amount} diamonds</span>
+                                                        <span className="prize-amount">{p.amount} Diamonds</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1012,7 +1012,7 @@ export default function TournamentsPage() {
                                                 </div>
                                                 <div className="tournament-action">
                                                     <div className="countdown">{getCountdown(tournament.start_time)}</div>
-                                                    <div className="entry-fee">{tournament.entry_fee}💎 entry</div>
+                                                    <div className="entry-fee">{tournament.entry_fee}💎 Entry</div>
                                                     {/* Gate on THIS tournament's own entry.
                                                         `userEntry` is the entry for the ACTIVE
                                                         tournament only — using it here hid Register

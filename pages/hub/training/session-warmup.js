@@ -250,7 +250,7 @@ export default function SessionWarmupPage() {
             color: 'var(--sp-fg-faint)',
           }}
         >
-          Warmups completed: {completionCount}
+          Warmups Completed: {completionCount}
         </div>
 
         {/* Progress Bar */}
@@ -321,7 +321,7 @@ export default function SessionWarmupPage() {
                     marginBottom: 16,
                   }}
                 >
-                  System Check {step + 1} of {PROTOCOL_STEPS.length}
+                  System Check {step + 1} Of {PROTOCOL_STEPS.length}
                 </div>
                 {/* TRAIN-WARMUP-A11Y-1: semantic h1 per active step */}
                 <h1
@@ -496,10 +496,10 @@ export default function SessionWarmupPage() {
                   marginTop: 0,
                 }}
               >
-                You are prepared.
+                You Are Prepared.
               </h1>
               <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
-                Protocol verified. Execute your strategy.
+                Protocol Verified. Execute Your Strategy.
               </div>
 
               {/* Summary */}
@@ -588,7 +588,7 @@ export default function SessionWarmupPage() {
                   letterSpacing: 1,
                 }}
               >
-                Deploy to Tables
+                Deploy To Tables
               </motion.button>
             </motion.div>
           )}

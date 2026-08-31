@@ -195,16 +195,16 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
           {/* Hero */}
           <header className="mb-10">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-              Poker Home Games <span className="text-[#C4B5FD]">by State</span>
+              Poker Home Games <span className="text-[#C4B5FD]">By State</span>
             </h1>
             <p className="text-lg text-[#94A3B8] mt-4 max-w-2xl">
               {totalGames > 0 ? (
                 <>
-                  Browse <span className="text-white font-semibold">{totalGames}</span> active poker home games across{' '}
-                  <span className="text-white font-semibold">{states.length}</span> US {states.length === 1 ? 'state' : 'states'}. Find a weekly game, cash or tournament, near you.
+                  Browse <span className="text-white font-semibold">{totalGames}</span> Active Poker Home Games across{' '}
+                  <span className="text-white font-semibold">{states.length}</span> US {states.length === 1 ? 'state' : 'states'}. Find A Weekly Game, Cash Or Tournament, Near You.
                 </>
               ) : (
-                <>No active home games listed yet. Be the first to host in your area.</>
+                <>No Active Home Games Listed Yet. Be The First To Host In Your Area.</>
               )}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -212,13 +212,13 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
                 href="/hub/home-games/near-me"
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium text-sm transition-colors"
               >
-                Browse all home games
+                Browse All Home Games
               </Link>
               <Link
                 href="https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate"
                 className="inline-flex items-center px-5 py-2.5 rounded-lg border border-[#334155] hover:border-[#8B5CF6] text-white font-medium text-sm transition-colors"
               >
-                Host your own →
+                Host Your Own →
               </Link>
             </div>
           </header>
@@ -227,7 +227,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
           {states.length > 0 ? (
             <section aria-label="States with home games">
               <h2 className="text-sm uppercase tracking-wider text-[#94A3B8] mb-4">
-                Active states ({states.length})
+                Active States ({states.length})
               </h2>
               <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {states.map(s => (
@@ -244,7 +244,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
                       </div>
                       <div className="text-xs text-[#94A3B8] mt-1">
                         {s.count} {s.count === 1 ? 'game' : 'games'}
-                        {s.cityCount > 1 ? <> • {s.cityCount} cities</> : null}
+                        {s.cityCount > 1 ? <> • {s.cityCount} Cities</> : null}
                       </div>
                     </Link>
                   </li>
@@ -254,9 +254,9 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
           ) : (
             <section className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
               <p className="text-[#94A3B8]">
-                No public home games have been listed yet.{' '}
+                No Public Home Games Have Been Listed Yet.{' '}
                 <Link href="https://commander.smarter.poker/commander/register?tier=home_game" className="text-[#C4B5FD] underline hover:text-white">
-                  Be the first to host one
+                  Be The First To Host One
                 </Link>
                 .
               </p>
@@ -265,17 +265,17 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
 
           {/* Secondary info / SEO content */}
           <section className="mt-16 prose prose-invert prose-sm max-w-none">
-            <h2 className="text-xl font-semibold text-white">About home games on Smarter.Poker</h2>
+            <h2 className="text-xl font-semibold text-white">About Home Games On Smarter.Poker</h2>
             <p className="text-[#94A3B8]">
-              Smarter.Poker is the largest directory of poker home games in the United States. Every home game listed
-              here is hosted by a real player who uses Club Commander to manage their game - invite codes, RSVPs,
-              seat assignments, and waitlist. When you follow a home game, you get notified of every upcoming session
-              in your area.
+              Smarter.Poker Is The Largest Directory Of Poker Home Games In The United States. Every Home Game Listed
+              Here Is Hosted By A Real Player Who Uses Club Commander To Manage Their Game - Invite Codes, RSVPs,
+              Seat Assignments, And Waitlist. When You Follow A Home Game, You Get Notified Of Every Upcoming Session
+              In Your Area.
             </p>
             <p className="text-[#94A3B8]">
-              If you run a home game and want to attract new players, listing is{' '}
-              <Link href="/commander" className="text-[#C4B5FD] underline hover:text-white">free while in beta</Link>.
-              Public pages are discoverable on Google, indexed on Smarter.Poker, and shareable via QR code.
+              If You Run A Home Game And Want To Attract New Players, Listing is{' '}
+              <Link href="/commander" className="text-[#C4B5FD] underline hover:text-white">Free While In Beta</Link>.
+              Public Pages Are Discoverable On Google, Indexed On Smarter.Poker, And Shareable Via QR Code.
             </p>
           </section>
         </div>

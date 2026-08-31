@@ -129,13 +129,13 @@ function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
 
                 {page.slug && (
                     <p style={{ fontSize: 11, color: C.blue, margin: '4px 0 0', fontWeight: 500 }}>
-                        smarter.poker/.../{ page.slug }
+                        Smarter.Poker/.../{ page.slug }
                     </p>
                 )}
 
                 <div style={{ display: 'flex', gap: 12, margin: '8px 0', fontSize: 12, color: C.textSec }}>
-                    <span>{page.follower_count || 0} followers</span>
-                    <span>{page.post_count || 0} posts</span>
+                    <span>{page.follower_count || 0} Followers</span>
+                    <span>{page.post_count || 0} Posts</span>
                     {page.location_city && <span>{page.location_city}, {page.location_state}</span>}
                 </div>
 
@@ -404,7 +404,7 @@ export default function SocialPagesHub() {
                             <div>
                                 <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, margin: 0 }}>Social Pages</h1>
                                 <p style={{ fontSize: 14, color: C.textSec, margin: '4px 0 0' }}>
-                                    Discover venues, groups, and communities
+                                    Discover Venues, Groups, And Communities
                                 </p>
                             </div>
                             {user && (
@@ -549,7 +549,7 @@ export default function SocialPagesHub() {
                                                     }}>{!tp.avatar_url && (tp.name || '?')[0].toUpperCase()}</div>
                                                     <div style={{ minWidth: 0 }}>
                                                         <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tp.name}</div>
-                                                        <div style={{ fontSize: 11, color: C.textSec }}>{tp.follower_count || 0} followers</div>
+                                                        <div style={{ fontSize: 11, color: C.textSec }}>{tp.follower_count || 0} Followers</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -600,7 +600,7 @@ export default function SocialPagesHub() {
                                     borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600,
                                     cursor: 'pointer', fontFamily: 'inherit',
                                 }}>
-                                    Create a Page
+                                    Create A Page
                                 </button>
                             )}
                         </div>
@@ -633,7 +633,7 @@ export default function SocialPagesHub() {
                             {loadingMore && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.textSec, fontSize: 13 }}>
                                     <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid #E4E6EB`, borderTopColor: C.blue, animation: 'spin 0.6s linear infinite' }} />
-                                    Loading more...
+                                    Loading More...
                                 </div>
                             )}
                         </div>
@@ -670,7 +670,7 @@ export default function SocialPagesHub() {
                                             }} />
                                             <div style={{ padding: '8px 10px' }}>
                                                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</div>
-                                                <div style={{ fontSize: 11, color: C.textSec, marginBottom: 8 }}>{sp.follower_count || 0} followers</div>
+                                                <div style={{ fontSize: 11, color: C.textSec, marginBottom: 8 }}>{sp.follower_count || 0} Followers</div>
                                                 <button onClick={(e) => { e.stopPropagation(); handleFollow(sp.id); }} style={{
                                                     width: '100%', padding: '6px 0', borderRadius: 6, border: 'none',
                                                     background: followingIds.has(sp.id) ? '#E4E6EB' : C.blue,

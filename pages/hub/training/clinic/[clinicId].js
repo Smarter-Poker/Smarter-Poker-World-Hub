@@ -68,7 +68,7 @@ export default function ClinicPlayPage() {
             <div style={{ color: '#79e6ff', fontSize: 10, fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Verified Remediation Path</div>
             <h1 style={{ margin: '12px 0 10px', fontSize: 'clamp(28px, 6vw, 52px)', lineHeight: 1, textTransform: 'capitalize' }}>{clinic?.name || 'Training Clinic'}</h1>
             <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>{clinic?.description || 'That clinic could not be found.'}</p>
-            <p style={{ margin: '18px 0 0', color: '#7893a6', fontSize: 12 }}>Opening the data-backed Club Arena training table. Progress is only recorded from completed, graded hands.</p>
+            <p style={{ margin: '18px 0 0', color: '#7893a6', fontSize: 12 }}>Opening The Data-Backed Club Arena Training Table. Progress Is Only Recorded From Completed, Graded Hands.</p>
             <a href={href} style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 24, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
               {clinic && gameId ? 'Continue To Verified Drill →' : 'Return To Training Hub →'}
             </a>

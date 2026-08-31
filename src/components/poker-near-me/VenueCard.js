@@ -1043,7 +1043,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polygon points="3 11 22 2 13 21 11 13 3 11" />
                             </svg>
-                            {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} mi
+                            {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} Mi
                         </span>
                     )}
                     {/* GAP FIX: getOpenStatus(venue) was computed on every render but its
@@ -1687,11 +1687,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="vc3-checkin-header">
-                            <span>Check In at {venue.name}</span>
+                            <span>Check In At {venue.name}</span>
                             <button className="vc3-checkin-close" aria-label="Close" onClick={() => setCheckinModal(false)}>×</button>
                         </div>
                         {checkinDone ? (
-                            <div className="vc3-checkin-done">✓ Checked in!</div>
+                            <div className="vc3-checkin-done">✓ Checked In!</div>
                         ) : (
                             <>
                                 <textarea

@@ -218,7 +218,7 @@ export default function MyPlaybookPage() {
             <div>
               {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} plays saved</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
             </div>
           </div>
           {view === 'list' && (

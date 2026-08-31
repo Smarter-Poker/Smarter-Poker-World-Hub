@@ -321,7 +321,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                     <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Approximate Location</span>
                 </div>
                 <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 12px' }}>
-                    Enter your approximate location. Your exact address is never shared.
+                    Enter Your Approximate Location. Your Exact Address Is Never Shared.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <input
@@ -349,7 +349,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                     marginTop: 8, padding: '8px 12px', borderRadius: 8,
                     background: '#FEF3C7', fontSize: 12, color: '#92400E',
                 }}>
-                    Add NEXT_PUBLIC_GOOGLE_MAPS_KEY to enable the interactive map
+                    Add NEXT_PUBLIC_GOOGLE_MAPS_KEY To Enable The Interactive Map
                 </div>
             </div>
         );
@@ -369,7 +369,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                 </div>
                 {approximateOnly && (
                     <p style={{ fontSize: 12, color: C.textSec, margin: 0 }}>
-                        Your exact address is never shared. Only the approximate area is shown to other players.
+                        Your Exact Address Is Never Shared. Only The Approximate Area Is Shown To Other Players.
                     </p>
                 )}
             </div>
@@ -410,7 +410,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                         <div>
-                            <div style={{ fontWeight: 600, marginBottom: 4 }}>Map preview unavailable</div>
+                            <div style={{ fontWeight: 600, marginBottom: 4 }}>Map Preview Unavailable</div>
                             <div>{error}</div>
                         </div>
                     </div>
@@ -422,7 +422,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                             height: '100%', display: 'flex', alignItems: 'center',
                             justifyContent: 'center', background: C.bg, color: C.textSec, fontSize: 14,
                         }}>
-                            Loading map...
+                            Loading Map...
                         </div>
                     )}
                 </div>
@@ -489,7 +489,7 @@ export function StaticMapDisplay({ lat, lng, city, state, height = 200 }) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
-                Approximate area {city ? `- ${city}${state ? `, ${state}` : ''}` : ''}
+                Approximate Area {city ? `- ${city}${state ? `, ${state}` : ''}` : ''}
             </div>
         </div>
     );

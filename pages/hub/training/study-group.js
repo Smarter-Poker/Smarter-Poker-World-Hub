@@ -148,7 +148,7 @@ export default function StudyGroupRoom() {
           >
             <h2>Choose A Study Group</h2>
             <p style={{ color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-              Join an existing room or create a new persistent study group from the finder.
+              Join An Existing Room Or Create A New Persistent Study Group From The Finder.
             </p>
             <button type="button" aria-label="Open study group finder" onClick={() => router.push('/hub/training/study-group-finder')} style={styles.createBtn}>
               Open Study Group Finder

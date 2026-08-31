@@ -2070,7 +2070,7 @@ export default function PokerNearMeLobby() {
                 ))}
               </select>
               <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> venues on map
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> Venues On Map
               </span>
             </div>
             <VenueMapPanel
@@ -2123,7 +2123,7 @@ export default function PokerNearMeLobby() {
                 }} />
               ))}
               <div style={{ textAlign: 'center', padding: 12, color: 'rgba(200,214,229,0.4)', fontSize: 13 }}>
-                Loading daily tournaments...
+                Loading Daily Tournaments...
               </div>
             </div>
           );
@@ -2274,7 +2274,7 @@ export default function PokerNearMeLobby() {
             {favVenues.length === 0 && favFollows.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Nothing Saved Yet</p>
-                <p style={{ fontSize: 13 }}>Tap the Heart on Any Venue, Series or Tour to Save It Here.</p>
+                <p style={{ fontSize: 13 }}>Tap The Heart On Any Venue, Series Or Tour To Save It Here.</p>
               </div>
             )}
             {favVenues.length >= 2 && (
@@ -2323,7 +2323,7 @@ export default function PokerNearMeLobby() {
                   transition: 'all 0.2s',
                 }}
               >
-                Back to Trip Planner
+                Back To Trip Planner
               </button>
             </div>
           </div>
@@ -2354,7 +2354,7 @@ export default function PokerNearMeLobby() {
         component = (
           <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
             <p style={{ fontSize: 16, fontWeight: 600 }}>{feature.title}</p>
-            <p style={{ fontSize: 13, marginTop: 8 }}>This module is being wired up.</p>
+            <p style={{ fontSize: 13, marginTop: 8 }}>This Module Is Being Wired Up.</p>
           </div>
         );
     }
@@ -2433,7 +2433,7 @@ export default function PokerNearMeLobby() {
       />
 
       <div className="pnm-lobby-page">
-        <a className="pnm-lobby-skip" href="#pnm-lobby-main">Skip to Poker Near Me choices</a>
+        <a className="pnm-lobby-skip" href="#pnm-lobby-main">Skip To Poker Near Me Choices</a>
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
             block the delivered HTML has no h1 and none of the twelve internal
@@ -2687,11 +2687,11 @@ export default function PokerNearMeLobby() {
                 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span style={{ color: '#3fb950' }}>{venues.filter(v => v.distance_mi != null && v.distance_mi <= 50).length}</span> venues nearby
+                    <span style={{ color: '#3fb950' }}>{venues.filter(v => v.distance_mi != null && v.distance_mi <= 50).length}</span> Venues Nearby
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/></svg>
-                    <span style={{ color: '#d4a853' }}>{dailyTournaments.length.toLocaleString()}</span> tournaments
+                    <span style={{ color: '#d4a853' }}>{dailyTournaments.length.toLocaleString()}</span> Tournaments
                   </span>
                   {locationCity && (
                     <span style={{ color: 'rgba(200,214,229,0.35)', fontSize: 10 }}>

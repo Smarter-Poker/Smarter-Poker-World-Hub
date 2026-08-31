@@ -441,7 +441,7 @@ export default function PlayerFAQPage() {
           {searchTerm && (
             <div className="mb-6">
               <p className="text-[#64748B]">
-                {filteredCategories.reduce((sum, cat) => sum + cat.faqs.length, 0)} results for "
+                {filteredCategories.reduce((sum, cat) => sum + cat.faqs.length, 0)} Results For "
                 {searchTerm}"
               </p>
             </div>
@@ -483,12 +483,12 @@ export default function PlayerFAQPage() {
           {searchTerm && filteredCategories.length === 0 && (
             <div className="text-center py-12">
               <HelpCircle className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
-              <p className="text-[#64748B]">No questions found matching "{searchTerm}"</p>
+              <p className="text-[#64748B]">No Questions Found Matching "{searchTerm}"</p>
               <button
                 onClick={() => setSearchTerm('')}
                 className="text-[#22D3EE] hover:underline mt-2"
               >
-                Clear search
+                Clear Search
               </button>
             </div>
           )}
@@ -497,7 +497,7 @@ export default function PlayerFAQPage() {
           <div className="mt-8 cmd-panel p-6 text-center">
             <h3 className="font-semibold text-white mb-2">Still Have Questions?</h3>
             <p className="text-[#64748B] mb-4">
-              Contact the poker room staff or reach out to our support team.
+              Contact The Poker Room Staff Or Reach Out To Our Support Team.
             </p>
             <a
               href="mailto:support@smarter.poker"

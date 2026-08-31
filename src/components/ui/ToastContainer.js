@@ -94,7 +94,7 @@ export default function ToastContainer() {
                                 {t.type === 'success' ? toTitleCase(t.message) : t.message}
                                 {isActionable && (
                                     <span style={{ display: 'block', fontSize: 11, opacity: 0.75, marginTop: 2 }}>
-                                        Tap to view →
+                                        Tap To View →
                                     </span>
                                 )}
                             </span>

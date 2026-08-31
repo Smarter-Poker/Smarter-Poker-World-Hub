@@ -732,7 +732,7 @@ export default function ShoppingCart() {
                 {/* Mixed cart: one purchase type per checkout session */}
                 {!usingDiamonds && !cardGroup && (
                   <div style={styles.noticeBox}>
-                    VIP memberships are purchased from the Diamond Store page, not from the cart.
+                    VIP Memberships Are Purchased From The Diamond Store Page, Not From The Cart.
                   </div>
                 )}
                 {!usingDiamonds && cardGroup && deferredUnits > 0 && (
@@ -744,7 +744,7 @@ export default function ShoppingCart() {
                 )}
                 {usingDiamonds && vipItems.length > 0 && (
                   <div style={styles.noticeBox}>
-                    VIP memberships cannot be paid for with diamonds and will stay in your cart.
+                    VIP Memberships Cannot Be Paid For With Diamonds And Will Stay In Your Cart.
                   </div>
                 )}
 
@@ -807,7 +807,7 @@ export default function ShoppingCart() {
                               display: 'block',
                             }}
                           >
-                            Pay with Diamonds
+                            Pay With Diamonds
                           </span>
                           <span
                             style={{ color: affordable ? '#00E0FF' : '#FF6B6B', fontSize: '12px' }}
@@ -890,7 +890,7 @@ export default function ShoppingCart() {
                             display: 'block',
                           }}
                         >
-                          Pay with Card
+                          Pay With Card
                         </span>
                         <span style={{ color: '#9ca3af', fontSize: '12px' }}>
                           Visa, Mastercard, Amex
@@ -976,7 +976,7 @@ export default function ShoppingCart() {
                       marginBottom: '12px',
                     }}
                   >
-                    Final diamond cost is confirmed by the server at purchase.
+                    Final Diamond Cost Is Confirmed By The Server At Purchase.
                   </p>
                 )}
 
@@ -989,9 +989,9 @@ export default function ShoppingCart() {
                       marginBottom: '12px',
                     }}
                   >
-                    Displayed cart pricing indicates a shortfall of {diamondCostIsEstimate ? 'about ' : ''}
-                    {(diamondCost - diamondBalance).toLocaleString()} diamonds. You may continue;
-                    the server will confirm the current catalog price before any debit.
+                    Displayed Cart Pricing Indicates A Shortfall Of {diamondCostIsEstimate ? 'about ' : ''}
+                    {(diamondCost - diamondBalance).toLocaleString()} Diamonds. You May Continue;
+                    The Server Will Confirm The Current Catalog Price Before Any Debit.
                   </p>
                 )}
 

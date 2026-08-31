@@ -68,8 +68,8 @@ function SourcePlaceholderBoxBody({ sourceName, sourceUrl, index, openExternal }
                 <div className="box-overlay" />
             </div>
             <div className="box-content">
-                <h3 className="box-title">Latest from {name}</h3>
-                <p className="box-excerpt">Read the latest headlines directly on {name}.</p>
+                <h3 className="box-title">Latest From {name}</h3>
+                <p className="box-excerpt">Read The Latest Headlines Directly On {name}.</p>
                 <div className="box-meta">
                     <span className="source" style={{ color }}>{name}</span>
                     <span className="separator">•</span>

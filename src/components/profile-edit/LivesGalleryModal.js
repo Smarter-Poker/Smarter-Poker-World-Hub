@@ -38,7 +38,7 @@ export default function LivesGalleryModal({ isOpen, onClose, userLives, user, se
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔴</div>
                                 <div style={{ fontSize: 18 }}>No Saved Lives Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-                                    When you end a live stream, you can save it here
+                                    When You End A Live Stream, You Can Save It Here
                                 </div>
                             </div>
                         ) : (
@@ -100,7 +100,7 @@ export default function LivesGalleryModal({ isOpen, onClose, userLives, user, se
                                                 {live.title || 'Live Stream'}
                                             </div>
                                             <div style={{ color: '#888', fontSize: 13, marginBottom: 12 }}>
-                                                {dateStr} • {live.viewer_count || 0} viewers
+                                                {dateStr} • {live.viewer_count || 0} Viewers
                                             </div>
                                             {/* Actions */}
                                             {!live.is_posted && (

@@ -23,7 +23,7 @@ export default function Custom404() {
                     borderRadius: 8,
                     fontWeight: 600,
                 }}>
-                    Go to Hub
+                    Go To Hub
                 </Link>
             </div>
         </div>

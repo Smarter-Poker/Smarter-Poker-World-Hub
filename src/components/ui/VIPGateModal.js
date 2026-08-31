@@ -68,8 +68,8 @@ export default function VIPGateModal({ visible, onClose, featureName, featureCon
                 <p style={{
                     color: T.textSec, fontSize: 14, lineHeight: 1.5, margin: '0 0 24px',
                 }}>
-                    <strong style={{ color: T.gold }}>{featureName}</strong> is a premium feature.
-                    Upgrade to VIP for unlimited access to all premium features!
+                    <strong style={{ color: T.gold }}>{featureName}</strong> Is A Premium Feature.
+                    Upgrade To VIP For Unlimited Access To All Premium Features!
                 </p>
 
                 {/* VIP Option */}

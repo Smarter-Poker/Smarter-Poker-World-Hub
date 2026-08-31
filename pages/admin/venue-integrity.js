@@ -291,12 +291,12 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
             <a className={styles.eyebrow} href="/hub/poker-near-me/map">Poker Near Me / Signal Control</a>
             <div className={styles.heroCopy}>
               <div>
-                <h1>Venue integrity operations</h1>
-                <p>Quarantined map signals, missing coordinates and duplicate identities-resolved through one auditable control surface.</p>
+                <h1>Venue Integrity Operations</h1>
+                <p>Quarantined Map Signals, Missing Coordinates And Duplicate Identities-Resolved Through One Auditable Control Surface.</p>
               </div>
               <div className={styles.livePlate} data-queue-health={summary.actionable ? 'attention' : 'clear'}>
                 <span className={styles.liveDot} />
-                <div><strong>{summary.actionable}</strong><small>signals require attention</small></div>
+                <div><strong>{summary.actionable}</strong><small>Signals Require Attention</small></div>
               </div>
             </div>
           </div>
@@ -304,13 +304,13 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
 
         <section className={styles.console}>
           <div className={styles.metricRail} aria-label="Venue integrity summary">
-            <div><small>Active registry</small><strong>{summary.input}</strong><span>source records</span></div>
-            <div className={styles.critical}><small>Held from map</small><strong>{summary.conflict}</strong><span>state conflicts</span></div>
-            <div><small>Coordinates missing</small><strong>{summary.missing}</strong><span>cannot be mapped</span></div>
-            <div><small>Duplicate rows</small><strong>{summary.duplicate}</strong><span>{summary.duplicate_groups || 0} identity groups</span></div>
-            <div><small>Coverage pending</small><strong>{summary.unverified}</strong><span>boundary unavailable</span></div>
-            <div><small>Profiles incomplete</small><strong>{summary.incomplete}</strong><span>missing directory fields</span></div>
-            <div><small>Sources stale</small><strong>{summary.stale}</strong><span>older than 30 days</span></div>
+            <div><small>Active Registry</small><strong>{summary.input}</strong><span>Source Records</span></div>
+            <div className={styles.critical}><small>Held From Map</small><strong>{summary.conflict}</strong><span>State Conflicts</span></div>
+            <div><small>Coordinates Missing</small><strong>{summary.missing}</strong><span>Cannot Be Mapped</span></div>
+            <div><small>Duplicate Rows</small><strong>{summary.duplicate}</strong><span>{summary.duplicate_groups || 0} Identity Groups</span></div>
+            <div><small>Coverage Pending</small><strong>{summary.unverified}</strong><span>Boundary Unavailable</span></div>
+            <div><small>Profiles Incomplete</small><strong>{summary.incomplete}</strong><span>Missing Directory Fields</span></div>
+            <div><small>Sources Stale</small><strong>{summary.stale}</strong><span>Older Than 30 Days</span></div>
           </div>
 
           <div className={styles.toolbar}>
@@ -325,8 +325,8 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
               <span>Search</span>
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Venue, city, state or ID" />
             </label>
-            <button type="button" className={styles.refresh} onClick={() => loadQueue({ preserveSelection: true })} disabled={state.loading}>Reload queue</button>
-            {!previewQueue && <button type="button" className={styles.refresh} onClick={refreshIndex} disabled={saving}>Rescan registry</button>}
+            <button type="button" className={styles.refresh} onClick={() => loadQueue({ preserveSelection: true })} disabled={state.loading}>Reload Queue</button>
+            {!previewQueue && <button type="button" className={styles.refresh} onClick={refreshIndex} disabled={saving}>Rescan Registry</button>}
           </div>
 
           {state.error && <div className={styles.error} role="alert">{state.error}</div>}
@@ -335,13 +335,13 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
           <div className={styles.workspace}>
             <section className={styles.queue} aria-label="Venue remediation queue">
               <div className={styles.panelHeader}>
-                <div><span>Operational queue</span><strong>{visibleIssues.length} visible</strong></div>
+                <div><span>Operational Queue</span><strong>{visibleIssues.length} Visible</strong></div>
                 <small>{state.generatedAt ? `Assessed ${formatAge(state.generatedAt).replace('updated ', '')}` : 'Live assessment'}</small>
               </div>
               <div className={styles.queueList}>
-                {state.loading && <div className={styles.empty}>Scanning venue boundaries and identity keys…</div>}
+                {state.loading && <div className={styles.empty}>Scanning Venue Boundaries And Identity Keys…</div>}
                 {!state.loading && visibleIssues.length === 0 && (
-                  <div className={styles.empty}><strong>Signal path clear</strong><span>No records match this queue view.</span></div>
+                  <div className={styles.empty}><strong>Signal Path Clear</strong><span>No Records Match This Queue View.</span></div>
                 )}
                 {!state.loading && visibleIssues.map((issue) => (
                   <button
@@ -368,7 +368,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
               {state.pagination?.pages > 1 && (
                 <div className={styles.toolbar} aria-label="Queue pagination">
                   <button type="button" className={styles.refresh} disabled={state.loading || state.pagination.page <= 1} onClick={() => loadQueue({ page: state.pagination.page - 1 })}>Previous</button>
-                  <span>Page {state.pagination.page} of {state.pagination.pages} · {state.pagination.total} records</span>
+                  <span>Page {state.pagination.page} Of {state.pagination.pages} · {state.pagination.total} Records</span>
                   <button type="button" className={styles.refresh} disabled={state.loading || state.pagination.page >= state.pagination.pages} onClick={() => loadQueue({ page: state.pagination.page + 1 })}>Next</button>
                 </div>
               )}
@@ -376,37 +376,37 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
 
             <aside className={styles.repair} aria-label="Correction workspace">
               <div className={styles.panelHeader}>
-                <div><span>Correction bay</span><strong>{selected ? `Venue ${selected.id}` : 'Standby'}</strong></div>
+                <div><span>Correction Bay</span><strong>{selected ? `Venue ${selected.id}` : 'Standby'}</strong></div>
                 <small>{selected ? formatAge(selected.revision) : 'Select a signal'}</small>
               </div>
               {!selected && (
                 <div className={styles.repairStandby}>
                   <span aria-hidden="true">⌖</span>
-                  <strong>Select a queue record</strong>
-                  <p>Inspect its source coordinates, then apply a boundary-verified correction with a permanent audit reason.</p>
+                  <strong>Select A Queue Record</strong>
+                  <p>Inspect Its Source Coordinates, Then Apply A Boundary-Verified Correction With A Permanent Audit Reason.</p>
                 </div>
               )}
               {selected && isDuplicate && (
                 <div className={styles.duplicatePanel}>
-                  <span className={styles.issueCode}>Identity merge</span>
+                  <span className={styles.issueCode}>Identity Merge</span>
                   <h2>{selected.name}</h2>
-                  <p>This row shares its normalized identity with {selected.related_ids.length} source record(s). Retirement preserves every referenced schedule, claim and review, suppresses this alias, and installs a permanent canonical redirect.</p>
+                  <p>This Row Shares Its Normalized Identity With {selected.related_ids.length} Source Record(S). Retirement Preserves Every Referenced Schedule, Claim And Review, Suppresses This Alias, And Installs A Permanent Canonical Redirect.</p>
                   <div className={styles.related}>Related IDs: {selected.related_ids.join(', ') || 'none reported'}</div>
-                  <label><span>Canonical venue ID</span><input inputMode="numeric" value={form.canonical_venue_id} onChange={(event) => setForm({ ...form, canonical_venue_id: event.target.value })} /></label>
-                  <label><span>Audit reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Compared source identities and selected the canonical record…" /></label>
+                  <label><span>Canonical Venue ID</span><input inputMode="numeric" value={form.canonical_venue_id} onChange={(event) => setForm({ ...form, canonical_venue_id: event.target.value })} /></label>
+                  <label><span>Audit Reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Compared source identities and selected the canonical record…" /></label>
                   <button className={styles.commit} type="button" onClick={retireDuplicate} disabled={saving || !form.canonical_venue_id || form.reason.trim().length < 12}>{saving ? 'Retiring alias…' : 'Retire into canonical venue'}</button>
-                  <a href={`/hub/venues/${selected.id}`} target="_blank" rel="noreferrer">Inspect public venue ↗</a>
+                  <a href={`/hub/venues/${selected.id}`} target="_blank" rel="noreferrer">Inspect Public Venue ↗</a>
                 </div>
               )}
               {selected && !isDuplicate && (
                 <div className={styles.form}>
                   <div className={styles.formTitle}>
                     <div><span className={`${styles.issueCode} ${styles[selected.issue_type]}`}>{issueLabel(selected.issue_type)}</span><h2>{selected.name}</h2></div>
-                    <a href={`/hub/venues/${selected.id}`} target="_blank" rel="noreferrer">Public record ↗</a>
+                    <a href={`/hub/venues/${selected.id}`} target="_blank" rel="noreferrer">Public Record ↗</a>
                   </div>
                   {needsLocation && (
                     <form className={styles.form} onSubmit={submitCorrection}>
-                      <label><span>Street address</span><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} autoComplete="street-address" /></label>
+                      <label><span>Street Address</span><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} autoComplete="street-address" /></label>
                       <div className={styles.formRow}>
                         <label><span>City</span><input required value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></label>
                         <label className={styles.stateField}><span>State</span><input required maxLength={2} value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value.toUpperCase() })} /></label>
@@ -415,26 +415,26 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
                         <label><span>Latitude</span><input required inputMode="decimal" value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} /></label>
                         <label><span>Longitude</span><input required inputMode="decimal" value={form.longitude} onChange={(event) => setForm({ ...form, longitude: event.target.value })} /></label>
                       </div>
-                      <label><span>Location audit reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Boundary source checked and reason for correction…" /></label>
-                      <div className={styles.safetyNote}><span>Atomic write</span> The venue revision is checked again before coordinates change. Every correction stores before/after evidence and the acting admin.</div>
+                      <label><span>Location Audit Reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Boundary source checked and reason for correction…" /></label>
+                      <div className={styles.safetyNote}><span>Atomic Write</span> The Venue Revision Is Checked Again Before Coordinates Change. Every Correction Stores Before/After Evidence And The Acting Admin.</div>
                       <button className={styles.commit} type="submit" disabled={saving || form.reason.trim().length < 12 || !selected.revision}>{saving ? 'Verifying and applying…' : 'Verify boundary & commit'}</button>
                     </form>
                   )}
                   {needsEnrichment && (
                     <form className={styles.form} onSubmit={submitEnrichment}>
-                      <div className={styles.safetyNote}><span>Source-backed enrichment</span> Missing fields: {selected.missing_fields?.join(', ') || 'source freshness verification'}.</div>
+                      <div className={styles.safetyNote}><span>Source-Backed Enrichment</span> Missing Fields: {selected.missing_fields?.join(', ') || 'source freshness verification'}.</div>
                       <div className={styles.formRow}>
                         <label><span>Phone</span><input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} autoComplete="tel" /></label>
                         <label><span>Website</span><input value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} autoComplete="url" /></label>
                       </div>
-                      <label><span>Profile artwork URL</span><input value={form.profile_photo_url} onChange={(event) => setForm({ ...form, profile_photo_url: event.target.value })} /></label>
-                      <label><span>Cover artwork URL</span><input value={form.cover_photo_url} onChange={(event) => setForm({ ...form, cover_photo_url: event.target.value })} /></label>
+                      <label><span>Profile Artwork URL</span><input value={form.profile_photo_url} onChange={(event) => setForm({ ...form, profile_photo_url: event.target.value })} /></label>
+                      <label><span>Cover Artwork URL</span><input value={form.cover_photo_url} onChange={(event) => setForm({ ...form, cover_photo_url: event.target.value })} /></label>
                       <label><span>Logo URL</span><input value={form.logo_url} onChange={(event) => setForm({ ...form, logo_url: event.target.value })} /></label>
                       <div className={styles.formRow}>
                         <label><span>Evidence URL</span><input required value={form.source_url} onChange={(event) => setForm({ ...form, source_url: event.target.value })} /></label>
                         <label><span>Confidence (0-1)</span><input required inputMode="decimal" value={form.confidence} onChange={(event) => setForm({ ...form, confidence: event.target.value })} /></label>
                       </div>
-                      <label><span>Enrichment audit reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Official source reviewed and fields verified…" /></label>
+                      <label><span>Enrichment Audit Reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Official source reviewed and fields verified…" /></label>
                       <button className={styles.commit} type="submit" disabled={saving || !form.source_url || form.reason.trim().length < 12}>{saving ? 'Recording evidence…' : 'Apply enrichment with evidence'}</button>
                     </form>
                   )}
@@ -445,11 +445,11 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
 
           <section className={styles.history} aria-label="Recent venue integrity corrections">
             <div className={styles.panelHeader}>
-              <div><span>Immutable audit trail</span><strong>Recent verified corrections</strong></div>
-              <small>{state.recentCorrections.length} retained in view</small>
+              <div><span>Immutable Audit Trail</span><strong>Recent Verified Corrections</strong></div>
+              <small>{state.recentCorrections.length} Retained In View</small>
             </div>
             <div className={styles.historyList}>
-              {state.recentCorrections.length === 0 && <div className={styles.historyEmpty}>No operator corrections have been recorded yet.</div>}
+              {state.recentCorrections.length === 0 && <div className={styles.historyEmpty}>No Operator Corrections Have Been Recorded Yet.</div>}
               {state.recentCorrections.map((correction) => (
                 <article key={correction.id} className={styles.historyItem}>
                   <span className={styles.historyStatus}>{correction.integrity_status}</span>
@@ -461,21 +461,21 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
           </section>
           <section className={styles.history} aria-label="Recent venue directory operations">
             <div className={styles.panelHeader}>
-              <div><span>Source provenance</span><strong>Enrichment and canonical history</strong></div>
-              <small>{recentEnrichments.length + recentRetirements.length} retained in view</small>
+              <div><span>Source Provenance</span><strong>Enrichment And Canonical History</strong></div>
+              <small>{recentEnrichments.length + recentRetirements.length} Retained In View</small>
             </div>
             <div className={styles.historyList}>
-              {recentEnrichments.length === 0 && recentRetirements.length === 0 && <div className={styles.historyEmpty}>No directory enrichment or duplicate retirement has been recorded yet.</div>}
+              {recentEnrichments.length === 0 && recentRetirements.length === 0 && <div className={styles.historyEmpty}>No Directory Enrichment Or Duplicate Retirement Has Been Recorded Yet.</div>}
               {recentEnrichments.map((entry) => (
                 <article key={entry.id} className={styles.historyItem}>
-                  <span className={styles.historyStatus}>enriched</span>
-                  <div><strong>Venue {entry.venue_id}</strong><p>{entry.reason} · confidence {entry.confidence}</p></div>
+                  <span className={styles.historyStatus}>Enriched</span>
+                  <div><strong>Venue {entry.venue_id}</strong><p>{entry.reason} · Confidence {entry.confidence}</p></div>
                   <time dateTime={entry.created_at}>{formatAge(entry.created_at)}</time>
                 </article>
               ))}
               {recentRetirements.map((entry) => (
                 <article key={entry.id} className={styles.historyItem}>
-                  <span className={styles.historyStatus}>redirected</span>
+                  <span className={styles.historyStatus}>Redirected</span>
                   <div><strong>Venue {entry.retired_venue_id} → {entry.canonical_venue_id}</strong><p>{entry.reason}</p></div>
                   <time dateTime={entry.created_at}>{formatAge(entry.created_at)}</time>
                 </article>

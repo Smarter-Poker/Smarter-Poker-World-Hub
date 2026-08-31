@@ -1392,7 +1392,7 @@ export default function SettingsPage() {
                                                 color: '#2dd4bf', textDecoration: 'none',
                                             }}
                                         >
-                                            Choose exactly which alerts reach your phone &rarr;
+                                            Choose Exactly Which Alerts Reach Your Phone &rarr;
                                         </a>
                                     </div>
 
@@ -1740,7 +1740,7 @@ export default function SettingsPage() {
                                                             background: 'rgba(240, 40, 73, 0.08)', border: '1px solid rgba(240, 40, 73, 0.25)',
                                                             borderRadius: 8, fontSize: 13, color: '#f02849', lineHeight: 1.5,
                                                         }}>
-                                                            Your membership will end at the current billing period. You can still enjoy benefits until then.
+                                                            Your Membership Will End At The Current Billing Period. You Can Still Enjoy Benefits Until Then.
                                                         </div>
                                                     )}
 
@@ -2162,8 +2162,8 @@ export default function SettingsPage() {
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Club Arena</h2>
                                 <p style={{ fontSize: 13, color: '#B0B3B8', marginBottom: 20 }}>
-                                    Your roles, commission levels, and club memberships across Club Arena.
-                                    Commission rates are set by your club owner or union lead and are read-only here.
+                                    Your Roles, Commission Levels, And Club Memberships Across Club Arena.
+                                    Commission Rates Are Set By Your Club Owner Or Union Lead And Are Read-Only Here.
                                 </p>
 
                                 {caRolesLoading && (
@@ -2234,15 +2234,15 @@ export default function SettingsPage() {
                                                                 </div>
                                                             </div>
                                                             <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: '#B0B3B8', flexWrap: 'wrap' }}>
-                                                                <span>Payment type: <strong style={{ color: agent.is_prepaid ? '#31A24C' : '#ea580c' }}>{agent.is_prepaid ? 'Prepaid' : 'Credit'}</strong></span>
+                                                                <span>Payment Type: <strong style={{ color: agent.is_prepaid ? '#31A24C' : '#ea580c' }}>{agent.is_prepaid ? 'Prepaid' : 'Credit'}</strong></span>
                                                                 <span>Status: <strong style={{ color: agent.status === 'active' ? '#31A24C' : '#FA383E' }}>{agent.status}</strong></span>
                                                                 {(agent.rakeback_percentage || 0) > 0 && (
-                                                                    <span>Player rakeback you can offer: <strong style={{ color: '#2374E1' }}>{((agent.rakeback_percentage || 0) * 100).toFixed(0)}%</strong></span>
+                                                                    <span>Player Rakeback You Can Offer: <strong style={{ color: '#2374E1' }}>{((agent.rakeback_percentage || 0) * 100).toFixed(0)}%</strong></span>
                                                                 )}
                                                             </div>
                                                             <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(247,197,42,0.06)', borderRadius: 8, border: '1px solid rgba(247,197,42,0.15)', fontSize: 12, color: '#B0B3B8' }}>
-                                                                Agents earn commission by selling chips to players. Your commission rate is set by the club owner.
-                                                                Sub-agents have lower rates than their parent agent.
+                                                                Agents Earn Commission By Selling Chips To Players. Your Commission Rate Is Set By The Club Owner.
+                                                                Sub-Agents Have Lower Rates Than Their Parent Agent.
                                                             </div>
                                                         </div>
                                                     );
@@ -2290,17 +2290,17 @@ export default function SettingsPage() {
 
                                         {caRoles.agents.length === 0 && caRoles.members.filter(m => m.role !== 'agent').length === 0 && caRoles.unionAdmins.length === 0 && (
                                             <div style={{ textAlign: 'center', padding: 40, color: '#B0B3B8', fontSize: 13, border: '1px dashed #3E4042', borderRadius: 10 }}>
-                                                You are not currently a member of any Club Arena club, union, or agent network.
+                                                You Are Not Currently A Member Of Any Club Arena Club, Union, Or Agent Network.
                                             </div>
                                         )}
 
                                         {/* Commission structure explanation */}
                                         <div style={{ background: 'rgba(35,116,225,0.07)', borderRadius: 10, padding: 16, border: '1px solid rgba(35,116,225,0.2)', fontSize: 12, color: '#B0B3B8', lineHeight: 1.6 }}>
                                             <div style={{ fontWeight: 700, color: '#E4E6EB', marginBottom: 8 }}>Commission Structure</div>
-                                            <div style={{ marginBottom: 4 }}>Clubs receive a share of rake collected at their tables, determined by the union commission rate.</div>
-                                            <div style={{ marginBottom: 4 }}>Super Agents have the highest commission tier and can have Agents under them.</div>
-                                            <div style={{ marginBottom: 4 }}>Agents earn commission on rake from players they bring in. Sub-agents have lower rates than their parent agent.</div>
-                                            <div>Cashouts are handled at the player level only. Clubs and unions settle with each other off-platform. Agents are paid by selling their chips to players directly.</div>
+                                            <div style={{ marginBottom: 4 }}>Clubs Receive A Share Of Rake Collected At Their Tables, Determined By The Union Commission Rate.</div>
+                                            <div style={{ marginBottom: 4 }}>Super Agents Have The Highest Commission Tier And Can Have Agents Under Them.</div>
+                                            <div style={{ marginBottom: 4 }}>Agents Earn Commission On Rake From Players They Bring In. Sub-Agents Have Lower Rates Than Their Parent Agent.</div>
+                                            <div>Cashouts Are Handled At The Player Level Only. Clubs And Unions Settle With Each Other Off-Platform. Agents Are Paid By Selling Their Chips To Players Directly.</div>
                                         </div>
                                     </div>
                                 )}
@@ -2317,10 +2317,10 @@ export default function SettingsPage() {
                                         <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Loading Blocked Users...</div>
                                     ) : blockedList.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>&#x2714;</div>
+                                            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>&#X2714;</div>
                                             <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', marginBottom: 8 }}>No Blocked Users</div>
                                             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 300, margin: '0 auto' }}>
-                                                You haven't blocked anyone. Users you block will appear here.
+                                                You Haven't Blocked Anyone. Users You Block Will Appear Here.
                                             </div>
                                         </div>
                                     ) : (
@@ -2428,7 +2428,7 @@ export default function SettingsPage() {
                                         </div>
                                     )}
                                     <p style={styles.helperText}>
-                                        Your data will be downloaded as a JSON file immediately.
+                                        Your Data Will Be Downloaded As A JSON File Immediately.
                                     </p>
                                 </div>
                             </div>

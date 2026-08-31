@@ -314,7 +314,7 @@ export default function TriviaSettings() {
                                 marginBottom: '20px'
                             }}
                         >
-                            Back to Trivia
+                            Back To Trivia
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '12px' }}>

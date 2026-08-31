@@ -237,7 +237,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
                   borderRadius: 8,
                 }}
               >
-                {g.handCount} hands
+                {g.handCount} Hands
               </span>
             </div>
             {/* Action Summary */}
@@ -790,7 +790,7 @@ function SolutionsBrowserInner({ setError }) {
                 fontWeight: 600,
               }}
             >
-              {totalSpots.toLocaleString()} spots
+              {totalSpots.toLocaleString()} Spots
             </span>
           </div>
 
@@ -1002,10 +1002,10 @@ function SolutionsBrowserInner({ setError }) {
             ) : spots.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
                 <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13 }}>
-                  No spots found for this configuration
+                  No Spots Found For This Configuration
                 </p>
                 <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11, marginTop: 4 }}>
-                  Try a different game type or stack depth
+                  Try A Different Game Type Or Stack Depth
                 </p>
               </div>
             ) : (
@@ -1185,9 +1185,9 @@ function SolutionsBrowserInner({ setError }) {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
-                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select a spot to view the strategy</p>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select A Spot To View The Strategy</p>
                 <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11 }}>
-                  Click any board in the list to see the full 13×13 range grid
+                  Click Any Board In The List To See The Full 13×13 Range Grid
                 </p>
               </div>
             ) : loadingDetail ? (
@@ -1210,7 +1210,7 @@ function SolutionsBrowserInner({ setError }) {
                     animation: 'spin 1s linear infinite',
                   }}
                 />
-                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13 }}>Loading strategy matrix...</p>
+                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13 }}>Loading Strategy Matrix...</p>
                 <style>{`
                   @keyframes spin {
                     to {
@@ -1266,8 +1266,8 @@ function SolutionsBrowserInner({ setError }) {
                       {spotDetail.heroPosition}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} hands
-                      in range
+                      {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} Hands
+                      In Range
                     </div>
                   </div>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1497,7 +1497,7 @@ function SolutionsBrowserInner({ setError }) {
                         letterSpacing: 1,
                       }}
                     >
-                      EV by Action (BB)
+                      EV By Action (BB)
                     </div>
                     <RangeGrid
                       gridData={spotDetail.gridData}
@@ -1516,7 +1516,7 @@ function SolutionsBrowserInner({ setError }) {
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
-                      Green = positive EV, Red = negative. Values in Big-Blinds.
+                      Green = Positive EV, Red = Negative. Values In Big-Blinds.
                     </div>
                   </div>
                 ) : activeTab === 'equity' ? (
@@ -1551,7 +1551,7 @@ function SolutionsBrowserInner({ setError }) {
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
-                      Shows raw pot equity per hand combo against villain's range.
+                      Shows Raw Pot Equity Per Hand Combo Against Villain's Range.
                     </div>
                   </div>
                 ) : activeTab === 'eqr' ? (
@@ -1586,7 +1586,7 @@ function SolutionsBrowserInner({ setError }) {
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
-                      EQR = EV / Equity. Values &gt;1.0 overperform, &lt;1.0 underperform.
+                      EQR = EV / Equity. Values &gt;1.0 Overperform, &lt;1.0 Underperform.
                     </div>
                   </div>
                 ) : activeTab === 'blockers' ? (
@@ -1628,7 +1628,7 @@ function SolutionsBrowserInner({ setError }) {
                         marginBottom: 16,
                       }}
                     >
-                      Displays the percentage of combos in villain's range blocked by hero's cards.
+                      Displays The Percentage Of Combos In Villain's Range Blocked By Hero's Cards.
                       Red = Heavily Blocked.
                     </div>
                     <BlockerScorePanel

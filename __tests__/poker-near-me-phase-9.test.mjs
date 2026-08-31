@@ -60,7 +60,7 @@ test('admin correction surface is role-gated, MFA-gated, atomic, and audit logge
   assert.match(api, /resolve_venue_location_integrity/);
   assert.match(api, /venue_location_integrity_log/);
   assert.match(api, /recent_corrections/);
-  assert.match(page, /Venue integrity operations/);
+  assert.match(page, /Venue Integrity Operations/);
   assert.match(page, /expected_revision/);
   assert.match(api, /location_integrity_revision/);
   assert.match(page, /credentials: 'include'/);

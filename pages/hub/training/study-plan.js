@@ -348,8 +348,8 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
               )}
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              {dayPlan.areas.length} focus {dayPlan.areas.length === 1 ? 'area' : 'areas'} ·{' '}
-              {dayPlan.totalQuestions} questions
+              {dayPlan.areas.length} Focus {dayPlan.areas.length === 1 ? 'area' : 'areas'} ·{' '}
+              {dayPlan.totalQuestions} Questions
             </div>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function StudyPlanPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Personalized training schedule</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Personalized Training Schedule</div>
             </div>
           </div>
           <motion.button
@@ -656,7 +656,7 @@ export default function StudyPlanPage() {
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                   {totalCompleted}/{totalAreas}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>drills completed</div>
+                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Drills Completed</div>
               </div>
             </div>
             {/* Progress bar */}
@@ -795,7 +795,7 @@ export default function StudyPlanPage() {
                     {focus.icon} {focus.name}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                    {focus.accuracy}% accuracy - needs attention
+                    {focus.accuracy}% Accuracy - Needs Attention
                   </div>
                 </div>
                 <motion.button
@@ -842,9 +842,9 @@ export default function StudyPlanPage() {
                 lineHeight: 1.5,
               }}
             >
-              Plan regenerates each week based on your latest performance.
+              Plan Regenerates Each Week Based On Your Latest Performance.
               <br />
-              Complete at least 4 days to maintain your streak bonus.
+              Complete At Least 4 Days To Maintain Your Streak Bonus.
             </div>
           )}
         </div>

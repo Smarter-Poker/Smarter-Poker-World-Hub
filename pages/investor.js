@@ -106,7 +106,7 @@ export default function InvestorPitchDeck() {
             {/* TOP CONTROLS */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: 20, display: 'flex', justifyContent: 'space-between', zIndex: 100, background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}>
                 <div style={{ color: '#00B4D8', fontWeight: 'bold', letterSpacing: 2 }}>SMARTER.POKER</div>
-                <div style={{ color: '#fff', opacity: 0.5 }}>Slide {currentSlide + 1} of {SLIDES.length}</div>
+                <div style={{ color: '#fff', opacity: 0.5 }}>Slide {currentSlide + 1} Of {SLIDES.length}</div>
                 <div style={{ display: 'flex', gap: 15 }}>
                     <button onClick={() => window.print()} style={{ background: 'transparent', border: '1px solid #00B4D8', color: '#00B4D8', padding: '5px 15px', borderRadius: 20, cursor: 'pointer' }}>Download PDF</button>
                     <button onClick={() => window.history.back()} style={{ background: '#E02840', border: 'none', color: '#fff', padding: '5px 15px', borderRadius: 20, cursor: 'pointer' }}>Exit</button>

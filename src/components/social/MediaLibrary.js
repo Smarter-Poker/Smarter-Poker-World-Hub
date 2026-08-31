@@ -494,7 +494,7 @@ export function MediaLibrary({
                             <div style={styles.emptyIcon}>📷</div>
                             <div>No Media Yet</div>
                             <div style={{ fontSize: 14, marginTop: 8 }}>
-                                Upload photos and videos to build your library
+                                Upload Photos And Videos To Build Your Library
                             </div>
                         </div>
                     ) : (
@@ -593,7 +593,7 @@ export function MediaLibrary({
                                 style={styles.actionBtn(true)}
                                 onClick={() => handleSetAsProfile(lightboxMedia)}
                             >
-                                👤 Set as Profile Picture
+                                👤 Set As Profile Picture
                             </button>
                         )}
                         <button

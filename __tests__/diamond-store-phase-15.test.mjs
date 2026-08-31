@@ -59,8 +59,8 @@ test('deferred providers remain buyable and enter an audited manual queue', asyn
   assert.match(operations, /refund_diamond_merch_order_atomic/);
   assert.match(consolePage, /Fulfillment Command Vault/);
   assert.match(consolePage, /const isManual = metadata\.fulfillment_mode === 'manual'/);
-  assert.match(consolePage, /Automatic fulfillment quarantined/);
-  assert.match(consolePage, /Manual shipping and refunds are locked/);
+  assert.match(consolePage, /Automatic Fulfillment Quarantined/);
+  assert.match(consolePage, /Manual Shipping And Refunds Are Locked/);
 });
 
 test('card settlement, webhook leases, refunds, and card-funded redemption are durable and atomic', async () => {

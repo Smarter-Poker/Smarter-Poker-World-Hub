@@ -119,7 +119,7 @@ export default function ViralGrowthModule({ currentUser }) {
                     }}
                 >{copied ? 'Copied!' : 'Share Invite Link'}</button>
                 <div style={{ fontSize: 12, marginTop: 8, color: '#FFD700' }}>
-                    Both you and your friend earn 500 Diamonds upon joining!
+                    Both You And Your Friend Earn 500 Diamonds Upon Joining!
                 </div>
             </div>
 

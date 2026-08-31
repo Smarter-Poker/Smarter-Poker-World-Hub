@@ -67,9 +67,9 @@ export default function TermsOfService() {
                         <div style={styles.footer}>
                             <p style={styles.lastUpdated}>Last Updated: January 11, 2026</p>
                             <p style={styles.contact}>
-                                Questions? Contact us at{' '}
+                                Questions? Contact Us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>
-                                    support@smarter.poker
+                                    Support@Smarter.Poker
                                 </a>
                             </p>
                         </div>
@@ -106,28 +106,28 @@ function TermsSection() {
         <div style={styles.section}>
             <h1 style={styles.title}>Terms Of Service</h1>
             <p style={styles.intro}>
-                Welcome to Smarter.Poker. By accessing or using our platform, you agree to be bound by these Terms of Service.
+                Welcome To Smarter.Poker. By Accessing Or Using Our Platform, You Agree To Be Bound By These Terms Of Service.
             </p>
 
             <h2 style={styles.heading}>1. Acceptance Of Terms</h2>
             <p style={styles.paragraph}>
-                By creating an account, accessing, or using Smarter.Poker ("the Platform"), you acknowledge that you have read,
-                understood, and agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms,
-                you may not access or use the Platform.
+                By Creating An Account, Accessing, Or Using Smarter.Poker ("The Platform"), You Acknowledge That You Have Read,
+                Understood, And Agree To Be Bound By These Terms Of Service ("Terms"). If You Do Not Agree To These Terms,
+                You May Not Access Or Use The Platform.
             </p>
 
             <h2 style={styles.heading}>2. Eligibility</h2>
             <p style={styles.paragraph}>
-                You must be at least 18 years of age to use Smarter.Poker. By using the Platform, you represent and warrant
-                that you are at least 18 years old and have the legal capacity to enter into these Terms. The Platform is
-                intended for educational purposes only and does not involve real-money gambling.
+                You Must Be At Least 18 Years Of Age To Use Smarter.Poker. By Using The Platform, You Represent And Warrant
+                That You Are At Least 18 Years Old And Have The Legal Capacity To Enter Into These Terms. The Platform Is
+                Intended For Educational Purposes Only And Does Not Involve Real-Money Gambling.
             </p>
 
             <h2 style={styles.heading}>3. Account Registration</h2>
             <p style={styles.paragraph}>
-                To access certain features, you must register for an account. You agree to provide accurate, current, and
-                complete information during registration and to update such information to keep it accurate. You are
-                responsible for safeguarding your account credentials and for all activities under your account.
+                To Access Certain Features, You Must Register For An Account. You Agree To Provide Accurate, Current, And
+                Complete Information During Registration And To Update Such Information To Keep It Accurate. You Are
+                Responsible For Safeguarding Your Account Credentials And For All Activities Under Your Account.
             </p>
             <ul style={styles.list}>
                 <li>You Will Receive A Unique Player Number Upon Registration</li>
@@ -138,7 +138,7 @@ function TermsSection() {
 
             <h2 style={styles.heading}>4. Platform Services</h2>
             <p style={styles.paragraph}>
-                Smarter.Poker provides poker training and educational services, including but not limited to:
+                Smarter.Poker Provides Poker Training And Educational Services, Including But Not Limited To:
             </p>
             <ul style={styles.list}>
                 <li><strong>PokerIQ:</strong> Interactive GTO Training And Quizzes</li>
@@ -149,10 +149,10 @@ function TermsSection() {
 
             <h2 style={styles.heading}>5. Virtual Currency (Diamonds)</h2>
             <p style={styles.paragraph}>
-                The Platform uses virtual currency called "Diamonds" for in-platform activities. Diamonds have no direct
-                cash value and cannot be exchanged for cash. However, Diamonds can be transferred between users and
-                redeemed in our Diamond Store for merchandise, gift cards, platform upgrades, and tournament buy-ins.
-                We reserve the right to modify, suspend, or discontinue any virtual currency features at any time.
+                The Platform Uses Virtual Currency Called "Diamonds" For In-Platform Activities. Diamonds Have No Direct
+                Cash Value And Cannot Be Exchanged For Cash. However, Diamonds Can Be Transferred Between Users And
+                Redeemed In Our Diamond Store For Merchandise, Gift Cards, Platform Upgrades, And Tournament Buy-Ins.
+                We Reserve The Right To Modify, Suspend, Or Discontinue Any Virtual Currency Features At Any Time.
             </p>
 
             <h2 style={styles.heading}>6. User Conduct</h2>
@@ -168,16 +168,16 @@ function TermsSection() {
 
             <h2 style={styles.heading}>7. Intellectual Property</h2>
             <p style={styles.paragraph}>
-                All content, features, and functionality of the Platform are owned by Smarter.Poker and are protected by
-                copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create
-                derivative works without our express written consent.
+                All Content, Features, And Functionality Of The Platform Are Owned By Smarter.Poker And Are Protected By
+                Copyright, Trademark, And Other Intellectual Property Laws. You May Not Reproduce, Distribute, Or Create
+                Derivative Works Without Our Express Written Consent.
             </p>
 
             <h2 style={styles.heading}>8. Termination</h2>
             <p style={styles.paragraph}>
-                We reserve the right to suspend or terminate your account at any time for violation of these Terms or for
-                any other reason at our sole discretion. Upon termination, your right to use the Platform will immediately
-                cease, and any virtual currency or progress may be forfeited.
+                We Reserve The Right To Suspend Or Terminate Your Account At Any Time For Violation Of These Terms Or For
+                Any Other Reason At Our Sole Discretion. Upon Termination, Your Right To Use The Platform Will Immediately
+                Cease, And Any Virtual Currency Or Progress May Be Forfeited.
             </p>
 
             <h2 style={styles.heading}>9. Disclaimer Of Warranties</h2>
@@ -194,15 +194,15 @@ function TermsSection() {
 
             <h2 style={styles.heading}>11. Governing Law</h2>
             <p style={styles.paragraph}>
-                These Terms shall be governed by and construed in accordance with the laws of the State of Illinois,
-                without regard to conflict of law principles.
+                These Terms Shall Be Governed By And Construed In Accordance With The Laws Of The State Of Illinois,
+                Without Regard To Conflict Of Law Principles.
             </p>
 
             <h2 style={styles.heading}>12. Changes To Terms</h2>
             <p style={styles.paragraph}>
-                We reserve the right to modify these Terms at any time. We will notify you of any material changes via
-                email or through the Platform. Your continued use of the Platform after such modifications constitutes
-                your acceptance of the updated Terms.
+                We Reserve The Right To Modify These Terms At Any Time. We Will Notify You Of Any Material Changes Via
+                Email Or Through The Platform. Your Continued Use Of The Platform After Such Modifications Constitutes
+                Your Acceptance Of The Updated Terms.
             </p>
         </div>
     );
@@ -214,7 +214,7 @@ function PrivacySection() {
         <div style={styles.section}>
             <h1 style={styles.title}>Privacy Policy</h1>
             <p style={styles.intro}>
-                Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information.
+                Your Privacy Is Important To Us. This Privacy Policy Explains How We Collect, Use, And Protect Your Information.
             </p>
 
             <h2 style={styles.heading}>1. Information We Collect</h2>
@@ -237,16 +237,16 @@ function PrivacySection() {
             <ul style={styles.list}>
                 <li>Provide And Improve Our Training Services</li>
                 <li>Personalize Your Learning Experience</li>
-                <li>Send Account-related Communications</li>
+                <li>Send Account-Related Communications</li>
                 <li>Process Transactions And Maintain Records</li>
                 <li>Analyze Usage Patterns To Enhance The Platform</li>
                 <li>Prevent Fraud And Enforce Our Terms</li>
-                <li>Send Promotional Content (with Your Consent)</li>
+                <li>Send Promotional Content (With Your Consent)</li>
             </ul>
 
             <h2 style={styles.heading}>3. Information Sharing</h2>
             <p style={styles.paragraph}>
-                We do not sell your personal information. We may share information with:
+                We Do Not Sell Your Personal Information. We May Share Information With:
             </p>
             <ul style={styles.list}>
                 <li><strong>Service Providers:</strong> Third Parties Who Help Us Operate The Platform</li>
@@ -256,9 +256,9 @@ function PrivacySection() {
 
             <h2 style={styles.heading}>4. Data Security</h2>
             <p style={styles.paragraph}>
-                We implement industry-standard security measures to protect your information, including encryption,
-                secure servers, and regular security audits. However, no method of transmission over the Internet
-                is 100% secure.
+                We Implement Industry-Standard Security Measures To Protect Your Information, Including Encryption,
+                Secure Servers, And Regular Security Audits. However, No Method Of Transmission Over The Internet
+                Is 100% Secure.
             </p>
 
             <h2 style={styles.heading}>5. Your Rights</h2>
@@ -267,26 +267,26 @@ function PrivacySection() {
                 <li>Access Your Personal Information</li>
                 <li>Correct Inaccurate Data</li>
                 <li>Request Deletion Of Your Data</li>
-                <li>Opt-out Of Marketing Communications</li>
+                <li>Opt-Out Of Marketing Communications</li>
                 <li>Export Your Data In A Portable Format</li>
             </ul>
 
             <h2 style={styles.heading}>6. Data Retention</h2>
             <p style={styles.paragraph}>
-                We retain your information for as long as your account is active or as needed to provide services.
-                We may retain certain information as required by law or for legitimate business purposes.
+                We Retain Your Information For As Long As Your Account Is Active Or As Needed To Provide Services.
+                We May Retain Certain Information As Required By Law Or For Legitimate Business Purposes.
             </p>
 
             <h2 style={styles.heading}>7. Children's Privacy</h2>
             <p style={styles.paragraph}>
-                The Platform is not intended for users under 18 years of age. We do not knowingly collect information
-                from children. If we learn we have collected information from a child, we will delete it promptly.
+                The Platform Is Not Intended For Users Under 18 Years Of Age. We Do Not Knowingly Collect Information
+                From Children. If We Learn We Have Collected Information From A Child, We Will Delete It Promptly.
             </p>
 
             <h2 style={styles.heading}>8. Contact Us</h2>
             <p style={styles.paragraph}>
-                For privacy-related inquiries, contact us at{' '}
-                <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a>
+                For Privacy-Related Inquiries, Contact Us at{' '}
+                <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a>
             </p>
         </div>
     );
@@ -298,84 +298,84 @@ function SMSSection() {
         <div style={styles.section}>
             <h1 style={styles.title}>SMS & Communications Consent</h1>
             <p style={styles.intro}>
-                By providing your phone number and signing up for Smarter.Poker, you consent to receive text messages
-                and other communications from us as described below.
+                By Providing Your Phone Number And Signing Up For Smarter.Poker, You Consent To Receive Text Messages
+                And Other Communications From Us As Described Below.
             </p>
 
             <h2 style={styles.heading}>1. Consent To Receive Messages</h2>
             <p style={styles.paragraph}>
-                By providing your mobile phone number during registration or at any other time, you expressly consent
-                to receive the following types of text messages (SMS) and other electronic communications from
+                By Providing Your Mobile Phone Number During Registration Or At Any Other Time, You Expressly Consent
+                To Receive The Following Types Of Text Messages (SMS) And Other Electronic Communications From
                 Smarter.Poker:
             </p>
             <ul style={styles.list}>
-                <li><strong>Verification Codes:</strong> One-time Passwords (OTP) For Account Verification And Security</li>
+                <li><strong>Verification Codes:</strong> One-Time Passwords (OTP) For Account Verification And Security</li>
                 <li><strong>Account Alerts:</strong> Important Notifications About Your Account Status And Security</li>
                 <li><strong>Service Updates:</strong> Information About Platform Changes, Maintenance, And New Features</li>
                 <li><strong>Training Reminders:</strong> Optional Reminders About Your Training Goals And Streaks</li>
-                <li><strong>Promotional Messages:</strong> Special Offers And Updates (with Separate Opt-in)</li>
+                <li><strong>Promotional Messages:</strong> Special Offers And Updates (With Separate Opt-In)</li>
             </ul>
 
             <h2 style={styles.heading}>2. Message Frequency</h2>
             <p style={styles.paragraph}>
-                Message frequency varies based on your account activity. Verification codes are sent only when you
-                initiate a sign-in or security action. You may receive up to 5 account-related messages per month.
-                Promotional messages (if opted-in) will not exceed 4 messages per month.
+                Message Frequency Varies Based On Your Account Activity. Verification Codes Are Sent Only When You
+                Initiate A Sign-In Or Security Action. You May Receive Up To 5 Account-Related Messages Per Month.
+                Promotional Messages (If Opted-In) Will Not Exceed 4 Messages Per Month.
             </p>
 
             <h2 style={styles.heading}>3. Standard Message And Data Rates</h2>
             <p style={styles.paragraph}>
-                <strong>Message And Data Rates May Apply.</strong> Your mobile carrier's standard messaging and data
-                rates will apply to any messages you send or receive. Smarter.Poker is not responsible for any
-                charges incurred from your mobile carrier.
+                <strong>Message And Data Rates May Apply.</strong> Your Mobile Carrier's Standard Messaging And Data
+                Rates Will Apply To Any Messages You Send Or Receive. Smarter.Poker Is Not Responsible For Any
+                Charges Incurred From Your Mobile Carrier.
             </p>
 
             <h2 style={styles.heading}>4. How To Opt-Out</h2>
             <p style={styles.paragraph}>
-                You can opt-out of receiving text messages at any time by:
+                You Can Opt-Out Of Receiving Text Messages At Any Time By:
             </p>
             <ul style={styles.list}>
                 <li>Replying <strong>STOP</strong> To Any Message You Receive From Us</li>
                 <li>Updating Your Communication Preferences In Your Account Settings</li>
-                <li>Contacting Us At <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a></li>
+                <li>Contacting Us At <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a></li>
             </ul>
             <p style={styles.paragraph}>
-                <strong>Note:</strong> Opting out of promotional messages will not affect transactional messages
-                such as verification codes and critical account alerts, which are necessary for platform security.
+                <strong>Note:</strong> Opting Out Of Promotional Messages Will Not Affect Transactional Messages
+                Such As Verification Codes And Critical Account Alerts, Which Are Necessary For Platform Security.
             </p>
 
             <h2 style={styles.heading}>5. Help And Support</h2>
             <p style={styles.paragraph}>
-                For assistance with SMS messages, you can:
+                For Assistance With SMS Messages, You Can:
             </p>
             <ul style={styles.list}>
                 <li>Reply <strong>HELP</strong> To Any Message For Support Information</li>
-                <li>Email Us At <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a></li>
-                <li>Visit Our Help Center At <a href="https://smarter.poker/help" style={styles.link}>Smarter.poker/help</a></li>
+                <li>Email Us At <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a></li>
+                <li>Visit Our Help Center At <a href="https://smarter.poker/help" style={styles.link}>Smarter.Poker/Help</a></li>
             </ul>
 
             <h2 style={styles.heading}>6. Carrier Disclaimer</h2>
             <p style={styles.paragraph}>
-                Carriers are not liable for delayed or undelivered messages. We work with major carriers to ensure
-                reliable message delivery, but cannot guarantee delivery due to factors outside our control.
+                Carriers Are Not Liable For Delayed Or Undelivered Messages. We Work With Major Carriers To Ensure
+                Reliable Message Delivery, But Cannot Guarantee Delivery Due To Factors Outside Our Control.
             </p>
 
             <h2 style={styles.heading}>7. Privacy</h2>
             <p style={styles.paragraph}>
-                Your phone number and messaging activity are protected under our Privacy Policy. We do not share your
-                phone number with third parties for marketing purposes. Phone numbers are used solely for the purposes
-                described in this consent.
+                Your Phone Number And Messaging Activity Are Protected Under Our Privacy Policy. We Do Not Share Your
+                Phone Number With Third Parties For Marketing Purposes. Phone Numbers Are Used Solely For The Purposes
+                Described In This Consent.
             </p>
 
             <div style={styles.consentBox}>
                 <h3 style={styles.consentTitle}>📱 Your Consent</h3>
                 <p style={styles.consentText}>
-                    By signing up for Smarter.Poker and providing your phone number, you acknowledge that you have read
-                    and agree to this SMS & Communications Consent. You understand that:
+                    By Signing Up For Smarter.Poker And Providing Your Phone Number, You Acknowledge That You Have Read
+                    And Agree To This SMS & Communications Consent. You Understand That:
                 </p>
                 <ul style={styles.consentList}>
                     <li>Consent Is Not A Condition Of Purchase</li>
-                    <li>You Can Opt-out At Any Time By Texting STOP</li>
+                    <li>You Can Opt-Out At Any Time By Texting STOP</li>
                     <li>Message And Data Rates May Apply</li>
                     <li>Message Frequency Varies</li>
                 </ul>
@@ -390,33 +390,33 @@ function GamingSection() {
         <div style={styles.section}>
             <h1 style={styles.title}>Gaming & Fair Play Policy</h1>
             <p style={styles.intro}>
-                Smarter.Poker is committed to providing a fair, educational, and enjoyable experience for all users.
-                This policy outlines our "Skill-Access, Prize-Lock" dual infrastructure for compliance across all jurisdictions.
+                Smarter.Poker Is Committed To Providing A Fair, Educational, And Enjoyable Experience For All Users.
+                This Policy Outlines Our "Skill-Access, Prize-Lock" Dual Infrastructure For Compliance Across All Jurisdictions.
             </p>
 
             <h2 style={styles.heading}>1. Educational Purpose & Platform Nature</h2>
             <p style={styles.paragraph}>
-                Smarter.Poker is an <strong>Educational Poker Training Platform</strong> (also known as a "Social Casino"
-                for entertainment and skill development). All games, challenges, and competitions on the Platform are
-                for entertainment and educational purposes only. No real money is wagered, and no real money can be
-                won or lost through the Platform.
+                Smarter.Poker Is An <strong>Educational Poker Training Platform</strong> (Also Known As A "Social Casino"
+                For Entertainment And Skill Development). All Games, Challenges, And Competitions On The Platform Are
+                For Entertainment And Educational Purposes Only. No Real Money Is Wagered, And No Real Money Can Be
+                Won Or Lost Through The Platform.
             </p>
             <p style={styles.paragraph}>
-                <strong>Train From Anywhere. Win Prizes Where Legal.</strong> Users in all 50 states can sign up
-                and access our training, social, and AI-powered coaching features. Real-world prize redemptions
-                are strictly limited to eligible jurisdictions.
+                <strong>Train From Anywhere. Win Prizes Where Legal.</strong> Users In All 50 States Can Sign Up
+                And Access Our Training, Social, And AI-Powered Coaching Features. Real-World Prize Redemptions
+                Are Strictly Limited To Eligible Jurisdictions.
             </p>
 
             <h2 style={styles.heading}>2. Tiered Access System</h2>
             <p style={styles.paragraph}>
-                Smarter.Poker operates a <strong>"Skill-Access, Prize-Lock"</strong> infrastructure. Users in
-                certain states have restricted access to prize redemption features while maintaining full access
-                to all training and social features.
+                Smarter.Poker Operates A <strong>"Skill-Access, Prize-Lock"</strong> Infrastructure. Users In
+                Certain States Have Restricted Access To Prize Redemption Features While Maintaining Full Access
+                To All Training And Social Features.
             </p>
 
             <h3 style={styles.subheading}>Full Access States</h3>
             <p style={styles.paragraph}>
-                Users in unrestricted states have complete access to all Platform features, including:
+                Users In Unrestricted States Have Complete Access To All Platform Features, Including:
             </p>
             <ul style={styles.list}>
                 <li><strong>PokerIQ Hub:</strong> Full Access With Training And Rewards</li>
@@ -428,8 +428,8 @@ function GamingSection() {
 
             <h3 style={styles.subheading}>Restricted States (WA, ID, MI, NV, CA)</h3>
             <p style={styles.paragraph}>
-                Users in Washington, Idaho, Michigan, Nevada, and California maintain full access to training
-                and social features but are restricted from prize redemption:
+                Users In Washington, Idaho, Michigan, Nevada, And California Maintain Full Access To Training
+                And Social Features But Are Restricted From Prize Redemption:
             </p>
             <ul style={styles.list}>
                 <li><strong>PokerIQ Hub:</strong> ✅ ENABLED (Training/Study Only)</li>
@@ -439,34 +439,34 @@ function GamingSection() {
                 <li><strong>Cash Out Prizes:</strong> ❌ BLOCKED (Physical Lock)</li>
             </ul>
             <p style={styles.paragraph}>
-                <em>Diamond Redemptions are not available in your region if you reside in a restricted state.
-                    Your Diamonds remain active for in-world upgrades, leaderboard standing, and platform enhancements.</em>
+                <em>Diamond Redemptions Are Not Available In Your Region If You Reside In A Restricted State.
+                    Your Diamonds Remain Active For In-World Upgrades, Leaderboard Standing, And Platform Enhancements.</em>
             </p>
 
             <h2 style={styles.heading}>3. Virtual Currency Policy</h2>
             <p style={styles.paragraph}>
-                <strong>Diamonds</strong> are virtual tokens used within the Platform. They:
+                <strong>Diamonds</strong> Are Virtual Tokens Used Within The Platform. They:
             </p>
             <ul style={styles.list}>
                 <li>Have No Direct Cash Value And Cannot Be Exchanged For Cash</li>
                 <li>Can Be Transferred Between Accounts With Other Users</li>
-                <li>Can Be Redeemed In The Diamond Store For Real-world Prizes And Rewards (where Eligible)</li>
+                <li>Can Be Redeemed In The Diamond Store For Real-World Prizes And Rewards (Where Eligible)</li>
                 <li>Are Subject To Expiration As Outlined In Specific Promotions</li>
                 <li>May Be Forfeited Upon Account Termination For Terms Violations</li>
             </ul>
 
             <h3 style={styles.subheading}>Diamond Store Redemptions</h3>
             <p style={styles.paragraph}>
-                In eligible jurisdictions, Diamonds can be redeemed in our Diamond Store for a variety of rewards, including:
+                In Eligible Jurisdictions, Diamonds Can Be Redeemed In Our Diamond Store For A Variety Of Rewards, Including:
             </p>
             <ul style={styles.list}>
                 <li><strong>Merchandise:</strong> Official Smarter.Poker Branded Apparel And Accessories</li>
                 <li><strong>Gift Cards:</strong> Digital Gift Cards For Popular Retailers And Services</li>
                 <li><strong>Platform Upgrades:</strong> Premium Features, Cosmetics, And Enhancements Within PokerIQ</li>
-                <li><strong>Tournament Buy-Ins:</strong> Entry Into Live Poker Tournaments (availability Varies By Region)</li>
+                <li><strong>Tournament Buy-Ins:</strong> Entry Into Live Poker Tournaments (Availability Varies By Region)</li>
             </ul>
             <p style={styles.paragraph}>
-                Redemption options and Diamond values are subject to change. All redemptions are final and non-refundable.
+                Redemption Options And Diamond Values Are Subject To Change. All Redemptions Are Final And Non-Refundable.
                 <strong> Redemptions Are VOID In WA, ID, MI, NV, And CA.</strong>
             </p>
 
@@ -474,8 +474,8 @@ function GamingSection() {
             <div style={styles.consentBox}>
                 <h3 style={styles.consentTitle}>⚖️ Alternative Method Of Entry</h3>
                 <p style={styles.consentText}>
-                    <strong>NO PURCHASE NECESSARY.</strong> A purchase of upgrades, premium features, or any
-                    in-app items will NOT improve your chances of winning prizes or receiving rewards.
+                    <strong>NO PURCHASE NECESSARY.</strong> A Purchase Of Upgrades, Premium Features, Or Any
+                    In-App Items Will NOT Improve Your Chances Of Winning Prizes Or Receiving Rewards.
                 </p>
                 <ul style={styles.consentList}>
                     <li>Daily Login Streaks Generate "Entry Diamonds" For All Eligible Users</li>
@@ -485,14 +485,14 @@ function GamingSection() {
                     <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With ZERO Entry Fee</li>
                 </ul>
                 <p style={styles.consentText}>
-                    Free methods of earning Diamonds are always available to all users. Premium purchases
-                    enhance your experience but do not provide competitive advantages in prize eligibility.
+                    Free Methods Of Earning Diamonds Are Always Available To All Users. Premium Purchases
+                    Enhance Your Experience But Do Not Provide Competitive Advantages In Prize Eligibility.
                 </p>
             </div>
 
             <h2 style={styles.heading}>5. Fair Play Requirements</h2>
             <p style={styles.paragraph}>
-                All users must adhere to fair play standards:
+                All Users Must Adhere To Fair Play Standards:
             </p>
             <ul style={styles.list}>
                 <li><strong>No Cheating:</strong> Use Of External Tools, Solvers, Or AI During Timed Challenges Is Prohibited</li>
@@ -503,7 +503,7 @@ function GamingSection() {
 
             <h2 style={styles.heading}>6. Leaderboard Integrity</h2>
             <p style={styles.paragraph}>
-                We actively monitor leaderboards and competitive features for suspicious activity. Violations may result in:
+                We Actively Monitor Leaderboards And Competitive Features For Suspicious Activity. Violations May Result In:
             </p>
             <ul style={styles.list}>
                 <li>Removal From Leaderboards</li>
@@ -513,35 +513,35 @@ function GamingSection() {
 
             <h2 style={styles.heading}>7. Responsible Gaming</h2>
             <p style={styles.paragraph}>
-                While Smarter.Poker does not involve real-money gambling, we encourage responsible use of the Platform:
+                While Smarter.Poker Does Not Involve Real-Money Gambling, We Encourage Responsible Use Of The Platform:
             </p>
             <ul style={styles.list}>
                 <li>Set Reasonable Time Limits For Training Sessions</li>
                 <li>Take Regular Breaks During Extended Sessions</li>
-                <li>Remember That Poker Training Should Enhance, Not Replace, Real-world Activities</li>
+                <li>Remember That Poker Training Should Enhance, Not Replace, Real-World Activities</li>
                 <li>Seek Help If You Feel Your Gaming Habits Are Becoming Problematic</li>
             </ul>
 
             <h2 style={styles.heading}>8. Age Restriction</h2>
             <p style={styles.paragraph}>
-                You must be at least <strong>18 Years Of Age</strong> to use Smarter.Poker. We reserve the right to
-                verify your age and may terminate accounts of users who do not meet this requirement.
+                You Must Be At Least <strong>18 Years Of Age</strong> To Use Smarter.Poker. We Reserve The Right To
+                Verify Your Age And May Terminate Accounts Of Users Who Do Not Meet This Requirement.
             </p>
 
             <h2 style={styles.heading}>9. Legal Compliance</h2>
             <p style={styles.paragraph}>
-                This tiered access structure ensures compliance with state-specific regulations:
+                This Tiered Access Structure Ensures Compliance With State-Specific Regulations:
             </p>
             <ul style={styles.list}>
                 <li><strong>Entertainment Shield:</strong> Training And Social Features Operate As A Social Casino Platform, Legal In All States</li>
                 <li><strong>Redemption Guard:</strong> Prize Redemptions Are Only Enabled In Jurisdictions Where Such Activities Are Permitted</li>
-                <li><strong>Skill-Based Classification:</strong> Smarter.Poker Operates As A Skill-based Training Platform With An Optional Promotional Rewards Layer For Eligible Users</li>
+                <li><strong>Skill-Based Classification:</strong> Smarter.Poker Operates As A Skill-Based Training Platform With An Optional Promotional Rewards Layer For Eligible Users</li>
             </ul>
 
             <h2 style={styles.heading}>10. Reporting Violations</h2>
             <p style={styles.paragraph}>
-                If you witness or suspect any violations of this policy, please report them to{' '}
-                <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a>
+                If You Witness Or Suspect Any Violations Of This Policy, Please Report Them to{' '}
+                <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a>
             </p>
         </div>
     );

@@ -487,7 +487,7 @@ export default function PlayerHomeGamesHub() {
               <span className="cmd-light cmd-light-br" />
               <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join By Invite Code</h3>
               <p className="text-sm text-[#64748B] mb-4">
-                Enter the invite code or club code shared by the host
+                Enter The Invite Code Or Club Code Shared By The Host
               </p>
               <input
                 type="text"

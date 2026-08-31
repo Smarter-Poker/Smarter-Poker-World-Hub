@@ -117,7 +117,7 @@ export default function ClubShopItemDetail() {
         : {
             kind: 'ready',
             message: router.query.canceled === 'true'
-              ? 'Card checkout canceled. Your diamonds and club inventory were not changed.'
+              ? 'Card Checkout Canceled. Your Diamonds And Club Inventory Were Not Changed.'
               : 'Verified live club inventory.',
           });
     } catch (error) {
@@ -148,7 +148,7 @@ export default function ClubShopItemDetail() {
     const token = getAccessToken();
     const targetClub = target?.clubId || target?.club_id || clubId;
     if (!token) {
-      setState({ kind: 'auth', message: 'Sign in again before authorizing a diamond purchase.' });
+      setState({ kind: 'auth', message: 'Sign In Again Before Authorizing A Diamond Purchase.' });
       return false;
     }
     if (!target || !targetClub) {
@@ -205,7 +205,7 @@ export default function ClubShopItemDetail() {
       return;
     }
     if (!topUp) {
-      setState({ kind: 'error', message: 'Card checkout is unavailable for this item price.' });
+      setState({ kind: 'error', message: 'Card Checkout Is Unavailable For This Item Price.' });
       return;
     }
     processingRef.current = true;
@@ -383,7 +383,7 @@ export default function ClubShopItemDetail() {
             onClick={() => {
               const authUser = getAuthUser();
               if (!authUser?.id) {
-                setState({ kind: 'auth', message: 'Sign in again before authorizing a diamond purchase.' });
+                setState({ kind: 'auth', message: 'Sign In Again Before Authorizing A Diamond Purchase.' });
                 return;
               }
               const commerceIntent = {
@@ -426,13 +426,13 @@ export default function ClubShopItemDetail() {
       <div role="status" aria-live="polite" className={detailStyles.detailCard}>
         <h2>Live Purchase Console</h2>
         <p>{marketplaceCopy(state.message)}</p>
-        {balance != null && <p>Verified wallet balance: <strong>{balance.toLocaleString()} Diamonds</strong>.</p>}
+        {balance != null && <p>Verified Wallet Balance: <strong>{balance.toLocaleString()} Diamonds</strong>.</p>}
         {cardTopUp && (
           <p>
-            Card checkout charges <strong>${cardCharge.toFixed(2)}</strong> for{' '}
+            Card Checkout Charges <strong>${cardCharge.toFixed(2)}</strong> for{' '}
             <strong>{cardDiamonds.toLocaleString()} Diamonds</strong>, redeems{' '}
-            <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> for this item, and
-            leaves <strong>{cardRemainder.toLocaleString()} Diamonds</strong> in your wallet.
+            <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> For This Item, And
+            Leaves <strong>{cardRemainder.toLocaleString()} Diamonds</strong> In Your Wallet.
           </p>
         )}
       </div>
@@ -443,7 +443,7 @@ export default function ClubShopItemDetail() {
           </h2>
           <p>
             Spend <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> On {marketplaceCopy(item.name)}?
-            The server will recheck availability, limits, price, and your wallet before deducting anything.
+            The Server Will Recheck Availability, Limits, Price, And Your Wallet Before Deducting Anything.
           </p>
           <div className={detailStyles.actions}>
             <button

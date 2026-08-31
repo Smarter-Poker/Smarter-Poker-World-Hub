@@ -189,7 +189,7 @@ export default function CommunityLeaderboardPage() {
           <div>
             {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Global GTO rankings</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
           </div>
         </div>
 
@@ -417,7 +417,7 @@ export default function CommunityLeaderboardPage() {
                       {entry.name}
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
-                      {entry.hands} hands · {entry.sessions} sessions
+                      {entry.hands} Hands · {entry.sessions} Sessions
                     </div>
                   </div>
                 </div>

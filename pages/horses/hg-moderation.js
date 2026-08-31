@@ -241,22 +241,22 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
         Reported Content{reportedType ? ` (${reportedType})` : ''}
       </div>
 
-      {loading && <div style={S.contentDim}>Loading the reported content…</div>}
+      {loading && <div style={S.contentDim}>Loading The Reported Content…</div>}
 
       {!loading && error && (
         <div>
-          <div role="alert" style={S.err}>Could not load the reported content: {error}</div>
+          <div role="alert" style={S.err}>Could Not Load The Reported Content: {error}</div>
           <button type="button" style={S.btnSm} onClick={onRetry}>Retry</button>
           <p style={S.gateNote}>
-            Actions stay disabled until the content loads. Do not resolve a report you have not read.
+            Actions Stay Disabled Until The Content Loads. Do Not Resolve A Report You Have Not Read.
           </p>
         </div>
       )}
 
       {!loading && !error && detail && !snap && (
         <div style={S.contentGone}>
-          Content unavailable - the reported item is no longer in the database (already deleted,
-          purged, or of an unrecognised type). There is nothing left to hide or delete.
+          Content Unavailable - The Reported Item Is No Longer In The Database (Already Deleted,
+          Purged, Or Of An Unrecognised Type). There Is Nothing Left To Hide Or Delete.
         </div>
       )}
 
@@ -271,18 +271,18 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
                 </code>
               </span>
             ) : null}
-            {snap.is_hidden ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Already hidden</span> : null}
+            {snap.is_hidden ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Already Hidden</span> : null}
           </div>
 
           {body ? (
             <blockquote style={S.contentQuote}>{body}</blockquote>
           ) : (
-            <div style={S.contentDim}>This item carries no text body.</div>
+            <div style={S.contentDim}>This Item Carries No Text Body.</div>
           )}
 
           {media.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 12, color: MUTED, marginBottom: 4 }}>Attached media ({media.length})</div>
+              <div style={{ fontSize: 12, color: MUTED, marginBottom: 4 }}>Attached Media ({media.length})</div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#9ca3af', wordBreak: 'break-all' }}>
                 {media.map((u, i) => <li key={i}>{u}</li>)}
               </ul>
@@ -290,7 +290,7 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
           )}
 
           <details style={{ marginTop: 10 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 12, color: MUTED }}>Raw content record</summary>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: MUTED }}>Raw Content Record</summary>
             <pre style={{ margin: '8px 0 0', fontSize: 11, color: '#9ca3af', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(snap, null, 2)}
             </pre>
@@ -435,11 +435,11 @@ function ReportsTab({ token }) {
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
       {loading ? <div style={S.dim}>Loading…</div> : reports.length === 0 ? (
-        <div style={S.empty}>No reports found.</div>
+        <div style={S.empty}>No Reports Found.</div>
       ) : (
         <div style={S.tableWrap}>
           <table style={S.table}>
-            <caption style={S.srOnly}>Home Games content reports, newest first. The last column opens a review dialog.</caption>
+            <caption style={S.srOnly}>Home Games Content Reports, Newest First. The Last Column Opens A Review Dialog.</caption>
             <thead><tr>{['ID','Type','Category','Reporter','Author','Status','Date','Review'].map(h => <th key={h} scope="col" style={S.th}>{h === 'Review' ? <span style={S.srOnly}>Review</span> : h}</th>)}</tr></thead>
             <tbody>
               {reports.map(r => (
@@ -461,7 +461,7 @@ function ReportsTab({ token }) {
 
       {resolving && (
         <Modal title="Resolve Report" onClose={closeReview}>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Reporter category: <strong style={{ color: '#ef4444' }}>{resolving.reason_category}</strong></p>
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Reporter Category: <strong style={{ color: '#ef4444' }}>{resolving.reason_category}</strong></p>
           <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px' }}>{resolving.reason_text}</p>
 
           <ReportedContentPanel
@@ -483,7 +483,7 @@ function ReportsTab({ token }) {
               {RESOLVE_ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </label>
-          <label style={S.label}>Moderator Note (optional)
+          <label style={S.label}>Moderator Note (Optional)
             <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
           </label>
           {!contentSeen && (
@@ -564,11 +564,11 @@ function AppealsTab({ token }) {
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
       {loading ? <div style={S.dim}>Loading…</div> : appeals.length === 0 ? (
-        <div style={S.empty}>No appeals found.</div>
+        <div style={S.empty}>No Appeals Found.</div>
       ) : (
         <div style={S.tableWrap}>
           <table style={S.table}>
-            <caption style={S.srOnly}>Home Games ban appeals. The last column opens a review dialog.</caption>
+            <caption style={S.srOnly}>Home Games Ban Appeals. The Last Column Opens A Review Dialog.</caption>
             <thead><tr>{['Appeal ID','Group','User','Ban Reason','Days Pending','Status','Review'].map(h => <th key={h} scope="col" style={S.th}>{h === 'Review' ? <span style={S.srOnly}>Review</span> : h}</th>)}</tr></thead>
             <tbody>
               {appeals.map(a => (
@@ -598,7 +598,7 @@ function AppealsTab({ token }) {
               <option value="denied">Deny</option>
             </select>
           </label>
-          <label style={S.label}>Note (optional)
+          <label style={S.label}>Note (Optional)
             <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
           </label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -678,7 +678,7 @@ function GdprTab({ token }) {
     <div>
       <h2 style={S.srOnly}>GDPR Scrub</h2>
       <div style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#ef4444' }}>
-        WARNING - GDPR Erasure Is Irreversible. Anonymizes all Home Games posts, messages, and profile data for the target user. Use only on verified DPO/legal request.
+        WARNING - GDPR Erasure Is Irreversible. Anonymizes All Home Games Posts, Messages, And Profile Data For The Target User. Use Only On Verified DPO/Legal Request.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 500 }}>
         <label style={S.label}>Target User UUID
@@ -692,7 +692,7 @@ function GdprTab({ token }) {
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: 13, cursor: 'pointer', minHeight: 44 }}>
           <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: '#00d4ff', width: 20, height: 20 }} />
-          I confirm this action is authorized and irreversible
+          I Confirm This Action Is Authorized And Irreversible
         </label>
         <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: '#ef4444', color: '#f3f4f6', maxWidth: 200 }}>
           {loading ? 'Erasing…' : 'Erase User Content'}
@@ -757,19 +757,19 @@ export default function HgModerationPage() {
     return () => { active = false; };
   }, [token, ready, router]);
 
-  if (!authChecked) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Verifying access…</div>;
+  if (!authChecked) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Verifying Access…</div>;
   if (!authed && authFailure) return (
     <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
-      <div role="alert" style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Could not verify your role</div>
+      <div role="alert" style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Could Not Verify Your Role</div>
       <div style={{ color: '#9ca3af', fontSize: 14, maxWidth: 480 }}>
-        {authFailure}. This is a failed check, not a refusal - your access has not changed.
+        {authFailure}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
       </div>
       <button onClick={() => router.reload()} style={{ background: '#00d4ff', color: '#0a0e17', border: 'none',
         padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
     </div>
   );
-  if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 - Admin access required</div>;
+  if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 - Admin Access Required</div>;
 
   return (
     <>
@@ -781,10 +781,10 @@ export default function HgModerationPage() {
       <div className="hgm-root hgm-page" style={{ minHeight: '100vh', background: '#0a0e17', color: '#f3f4f6', fontFamily: 'Inter,-apple-system,sans-serif', padding: '24px 20px 80px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-            <button onClick={() => router.push('/horses')} style={S.backBtn}>&larr; Back to Horses</button>
+            <button onClick={() => router.push('/horses')} style={S.backBtn}>&larr; Back To Horses</button>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: '#f3f4f6' }}>Home Games Moderation</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-staff surface - all escalation categories, cross-group actions, GDPR tools</p>
+          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-Staff Surface - All Escalation Categories, Cross-Group Actions, GDPR Tools</p>
 
           {/* Tab bar */}
           <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>

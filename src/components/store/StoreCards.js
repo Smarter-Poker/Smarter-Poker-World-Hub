@@ -52,7 +52,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     </div>
                     {pkg.bonus > 0 && (
                         <div style={{ fontSize: 11, color: '#00d4ff', fontWeight: 600 }}>
-                            ({(pkg.diamonds || 0).toLocaleString()} + {(pkg.bonus || 0).toLocaleString()} bonus)
+                            ({(pkg.diamonds || 0).toLocaleString()} + {(pkg.bonus || 0).toLocaleString()} Bonus)
                         </div>
                     )}
                 </div>

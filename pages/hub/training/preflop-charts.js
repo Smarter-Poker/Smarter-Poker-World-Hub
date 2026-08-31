@@ -213,24 +213,24 @@ export default function PreflopCharts() {
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
-              Each chart shows the solver-correct mix for a given position,
-              opening size, and stack depth. Highlighted cells are the
-              hands you should open, raise, 3-bet, call, or fold - colored
-              by frequency for mixed strategies.
+              Each Chart Shows The Solver-Correct Mix For A Given Position,
+              Opening Size, And Stack Depth. Highlighted Cells Are The
+              Hands You Should Open, Raise, 3-Bet, Call, Or Fold - Colored
+              By Frequency For Mixed Strategies.
             </p>
             <p>
               <strong style={{ color: 'var(--sp-accent-cyan)' }}>RFI</strong>
-              charts show your first-in raising range.
+              Charts Show Your First-In Raising Range.
               <strong style={{ color: 'var(--sp-accent-purple)' }}> Vs RFI</strong>
-              charts show how to respond to an opener.
-              <strong style={{ color: 'var(--sp-accent-green)' }}> 3-bet</strong>
-              charts show 3-bet ranges when facing an open.
+              Charts Show How To Respond To An Opener.
+              <strong style={{ color: 'var(--sp-accent-green)' }}> 3-Bet</strong>
+              Charts Show 3-Bet Ranges When Facing An Open.
             </p>
             <p>
-              Use the position selector to step through every hot seat. The
-              difficulty controls simplify the mix so you can drill the
-              high-EV approximations first before learning the optimal
-              mixed-frequencies.
+              Use The Position Selector To Step Through Every Hot Seat. The
+              Difficulty Controls Simplify The Mix So You Can Drill The
+              High-EV Approximations First Before Learning The Optimal
+              Mixed-Frequencies.
             </p>
           </div>
         </BottomSheet>
@@ -273,7 +273,7 @@ export default function PreflopCharts() {
                 textTransform: 'uppercase',
               }}
             >
-              How it works
+              How It Works
             </button>
             <h1
               style={{
@@ -608,7 +608,7 @@ export default function PreflopCharts() {
                       margin: '0 auto',
                     }}
                   />
-                  <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 8 }}>Loading range...</p>
+                  <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 8 }}>Loading Range...</p>
                   <style>{`
                     @keyframes spin {
                       to {
@@ -640,7 +640,7 @@ export default function PreflopCharts() {
                     fontSize: 13,
                   }}
                 >
-                  No range data available for this configuration
+                  No Range Data Available For This Configuration
                 </div>
               )}
             </div>
@@ -744,30 +744,30 @@ export default function PreflopCharts() {
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               {scenario === 'rfi' && (
                 <>
-                  Open-raising range (RFI) shows which hands to raise with when folded to you in
-                  this position. Pure raise (100%) hands are always opened. Mixed frequency hands
-                  are sometimes raised, sometimes folded - use a randomizer to stay GTO.
+                  Open-Raising Range (RFI) Shows Which Hands To Raise With When Folded To You In
+                  This Position. Pure Raise (100%) Hands Are Always Opened. Mixed Frequency Hands
+                  Are Sometimes Raised, Sometimes Folded - Use A Randomizer To Stay GTO.
                 </>
               )}
               {scenario === 'vs3bet' && (
                 <>
-                  Shows how to react when you open-raise and face a 3-bet. High-equity hands 4-bet,
-                  medium-equity hands flat call, and the rest fold. Mixed frequencies are common -
-                  exact GTO play requires randomization.
+                  Shows How To React When You Open-Raise And Face A 3-Bet. High-Equity Hands 4-Bet,
+                  Medium-Equity Hands Flat Call, And The Rest Fold. Mixed Frequencies Are Common -
+                  Exact GTO Play Requires Randomization.
                 </>
               )}
               {scenario === 'bb_defense' && (
                 <>
-                  BB defense range against an open-raise from the selected position. Wider defense
-                  ranges apply against late position opens (BTN, CO) and tighter ranges vs early
-                  position (UTG, MP). Includes both call and 3-bet frequencies.
+                  BB Defense Range Against An Open-Raise From The Selected Position. Wider Defense
+                  Ranges Apply Against Late Position Opens (BTN, CO) And Tighter Ranges Vs Early
+                  Position (UTG, MP). Includes Both Call And 3-Bet Frequencies.
                 </>
               )}
               {scenario === 'push_fold' && (
                 <>
-                  Short-stack push/fold charts for the selected stack depth. Based on Nash
-                  equilibrium calculations. At very short stacks (under 10BB), ranges widen
-                  significantly as fold equity becomes the dominant factor.
+                  Short-Stack Push/Fold Charts For The Selected Stack Depth. Based On Nash
+                  Equilibrium Calculations. At Very Short Stacks (Under 10BB), Ranges Widen
+                  Significantly As Fold Equity Becomes The Dominant Factor.
                 </>
               )}
             </p>

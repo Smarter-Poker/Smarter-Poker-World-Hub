@@ -423,7 +423,7 @@ export default function QuizBuilderPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Quiz Builder</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create custom GTO scenarios</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create Custom GTO Scenarios</div>
           </div>
         </div>
 
@@ -599,7 +599,7 @@ export default function QuizBuilderPage() {
                       {quiz.name}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                      {quiz.questions.length} questions · Created{' '}
+                      {quiz.questions.length} Questions · Created{' '}
                       {new Date(quiz.createdAt).toLocaleDateString()}
                     </div>
                   </div>

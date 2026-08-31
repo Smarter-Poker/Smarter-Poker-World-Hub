@@ -433,7 +433,7 @@ function CategoryCard({ category, total, correct, accuracy }) {
         </span>
       </div>
       <div style={styles.categoryStats}>
-        {correct}/{total} correct
+        {correct}/{total} Correct
       </div>
       <div style={styles.progressBar}>
         <div
@@ -455,7 +455,7 @@ function WeakAreaCard({ category, accuracy, total }) {
         <span>{category}</span>
         <span style={styles.weakAreaAccuracy}>{accuracy}%</span>
       </div>
-      <p style={styles.weakAreaHint}>Practice more {category} questions to improve</p>
+      <p style={styles.weakAreaHint}>Practice More {category} Questions To Improve</p>
     </div>
   );
 }
@@ -469,7 +469,7 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
       <div style={styles.activityDetails}>
         <div style={styles.activityCategory}>{category}</div>
         <div style={styles.activityStats}>
-          {correct}/{questions} correct ({accuracy}%)
+          {correct}/{questions} Correct ({accuracy}%)
         </div>
       </div>
     </div>

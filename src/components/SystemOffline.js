@@ -23,7 +23,7 @@ function SystemOffline({ bootState }) {
                 {/* Status */}
                 <div style={styles.status}>
                     <p style={styles.subtitle}>
-                        System initialization failed. The system is in fail-closed mode.
+                        System Initialization Failed. The System Is In Fail-Closed Mode.
                     </p>
                 </div>
 
@@ -50,15 +50,15 @@ function SystemOffline({ bootState }) {
                     <h3 style={styles.envTitle}>Required Environment Variables</h3>
                     <code style={styles.envCode}>
                         NEXT_PUBLIC_ANTIGRAVITY_ENABLED=true{'\n'}
-                        NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co{'\n'}
-                        NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+                        NEXT_PUBLIC_SUPABASE_URL=Https://Your-Project.Supabase.co{'\n'}
+                        NEXT_PUBLIC_SUPABASE_ANON_KEY=Your-Anon-Key
                     </code>
                 </div>
 
                 {/* Timestamp */}
                 <div style={styles.footer}>
                     <span style={styles.timestamp}>
-                        Boot attempted: {bootState?.timestamp || 'Unknown'}
+                        Boot Attempted: {bootState?.timestamp || 'Unknown'}
                     </span>
                 </div>
             </div>

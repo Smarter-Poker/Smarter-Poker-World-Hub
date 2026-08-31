@@ -407,7 +407,7 @@ export default function ReplayTheaterPage() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Replay Theater</div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Review and learn from your mistakes
+              Review And Learn From Your Mistakes
             </div>
           </div>
         </div>
@@ -554,7 +554,7 @@ export default function ReplayTheaterPage() {
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-red)' }}>{worstLeak[0]}</div>
-                  <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} mistakes · {worstLeak[1].evLoss.toFixed(1)} BB lost</div>
+                  <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} Mistakes · {worstLeak[1].evLoss.toFixed(1)} BB Lost</div>
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}

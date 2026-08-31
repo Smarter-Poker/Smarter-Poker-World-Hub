@@ -274,8 +274,8 @@ export default function StudyGroupFinderPage() {
                   <div
                     style={{ fontSize: 11, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
                   >
-                    Create a persistent Smarter.Poker room. Members can join from this finder and
-                    participate in the room discussion.
+                    Create A Persistent Smarter.Poker Room. Members Can Join From This Finder And
+                    Participate In The Room Discussion.
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <input
@@ -556,7 +556,7 @@ export default function StudyGroupFinderPage() {
                           {g.members}/{g.max}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>
-                          {slotsLeft} {slotsLeft === 1 ? 'slot' : 'slots'} left
+                          {slotsLeft} {slotsLeft === 1 ? 'slot' : 'slots'} Left
                         </div>
                       </div>
                       <motion.button

@@ -60,7 +60,7 @@ test('stats reads the completed boolean contract and normalizes mixed accuracy u
   assert.doesNotMatch(STATS, /\.eq\('status', 'completed'\)/);
   assert.match(STATS, /accuracyToPercent\(session\.accuracy, session\.score\)/);
   assert.doesNotMatch(STATS, /getPlaceholderStats|getPlaceholderLevelAccuracy/);
-  for (const preservedSignal of ['Total score', 'Diamonds earned', 'Highest level', 'Recent trend', 'Focus stations']) {
+  for (const preservedSignal of ['Total score', 'Diamonds earned', 'Highest level', 'Recent trend', 'Focus Stations']) {
     assert.match(STATS, new RegExp(preservedSignal));
   }
 });

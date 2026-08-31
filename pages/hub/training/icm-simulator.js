@@ -318,8 +318,8 @@ export default function IcmSimulatorPage() {
                 ICM Value Distribution
               </div>
               <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 32 }}>
-                Independent Chip Model converts raw tournament chips into actual dollar equity
-                mapped to the remaining prize pool structure.
+                Independent Chip Model Converts Raw Tournament Chips Into Actual Dollar Equity
+                Mapped To The Remaining Prize Pool Structure.
               </div>
 
               {equities.length > 0 ? (
@@ -408,7 +408,7 @@ export default function IcmSimulatorPage() {
                 <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
                   <div style={{ fontSize: 48, marginBottom: 16 }}>■</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>Run Solver</div>
-                  <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill in stacks and payouts.</div>
+                  <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill In Stacks And Payouts.</div>
                 </div>
               )}
             </div>

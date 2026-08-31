@@ -80,8 +80,8 @@ export default function QuickSignup() {
         return (
             <main style={S.page}>
                 <div style={S.card}>
-                    <h1 style={S.h1}>Account created</h1>
-                    <p style={S.p}>Check your email for a confirmation link, then <a href="/auth/login" style={S.link}>sign in</a>.</p>
+                    <h1 style={S.h1}>Account Created</h1>
+                    <p style={S.p}>Check Your Email For A Confirmation Link, Then <a href="/auth/login" style={S.link}>Sign In</a>.</p>
                 </div>
             </main>
         );
@@ -92,8 +92,8 @@ export default function QuickSignup() {
             <div style={S.card}>
                 <h1 style={S.h1}>Quick Signup</h1>
                 <p style={S.p}>
-                    Backup signup path - minimal form, no analytics, no fancy validation.
-                    {' '}<a href="/auth/signup" style={S.link}>Use the full signup instead</a>.
+                    Backup Signup Path - Minimal Form, No Analytics, No Fancy Validation.
+                    {' '}<a href="/auth/signup" style={S.link}>Use The Full Signup Instead</a>.
                 </p>
                 <form onSubmit={submit} style={S.form} autoComplete="on">
                     <input
@@ -139,7 +139,7 @@ export default function QuickSignup() {
                     </button>
                 </form>
                 <p style={{ ...S.p, marginTop: 24, fontSize: 13 }}>
-                    By signing up you agree to our <a href="/terms" style={S.link}>Terms</a> and <a href="/privacy" style={S.link}>Privacy Policy</a>.
+                    By Signing Up You Agree To Our <a href="/terms" style={S.link}>Terms</a> And <a href="/privacy" style={S.link}>Privacy Policy</a>.
                 </p>
             </div>
         </main>

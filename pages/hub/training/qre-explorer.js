@@ -221,7 +221,7 @@ export default function QREExplorerPage() {
                   Rationality Parameter (λ)
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                  0 = random play → ∞ = perfect GTO
+                  0 = Random Play → ∞ = Perfect GTO
                 </div>
               </div>
               <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>

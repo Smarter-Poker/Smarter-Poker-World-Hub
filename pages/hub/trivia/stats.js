@@ -291,7 +291,7 @@ export default function TriviaStats() {
                                 marginBottom: '20px'
                             }}
                         >
-                            Back to Trivia
+                            Back To Trivia
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '30px' }}>
@@ -300,7 +300,7 @@ export default function TriviaStats() {
 
                         {isLoading ? (
                             <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading stats...
+                                Loading Stats...
                             </div>
                         ) : loadError ? (
                             <div role="alert" style={{
@@ -379,8 +379,8 @@ export default function TriviaStats() {
                                             Last 30 Days
                                         </h2>
                                         <div style={{ color: '#65676b', fontSize: '13px', marginBottom: '16px' }}>
-                                            {recentTrend.reduce((sum, d) => sum + d.games, 0)} games ·{' '}
-                                            {recentTrend.filter(d => d.games > 0).length} active days
+                                            {recentTrend.reduce((sum, d) => sum + d.games, 0)} Games ·{' '}
+                                            {recentTrend.filter(d => d.games > 0).length} Active Days
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '72px' }}>
                                             {recentTrend.map(d => {
@@ -440,7 +440,7 @@ export default function TriviaStats() {
                                 textAlign: 'center'
                             }}>
                                 <p style={{ color: '#e4e6eb', fontSize: '18px', marginBottom: '16px' }}>
-                                    No trivia games played yet!
+                                    No Trivia Games Played Yet!
                                 </p>
                                 <button
                                     onClick={() => router.push('/hub/trivia')}

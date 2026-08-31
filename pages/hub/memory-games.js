@@ -1396,13 +1396,13 @@ export default function MemoryGamesPage() {
                                 <div className="preflop-hero-copy">
                                     <span className="preflop-eyebrow">GTO RANGE COMMAND</span>
                                     <h1>Preflop Charts</h1>
-                                    <p>Master GTO ranges through high-pressure training.</p>
+                                    <p>Master GTO Ranges Through High-Pressure Training.</p>
                                     {memoryDashboard?.current_grade && memoryDashboard?.rolling_30d_sessions > 0 && (
                                         <div className="preflop-grade-chip" aria-label={`Current GTO grade ${memoryDashboard.current_grade}`}>
                                             <span>{memoryDashboard.current_grade}</span>
-                                            <span>{memoryDashboard.rolling_accuracy_pct}% across last 30 days</span>
+                                            <span>{memoryDashboard.rolling_accuracy_pct}% Across Last 30 Days</span>
                                             {memoryDashboard.mastered_levels_count > 0 && (
-                                                <span>· {memoryDashboard.mastered_levels_count}/10 mastered</span>
+                                                <span>· {memoryDashboard.mastered_levels_count}/10 Mastered</span>
                                             )}
                                         </div>
                                     )}
@@ -1447,16 +1447,16 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-smart-copy">
                                         <div className="preflop-panel-kicker"><BrainCircuit size={15} aria-hidden /> AI TRAINING LINK</div>
                                         <h2 id="smart-practice-title">Smart Practice</h2>
-                                        <p>Jarvis analyzes your history and creates personalized training.</p>
+                                        <p>Jarvis Analyzes Your History And Creates Personalized Training.</p>
 
                                     {/* Weak Spots Display */}
                                     {weakSpots.length > 0 && (
                                         <div className="preflop-weak-spots">
-                                            <div className="preflop-weak-label">Areas to Improve</div>
+                                            <div className="preflop-weak-label">Areas To Improve</div>
                                             {weakSpots.slice(0, 2).map((spot, i) => (
                                                 <div key={i} className="preflop-weak-row">
                                                     <span>{spot.area}</span>
-                                                    <span>{spot.errorCount} errors</span>
+                                                    <span>{spot.errorCount} Errors</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1739,7 +1739,7 @@ export default function MemoryGamesPage() {
                                                     }}>{personalBest.grade}</span>
                                                 )}
                                                 {personalBest.plays && (
-                                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{personalBest.plays} plays</span>
+                                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{personalBest.plays} Plays</span>
                                                 )}
                                             </div>
                                         )}
@@ -1787,7 +1787,7 @@ export default function MemoryGamesPage() {
                                             GLOBAL LEADERBOARD
                                         </h2>
                                         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                                            Compete with players worldwide. Top scores win prizes!
+                                            Compete With Players Worldwide. Top Scores Win Prizes!
                                         </p>
                                     </div>
 
@@ -1859,12 +1859,12 @@ export default function MemoryGamesPage() {
                                         {leaderboardLoading ? (
                                             <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
                                                 <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                                                Loading rankings...
+                                                Loading Rankings...
                                             </div>
                                         ) : leaderboardData.length === 0 ? (
                                             <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
                                                 <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                                No rankings yet. Be the first!
+                                                No Rankings Yet. Be The First!
                                             </div>
                                         ) : (
                                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1962,14 +1962,14 @@ export default function MemoryGamesPage() {
                                             DAILY CHALLENGE
                                         </h2>
                                         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>
-                                            Complete today's challenge to keep your streak alive!
+                                            Complete Today's Challenge To Keep Your Streak Alive!
                                         </p>
                                     </div>
 
                                     {challengeLoading ? (
                                         <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
                                             <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                                            Loading today's challenge...
+                                            Loading Today's Challenge...
                                         </div>
                                     ) : challengeCompleted ? (
                                         <div style={{
@@ -1984,7 +1984,7 @@ export default function MemoryGamesPage() {
                                                 CHALLENGE COMPLETE!
                                             </h3>
                                             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
-                                                Come back tomorrow for a new challenge!
+                                                Come Back Tomorrow For A New Challenge!
                                             </p>
                                             <div style={{ marginTop: 20, fontSize: 18, color: '#FFD700' }}>
                                                 +{dailyChallenge?.diamond_reward || 50} Diamonds Earned!
@@ -2096,7 +2096,7 @@ export default function MemoryGamesPage() {
                                                 No Challenge Available
                                             </h3>
                                             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                                                Check back soon for today's challenge!
+                                                Check Back Soon For Today's Challenge!
                                             </p>
                                         </div>
                                     )}
@@ -2113,7 +2113,7 @@ export default function MemoryGamesPage() {
                                             STREAK REWARDS
                                         </div>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                                            7 days: +100Diamonds bonus • 30 days: +500Diamonds bonus • 100 days: +2000Diamonds bonus
+                                            7 Days: +100Diamonds Bonus • 30 Days: +500Diamonds Bonus • 100 Days: +2000Diamonds Bonus
                                         </div>
                                     </div>
                                 </div>
@@ -2126,7 +2126,7 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-level-toolbar">
                                         <div>
                                             <span className="preflop-panel-kicker">RANGE PROGRESSION</span>
-                                            <h3>Select a Level</h3>
+                                            <h3>Select A Level</h3>
                                         </div>
                                         <div className="preflop-level-actions">
                                             {/* AI Generation Toggle (VIP Feature) */}
@@ -2177,26 +2177,26 @@ export default function MemoryGamesPage() {
                                     <div className="preflop-circuit-status" aria-label="Range progression status">
                                         <div className="preflop-circuit-label">
                                             <span>PROGRESSION CIRCUIT</span>
-                                            <strong>Training path online</strong>
+                                            <strong>Training Path Online</strong>
                                         </div>
                                         <div className="preflop-circuit-stat is-current">
                                             <Target size={16} aria-hidden />
                                             <span>
-                                                <small>Current station</small>
+                                                <small>Current Station</small>
                                                 <strong>Level {currentLevel}</strong>
                                             </span>
                                         </div>
                                         <div className="preflop-circuit-stat is-mastery">
                                             <ShieldCheck size={16} aria-hidden />
                                             <span>
-                                                <small>Next mastery gate</small>
-                                                <strong>Level {highestUnlockedLevel} open <em>· {masteredLevelCount} mastered</em></strong>
+                                                <small>Next Mastery Gate</small>
+                                                <strong>Level {highestUnlockedLevel} Open <em>· {masteredLevelCount} Mastered</em></strong>
                                             </span>
                                         </div>
                                         <div className={`preflop-circuit-stat is-pool${activeScenarioFilterCount > 0 ? ' has-filters' : ''}`}>
                                             <Filter size={15} aria-hidden />
                                             <span>
-                                                <small>Practice pool</small>
+                                                <small>Practice Pool</small>
                                                 <strong>{filteredScenarioCount}/{ALL_TRAINING_SCENARIOS.length} <em>· {activeScenarioFilterCount > 0 ? `${activeScenarioFilterCount} active` : 'Full range'}</em></strong>
                                             </span>
                                         </div>
@@ -2308,7 +2308,7 @@ export default function MemoryGamesPage() {
                                         <div>
                                             <div className="preflop-mastery-title">85% Mastery Gate</div>
                                             <div className="preflop-mastery-desc">
-                                                Master each level at 85% or better to permanently open the next station. Five passes in one session also unlock it immediately.
+                                                Master Each Level At 85% Or Better To Permanently Open The Next Station. Five Passes In One Session Also Unlock It Immediately.
                                             </div>
                                         </div>
                                     </div>
@@ -2447,7 +2447,7 @@ export default function MemoryGamesPage() {
                                 <div className="preflop-vip-panel">
                                     <div className="preflop-vip-seal">VIP</div>
                                     <div className="preflop-vip-copy">
-                                        <div>Go VIP - $19.99/month</div>
+                                        <div>Go VIP - $19.99/Month</div>
                                         <p>Unlimited Games • All Levels • No Diamond Cost • Exclusive Modes</p>
                                     </div>
                                     <button type="button" onClick={handleVipUpgrade} disabled={vipCheckoutPending}>
@@ -2566,13 +2566,13 @@ export default function MemoryGamesPage() {
                                 color: '#FFD700',
                                 marginBottom: 10,
                             }}>
-                                Jarvis is generating your scenario...
+                                Jarvis Is Generating Your Scenario...
                             </div>
                             <div style={{
                                 fontSize: 14,
                                 color: 'rgba(255, 255, 255, 0.6)',
                             }}>
-                                Creating a unique, solver-accurate training challenge
+                                Creating A Unique, Solver-Accurate Training Challenge
                             </div>
                             <style>{`
                                 @keyframes pulse {
@@ -2612,13 +2612,13 @@ export default function MemoryGamesPage() {
                                         <>
                                             <Clock3 size={18} aria-hidden />
                                             <strong style={{ color: getTimerColor() }}>{timeRemaining}</strong>
-                                            <span>seconds</span>
+                                            <span>Seconds</span>
                                         </>
                                     ) : (
                                         <>
                                             <Clock3 size={18} aria-hidden />
                                             <strong className="preflop-lab-timer-hidden">-</strong>
-                                            <span>timer hidden</span>
+                                            <span>Timer Hidden</span>
                                         </>
                                     )}
                                 </div>
@@ -2640,9 +2640,9 @@ export default function MemoryGamesPage() {
                                 <div className="preflop-lab-action-header">
                                     <div>
                                         <span className="preflop-lab-section-index">01</span>
-                                        <span>Choose action</span>
+                                        <span>Choose Action</span>
                                     </div>
-                                    <span>{markedHandCount} hand{markedHandCount === 1 ? '' : 's'} marked</span>
+                                    <span>{markedHandCount} hand{markedHandCount === 1 ? '' : 's'} Marked</span>
                                 </div>
                                 <div className="preflop-lab-actions" aria-label="Range actions">
                                     {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
@@ -2661,7 +2661,7 @@ export default function MemoryGamesPage() {
                                     ))}
                                 </div>
                                 <div className="preflop-lab-shape-tools" aria-label="Quick range shapes">
-                                    <span>Apply active action to</span>
+                                    <span>Apply Active Action To</span>
                                     <button type="button" onClick={() => handleFillShape('pairs')} disabled={!!gradeResult}>Pairs</button>
                                     <button type="button" onClick={() => handleFillShape('suited')} disabled={!!gradeResult}>Suited</button>
                                     <button type="button" onClick={() => handleFillShape('offsuit')} disabled={!!gradeResult}>Offsuit</button>
@@ -2674,7 +2674,7 @@ export default function MemoryGamesPage() {
                                 aria-label="Range editing controls"
                             >
                                 <div className="preflop-lab-active-tool">
-                                    <span>Active tool</span>
+                                    <span>Active Tool</span>
                                     <strong>
                                         <i aria-hidden />
                                         {ACTION_COLORS[selectedAction]?.label || selectedAction}
@@ -2697,8 +2697,8 @@ export default function MemoryGamesPage() {
                                     ))}
                                 </div>
                                 <div className="preflop-lab-command-counts" aria-label={`${markedHandCount} hand${markedHandCount === 1 ? '' : 's'} marked; ${selectedActionCount} use the active action`}>
-                                    <span><strong>{markedHandCount}</strong> marked</span>
-                                    <span><strong>{selectedActionCount}</strong> active</span>
+                                    <span><strong>{markedHandCount}</strong> Marked</span>
+                                    <span><strong>{selectedActionCount}</strong> Active</span>
                                 </div>
                                 <div className="preflop-lab-edit-tools">
                                     <button
@@ -2735,9 +2735,9 @@ export default function MemoryGamesPage() {
                                 <div className="preflop-lab-matrix-heading">
                                     <div>
                                         <span className="preflop-lab-section-index">02</span>
-                                        <span>Build your range</span>
+                                        <span>Build Your Range</span>
                                     </div>
-                                    <span>Tap a hand to apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
+                                    <span>Tap A Hand To Apply {ACTION_COLORS[selectedAction]?.label || selectedAction}</span>
                                 </div>
                                 <PreflopRangeMatrix
                                     ranks={RANKS}
@@ -2755,21 +2755,21 @@ export default function MemoryGamesPage() {
                                 {!gradeResult ? (
                                     <button type="button" onClick={() => handleSubmit()} className="preflop-lab-submit" disabled={!timerActive}>
                                         <Send size={18} aria-hidden />
-                                        <span>Submit range</span>
+                                        <span>Submit Range</span>
                                         {preferences.keyboardShortcuts !== false && <kbd>Space</kbd>}
                                     </button>
                                 ) : (
                                     <div className="preflop-lab-result-actions">
                                         <button type="button" onClick={() => setMode('menu')}>
                                             <RotateCcw size={17} aria-hidden />
-                                            Training menu
+                                            Training Menu
                                         </button>
                                         <button type="button" onClick={handleRetry}>
                                             <RotateCcw size={17} aria-hidden />
-                                            Retry this range
+                                            Retry This Range
                                         </button>
                                         <button type="button" onClick={handleNext} className="is-primary">
-                                            Next scenario
+                                            Next Scenario
                                             <ArrowRight size={17} aria-hidden />
                                         </button>
                                     </div>
@@ -2793,14 +2793,14 @@ export default function MemoryGamesPage() {
                                             <strong>{gradeResult.extraHands.length}</strong>
                                         </div>
                                         <div data-result="wrong">
-                                            <span>Wrong action</span>
+                                            <span>Wrong Action</span>
                                             <strong>{gradeResult.wrongActionHands.length}</strong>
                                         </div>
                                     </div>
                                     {gradeResult.score >= 85 && lastReward && (
                                         <div className="preflop-lab-reward">
                                             <Gem size={17} aria-hidden />
-                                            +{lastReward.diamonds} diamonds earned · ×{multiplier} multiplier
+                                            +{lastReward.diamonds} Diamonds Earned · ×{multiplier} Multiplier
                                         </div>
                                     )}
 
@@ -2830,7 +2830,7 @@ export default function MemoryGamesPage() {
                                                 width: '100%'
                                             }}
                                         >
-                                            Ask Jarvis: Why was I wrong?
+                                            Ask Jarvis: Why Was I Wrong?
                                         </button>
                                         <button
                                             onClick={() => fetchCoachAnalysis(gradeResult)}
@@ -2873,7 +2873,7 @@ export default function MemoryGamesPage() {
                                             {coachAnalysis.loading ? (
                                                 <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255, 255, 255, 0.6)' }}>
                                                     <div style={{ marginBottom: 8 }}>...</div>
-                                                    Jarvis is analyzing your game...
+                                                    Jarvis Is Analyzing Your Game...
                                                 </div>
                                             ) : coachAnalysis.analysis ? (
                                                 <div>

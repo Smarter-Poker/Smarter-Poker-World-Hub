@@ -25,7 +25,7 @@ showLoginPrompt, setShowLoginPrompt
               </div>
               <h3 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Sign In Required</h3>
               <p style={{ color: 'rgba(200,214,229,0.5)', fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
-                You need to be signed in to check in at venues and leave reviews. Create a free account to unlock all features.
+                You Need To Be Signed In To Check In At Venues And Leave Reviews. Create A Free Account To Unlock All Features.
               </p>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                 <button onClick={() => setShowLoginPrompt(false)} style={{
