@@ -72,7 +72,14 @@ async function processClaimedJob(job, workerToken, origin) {
   }
 
   const batchMs = Date.now() - startedAt;
-  let progress = mergeAuditJobProgress(job.progress, body, batchMs);
+  // A final detector page can finish analysis before persistence or
+  // reconciliation fails. Its metrics are already present in the durable
+  // checkpoint, so a resume must retry finalization without counting that
+  // same page a second time.
+  const retryingFinalization = job.progress?.finalBatchAwaitingPersistence === true;
+  let progress = mergeAuditJobProgress(job.progress, body, batchMs, {
+    countAcceptedBatch: !retryingFinalization,
+  });
   const transient = (response.status === 508)
     || ([429, 502, 503, 504].includes(response.status) && body?.retryable === true);
   if (!response.ok || body?.success === false) {
@@ -135,14 +142,19 @@ async function processClaimedJob(job, workerToken, origin) {
   if (!persistenceComplete) {
     await checkpoint(job.id, workerToken, {
       status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
-      progress: { ...progress, complete: false },
+      progress: { ...progress, complete: false, finalBatchAwaitingPersistence: true },
       errorCode: 'audit_persistence_incomplete',
       errorMessage: 'The audit evidence was analyzed, but every result could not be durably reconciled. Restarting will retry the saved checkpoint.',
     });
     return;
   }
 
-  progress = { ...progress, complete: true, cursorFingerprint: null };
+  progress = {
+    ...progress,
+    complete: true,
+    cursorFingerprint: null,
+    finalBatchAwaitingPersistence: undefined,
+  };
   const reconciliation = await reconcileAuditEvidence(db(), job.user_id, progress);
   const result = {
     ...body,
@@ -159,7 +171,7 @@ async function processClaimedJob(job, workerToken, origin) {
   if (reconciliation?.consistent !== true) {
     await checkpoint(job.id, workerToken, {
       status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
-      progress: { ...progress, complete: false }, reconciliation,
+      progress: { ...progress, complete: false, finalBatchAwaitingPersistence: true }, reconciliation,
       errorCode: 'audit_reconciliation_failed',
       errorMessage: 'The deterministic audit finished, but its stored evidence did not reconcile. Restarting will verify the saved checkpoint again.',
     });
