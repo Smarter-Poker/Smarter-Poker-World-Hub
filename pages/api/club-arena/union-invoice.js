@@ -35,6 +35,8 @@
  */
 
 const { createClient } = require('../../../src/lib/supabaseServerClient');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -110,6 +112,23 @@ export default async function handler(req, res) {
             const token = (req.headers.authorization || '').replace('Bearer ', '') || null;
             const auth = await verifyUnionLead(supabase, token, unionId);
             if (!auth.ok) return res.status(auth.status).json({ success: false, error: auth.error });
+
+            // ZERO-DRIFT (2026-08-31): idempotency on the mutating path
+            // (issue/send), interactive callers only. The Monday CRON caller
+            // sends no client key and fn_union_issue_weekly_invoices is
+            // already one-invoice-per-period with message_sent stopping
+            // double delivery.
+            // Enforced only when the client supplies a key, so existing
+            // callers without the header keep working; the union UI should
+            // start sending X-Idempotency-Key on issue/send.
+            if (req.method === 'POST' && (action === 'issue' || action === 'send') && !dryRun
+                && req.headers['x-idempotency-key']) {
+                if (checkIdempotency(req, res)) return;
+                const { proceed } = await beginIdempotent(
+                    supabase, req, res, `union-invoice:${auth.user.id}:${unionId}:${action}`
+                );
+                if (!proceed) return;
+            }
         }
 
         // Default period is the week that just closed, matching the settlement

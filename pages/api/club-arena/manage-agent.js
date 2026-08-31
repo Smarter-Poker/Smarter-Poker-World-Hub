@@ -17,6 +17,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { validateManageAgent } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
@@ -86,6 +87,15 @@ export default async function handler(req, res) {
     if (params.playerId && !UUID_RE.test(params.playerId)) return res.status(400).json({ success: false, error: 'Invalid playerId format' });
     if (params.parentAgentUserId && !UUID_RE.test(params.parentAgentUserId)) return res.status(400).json({ success: false, error: 'Invalid parentAgentUserId format' });
     if (params.parentAgentId && params.parentAgentId !== null && !UUID_RE.test(params.parentAgentId)) return res.status(400).json({ success: false, error: 'Invalid parentAgentId format' });
+
+    // ZERO-DRIFT (2026-08-31): durable idempotency for mutation actions —
+    // the checkIdempotency call above is per-lambda only.
+    if (mutationActions.includes(action)) {
+      const { proceed } = await beginIdempotent(
+        supabaseAdmin, req, res, `manage-agent:${user.id}:${clubId}:${action}`
+      );
+      if (!proceed) return;
+    }
 
     // Settlement lock — block chip-moving actions during settlement window
     const chipMovingActions = ['remove', 'promote', 'demote'];
