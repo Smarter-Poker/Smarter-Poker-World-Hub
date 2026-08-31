@@ -230,6 +230,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   test('populated cart fits 320px and exposes accessible payment choices', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.addInitScript(() => {
+      const explicitAuth = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
+      const cachedUser = JSON.parse(window.localStorage.getItem('sp-cached-header-user') || '{}');
+      const ownerId = explicitAuth?.user?.id || cachedUser?.id || 'guest';
       window.localStorage.setItem('smarter-poker-cart', JSON.stringify({
         state: {
           items: [{
@@ -241,8 +244,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             type: 'merchandise',
             image: '/images/merch/neural-steel/mockups/diamond-altitude-hoodie.webp',
           }],
+          ownerId,
         },
-        version: 0,
+        version: 2,
       }));
     });
 

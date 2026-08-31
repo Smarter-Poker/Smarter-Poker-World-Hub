@@ -159,6 +159,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toHaveAttribute('data-footer-world', entry.id);
       await expect(nav).toHaveAttribute('data-footer-artwork', definition!.artwork.src);
       await expect(nav).toHaveCSS('position', 'fixed');
+      await expect(nav).toHaveCSS('pointer-events', 'none');
 
       const links = nav.getByRole('link');
       await expect(links).toHaveCount(6);
@@ -175,6 +176,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const stage = nav.locator('.bn-artwork-stage');
       const artwork = nav.locator('[data-exact-approved-artwork="true"]');
       await expect(stage).toHaveCount(1);
+      await expect(stage).toHaveCSS('pointer-events', 'none');
       await expect(artwork).toHaveCount(1);
       await expect(artwork).toBeVisible();
       await expect(artwork).toHaveCSS('object-fit', 'contain');
@@ -207,6 +209,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         expect(linkBox!.x).toBeGreaterThanOrEqual(stageBox!.x - 1);
         expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(stageBox!.x + stageBox!.width + 1);
         await expect(link.locator('svg')).toHaveCount(0);
+        await expect(link).toHaveCSS('pointer-events', 'auto');
         expect((await link.textContent()) || '').toBe('');
       }
 

@@ -890,6 +890,7 @@ function MerchProductCard({
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MerchStore({
   user = null,
+  authResolved = true,
   focusProductId = null,
   detailMode = false,
   initialProduct = null,
@@ -934,8 +935,9 @@ export default function MerchStore({
   const { balance, refreshBalance, setBalance } = useDiamondBalance(user?.id || null);
 
   useEffect(() => {
+    if (!authResolved) return;
     setCartOwner(user?.id || 'guest');
-  }, [setCartOwner, user?.id]);
+  }, [authResolved, setCartOwner, user?.id]);
 
   useEffect(() => {
     let cancelled = false;

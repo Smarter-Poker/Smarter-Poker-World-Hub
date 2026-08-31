@@ -102,10 +102,12 @@ test('card settlement, webhook leases, refunds, and card-funded redemption are d
 });
 
 test('cart ownership, current variant price, and balance broadcasts survive reloads', async () => {
-  const [cartStore, cartPage, merchStore, balanceHook] = await Promise.all([
+  const [cartStore, cartPage, merchStore, detailPage, storePage, balanceHook] = await Promise.all([
     read('src/stores/cartStore.js'),
     read('pages/hub/diamond-store/cart.js'),
     read('src/components/store/MerchStore.jsx'),
+    read('pages/hub/merch-store/[productId].js'),
+    read('pages/hub/diamond-store.js'),
     read('src/hooks/useDiamondBalance.js'),
   ]);
   assert.match(cartStore, /ownerId: 'guest'/);
@@ -113,6 +115,9 @@ test('cart ownership, current variant price, and balance broadcasts survive relo
   assert.match(cartPage, /cartLoadRequestRef/);
   assert.match(cartPage, /isCurrentCartLoad/);
   assert.match(merchStore, /variant\?\.priceUsd, product\.priceUsd/);
+  assert.match(merchStore, /if \(!authResolved\) return;[\s\S]*setCartOwner\(user\?\.id \|\| 'guest'\)/);
+  assert.match(detailPage, /authResolved=\{!authLoading\}/);
+  assert.match(storePage, /<MerchStore user=\{user\} authResolved=\{authResolved\} \/>/);
   assert.match(cartPage, /broadcastSync\('smarter_poker_diamond_sync', 'refresh'\)/);
   assert.match(balanceHook, /smarter-poker:diamond-balance/);
 });

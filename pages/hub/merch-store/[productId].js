@@ -161,7 +161,7 @@ async function boundedCatalogProduct(productId, timeoutMs = 5000) {
 }
 
 export default function MerchProductDetail({ product }) {
-  const { user } = useAuthUser();
+  const { user, loading: authLoading } = useAuthUser();
   const diamondPrice = Number(product.priceDiamonds) || Math.round(Number(product.price) * 100);
   const canonical = `/hub/merch-store/${product.id}`;
   const image = publicImage(product.image);
@@ -266,6 +266,7 @@ export default function MerchProductDetail({ product }) {
         </div>
         <MerchStore
           user={user}
+          authResolved={!authLoading}
           focusProductId={product.id}
           detailMode
           initialProduct={product}
