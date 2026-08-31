@@ -642,7 +642,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await page.addInitScript(({ id }) => {
       const user = { id, email: 'phase20@example.test', role: 'authenticated' };
       window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
-        access_token: 'phase-20-access-token',
+        access_token: 'eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.signature',
         refresh_token: 'phase-20-refresh-token',
         expires_at: 4102444800,
         expires_in: 2147483647,
@@ -684,10 +684,20 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         purchases: [],
       }),
     }));
-    await page.route('**/api/club-arena/manage-shop?*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
+    let reportRequests = 0;
+    await page.route('**/api/club-arena/manage-shop?*', (route) => {
+      reportRequests += 1;
+      if (reportRequests === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: 'Verified ledger temporarily unavailable' }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
         success: true,
         items: [{
           id: itemId,
@@ -711,6 +721,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
           complete: true,
           processedRows: 0,
           totalRows: 0,
+          totalRowsExact: true,
           byCurrency: {},
           diamondTotals: {
             sales: 0,
@@ -729,8 +740,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
             net: 0,
           },
         },
-      }),
-    }));
+        }),
+      });
+    });
 
     let deleteRequests = 0;
     await page.route('**/api/club-arena/shop-items', async (route) => {
@@ -746,6 +758,15 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     await page.goto('/hub/club-shop', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Manage' }).click();
+    const reportAlert = page.getByRole('alert').filter({
+      hasText: 'Verified ledger temporarily unavailable',
+    });
+    await expect(reportAlert).toContainText('Verified ledger temporarily unavailable');
+    await expect(page.getByText('Net Diamond Sales')).toHaveCount(0);
+    await expect(page.getByText('No shop items yet. Create one above.')).toHaveCount(0);
+    await reportAlert.getByRole('button', { name: 'Retry Report' }).click();
+    await expect(page.getByText('Net Diamond Sales')).toBeVisible();
+    expect(reportRequests).toBe(2);
     const deleteButton = page.getByRole('button', { name: 'Delete' });
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();

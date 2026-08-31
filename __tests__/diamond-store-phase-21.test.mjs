@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 const {
   summarizeShopPurchases,
   totalsForCurrency,
+  normalizePaidAmount,
+  buildLedgerCompleteness,
 } = require('../src/lib/club-arena/shopReporting.js');
 
 test('Club Shop reporting separates currencies and subtracts refunds from historical paid values', () => {
@@ -33,6 +35,32 @@ test('Club Shop reporting separates currencies and subtracts refunds from histor
   assert.equal(summary.byItem.one.byCurrency.diamonds.net, 1200);
 });
 
+test('reporting rejects corrupt ledger amounts instead of inventing zero revenue', () => {
+  assert.equal(normalizePaidAmount(0), 0);
+  assert.equal(normalizePaidAmount('1200'), 1200);
+  assert.throws(() => normalizePaidAmount('not-a-price'), /non-negative safe integer/);
+  assert.throws(() => normalizePaidAmount(-1), /non-negative safe integer/);
+  assert.throws(
+    () => summarizeShopPurchases([{ item_id: 'one', price_paid: null, currency: 'diamonds' }]),
+    /non-negative safe integer/
+  );
+});
+
+test('bounded ledgers never claim completeness when an exact count is unavailable at the cap', () => {
+  assert.deepEqual(
+    buildLedgerCompleteness({ processedRows: 50000, exactCount: null, exhausted: false }),
+    { totalRows: 50000, totalRowsExact: false, complete: false }
+  );
+  assert.deepEqual(
+    buildLedgerCompleteness({ processedRows: 7, exactCount: null, exhausted: true }),
+    { totalRows: 7, totalRowsExact: true, complete: true }
+  );
+  assert.deepEqual(
+    buildLedgerCompleteness({ processedRows: 1000, exactCount: 1000, exhausted: false }),
+    { totalRows: 1000, totalRowsExact: true, complete: true }
+  );
+});
+
 test('operator report is server-owned, stable-paged, and never rewrites history from current prices', async () => {
   const [api, store, e2e] = await Promise.all([
     read('pages/api/club-arena/manage-shop.js'),
@@ -44,7 +72,11 @@ test('operator report is server-owned, stable-paged, and never rewrites history 
   assert.match(api, /\.order\('created_at', \{ ascending: true \}\)/);
   assert.match(api, /\.order\('id', \{ ascending: true \}\)/);
   assert.match(api, /\.range\(from, to\)/);
-  assert.match(api, /complete: exhausted \|\| rows\.length >= totalRows/);
+  assert.match(api, /buildLedgerCompleteness/);
+  assert.match(api, /\.lte\('created_at', snapshotAt\)/);
+  assert.match(api, /totalRowsExact: ledger\.totalRowsExact/);
+  assert.match(api, /Cache-Control', 'private, no-store, max-age=0'/);
+  assert.match(api, /if \(!isUUID\(clubId\)\)/);
   assert.doesNotMatch(api, /purchase_count[^\n]*\*[^\n]*item\.price/);
 
   const loaderStart = store.indexOf('const loadClubShopAdmin = useCallback');
@@ -53,6 +85,9 @@ test('operator report is server-owned, stable-paged, and never rewrites history 
   assert.match(loader, /\/api\/club-arena\/manage-shop\?clubId=/);
   assert.doesNotMatch(loader, /\.from\('club_shop_purchases'\)/);
   assert.match(loader, /setClubShopAdminError/);
+  assert.match(loader, /getFreshAccessToken/);
+  assert.match(loader, /new AbortController\(\)/);
+  assert.match(loader, /setClubShopAdminReport\(null\)/);
   assert.match(e2e, /page\.route\('\*\*\/api\/club-arena\/manage-shop\?\*'/);
   assert.doesNotMatch(e2e, /rest\/v1\/club_shop_purchases/);
 });
@@ -66,7 +101,13 @@ test('operator UI labels platform Diamond burns, legacy chips, partial data, and
   assert.match(store, /Report Is Partial:/);
   assert.match(store, /Retry Report/);
   assert.match(store, /role="alert"/);
+  assert.match(store, /clubShopAdminReport\s*&&\s*!clubShopAdminError/);
+  assert.match(store, /At Least/);
   assert.match(store, /await Promise\.all\(\[loadClubShopAdmin\(\), loadClubShop\(true\)\]\)/);
+  assert.match(
+    store,
+    /table: 'club_shop_purchases',[\s\S]{0,500}if \(clubShopAdminLoaded\) loadClubShopAdmin\(\)/
+  );
 });
 
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {
@@ -78,6 +119,12 @@ test('analytics reports Diamond totals separately and exposes bounded completene
   assert.match(analytics, /completeness:/);
   assert.match(analytics, /processedRows:/);
   assert.match(analytics, /totalRows:/);
+  assert.match(analytics, /totalRowsExact:/);
+  assert.match(analytics, /snapshotAt/);
+  assert.match(analytics, /for \(let i = 0; i < days; i\+\+\)/);
+  assert.match(analytics, /salesByCurrency/);
+  assert.match(analytics, /refundedSalesByCurrency/);
+  assert.match(analytics, /sales: diamondTotals\.netSales/);
   assert.doesNotMatch(analytics, /const MAX_ROWS = 10000/);
   assert.doesNotMatch(analytics, /catch \([^)]*\) \{ \/\* sentry optional \*\/ \}/);
 });

@@ -26,7 +26,9 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 const {
     PRIMARY_SHOP_CURRENCY,
     normalizeShopCurrency,
+    normalizePaidAmount,
     emptyCurrencyTotals,
+    buildLedgerCompleteness,
 } = require('../../../src/lib/club-arena/shopReporting');
 
 const PAGE_SIZE = 1000;
@@ -45,7 +47,7 @@ function getSupabase() {
     return _supabase;
 }
 
-async function loadWindowRows({ clubId, since, refundWindow = false }) {
+async function loadWindowRows({ clubId, since, snapshotAt, refundWindow = false }) {
     const rows = [];
     let exactCount = null;
     let exhausted = false;
@@ -54,7 +56,7 @@ async function loadWindowRows({ clubId, since, refundWindow = false }) {
         const from = rows.length;
         const to = Math.min(from + PAGE_SIZE - 1, MAX_ROWS - 1);
         const fields = refundWindow
-            ? 'id, item_id, price_paid, currency, refunded_at'
+            ? 'id, item_id, buyer_id, price_paid, currency, refunded_at, club_shop_items(name, category)'
             : 'id, item_id, buyer_id, price_paid, currency, created_at, club_shop_items(name, category)';
         let query = getSupabase()
             .from('club_shop_purchases')
@@ -62,8 +64,8 @@ async function loadWindowRows({ clubId, since, refundWindow = false }) {
             .eq('club_id', clubId);
 
         query = refundWindow
-            ? query.not('refunded_at', 'is', null).gte('refunded_at', since)
-            : query.gte('created_at', since);
+            ? query.not('refunded_at', 'is', null).gte('refunded_at', since).lte('refunded_at', snapshotAt)
+            : query.gte('created_at', since).lte('created_at', snapshotAt);
 
         const orderField = refundWindow ? 'refunded_at' : 'created_at';
         const { data, error, count } = await query
@@ -81,11 +83,14 @@ async function loadWindowRows({ clubId, since, refundWindow = false }) {
         }
     }
 
-    const totalRows = exactCount ?? rows.length;
+    const completeness = buildLedgerCompleteness({
+        processedRows: rows.length,
+        exactCount,
+        exhausted,
+    });
     return {
         rows,
-        totalRows,
-        complete: exhausted || rows.length >= totalRows,
+        ...completeness,
     };
 }
 
@@ -100,6 +105,7 @@ export default async function handler(req, res) {
         if (authErr || !user) {
             return res.status(401).json({ success: false, error: 'Authentication required' });
         }
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
@@ -122,15 +128,16 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Admin access required' });
         }
 
-        const since = new Date(Date.now() - days * 86400000);
+        const snapshotAt = new Date().toISOString();
+        const since = new Date(Date.now() - (days - 1) * 86400000);
         since.setUTCHours(0, 0, 0, 0);
 
         // Refunded copies, so gross / refunds / net reconcile.
         // Keyed on refunded_at: a refund issued today against a 60-day-old
         // purchase belongs in today's window, not in the purchase's.
         const [purchaseWindow, refundWindow] = await Promise.all([
-            loadWindowRows({ clubId, since: since.toISOString() }),
-            loadWindowRows({ clubId, since: since.toISOString(), refundWindow: true }),
+            loadWindowRows({ clubId, since: since.toISOString(), snapshotAt }),
+            loadWindowRows({ clubId, since: since.toISOString(), snapshotAt, refundWindow: true }),
         ]);
 
         const rows = purchaseWindow.rows;
@@ -139,14 +146,20 @@ export default async function handler(req, res) {
         // Pre-seed every day so the chart has no holes.
         const series = [];
         const byDay = new Map();
-        for (let i = 0; i <= days; i++) {
+        for (let i = 0; i < days; i++) {
             const d = new Date(since.getTime() + i * 86400000);
             const key = d.toISOString().slice(0, 10);
             const entry = {
                 date: key,
                 sales: 0,
                 revenue: 0,
+                refundedSales: 0,
+                refunded: 0,
+                netSales: 0,
+                netRevenue: 0,
+                salesByCurrency: {},
                 revenueByCurrency: {},
+                refundedSalesByCurrency: {},
                 refundedByCurrency: {},
             };
             byDay.set(key, entry);
@@ -158,7 +171,7 @@ export default async function handler(req, res) {
         const byCurrency = {};
 
         for (const r of rows) {
-            const amount = Number(r.price_paid) || 0;
+            const amount = normalizePaidAmount(r.price_paid);
             const currency = normalizeShopCurrency(r.currency);
             if (!byCurrency[currency]) byCurrency[currency] = emptyCurrencyTotals();
             byCurrency[currency].sales += 1;
@@ -168,9 +181,12 @@ export default async function handler(req, res) {
             const key = String(r.created_at).slice(0, 10);
             const day = byDay.get(key);
             if (day) {
-                day.sales += 1;
+                day.salesByCurrency[currency] = (day.salesByCurrency[currency] || 0) + 1;
                 day.revenueByCurrency[currency] = (day.revenueByCurrency[currency] || 0) + amount;
-                if (currency === PRIMARY_SHOP_CURRENCY) day.revenue += amount;
+                if (currency === PRIMARY_SHOP_CURRENCY) {
+                    day.sales += 1;
+                    day.revenue += amount;
+                }
             }
 
             const itemId = r.item_id;
@@ -180,36 +196,104 @@ export default async function handler(req, res) {
                 category: r.club_shop_items?.category || null,
                 sales: 0,
                 revenue: 0,
+                grossSales: 0,
+                refundedSales: 0,
+                netSales: 0,
+                grossRevenue: 0,
+                refundedRevenue: 0,
+                netRevenue: 0,
+                salesByCurrency: {},
                 revenueByCurrency: {},
             };
-            item.sales += 1;
+            item.salesByCurrency[currency] = (item.salesByCurrency[currency] || 0) + 1;
             item.revenueByCurrency[currency] = (item.revenueByCurrency[currency] || 0) + amount;
-            if (currency === PRIMARY_SHOP_CURRENCY) item.revenue += amount;
+            if (currency === PRIMARY_SHOP_CURRENCY) {
+                item.grossSales += 1;
+                item.grossRevenue += amount;
+            }
             byItem.set(itemId, item);
 
             const buyer = byBuyer.get(r.buyer_id) || {
                 userId: r.buyer_id,
                 purchases: 0,
                 spent: 0,
+                grossPurchases: 0,
+                refundedPurchases: 0,
+                netPurchases: 0,
+                grossSpent: 0,
+                refundedSpent: 0,
+                netSpent: 0,
+                purchasesByCurrency: {},
                 spentByCurrency: {},
             };
-            buyer.purchases += 1;
+            buyer.purchasesByCurrency[currency] =
+                (buyer.purchasesByCurrency[currency] || 0) + 1;
             buyer.spentByCurrency[currency] = (buyer.spentByCurrency[currency] || 0) + amount;
-            if (currency === PRIMARY_SHOP_CURRENCY) buyer.spent += amount;
+            if (currency === PRIMARY_SHOP_CURRENCY) {
+                buyer.grossPurchases += 1;
+                buyer.grossSpent += amount;
+            }
             byBuyer.set(r.buyer_id, buyer);
         }
 
         for (const r of refundRows) {
             const currency = normalizeShopCurrency(r.currency);
-            const amount = Number(r.price_paid) || 0;
+            const amount = normalizePaidAmount(r.price_paid);
             if (!byCurrency[currency]) byCurrency[currency] = emptyCurrencyTotals();
             byCurrency[currency].refundedSales += 1;
             byCurrency[currency].refunded += amount;
             const day = byDay.get(String(r.refunded_at).slice(0, 10));
             if (day) {
+                day.refundedSalesByCurrency[currency] =
+                    (day.refundedSalesByCurrency[currency] || 0) + 1;
                 day.refundedByCurrency[currency] =
                     (day.refundedByCurrency[currency] || 0) + amount;
+                if (currency === PRIMARY_SHOP_CURRENCY) {
+                    day.refundedSales += 1;
+                    day.refunded += amount;
+                }
             }
+
+            const itemId = r.item_id;
+            const item = byItem.get(itemId) || {
+                itemId,
+                name: r.club_shop_items?.name || 'Deleted item',
+                category: r.club_shop_items?.category || null,
+                sales: 0,
+                revenue: 0,
+                grossSales: 0,
+                refundedSales: 0,
+                netSales: 0,
+                grossRevenue: 0,
+                refundedRevenue: 0,
+                netRevenue: 0,
+                salesByCurrency: {},
+                revenueByCurrency: {},
+            };
+            if (currency === PRIMARY_SHOP_CURRENCY) {
+                item.refundedSales += 1;
+                item.refundedRevenue += amount;
+            }
+            byItem.set(itemId, item);
+
+            const buyer = byBuyer.get(r.buyer_id) || {
+                userId: r.buyer_id,
+                purchases: 0,
+                spent: 0,
+                grossPurchases: 0,
+                refundedPurchases: 0,
+                netPurchases: 0,
+                grossSpent: 0,
+                refundedSpent: 0,
+                netSpent: 0,
+                purchasesByCurrency: {},
+                spentByCurrency: {},
+            };
+            if (currency === PRIMARY_SHOP_CURRENCY) {
+                buyer.refundedPurchases += 1;
+                buyer.refundedSpent += amount;
+            }
+            byBuyer.set(r.buyer_id, buyer);
         }
 
         for (const totals of Object.values(byCurrency)) {
@@ -219,8 +303,25 @@ export default async function handler(req, res) {
 
         const diamondTotals = byCurrency[PRIMARY_SHOP_CURRENCY] || emptyCurrencyTotals();
 
-        const topItems = [...byItem.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 20);
-        const topBuyers = [...byBuyer.values()].sort((a, b) => b.spent - a.spent).slice(0, 20);
+        for (const day of series) {
+            day.netSales = day.sales - day.refundedSales;
+            day.netRevenue = day.revenue - day.refunded;
+        }
+        for (const item of byItem.values()) {
+            item.netSales = item.grossSales - item.refundedSales;
+            item.netRevenue = item.grossRevenue - item.refundedRevenue;
+            item.sales = item.netSales;
+            item.revenue = item.netRevenue;
+        }
+        for (const buyer of byBuyer.values()) {
+            buyer.netPurchases = buyer.grossPurchases - buyer.refundedPurchases;
+            buyer.netSpent = buyer.grossSpent - buyer.refundedSpent;
+            buyer.purchases = buyer.netPurchases;
+            buyer.spent = buyer.netSpent;
+        }
+
+        const topItems = [...byItem.values()].sort((a, b) => b.netRevenue - a.netRevenue).slice(0, 20);
+        const topBuyers = [...byBuyer.values()].sort((a, b) => b.netSpent - a.netSpent).slice(0, 20);
 
         // Attach display names for the leaderboard without leaking emails.
         if (topBuyers.length > 0) {
@@ -239,26 +340,36 @@ export default async function handler(req, res) {
             success: true,
             days,
             since: since.toISOString(),
+            snapshotAt,
             truncated: !purchaseWindow.complete || !refundWindow.complete,
             completeness: {
                 purchases: {
                     complete: purchaseWindow.complete,
                     processedRows: rows.length,
                     totalRows: purchaseWindow.totalRows,
+                    totalRowsExact: purchaseWindow.totalRowsExact,
                 },
                 refunds: {
                     complete: refundWindow.complete,
                     processedRows: refundRows.length,
                     totalRows: refundWindow.totalRows,
+                    totalRowsExact: refundWindow.totalRowsExact,
                 },
             },
             totals: {
-                sales: rows.length,
+                sales: diamondTotals.netSales,
+                grossSales: diamondTotals.sales,
+                refundedSales: diamondTotals.refundedSales,
+                netSales: diamondTotals.netSales,
                 grossRevenue: diamondTotals.gross,
                 refundedAmount: diamondTotals.refunded,
                 netRevenue: diamondTotals.net,
-                uniqueBuyers: byBuyer.size,
-                itemsSold: byItem.size,
+                uniqueBuyers: [...byBuyer.values()].filter(
+                    (buyer) => buyer.grossPurchases > 0 || buyer.refundedPurchases > 0
+                ).length,
+                itemsSold: [...byItem.values()].filter(
+                    (item) => item.grossSales > 0 || item.refundedSales > 0
+                ).length,
                 averageSale:
                     diamondTotals.sales > 0
                         ? Math.round(diamondTotals.gross / diamondTotals.sales)

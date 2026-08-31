@@ -25,14 +25,41 @@ function emptyCurrencyTotals() {
     };
 }
 
+function normalizePaidAmount(rawAmount) {
+    if (rawAmount === null || rawAmount === undefined || String(rawAmount).trim() === '') {
+        throw new TypeError('Club Shop ledger price_paid must be a non-negative safe integer');
+    }
+    const amount = Number(rawAmount);
+    if (!Number.isSafeInteger(amount) || amount < 0) {
+        throw new TypeError('Club Shop ledger price_paid must be a non-negative safe integer');
+    }
+    return amount;
+}
+
+function buildLedgerCompleteness({ processedRows, exactCount, exhausted }) {
+    const normalizedProcessed = Number(processedRows);
+    if (!Number.isSafeInteger(normalizedProcessed) || normalizedProcessed < 0) {
+        throw new TypeError('processedRows must be a non-negative safe integer');
+    }
+
+    const countIsExact = Number.isSafeInteger(exactCount) && exactCount >= 0;
+    const totalRows = countIsExact ? exactCount : normalizedProcessed;
+    const totalRowsExact = countIsExact || Boolean(exhausted);
+
+    return {
+        totalRows,
+        totalRowsExact,
+        complete: Boolean(exhausted) || (countIsExact && normalizedProcessed >= exactCount),
+    };
+}
+
 function summarizeShopPurchases(rows = []) {
     const byCurrency = {};
     const byItem = {};
 
     for (const row of rows) {
         const currency = normalizeShopCurrency(row.currency);
-        const amount = Number(row.price_paid);
-        const paid = Number.isFinite(amount) ? amount : 0;
+        const paid = normalizePaidAmount(row.price_paid);
         const refunded = Boolean(row.refunded_at);
 
         if (!byCurrency[currency]) byCurrency[currency] = emptyCurrencyTotals();
@@ -80,6 +107,8 @@ module.exports = {
     PRIMARY_SHOP_CURRENCY,
     LEGACY_SHOP_CURRENCY,
     normalizeShopCurrency,
+    normalizePaidAmount,
+    buildLedgerCompleteness,
     emptyCurrencyTotals,
     summarizeShopPurchases,
     totalsForCurrency,
