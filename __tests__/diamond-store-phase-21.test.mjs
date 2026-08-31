@@ -110,6 +110,27 @@ test('operator UI labels platform Diamond burns, legacy chips, partial data, and
   );
 });
 
+test('shopper storefront loading times out visibly and stale requests cannot overwrite retries', async () => {
+  const store = await read('pages/hub/diamond-store.js');
+  const loaderStart = store.indexOf('const loadClubShop = useCallback');
+  const loaderEnd = store.indexOf('// ═══ Club Shop: Purchase handler', loaderStart);
+  const loader = store.slice(loaderStart, loaderEnd);
+
+  assert.match(store, /const clubShopLoadRequestRef = useRef\(0\)/);
+  assert.match(store, /const clubShopLoadTimerRef = useRef\(null\)/);
+  assert.match(loader, /const requestId = \+\+clubShopLoadRequestRef\.current/);
+  assert.match(loader, /error: membershipError/);
+  assert.match(loader, /if \(membershipError\) throw membershipError/);
+  assert.match(loader, /requestId !== clubShopLoadRequestRef\.current/);
+  assert.match(loader, /setClubShopError\(null\)/);
+  assert.match(loader, /const loadTimer = setTimeout/);
+  assert.match(loader, /clubShopLoadRequestRef\.current \+= 1/);
+  assert.match(loader, /setClubShopLoaded\(true\)/);
+  assert.match(loader, /setClubShopError\('The Club Shop Timed Out\. Please Try Again\.'\)/);
+  assert.match(loader, /clearTimeout\(loadTimer\)/);
+  assert.match(store, /clearTimeout\(clubShopLoadTimerRef\.current\)/);
+});
+
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {
   const analytics = await read('pages/api/club-arena/shop-analytics.js');
   assert.match(analytics, /price_paid, currency/);
