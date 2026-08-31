@@ -150,6 +150,12 @@ export default function TrainingPage() {
     });
   }, []);
 
+  const resetBrowseFilters = useCallback(() => {
+    setActiveCat('ALL');
+    setQuery('');
+    setDebouncedQuery('');
+  }, []);
+
   // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
   // arena fell back to its own defaults AND showed a second identical setup
   // screen (difficulty / timer / mode) before you could play.
@@ -462,7 +468,16 @@ export default function TrainingPage() {
                   ))}
                 </div>
               ) : (
-                <p className="sp-empty">No Drills Match — Try A Different Search.</p>
+                <div className="sp-empty" role="status">
+                  <p>No Drills Match — Try A Different Search.</p>
+                  <button
+                    type="button"
+                    className="sp-cta sp-cta-secondary sp-empty-reset"
+                    onClick={resetBrowseFilters}
+                  >
+                    Reset Browse Filters
+                  </button>
+                </div>
               )}
             </section>
 
@@ -1163,6 +1178,8 @@ function GlobalStyle() {
       .sp-card-progress .sp-progress { height: 4px; }
 
       .sp-empty { text-align: center; padding: 48px 16px; color: var(--sp-ink-2); font-size: 14px; border: 1px dashed var(--sp-line); border-radius: var(--sp-r-md); }
+      .sp-empty p { margin: 0; }
+      .sp-empty-reset { min-height: 44px; margin-top: 16px; }
 
       .sp-spin { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--sp-primary); border-radius: 50%; animation: sp-spin 1s linear infinite; margin: 0 auto; }
       @keyframes sp-spin { to { transform: rotate(360deg); } }
@@ -1627,6 +1644,15 @@ function GlobalStyle() {
           padding: 5px 2px 5px 8px;
           font-size: 10px;
           letter-spacing: .04em;
+        }
+        #training-library .sp-section-head { align-items: center; }
+        #training-library .sp-section-title {
+          flex: 1 1 auto;
+          overflow: visible;
+          font-size: 13px;
+          line-height: 1.25;
+          text-overflow: clip;
+          white-space: normal;
         }
 
         .sp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

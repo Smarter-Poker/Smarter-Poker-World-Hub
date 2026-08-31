@@ -44,6 +44,14 @@ test('Training Hub categories and progress indicators expose valid accessible se
   assert.match(source, /aria-label=\{`\$\{game\.name\} Training Calibration`\}/);
 });
 
+test('Training Hub browse recovery and mobile library title remain fully visible', () => {
+  const source = read('pages/hub/training.js');
+
+  assert.match(source, /const resetBrowseFilters = useCallback\(\(\) => \{[\s\S]*?setActiveCat\('ALL'\);[\s\S]*?setQuery\(''\);[\s\S]*?setDebouncedQuery\(''\);/);
+  assert.match(source, /className="sp-empty" role="status"[\s\S]*?Reset Browse Filters/);
+  assert.match(source, /#training-library \.sp-section-title \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/);
+});
+
 test('Coach and Tournament controls retain explicit accessible names', () => {
   const coach = read('pages/hub/training/coach-mode.js');
   const tournament = read('pages/hub/training/tournament-prep.js');
