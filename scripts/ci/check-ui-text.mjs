@@ -72,6 +72,27 @@ const SKIP_DIRS = new Set([
  * getAuthUser() from '@/lib/authUtils', then deleting the line here - the gate
  * will pick the file up on its own.
  */
+const PRE_EXISTING_BLOCKED = new Set([
+  /*
+   * Seven more, blocked by scripts/hooks/pre-push CHECK 8 (broken import
+   * resolution) rather than by the auth rule. Each imports a module that no
+   * longer exists - ./poker-brain-supabase, ../src/TableManager,
+   * ../src/ActionTimer and others. Same mechanic as the auth list: the hook
+   * only inspects files a push actually changes, so replacing one character in
+   * a string is what makes a long-dead import visible.
+   *
+   * Deleting or repairing dead poker-engine test harnesses is not a copy
+   * change. Clear one from this list by fixing its imports.
+   */
+  'src/lib/poker-brain/storage.js',
+  'src/lib/poker-engine/tests/test-phase2.js',
+  'src/lib/poker-engine/tests/test-phase3-verify.js',
+  'src/lib/poker-engine/tests/test-phase4.js',
+  'src/lib/poker-engine/tests/test-phase6-integration.js',
+  'src/lib/poker-engine/tests/test-phase8-ui-omaha.js',
+  'src/lib/poker-engine/tests/test-phase9-fullstack.js',
+]);
+
 const AUTH_BLOCKED = new Set([
   'pages/api/admin/cron-health.js',
   'pages/auth/mfa.js',
@@ -136,6 +157,7 @@ for (const file of files) {
   const rel = file.replace(ROOT, '');
   if (SKIP_FILES.has(rel)) continue;
   if (AUTH_BLOCKED.has(rel)) continue;
+  if (PRE_EXISTING_BLOCKED.has(rel)) continue;
   if (/\.(test|spec)\.[jt]sx?$/.test(rel)) continue;
 
   const original = readFileSync(file, 'utf8');
