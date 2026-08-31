@@ -35,11 +35,11 @@ function publicAuditValue(value) {
     .map(([key, child]) => [key, publicAuditValue(child)]));
 }
 
-export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0) {
+export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, options = {}) {
   const prior = previous && typeof previous === 'object' ? previous : {};
   const sync = detection?.clubArenaSync || {};
   const next = { ...prior };
-  const acceptedBatch = detection?.success === true;
+  const acceptedBatch = detection?.success === true && options.countAcceptedBatch !== false;
   for (const [target, source] of Object.entries(METRIC_MAP)) {
     next[target] = number(prior[target]) + (acceptedBatch ? number(sync[source]) : 0);
   }

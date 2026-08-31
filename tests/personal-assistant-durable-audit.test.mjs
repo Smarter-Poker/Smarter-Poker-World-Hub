@@ -63,6 +63,28 @@ test('failed retries record attempts without double-counting unpersisted evidenc
   assert.equal(progress.workerAttempts, 1);
 });
 
+test('finalization retries do not count an accepted detector page twice', () => {
+  const previous = {
+    handsScanned: 1347,
+    decisionsAnalyzed: 241,
+    batchesCompleted: 7,
+    workerAttempts: 7,
+    totalProcessingMs: 7000,
+    finalBatchAwaitingPersistence: true,
+  };
+  const retried = mergeAuditJobProgress(previous, {
+    success: true,
+    leaksDetected: 6,
+    clubArenaSync: { handsFound: 147, decisionsAnalyzed: 21, solverVerified: 21 },
+  }, 500, { countAcceptedBatch: false });
+  assert.equal(retried.handsScanned, 1347);
+  assert.equal(retried.decisionsAnalyzed, 241);
+  assert.equal(retried.batchesCompleted, 7);
+  assert.equal(retried.workerAttempts, 8);
+  assert.equal(retried.totalProcessingMs, 7500);
+  assert.equal(retried.complete, true);
+});
+
 test('public job projection never exposes cursors, leases or worker tokens', () => {
   const projected = publicAuditJob({
     id: 'job', status: 'running', stage: 'importing_hands', audit_cursor: 'private-cursor',
@@ -134,6 +156,8 @@ test('server workers finish detector pages in-process and reconcile final eviden
   assert.match(worker, /audit_cursor_stalled/);
   assert.match(worker, /audit_persistence_incomplete/);
   assert.match(worker, /audit_reconciliation_failed/);
+  assert.match(worker, /finalBatchAwaitingPersistence/);
+  assert.match(worker, /countAcceptedBatch: !retryingFinalization/);
   assert.match(worker, /p_lease_seconds: 300/);
   assert.match(worker, /body\?\.code === 'invalid_audit_cursor'/);
   assert.match(worker, /invalidCursor \? null/);
