@@ -70,8 +70,8 @@ jobs:
               || sudo pip3 install apscheduler requests
           fi
           python3 -c 'import apscheduler, requests; print("openclaw deps OK")'
-          sudo mkdir -p /opt/openclaw /var/log/openclaw
-          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw
+          sudo mkdir -p /opt/openclaw /var/log/openclaw /var/lib/openclaw
+          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw /var/lib/openclaw
           EOSSH
 
       - name: Merge managed dispatcher secrets into the canonical env file
@@ -85,8 +85,38 @@ jobs:
           ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
         run: |
           umask 077
+          # ── Never overwrite a WORKING credential with one production rejects ──
+          #
+          # This step used to stamp secrets.CRON_SECRET onto /etc/openclaw.env
+          # unconditionally on every push to main that touches the dispatcher.
+          # On 2026-08-31 the GitHub copy was two weeks stale (last set
+          # 2026-08-16) while Vercel's had been rotated, so each deploy silently
+          # re-poisoned the box: all 89 dispatcher routes 401'd, a hand-repair on
+          # the VM at 13:49 UTC was erased by the very next dispatcher merge at
+          # 14:54, and the auth-drift watchdog paged Dan once per restart.
+          #
+          # The candidate is now PROVED against the same no-side-effect auth
+          # boundary the watchdog uses before it is allowed to replace anything.
+          # If it fails, we leave the host's existing value alone (it may be the
+          # good one, hand-repaired) and fail the workflow at the end — loudly,
+          # because a stale GitHub secret is a real problem that needs a human to
+          # re-copy the value from Vercel. Silence is what let this run for weeks.
+          PROBE_URL="https://smarter.poker/api/internal/cron-auth-probe"
+          CRON_SECRET_OK=no
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET is empty in GitHub secrets — leaving the host's copy untouched"
+          else
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+                     -H "Authorization: Bearer $CRON_SECRET" "$PROBE_URL" || echo 000)
+            case "$code" in
+              200) CRON_SECRET_OK=yes; echo "CRON_SECRET accepted by production (200) — safe to write" ;;
+              401) echo "::error::GitHub's CRON_SECRET is REJECTED by production (401). It is stale. Copy the current value from the Vercel hub-vanguard env into the repo secret CRON_SECRET. Leaving /etc/openclaw.env untouched so a working host value is not destroyed." ;;
+              *)   echo "::warning::CRON_SECRET probe inconclusive (HTTP $code) — refusing to write on an unproven result" ;;
+            esac
+          fi
+          echo "cron_secret_ok=$CRON_SECRET_OK" >> "$GITHUB_ENV"
           {
-            printf 'CRON_SECRET=%s\n' "$CRON_SECRET"
+            if [ "$CRON_SECRET_OK" = yes ]; then printf 'CRON_SECRET=%s\n' "$CRON_SECRET"; fi
             printf 'TWILIO_ACCOUNT_SID=%s\n' "$TWILIO_ACCOUNT_SID"
             printf 'TWILIO_AUTH_TOKEN=%s\n' "$TWILIO_AUTH_TOKEN"
             printf 'TWILIO_PHONE_NUMBER=%s\n' "$TWILIO_PHONE_NUMBER"
@@ -155,3 +185,22 @@ jobs:
           remote_unit=$(ssh "$USER@$HOST" 'sha256sum /etc/systemd/system/openclaw.service' | cut -d' ' -f1)
           test "$remote_dispatcher" = "$expected_dispatcher"
           test "$remote_unit" = "$expected_unit"
+
+      # The deploy itself succeeded above — the dispatcher is running the new
+      # code. This step exists so a stale GitHub CRON_SECRET cannot sit
+      # unnoticed: the box keeps whatever value it had, and the run goes red
+      # until a human re-copies the current value from the Vercel hub-vanguard
+      # env into the repo secret. Before this guard, the same stale value was
+      # stamped onto the VM on every dispatcher merge and the only symptom was
+      # an SMS to Dan's phone once per restart.
+      - name: Fail if GitHub's CRON_SECRET is stale
+        if: env.cron_secret_ok != 'yes'
+        run: |
+          echo "The dispatcher deployed, but GitHub's CRON_SECRET was NOT written"
+          echo "to /etc/openclaw.env because production did not accept it."
+          echo
+          echo "FIX: copy CRON_SECRET from the Vercel hub-vanguard project env"
+          echo "into this repo's secret of the same name, then re-run this workflow."
+          echo "Until then the dispatcher authenticates with whatever the host"
+          echo "already held, which the auth-drift watchdog reports every 5 min."
+          exit 1

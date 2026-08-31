@@ -306,3 +306,17 @@ safety ceiling while eliminating fragile nested re-inclusion. The explicit
 commerce migration markers remain as minimum-contract documentation. A new
 Marketplace regression forbids either broad parent ignore that caused the
 incomplete upload, bringing the mandatory release gate to 194 contracts.
+
+### Browser Fixture Contract Closure — 2026-08-31
+
+The broad Playwright run exposed two stale Club Shop fixtures. Item detail
+returned catalog data without the server-resolved `clubId`, so the browser
+correctly rendered its missing-club state. The operator fixture intercepted
+only query-bearing Marketplace URLs even though the first server-owned
+membership request intentionally has no club query; it also retained an
+obsolete direct `club_members` mock.
+
+Both journeys now mock the actual authenticated API response. The item detail
+receives its verified club context, while the operator journey intercepts both
+initial and club-scoped reads and no longer depends on a browser-side membership
+request. The mandatory Marketplace release gate now contains 195 contracts.

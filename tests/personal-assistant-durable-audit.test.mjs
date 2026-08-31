@@ -66,13 +66,19 @@ test('failed retries record attempts without double-counting unpersisted evidenc
 test('public job projection never exposes cursors, leases or worker tokens', () => {
   const projected = publicAuditJob({
     id: 'job', status: 'running', stage: 'importing_hands', audit_cursor: 'private-cursor',
-    worker_token: 'private-worker', lease_expires_at: 'tomorrow', progress: {}, attempt_count: 1,
+    worker_token: 'private-worker', lease_expires_at: 'tomorrow', attempt_count: 1,
+    progress: { auditCursor: 'nested-cursor', safe: 1 },
+    result: { leaks: [{ id: 'leak', user_id: 'private-owner', title: 'Safe Evidence' }] },
+    reconciliation: { consistent: true, workerToken: 'nested-worker' },
   });
   assert.equal(projected.id, 'job');
   assert.equal(projected.resumable, true);
   assert.equal('audit_cursor' in projected, false);
   assert.equal('worker_token' in projected, false);
   assert.equal('lease_expires_at' in projected, false);
+  assert.deepEqual(projected.progress, { safe: 1 });
+  assert.deepEqual(projected.result, { leaks: [{ id: 'leak', title: 'Safe Evidence' }] });
+  assert.deepEqual(projected.reconciliation, { consistent: true });
 });
 
 test('durable jobs are owner-private, atomically claimed and restartable', () => {
