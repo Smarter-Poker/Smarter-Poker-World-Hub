@@ -730,8 +730,21 @@ jobs:
       - name: "CHECK 19: No em dashes in player-facing copy"
         run: node scripts/ci/check-ui-text.mjs
 
+      # check-title-case parses JSX with the TypeScript compiler, because the
+      # careful part of it is the AST walk and its `{n}s` / `x{count}` suffix
+      # guards. This job deliberately does not `npm ci` (see the notes above:
+      # it is static analysis that must run even when install fails), so the
+      # one package it needs is fetched on its own. `--no-save` keeps
+      # package-lock.json untouched, and the guard below keeps a registry
+      # blip from turning a copy gate into a red build for an unrelated
+      # reason - the check still runs, it just cannot be skipped silently.
       - name: "CHECK 20: Title Case on every player-facing page"
-        run: node scripts/ci/check-title-case.mjs
+        run: |
+          if ! node -e "require.resolve('typescript')" 2>/dev/null; then
+            npm install --no-save --no-audit --no-fund --ignore-scripts typescript@5 \
+              || { echo "::error::could not install the TypeScript parser CHECK 20 needs"; exit 1; }
+          fi
+          node scripts/ci/check-title-case.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 8: Auth-critical files exist on disk
