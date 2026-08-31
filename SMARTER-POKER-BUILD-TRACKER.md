@@ -1493,4 +1493,4 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 
 **Coverage:** The lobby plus 11 canonical discovery routes directly inherit the controller system; the 354 current directory/location URLs remain covered by their established shared systems and regression gates.
 
-**Release state:** Implementation and compiled-production verification are complete. Protected merge, Vercel production deployment, health, redirect, and live browser evidence remain the Phase 4 closeout gate. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.
+**Release state:** Complete. PR #1126 auto-merged as `638889cc`; Vercel deployment `dpl_H6vmPtys6n1NP6k5cCrr9f1Se3GA` promoted to production with healthy database/header checks, five representative Poker Near Me routes at HTTP 200, the Commander root/login loop closed, 14/14 live desktop/mobile Phase 14+16 journeys passing, and visual zero-overflow proof at 390 CSS pixels. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.
