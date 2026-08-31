@@ -587,6 +587,112 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     expect(mainSections[0]).toBe('canceled');
   });
 
+  test('verified card return retries and removes only owner-matched paid cart lines', async ({ page }) => {
+    const userId = '00000000-0000-4000-8000-000000000023';
+    const orderId = '00000000-0000-4000-8000-000000000024';
+    const sessionId = 'cs_test_phase23purchaseassurance';
+    await page.addInitScript(({ ownerId }) => {
+      const user = { id: ownerId, email: 'phase23@example.test', role: 'authenticated' };
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.phase23',
+        refresh_token: 'phase-23-refresh-token',
+        expires_at: 4102444800,
+        expires_in: 2147483647,
+        token_type: 'bearer',
+        user,
+      }));
+      window.localStorage.setItem('smarter-poker-cart', JSON.stringify({
+        state: {
+          ownerId,
+          syncPending: false,
+          items: [
+            {
+              id: 'hoodie-neural::small',
+              catalogId: 'hoodie-neural',
+              variantId: 'small',
+              name: 'Diamond Altitude Hoodie',
+              type: 'Merchandise: Small',
+              price: 59.99,
+              quantity: 2,
+            },
+            {
+              id: 'range-grid-desk-mat::standard',
+              catalogId: 'range-grid-desk-mat',
+              name: 'Range Grid Desk Mat',
+              type: 'Merchandise',
+              price: 39.99,
+              quantity: 1,
+            },
+          ],
+        },
+        version: 3,
+      }));
+    }, { ownerId: userId });
+
+    let statusRequests = 0;
+    await page.route('**/api/store/checkout-status?*', (route) => {
+      statusRequests += 1;
+      if (statusRequests === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: 'Verification Temporarily Unavailable' }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            status: 'complete',
+            sessionId,
+            type: 'merchandise',
+            paymentStatus: 'paid',
+            amountTotal: 5999,
+            currency: 'usd',
+            requestId: 'phase23-card-request-0001',
+            orderId,
+            orderSource: 'merchandise',
+            cartItems: [{
+              kind: 'merchandise',
+              id: 'hoodie-neural',
+              variantId: 'small',
+              quantity: 1,
+            }],
+          },
+        }),
+      });
+    });
+
+    await page.goto(`/hub/merch-store?success=true&session_id=${sessionId}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    const failed = page.locator('[data-checkout-status="failed"]');
+    await expect(failed).toBeVisible();
+    await failed.getByRole('button', { name: 'Verify Again' }).click();
+
+    const complete = page.locator('[data-checkout-status="complete"]');
+    await expect(complete).toBeVisible();
+    await expect(complete.getByRole('link', { name: 'View Verified Receipt' })).toHaveAttribute(
+      'href',
+      `/hub/diamond-store/orders/${orderId}?source=merchandise`
+    );
+    await expect(page).toHaveURL(/\/hub\/merch-store$/);
+    await expect.poll(() => page.evaluate(() => {
+      const persisted = JSON.parse(window.localStorage.getItem('smarter-poker-cart') || '{}');
+      return persisted?.state;
+    })).toMatchObject({
+      ownerId: userId,
+      syncPending: true,
+      items: [
+        expect.objectContaining({ id: 'hoodie-neural::small', quantity: 1 }),
+        expect.objectContaining({ id: 'range-grid-desk-mat::standard', quantity: 1 }),
+      ],
+    });
+    expect(statusRequests).toBe(2);
+  });
+
   test('mobile purchase rails expose labels, focus, and keyboard scrolling', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });

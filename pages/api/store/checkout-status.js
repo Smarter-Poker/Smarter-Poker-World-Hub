@@ -34,22 +34,43 @@ function publicStatus(session, recordStatus) {
   return 'pending';
 }
 
-async function lookupRecord(session) {
+function normalizedCartSnapshot(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 50).flatMap((line) => {
+    const kind = line?.kind;
+    if (!['diamonds', 'merchandise'].includes(kind)) return [];
+    const id = String(line?.id || '').trim();
+    const quantity = Number(line?.quantity);
+    if (!id || id.length > 128 || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+      return [];
+    }
+    const variantId = line?.variantId == null ? null : String(line.variantId).trim();
+    if (variantId && variantId.length > 128) return [];
+    return [{ kind, id, variantId: variantId || null, quantity }];
+  });
+}
+
+async function lookupRecord(session, userId) {
   const type = session.metadata?.type;
   if (type === 'diamonds' && session.metadata?.purchase_id) {
     const { data, error } = await getSupabase()
       .from('diamond_purchases')
-      .select('id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, metadata')
+      .select('id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, stripe_checkout_session_id, metadata')
       .eq('id', session.metadata.purchase_id)
+      .eq('user_id', userId)
+      .eq('stripe_checkout_session_id', session.id)
       .maybeSingle();
     if (error) throw error;
     return data
       ? {
           status: data.status,
+          orderId: data.id,
+          orderSource: 'diamonds',
           label: data.package_name,
           diamonds: Number(data.diamonds_amount || 0) + Number(data.bonus_diamonds || 0),
           redemptionStatus: data.metadata?.redemption_status || null,
           redemptionError: data.metadata?.redemption_error || null,
+          cartItems: normalizedCartSnapshot(data.metadata?.cart_snapshot),
         }
       : null;
   }
@@ -57,15 +78,47 @@ async function lookupRecord(session) {
   if (type === 'merchandise' && session.metadata?.order_id) {
     const { data, error } = await getSupabase()
       .from('merchandise_orders')
-      .select('id, status, total_usd')
+      .select('id, user_id, status, total_usd, items, stripe_checkout_session_id, metadata')
       .eq('id', session.metadata.order_id)
+      .eq('user_id', userId)
+      .eq('stripe_checkout_session_id', session.id)
       .maybeSingle();
     if (error) throw error;
-    return data ? { status: data.status, label: 'Merchandise Order' } : null;
+    return data ? {
+      status: data.status,
+      orderId: data.id,
+      orderSource: 'merchandise',
+      label: 'Merchandise Order',
+      cartItems: normalizedCartSnapshot(
+        data.metadata?.cart_snapshot || (Array.isArray(data.items) ? data.items : []).map((item) => ({
+          kind: 'merchandise',
+          id: item?.id,
+          variantId: item?.variantId || item?.variant_id || null,
+          quantity: item?.quantity,
+        }))
+      ),
+    } : null;
   }
 
   if (session.mode === 'subscription') {
-    return { status: session.payment_status === 'paid' ? 'active' : 'pending', label: 'VIP Membership' };
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription
+      : session.subscription?.id;
+    if (!subscriptionId) return null;
+    const { data, error } = await getSupabase()
+      .from('vip_subscriptions')
+      .select('id, user_id, tier, status, stripe_subscription_id')
+      .eq('user_id', userId)
+      .eq('stripe_subscription_id', subscriptionId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? {
+      status: data.status,
+      orderId: data.id,
+      orderSource: 'vip',
+      label: 'VIP Membership',
+      cartItems: [],
+    } : null;
   }
 
   return null;
@@ -73,6 +126,8 @@ async function lookupRecord(session) {
 
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Vary', 'Authorization');
     if (req.method !== 'GET') {
       res.setHeader('Allow', 'GET');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -96,10 +151,9 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Checkout reference not found' });
     }
 
-    const record = await lookupRecord(session);
+    const record = await lookupRecord(session, user.id);
     const status = publicStatus(session, record?.status);
 
-    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({
       success: true,
       data: {
@@ -114,6 +168,9 @@ export default async function handler(req, res) {
         redemptionStatus: record?.redemptionStatus || null,
         redemptionError: record?.redemptionError || null,
         requestId: session.metadata?.checkout_request_id || null,
+        orderId: record?.orderId || null,
+        orderSource: record?.orderSource || null,
+        cartItems: record?.cartItems || [],
       },
     });
   } catch (err) {
