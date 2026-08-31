@@ -158,8 +158,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(nav).toBeVisible();
       await expect(nav).toHaveAttribute('data-footer-world', entry.id);
       await expect(nav).toHaveAttribute('data-footer-artwork', definition!.artwork.src);
+      await expect(nav).toHaveAttribute('data-footer-cropped', 'true');
       await expect(nav).toHaveCSS('position', 'fixed');
       await expect(nav).toHaveCSS('pointer-events', 'none');
+      await expect(nav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await expect(nav).toHaveCSS('padding-top', '0px');
+      await expect(nav).toHaveCSS('padding-right', '0px');
+      await expect(nav).toHaveCSS('padding-bottom', '0px');
+      await expect(nav).toHaveCSS('padding-left', '0px');
 
       const links = nav.getByRole('link');
       await expect(links).toHaveCount(6);
@@ -177,6 +183,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const artwork = nav.locator('[data-exact-approved-artwork="true"]');
       await expect(stage).toHaveCount(1);
       await expect(stage).toHaveCSS('pointer-events', 'none');
+      await expect(stage).toHaveCSS('overflow', 'hidden');
       await expect(artwork).toHaveCount(1);
       await expect(artwork).toBeVisible();
       await expect(artwork).toHaveCSS('object-fit', 'contain');
@@ -187,14 +194,10 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
-      const displayBounds = definition!.artwork.cropToContentBounds
-        ? definition!.artwork.contentBounds
-        : definition!.artwork;
+      const displayBounds = definition!.artwork.contentBounds;
       expect(Math.abs(stageBox!.width / stageBox!.height - displayBounds.width / displayBounds.height)).toBeLessThan(0.01);
-      await expect(nav).toHaveAttribute(
-        'data-footer-cropped',
-        definition!.artwork.cropToContentBounds ? 'true' : 'false'
-      );
+      expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
+      expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
       expect(await artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([
         definition!.artwork.width,
         definition!.artwork.height,
@@ -271,7 +274,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(clearance).toHaveCount(1);
       const clearanceBox = await clearance.boundingBox();
       expect(clearanceBox).not.toBeNull();
-      expect(clearanceBox!.height).toBeGreaterThan(navBox!.height);
+      expect(Math.abs(clearanceBox!.height - navBox!.height)).toBeLessThan(2);
     }
   });
 

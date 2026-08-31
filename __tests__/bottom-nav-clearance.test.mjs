@@ -126,6 +126,11 @@ test('all 14 requested worlds use exact approved artwork and unique six-destinat
     const expectedFile = EXPECTED_ARTWORK[world.id];
     assert.ok(expectedFile, `${world.id} has no approved asset mapping`);
     assert.equal(path.basename(world.artwork?.src || ''), expectedFile, `${world.id} uses the wrong artwork`);
+    assert.equal(
+      world.artwork?.cropToContentBounds,
+      true,
+      `${world.id} must remove the source-canvas background and display only its measured frame`
+    );
     assert.match(world.artwork?.sha256 || '', /^[0-9a-f]{64}$/, `${world.id} needs a SHA-256`);
     assert.ok(!artworkHashes.has(world.artwork.sha256), `${world.id} duplicates another artwork hash`);
     artworkHashes.add(world.artwork.sha256);
@@ -222,11 +227,15 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(nav, /data-footer-world=\{footer\.id\}/);
   assert.match(nav, /data-footer-artwork=\{artwork\.src\}/);
   assert.match(nav, /data-exact-approved-artwork="true"/);
+  assert.match(nav, /artwork\.cropToContentBounds !== false && artwork\.contentBounds/);
+  assert.match(nav, /data-footer-cropped=\{artwork\.contentBounds && artwork\.cropToContentBounds !== false/);
   assert.match(nav, /className="bn-artwork-hit-zone"/);
   assert.match(nav, /minHeight: 44/);
   assert.match(nav, /className="bn-artwork-stage"[\s\S]*pointerEvents: 'none'/);
   assert.match(nav, /className="bn-artwork-hit-zone"[\s\S]*pointerEvents: 'auto'/);
   assert.match(nav, /className="bn-nav bn-artwork-nav"[\s\S]*pointerEvents: 'none'/);
+  assert.match(nav, /className="bn-nav bn-artwork-nav"[\s\S]*padding: 0,[\s\S]*background: 'transparent'/);
+  assert.match(nav, /className="bn-artwork-stage"[\s\S]*overflow: 'hidden'/);
   assert.match(nav, /objectFit: 'contain'/);
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);
