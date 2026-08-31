@@ -139,12 +139,12 @@ test('API, SSR, location families, and lobby accessibility share the Phase 11 co
   assert.match(api, /X-PNM-Data-Source/);
   assert.match(api, /if \(directory\.degraded\) res\.setHeader\('Cache-Control', 'no-store'\)/);
   assert.match(discovery, /data-directory-source/);
-  assert.match(discovery, /Retry live registry/);
+  assert.match(discovery, /Retry Live Registry/);
   assert.match(discovery, /fetchVenueDirectoryResilient/);
   assert.match(discovery, /<main className="pnm-layout" aria-label="Poker Near Me discovery results">/);
   assert.match(locations, /fetchVenueDirectoryResilient/);
   assert.match(lobby, /<main id="pnm-lobby-main"/);
-  assert.match(lobby, /Skip to Poker Near Me choices/);
+  assert.match(lobby, /Skip To Poker Near Me Choices/);
   assert.match(lobbyCss, /min-width: 44px !important/);
   assert.match(lobbyCss, /min-height: 44px !important/);
 });

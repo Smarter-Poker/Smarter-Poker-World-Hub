@@ -75,7 +75,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                         {hendonData.last_scraped && (
                             <div style={{ fontSize: 11, opacity: 0.4 }}>
-                                Last synced: {new Date(hendonData.last_scraped).toLocaleDateString()}
+                                Last Synced: {new Date(hendonData.last_scraped).toLocaleDateString()}
                             </div>
                         )}
                         <button
@@ -98,10 +98,10 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         <>
                             <div style={{ fontSize: 48, marginBottom: 12, animation: 'spin 1s linear infinite' }}>🔄</div>
                             <div style={{ fontSize: 16, fontWeight: 600, color: C.gold, marginBottom: 8 }}>
-                                Fetching your tournament stats...
+                                Fetching Your Tournament Stats...
                             </div>
                             <div style={{ fontSize: 13, opacity: 0.6 }}>
-                                This may take a few seconds
+                                This May Take A Few Seconds
                             </div>
                             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
                         </>
@@ -109,7 +109,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         <>
                             <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
                             <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
-                                Click below to fetch your tournament stats from Hendon Mob
+                                Click Below To Fetch Your Tournament Stats From Hendon Mob
                             </div>
                             <button
                                 onClick={onRefresh}

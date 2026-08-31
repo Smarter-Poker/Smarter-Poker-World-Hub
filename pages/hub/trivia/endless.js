@@ -840,7 +840,7 @@ export default function EndlessModePage() {
                                 }}>
                                     <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                        We couldn't save your score of {saveErrorPayload?.finalStreak} and {saveErrorPayload?.finalDiamonds}💎 because you lost connection. Please check your internet and try again so you don't lose your rewards!
+                                        We Couldn't Save Your Score Of {saveErrorPayload?.finalStreak} And {saveErrorPayload?.finalDiamonds}💎 Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose Your Rewards!
                                     </p>
                                     <button
                                         onClick={handleRetrySave}
@@ -889,7 +889,7 @@ export default function EndlessModePage() {
                                         <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
                                         <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You left the screen. Time remaining: {timer.timeLeft}s
+                                            You Left The Screen. Time Remaining: {timer.timeLeft}s
                                         </p>
                                         <button
                                             onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
@@ -1185,7 +1185,7 @@ export default function EndlessModePage() {
                                         color: '#8b5cf6',
                                         fontSize: '13px'
                                     }}>
-                                        +1 diamond per correct answer (max {DAILY_DIAMOND_CAP}/day)
+                                        +1 Diamond Per Correct Answer (Max {DAILY_DIAMOND_CAP}/Day)
                                     </div>
 
                                     {/* Report-a-bad-question — feeds the 3-strike quality_score
@@ -1265,7 +1265,7 @@ export default function EndlessModePage() {
                                             </div>
                                             {awardedDiamonds != null && awardedDiamonds < diamondsEarned && (
                                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: 6 }}>
-                                                    Daily cap reached - {awardedDiamonds} of {diamondsEarned} credited
+                                                    Daily Cap Reached - {awardedDiamonds} Of {diamondsEarned} Credited
                                                 </div>
                                             )}
                                         </div>
@@ -1343,7 +1343,7 @@ export default function EndlessModePage() {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            Back to Trivia
+                                            Back To Trivia
                                         </button>
                                     </div>
                                 </div>

@@ -1129,7 +1129,7 @@ const PostCard = React.memo(
                     display: 'inline-block',
                   }}
                 />
-                Editing as {post.author?.name || 'Club Page'} - club branding preserved
+                Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
               </div>
             )}
             <textarea
@@ -1257,7 +1257,7 @@ const PostCard = React.memo(
                           marginLeft: 4,
                         }}
                       >
-                        See more
+                        See More
                       </span>
                     )}
                   </>
@@ -2197,7 +2197,7 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} is typing</span>
+              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing</span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -2601,7 +2601,7 @@ const PostCard = React.memo(
                   marginTop: 4,
                 }}
               >
-                View more comments
+                View More Comments
               </button>
             )}
 
@@ -2617,7 +2617,7 @@ const PostCard = React.memo(
                 }}
               >
                 <span>
-                  Replying to <strong>{replyingTo.name}</strong>
+                  Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
                   style={{ cursor: 'pointer', fontWeight: 600 }}
@@ -6884,7 +6884,7 @@ function SocialMediaPage() {
                         <circle cx="11" cy="11" r="8" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                       </svg>
-                      No results found for "{globalSearchQuery}"
+                      No Results Found For "{globalSearchQuery}"
                     </div>
                   )}
               </div>
@@ -6999,7 +6999,7 @@ function SocialMediaPage() {
                           padding: '4px 8px',
                         }}
                       >
-                        Mark all read
+                        Mark All Read
                       </button>
                     )}
                     <button
@@ -7302,7 +7302,7 @@ function SocialMediaPage() {
                           </div>
                           <div style={{ fontSize: 12, color: '#65676B', marginTop: 1 }}>
                             {CATEGORY_LABELS[myClubPage.category] || myClubPage.category || 'Club'}{' '}
-                            · {myClubPage.follower_count || 0} followers
+                            · {myClubPage.follower_count || 0} Followers
                           </div>
                         </div>
                       </div>
@@ -7527,11 +7527,11 @@ function SocialMediaPage() {
                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
                       <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
                       <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
-                        Welcome to Smarter.Poker
+                        Welcome To Smarter.Poker
                       </h3>
                       <p style={{ marginBottom: 16, lineHeight: 1.5 }}>
-                        Your poker community feed is empty. Follow players, join clubs, or share
-                        your first hand to get started!
+                        Your Poker Community Feed Is Empty. Follow Players, Join Clubs, Or Share
+                        Your First Hand To Get Started!
                       </p>
                       <div
                         style={{
@@ -7576,7 +7576,7 @@ function SocialMediaPage() {
                             border: `1px solid ${C.border}`,
                           }}
                         >
-                          Create a Post
+                          Create A Post
                         </span>
                       </div>
                     </div>
@@ -7606,7 +7606,7 @@ function SocialMediaPage() {
                                 No Club Posts Yet
                               </h3>
                               <p style={{ marginBottom: 16, lineHeight: 1.5, fontSize: 13 }}>
-                                Post as your club to see content here!
+                                Post As Your Club To See Content Here!
                               </p>
                               <button
                                 onClick={() => setShowClubPostsOnly(false)}
@@ -7800,7 +7800,7 @@ function SocialMediaPage() {
                         )}
                         {!hasMorePosts && posts.length > 0 && (
                           <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
-                            You're all caught up! Check back later for new content.
+                            You're All Caught Up! Check Back Later For New Content.
                           </p>
                         )}
                       </div>
@@ -8160,8 +8160,8 @@ function SocialMediaPage() {
               Delete This Post?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              This post will be removed from the feed. You can tap the
-              &ldquo;Post deleted&rdquo; message within 5 seconds to undo.
+              This Post Will Be Removed From The Feed. You Can Tap The
+              &ldquo;Post Deleted&rdquo; Message Within 5 Seconds To Undo.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button

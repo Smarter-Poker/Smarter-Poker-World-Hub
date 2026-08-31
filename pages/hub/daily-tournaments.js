@@ -425,7 +425,7 @@ export default function DailyTournaments() {
                     </div>
                     <div className="dt-header-right">
                         <form role="search" className="pnm-search-box" style={{ position: 'relative' }} onSubmit={(e) => { e.preventDefault(); setDebouncedSearch(searchQuery); }}>
-                            <label htmlFor="venue-search" className="dt-sr-only">Search tournaments by venue</label>
+                            <label htmlFor="venue-search" className="dt-sr-only">Search Tournaments By Venue</label>
                             <SearchLuc size={16} aria-hidden style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
                             <input
                                 type="text"
@@ -486,8 +486,8 @@ export default function DailyTournaments() {
                     </div>
                     {selectedDate && (
                         <div className="selected-date-banner">
-                            Showing schedule for: <strong>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
-                            <button onClick={() => setSelectedDate(null)} className="clear-date-btn" aria-label="Back to week view"><XLuc size={12} aria-hidden /> Back to week</button>
+                            Showing Schedule For: <strong>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
+                            <button onClick={() => setSelectedDate(null)} className="clear-date-btn" aria-label="Back to week view"><XLuc size={12} aria-hidden /> Back To Week</button>
                         </div>
                     )}
                 </div>
@@ -554,20 +554,20 @@ export default function DailyTournaments() {
                             const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
                             setSelectedState(st || null);
                         }}>
-                            <option value="">All states</option>
+                            <option value="">All States</option>
                             {POPULAR_STATES.map(state => (
                                 <option key={state.abbr} value={state.abbr}>{state.name}</option>
                             ))}
                         </select>
 
-                        <label htmlFor="dt-type-filter" className="dt-sr-only">Venue type</label>
+                        <label htmlFor="dt-type-filter" className="dt-sr-only">Venue Type</label>
                         <select id="dt-type-filter" className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
                             {VENUE_TYPES.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
                             ))}
                         </select>
 
-                        <label htmlFor="dt-buyin-filter" className="dt-sr-only">Buy-in range</label>
+                        <label htmlFor="dt-buyin-filter" className="dt-sr-only">Buy-In Range</label>
                         <select id="dt-buyin-filter" className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
                             const range = BUYIN_RANGES.find(r => r.label === e.target.value);
                             setSelectedBuyin(range || BUYIN_RANGES[0]);
@@ -585,11 +585,11 @@ export default function DailyTournaments() {
                             onChange={(e) => handleDistanceChange(e.target.value)}
                             title={gpsStatus === 'denied' ? 'Location access denied - enable in browser settings' : ''}
                         >
-                            <option value="all">Any distance</option>
-                            <option value="25">Within 25 mi</option>
-                            <option value="50">Within 50 mi</option>
-                            <option value="100">Within 100 mi</option>
-                            <option value="250">Within 250 mi</option>
+                            <option value="all">Any Distance</option>
+                            <option value="25">Within 25 Mi</option>
+                            <option value="50">Within 50 Mi</option>
+                            <option value="100">Within 100 Mi</option>
+                            <option value="250">Within 250 Mi</option>
                         </select>
 
                         {(searchQuery || selectedState || selectedType || selectedBuyin.min !== null || selectedBuyin.max !== null || distanceFilter !== 'all') ? (
@@ -608,19 +608,19 @@ export default function DailyTournaments() {
                     <main className="tournament-feed">
                         {error && !loading ? (
                             <div className="empty-state error-state" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-                                <p>Failed to load schedule</p>
+                                <p>Failed To Load Schedule</p>
                                 <p style={{ fontSize: '13px', opacity: 0.7, marginTop: '8px' }}>{error.message || 'Unknown network collision'}</p>
-                                <button onClick={() => refreshTournaments()} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Retry connection</button>
+                                <button onClick={() => refreshTournaments()} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Retry Connection</button>
                             </div>
                         ) : loading ? (
                             <div className="loading-state" role="status" aria-live="polite" aria-busy="true">
                                 <div className="spinner"></div>
-                                <span>Finding tournaments…</span>
+                                <span>Finding Tournaments…</span>
                             </div>
                         ) : tournaments.length === 0 ? (
                             <div className="empty-state">
-                                <p>No tournaments found for {selectedDay}</p>
-                                <button onClick={clearFilters}>Clear filters</button>
+                                <p>No Tournaments Found For {selectedDay}</p>
+                                <button onClick={clearFilters}>Clear Filters</button>
                             </div>
                         ) : (
                             <div className="tournament-list">
@@ -1279,7 +1279,7 @@ function TournamentCard({ tournament }) {
                 )}
                 {t.pokerAtlasUrl && (
                     <a href={safeHref(t.pokerAtlasUrl)} target="_blank" rel="noopener noreferrer" className="card-link">
-                        View details
+                        View Details
                     </a>
                 )}
             </div>

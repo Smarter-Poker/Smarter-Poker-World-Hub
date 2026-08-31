@@ -63,7 +63,10 @@ const ACRONYMS = new Set([
   'pc', 'ios', 'os', 'ui', 'ux', 'qr', 'sms', 'otp', '2fa',
 ]);
 
-const JSX_EXTS = new Set(['.tsx', '.jsx']);
+// Pages Router routes in World Hub are predominantly .js files that contain
+// JSX. Excluding .js made the repository-wide guarantee silently skip most
+// forward-facing pages, including every top-level Marketplace storefront.
+const JSX_EXTS = new Set(['.js', '.jsx', '.tsx']);
 
 const fix = process.argv.includes('--fix');
 
@@ -95,7 +98,9 @@ export function titleCaseText(text) {
     // Inside an HTML entity (&nbsp;) - leave it alone.
     const before = whole.slice(Math.max(0, offset - 1), offset);
     if (before === '&') return word;
-    if (/^[0-9]/.test(word)) return word;
+    // A letter immediately following a digit is a suffix inside the same
+    // token, not the first letter of a word: 1.5x, 7d, 24h, GPT-4o.
+    if (/\d/.test(before)) return word;
     const lower = word.toLowerCase();
     if (ACRONYMS.has(lower)) return lower.toUpperCase();
     if (word.length > 1 && word === word.toUpperCase()) return word;

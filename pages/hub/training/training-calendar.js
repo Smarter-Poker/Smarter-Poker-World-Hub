@@ -240,7 +240,7 @@ export default function TrainingCalendarPage() {
           <div>
             {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your activity heatmap</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Activity Heatmap</div>
           </div>
         </div>
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
@@ -401,13 +401,13 @@ export default function TrainingCalendarPage() {
                         <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                           {selectedData.hands}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>hands</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Hands</span>
                       </div>
                       <div>
                         <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                           {selectedData.sessions}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>sessions</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Sessions</span>
                       </div>
                       <div>
                         <span
@@ -428,11 +428,11 @@ export default function TrainingCalendarPage() {
                             : 0}
                           %
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>accuracy</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Accuracy</span>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>No training on this day</div>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>No Training On This Day</div>
                   )}
                 </motion.div>
               )}
@@ -479,7 +479,7 @@ export default function TrainingCalendarPage() {
                     <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces ★ */}
                       <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
-                      Goal Met! +1 to Streak
+                      Goal Met! +1 To Streak
                     </div>
                   )}
                 </div>

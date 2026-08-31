@@ -168,7 +168,7 @@ function EventRow({ ev, idx }) {
       {/* Levels */}
       <div className="ssm-col ssm-col-levels">
         {levels
-          ? <span className="ssm-levels">{levels}<span className="ssm-min">m</span></span>
+          ? <span className="ssm-levels">{levels}<span className="ssm-min">M</span></span>
           : <span className="ssm-na">-</span>
         }
       </div>
@@ -337,7 +337,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
               {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
-          <span className="ssm-event-count">{filtered.length} of {allEvents.length} events</span>
+          <span className="ssm-event-count">{filtered.length} Of {allEvents.length} Events</span>
         </div>
 
         {/* ── Table ── */}
@@ -365,7 +365,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <p>No events match your filter.</p>
+                <p>No Events Match Your Filter.</p>
               </div>
             )}
             {filtered.map((ev, idx) => <EventRow key={ev.id || idx} ev={ev} idx={idx} />)}
@@ -375,7 +375,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
         {/* ── Footer ── */}
         <div className="ssm-footer">
           <span className="ssm-footer-note">
-            Schedule data from {tourName || tourCode} official sources. Updated every 3 days.
+            Schedule Data From {tourName || tourCode} Official Sources. Updated Every 3 Days.
           </span>
           <button className="ssm-footer-close" onClick={onClose}>Close</button>
         </div>

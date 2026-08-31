@@ -327,7 +327,7 @@ function LeaderboardEntry({
             {isCurrentUser && <span style={styles.youBadge}>YOU</span>}
           </div>
           <div style={styles.userStats}>
-            {totalQuestions} questions • {accuracy}% accuracy
+            {totalQuestions} Questions • {accuracy}% Accuracy
           </div>
         </div>
       </div>

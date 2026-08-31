@@ -2306,7 +2306,7 @@ export default function DiamondStorePage({ initialTab }) {
                         e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
                       }}
                     >
-                      View in Marketplace <span style={{ fontSize: 18 }}>→</span>
+                      View In Marketplace <span style={{ fontSize: 18 }}>→</span>
                     </a>
                   </div>
 
@@ -3390,7 +3390,7 @@ export default function DiamondStorePage({ initialTab }) {
                           No Club Found
                         </div>
                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
-                          Join a club to access the Club Shop.
+                          Join A Club To Access The Club Shop.
                         </p>
                       </div>
                     ) : (
@@ -3790,7 +3790,7 @@ export default function DiamondStorePage({ initialTab }) {
                                                   marginTop: 2,
                                                 }}
                                               >
-                                                {item.purchase_count} sold
+                                                {item.purchase_count} Sold
                                               </div>
                                             )}
                                           </div>
@@ -3874,7 +3874,7 @@ export default function DiamondStorePage({ initialTab }) {
                                   fontWeight: 600,
                                 }}
                               >
-                                No purchases yet.
+                                No Purchases Yet.
                               </div>
                               <button
                                 onClick={() => setClubShopSubTab('store')}
@@ -4433,7 +4433,7 @@ export default function DiamondStorePage({ initialTab }) {
                                   fontWeight: 600,
                                 }}
                               >
-                                No shop items yet. Create one above.
+                                No Shop Items Yet. Create One Above.
                               </div>
                             </div>
                           ) : (
@@ -4474,12 +4474,12 @@ export default function DiamondStorePage({ initialTab }) {
                                       >
                                         {marketplaceCopy(item.category || 'Time Banks')}
                                       </span>{' '}
-                                      • {item.net_purchase_count || 0} net sold •{' '}
-                                      {fmt(item.revenue)} Diamonds burned
+                                      • {item.net_purchase_count || 0} Net Sold •{' '}
+                                      {fmt(item.revenue)} Diamonds Burned
                                       {(item.refunded_purchase_count || 0) > 0 && (
                                         <span style={{ color: '#FFB7C4' }}>
                                           {' '}
-                                          • {item.refunded_purchase_count} refunded
+                                          • {item.refunded_purchase_count} Refunded
                                         </span>
                                       )}
                                     </div>
@@ -4657,13 +4657,13 @@ export default function DiamondStorePage({ initialTab }) {
 
               {/* Legal Note */}
               <p style={styles.legalNote}>
-                Diamonds are virtual currency and have no real-world cash value.
+                Diamonds Are Virtual Currency And Have No Real-World Cash Value.
                 {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                All purchases are final. See our{' '}
+                All Purchases Are Final. See our{' '}
                 <a href="/terms" style={styles.link}>
-                  Terms of Service
+                  Terms Of Service
                 </a>{' '}
-                for details.
+                For Details.
               </p>
             </div>
           </main>

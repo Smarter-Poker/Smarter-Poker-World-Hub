@@ -559,7 +559,7 @@ export default function HomeGameDetailPage() {
             onClick={() => router.push('/hub/commander/home-games')}
             className="mt-4 cmd-btn cmd-btn-primary"
           >
-            Back to Home Games
+            Back To Home Games
           </button>
         </div>
       </div>
@@ -598,7 +598,7 @@ export default function HomeGameDetailPage() {
               </button>
               <div>
                 <h1 className="font-bold text-white">{group.name}</h1>
-                <p className="text-sm text-[#64748B]">{members.length} members</p>
+                <p className="text-sm text-[#64748B]">{members.length} Members</p>
               </div>
             </div>
 
@@ -657,7 +657,7 @@ export default function HomeGameDetailPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-[#64748B]">
                 <Users className="w-4 h-4" />
-                <span>{group.max_players} max</span>
+                <span>{group.max_players} Max</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-[#64748B]">
                 <Clock className="w-4 h-4" />
@@ -866,7 +866,7 @@ export default function HomeGameDetailPage() {
             <div>
               <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                 <Star className="w-5 h-5 text-[#22D3EE]" />
-                Leave a Review
+                Leave A Review
               </h3>
               <PlayerRating
                 event={events.find(e => new Date(e.scheduled_date) < new Date())}
@@ -921,7 +921,7 @@ export default function HomeGameDetailPage() {
               Reviews
               {reviewsAvgRating > 0 && (
                 <span className="text-sm text-[#64748B] ml-1">
-                  ({reviewsAvgRating} avg)
+                  ({reviewsAvgRating} Avg)
                 </span>
               )}
             </h3>
@@ -1021,7 +1021,7 @@ export default function HomeGameDetailPage() {
             </div>
 
             <p className="text-sm text-[#64748B] mb-4">
-              Share this code with players you want to invite
+              Share This Code With Players You Want To Invite
             </p>
 
             {/* 2026-07-25 audit fix: no more hardcoded 'ABC123' fallback - when the
@@ -1045,7 +1045,7 @@ export default function HomeGameDetailPage() {
             ) : (
               <div className="p-4 bg-[#0D192E] rounded-lg mb-4">
                 <p className="text-sm text-[#64748B] text-center">
-                  This group does not have an invite code yet. Ask the host to generate one from the manage page.
+                  This Group Does Not Have An Invite Code Yet. Ask The Host To Generate One From The Manage Page.
                 </p>
               </div>
             )}

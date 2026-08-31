@@ -665,7 +665,7 @@ export default function LivesPage() {
                                         {sl.title || 'Scheduled Stream'}
                                     </div>
                                     <div style={{ color: '#FF6B6B', fontSize: 12, fontWeight: 700 }}>
-                                        Starts in {countdown}
+                                        Starts In {countdown}
                                     </div>
                                 </div>
                             );
@@ -712,7 +712,7 @@ export default function LivesPage() {
                         <div style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
                         <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No Lives Yet</h2>
                         <p style={{ color: C.textSec, margin: '0 0 24px' }}>
-                            Be the first to go live and share with the community!
+                            Be The First To Go Live And Share With The Community!
                         </p>
                         {/* #4: Show draft count when user has saved streams */}
                         {myDrafts.length > 0 && (
@@ -731,7 +731,7 @@ export default function LivesPage() {
                                     cursor: 'pointer',
                                 }}
                             >
-                                You have {myDrafts.length} saved {myDrafts.length === 1 ? 'stream' : 'streams'} ready to publish
+                                You Have {myDrafts.length} Saved {myDrafts.length === 1 ? 'stream' : 'streams'} Ready To Publish
                             </button>
                         )}
                         <Link href="/hub/social-media" style={{
@@ -836,7 +836,7 @@ export default function LivesPage() {
                                     LIVE
                                     {(stream.viewer_count > 0) && (
                                         <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
-                                            {stream.viewer_count} watching
+                                            {stream.viewer_count} Watching
                                         </span>
                                     )}
                                 </div>
@@ -909,7 +909,7 @@ export default function LivesPage() {
                     {/* Stats */}
                     <div style={{ color: C.textSec, fontSize: 13 }}>
                         {stream.isLive ? (
-                            <span>👁️ {stream.viewer_count || 0} watching</span>
+                            <span>👁️ {stream.viewer_count || 0} Watching</span>
                         ) : (
                             <span>▶️ Replay • {new Date(stream.created_at).toLocaleDateString()}</span>
                         )}
@@ -1020,12 +1020,12 @@ export default function LivesPage() {
                         <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
                         <button onClick={() => setShowChat(false)} style={{
                             background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
-                        }}>x</button>
+                        }}>X</button>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
                         {chatMessages.length === 0 && (
                             <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
-                                No messages yet. Start the conversation!
+                                No Messages Yet. Start The Conversation!
                             </div>
                         )}
                         {chatMessages.map((m, i) => (
@@ -1126,7 +1126,7 @@ export default function LivesPage() {
                 </div>
                 {myDrafts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>
-                        No saved streams. After going live, choose &quot;Save To Lives&quot; to save here.
+                        No Saved Streams. After Going Live, Choose &quot;Save To Lives&quot; To Save Here.
                     </div>
                 ) : (
                     myDrafts.map(draft => (

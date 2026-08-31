@@ -80,6 +80,14 @@ test('Marketplace copy normalization capitalizes words and removes both banned b
   );
 });
 
+test('repository title-case enforcement covers Pages Router JavaScript without corrupting numeric suffixes', async () => {
+  const gate = await read('scripts/ci/check-title-case.mjs');
+
+  assert.match(gate, /const JSX_EXTS = new Set\(\['\.js', '\.jsx', '\.tsx'\]\)/);
+  assert.match(gate, /if \(\/\\d\/\.test\(before\)\) return word;/);
+  assert.match(gate, /1\.5x, 7d, 24h, GPT-4o/);
+});
+
 test('accessible Marketplace shell copy is normalized before rendering or entering metadata', async () => {
   const [detail, subpage] = await Promise.all([
     read('src/components/store/MarketplaceDetailExperience.jsx'),
@@ -114,4 +122,20 @@ test('remote Marketplace inventory and account telemetry cannot reintroduce bann
   boundaries.forEach(source => {
     assert.match(source, /marketplaceCopy/);
   });
+});
+
+test('private VIP reads reject anonymous requests before database initialization', async () => {
+  const source = await read('pages/api/store/vip-membership-status.js');
+  const authBoundary = source.indexOf("if (!authHeader || !authHeader.startsWith('Bearer '))");
+  const databaseBoundary = source.indexOf('getServerUserWithFallback(req, getSupabase())');
+
+  assert.ok(authBoundary >= 0, 'VIP status must reject a missing bearer token');
+  assert.ok(databaseBoundary > authBoundary, 'anonymous rejection must happen before database initialization');
+});
+
+test('Marketplace media inspection explicitly focuses the in-page close control', async () => {
+  const source = await read('src/components/store/MarketplaceDetailExperience.jsx');
+
+  assert.match(source, /requestAnimationFrame\(\(\) => closeMediaRef\.current\?\.focus\(\)\)/);
+  assert.match(source, /cancelAnimationFrame\(focusFrame\)/);
 });

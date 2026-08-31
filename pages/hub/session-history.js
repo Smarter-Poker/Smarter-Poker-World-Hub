@@ -341,12 +341,12 @@ export default function SessionHistoryPage() {
         })()}
 
         {loading && (
-          <div style={{ color: T.textSec, textAlign: 'center', padding: 40 }}>Loading sessions...</div>
+          <div style={{ color: T.textSec, textAlign: 'center', padding: 40 }}>Loading Sessions...</div>
         )}
 
         {!loading && sessions.length === 0 && (
           <div style={{ color: T.textDim, textAlign: 'center', padding: 40 }}>
-            No sessions recorded yet. Play some hands to see your history here!
+            No Sessions Recorded Yet. Play Some Hands To See Your History Here!
           </div>
         )}
 
@@ -377,7 +377,7 @@ export default function SessionHistoryPage() {
                       {formatDate(s.session_start)}
                     </div>
                     <div style={{ color: T.textDim, fontSize: 10, marginTop: 2 }}>
-                      {s.hands_played || 0} hands • {duration > 0 ? `${duration}m` : 'Live'}
+                      {s.hands_played || 0} Hands • {duration > 0 ? `${duration}m` : 'Live'}
                     </div>
                   </div>
 
@@ -493,7 +493,7 @@ export default function SessionHistoryPage() {
         {/* L6: Stake/Table Breakdown */}
         {stakeBreakdown && stakeBreakdown.length > 0 && (
           <div style={{ marginTop: 16, background: T.card, borderRadius: 12, padding: 14, border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: T.text, marginBottom: 8 }}>📊 Performance by Table</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.text, marginBottom: 8 }}>📊 Performance By Table</div>
             {stakeBreakdown.map(([tableId, data]) => (
               <div key={tableId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${T.border}22` }}>
                 <span style={{ color: T.textSec, fontSize: 10, fontFamily: 'monospace' }}>{tableId}</span>

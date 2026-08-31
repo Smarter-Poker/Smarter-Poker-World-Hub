@@ -293,7 +293,7 @@ export default function QuickWarmupPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Quick Warmup</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>5-minute speed session</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
           </div>
         </div>
 
@@ -316,10 +316,10 @@ export default function QuickWarmupPage() {
                 Quick Warmup
               </div>
               <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginBottom: 6 }}>
-                5 minutes. No setup. No choices.
+                5 Minutes. No Setup. No Choices.
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
-                We&apos;ll auto-pick your weakest area and drill it.
+                We&apos;Ll Auto-Pick Your Weakest Area And Drill It.
               </div>
 
               {/* Warmup mode selector */}
@@ -407,13 +407,13 @@ export default function QuickWarmupPage() {
                   HOW IT WORKS
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
-                  1. Timer starts at 5:00
+                  1. Timer Starts At 5:00
                   <br />
-                  2. Answer GTO questions as fast as you can
+                  2. Answer GTO Questions As Fast As You Can
                   <br />
-                  3. Game auto-selects your weakest area
+                  3. Game Auto-Selects Your Weakest Area
                   <br />
-                  4. See your speed + accuracy results
+                  4. See Your Speed + Accuracy Results
                 </div>
               </div>
             </motion.div>

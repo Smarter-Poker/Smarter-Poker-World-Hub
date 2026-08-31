@@ -111,7 +111,7 @@ export default async function handler(req) {
 
                     {/* Branding */}
                     <div style={{ display: 'flex', position: 'absolute', bottom: 16, right: 48, fontSize: 12, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>
-                        smarter.poker
+                        Smarter.Poker
                     </div>
                 </div>
             ),

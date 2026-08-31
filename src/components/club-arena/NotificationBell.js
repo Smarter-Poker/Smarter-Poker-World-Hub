@@ -141,7 +141,7 @@ export default function NotificationBell({ userId }) {
                 onClick={markAllRead}
                 style={{ background: 'none', border: 'none', color: FB.primary, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
-                Mark all read
+                Mark All Read
               </button>
             )}
           </div>
@@ -149,7 +149,7 @@ export default function NotificationBell({ userId }) {
           {/* Notification list */}
           {notifications.length === 0 ? (
             <div style={{ padding: '30px 16px', textAlign: 'center', color: FB.dim, fontSize: 13 }}>
-              No notifications yet
+              No Notifications Yet
             </div>
           ) : (
             notifications.map(n => (

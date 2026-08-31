@@ -53,8 +53,8 @@ function EquityBar({ value, max = 100 }) {
 
 // ─── Tab components ───────────────────────────────────────────────
 function OverviewTab({ stats, loading }) {
-  if (loading) return <div className="text-center text-slate-400 py-12">Loading stats...</div>;
-  if (!stats) return <div className="text-center text-slate-500 py-12">No data yet. Start a Poker Brain session to see your stats.</div>;
+  if (loading) return <div className="text-center text-slate-400 py-12">Loading Stats...</div>;
+  if (!stats) return <div className="text-center text-slate-500 py-12">No Data Yet. Start A Poker Brain Session To See Your Stats.</div>;
 
   return (
     <div className="space-y-6">
@@ -137,7 +137,7 @@ function OverviewTab({ stats, loading }) {
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.byVariant || {}).map(([v, count]) => (
               <span key={v} className="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full">
-                {v.toUpperCase()} ({count} sessions)
+                {v.toUpperCase()} ({count} Sessions)
               </span>
             ))}
           </div>
@@ -167,7 +167,7 @@ function SessionAuditPanel({ hands }) {
   if (!audit || audit.handsAnalyzed === 0) {
     return (
       <div className="bg-slate-900/60 rounded-lg p-3 text-xs text-slate-500">
-        No decision data available for audit. Play with Poker Brain active to record per-street decisions.
+        No Decision Data Available For Audit. Play With Poker Brain Active To Record Per-Street Decisions.
       </div>
     );
   }
@@ -201,7 +201,7 @@ function SessionAuditPanel({ hands }) {
             />
           </div>
           <div className="text-[10px] text-slate-500">
-            {audit.handsAnalyzed} of {audit.totalHands} hands analyzed
+            {audit.handsAnalyzed} Of {audit.totalHands} Hands Analyzed
           </div>
         </div>
       </div>
@@ -284,7 +284,7 @@ function SessionAuditPanel({ hands }) {
       {/* Worst Hands Review */}
       {audit.handReviews.filter(r => r.score !== null && r.score < 50).length > 0 && (
         <div className="bg-slate-900 rounded-lg p-3">
-          <h4 className="text-xs font-bold text-amber-400 mb-2">Hands to Review (Lowest Scored)</h4>
+          <h4 className="text-xs font-bold text-amber-400 mb-2">Hands To Review (Lowest Scored)</h4>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {audit.handReviews.filter(r => r.score !== null && r.score < 50).slice(0, 10).map((review, i) => (
               <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-lg px-2 py-1.5 text-[11px]">
@@ -362,8 +362,8 @@ function SessionsTab({ userId }) {
     }
   }, [expandedSession]);
 
-  if (loading) return <div className="text-center text-slate-400 py-12">Loading sessions...</div>;
-  if (sessions.length === 0) return <div className="text-center text-slate-500 py-12">No sessions yet.</div>;
+  if (loading) return <div className="text-center text-slate-400 py-12">Loading Sessions...</div>;
+  if (sessions.length === 0) return <div className="text-center text-slate-500 py-12">No Sessions Yet.</div>;
 
   return (
     <div className="space-y-3">
@@ -376,11 +376,11 @@ function SessionsTab({ userId }) {
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-sm font-bold text-white">{(s.game_type || 'nlhe').toUpperCase()}</span>
-                <span className="text-xs text-slate-400 ml-2">{s.player_count || 6} players</span>
+                <span className="text-xs text-slate-400 ml-2">{s.player_count || 6} Players</span>
               </div>
               <div className="text-right">
                 <div className="text-xs text-slate-400">{new Date(s.started_at).toLocaleDateString()}</div>
-                <div className="text-[10px] text-slate-500">{s.hands_played} hands</div>
+                <div className="text-[10px] text-slate-500">{s.hands_played} Hands</div>
               </div>
             </div>
           </button>
@@ -458,7 +458,7 @@ function SessionsTab({ userId }) {
             disabled={page === 1}
             className="text-xs px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-30"
           >Prev</button>
-          <span className="text-xs text-slate-400 py-1">Page {page} of {Math.ceil(total / 15)}</span>
+          <span className="text-xs text-slate-400 py-1">Page {page} Of {Math.ceil(total / 15)}</span>
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={page >= Math.ceil(total / 15)}
@@ -551,7 +551,7 @@ function SettingsTab({ userId }) {
       <div className="bg-slate-800 rounded-xl p-4">
         <h3 className="text-sm font-bold text-white mb-3">Calibration Profiles</h3>
         <p className="text-xs text-slate-400 mb-3">
-          Save your current calibration to the cloud so you can load it on other devices.
+          Save Your Current Calibration To The Cloud So You Can Load It On Other Devices.
         </p>
         <button
           onClick={saveCurrentCalibration}
@@ -560,9 +560,9 @@ function SettingsTab({ userId }) {
           Save Current Calibration
         </button>
         {loading ? (
-          <div className="text-xs text-slate-500">Loading profiles...</div>
+          <div className="text-xs text-slate-500">Loading Profiles...</div>
         ) : profiles.length === 0 ? (
-          <div className="text-xs text-slate-500">No saved profiles yet.</div>
+          <div className="text-xs text-slate-500">No Saved Profiles Yet.</div>
         ) : (
           <div className="space-y-2">
             {profiles.map(p => (
@@ -587,8 +587,8 @@ function SettingsTab({ userId }) {
       <div className="bg-slate-800 rounded-xl p-4">
         <h3 className="text-sm font-bold text-white mb-3">Equity Recomputation</h3>
         <p className="text-xs text-slate-400 mb-3">
-          Recompute equity values for hands stored under older engine versions.
-          Run a dry run first to see how many hands need updating.
+          Recompute Equity Values For Hands Stored Under Older Engine Versions.
+          Run A Dry Run First To See How Many Hands Need Updating.
         </p>
         <div className="flex gap-2">
           <button
@@ -699,9 +699,9 @@ function AuditTab({ userId }) {
 
   useEffect(() => { runAudit(); }, [runAudit]);
 
-  if (loading) return <div className="text-center text-slate-400 py-12">Running session audit...</div>;
+  if (loading) return <div className="text-center text-slate-400 py-12">Running Session Audit...</div>;
   if (!auditData || auditData.sessionAudits.length === 0) {
-    return <div className="text-center text-slate-500 py-12">No sessions with decision data found. Play with Poker Brain to generate audit data.</div>;
+    return <div className="text-center text-slate-500 py-12">No Sessions With Decision Data Found. Play With Poker Brain To Generate Audit Data.</div>;
   }
 
   const gradeColor = {
@@ -724,7 +724,7 @@ function AuditTab({ userId }) {
         </div>
         <div className="flex-1">
           <div className="text-lg font-bold text-white">{auditData.overallScore}/100</div>
-          <div className="text-xs text-slate-400">Across {auditData.totalHands} hands in {auditData.sessionAudits.length} sessions</div>
+          <div className="text-xs text-slate-400">Across {auditData.totalHands} Hands In {auditData.sessionAudits.length} Sessions</div>
           <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden mt-2">
             <div className="h-full rounded-full" style={{ width: auditData.overallScore + '%', backgroundColor: gradeColor[overallGrade] }} />
           </div>
@@ -772,7 +772,7 @@ function AuditTab({ userId }) {
                   {(sa.session.game_type || 'nlhe').toUpperCase()} -- {sa.audit.overallScore}/100
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  {new Date(sa.session.started_at).toLocaleDateString()} -- {sa.handsCount} hands -- {sa.audit.leaks.length} leak{sa.audit.leaks.length !== 1 ? 's' : ''}
+                  {new Date(sa.session.started_at).toLocaleDateString()} -- {sa.handsCount} Hands -- {sa.audit.leaks.length} leak{sa.audit.leaks.length !== 1 ? 's' : ''}
                 </div>
               </div>
             </div>
@@ -829,7 +829,7 @@ export default function PokerBrainDashboard() {
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-black mb-2">Poker Brain</h1>
-          <p className="text-slate-400">Sign in to access your Poker Brain dashboard.</p>
+          <p className="text-slate-400">Sign In To Access Your Poker Brain Dashboard.</p>
         </div>
       </div>
     );
@@ -847,10 +847,10 @@ export default function PokerBrainDashboard() {
               onChange={(e) => setPeriod(e.target.value)}
               className="text-xs bg-slate-800 text-slate-300 border border-slate-700 rounded px-2 py-1"
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="all">All time</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="90d">Last 90 Days</option>
+              <option value="all">All Time</option>
             </select>
           </div>
           <div className="flex gap-1">

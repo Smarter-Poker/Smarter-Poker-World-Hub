@@ -96,6 +96,10 @@ export default function MarketplaceDetailExperience({
     if (!mediaExpanded) return undefined;
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // React's autoFocus can race the dialog paint in some desktop Chromium
+    // runs. Move focus after commit so the keyboard trap always begins on the
+    // visible close control.
+    const focusFrame = requestAnimationFrame(() => closeMediaRef.current?.focus());
     const containMediaFocus = (event) => {
       if (event.key === 'Escape') {
         setMediaExpanded(false);
@@ -108,6 +112,7 @@ export default function MarketplaceDetailExperience({
     };
     window.addEventListener('keydown', containMediaFocus);
     return () => {
+      cancelAnimationFrame(focusFrame);
       window.removeEventListener('keydown', containMediaFocus);
       document.body.style.overflow = previousBodyOverflow;
     };

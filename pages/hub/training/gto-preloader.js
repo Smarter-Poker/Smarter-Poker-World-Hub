@@ -263,7 +263,7 @@ export default function GtoPreloaderPage() {
                 {getDiskUsage()}
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                Verified question payloads currently stored on this device
+                Verified Question Payloads Currently Stored On This Device
               </div>
             </div>
           </div>

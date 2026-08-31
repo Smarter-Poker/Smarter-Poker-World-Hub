@@ -209,7 +209,7 @@ test('hooks and Leak Finder render retryable partial and unavailable states', ()
   assert.match(assistantHook, /setPartial\(!!data\.partial\)/);
   assert.match(assistantHook, /truncatedSources/);
   assert.match(leakPage, /leaksPartial/);
-  assert.match(leakPage, /Leak history is partially loaded/);
+  assert.match(leakPage, /Leak History Is Partially Loaded/);
   assert.match(leakPage, /Assistant Stats Unavailable/);
   assert.match(leakPage, /refetchStats/);
   assert.match(detectApi, /code: 'invalid_audit_cursor'/);

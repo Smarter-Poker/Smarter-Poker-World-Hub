@@ -181,7 +181,7 @@ export default function StreakFire({
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                 }}>
-                    day streak
+                    Day Streak
                 </span>
             )}
         </motion.div>

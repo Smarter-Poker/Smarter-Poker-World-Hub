@@ -1173,7 +1173,7 @@ export default function SignUpPage() {
 
                 {/* Date of Birth */}
                 <div className="auth-field-group">
-                  <label className="auth-label">Date of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
+                  <label className="auth-label">Date Of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
                   <div className="auth-field-row">
                     <select
                       className="auth-input-styled"
@@ -1595,28 +1595,28 @@ export default function SignUpPage() {
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: January 1, 2026</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>1. Acceptance Of Terms</h3>
-                    <p>By creating an account on Smarter.Poker, you agree to be bound by these Terms of Service. If you do not agree, please do not use our platform.</p>
+                    <p>By Creating An Account On Smarter.Poker, You Agree To Be Bound By These Terms Of Service. If You Do Not Agree, Please Do Not Use Our Platform.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>2. Eligibility</h3>
-                    <p>You must be at least 18 years of age to use Smarter.Poker. By registering, you confirm that you meet this requirement and that the information you provide is accurate and truthful.</p>
+                    <p>You Must Be At Least 18 Years Of Age To Use Smarter.Poker. By Registering, You Confirm That You Meet This Requirement And That The Information You Provide Is Accurate And Truthful.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>3. Platform Use</h3>
-                    <p>Smarter.Poker is a poker training and education platform. You agree to use the platform solely for lawful purposes and in accordance with these Terms. You may not use the platform to engage in any activity that violates applicable law.</p>
+                    <p>Smarter.Poker Is A Poker Training And Education Platform. You Agree To Use The Platform Solely For Lawful Purposes And In Accordance With These Terms. You May Not Use The Platform To Engage In Any Activity That Violates Applicable Law.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>4. Diamonds &amp; Virtual Currency</h3>
-                    <p>Diamonds are a virtual currency used within Smarter.Poker. They hold no monetary value and cannot be exchanged for real money. Prize redemptions are subject to eligibility requirements and applicable state regulations.</p>
+                    <p>Diamonds Are A Virtual Currency Used Within Smarter.Poker. They Hold No Monetary Value And Cannot Be Exchanged For Real Money. Prize Redemptions Are Subject To Eligibility Requirements And Applicable State Regulations.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>5. Restricted States</h3>
-                    <p>Prize redemptions may be restricted in certain states including Washington, Idaho, Michigan, Nevada, and California per applicable regulations. Training features remain fully available in all states.</p>
+                    <p>Prize Redemptions May Be Restricted In Certain States Including Washington, Idaho, Michigan, Nevada, And California Per Applicable Regulations. Training Features Remain Fully Available In All States.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>6. Account Security</h3>
-                    <p>You are responsible for maintaining the confidentiality of your account credentials. Notify us immediately at support@smarter.poker if you suspect unauthorized access to your account.</p>
+                    <p>You Are Responsible For Maintaining The Confidentiality Of Your Account Credentials. Notify Us Immediately At Support@Smarter.Poker If You Suspect Unauthorized Access To Your Account.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>7. Termination</h3>
-                    <p>We reserve the right to suspend or terminate accounts that violate these Terms of Service at our sole discretion.</p>
+                    <p>We Reserve The Right To Suspend Or Terminate Accounts That Violate These Terms Of Service At Our Sole Discretion.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>8. Contact</h3>
-                    <p>For questions about these Terms, contact us at <span style={{ color: '#00d4ff' }}>support@smarter.poker</span>.</p>
+                    <p>For Questions About These Terms, Contact Us At <span style={{ color: '#00d4ff' }}>Support@Smarter.Poker</span>.</p>
                   </>
                 ) : (
                   <>
@@ -1624,25 +1624,25 @@ export default function SignUpPage() {
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: January 1, 2026</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>1. Information We Collect</h3>
-                    <p>We collect information you provide during registration (name, email, date of birth, phone number, location) and usage data generated while using the platform (game sessions, training progress, analytics).</p>
+                    <p>We Collect Information You Provide During Registration (Name, Email, Date Of Birth, Phone Number, Location) And Usage Data Generated While Using The Platform (Game Sessions, Training Progress, Analytics).</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>2. How We Use Your Information</h3>
-                    <p>We use your information to operate the platform, personalize your training experience, send important account notifications, and improve our services. We do not sell your personal data to third parties.</p>
+                    <p>We Use Your Information To Operate The Platform, Personalize Your Training Experience, Send Important Account Notifications, And Improve Our Services. We Do Not Sell Your Personal Data To Third Parties.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>3. Phone Number</h3>
-                    <p>Your phone number is collected for account verification purposes only. We use a secure SMS verification system and do not share your number with third parties for marketing.</p>
+                    <p>Your Phone Number Is Collected For Account Verification Purposes Only. We Use A Secure SMS Verification System And Do Not Share Your Number With Third Parties For Marketing.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>4. Cookies &amp; Analytics</h3>
-                    <p>We use cookies and analytics tools (including PostHog) to understand how users interact with the platform. This data is used only for product improvement and is anonymized where possible.</p>
+                    <p>We Use Cookies And Analytics Tools (Including PostHog) To Understand How Users Interact With The Platform. This Data Is Used Only For Product Improvement And Is Anonymized Where Possible.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>5. Data Security</h3>
-                    <p>All data is encrypted in transit using 256-bit SSL. Passwords are never stored in plain text. We use Supabase for secure, industry-standard data storage.</p>
+                    <p>All Data Is Encrypted In Transit Using 256-Bit SSL. Passwords Are Never Stored In Plain Text. We Use Supabase For Secure, Industry-Standard Data Storage.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>6. Your Rights</h3>
-                    <p>You have the right to access, correct, or delete your personal data at any time. To exercise these rights, contact us at <span style={{ color: '#00d4ff' }}>support@smarter.poker</span>.</p>
+                    <p>You Have The Right To Access, Correct, Or Delete Your Personal Data At Any Time. To Exercise These Rights, Contact Us At <span style={{ color: '#00d4ff' }}>Support@Smarter.Poker</span>.</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>7. Contact</h3>
-                    <p>For privacy-related questions, contact us at <span style={{ color: '#00d4ff' }}>privacy@smarter.poker</span>.</p>
+                    <p>For Privacy-Related Questions, Contact Us At <span style={{ color: '#00d4ff' }}>Privacy@Smarter.Poker</span>.</p>
                   </>
                 )}
               </div>
@@ -1686,7 +1686,7 @@ export default function SignUpPage() {
 
                 <h2 style={styles.successTitle}>Verify Your Email</h2>
 
-                <p style={styles.emailPendingText}>We've sent a 6-digit verification code to:</p>
+                <p style={styles.emailPendingText}>We've Sent A 6-Digit Verification Code To:</p>
                 <p style={styles.emailHighlight}>{formData.email}</p>
 
                 {/* THE OTP STEP HAD NO ERROR SURFACE AT ALL (fixed 2026-08-25).

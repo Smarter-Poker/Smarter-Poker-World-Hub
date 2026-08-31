@@ -605,7 +605,7 @@ export default function SpotTrainerPage() {
                     marginBottom: 14,
                   }}
                 >
-                  What is the GTO play?
+                  What Is The GTO Play?
                 </div>
 
                 {/* Action Buttons */}
@@ -765,10 +765,10 @@ export default function SpotTrainerPage() {
               About Spot Trainer
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              Rapid-fire postflop GTO drills using solver-verified spots. Each spot shows you a
-              board texture, your hand, and 4 action options. Choose the highest-frequency GTO play
-              to build your streak. Filter by format and position to target specific leaks. The GTO
-              frequency breakdown is shown after each answer.
+              Rapid-Fire Postflop GTO Drills Using Solver-Verified Spots. Each Spot Shows You A
+              Board Texture, Your Hand, And 4 Action Options. Choose The Highest-Frequency GTO Play
+              To Build Your Streak. Filter By Format And Position To Target Specific Leaks. The GTO
+              Frequency Breakdown Is Shown After Each Answer.
             </p>
           </div>
         </div>

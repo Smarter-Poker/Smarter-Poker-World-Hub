@@ -3785,7 +3785,7 @@ function MessengerPage() {
                                 </button>
                             ))}
                             {conversations.filter(c => c.id !== activeConversation?.id && !c.isJarvis).length === 0 && (
-                                <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>No other conversations to forward to</div>
+                                <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>No Other Conversations To Forward To</div>
                             )}
                         </div>
                     </div>
@@ -4077,7 +4077,7 @@ function MessengerPage() {
                             {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
                             <div>
                                 <div style={{ color: 'white', fontWeight: 600 }}>
-                                    {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
                                 </div>
                                 <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
                             </div>
@@ -4275,14 +4275,14 @@ function MessengerPage() {
                                 - sat on "Loading your clubs..." permanently. */}
                             {clubDrawerOpen && !hasClubPage && !identityLoaded && (
                                 <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec }}>
-                                    Loading your clubs...
+                                    Loading Your Clubs...
                                 </div>
                             )}
 
                             {clubDrawerOpen && !hasClubPage && identityLoaded && (
                                 <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>
-                                    No club inboxes yet. Clubs you own or help run show up here,
-                                    each with its own inbox.
+                                    No Club Inboxes Yet. Clubs You Own Or Help Run Show Up Here,
+                                    Each With Its Own Inbox.
                                 </div>
                             )}
 
@@ -4405,7 +4405,7 @@ function MessengerPage() {
                             {!clubDrawerOpen && isClubMode && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
                                     <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
-                                        {clubPage?.name || 'Club'} inbox
+                                        {clubPage?.name || 'Club'} Inbox
                                     </span>
                                     <button
                                         type="button"
@@ -4421,7 +4421,7 @@ function MessengerPage() {
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        Back to personal
+                                        Back To Personal
                                     </button>
                                 </div>
                             )}
@@ -4450,7 +4450,7 @@ function MessengerPage() {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Message Requests</div>
-                                    <div style={{ fontSize: 12, color: C.textSec }}>{messageRequestCount} pending {messageRequestCount === 1 ? 'request' : 'requests'}</div>
+                                    <div style={{ fontSize: 12, color: C.textSec }}>{messageRequestCount} Pending {messageRequestCount === 1 ? 'request' : 'requests'}</div>
                                 </div>
                             </div>
                             <div style={{
@@ -4593,7 +4593,7 @@ function MessengerPage() {
 
                                         {!messageHitsLoading && messageHits.length === 0 && (
                                             <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
-                                                No messages match that.
+                                                No Messages Match That.
                                             </div>
                                         )}
 
@@ -5015,7 +5015,7 @@ function MessengerPage() {
                                     {/* Loading older messages indicator */}
                                     {loadingOlderMessages && (
                                         <div style={{ textAlign: 'center', padding: '12px 0', color: C.textSec, fontSize: 13 }}>
-                                            Loading older messages...
+                                            Loading Older Messages...
                                         </div>
                                     )}
                                     {/* User info header */}
@@ -5038,12 +5038,12 @@ function MessengerPage() {
 
                                     {loadingMessages ? (
                                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                            Loading messages...
+                                            Loading Messages...
                                         </div>
                                     ) : messages.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                                             <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
-                                            Say hi to start the conversation!
+                                            Say Hi To Start The Conversation!
                                         </div>
                                     ) : (() => {
                                         const _today = new Date();
@@ -5164,7 +5164,7 @@ function MessengerPage() {
                                         }}>
                                             {!clubPage.avatar_url && (clubPage.name?.[0] || 'C')}
                                         </div>
-                                        <span style={{ fontWeight: 600 }}>Messaging as {clubPage.name}</span>
+                                        <span style={{ fontWeight: 600 }}>Messaging As {clubPage.name}</span>
                                     </div>
                                 )}
                                 {/* Message Input */}

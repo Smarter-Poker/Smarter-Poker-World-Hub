@@ -252,9 +252,9 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     <div style={{ fontSize: 80, marginBottom: 20 }}>{'\u26A1'}</div>
                     <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 36, color: '#FFD700', marginBottom: 16 }}>SPEED DRILL</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
-                        Flash a hand → Pick the action → Build streaks!<br />
-                        Time gets shorter the better you do.<br />
-                        3 lives. Don't lose them!
+                        Flash A Hand → Pick The Action → Build Streaks!<br />
+                        Time Gets Shorter The Better You Do.<br />
+                        3 Lives. Don't Lose Them!
                     </p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
                 </div>
@@ -381,7 +381,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                                             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
                                         </div>
                                     ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus on these spots in your next session</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
                                 </div>
                             );
                         })()}

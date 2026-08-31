@@ -597,7 +597,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
                                 }}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                                    Share to My Feed
+                                    Share To My Feed
                                 </button>
                             )}
                             <button onClick={() => { navigator.clipboard.writeText(shareUrl).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); setShowShareModal(false); }} style={{
@@ -613,7 +613,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
-                                Share on X
+                                Share On X
                             </a>
                             <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
                                 target="_blank" rel="noopener noreferrer" style={{
@@ -621,7 +621,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
-                                Share on Facebook
+                                Share On Facebook
                             </a>
                             <a href={`https://wa.me/?text=${encodeURIComponent((post.content?.slice(0, 100) || 'Check this out') + ' ' + shareUrl)}`}
                                 target="_blank" rel="noopener noreferrer" style={{
@@ -629,7 +629,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                Share on WhatsApp
+                                Share On WhatsApp
                             </a>
                             <a href={`mailto:?subject=${encodeURIComponent(page?.name || 'Check this page')}&body=${encodeURIComponent(shareUrl)}`}
                                 style={{
@@ -637,7 +637,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,7 12,13 2,7"/></svg>
-                                Share via Email
+                                Share Via Email
                             </a>
                             {/* P10-4: SMS share */}
                             <a href={`sms:?body=${encodeURIComponent((post.content?.slice(0, 80) || 'Check this out') + ' ' + shareUrl)}`}
@@ -646,7 +646,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                                Share via SMS
+                                Share Via SMS
                             </a>
                         </div>
                     </div>
@@ -660,7 +660,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
-                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>This post will be permanently removed. This action cannot be undone.</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>This Post Will Be Permanently Removed. This Action Cannot Be Undone.</div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '10px 16px', background: C.bg, color: C.text, border: `1px solid ${C.border}`, borderRadius: 20, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                             <button onClick={() => { onDelete(post.id); setConfirmDelete(false); }} style={{ flex: 1, padding: '10px 16px', background: '#F02849', color: 'white', border: 'none', borderRadius: 20, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
@@ -824,7 +824,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     fontSize: 13, fontWeight: 600, color: C.blue, cursor: 'pointer',
                                     fontFamily: 'inherit', marginBottom: 8,
                                 }}>
-                                    Show {Math.min(10, comments.filter(c => !c.parent_id).length - commentDisplayLimit)} more comment{comments.filter(c => !c.parent_id).length - commentDisplayLimit !== 1 ? 's' : ''}
+                                    Show {Math.min(10, comments.filter(c => !c.parent_id).length - commentDisplayLimit)} More comment{comments.filter(c => !c.parent_id).length - commentDisplayLimit !== 1 ? 's' : ''}
                                 </button>
                             )}
                             {/* Main comment input — #11 optimistic + Phase 3: GIF picker + media */}
@@ -850,7 +850,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     animation: 'sp-bounce 1.4s infinite ease-in-out both', animationDelay: `${i * 0.16}s`,
                                                 }} />)}
                                             </span>
-                                            <span>typing...</span>
+                                            <span>Typing...</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', gap: 8 }}>
@@ -1951,7 +1951,7 @@ export default function SocialPageDetail() {
                                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                         </svg>
-                                        smarter.poker/.../{ page.slug }
+                                        Smarter.Poker/.../{ page.slug }
                                         {/* P9-10: Copy page URL button */}
                                         <button onClick={(e) => {
                                             e.stopPropagation();
@@ -2263,8 +2263,8 @@ export default function SocialPageDetail() {
                                                                 {pp.content || 'Pinned post'}
                                                             </div>
                                                             <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 11, color: C.textSec }}>
-                                                                <span>{pp.like_count || 0} likes</span>
-                                                                <span>{pp.comment_count || 0} comments</span>
+                                                                <span>{pp.like_count || 0} Likes</span>
+                                                                <span>{pp.comment_count || 0} Comments</span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -2330,7 +2330,7 @@ export default function SocialPageDetail() {
                                                         background: '#FFF3E0', color: '#E65100',
                                                         fontSize: 12, fontWeight: 700,
                                                     }}>
-                                                        {checkinCount} today
+                                                        {checkinCount} Today
                                                     </span>
                                                 )}
                                             </div>
@@ -2592,7 +2592,7 @@ export default function SocialPageDetail() {
                                                 <line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
                                             </svg>
                                             <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Members Yet</p>
-                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be the first to join this page!</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be The First To Join This Page!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -2624,7 +2624,7 @@ export default function SocialPageDetail() {
                                                         {/* #16 Join date formatting */}
                                                         <div style={{ fontSize: 12, color: C.textSec }}>
                                                             {f.profile?.username && <span>@{f.profile.username} · </span>}
-                                                            Member since {new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                                            Member Since {new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                                                         </div>
                                                     </div>
                                                     {user && f.user_id !== user.id && (
@@ -2660,7 +2660,7 @@ export default function SocialPageDetail() {
                                             <button onClick={() => setShowReviewForm(!showReviewForm)} style={{
                                                 padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
                                                 cursor: 'pointer', fontFamily: 'inherit', background: C.blue, color: '#fff',
-                                            }}>Write a Review</button>
+                                            }}>Write A Review</button>
                                         )}
                                     </div>
 
@@ -2732,7 +2732,7 @@ export default function SocialPageDetail() {
                                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
                                             </svg>
                                             <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Reviews Yet</p>
-                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be the first to share your experience!</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be The First To Share Your Experience!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2801,7 +2801,7 @@ export default function SocialPageDetail() {
                                                 <rect x="2" y="6" width="20" height="12" rx="2" /><line x1="6" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="18" y2="12" /><circle cx="12" cy="12" r="2" />
                                             </svg>
                                             <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Live Games Right Now</p>
-                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back later for active tables!</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check Back Later For Active Tables!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2840,7 +2840,7 @@ export default function SocialPageDetail() {
 
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                         <span style={{ fontSize: 12, color: C.textSec }}>
-                                                            {g.seated_count}/{g.max_seats || 9} seated
+                                                            {g.seated_count}/{g.max_seats || 9} Seated
                                                             {g.waitlist_count > 0 && ` · ${g.waitlist_count} waitlisted`}
                                                         </span>
                                                         {user && isFollowing && g.seated_count < (g.max_seats || 9) && !g.source && (
@@ -2879,7 +2879,7 @@ export default function SocialPageDetail() {
                                                     <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
                                                 </svg>
                                                 <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '12px 0 4px' }}>No Media Shared Yet</p>
-                                                <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Photos from posts will appear here!</p>
+                                                <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Photos From Posts Will Appear Here!</p>
                                             </div>
                                         ) : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, borderRadius: 8, overflow: 'hidden' }}>
@@ -2922,7 +2922,7 @@ export default function SocialPageDetail() {
                                                 <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                                             </svg>
                                             <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Upcoming Tournaments</p>
-                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Tournament schedules will appear here when posted.</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Tournament Schedules Will Appear Here When Posted.</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2985,7 +2985,7 @@ export default function SocialPageDetail() {
                                                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                                                 <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>${t.buyin}</div>
                                                                 <div style={{ fontSize: 10, color: C.textSec }}>
-                                                                    ${t.buyin_amount} + ${t.buyin_fee} fee
+                                                                    ${t.buyin_amount} + ${t.buyin_fee} Fee
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -3046,7 +3046,7 @@ export default function SocialPageDetail() {
                                                         <div>
                                                             <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.name}</div>
                                                             <div style={{ fontSize: 11, color: C.textSec }}>
-                                                                {t.entries} entries · {t.scheduled_start ? new Date(t.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                                                {t.entries} Entries · {t.scheduled_start ? new Date(t.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                                                             </div>
                                                         </div>
                                                         <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>${t.buyin}</div>
@@ -3230,14 +3230,14 @@ export default function SocialPageDetail() {
                                             : `linear-gradient(135deg, ${C.blue}, #8b5cf6)`,
                                     }} />
                                     <div style={{ padding: '10px 12px' }}>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2, textTransform: 'uppercase' }}>smarter.poker</div>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2, textTransform: 'uppercase' }}>Smarter.Poker</div>
                                         <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{page.name}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                             {page.description || 'A social page on Smarter.Poker'}
                                         </div>
                                     </div>
                                 </div>
-                                <p style={{ fontSize: 10, color: C.textSec, margin: '6px 0 0', textAlign: 'center' }}>This is how your page looks when shared</p>
+                                <p style={{ fontSize: 10, color: C.textSec, margin: '6px 0 0', textAlign: 'center' }}>This Is How Your Page Looks When Shared</p>
                             </div>
 
                             {/* #12: Page Insights Widget (Owner-Only) */}
@@ -3270,7 +3270,7 @@ export default function SocialPageDetail() {
                                         const points = days.map((v, i) => `${(i / 6) * w},${h - (v / max) * h}`).join(' ');
                                         return (
                                             <div style={{ marginBottom: 10 }}>
-                                                <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, marginBottom: 4 }}>Post Activity (7 days)</div>
+                                                <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, marginBottom: 4 }}>Post Activity (7 Days)</div>
                                                 <svg width={w} height={h + 4} viewBox={`0 0 ${w} ${h + 4}`}>
                                                     <polyline points={points} fill="none" stroke={C.blue} strokeWidth="2" strokeLinejoin="round" />
                                                     {days.map((v, i) => (
@@ -3307,7 +3307,7 @@ export default function SocialPageDetail() {
                                                         {topPost.content || 'Media post'}
                                                     </div>
                                                     <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>
-                                                        {topPost.like_count || 0} likes · {topPost.comment_count || 0} comments
+                                                        {topPost.like_count || 0} Likes · {topPost.comment_count || 0} Comments
                                                     </div>
                                                 </div>
                                             );
@@ -3340,7 +3340,7 @@ export default function SocialPageDetail() {
                                                 }}>{!sp.avatar_url && (sp.name || '?')[0].toUpperCase()}</div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</div>
-                                                    <div style={{ fontSize: 11, color: C.textSec }}>{sp.follower_count || 0} followers</div>
+                                                    <div style={{ fontSize: 11, color: C.textSec }}>{sp.follower_count || 0} Followers</div>
                                                 </div>
                                             </div>
                                         ))}
@@ -3354,7 +3354,7 @@ export default function SocialPageDetail() {
                                     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
                                 }}>
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>Invite Friends</h3>
-                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Help {page.name} grow!</p>
+                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Help {page.name} Grow!</p>
                                     <button onClick={async () => {
                                         setShowInviteModal(true);
                                         if (inviteFriends.length === 0) {
@@ -3430,7 +3430,7 @@ export default function SocialPageDetail() {
                               padding: '16px 20px', borderBottom: `1px solid ${C.border}`,
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           }}>
-                              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Invite Friends to {page.name}</h3>
+                              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Invite Friends To {page.name}</h3>
                               <button onClick={() => setShowInviteModal(false)} style={{
                                   background: C.bg, border: 'none', cursor: 'pointer', fontSize: 16,
                                   width: 32, height: 32, borderRadius: '50%', display: 'flex',
@@ -3454,12 +3454,12 @@ export default function SocialPageDetail() {
                           {/* Friends List */}
                           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
                               {inviteLoading ? (
-                                  <div style={{ padding: 40, textAlign: 'center', color: C.textSec, fontSize: 14 }}>Loading friends...</div>
+                                  <div style={{ padding: 40, textAlign: 'center', color: C.textSec, fontSize: 14 }}>Loading Friends...</div>
                               ) : inviteFriends.length === 0 ? (
                                   <div style={{ padding: 40, textAlign: 'center', color: C.textSec }}>
                                       <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
-                                      <div style={{ fontSize: 14, fontWeight: 500 }}>No friends to invite</div>
-                                      <div style={{ fontSize: 12, marginTop: 4 }}>All your friends are already following this page!</div>
+                                      <div style={{ fontSize: 14, fontWeight: 500 }}>No Friends To Invite</div>
+                                      <div style={{ fontSize: 12, marginTop: 4 }}>All Your Friends Are Already Following This Page!</div>
                                   </div>
                               ) : (
                                   inviteFriends
@@ -3574,16 +3574,16 @@ export default function SocialPageDetail() {
                   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowReportModal(false)}>
                       <div style={{ background: C.card, borderRadius: 16, padding: 24, maxWidth: 420, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
                           <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: '0 0 16px' }}>Report Page</h3>
-                          <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>Why are you reporting this page?</p>
+                          <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>Why Are You Reporting This Page?</p>
                           <select value={reportReason} onChange={e => setReportReason(e.target.value)} style={{
                               width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
                               fontSize: 14, fontFamily: 'inherit', background: C.bg, color: C.text, boxSizing: 'border-box',
                           }}>
-                              <option value="">Select a reason...</option>
-                              <option value="spam">Spam or scam</option>
-                              <option value="inappropriate">Inappropriate content</option>
-                              <option value="fake">Fake or misleading</option>
-                              <option value="harassment">Harassment or bullying</option>
+                              <option value="">Select A Reason...</option>
+                              <option value="spam">Spam Or Scam</option>
+                              <option value="inappropriate">Inappropriate Content</option>
+                              <option value="fake">Fake Or Misleading</option>
+                              <option value="harassment">Harassment Or Bullying</option>
                               <option value="other">Other</option>
                           </select>
                           <textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder="Additional details (optional)..."
@@ -3767,7 +3767,7 @@ export default function SocialPageDetail() {
                     }}>
                         <div style={{ fontSize: 42, marginBottom: 4 }}>🎉</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: '#050505' }}>{showMilestone.toLocaleString()} Followers!</div>
-                        <div style={{ fontSize: 14, color: '#65676B', marginTop: 4 }}>Your page hit a milestone!</div>
+                        <div style={{ fontSize: 14, color: '#65676B', marginTop: 4 }}>Your Page Hit A Milestone!</div>
                     </div>
                 </div>
             )}

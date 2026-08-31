@@ -982,7 +982,7 @@ export default function SurvivalGamePage() {
                                 }}>
                                     <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                        We couldn't save your progress for Level {saveErrorPayload?.level} because you lost connection. Please check your internet and try again so this level's reward is not lost!
+                                        We Couldn't Save Your Progress For Level {saveErrorPayload?.level} Because You Lost Connection. Please Check Your Internet And Try Again So This Level's Reward Is Not Lost!
                                     </p>
                                     <button
                                         onClick={handleRetrySave}
@@ -1031,7 +1031,7 @@ export default function SurvivalGamePage() {
                                         <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
                                         <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You left the screen. Time remaining: {timer.timeLeft}s
+                                            You Left The Screen. Time Remaining: {timer.timeLeft}s
                                         </p>
                                         <button
                                             onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
@@ -1260,7 +1260,7 @@ export default function SurvivalGamePage() {
                                     fontSize: '13px'
                                 }}>
                                     <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                        Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL} correct ({config.accuracyRequired}%)
+                                        Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL} Correct ({config.accuracyRequired}%)
                                     </span>
                                     <span style={{
                                         color: correctCount >= config.minCorrect ? '#22c55e' :
@@ -1429,7 +1429,7 @@ export default function SurvivalGamePage() {
                                         line below is the formula it pays, so the promise and
                                         the payout can never disagree. */}
                                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: 6 }}>
-                                        Pays per correct answer with a streak multiplier (max 60 per level, {DAILY_DIAMOND_CAP}/day)
+                                        Pays Per Correct Answer With A Streak Multiplier (Max 60 Per Level, {DAILY_DIAMOND_CAP}/Day)
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -1446,7 +1446,7 @@ export default function SurvivalGamePage() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        Continue to Level {currentLevel + 1}
+                                        Continue To Level {currentLevel + 1}
                                     </button>
                                     <button
                                         onClick={backToLobby}
@@ -1496,7 +1496,7 @@ export default function SurvivalGamePage() {
                                         Score: {correctCount}/{currentQuestionIndex + 1} • Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL}
                                     </div>
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '8px' }}>
-                                        You needed {config.accuracyRequired}% accuracy to pass
+                                        You Needed {config.accuracyRequired}% Accuracy To Pass
                                     </div>
                                     {/* Economy clarity: the 10-diamond entry fee is charged on
                                         level 1 only, so retrying a failed level costs nothing. */}
@@ -1559,7 +1559,7 @@ export default function SurvivalGamePage() {
                                             💎 Diamonds Earned: {totalDiamondsEarned}
                                             {capReachedThisRun && (
                                                 <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: 6 }}>
-                                                    Daily earning cap reached - the server trimmed some level payouts.
+                                                    Daily Earning Cap Reached - The Server Trimmed Some Level Payouts.
                                                 </div>
                                             )}
                                         </div>
@@ -1592,7 +1592,7 @@ export default function SurvivalGamePage() {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            Back to Trivia
+                                            Back To Trivia
                                         </button>
                                         <button
                                             onClick={async () => {
@@ -1643,7 +1643,7 @@ export default function SurvivalGamePage() {
                                         SURVIVAL MASTER!
                                     </h2>
                                     <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '24px' }}>
-                                        You completed all 10 levels!
+                                        You Completed All 10 Levels!
                                     </div>
                                     <div style={{
                                         display: 'inline-block',
@@ -1672,7 +1672,7 @@ export default function SurvivalGamePage() {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            Return to Trivia Hub
+                                            Return To Trivia Hub
                                         </button>
                                     </div>
                                 </div>

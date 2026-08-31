@@ -42,7 +42,7 @@ showDeleteModal, setShowDeleteModal, deleteConfirmText, setDeleteConfirmText, de
                                 Delete Your Account?
                             </h2>
                             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6 }}>
-                                This action is permanent and cannot be undone. All your data, posts, training progress, diamonds, and VIP status will be permanently erased.
+                                This Action Is Permanent And Cannot Be Undone. All Your Data, Posts, Training Progress, Diamonds, And VIP Status Will Be Permanently Erased.
                             </p>
                         </div>
 
@@ -54,7 +54,7 @@ showDeleteModal, setShowDeleteModal, deleteConfirmText, setDeleteConfirmText, de
                             marginBottom: 20,
                         }}>
                             <label style={{ display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
-                                Type <strong style={{ color: '#ff4757' }}>DELETE</strong> to confirm:
+                                Type <strong style={{ color: '#ff4757' }}>DELETE</strong> To Confirm:
                             </label>
                             <input
                                 type="text"

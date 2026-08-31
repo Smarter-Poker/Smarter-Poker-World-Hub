@@ -477,7 +477,7 @@ function CardPickerSheet({ isOpen, onClose, onSelect, usedCards = [], mode, pick
           )}
           {onRandomFlop && mode === 'board' && (
             <button type="button" className="pa-btn" onClick={onRandomFlop} style={{ ...btn('secondary'), flex: 1, minWidth: 0 }}>
-              Random flop
+              Random Flop
             </button>
           )}
           <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('primary'), flex: 1, minWidth: 0 }}>Done</button>
@@ -547,7 +547,7 @@ function CardPickerSheet({ isOpen, onClose, onSelect, usedCards = [], mode, pick
               style={{ ...btn('ghost', { block: true }), marginTop: S.md }}
             >
               <ChevronDown size={18} strokeWidth={2} style={{ transform: 'rotate(90deg)' }} aria-hidden="true" />
-              Back to ranks
+              Back To Ranks
             </button>
           </>
         )}
@@ -695,7 +695,7 @@ function SetupSheet({
             ))}
           </div>
           <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.sm}px 0 0`, lineHeight: 1.45, ...NUM }}>
-            Live pot after the action line: <strong style={{ color: T.text }}>{Number(livePot || 0).toFixed(1)} BB</strong>
+            Live Pot After The Action Line: <strong style={{ color: T.text }}>{Number(livePot || 0).toFixed(1)} BB</strong>
           </p>
         </section>
 
@@ -794,7 +794,7 @@ function SetupSheet({
                   )}
                   {v.customRange && (
                     <p style={{ fontSize: F.caption, color: T.purple, margin: `6px 0 0`, fontWeight: 700 }}>
-                      Custom range applied · simulation still uses the {v.archetype?.name || 'selected'} tendencies.
+                      Custom Range Applied · Simulation Still Uses The {v.archetype?.name || 'selected'} Tendencies.
                     </p>
                   )}
                 </div>
@@ -804,10 +804,10 @@ function SetupSheet({
 
           <div style={{ display: 'flex', gap: S.sm, marginTop: S.md, flexWrap: 'wrap' }}>
             <button type="button" className="pa-btn" onClick={onOpenPresets} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
-              Villain presets
+              Villain Presets
             </button>
             <button type="button" className="pa-btn" onClick={onOpenRanges} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
-              Range explorer
+              Range Explorer
             </button>
           </div>
         </section>
@@ -868,7 +868,7 @@ function SetupSheet({
           <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Load A Scenario</h4>
           <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
             <button type="button" className="pa-btn" onClick={onImportHH} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
-              <Upload size={18} strokeWidth={2} aria-hidden="true" />Import hand
+              <Upload size={18} strokeWidth={2} aria-hidden="true" />Import Hand
             </button>
             <button type="button" className="pa-btn" onClick={onTemplates} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
               <BookOpen size={18} strokeWidth={2} aria-hidden="true" />Templates
@@ -881,7 +881,7 @@ function SetupSheet({
               >
                 {isListening
                   ? <><MicOff size={18} strokeWidth={2} aria-hidden="true" />Listening…</>
-                  : <><Mic size={18} strokeWidth={2} aria-hidden="true" />Say a hand</>}
+                  : <><Mic size={18} strokeWidth={2} aria-hidden="true" />Say A Hand</>}
               </button>
             )}
           </div>
@@ -1048,7 +1048,7 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
           icon={<BookOpen size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign In To Save Templates"
           body="Templates are tied to your account so they follow you across devices."
-          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign In</a>}
         />
       ) : templates.length === 0 ? (
         <EmptyState
@@ -1106,7 +1106,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
           icon={<Trophy size={24} strokeWidth={2} aria-hidden="true" />}
           title="Sign In To Track Your Study Stats"
           body="Accuracy, position distribution and insights are tied to your account."
-          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+          action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign In</a>}
         />
       )}
 
@@ -3062,16 +3062,16 @@ export default function VirtualSandbox() {
             display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.md,
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ ...sectionTitle, color: T.warn }}>Practising a leak</div>
+              <div style={{ ...sectionTitle, color: T.warn }}>Practising A Leak</div>
               <div style={{ fontSize: F.bodySm, color: T.text, fontWeight: 700, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {String(practiceFocus.leakType || 'Leak drill')}
                 {practiceFocus.drill ? ` · ${String(practiceFocus.drill)}` : ''}
               </div>
               <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2, lineHeight: 1.45 }}>
-                Coach mode is on · pick your action before each analysis.
+                Coach Mode Is On · Pick Your Action Before Each Analysis.
               </div>
               <button type="button" className="pa-btn" onClick={startLeakDrill} style={{ ...btn('secondary'), marginTop: S.sm, color: T.warn }}>
-                <Zap size={18} strokeWidth={2} aria-hidden="true" />Start drill
+                <Zap size={18} strokeWidth={2} aria-hidden="true" />Start Drill
               </button>
             </div>
             <button
@@ -3114,7 +3114,7 @@ export default function VirtualSandbox() {
             {equity?.refining && (
               <span style={{ ...pill('neutral') }}>
                 <Loader2 size={12} strokeWidth={2} className="pa-spin" aria-hidden="true" />
-                refining equity
+                Refining Equity
               </span>
             )}
           </div>
@@ -3177,7 +3177,7 @@ export default function VirtualSandbox() {
               else setBoard(b => ({ ...b, turn: null }));
               toast((t) => (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: F.bodySm }}>
-                  Card removed
+                  Card Removed
                   <button
                     type="button" className="pa-btn"
                     onClick={() => { popUndo(); toast.dismiss(t.id); }}
@@ -3194,21 +3194,21 @@ export default function VirtualSandbox() {
           <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, display: 'flex', flexDirection: 'column', gap: S.sm }}>
             <h3 style={{ fontSize: F.h3, fontWeight: 700, margin: 0, color: T.text }}>Start A Spot</h3>
             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-              Pick a hand and a board, or let the sandbox deal you one.
+              Pick A Hand And A Board, Or Let The Sandbox Deal You One.
             </p>
             <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
               <button type="button" className="pa-btn" onClick={() => nextHand(true)} style={{ ...btn('primary'), flex: '1 1 150px' }}>
-                <Shuffle size={18} strokeWidth={2} aria-hidden="true" />Deal me a spot
+                <Shuffle size={18} strokeWidth={2} aria-hidden="true" />Deal Me A Spot
               </button>
               <button type="button" className="pa-btn" onClick={openHeroPicker} style={{ ...btn('secondary'), flex: '1 1 150px' }}>
-                Pick my cards
+                Pick My Cards
               </button>
               <button type="button" className="pa-btn" onClick={() => setShowSessions(true)} style={{ ...btn('secondary'), flex: '1 1 150px' }}>
-                Load a saved hand
+                Load A Saved Hand
               </button>
               {weeklySpot && (
                 <button type="button" className="pa-btn" onClick={() => loadWeeklySpot(weeklySpot)} style={{ ...btn('secondary'), flex: '1 1 150px', color: T.purple }}>
-                  <Trophy size={18} strokeWidth={2} aria-hidden="true" />Weekly challenge
+                  <Trophy size={18} strokeWidth={2} aria-hidden="true" />Weekly Challenge
                 </button>
               )}
             </div>
@@ -3241,11 +3241,11 @@ export default function VirtualSandbox() {
             <div style={{ display: 'flex', gap: S.sm, marginTop: S.md, flexWrap: 'wrap' }}>
               {!handResult.exact && handState.terminal === 'allin' && boardToArray(board).length < 5 && (
                 <button type="button" className="pa-btn" onClick={runItOut} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
-                  <PlayCircle size={18} strokeWidth={2} aria-hidden="true" />Run it out
+                  <PlayCircle size={18} strokeWidth={2} aria-hidden="true" />Run It Out
                 </button>
               )}
               <button type="button" className="pa-btn" onClick={() => nextHand(true)} style={{ ...btn('primary'), flex: '1 1 140px' }}>
-                Next hand
+                Next Hand
               </button>
             </div>
           </div>
@@ -3304,7 +3304,7 @@ export default function VirtualSandbox() {
               onClick={() => { onReplayTo(null); runAnalysis(true, null, replayState?.board || board); }}
               style={{ ...btn('secondary', { block: true }), marginBottom: S.md, color: T.accent }}
             >
-              Re-analyze from here
+              Re-Analyze From Here
             </button>
           )}
           <MemoActionHistoryBuilder
@@ -3329,7 +3329,7 @@ export default function VirtualSandbox() {
               aria-expanded={showRangeChart}
               style={{ ...btn(showRangeChart ? 'primary' : 'secondary', { block: true }), justifyContent: 'space-between' }}
             >
-              <span>{heroPosition} range chart</span>
+              <span>{heroPosition} Range Chart</span>
               {showRangeChart ? <ChevronUp size={18} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />}
             </button>
             {showRangeChart && (
@@ -3430,7 +3430,7 @@ export default function VirtualSandbox() {
           {isAnalyzing
             ? <><Loader2 size={20} strokeWidth={2} className="pa-spin" aria-hidden="true" />Analyzing…</>
             : coachMode
-              ? <><Brain size={20} strokeWidth={2} aria-hidden="true" />What would you do?</>
+              ? <><Brain size={20} strokeWidth={2} aria-hidden="true" />What Would You Do?</>
               : 'Analyze'}
         </button>
 
@@ -3731,7 +3731,7 @@ export default function VirtualSandbox() {
         footer={canDeal ? (
           <button type="button" className="pa-btn" onClick={dealAndCoach} style={btn('success', { block: true })}>
             <PlayCircle size={18} strokeWidth={2} aria-hidden="true" />
-            Deal {board.turn ? 'river' : 'turn'} &amp; re-analyze
+            Deal {board.turn ? 'river' : 'turn'} &amp; Re-Analyze
           </button>
         ) : null}
       >
@@ -3761,7 +3761,7 @@ export default function VirtualSandbox() {
                 onClick={() => setActiveStreet(streetHistory.length)}
                 style={{ ...btn('secondary', { block: true }), marginBottom: S.md, color: T.accent }}
               >
-                Back to the current street
+                Back To The Current Street
               </button>
             )}
 
@@ -3966,7 +3966,7 @@ export default function VirtualSandbox() {
                   <div style={{ ...cardCompact, background: T.surface2 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm, marginBottom: S.md, flexWrap: 'wrap' }}>
                       <h4 style={{ ...sectionTitle, margin: 0 }}>
-                        Range heatmap ({displayResults.rangeHeatmap.totalHands})
+                        Range Heatmap ({displayResults.rangeHeatmap.totalHands})
                       </h4>
                       <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         {displayResults.rangeHeatmap.actions?.slice(0, 4).map(a => {
@@ -4007,14 +4007,14 @@ export default function VirtualSandbox() {
                       style={{ ...btn(showVillainRange ? 'primary' : 'secondary', { block: true }), justifyContent: 'space-between' }}
                     >
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Villain range ({villains[0].archetype?.name || 'Unknown'})
+                        Villain Range ({villains[0].archetype?.name || 'Unknown'})
                       </span>
                       {showVillainRange ? <ChevronUp size={18} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />}
                     </button>
                     {showVillainRange && (
                       <div style={{ ...cardCompact, marginTop: S.sm, background: T.bg }}>
                         <div style={{ ...sectionTitle, marginBottom: S.xs }}>
-                          VPIP {villains[0].vpip ?? 'Not Available'}% · opening range
+                          VPIP {villains[0].vpip ?? 'Not Available'}% · Opening Range
                         </div>
                         <p style={{ fontSize: F.caption, color: T.textMuted, fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all', margin: 0, textTransform: 'none' }}>
                           {villains[0].range}
@@ -4060,15 +4060,15 @@ export default function VirtualSandbox() {
                 />
 
                 <button type="button" className="pa-btn" onClick={() => setShowShareHand(true)} style={btn('primary', { block: true })}>
-                  <Camera size={18} strokeWidth={2} aria-hidden="true" />Share hand
+                  <Camera size={18} strokeWidth={2} aria-hidden="true" />Share Hand
                 </button>
 
                 <button type="button" className="pa-btn" onClick={copyShareLink} style={btn('secondary', { block: true })}>
-                  <Share2 size={18} strokeWidth={2} aria-hidden="true" />Copy share link
+                  <Share2 size={18} strokeWidth={2} aria-hidden="true" />Copy Share Link
                 </button>
 
                 <button type="button" className="pa-btn" onClick={() => { setShowResults(false); setShowShareScenario(true); }} style={btn('secondary', { block: true })}>
-                  Share scenario (short link)
+                  Share Scenario (Short Link)
                 </button>
 
                 <button
@@ -4108,7 +4108,7 @@ export default function VirtualSandbox() {
                 </button>
 
                 <button type="button" className="pa-btn" onClick={() => { setShowResults(false); setShowSessionReport(true); }} style={btn('secondary', { block: true })}>
-                  <BookOpen size={18} strokeWidth={2} aria-hidden="true" />Session report
+                  <BookOpen size={18} strokeWidth={2} aria-hidden="true" />Session Report
                 </button>
 
                 {studySessions.length > 0 && (
@@ -4145,7 +4145,7 @@ export default function VirtualSandbox() {
         labelledBy="pa-tts-title"
         footer={(
           <button type="button" className="pa-btn" onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={btn('secondary', { block: true })}>
-            Browse all training games
+            Browse All Training Games
           </button>
         )}
       >
@@ -4155,7 +4155,7 @@ export default function VirtualSandbox() {
               <div style={{ display: 'flex', gap: S.xs }}>
                 {ttsOverlay.hand
                   ? (ttsOverlay.hand.match(/.{2}/g) || []).map((c, i) => <TableCard key={i} card={c} style={{ width: 34, height: 48 }} />)
-                  : <span style={{ fontSize: F.caption, color: T.textDim }}>No hand set</span>}
+                  : <span style={{ fontSize: F.caption, color: T.textDim }}>No Hand Set</span>}
               </div>
               <div style={{ fontSize: F.caption, color: T.textMuted, minWidth: 0 }}>
                 <span style={{ textTransform: 'capitalize', fontWeight: 700, color: T.accent }}>{ttsOverlay.street}</span>
@@ -4191,7 +4191,7 @@ export default function VirtualSandbox() {
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: F.bodySm, fontWeight: 700, color: idx === 0 ? T.success : T.text }}>{game.name}</span>
-                    {idx === 0 && <span style={pill('success')}>Best match</span>}
+                    {idx === 0 && <span style={pill('success')}>Best Match</span>}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: F.caption, color: T.textMuted, marginTop: 2 }}>
                     {game.focus}

@@ -59,11 +59,11 @@ function LeagueCard({ league, onView }) {
       <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
-          {league.player_count || 0} players
+          {league.player_count || 0} Players
         </span>
         <span className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />
-          {league.events_count || 0} events
+          {league.events_count || 0} Events
         </span>
         {league.prize_pool > 0 && (
           <span className="flex items-center gap-1 text-[#10B981]">
@@ -96,8 +96,8 @@ function MyLeagueCard({ league, onView }) {
         </span>
       </div>
       <div className="flex items-center gap-4 text-sm text-[#CBD5E1]">
-        <span>{league.my_points || 0} pts</span>
-        <span>{league.events_played || 0} events played</span>
+        <span>{league.my_points || 0} Pts</span>
+        <span>{league.events_played || 0} Events Played</span>
       </div>
     </button>
   );

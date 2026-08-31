@@ -45,7 +45,7 @@ export default function PeakHoursHeatmap({ venueId }) {
         return () => { mounted = false; controller.abort(); };
     }, [venueId, allowed]);
 
-    if (loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading activity data...</div>;
+    if (loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading Activity Data...</div>;
     
     // Gated View
     if (!allowed) {
@@ -73,7 +73,7 @@ export default function PeakHoursHeatmap({ venueId }) {
                 }}>
                     <div style={{ fontSize: 24, marginBottom: 8 }}></div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>Peak Hours Intelligence</div>
-                    <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock to see when games are best</div>
+                    <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock To See When Games Are Best</div>
                     <button
                         onClick={showUpgradeModal}
                         style={{

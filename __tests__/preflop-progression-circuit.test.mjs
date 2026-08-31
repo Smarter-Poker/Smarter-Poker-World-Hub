@@ -11,9 +11,9 @@ const CSS = read('src/styles/worlds/memory-games.css');
 test('the progression circuit reports live level, mastery, and practice-pool state', () => {
     assert.match(PAGE, /className="preflop-circuit-status"/);
     assert.match(PAGE, /aria-label="Range progression status"/);
-    assert.match(PAGE, /Current station[\s\S]*Level \{currentLevel\}/);
-    assert.match(PAGE, /Next mastery gate[\s\S]*Level \{highestUnlockedLevel\} open/);
-    assert.match(PAGE, /Practice pool[\s\S]*\{filteredScenarioCount\}\/\{ALL_TRAINING_SCENARIOS\.length\}/);
+    assert.match(PAGE, /Current Station[\s\S]*Level \{currentLevel\}/);
+    assert.match(PAGE, /Next Mastery Gate[\s\S]*Level \{highestUnlockedLevel\} Open/);
+    assert.match(PAGE, /Practice Pool[\s\S]*\{filteredScenarioCount\}\/\{ALL_TRAINING_SCENARIOS\.length\}/);
 });
 
 test('level availability reflects the applied filters without replacing game handlers', () => {

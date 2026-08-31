@@ -411,7 +411,7 @@ export default function RangeBuilder() {
                 marginRight: 4,
               }}
             >
-              Build RFI Range for:
+              Build RFI Range For:
             </span>
             {POSITIONS.map((pos) => (
               <button
@@ -676,7 +676,7 @@ export default function RangeBuilder() {
                       {selectionStats.pct}%
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4, fontWeight: 600 }}>
-                      {selectionStats.totalCombos} / 1326 combos
+                      {selectionStats.totalCombos} / 1326 Combos
                     </div>
                     <div
                       style={{
@@ -726,8 +726,8 @@ export default function RangeBuilder() {
                   <p
                     style={{ fontSize: 11, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
                   >
-                    Click hands to toggle on/off. Build what you think the GTO open-raising range is
-                    for {position}, then grade it.
+                    Click Hands To Toggle On/Off. Build What You Think The GTO Open-Raising Range Is
+                    For {position}, Then Grade It.
                   </p>
 
                   <button

@@ -86,7 +86,7 @@ function ReelCardBody({ reel, onClick }) {
             <div className="reel-info">
                 <h4>{displayTitle}</h4>
                 <div className="reel-meta">
-                    <span>{formatViews(reel.view_count || 0)} views</span>
+                    <span>{formatViews(reel.view_count || 0)} Views</span>
                 </div>
             </div>
 

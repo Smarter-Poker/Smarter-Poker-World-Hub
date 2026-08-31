@@ -168,7 +168,7 @@ function OverviewTab({ group, token, slug }) {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 16 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 14 }}>Upcoming Events</div>
         {events.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>No upcoming events. Schedule your first game!</div>
+          <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>No Upcoming Events. Schedule Your First Game!</div>
         ) : (
           events.map(ev => (
             <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
@@ -215,7 +215,7 @@ function MembersTab({ group, token }) {
       .catch(e => { setErr(e.message); setLoading(false); });
   }, [token, group?.id]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Loading members…</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Loading Members…</div>;
   if (err) return <div style={{ color: C.red, padding: 16, fontSize: 13 }}>{err}</div>;
 
   return (
@@ -290,10 +290,10 @@ function ModerationTab({ group, token }) {
     <div>
       {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <div style={{ background: 'rgba(6,182,212,.07)', border: '1px solid rgba(6,182,212,.2)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: '#67e8f9' }}>
-        Host moderation - hide or remove content within your group. High-severity reports (illegal, self-harm, doxxing) are automatically escalated to platform staff.
+        Host Moderation - Hide Or Remove Content Within Your Group. High-Severity Reports (Illegal, Self-Harm, Doxxing) Are Automatically Escalated To Platform Staff.
       </div>
       {reports.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>No pending moderation items.</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>No Pending Moderation Items.</div>
       ) : (
         reports.map(r => (
           <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
@@ -442,7 +442,7 @@ export default function HomeGameDashboard() {
 
   if (loading) return (
     <div className="hgd-page hgd-state">
-      Loading dashboard…
+      Loading Dashboard…
     </div>
   );
 
@@ -484,7 +484,7 @@ export default function HomeGameDashboard() {
             { label: 'Members', value: group?.member_count || 0 },
             { label: 'Location', value: [group?.city, group?.state].filter(Boolean).join(', ') || 'Private' },
           ]}
-          actions={<Link href={`/hub/home-games/${slug}`}>View public profile</Link>}
+          actions={<Link href={`/hub/home-games/${slug}`}>View Public Profile</Link>}
         />
 
         <main className="hgd-main">

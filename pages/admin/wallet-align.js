@@ -103,7 +103,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
           💎 WALLET OVERLAY POSITION EDITOR
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20, textAlign: 'center' }}>
-          Drag each label to the perfect position. Copy the coordinates when done.
+          Drag Each Label To The Perfect Position. Copy The Coordinates When Done.
         </p>
 
         {/* Image container with draggable overlays */}
@@ -232,8 +232,8 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
                   {o.id === 'diamonds' ? '💎 Diamond Balance' : '👑 VIP Expiry'}
                 </div>
                 <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#00d4ff', lineHeight: 1.8 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>top:</span> {o.topPct}%<br />
-                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>left:</span> {o.leftPct}%
+                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>Top:</span> {o.topPct}%<br />
+                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>Left:</span> {o.leftPct}%
                 </div>
               </div>
             ))}
@@ -277,7 +277,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
         </div>
 
         <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
-          When happy with placement - copy coords and paste them to me. I'll lock them in immediately.
+          When Happy With Placement - Copy Coords And Paste Them To Me. I'll Lock Them In Immediately.
         </p>
       </div>
     </>

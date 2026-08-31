@@ -111,7 +111,7 @@ export default function GodModeDemoPage() {
                             God-Mode Components
                         </h1>
                         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18 }}>
-                            All premium UI components in action
+                            All Premium UI Components In Action
                         </p>
                     </motion.div>
 
@@ -251,7 +251,7 @@ export default function GodModeDemoPage() {
                     Animated Modal
                 </h2>
                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24 }}>
-                    This modal has smooth backdrop blur and scale animations powered by Framer Motion.
+                    This Modal Has Smooth Backdrop Blur And Scale Animations Powered By Framer Motion.
                 </p>
                 <div style={{ display: 'flex', gap: 12 }}>
                     <AnimatedButton variant="primary" onClick={() => {

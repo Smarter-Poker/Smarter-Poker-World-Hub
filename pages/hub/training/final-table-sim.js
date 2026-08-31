@@ -216,7 +216,7 @@ export default function FinalTableSimulator() {
                         >
                           {p.name}
                           <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
-                            {formatNumber(p.stack)} chips
+                            {formatNumber(p.stack)} Chips
                           </div>
                         </td>
                         <td style={styles.td}>
@@ -240,8 +240,8 @@ export default function FinalTableSimulator() {
               <div style={styles.dealBox}>
                 <h3>Chip Chop (Deal-Making Tool)</h3>
                 <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 16 }}>
-                  Players often make deals using ICM numbers. If everyone agreed to chop the prize
-                  pool right now based on skill equity:
+                  Players Often Make Deals Using ICM Numbers. If Everyone Agreed To Chop The Prize
+                  Pool Right Now Based On Skill Equity:
                 </p>
                 <button
                   type="button"
@@ -259,7 +259,7 @@ export default function FinalTableSimulator() {
                         <strong style={{ color: 'var(--sp-accent-green)' }}>{formatCurrency(player.icmValue)}</strong>
                       </div>
                     ))}
-                    <div style={{ marginTop: 8, color: 'var(--sp-fg-faint)', fontSize: 10, lineHeight: 1.5 }}>Strategic training output only. A real deal requires every player’s agreement and tournament approval.</div>
+                    <div style={{ marginTop: 8, color: 'var(--sp-fg-faint)', fontSize: 10, lineHeight: 1.5 }}>Strategic Training Output Only. A Real Deal Requires Every Player’s Agreement And Tournament Approval.</div>
                   </div>
                 )}
               </div>

@@ -89,7 +89,7 @@ export default function ReferralCrewCard() {
     if (loading) {
         return (
             <div style={{ padding: 20, textAlign: 'center', color: T.textSec, fontSize: 13 }}>
-                Loading referral data...
+                Loading Referral Data...
             </div>
         );
     }
@@ -113,7 +113,7 @@ export default function ReferralCrewCard() {
                     Refer Friends, Earn Diamonds
                 </div>
                 <div style={{ fontSize: 13, color: T.textSec, lineHeight: 1.5 }}>
-                    Share your referral link. You earn {data?.bonusPerReferral || 100} diamonds for each friend who joins!
+                    Share Your Referral Link. You Earn {data?.bonusPerReferral || 100} Diamonds For Each Friend Who Joins!
                 </div>
             </div>
 

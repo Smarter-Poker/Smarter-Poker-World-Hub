@@ -400,7 +400,7 @@ export default function TimeAttackPage() {
                                     <h3>Rewards</h3>
                                     <ul>
                                         <li>+1 Diamond Per Correct Answer</li>
-                                        <li>Max {DAILY_DIAMOND_CAP} diamonds per day</li>
+                                        <li>Max {DAILY_DIAMOND_CAP} Diamonds Per Day</li>
                                         <li>Speed Is Everything!</li>
                                     </ul>
                                 </div>
@@ -461,7 +461,7 @@ export default function TimeAttackPage() {
                             }}>
                                 <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We couldn't save your time attack run because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.diamondsEarned}💎!
+                                    We Couldn't Save Your Time Attack Run Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose {saveErrorPayload?.diamondsEarned}💎!
                                 </p>
                                 <button
                                     onClick={handleRetrySave}
@@ -502,7 +502,7 @@ export default function TimeAttackPage() {
 
                                 {result.fastAnswers > 0 && (
                                     <div className="fast-badge">
-                                        ⚡ {result.fastAnswers} lightning-fast answers!
+                                        ⚡ {result.fastAnswers} Lightning-Fast Answers!
                                     </div>
                                 )}
 

@@ -127,7 +127,7 @@ export default function ShareHandPage() {
                         fontSize: 14,
                         color: 'rgba(255,255,255,0.5)',
                     }}>
-                        {stakes || 'Cash Game'} at {venue || 'Live Poker'} - Pot: {pot || '?'}
+                        {stakes || 'Cash Game'} At {venue || 'Live Poker'} - Pot: {pot || '?'}
                     </div>
                 </div>
 
@@ -158,7 +158,7 @@ export default function ShareHandPage() {
                         </div>
                         {boardCards.length > 0 && (
                             <>
-                                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>vs</div>
+                                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>Vs</div>
                                 <div style={{ display: 'flex', gap: 6 }}>
                                     {boardCards.map((c, i) => (
                                         <div key={i} style={{

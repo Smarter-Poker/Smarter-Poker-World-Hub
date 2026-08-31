@@ -505,7 +505,7 @@ export default function GTOReportsPage() {
               GTO Reports
             </h1>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Frequency deviation analysis vs GTO baselines
+              Frequency Deviation Analysis Vs GTO Baselines
             </div>
           </div>
         </div>
@@ -514,7 +514,7 @@ export default function GTOReportsPage() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--sp-fg-dim)' }}>
-              Loading session data...
+              Loading Session Data...
             </div>
           ) : sessions.length === 0 ? (
             <TrainerEmptyState
@@ -562,7 +562,7 @@ export default function GTOReportsPage() {
                   {gtoProximity}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
-                  Based on {sessions.length} training sessions
+                  Based On {sessions.length} Training Sessions
                 </div>
                 {/* Progress bar */}
                 <div
@@ -636,7 +636,7 @@ export default function GTOReportsPage() {
                             Drill-Down: {(STAT_LABELS[drillDown] || {}).label || drillDown}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                            Sessions contributing to this stat
+                            Sessions Contributing To This Stat
                           </div>
                         </div>
                         <button
@@ -680,7 +680,7 @@ export default function GTOReportsPage() {
                                     {s.game_mode || s.gameMode || 'Training Session'}
                                   </div>
                                   <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-                                    {hands} hands |{' '}
+                                    {hands} Hands |{' '}
                                     {new Date(
                                       s.created_at || s.createdAt || Date.now()
                                     ).toLocaleDateString()}
@@ -690,7 +690,7 @@ export default function GTOReportsPage() {
                                   <div style={{ fontSize: 14, fontWeight: 700, color: dev.text }}>
                                     {(Number.isFinite(Number(acc)) ? Number(acc) : 0).toFixed(0)}%
                                   </div>
-                                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>accuracy</div>
+                                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>Accuracy</div>
                                 </div>
                               </div>
                             );
@@ -753,7 +753,7 @@ export default function GTOReportsPage() {
                       >
                         <div style={{ flex: 1 }}>
                           <strong style={{ color: 'var(--sp-accent-orange)' }}>{meta.label || key}</strong> is{' '}
-                          {direction} by <strong>{(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%</strong>.{' '}
+                          {direction} By <strong>{(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%</strong>.{' '}
                           {direction === 'too high'
                             ? `Consider tightening your ${meta.label || key} range.`
                             : `Try increasing your ${meta.label || key} frequency in practice.`}
@@ -818,7 +818,7 @@ export default function GTOReportsPage() {
                     if (weakStats.length === 0) {
                       return (
                         <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', padding: 8 }}>
-                          ✓ Your stats are close to GTO! Keep training to maintain your edge.
+                          ✓ Your Stats Are Close To GTO! Keep Training To Maintain Your Edge.
                         </div>
                       );
                     }
@@ -845,7 +845,7 @@ export default function GTOReportsPage() {
                           </div>
                           <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>{page.desc}</div>
                           <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-accent-orange)' }}>
-                            Fix: {stat.label} ({(Number.isFinite(Number(stat.diff)) ? Number(stat.diff) : 0).toFixed(1)}% off GTO)
+                            Fix: {stat.label} ({(Number.isFinite(Number(stat.diff)) ? Number(stat.diff) : 0).toFixed(1)}% Off GTO)
                           </div>
                         </button>
                       );

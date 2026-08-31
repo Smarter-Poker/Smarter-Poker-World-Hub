@@ -196,7 +196,7 @@ export default function PlayerProfilePage() {
                 <div>
                   <h1 className="text-xl font-extrabold text-white tracking-wider">{profile?.display_name || 'Player'}</h1>
                   <p className="text-[#64748B] text-sm font-medium">
-                    {stats?.memberLevel || 'Member'} since {memberSince?.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) || 'N/A'}
+                    {stats?.memberLevel || 'Member'} Since {memberSince?.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) || 'N/A'}
                   </p>
                 </div>
               </div>
@@ -215,7 +215,7 @@ export default function PlayerProfilePage() {
                 <span>{stats.memberLevel} Member</span>
                 {stats.compBalance > 0 && (
                   <span className="ml-2 px-2 py-0.5 bg-[#10B981] text-white text-xs rounded font-bold">
-                    ${stats.compBalance} comps
+                    ${stats.compBalance} Comps
                   </span>
                 )}
               </div>
@@ -261,7 +261,7 @@ export default function PlayerProfilePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[#F59E0B] text-sm font-bold uppercase tracking-wide">Current Streak</p>
-                  <p className="text-2xl font-bold text-white">{stats.currentStreak} days</p>
+                  <p className="text-2xl font-bold text-white">{stats.currentStreak} Days</p>
                 </div>
                 <TrendingUp className="w-10 h-10 text-[#F59E0B] opacity-50" />
               </div>
@@ -317,7 +317,7 @@ export default function PlayerProfilePage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-white uppercase tracking-wide text-sm">Achievements</h2>
               <span className="text-sm text-[#64748B] font-bold">
-                {unlockedCount}/{achievements.length} unlocked
+                {unlockedCount}/{achievements.length} Unlocked
               </span>
             </div>
             <div className="space-y-2">

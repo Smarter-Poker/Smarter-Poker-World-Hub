@@ -28,7 +28,7 @@ export default function DiamondArenaTableSettings() {
                             Table Settings
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
-                            Customize your table appearance and behavior
+                            Customize Your Table Appearance And Behavior
                         </p>
 
                         <div style={{ display: 'grid', gap: '20px' }}>
@@ -96,7 +96,7 @@ export default function DiamondArenaTableSettings() {
                                 width: '100%'
                             }}
                         >
-                            Back to Diamond Arena
+                            Back To Diamond Arena
                         </button>
                     </div>
                 </div>

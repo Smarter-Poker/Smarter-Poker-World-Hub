@@ -147,7 +147,7 @@ export default function LeafLocatorPitchDeck() {
 
                 {/* Slide Counter */}
                 <div style={{ color: '#fff', opacity: 0.5, fontSize: 13, fontWeight: 500 }}>
-                    Slide {currentSlide + 1} of {SLIDES.length}
+                    Slide {currentSlide + 1} Of {SLIDES.length}
                 </div>
 
                 {/* Action Buttons */}

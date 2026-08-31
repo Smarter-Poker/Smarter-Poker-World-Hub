@@ -69,7 +69,7 @@ export default function PokerTablePage() {
         color: '#8a8a9a', fontSize: 16,
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}>
-        Loading table...
+        Loading Table...
       </div>
     );
   }

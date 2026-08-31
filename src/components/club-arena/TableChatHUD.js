@@ -155,7 +155,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
             {/* Message History */}
             <div style={styles.messageList} ref={chatRef}>
                 {messages.length === 0 && (
-                    <div style={styles.emptyState}>No messages yet. Say hi!</div>
+                    <div style={styles.emptyState}>No Messages Yet. Say Hi!</div>
                 )}
 
                 {messages.filter(msg => !mutedPlayers.includes(msg.sender_id)).map((msg) => {
@@ -197,7 +197,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
 
             {/* Input Area */}
             {isMuted ? (
-                <div style={styles.mutedBar}>You are muted from table chat.</div>
+                <div style={styles.mutedBar}>You Are Muted From Table Chat.</div>
             ) : (
                 <form onSubmit={handleSendMessage} style={styles.inputArea}>
                     {/* Quick Chat Phrases */}

@@ -32,7 +32,7 @@ export default function PvPLobbyPage() {
               Competitive Service Status
             </div>
             <h1 style={{ margin: '14px 0 10px', fontSize: 'clamp(34px, 7vw, 66px)', lineHeight: .96, textTransform: 'capitalize' }}>PvP Lobby</h1>
-            <p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-player matchmaking is not connected to a production realtime match service. The lobby will not present simulated searches, invented opponents, random scores, ratings, or diamond rewards as real PvP activity.</p>
+            <p style={{ margin: 0, maxWidth: 700, color: '#b8cad7', lineHeight: 1.7 }}>Real-Player Matchmaking Is Not Connected To A Production Realtime Match Service. The Lobby Will Not Present Simulated Searches, Invented Opponents, Random Scores, Ratings, Or Diamond Rewards As Real PvP Activity.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>
               {capabilityRows.map(([label, value]) => (
@@ -45,7 +45,7 @@ export default function PvPLobbyPage() {
 
             <div style={{ marginTop: 28, padding: '22px', border: '1px solid rgba(102,211,246,.24)', background: 'rgba(0,0,0,.22)' }}>
               <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'capitalize' }}>Available Now: Heads-Up Duel</div>
-              <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Practice heads-up tournament decisions on the Club Arena training table. Every decision uses the authored scenario corpus, explicit grading, and manual Next progression.</p>
+              <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Practice Heads-Up Tournament Decisions On The Club Arena Training Table. Every Decision Uses The Authored Scenario Corpus, Explicit Grading, And Manual Next Progression.</p>
               <a href={PRACTICE_ROUTE} style={{ display: 'inline-flex', minHeight: 50, alignItems: 'center', justifyContent: 'center', padding: '0 22px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 9px 22px rgba(0,0,0,.4)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Enter Heads-Up Training →
               </a>

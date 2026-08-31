@@ -78,7 +78,7 @@ export default function PushHealthPage() {
                 <div style={{ maxWidth: 1000, margin: '0 auto' }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Push Health</h1>
                     <p style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-                        Delivery is measured by service worker receipts, not by what the push service accepted.
+                        Delivery Is Measured By Service Worker Receipts, Not By What The Push Service Accepted.
                     </p>
 
                     {error && <p style={{ color: '#FCA5A5', marginTop: 20 }}>{error}</p>}
@@ -103,9 +103,9 @@ export default function PushHealthPage() {
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Delivery Funnel (24h)</h2>
                             <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
-                                Queued to sent is our plumbing. Sent to confirmed is reality: push
-                                services return 2xx for devices that are long gone, so only a
-                                service-worker receipt proves anything was drawn on a screen.
+                                Queued To Sent Is Our Plumbing. Sent To Confirmed Is Reality: Push
+                                Services Return 2xx For Devices That Are Long Gone, So Only A
+                                Service-Worker Receipt Proves Anything Was Drawn On A Screen.
                             </p>
                             {data.funnel ? (
                                 <>
@@ -130,22 +130,22 @@ export default function PushHealthPage() {
                                     </div>
                                     {data.funnel.devicesPushed === 0 && (
                                         <p style={{ color: '#6B7280', fontSize: 12, marginTop: 8 }}>
-                                            Nothing was pushed in this window, so confirm rate is not
-                                            meaningful yet.
+                                            Nothing Was Pushed In This Window, So Confirm Rate Is Not
+                                            Meaningful Yet.
                                         </p>
                                     )}
                                 </>
                             ) : (
-                                <p style={{ color: '#6B7280', marginTop: 12 }}>Funnel unavailable.</p>
+                                <p style={{ color: '#6B7280', marginTop: 12 }}>Funnel Unavailable.</p>
                             )}
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Push Volume By Type (7d)</h2>
                             <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
-                                A feature that suddenly dominates this list is spamming people.
+                                A Feature That Suddenly Dominates This List Is Spamming People.
                             </p>
                             <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {(!data.byType || data.byType.length === 0) && (
-                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No push activity in the last 7 days.</p>
+                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No Push Activity In The Last 7 Days.</p>
                                 )}
                                 {(data.byType || []).map((t) => (
                                     <div key={t.event} style={{
@@ -154,7 +154,7 @@ export default function PushHealthPage() {
                                     }}>
                                         <span style={{ fontSize: 14 }}>{t.event}</span>
                                         <span style={{ fontSize: 13, color: '#9CA3AF', whiteSpace: 'nowrap' }}>
-                                            {t.sent} sent / {t.total} queued
+                                            {t.sent} Sent / {t.total} Queued
                                         </span>
                                     </div>
                                 ))}
@@ -162,13 +162,13 @@ export default function PushHealthPage() {
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Why Pushes Were Suppressed</h2>
                             <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
-                                Last 7 days. Green and grey are working as intended -- a suppressed
-                                push is only a problem when it is red.
+                                Last 7 Days. Green And Grey Are Working As Intended -- A Suppressed
+                                Push Is Only A Problem When It Is Red.
                             </p>
                             <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {(!data.skipReasons || data.skipReasons.length === 0) && (
                                     <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>
-                                        Nothing suppressed in the last 7 days.
+                                        Nothing Suppressed In The Last 7 Days.
                                     </p>
                                 )}
                                 {(data.skipReasons || []).map((r) => (
@@ -193,7 +193,7 @@ export default function PushHealthPage() {
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Staff Reachability</h2>
                             <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {data.staff.length === 0 && (
-                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No staff accounts found.</p>
+                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No Staff Accounts Found.</p>
                                 )}
                                 {data.staff.map((s) => (
                                     <div key={s.id} style={{
@@ -205,7 +205,7 @@ export default function PushHealthPage() {
                                                 {s.username || s.email || s.id.slice(0, 8)}
                                             </p>
                                             <p style={{ margin: 0, fontSize: 12, color: '#6B7280' }}>
-                                                {s.role} - {s.devices} active device{s.devices === 1 ? '' : 's'}
+                                                {s.role} - {s.devices} Active device{s.devices === 1 ? '' : 's'}
                                                 {s.lastFailure ? ` - last error: ${s.lastFailure}` : ''}
                                             </p>
                                         </div>
@@ -221,11 +221,11 @@ export default function PushHealthPage() {
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Recent Dispatch Runs</h2>
                             <div style={{ marginTop: 12, fontSize: 13, color: '#9CA3AF' }}>
-                                {data.dispatch.recent.length === 0 && <p style={{ margin: 0 }}>No runs recorded yet.</p>}
+                                {data.dispatch.recent.length === 0 && <p style={{ margin: 0 }}>No Runs Recorded Yet.</p>}
                                 {data.dispatch.recent.map((r, i) => (
                                     <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                        {new Date(r.started_at).toLocaleString()} - claimed {r.claimed}, sent {r.sent},
-                                        failed {r.failed}, skipped {r.skipped}
+                                        {new Date(r.started_at).toLocaleString()} - Claimed {r.claimed}, Sent {r.sent},
+                                        Failed {r.failed}, Skipped {r.skipped}
                                         {r.note ? ` (${r.note})` : ''}
                                     </div>
                                 ))}

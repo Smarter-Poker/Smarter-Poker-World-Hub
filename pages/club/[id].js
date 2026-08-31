@@ -70,7 +70,7 @@ function LiveGameCard({ game }) {
           {GAME_TYPE_LABELS[game.game_type] || game.game_type?.toUpperCase()} {game.stakes}
         </p>
         <p className="text-sm text-[#6B7280]">
-          {game.current_players}/{game.max_players} players
+          {game.current_players}/{game.max_players} Players
         </p>
       </div>
       <div className={`px-2 py-1 rounded text-xs font-medium ${game.status === 'running'
@@ -163,8 +163,8 @@ function PostCard({ post, onLike, onComment, isLiked, onShare }) {
 
       {/* Engagement Stats */}
       <div className="px-4 py-2 flex items-center justify-between text-sm text-[#6B7280]">
-        <span>{post.likes_count || 0} likes</span>
-        <span>{post.comments_count || 0} comments</span>
+        <span>{post.likes_count || 0} Likes</span>
+        <span>{post.comments_count || 0} Comments</span>
       </div>
 
       {/* Action Buttons */}
@@ -989,11 +989,11 @@ export default function ClubPage() {
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-[#F59E0B] fill-current" />
                       <span className="font-medium">{averageRating}</span>
-                      <span className="text-[#6B7280]">({reviews.length || venue.review_count || 0} reviews)</span>
+                      <span className="text-[#6B7280]">({reviews.length || venue.review_count || 0} Reviews)</span>
                     </span>
                     <span className="flex items-center gap-1 text-[#6B7280]">
                       <Heart className="w-4 h-4" />
-                      {venue.follower_count || 0} followers
+                      {venue.follower_count || 0} Followers
                     </span>
                   </div>
                 </div>
@@ -1408,7 +1408,7 @@ export default function ClubPage() {
                     <p className="text-[#6B7280] whitespace-pre-wrap">{venue.about}</p>
                   ) : (
                     <p className="text-[#6B7280]">
-                      {venue.name} is a {venue.venue_type === 'casino' ? 'casino' : 'poker room'} located in {venue.city}, {venue.state}.
+                      {venue.name} Is A {venue.venue_type === 'casino' ? 'casino' : 'poker room'} Located In {venue.city}, {venue.state}.
                       {venue.poker_tables && ` The poker room features ${venue.poker_tables} tables.`}
                       {venue.hours_weekday && ` Hours: ${venue.hours_weekday}.`}
                     </p>
@@ -1565,14 +1565,14 @@ export default function ClubPage() {
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-[#6B7280]">{reviews.length} reviews</p>
+                        <p className="text-sm text-[#6B7280]">{reviews.length} Reviews</p>
                       </div>
                       <div className="flex-1">
                         <button
                           onClick={handleWriteReviewClick}
                           className="w-full h-10 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
                         >
-                          Write a Review
+                          Write A Review
                         </button>
                       </div>
                     </div>
@@ -1638,7 +1638,7 @@ export default function ClubPage() {
 
                     {/* Title */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Title (optional)</label>
+                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Title (Optional)</label>
                       <input
                         type="text"
                         value={reviewTitle}
@@ -1651,7 +1651,7 @@ export default function ClubPage() {
 
                     {/* Content */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Your Review (optional)</label>
+                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Your Review (Optional)</label>
                       <textarea
                         value={reviewContent}
                         onChange={(e) => setReviewContent(e.target.value)}

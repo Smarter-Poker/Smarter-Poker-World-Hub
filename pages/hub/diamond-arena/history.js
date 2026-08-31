@@ -55,7 +55,7 @@ export default function DiamondArenaHistory() {
                                             {session.gameType}
                                         </div>
                                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>
-                                            {new Date(session.date).toLocaleString()} • {session.hands} hands
+                                            {new Date(session.date).toLocaleString()} • {session.hands} Hands
                                         </div>
                                     </div>
 

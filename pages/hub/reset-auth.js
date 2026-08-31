@@ -150,7 +150,7 @@ export default function ResetAuthPage() {
                             marginBottom: 20,
                             lineHeight: 1.6
                         }}>
-                            All authentication data has been cleared. Click below to sign in with a fresh session.
+                            All Authentication Data Has Been Cleared. Click Below To Sign In With A Fresh Session.
                         </p>
                         <button
                             onClick={handleLogin}

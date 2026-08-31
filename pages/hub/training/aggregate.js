@@ -169,7 +169,7 @@ export default function AggregateReports() {
         </div>
 
         <p style={styles.subtitle}>
-          Aggregated strategy across all flop textures - see when to C-bet vs check by board type
+          Aggregated Strategy Across All Flop Textures - See When To C-Bet Vs Check By Board Type
         </p>
 
         {/* Filters */}
@@ -253,7 +253,7 @@ export default function AggregateReports() {
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               style={styles.spinner}
             />
-            <p style={{ color: 'var(--sp-fg-dim)', marginTop: 12 }}>Analyzing flop textures...</p>
+            <p style={{ color: 'var(--sp-fg-dim)', marginTop: 12 }}>Analyzing Flop Textures...</p>
           </div>
         )}
 
@@ -281,7 +281,7 @@ export default function AggregateReports() {
                   <span style={{ display: 'inline-flex', color: 'var(--sp-accent-cyan)' }} aria-hidden><ChartBarIcon size={24} /></span>
                   <span style={styles.overallTitle}>Overall Summary</span>
                   <span style={styles.spotCount}>
-                    {report.totalSpots.toLocaleString()} spots analyzed
+                    {report.totalSpots.toLocaleString()} Spots Analyzed
                   </span>
                 </div>
                 <div style={styles.overallStats}>
@@ -305,7 +305,7 @@ export default function AggregateReports() {
               <div style={styles.sectionHeader}>
                 {/* TRAIN-AGGREGATE-A11Y-1: SVG palette replaces ◇ */}
                 <span style={{ display: 'inline-flex', color: 'var(--sp-accent-purple)' }} aria-hidden><PaletteIcon size={18} /></span>
-                <span>Strategy by Flop Texture</span>
+                <span>Strategy By Flop Texture</span>
               </div>
 
               {report.textures.length === 0 && (
@@ -329,7 +329,7 @@ export default function AggregateReports() {
                       <span style={{ fontSize: 16, marginRight: 6 }}>{tex.icon}</span>
                       <span style={{ color: tex.color, fontWeight: 700 }}>{tex.label}</span>
                     </div>
-                    <span style={styles.textureSpots}>{tex.spotCount} spots</span>
+                    <span style={styles.textureSpots}>{tex.spotCount} Spots</span>
                   </div>
                   {tex.desc && <div style={styles.textureDesc}>{tex.desc}</div>}
 
@@ -377,7 +377,7 @@ export default function AggregateReports() {
                   <div style={{ ...styles.sectionHeader, marginTop: 24 }}>
                     {/* TRAIN-AGGREGATE-A11Y-1: SVG chair replaces ● */}
                     <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><ChairIcon size={18} /></span>
-                    <span>Strategy by Position</span>
+                    <span>Strategy By Position</span>
                   </div>
                   <div style={styles.positionGrid}>
                     {report.positions
@@ -393,15 +393,15 @@ export default function AggregateReports() {
                           <div style={styles.posName}>{p.position}</div>
                           <div style={styles.posFreq}>
                             <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>{p.cbetFreq}%</span>
-                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>bet</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>Bet</span>
                           </div>
                           <div style={styles.posFreq}>
                             <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>
                               {p.checkFreq}%
                             </span>
-                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>chk</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>Chk</span>
                           </div>
-                          <div style={styles.posSpots}>{p.spotCount} spots</div>
+                          <div style={styles.posSpots}>{p.spotCount} Spots</div>
                         </motion.div>
                       ))}
                   </div>

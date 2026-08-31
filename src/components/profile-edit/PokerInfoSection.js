@@ -94,7 +94,7 @@ export default function PokerInfoSection({ profile, updateField }) {
                                 )}
                             </div>
                             <div style={{ fontSize: 11, color: C.textSec, marginTop: 4, opacity: 0.7 }}>
-                                Earn 300 diamonds on your birthday (accounts must be 60+ days old)
+                                Earn 300 Diamonds On Your Birthday (Accounts Must Be 60+ Days Old)
                             </div>
                         </div>
 

@@ -406,7 +406,7 @@ export default function PlayerWaitlistPage() {
           </div>
           <div style={S.headerStats}>
             <span style={S.statText}>
-              {totalWaiting} waiting · {waitlistColumns.length} game{waitlistColumns.length !== 1 ? 's' : ''}
+              {totalWaiting} Waiting · {waitlistColumns.length} game{waitlistColumns.length !== 1 ? 's' : ''}
             </span>
             <span style={S.liveBadge}>
               <span style={S.liveDot} />
@@ -467,7 +467,7 @@ export default function PlayerWaitlistPage() {
               {arrived && (
                 <div style={S.arrivedConfirm}>
                   <CheckCircle style={{ width: 14, height: 14 }} />
-                  Staff has been notified
+                  Staff Has Been Notified
                 </div>
               )}
             </div>
@@ -516,7 +516,7 @@ export default function PlayerWaitlistPage() {
                     {/* Player names - fills remaining height */}
                     <div style={S.columnBody}>
                       {col.players.length === 0 ? (
-                        <div style={S.noPlayers}>No players waiting</div>
+                        <div style={S.noPlayers}>No Players Waiting</div>
                       ) : (
                         col.players.map((player) => {
                           const isCalled = player.status === 'called';
@@ -616,10 +616,10 @@ export default function PlayerWaitlistPage() {
         {/* ═══ TICKER - matches desk ═══ */}
         <div style={S.ticker}>
           <span style={S.tickerText}>
-            - {totalWaiting} player{totalWaiting !== 1 ? 's' : ''} currently waiting
+            - {totalWaiting} player{totalWaiting !== 1 ? 's' : ''} Currently Waiting
           </span>
           <span style={S.tickerText}>
-            Download the Smarter Poker App
+            Download The Smarter Poker App
           </span>
         </div>
       </div>

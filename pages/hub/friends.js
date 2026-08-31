@@ -186,7 +186,7 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
                 </button>
             </div>
             <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, fontStyle: 'italic' }}>
-                Declining will convert them to a follower
+                Declining Will Convert Them To A Follower
             </div>
         </div>
     );
@@ -229,12 +229,12 @@ function UserCard({
                 </Link>
                 {mutualCount > 0 && (
                     <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
-                        {mutualCount} mutual friends
+                        {mutualCount} Mutual Friends
                     </div>
                 )}
                 {isFollower && !isFriend && (
                     <div style={{ fontSize: 12, color: C.silver, marginBottom: 4 }}>
-                        Follows you
+                        Follows You
                     </div>
                 )}
                 {user.city && user.state && (
@@ -268,7 +268,7 @@ function UserCard({
                                         background: C.teal,
                                         boxShadow: '0 0 6px rgba(20, 184, 166, 0.6)'
                                     }} />
-                                    Online now
+                                    Online Now
                                 </>
                             ) : (
                                 <>

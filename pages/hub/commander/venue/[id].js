@@ -169,7 +169,7 @@ export default function VenueDetail() {
             href="/hub/commander"
             className="text-[#22D3EE] font-medium hover:underline"
           >
-            Back to venues
+            Back To Venues
           </Link>
         </div>
       </div>
@@ -305,12 +305,12 @@ export default function VenueDetail() {
                       <div className="flex items-center gap-4 mt-3">
                         <div className="flex items-center gap-1 text-sm text-white">
                           <Users className="w-4 h-4" />
-                          <span>{occupiedSeats}/{game.max_players || 9} seated</span>
+                          <span>{occupiedSeats}/{game.max_players || 9} Seated</span>
                         </div>
                         {waitlist && (
                           <div className="flex items-center gap-1 text-sm text-[#F59E0B]">
                             <Clock className="w-4 h-4" />
-                            <span>{waitlist.count} waiting</span>
+                            <span>{waitlist.count} Waiting</span>
                           </div>
                         )}
                       </div>

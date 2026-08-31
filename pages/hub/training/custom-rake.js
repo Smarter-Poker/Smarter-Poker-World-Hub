@@ -189,7 +189,7 @@ export default function CustomRakePage() {
               marginBottom: 4,
             }}
           >
-            Back to Training
+            Back To Training
           </button>
           <h1
             style={{
@@ -202,7 +202,7 @@ export default function CustomRakePage() {
             Custom Rake Solver
           </h1>
           <p style={{ fontSize: 14, color: '#b0b3b8', margin: '2px 0 0' }}>
-            See how rake structure affects optimal GTO strategy
+            See How Rake Structure Affects Optimal GTO Strategy
           </p>
         </div>
 
@@ -389,7 +389,7 @@ export default function CustomRakePage() {
                 fontFamily: "'Rajdhani', sans-serif",
               }}
             >
-              Strategy Adjustments (vs No-Rake GTO)
+              Strategy Adjustments (Vs No-Rake GTO)
             </h3>
             {impact.adjustments.map((a, i) => (
               <div
@@ -441,8 +441,8 @@ export default function CustomRakePage() {
               KEY INSIGHT
             </div>
             <div style={{ fontSize: 13, color: '#e4e6eb', lineHeight: 1.5 }}>
-              At {rakePct}% rake with ${rakeCap} cap, you&apos;re paying approximately{' '}
-              {impact.rakePerHourBB}BB/hour in rake.
+              At {rakePct}% Rake With ${rakeCap} Cap, You&apos;Re Paying approximately{' '}
+              {impact.rakePerHourBB}BB/Hour In Rake.
               {parseFloat(impact.rakePerHourBB) > 5
                 ? ' This is HIGH - tighten preflop, 3-bet more instead of calling, and avoid speculative hands.'
                 : parseFloat(impact.rakePerHourBB) > 2

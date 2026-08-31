@@ -75,16 +75,16 @@ export default function MemoryGamesLeaderboard() {
       <PreflopSubpageShell eyebrow="GLOBAL SIGNAL // LIVE RANKINGS" title="Range command ranks" description="Compare verified personal-best results across every Preflop Charts training mode." metric={leaderboard.length ? `TOP ${leaderboard.length}` : 'LIVE'}>
         <PreflopTabRail items={GAME_MODES} selected={selectedMode} onSelect={setSelectedMode} ariaLabel="Leaderboard game mode" />
 
-        {userRank && <div className="preflop-user-rank"><Target size={20} aria-hidden /><span><small>YOUR CURRENT POSITION</small><strong>#{userRank} in {GAME_MODES.find((mode) => mode.key === selectedMode)?.label}</strong></span></div>}
+        {userRank && <div className="preflop-user-rank"><Target size={20} aria-hidden /><span><small>YOUR CURRENT POSITION</small><strong>#{userRank} In {GAME_MODES.find((mode) => mode.key === selectedMode)?.label}</strong></span></div>}
         {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchLeaderboard}><RefreshCw size={15} aria-hidden /> Refresh</button></div>}
 
         {!loading && podium.length > 0 && <section className="preflop-podium" aria-label="Top three players">
-          {podium.map((entry, index) => <article key={entry.id} data-rank={index + 1}><Medal size={22} aria-hidden /><span>0{index + 1}</span><h2>{entry.profiles?.username || 'Anonymous player'}</h2><strong>{Number(entry.score || 0).toLocaleString()}</strong><small>{accuracyToPercent(entry.accuracy, entry.score).toFixed(1)}% accuracy</small></article>)}
+          {podium.map((entry, index) => <article key={entry.id} data-rank={index + 1}><Medal size={22} aria-hidden /><span>0{index + 1}</span><h2>{entry.profiles?.username || 'Anonymous player'}</h2><strong>{Number(entry.score || 0).toLocaleString()}</strong><small>{accuracyToPercent(entry.accuracy, entry.score).toFixed(1)}% Accuracy</small></article>)}
         </section>}
 
         <section className="preflop-subpage-panel" aria-labelledby="ranking-table-title">
-          <div className="preflop-panel-heading"><div><span>TOP 50 // PERSONAL BESTS</span><h2 id="ranking-table-title">Live ranking board</h2></div><button type="button" onClick={fetchLeaderboard} disabled={loading} aria-label="Refresh leaderboard"><RefreshCw size={16} aria-hidden /></button></div>
-          {loading ? <div className="preflop-subpage-loading">Synchronizing rankings…</div> : leaderboard.length === 0 ? <div className="preflop-subpage-empty"><TrophyIcon /><h3>No verified entries yet</h3><p>Complete this mode to establish the first personal best.</p></div> : (
+          <div className="preflop-panel-heading"><div><span>TOP 50 // PERSONAL BESTS</span><h2 id="ranking-table-title">Live Ranking Board</h2></div><button type="button" onClick={fetchLeaderboard} disabled={loading} aria-label="Refresh leaderboard"><RefreshCw size={16} aria-hidden /></button></div>
+          {loading ? <div className="preflop-subpage-loading">Synchronizing Rankings…</div> : leaderboard.length === 0 ? <div className="preflop-subpage-empty"><TrophyIcon /><h3>No Verified Entries Yet</h3><p>Complete This Mode To Establish The First Personal Best.</p></div> : (
             <div className="preflop-ranking-scroll"><table className="preflop-ranking-table"><thead><tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th><th>Accuracy</th><th>Time</th><th><span className="sr-only">Perfect</span></th></tr></thead><tbody>{leaderboard.map((entry, index) => {
               const current = entry.user_id === user?.id;
               const accuracy = accuracyToPercent(entry.accuracy, entry.score);

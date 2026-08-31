@@ -296,7 +296,7 @@ export default function LevelUpOverlay({
                                 marginTop: 24,
                             }}
                         >
-                            Tap anywhere to continue
+                            Tap Anywhere To Continue
                         </motion.p>
                     </motion.div>
                 </motion.div>

@@ -118,43 +118,43 @@ export default function JoinHomeGame() {
           {(authChecking || state === 'idle' || state === 'joining') && (
             <>
               <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto mb-4" />
-              <p className="text-sm text-[#9FB3C8]">Joining the game…</p>
+              <p className="text-sm text-[#9FB3C8]">Joining The Game…</p>
             </>
           )}
 
           {state === 'pending' && (
             <>
-              <h1 className="text-xl font-semibold text-white mb-2">Request sent</h1>
+              <h1 className="text-xl font-semibold text-white mb-2">Request Sent</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
               <button onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
-                View the game
+                View The Game
               </button>
             </>
           )}
 
           {state === 'joined' && (
             <>
-              <h1 className="text-xl font-semibold text-white mb-2">You are in</h1>
+              <h1 className="text-xl font-semibold text-white mb-2">You Are In</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
               <button onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
-                Go to the game
+                Go To The Game
               </button>
             </>
           )}
 
           {state === 'error' && (
             <>
-              <h1 className="text-xl font-semibold text-white mb-2">Could not join</h1>
+              <h1 className="text-xl font-semibold text-white mb-2">Could Not Join</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
               <div className="flex items-center justify-center gap-3">
                 <button onClick={() => doJoin()} className="cmd-btn cmd-btn-secondary px-4 h-11">
-                  Try again
+                  Try Again
                 </button>
                 <button
                   onClick={() => router.push('/hub/home-games')}
                   className="cmd-btn cmd-btn-primary px-4 h-11"
                 >
-                  Browse home games
+                  Browse Home Games
                 </button>
               </div>
             </>

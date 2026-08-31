@@ -690,7 +690,7 @@ export default function HandComparison() {
             >
               BOARD{' '}
               <span style={{ color: 'var(--sp-fg-faint)', fontWeight: 600, fontSize: 10 }}>
-                (min 3 for Flop)
+                (Min 3 For Flop)
               </span>
             </div>
             <div data-pills-row style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -918,7 +918,7 @@ export default function HandComparison() {
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
-                  RE-RUN (new random run-outs)
+                  RE-RUN (New Random Run-Outs)
                 </button>
 
                 <div
@@ -932,9 +932,9 @@ export default function HandComparison() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Results based on 3,000 Monte Carlo simulations using the best-5-from-7 hand
-                  evaluator. Equity = Win% + ½ Chop%. Click a selected card to deselect it. Change
-                  board cards to study run-outs.
+                  Results Based On 3,000 Monte Carlo Simulations Using The Best-5-From-7 Hand
+                  Evaluator. Equity = Win% + ½ Chop%. Click A Selected Card To Deselect It. Change
+                  Board Cards To Study Run-Outs.
                 </div>
               </motion.div>
             )}

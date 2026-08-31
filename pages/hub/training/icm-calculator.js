@@ -818,7 +818,7 @@ export default function ICMCalculatorPage() {
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
-                    Chip% vs ICM% Comparison
+                    Chip% Vs ICM% Comparison
                   </div>
 
                   {results.results.map((r, i) => (
@@ -891,8 +891,8 @@ export default function ICMCalculatorPage() {
                       fontWeight: 600,
                     }}
                   >
-                    <span>Top bar = Chip%</span>
-                    <span>Bottom bar = ICM%</span>
+                    <span>Top Bar = Chip%</span>
+                    <span>Bottom Bar = ICM%</span>
                   </div>
                 </div>
               </motion.div>
@@ -981,11 +981,11 @@ export default function ICMCalculatorPage() {
               About ICM
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              The Independent Chip Model (ICM) converts tournament chip stacks into real dollar
-              equity based on the prize structure. Unlike chip EV (where each chip is worth the
-              same), ICM accounts for the diminishing value of chips - the chip leader's stack is
-              worth less per chip than a short stack's. The bubble factor measures this effect:
-              values above 1.0 mean survival is more important than accumulation.
+              The Independent Chip Model (ICM) Converts Tournament Chip Stacks Into Real Dollar
+              Equity Based On The Prize Structure. Unlike Chip EV (Where Each Chip Is Worth The
+              Same), ICM Accounts For The Diminishing Value Of Chips - The Chip Leader's Stack Is
+              Worth Less Per Chip Than A Short Stack's. The Bubble Factor Measures This Effect:
+              Values Above 1.0 Mean Survival Is More Important Than Accumulation.
             </p>
           </div>
         </div>

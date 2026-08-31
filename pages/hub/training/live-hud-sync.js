@@ -31,7 +31,7 @@ export default function LiveHudSyncPage() {
               Integration Status
             </div>
             <h1 style={{ margin: '14px 0 10px', fontSize: 'clamp(32px, 7vw, 62px)', lineHeight: .98, textTransform: 'capitalize' }}>Live HUD Sync</h1>
-            <p style={{ margin: 0, maxWidth: 670, color: '#b8cad7', lineHeight: 1.7 }}>Physical beacon discovery and Bluetooth pairing are not connected to a production service yet. This page will not simulate a device, connection, signal strength, battery, or firmware version.</p>
+            <p style={{ margin: 0, maxWidth: 670, color: '#b8cad7', lineHeight: 1.7 }}>Physical Beacon Discovery And Bluetooth Pairing Are Not Connected To A Production Service Yet. This Page Will Not Simulate A Device, Connection, Signal Strength, Battery, Or Firmware Version.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>
               {statusRows.map(([label, value]) => (
@@ -44,7 +44,7 @@ export default function LiveHudSyncPage() {
 
             <div style={{ marginTop: 28, padding: '20px', border: '1px solid rgba(102,211,246,.24)', background: 'rgba(0,0,0,.22)' }}>
               <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'capitalize' }}>Supported Workflow</div>
-              <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Import a real hand-history file for analysis and review. Imported decisions are parsed and audited; they are not replaced with generated device telemetry.</p>
+              <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Import A Real Hand-History File For Analysis And Review. Imported Decisions Are Parsed And Audited; They Are Not Replaced With Generated Device Telemetry.</p>
               <a href="/hub/training/hand-history-upload" style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Open Hand History Import →
               </a>

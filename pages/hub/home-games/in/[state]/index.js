@@ -424,7 +424,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
           {/* Hero */}
           <header className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Poker Home Games in <span className="text-[#C4B5FD]">{stateName}</span>
+              Poker Home Games In <span className="text-[#C4B5FD]">{stateName}</span>
             </h1>
             <p className="text-base text-[#94A3B8] mt-3 max-w-2xl">
               {games.length > 0 ? (
@@ -432,13 +432,13 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
                   <span className="text-white font-semibold">{games.length}</span> active{' '}
                   {games.length === 1 ? 'game' : 'games'} across{' '}
                   <span className="text-white font-semibold">{cities.length}</span>{' '}
-                  {cities.length === 1 ? 'city' : 'cities'}. Click any card for game details, schedule, and
-                  how to request a seat.
+                  {cities.length === 1 ? 'city' : 'cities'}. Click Any Card For Game Details, Schedule, And
+                  How To Request A Seat.
                 </>
               ) : (
                 <>
-                  No public home games have been listed in {stateName} yet. If you host a home game,{' '}
-                  list yours now - it's free while in beta.
+                  No Public Home Games Have Been Listed In {stateName} Yet. If You Host A Home Game,{' '}
+                  List Yours Now - It's Free While In Beta.
                 </>
               )}
             </p>
@@ -447,7 +447,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
                 href={`https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate`}
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium text-sm transition-colors"
               >
-                Host in {stateName} →
+                Host In {stateName} →
               </Link>
             </div>
           </header>
@@ -466,7 +466,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
               ) : (
                 <div className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
                   <p className="text-[#94A3B8]">
-                    Be the first to host a poker home game in {stateName}.
+                    Be The First To Host A Poker Home Game In {stateName}.
                   </p>
                 </div>
               )}
@@ -477,7 +477,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
               {cities.length > 0 && (
                 <div className="rounded-xl bg-[#132240]/60 border border-[#1E293B] p-4">
                   <h2 className="text-xs uppercase tracking-wider text-[#94A3B8] mb-3">
-                    Cities in {stateName}
+                    Cities In {stateName}
                   </h2>
                   <ul className="space-y-1.5 text-sm">
                     {cities.map(c => (
@@ -520,7 +520,7 @@ export default function HomeGamesByState({ stateName, stateSlug, games, cities, 
                       href="/hub/home-games/in"
                       className="block py-1 text-[#C4B5FD] hover:text-white transition-colors"
                     >
-                      View all states →
+                      View All States →
                     </Link>
                   </li>
                 </ul>

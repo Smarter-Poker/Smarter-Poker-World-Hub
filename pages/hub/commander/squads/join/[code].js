@@ -121,7 +121,7 @@ export default function SquadJoinPage() {
                   <p className="text-sm text-[#64748B] mt-2">{squad.description}</p>
                 )}
                 <div className="text-sm text-[#64748B] mt-3">
-                  {squad.member_count || 0} members
+                  {squad.member_count || 0} Members
                 </div>
                 <button
                   onClick={handleJoin}
@@ -150,7 +150,7 @@ export default function SquadJoinPage() {
                   onClick={() => router.push('/hub/commander/squads')}
                   className="cmd-btn cmd-btn-secondary mt-6"
                 >
-                  Back to Squads
+                  Back To Squads
                 </button>
               </>
             )}

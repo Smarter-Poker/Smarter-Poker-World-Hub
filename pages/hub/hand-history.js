@@ -243,11 +243,11 @@ export default function HandHistoryPage() {
           <div>
             <h1 style={{ color: T.text, fontSize: 22, fontWeight: 600, margin: 0, letterSpacing: '-0.4px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <History size={22} aria-hidden style={{ color: T.accent }} />
-              <span>Hand history</span>
+              <span>Hand History</span>
             </h1>
             {stats && (
               <span style={{ color: T.textSec, fontSize: 11, fontWeight: 600, display: 'block', marginTop: 4 }}>
-                {stats.totalHands} hands • {stats.winPct}% win • Avg pot {stats.avgPot.toLocaleString()}
+                {stats.totalHands} Hands • {stats.winPct}% Win • Avg Pot {stats.avgPot.toLocaleString()}
               </span>
             )}
           </div>
@@ -300,12 +300,12 @@ export default function HandHistoryPage() {
         )}
 
         {loading && (
-          <div style={{ color: T.textSec, textAlign: 'center', padding: 40 }}>Loading hand histories...</div>
+          <div style={{ color: T.textSec, textAlign: 'center', padding: 40 }}>Loading Hand Histories...</div>
         )}
 
         {!loading && hands.length === 0 && (
           <div style={{ color: T.textDim, textAlign: 'center', padding: 40 }}>
-            No hands recorded yet. Play some hands to see your history here!
+            No Hands Recorded Yet. Play Some Hands To See Your History Here!
           </div>
         )}
 
@@ -371,7 +371,7 @@ export default function HandHistoryPage() {
                     }}>
                       {heroNet >= 0 ? '+' : ''}{heroNet.toLocaleString()}
                     </div>
-                    <div style={{ fontSize: 8, color: T.textDim }}>pot {(h.pot_total || 0).toLocaleString()}</div>
+                    <div style={{ fontSize: 8, color: T.textDim }}>Pot {(h.pot_total || 0).toLocaleString()}</div>
                   </div>
                 </div>
 
@@ -428,7 +428,7 @@ export default function HandHistoryPage() {
                           <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Winners</div>
                           {winners.map((w, i) => (
                             <div key={i} style={{ fontSize: 10, color: T.green, fontWeight: 600 }}>
-                              {w.hand || 'Winner'} - {(w.amount || 0).toLocaleString()} chips
+                              {w.hand || 'Winner'} - {(w.amount || 0).toLocaleString()} Chips
                             </div>
                           ))}
                         </div>
@@ -499,7 +499,7 @@ export default function HandHistoryPage() {
                             borderRadius: 20, cursor: 'pointer'
                           }}
                         >
-                          <Share2 size={12} aria-hidden style={{ verticalAlign: '-1px', marginRight: 4 }} />Share hand card
+                          <Share2 size={12} aria-hidden style={{ verticalAlign: '-1px', marginRight: 4 }} />Share Hand Card
                         </button>
                       </div>
                     </motion.div>

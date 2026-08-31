@@ -144,7 +144,7 @@ export default function LeaderboardPage() {
               </div>
               <h1 className="text-2xl font-bold">{venue?.name || 'Leaderboard'}</h1>
             </div>
-            <p className="text-white/80">Top players this {period}</p>
+            <p className="text-white/80">Top Players This {period}</p>
           </div>
         </header>
 

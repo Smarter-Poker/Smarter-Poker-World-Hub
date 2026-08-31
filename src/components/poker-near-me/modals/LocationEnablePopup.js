@@ -104,7 +104,7 @@ export default function LocationEnablePopup({
           <div>
             <span className="pnm-location-sheet__eyebrow">Location Recovery</span>
             <h2 id="pnm-location-permission-title">Enable Location</h2>
-            <p id="pnm-location-permission-description">Use your position for nearby rooms and distance-aware results.</p>
+            <p id="pnm-location-permission-description">Use Your Position For Nearby Rooms And Distance-Aware Results.</p>
           </div>
           <button type="button" className="pnm-location-sheet__close" onClick={closePopup} aria-label="Close location instructions">&times;</button>
         </header>
@@ -132,7 +132,7 @@ export default function LocationEnablePopup({
             </ol>
           </div>
 
-          <div className="pnm-location-sheet__divider"><span>or</span></div>
+          <div className="pnm-location-sheet__divider"><span>Or</span></div>
 
           <button
             type="button"

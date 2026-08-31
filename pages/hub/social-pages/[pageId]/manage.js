@@ -364,7 +364,7 @@ export default function ManageSocialPage() {
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="15 18 9 12 15 6" />
                             </svg>
-                            Back to Page
+                            Back To Page
                         </button>
                     </div>
 
@@ -374,7 +374,7 @@ export default function ManageSocialPage() {
                                 Manage: {page.name}
                             </h1>
                             <p style={{ fontSize: 14, color: C.textSec, margin: '4px 0 0' }}>
-                                {page.follower_count || 0} followers - {page.post_count || 0} posts
+                                {page.follower_count || 0} Followers - {page.post_count || 0} Posts
                             </p>
                         </div>
 
@@ -555,7 +555,7 @@ export default function ManageSocialPage() {
                                             Social Media Links
                                         </label>
                                         <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 12px' }}>
-                                            Add your social media profiles to display on your About tab
+                                            Add Your Social Media Profiles To Display On Your About Tab
                                         </p>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                             {[
@@ -587,7 +587,7 @@ export default function ManageSocialPage() {
                                             Custom URL
                                         </label>
                                         <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 8px' }}>
-                                            Set a clean, memorable URL for your page
+                                            Set A Clean, Memorable URL For Your Page
                                         </p>
                                         <div style={{
                                             display: 'flex', alignItems: 'center', gap: 0,
@@ -600,7 +600,7 @@ export default function ManageSocialPage() {
                                                 whiteSpace: 'nowrap', background: '#E4E6EB', borderRight: `1px solid ${C.border}`,
                                                 fontWeight: 500,
                                             }}>
-                                                smarter.poker/.../
+                                                Smarter.Poker/.../
                                             </span>
                                             <input
                                                 type="text"
@@ -674,17 +674,17 @@ export default function ManageSocialPage() {
                                         )}
                                         {slugStatus === 'available' && (
                                             <p style={{ fontSize: 12, marginTop: 4, marginBottom: 0, color: C.green, fontWeight: 500 }}>
-                                                This URL is available
+                                                This URL Is Available
                                             </p>
                                         )}
                                         {form.slug && form.slug.length >= 3 && slugStatus === 'available' && (
                                             <p style={{ fontSize: 11, marginTop: 6, marginBottom: 0, color: C.textSec }}>
-                                                Your page will be at: <strong>smarter.poker/hub/social-pages/{form.slug}</strong>
+                                                Your Page Will Be At: <strong>Smarter.Poker/Hub/Social-Pages/{form.slug}</strong>
                                             </p>
                                         )}
                                         {slugSuggestions.length > 0 && slugStatus === 'taken' && (
                                             <div style={{ marginTop: 6 }}>
-                                                <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try these instead:</p>
+                                                <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try These Instead:</p>
                                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                                     {slugSuggestions.map(s => (
                                                         <button key={s} onClick={() => {
@@ -736,7 +736,7 @@ export default function ManageSocialPage() {
                                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                                                 <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                                             </svg>
-                                            You have unsaved changes
+                                            You Have Unsaved Changes
                                         </div>
                                     )}
 
@@ -746,7 +746,7 @@ export default function ManageSocialPage() {
                                     }}>
                                         <h3 style={{ fontSize: 15, fontWeight: 700, color: C.red, margin: '0 0 8px' }}>Danger Zone</h3>
                                         <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>
-                                            Permanently delete this page and all its content. This cannot be undone.
+                                            Permanently Delete This Page And All Its Content. This Cannot Be Undone.
                                         </p>
                                         <button onClick={() => setShowDeleteModal(true)} style={{
                                             padding: '10px 24px', borderRadius: 8, border: `1px solid ${C.red}`,
@@ -873,7 +873,7 @@ export default function ManageSocialPage() {
                                                     {(p.content || '').length > 100 ? '...' : ''}
                                                 </div>
                                                 <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>
-                                                    {p.like_count || 0} likes - {p.comment_count || 0} comments
+                                                    {p.like_count || 0} Likes - {p.comment_count || 0} Comments
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: 4 }}>
@@ -962,7 +962,7 @@ export default function ManageSocialPage() {
                                                     <span style={{ fontSize: 28, fontWeight: 800, color: C.blue }}>
                                                         {((posts.reduce((s, p) => s + (p.like_count || 0) + (p.comment_count || 0), 0) / posts.length)).toFixed(1)}
                                                     </span>
-                                                    <span style={{ marginLeft: 4 }}>interactions per post</span>
+                                                    <span style={{ marginLeft: 4 }}>Interactions Per Post</span>
                                                 </>
                                             ) : 'No posts yet to calculate engagement'}
                                         </div>
@@ -974,7 +974,7 @@ export default function ManageSocialPage() {
                                             background: C.bg, borderRadius: 12, padding: 16,
                                             border: `1px solid ${C.border}`,
                                         }}>
-                                            <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: C.text }}>Top Posts by Engagement</h4>
+                                            <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: C.text }}>Top Posts By Engagement</h4>
                                             {[...posts]
                                                 .sort((a, b) => ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0)))
                                                 .slice(0, 5)
@@ -993,7 +993,7 @@ export default function ManageSocialPage() {
                                                                 {(p.content || '').substring(0, 80)}
                                                             </div>
                                                             <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>
-                                                                {p.like_count || 0} likes · {p.comment_count || 0} comments
+                                                                {p.like_count || 0} Likes · {p.comment_count || 0} Comments
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1008,7 +1008,7 @@ export default function ManageSocialPage() {
                                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                                     <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Invite Members</p>
                                     <p style={{ fontSize: 13, color: C.textSec }}>
-                                        Share this link to invite people to your page:
+                                        Share This Link To Invite People To Your Page:
                                     </p>
                                     <div style={{
                                         background: C.bg, borderRadius: 8, padding: '12px 16px',
@@ -1032,7 +1032,7 @@ export default function ManageSocialPage() {
                                     <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
                                         <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 4 }}>QR Code</p>
                                         <p style={{ fontSize: 12, color: C.textSec, marginBottom: 12 }}>
-                                            Scan to visit your page
+                                            Scan To Visit Your Page
                                         </p>
                                         {typeof window !== 'undefined' && (
                                             <img
@@ -1078,10 +1078,10 @@ export default function ManageSocialPage() {
                     }}>
                         <h3 style={{ fontSize: 18, fontWeight: 700, color: C.red, margin: '0 0 8px' }}>Delete Page</h3>
                         <p style={{ fontSize: 14, color: C.text, margin: '0 0 16px', lineHeight: 1.5 }}>
-                            This will permanently delete <strong>{page.name}</strong> and all its posts, comments, and followers. This action cannot be undone.
+                            This Will Permanently Delete <strong>{page.name}</strong> And All Its Posts, Comments, And Followers. This Action Cannot Be Undone.
                         </p>
                         <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>
-                            Type <strong>{page.name}</strong> to confirm:
+                            Type <strong>{page.name}</strong> To Confirm:
                         </label>
                         <input
                             type="text" value={deleteConfirm}

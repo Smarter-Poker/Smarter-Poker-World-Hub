@@ -451,7 +451,7 @@ export default function GTOReports() {
                 }}
               />
               <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13, marginTop: 12 }}>
-                Loading your GTO report...
+                Loading Your GTO Report...
               </p>
               <style>{`
                 @keyframes spin {
@@ -587,7 +587,7 @@ export default function GTOReports() {
                     Questions Creating The Most Confusion
                   </div>
                   <p style={{ margin: '5px 0 12px', color: 'var(--sp-fg-dim)', fontSize: 11 }}>
-                    Ranked by repeated incorrect choices, confusion rate, and EV surrendered.
+                    Ranked By Repeated Incorrect Choices, Confusion Rate, And EV Surrendered.
                   </p>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {report.questionConfusion.slice(0, 8).map((item) => (
@@ -664,7 +664,7 @@ export default function GTOReports() {
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
-                  Position Accuracy vs GTO Baseline
+                  Position Accuracy Vs GTO Baseline
                 </div>
 
                 <div
@@ -700,7 +700,7 @@ export default function GTOReports() {
                           >
                             {pos}
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>No data</div>
+                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>No Data</div>
                         </div>
                       );
                     }
@@ -736,7 +736,7 @@ export default function GTOReports() {
                             textAlign: 'center',
                           }}
                         >
-                          {data.total} hands • EV: -{data.avgEvLoss}BB
+                          {data.total} Hands • EV: -{data.avgEvLoss}BB
                         </div>
                       </div>
                     );
@@ -799,7 +799,7 @@ export default function GTOReports() {
                         marginBottom: 12,
                       }}
                     >
-                      Performance by Format
+                      Performance By Format
                     </div>
                     {/* Rows rather than a table: at 375px a four-column table
                         either overflows or shrinks the numbers past reading
@@ -821,7 +821,7 @@ export default function GTOReports() {
                           {f.gameName}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          {f.hands} hands
+                          {f.hands} Hands
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
                           Score <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgScore}</span>
@@ -830,7 +830,7 @@ export default function GTOReports() {
                           Acc <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.accuracy}%</span>
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-                          EV loss <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgEvLoss}</span>bb
+                          EV Loss <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgEvLoss}</span>BB
                         </div>
                       </div>
                     ))}
@@ -920,8 +920,8 @@ export default function GTOReports() {
                       GTO Deviation Scorecard
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
-                      Based on {report.scorecardStats.totalAnalyzed} preflop hands played across
-                      your tracked sessions.
+                      Based On {report.scorecardStats.totalAnalyzed} Preflop Hands Played Across
+                      Your Tracked Sessions.
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

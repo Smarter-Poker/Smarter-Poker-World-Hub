@@ -20,10 +20,10 @@ test('merchandise order history exposes safe same-surface shipment tracking', ()
   assert.match(ORDER_LEDGER, /url\.protocol === 'https:'/);
   assert.match(ORDERS, /href=\{order\.trackingUrl\}/);
   assert.doesNotMatch(ORDERS, /target=["']_blank|window\.open/);
-  assert.match(ORDERS, /Fulfillment telemetry/);
-  assert.match(ORDERS, /Order placed/);
-  assert.match(ORDERS, /In production/);
-  assert.match(ORDERS, /Track package/);
+  assert.match(ORDERS, /Fulfillment Telemetry/);
+  assert.match(ORDERS, /Order Placed/);
+  assert.match(ORDERS, /In Production/);
+  assert.match(ORDERS, /Track Package/);
 });
 
 test('realtime order refreshes are latest-request-wins', () => {

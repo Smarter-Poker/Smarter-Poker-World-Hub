@@ -194,7 +194,7 @@ export default function FocusTimerPage() {
           </button>
           <div>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Focus Timer</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Pomodoro training</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Pomodoro Training</div>
           </div>
         </div>
 
@@ -355,7 +355,7 @@ export default function FocusTimerPage() {
                 {completedBlocks}
               </div>
               <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                blocks
+                Blocks
               </div>
             </div>
             <div
@@ -372,7 +372,7 @@ export default function FocusTimerPage() {
                 {Math.round(((completedBlocks * 25) / 60) * 10) / 10}
               </div>
               <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                hours
+                Hours
               </div>
             </div>
             <div
@@ -433,7 +433,7 @@ export default function FocusTimerPage() {
                 >
                   <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{s.time}</span>
                   <span style={{ fontSize: 11, color: 'var(--sp-accent-green)', fontWeight: 600 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min focus <FtCheckIcon size={12} /></span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min Focus <FtCheckIcon size={12} /></span>
                   </span>
                 </div>
               ))}

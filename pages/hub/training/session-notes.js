@@ -286,7 +286,7 @@ export default function SessionNotesPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Session Notes</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your training journal</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Training Journal</div>
           </div>
         </div>
 
@@ -343,7 +343,7 @@ export default function SessionNotesPage() {
                     color: 'var(--sp-fg-muted)',
                   }}
                 >
-                  Last session accuracy:{' '}
+                  Last Session Accuracy:{' '}
                   <span
                     style={{ fontWeight: 800, color: recentAccuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' }}
                   >
@@ -694,7 +694,7 @@ export default function SessionNotesPage() {
                     marginBottom: 16,
                   }}
                 >
-                  Download {filtered.length} Notes as CSV
+                  Download {filtered.length} Notes As CSV
                 </motion.button>
               )
               }

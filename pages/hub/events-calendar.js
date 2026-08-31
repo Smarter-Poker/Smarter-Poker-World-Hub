@@ -310,7 +310,7 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
           )}
           {event.distance_mi != null && (
             <span className="ev-meta-item ev-distance">
-              {event.distance_mi < 1 ? '<1' : Math.round(event.distance_mi)} mi
+              {event.distance_mi < 1 ? '<1' : Math.round(event.distance_mi)} Mi
             </span>
           )}
           {event.recurrence_label && (
@@ -410,7 +410,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
     <div className="loc-overlay" onClick={onClose}>
       <div className="loc-modal" role="dialog" aria-modal="true" aria-labelledby="loc-modal-title" onClick={e => e.stopPropagation()}>
         <div className="loc-modal-header">
-          <h2 id="loc-modal-title">Change location</h2>
+          <h2 id="loc-modal-title">Change Location</h2>
           <button className="loc-close" onClick={onClose} aria-label="Close location picker"><XIcon /></button>
         </div>
 
@@ -446,11 +446,11 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
               </select>
             </div>
           </div>
-          <button type="submit" className="loc-submit">Search this area</button>
+          <button type="submit" className="loc-submit">Search This Area</button>
         </form>
 
         <div className="loc-popular">
-          <span className="loc-popular-label">Popular cities</span>
+          <span className="loc-popular-label">Popular Cities</span>
           <div className="loc-popular-grid">
             {POPULAR_CITIES.map(city => (
               <button key={city} className="loc-city-btn" onClick={() => handleCitySelect(city)}>
@@ -462,7 +462,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
         {currentLocation && (
           <button className="loc-clear" onClick={() => { onSetLocation(null); onClose(); }}>
-            Clear location filter
+            Clear Location Filter
           </button>
         )}
       </div>
@@ -790,7 +790,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           {userLocation ? (
             <div className="pnm-location-pill">
               <div className="pnm-location-dot" />
-              <span className="pnm-location-label">Location active</span>
+              <span className="pnm-location-label">Location Active</span>
               {userLocation.label && userLocation.label !== 'My Location' && (
                 <span className="pnm-location-city">{userLocation.label}</span>
               )}
@@ -807,7 +807,7 @@ export default function EventsCalendarPage({ fallbackData }) {
               id="ec-location-btn"
             >
               <MapPinIcon size={14} />
-              Set location
+              Set Location
             </button>
           )}
         </div>
@@ -828,14 +828,14 @@ export default function EventsCalendarPage({ fallbackData }) {
               </span>
             )}
             {useSmartAgg && !loading && (
-              <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring events showing next occurrence</span>
+              <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring Events Showing Next Occurrence</span>
             )}
           </p>
           {/* Search box — absolute right */}
           <div style={{ position: 'absolute', top: 0, right: 0 }}>
             <form className="ec-search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); }} style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '500px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <SearchIcon />
-              <label htmlFor="ec-search-input" className="ec-sr-only">Search tournaments</label>
+              <label htmlFor="ec-search-input" className="ec-sr-only">Search Tournaments</label>
               <input
                 type="text"
                 placeholder="Search"
@@ -891,7 +891,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Event Type — Show All / Daily / Series / Tour */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label" htmlFor="ec-event-type">Event type</label>
+            <label className="ec-filter-label" htmlFor="ec-event-type">Event Type</label>
             <select
               className="ec-filter-select"
               value={eventType}
@@ -904,7 +904,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Date Range */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label" htmlFor="ec-date-range">Date range</label>
+            <label className="ec-filter-label" htmlFor="ec-date-range">Date Range</label>
             <select
               className="ec-filter-select"
               value={dateRange}
@@ -918,7 +918,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Buy-In */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label" htmlFor="ec-buyin">Buy-in</label>
+            <label className="ec-filter-label" htmlFor="ec-buyin">Buy-In</label>
             <select
               className="ec-filter-select"
               value={buyInTier}
@@ -959,7 +959,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Sort By */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label" htmlFor="ec-sort-by">Sort by</label>
+            <label className="ec-filter-label" htmlFor="ec-sort-by">Sort By</label>
             <select
               className="ec-filter-select"
               value={sortBy}
@@ -972,16 +972,16 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* View Mode */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label" htmlFor="ec-view-mode">View mode</label>
+            <label className="ec-filter-label" htmlFor="ec-view-mode">View Mode</label>
             <select
               className="ec-filter-select"
               value={viewMode}
               onChange={e => setViewMode(e.target.value)}
               id="ec-view-mode"
             >
-              <option value="list">List view</option>
-              <option value="calendar">Calendar view</option>
-              <option value="map">Map view</option>
+              <option value="list">List View</option>
+              <option value="calendar">Calendar View</option>
+              <option value="map">Map View</option>
             </select>
           </div>
 
@@ -1001,13 +1001,13 @@ export default function EventsCalendarPage({ fallbackData }) {
           {loading && (
             <div className="ec-loading" role="status" aria-live="polite" aria-busy="true">
               <div className="ec-spinner" />
-              <p>Finding tournaments…</p>
+              <p>Finding Tournaments…</p>
             </div>
           )}
 
           {error && !loading && (
             <div className="ec-error">
-              <p>Failed to load events</p>
+              <p>Failed To Load Events</p>
               <p className="ec-error-detail">{error?.message || 'Unknown error'}</p>
             </div>
           )}
@@ -1031,9 +1031,9 @@ export default function EventsCalendarPage({ fallbackData }) {
               {events.length === 0 ? (
                 <div className="ec-empty">
                   <CalendarIcon size={40} />
-                  <p className="ec-empty-title">No tournaments found</p>
-                  <p className="ec-empty-sub">Try adjusting your filters or expanding your search area.</p>
-                  <button className="ec-empty-btn" onClick={clearFilters}>Clear all filters</button>
+                  <p className="ec-empty-title">No Tournaments Found</p>
+                  <p className="ec-empty-sub">Try Adjusting Your Filters Or Expanding Your Search Area.</p>
+                  <button className="ec-empty-btn" onClick={clearFilters}>Clear All Filters</button>
                 </div>
               ) : (
                 <>
@@ -1058,7 +1058,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
                   {visibleCount < events.length && (
                     <button className="ec-load-more" onClick={() => setVisibleCount(v => v + 100)}>
-                      Show more ({events.length - visibleCount} remaining)
+                      Show More ({events.length - visibleCount} Remaining)
                     </button>
                   )}
                 </>
@@ -1114,7 +1114,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                     <span className="ec-cal-events-count">{selectedCalEvents.length} event{selectedCalEvents.length !== 1 ? 's' : ''}</span>
                   </h3>
                   {selectedCalEvents.length === 0 ? (
-                    <p className="ec-cal-no-events">No events scheduled for this date.</p>
+                    <p className="ec-cal-no-events">No Events Scheduled For This Date.</p>
                   ) : (
                     selectedCalEvents.map((evt, idx) => (
                       <LazyRender key={idx}>

@@ -25,7 +25,7 @@ export default function GuestJoinPage() {
     if (!user) {
         return (
             <div style={{ background: '#000', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                <p>Please log in to join the broadcast.</p>
+                <p>Please Log In To Join The Broadcast.</p>
             </div>
         );
     }
@@ -33,7 +33,7 @@ export default function GuestJoinPage() {
     if (!room || !invite) {
         return (
             <div style={{ background: '#000', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                <p>Invalid invite link.</p>
+                <p>Invalid Invite Link.</p>
             </div>
         );
     }
@@ -41,7 +41,7 @@ export default function GuestJoinPage() {
     return (
         <>
             <Head>
-                <title>Join as Guest | Smarter.Poker</title>
+                <title>Join As Guest | Smarter.Poker</title>
             </Head>
             <div style={{ minHeight: '100vh', background: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
                 <GoLiveModal 

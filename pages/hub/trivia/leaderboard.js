@@ -203,7 +203,7 @@ export default function TriviaLeaderboard() {
                                 marginBottom: '20px'
                             }}
                         >
-                            Back to Trivia
+                            Back To Trivia
                         </button>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
@@ -260,7 +260,7 @@ export default function TriviaLeaderboard() {
 
                         {isLoading ? (
                             <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading leaderboard...
+                                Loading Leaderboard...
                             </div>
                         ) : loadError ? (
                             <div role="alert" style={{
@@ -287,7 +287,7 @@ export default function TriviaLeaderboard() {
                                 border: '1px solid #4e4f50'
                             }}>
                                 <p style={{ color: '#65676b', fontSize: '18px' }}>
-                                    No scores yet for {modeFilter === 'all' ? 'this period' : `${MODE_FILTERS.find(m => m.id === modeFilter)?.label || modeFilter} in this period`}. Be the first!
+                                    No Scores Yet For {modeFilter === 'all' ? 'this period' : `${MODE_FILTERS.find(m => m.id === modeFilter)?.label || modeFilter} in this period`}. Be The First!
                                 </p>
                             </div>
                         ) : (

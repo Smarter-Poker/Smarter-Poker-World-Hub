@@ -26,7 +26,7 @@ export default function EvHeatmapPage() {
           <div style={{ position: 'relative' }}>
             <div className="sp-training-analysis-header" style={{ color: '#79e6ff', fontSize: 10, fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Measured Training Data</div>
             <h1 style={{ margin: '12px 0 10px', fontSize: 'clamp(30px, 6vw, 54px)', lineHeight: 1 }}>EV Performance</h1>
-            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>Opening the authenticated performance report. Every value shown there comes from recorded training sessions; no sample counts or EV values are fabricated.</p>
+            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>Opening The Authenticated Performance Report. Every Value Shown There Comes From Recorded Training Sessions; No Sample Counts Or EV Values Are Fabricated.</p>
             <a href={VERIFIED_REPORT} style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 24, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
               Continue To Performance Report →
             </a>

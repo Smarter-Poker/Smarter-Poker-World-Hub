@@ -92,7 +92,7 @@ export default function DiamondArenaSchedule() {
                                 Tournament Schedule
                             </h1>
                             <p style={{ color: '#9ca3af' }}>
-                                Browse and register for upcoming tournaments
+                                Browse And Register For Upcoming Tournaments
                             </p>
                         </div>
 

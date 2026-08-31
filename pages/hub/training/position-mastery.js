@@ -407,9 +407,9 @@ export default function PositionMasteryPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  No position-tagged decisions have been recorded yet. Complete a position-specific
-                  drill to populate this map; overall results are never redistributed into invented
-                  seat statistics.
+                  No Position-Tagged Decisions Have Been Recorded Yet. Complete A Position-Specific
+                  Drill To Populate This Map; Overall Results Are Never Redistributed Into Invented
+                  Seat Statistics.
                 </div>
               )}
               {/* Visual Table Heatmap */}
@@ -498,7 +498,7 @@ export default function PositionMasteryPage() {
                       {weakest.name} ({positionData[weakest.id]?.accuracy || 0}%)
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      Focus your drills here to improve fastest
+                      Focus Your Drills Here To Improve Fastest
                     </div>
                   </div>
                   <button
@@ -542,7 +542,7 @@ export default function PositionMasteryPage() {
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
-                  Accuracy by Position
+                  Accuracy By Position
                 </div>
                 {POSITIONS.map((pos, i) => {
                   const acc = positionData[pos.id]?.accuracy || 0;
@@ -669,10 +669,10 @@ export default function PositionMasteryPage() {
                           fontWeight: 600,
                         }}
                       >
-                        <span>{data.drills || 0} drills</span>
-                        <span>{data.totalQ || 0} hands</span>
+                        <span>{data.drills || 0} Drills</span>
+                        <span>{data.totalQ || 0} Hands</span>
                         {data.streak > 0 && (
-                          <span style={{ color: 'var(--sp-accent-purple)' }}>{data.streak} streak</span>
+                          <span style={{ color: 'var(--sp-accent-purple)' }}>{data.streak} Streak</span>
                         )}
                       </div>
                       <div
@@ -715,9 +715,9 @@ export default function PositionMasteryPage() {
                   About Position Mastery
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-                  GTO accuracy varies significantly by position. Most players are weakest from the
-                  blinds (SB/BB) and strongest from late position (BTN/CO). Use this map to identify
-                  your weakest seats, then drill those positions specifically using the Drill
+                  GTO Accuracy Varies Significantly By Position. Most Players Are Weakest From The
+                  Blinds (SB/BB) And Strongest From Late Position (BTN/CO). Use This Map To Identify
+                  Your Weakest Seats, Then Drill Those Positions Specifically Using The Drill
                   Builder.
                 </p>
               </div>

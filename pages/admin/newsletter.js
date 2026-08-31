@@ -136,7 +136,7 @@ export default function NewsletterOperations() {
                         <Link href="/hub/news" className={styles.back}><ArrowLeft size={15} /> News Hub</Link>
                         <p className={styles.eyebrow}><Radio size={13} /> Live Intelligence Wire</p>
                         <h1>Newsletter Operations</h1>
-                        <p className={styles.subtitle}>Compose from verified stories, inspect the audience, dispatch once, and retain an audit trail.</p>
+                        <p className={styles.subtitle}>Compose From Verified Stories, Inspect The Audience, Dispatch Once, And Retain An Audit Trail.</p>
                     </div>
                     <button className={styles.refresh} onClick={() => load()} disabled={loading || !token}>
                         <RefreshCw size={15} className={loading ? styles.spin : ''} /> Refresh
@@ -146,67 +146,67 @@ export default function NewsletterOperations() {
                 {error && <div className={styles.error} role="alert"><XCircle size={16} /> {error}</div>}
 
                 <section className={styles.signalGrid} aria-label="Newsletter health">
-                    <article><Users size={17} /><span>Active audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
-                    <article><Mail size={17} /><span>Opted out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
-                    <article><Send size={17} /><span>Recorded campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
-                    <article><Clock3 size={17} /><span>Last dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
+                    <article><Users size={17} /><span>Active Audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
+                    <article><Mail size={17} /><span>Opted Out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
+                    <article><Send size={17} /><span>Recorded Campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
+                    <article><Clock3 size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
                 </section>
 
                 <section className={styles.dispatch}>
                     <div className={styles.sectionHeading}>
                         <div>
-                            <p className={styles.eyebrow}>Dispatch circuit</p>
-                            <h2>Build the next wire</h2>
+                            <p className={styles.eyebrow}>Dispatch Circuit</p>
+                            <h2>Build The Next Wire</h2>
                         </div>
                         <ShieldCheck size={22} />
                     </div>
                     <div className={styles.dispatchBody}>
                         <div className={styles.controls}>
                             <label>
-                                Story window
+                                Story Window
                                 <select value={days} onChange={(e) => { setDays(Number(e.target.value)); setPreview(null); }}>
-                                    <option value={1}>Past 24 hours</option>
-                                    <option value={3}>Past 3 days</option>
-                                    <option value={7}>Past 7 days</option>
-                                    <option value={14}>Past 14 days</option>
+                                    <option value={1}>Past 24 Hours</option>
+                                    <option value={3}>Past 3 Days</option>
+                                    <option value={7}>Past 7 Days</option>
+                                    <option value={14}>Past 14 Days</option>
                                 </select>
                             </label>
                             <label>
-                                Story count
+                                Story Count
                                 <select value={articleLimit} onChange={(e) => { setArticleLimit(Number(e.target.value)); setPreview(null); }}>
-                                    {[5, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} stories</option>)}
+                                    {[5, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} Stories</option>)}
                                 </select>
                             </label>
                             <button className={styles.previewButton} onClick={() => runDigest(true)} disabled={Boolean(running)}>
                                 {running === 'preview' ? <RefreshCw size={15} className={styles.spin} /> : <Radio size={15} />}
-                                Run safe preview
+                                Run Safe Preview
                             </button>
                             <button className={styles.sendButton} onClick={() => runDigest(false)} disabled={Boolean(running) || !preview || preview.recipients === 0}>
                                 {running === 'send' ? <RefreshCw size={15} className={styles.spin} /> : <Send size={15} />}
-                                Confirm and send
+                                Confirm And Send
                             </button>
                         </div>
                         <div className={styles.preview}>
                             {preview ? (
                                 <>
-                                    <p className={styles.previewLabel}>Validated dispatch</p>
+                                    <p className={styles.previewLabel}>Validated Dispatch</p>
                                     <h3>{preview.subject || 'No publishable stories found'}</h3>
                                     <dl>
                                         <div><dt>Recipients</dt><dd>{preview.recipients}</dd></div>
                                         <div><dt>Stories</dt><dd>{preview.articles}</dd></div>
-                                        <div><dt>Email provider</dt><dd>{preview.emailConfigured ? 'Ready' : 'Not configured'}</dd></div>
+                                        <div><dt>Email Provider</dt><dd>{preview.emailConfigured ? 'Ready' : 'Not configured'}</dd></div>
                                     </dl>
-                                    <p>No email was sent during this preview.</p>
+                                    <p>No Email Was Sent During This Preview.</p>
                                 </>
                             ) : (
                                 <div className={styles.previewEmpty}>
                                     <Radio size={28} />
-                                    <p>Run a preview to resolve the real subject, current stories, and exact active audience before Send unlocks.</p>
+                                    <p>Run A Preview To Resolve The Real Subject, Current Stories, And Exact Active Audience Before Send Unlocks.</p>
                                 </div>
                             )}
                         </div>
                         <aside className={styles.storyRail}>
-                            <p className={styles.previewLabel}>Latest eligible signals</p>
+                            <p className={styles.previewLabel}>Latest Eligible Signals</p>
                             {(data?.recentArticles || []).slice(0, 8).map((article, index) => (
                                 <div key={article.id}>
                                     <span>{String(index + 1).padStart(2, '0')}</span>
@@ -218,7 +218,7 @@ export default function NewsletterOperations() {
                 </section>
 
                 <section className={styles.panel}>
-                    <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Audit trail</p><h2>Campaign history</h2></div></div>
+                    <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Audit Trail</p><h2>Campaign History</h2></div></div>
                     <div className={styles.tableWrap}>
                         <table>
                             <thead><tr><th>Subject</th><th>Status</th><th>Audience</th><th>Delivered</th><th>Started</th></tr></thead>
@@ -232,7 +232,7 @@ export default function NewsletterOperations() {
                                         <td>{formatDate(campaign.started_at)}</td>
                                     </tr>
                                 ))}
-                                {!loading && !(data?.campaigns || []).length && <tr><td colSpan="5" className={styles.emptyCell}>No campaign has been sent yet.</td></tr>}
+                                {!loading && !(data?.campaigns || []).length && <tr><td colSpan="5" className={styles.emptyCell}>No Campaign Has Been Sent Yet.</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -240,7 +240,7 @@ export default function NewsletterOperations() {
 
                 <section className={styles.panel}>
                     <div className={styles.subscriberHeader}>
-                        <div><p className={styles.eyebrow}>Audience control</p><h2>Subscribers</h2></div>
+                        <div><p className={styles.eyebrow}>Audience Control</p><h2>Subscribers</h2></div>
                         <form onSubmit={searchSubscribers} className={styles.search}>
                             <Search size={15} />
                             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email" aria-label="Search subscriber email" />
@@ -264,13 +264,13 @@ export default function NewsletterOperations() {
                                         </td>
                                     </tr>
                                 ))}
-                                {!loading && !(data?.subscribers || []).length && <tr><td colSpan="5" className={styles.emptyCell}>No subscribers match this view.</td></tr>}
+                                {!loading && !(data?.subscribers || []).length && <tr><td colSpan="5" className={styles.emptyCell}>No Subscribers Match This View.</td></tr>}
                             </tbody>
                         </table>
                     </div>
                     <div className={styles.pagination}>
                         <button disabled={page <= 1} onClick={() => { const next = page - 1; setPage(next); load(token, next, search); }}>Previous</button>
-                        <span>Page {data?.subscriberPagination?.page || page} of {data?.subscriberPagination?.pages || 1}</span>
+                        <span>Page {data?.subscriberPagination?.page || page} Of {data?.subscriberPagination?.pages || 1}</span>
                         <button disabled={page >= (data?.subscriberPagination?.pages || 1)} onClick={() => { const next = page + 1; setPage(next); load(token, next, search); }}>Next</button>
                     </div>
                 </section>

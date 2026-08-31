@@ -315,13 +315,13 @@ export default function DrillBuilderPage() {
               justifyContent: 'center',
             }}
           >
-            \u2190
+            \U2190
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Custom Drill Builder
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create focused practice sessions</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create Focused Practice Sessions</div>
           </div>
         </div>
 
@@ -446,7 +446,7 @@ export default function DrillBuilderPage() {
                   marginBottom: 6,
                 }}
               >
-                Positions (empty = all)
+                Positions (Empty = All)
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {POSITIONS.map((pos) => (
@@ -473,7 +473,7 @@ export default function DrillBuilderPage() {
                   marginBottom: 6,
                 }}
               >
-                Streets (empty = all)
+                Streets (Empty = All)
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {STREETS.map((s) => (
@@ -520,7 +520,7 @@ export default function DrillBuilderPage() {
                     outline: 'none',
                   }}
                 />
-                <span style={{ color: 'var(--sp-fg-faint)' }}>to</span>
+                <span style={{ color: 'var(--sp-fg-faint)' }}>To</span>
                 <input
                   aria-label="Maximum Stack Depth In Big Blinds"
                   type="number"

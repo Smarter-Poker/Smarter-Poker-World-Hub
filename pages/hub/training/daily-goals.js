@@ -290,7 +290,7 @@ export default function DailyGoalsPage() {
           <div>
             {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Resets at midnight</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Resets At Midnight</div>
           </div>
         </div>
 
@@ -326,9 +326,9 @@ export default function DailyGoalsPage() {
                       Daily Bonus Available
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      Complete all goals to claim +{dailyBonus.totalBonus} diamonds
+                      Complete All Goals To Claim +{dailyBonus.totalBonus} Diamonds
                       {dailyBonus.streakBonus > 0 && (
-                        <span style={{ color: 'var(--sp-accent-amber)' }}> (includes {dailyBonus.streakBonus} streak bonus)</span>
+                        <span style={{ color: 'var(--sp-accent-amber)' }}> (Includes {dailyBonus.streakBonus} Streak Bonus)</span>
                       )}
                     </div>
                   </div>
@@ -351,7 +351,7 @@ export default function DailyGoalsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  Daily bonus claimed - +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} diamonds
+                  Daily Bonus Claimed - +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} Diamonds
                 </div>
               )}
 
@@ -449,7 +449,7 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-                    All goals complete! +25 diamonds earned
+                    All Goals Complete! +25 Diamonds Earned
                   </div>
                 </motion.div>
               )}
@@ -577,7 +577,7 @@ export default function DailyGoalsPage() {
                   marginTop: 12,
                 }}
               >
-                Back to Training
+                Back To Training
               </motion.button>
             </>
           )}

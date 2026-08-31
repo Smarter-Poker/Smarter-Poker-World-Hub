@@ -352,7 +352,7 @@ export default function HandHistoryPage() {
                   </div>
                   <p className="text-[#64748B]">No Sessions With Hand History</p>
                   <p className="text-sm text-[#64748B] mt-1">
-                    Play at a venue with RFID tables to capture hands
+                    Play At A Venue With RFID Tables To Capture Hands
                   </p>
                 </div>
               )}

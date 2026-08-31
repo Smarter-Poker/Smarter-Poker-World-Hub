@@ -234,34 +234,34 @@ export default function MerchProductDetail({ product }) {
         <section className={detailStyles.detailCard}>
           <h2>Casino-Grade Detail</h2>
           <p>
-            Built around the blackened-steel, cold-blue-light visual system used across Smarter.Poker. This item is presented with the same hard-edged frames and verified marketplace controls as the rest of the collection.
+            Built Around The Blackened-Steel, Cold-Blue-Light Visual System Used Across Smarter.Poker. This Item Is Presented With The Same Hard-Edged Frames And Verified Marketplace Controls As The Rest Of The Collection.
           </p>
           <ul>
-            <li>Official Smarter.Poker neural steel design</li>
-            <li>Live fulfillment readiness and stock are revalidated before checkout</li>
-            <li>Card and diamond pricing stay visible before checkout</li>
+            <li>Official Smarter.Poker Neural Steel Design</li>
+            <li>Live Fulfillment Readiness And Stock Are Revalidated Before Checkout</li>
+            <li>Card And Diamond Pricing Stay Visible Before Checkout</li>
           </ul>
         </section>
         <section className={detailStyles.detailCard}>
           <h2>Purchase Protocol</h2>
           <p>
-            Add this item to the shared marketplace cart, then settle the order with Stripe or your Smarter.Poker diamond wallet. Variant and shipping selections are confirmed before the order is finalized.
+            Add This Item To The Shared Marketplace Cart, Then Settle The Order With Stripe Or Your Smarter.Poker Diamond Wallet. Variant And Shipping Selections Are Confirmed Before The Order Is Finalized.
           </p>
-          <p>Diamond equivalent: <strong>{diamondPrice.toLocaleString()} Diamonds</strong>.</p>
+          <p>Diamond Equivalent: <strong>{diamondPrice.toLocaleString()} Diamonds</strong>.</p>
         </section>
       </div>
       <div className={detailStyles.assuranceGrid}>
-        <div><strong>Secure Checkout</strong><span>Stripe-hosted card settlement and verified wallet authorization.</span></div>
-        <div><strong>Order Telemetry</strong><span>Track order state from the marketplace Orders page.</span></div>
-        <div><strong>Same-Surface Flow</strong><span>Details, cart, checkout return, and account records remain inside Smarter.Poker.</span></div>
+        <div><strong>Secure Checkout</strong><span>Stripe-Hosted Card Settlement And Verified Wallet Authorization.</span></div>
+        <div><strong>Order Telemetry</strong><span>Track Order State From The Marketplace Orders Page.</span></div>
+        <div><strong>Same-Surface Flow</strong><span>Details, Cart, Checkout Return, And Account Records Remain Inside Smarter.Poker.</span></div>
       </div>
       <section aria-labelledby="purchase-console-title">
         <div className={detailStyles.detailCard}>
           <h2 id="purchase-console-title">Live Purchase Console</h2>
           <p>
-            Choose the current option, save the item, add it to the shared cart, or use either
-            settlement path from this page. Orders enter automatic fulfillment when connected;
-            otherwise they enter the audited manual fulfillment queue.
+            Choose The Current Option, Save The Item, Add It To The Shared Cart, Or Use Either
+            Settlement Path From This Page. Orders Enter Automatic Fulfillment When Connected;
+            Otherwise They Enter The Audited Manual Fulfillment Queue.
           </p>
         </div>
         <MerchStore

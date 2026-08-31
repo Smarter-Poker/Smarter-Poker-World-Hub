@@ -143,7 +143,7 @@ function NewsBoxFallback({ article }) {
         <div className="news-box news-box-error">
             <div className="box-content">
                 <h3 className="box-title">{title || 'Article unavailable'}</h3>
-                <p className="box-excerpt">This story could not be displayed.</p>
+                <p className="box-excerpt">This Story Could Not Be Displayed.</p>
             </div>
 
             <style jsx>{`
@@ -306,7 +306,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
             {/* Reading Time Badge */}
             {readTime > 0 && (
                 <div className="read-time-badge">
-                    <Clock size={9} /> {readTime} min
+                    <Clock size={9} /> {readTime} Min
                 </div>
             )}
 

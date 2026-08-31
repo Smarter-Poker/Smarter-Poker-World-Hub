@@ -466,7 +466,7 @@ export default function GtoNewsPage() {
             {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readCount} of ${items.length} articles read`}>
-              {readCount}/{items.length} articles read
+              {readCount}/{items.length} Articles Read
             </div>
           </div>
           <button
@@ -516,13 +516,13 @@ export default function GtoNewsPage() {
                   letterSpacing: 1,
                 }}
               >
-                Sample content
+                Sample Content
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 4 }}>
                 {feedError
                   ? 'Live strategy articles could not be loaded right now.'
                   : 'No live strategy articles are available right now.'}{' '}
-                The tips below are fixed examples for reference - not current news.
+                The Tips Below Are Fixed Examples For Reference - Not Current News.
               </div>
             </div>
           )}
@@ -642,7 +642,7 @@ export default function GtoNewsPage() {
                 color: 'var(--sp-fg-dim)',
               }}
             >
-              Loading strategy articles...
+              Loading Strategy Articles...
             </div>
           )}
           {!showLoading && filtered.length === 0 && (
@@ -708,7 +708,7 @@ export default function GtoNewsPage() {
                   {readArticles.has(a.id) && (
                     <span style={{ fontSize: 8, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                       {/* TRAIN-NEWS-A11Y-1: SVG check */}
-                      <CheckIcon size={8} /> read
+                      <CheckIcon size={8} /> Read
                     </span>
                   )}
                 </div>
@@ -791,7 +791,7 @@ export default function GtoNewsPage() {
                           onClick={(e) => e.stopPropagation()}
                           style={{ color: 'var(--sp-accent-cyan)', textDecoration: 'none', fontWeight: 600 }}
                         >
-                          Read full article
+                          Read Full Article
                         </a>
                       </div>
                     )}

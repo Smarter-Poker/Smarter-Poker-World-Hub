@@ -788,7 +788,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
           <PokerNearMeFamilyNav />
           <main className="hgs-notfound" data-pnm-secondary-foundation="interaction-v1">
             <h1>Temporarily Unavailable</h1>
-            <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>
+            <p>We Couldn&apos;T Load This Home Game Right Now. Please Try Again In A Moment.</p>
             {/* There is no /hub/home-games index route — near-me is the
                 real discovery surface. */}
             <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
@@ -1078,7 +1078,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
               <button type="button" className={isFollowing ? 'is-active' : ''} onClick={handleFollowToggle} disabled={followBusy}>
                 {isFollowing ? 'Following' : 'Follow game'}
               </button>
-              <button type="button" onClick={handleShare}>Share profile</button>
+              <button type="button" onClick={handleShare}>Share Profile</button>
             </>
           )}
         />
@@ -1267,7 +1267,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="hgs-empty">No upcoming games scheduled. Check back soon.</div>
+                  <div className="hgs-empty">No Upcoming Games Scheduled. Check Back Soon.</div>
                 )
               ) : (
                 <div className="hgs-games-list">
@@ -1286,7 +1286,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                           <div className="hgs-game-meta">
                             {g.start_time && <span>{formatTime(g.start_time)}</span>}
                             {g.stakes && <span>· {g.stakes}</span>}
-                            {seatsLeft !== null && <span>· {seatsLeft} seat{seatsLeft === 1 ? '' : 's'} left</span>}
+                            {seatsLeft !== null && <span>· {seatsLeft} seat{seatsLeft === 1 ? '' : 's'} Left</span>}
                             {g.neighborhood && <span>· {g.neighborhood}</span>}
                           </div>
                           {g.description && <p className="hgs-game-desc">{g.description}</p>}
@@ -1296,7 +1296,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                           onClick={() => openRequestSeat(g)}
                           aria-label={`Pick a seat at ${g.title || 'this game'}`}
                         >
-                          Pick a Seat
+                          Pick A Seat
                         </button>
                       </div>
                     );
@@ -1318,9 +1318,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
                       </header>
                       <p>{p.content}</p>
                       <footer>
-                        <span>{p.like_count || 0} likes</span>
+                        <span>{p.like_count || 0} Likes</span>
                         <span>·</span>
-                        <span>{p.comment_count || 0} comments</span>
+                        <span>{p.comment_count || 0} Comments</span>
                       </footer>
                     </article>
                   ))}
@@ -1358,7 +1358,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt></dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
                 {group.typical_time && !group.settings?.schedule_summary && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
-                  <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} - ${group.typical_buyin_max || '?'}</dd></div>
+                  <div><dt>Buy-In</dt><dd>${group.typical_buyin_min || '?'} - ${group.typical_buyin_max || '?'}</dd></div>
                 )}
                 {(() => {
                     // max_players is a single group-level column: the total cap
@@ -1437,10 +1437,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 <button className="hgs-seat-close" onClick={() => setVouchersModalOpen(false)} aria-label="Close">×</button>
               </div>
               <p style={{fontSize:'13px',color:'rgba(255,255,255,.5)',margin:'0 0 16px',lineHeight:'1.5'}}>
-                These players have personally vouched for this home game.
+                These Players Have Personally Vouched For This Home Game.
               </p>
               {vouchers.length === 0 ? (
-                <div className="hgs-empty">No vouches yet. Be the first!</div>
+                <div className="hgs-empty">No Vouches Yet. Be The First!</div>
               ) : (
                 <div className="hgs-vouchers-list">
                   {vouchers.map((v) => (
@@ -1497,7 +1497,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   <div>
                     <div>{sharePosted ? '✓ Posted to Feed!' : 'Post to Smarter.Poker Feed'}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share with the community</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share With The Community</div>
                   </div>
                 </button>
                 {/* Twitter/X */}
@@ -1509,8 +1509,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="#e2e8f0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.256 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                   <div>
-                    <div>Share on X (Twitter)</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Post to your followers</div>
+                    <div>Share On X (Twitter)</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Post To Your Followers</div>
                   </div>
                 </a>
                 {/* Facebook */}
@@ -1522,8 +1522,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                   <div>
-                    <div>Share on Facebook</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share with friends</div>
+                    <div>Share On Facebook</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share With Friends</div>
                   </div>
                 </a>
                 {/* Copy Link */}
@@ -1581,12 +1581,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
               ) : memberStatus === 'banned' ? (
                 <div className="hgs-seat-request">
                   <p className="hgs-seat-request-lead">
-                    You can&apos;t request a seat at this home game.
+                    You Can&apos;T Request A Seat At This Home Game.
                   </p>
                 </div>
               ) : memberStatus === null ? (
                 <div className="hgs-seat-request">
-                  <p className="hgs-seat-request-lead">Checking your membership…</p>
+                  <p className="hgs-seat-request-lead">Checking Your Membership…</p>
                 </div>
               ) : seatRequestResult ? (
                 <div className="hgs-seat-request">
@@ -1612,11 +1612,11 @@ export default function PublicHomeGamePage({ data, serverError }) {
                       : 'The live seat list is for members of this home game.'}
                   </p>
                   <p className="hgs-seat-request-note">
-                    Request a seat and the host gets your request straight away. They&apos;ll
-                    approve you and confirm your seat - no need to join first.
+                    Request A Seat And The Host Gets Your Request Straight Away. They&apos;Ll
+                    Approve You And Confirm Your Seat - No Need To Join First.
                   </p>
                   <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-note">
-                    Add a note for the host (optional)
+                    Add A Note For The Host (Optional)
                   </label>
                   <textarea
                     id="hgs-seat-request-note"

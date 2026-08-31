@@ -275,7 +275,7 @@ function PanelCrash({ label, error, onRetry }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.sm }}>
         <AlertTriangle size={18} strokeWidth={2} color={T.danger} aria-hidden="true" />
         <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
-          {label || 'This panel'} could not be displayed
+          {label || 'This panel'} Could Not Be Displayed
         </span>
       </div>
       <p style={{ fontSize: F.caption, color: T.textMuted, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
@@ -438,12 +438,12 @@ function ReviewQueueCard({
     <div style={styles.reviewHeader}>
       <span style={styles.reviewEyebrow}>
         <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
-        Due for review
+        Due For Review
       </span>
       {num(stats?.streak) > 0 && (
         <span style={{ ...pill('warn'), ...numeric }}>
           <Flame size={12} strokeWidth={2.5} aria-hidden="true" />
-          {num(stats.streak)}-day streak
+          {num(stats.streak)}-Day Streak
         </span>
       )}
     </div>
@@ -452,7 +452,7 @@ function ReviewQueueCard({
   const errorNote = error ? (
     <div style={styles.reviewErrorRow} role="status">
       <span style={{ flex: 1, minWidth: 0 }}>
-        Your saved schedule could not be loaded · showing what is on this device.
+        Your Saved Schedule Could Not Be Loaded · Showing What Is On This Device.
       </span>
       {onRetry && (
         <button type="button" className="pa-btn" style={{ ...btn('ghost'), color: T.accent, padding: '0 10px' }} onClick={onRetry}>
@@ -493,7 +493,7 @@ function ReviewQueueCard({
         {heading}
         <p style={styles.reviewCaughtUp}>
           <CheckCircle2 size={18} strokeWidth={2} color={T.success} aria-hidden="true" />
-          <span>Nothing due right now.</span>
+          <span>Nothing Due Right Now.</span>
         </p>
         <p style={styles.reviewBody}>
           {nextLabel
@@ -519,7 +519,7 @@ function ReviewQueueCard({
           the REAL total · exactly ten due leaks must not read as "10+". */}
       <p style={styles.reviewCount}>
         <span style={{ ...numeric, color: T.accent, fontWeight: 800 }}>{total}</span>
-        {' '}leak{total === 1 ? '' : 's'} ready to drill
+        {' '}leak{total === 1 ? '' : 's'} Ready To Drill
       </p>
 
       <div style={styles.reviewTop}>
@@ -530,7 +530,7 @@ function ReviewQueueCard({
           style={styles.reviewTopBtn}
           aria-label={`First up: ${leak.title || 'this leak'}. Open details.`}
         >
-          <span style={styles.reviewTopLabel}>First up</span>
+          <span style={styles.reviewTopLabel}>First Up</span>
           <span style={styles.reviewTopTitle}>{leak.title || 'Your top leak'}</span>
           <span style={styles.reviewTopMeta}>
             <span style={pill(top.isNew ? 'accent' : 'warn')}>
@@ -538,7 +538,7 @@ function ReviewQueueCard({
               {queueReason(top)}
             </span>
             {impact > 0 && (
-              <span style={{ ...styles.reviewTopEv, ...numeric }}>~{impact.toFixed(1)} BB bled</span>
+              <span style={{ ...styles.reviewTopEv, ...numeric }}>~{impact.toFixed(1)} BB Bled</span>
             )}
           </span>
         </button>
@@ -650,10 +650,10 @@ function TrendChart({ data, optimal, current, status }) {
 
   const header = (
     <div style={styles.trendHeader}>
-      <span style={styles.trendHeaderLabel}>Frequency vs optimal</span>
+      <span style={styles.trendHeaderLabel}>Frequency Vs Optimal</span>
       {deltaPts !== null && (
         <span style={{ ...pill(meta.tone), ...numeric }}>
-          {Math.abs(deltaPts).toFixed(1)} pts {deltaPts >= 0 ? 'above' : 'below'} optimal
+          {Math.abs(deltaPts).toFixed(1)} Pts {deltaPts >= 0 ? 'above' : 'below'} Optimal
         </span>
       )}
     </div>
@@ -665,7 +665,7 @@ function TrendChart({ data, optimal, current, status }) {
         {header}
         <div style={styles.trendEmpty}>
           <p style={styles.trendEmptyText}>
-            Not enough history yet · this leak needs at least two detection runs to plot a trend.
+            Not Enough History Yet · This Leak Needs At Least Two Detection Runs To Plot A Trend.
           </p>
           <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} />
         </div>
@@ -812,9 +812,9 @@ function BleedSummary({ leaks, isDemo }) {
       <h2 style={styles.bleedHeadline}>
         {isDemo ? 'Sample data: ' : 'You are bleeding '}
         <span style={{ ...numeric, color: T.danger, fontWeight: 800 }}>~{total.toFixed(1)} BB</span>
-        {' '}across {leaks.length} active leak{leaks.length === 1 ? '' : 's'}
+        {' '}across {leaks.length} Active leak{leaks.length === 1 ? '' : 's'}
       </h2>
-      <p style={styles.bleedSub}>Ranked by total EV lost (per-occurrence loss x occurrences).</p>
+      <p style={styles.bleedSub}>Ranked By Total EV Lost (Per-Occurrence Loss X Occurrences).</p>
 
       <div style={styles.bleedBar} aria-hidden="true">
         {top.map(i => (
@@ -1042,7 +1042,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         {lowConfidence && (
           <span style={styles.leakCardHint}>
             <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" />
-            Small sample · needs more hands before this is conclusive.
+            Small Sample · Needs More Hands Before This Is Conclusive.
           </span>
         )}
       </button>
@@ -1055,7 +1055,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
           style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(99,231,255,0.45)' }}
         >
           <Target size={18} strokeWidth={2} aria-hidden="true" />
-          Practise this leak
+          Practise This Leak
         </button>
       )}
     </li>
@@ -1086,7 +1086,7 @@ function AutoGuidanceToggle({ value, onChange }) {
       style={styles.guidanceRow}
     >
       <span style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
-        <span style={styles.guidanceTitle}>Auto guidance {value ? 'ON' : 'OFF'}</span>
+        <span style={styles.guidanceTitle}>Auto Guidance {value ? 'ON' : 'OFF'}</span>
         <span style={styles.guidanceBody}>
           {value ? 'Highlighting the top suggested fix automatically.' : 'Suggesting one fix at a time.'}
         </span>
@@ -1198,7 +1198,7 @@ function ResolutionProgressSection({ record }) {
                 })}
               </div>
               <span style={styles.progressHistoryCaption}>
-                Session accuracy, oldest to newest
+                Session Accuracy, Oldest To Newest
                 {rec.lapses > 0 ? ` · ${rec.lapses} reset${rec.lapses === 1 ? '' : 's'}` : ''}
               </span>
             </div>
@@ -1301,7 +1301,7 @@ function LeakDetail({
           />
         </LeakErrorBoundary>
         {leak.frequencyIsEstimated && (
-          <p style={styles.detailNote}>Frequency is estimated from training repetitions, not a measured sample.</p>
+          <p style={styles.detailNote}>Frequency Is Estimated From Training Repetitions, Not A Measured Sample.</p>
         )}
       </section>
 
@@ -1343,7 +1343,7 @@ function LeakDetail({
             />
           ) : examples.length === 0 ? (
             <p style={styles.detailBody}>
-              No example hands recorded for this leak yet. Run leak detection after your next sessions to collect concrete examples.
+              No Example Hands Recorded For This Leak Yet. Run Leak Detection After Your Next Sessions To Collect Concrete Examples.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
@@ -1389,7 +1389,7 @@ function LeakDetail({
             </div>
             <p style={styles.fixText}>{sandboxCopy}</p>
             <button type="button" className="pa-btn" style={btn('primary', { block: true })} onClick={() => onPracticeSandbox(leak)}>
-              Practice Leak in Sandbox
+              Practice Leak In Sandbox
             </button>
           </div>
 
@@ -1430,7 +1430,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be changed · run detection on your own hands first.
+                Sample Leaks Cannot Be Changed · Run Detection On Your Own Hands First.
               </p>
             )}
           </>
@@ -1449,7 +1449,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be resolved · run detection on your own hands first.
+                Sample Leaks Cannot Be Resolved · Run Detection On Your Own Hands First.
               </p>
             )}
           </>
@@ -2267,10 +2267,10 @@ export default function LeakFinderPage() {
           {leaksAreDemo && !leaksLoading && (
             <section style={styles.demoBanner} aria-label="Sample data notice">
               <p style={styles.demoBannerText}>
-                You are viewing sample data. Sign in and run detection to analyse your own hands.
+                You Are Viewing Sample Data. Sign In And Run Detection To Analyse Your Own Hands.
               </p>
               <a className="pa-btn" href="/auth/login" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
-                Sign in to analyse my hands
+                Sign In To Analyse My Hands
               </a>
             </section>
           )}
@@ -2310,7 +2310,7 @@ export default function LeakFinderPage() {
             />
             {statsAreDemo && (
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Sample stats · not your own data</span>
+                <span style={pill('warn')}>Sample Stats · Not Your Own Data</span>
               </div>
             )}
             {statsError && !statsLoading && (
@@ -2324,7 +2324,7 @@ export default function LeakFinderPage() {
             )}
             {!statsError && fetchedStats?.partial && !statsLoading && (
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Some summary sources are temporarily unavailable</span>
+                <span style={pill('warn')}>Some Summary Sources Are Temporarily Unavailable</span>
               </div>
             )}
           </section>
@@ -2441,7 +2441,7 @@ export default function LeakFinderPage() {
               )}
               {!leaksError && leaksPartial && !leaksLoading && (
                 <div role="status" style={{ marginBottom: S.md, display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
-                  <span style={pill('warn')}>Leak history is partially loaded · retry to verify every source</span>
+                  <span style={pill('warn')}>Leak History Is Partially Loaded · Retry To Verify Every Source</span>
                   <button type="button" className="pa-btn" style={btn('secondary')} onClick={() => refetchLeaks()}>
                     Retry
                   </button>
@@ -2556,7 +2556,7 @@ export default function LeakFinderPage() {
                           style={btn('secondary')}
                           onClick={() => { setQuery(''); setStatusFilter('all'); }}
                         >
-                          Reset filters
+                          Reset Filters
                         </button>
                       )}
                     />
@@ -2584,7 +2584,7 @@ export default function LeakFinderPage() {
                           style={{ ...btn('secondary', { block: true }), marginTop: S.md }}
                           onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
                         >
-                          Show {Math.min(PAGE_SIZE, remaining)} more ({remaining} left)
+                          Show {Math.min(PAGE_SIZE, remaining)} More ({remaining} Left)
                         </button>
                       )}
                     </>
@@ -2600,7 +2600,7 @@ export default function LeakFinderPage() {
                         onClick={() => setPastOpen(o => !o)}
                         style={styles.disclosureBtn}
                       >
-                        <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>Past leaks ({pastLeaks.length})</span>
+                        <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>Past Leaks ({pastLeaks.length})</span>
                         {pastOpen
                           ? <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />
                           : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
@@ -2662,7 +2662,7 @@ export default function LeakFinderPage() {
                     <ErrorState title="Coach Stats Unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
                   ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
                     <p style={styles.detailBody}>
-                      No coach-mode mistakes recorded yet. Turn on coach mode in the sandbox and your worst spots appear here.
+                      No Coach-Mode Mistakes Recorded Yet. Turn On Coach Mode In The Sandbox And Your Worst Spots Appear Here.
                     </p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>

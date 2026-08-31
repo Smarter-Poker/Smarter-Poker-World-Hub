@@ -164,7 +164,7 @@ export default function ProfileEditPage() {
           )}
           {success && (
             <div className="p-3 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-sm">
-              Profile saved. Redirecting...
+              Profile Saved. Redirecting...
             </div>
           )}
 

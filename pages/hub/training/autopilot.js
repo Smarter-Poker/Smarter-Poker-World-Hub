@@ -381,7 +381,7 @@ export default function AutopilotPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Weak Spot Autopilot
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Zero-decision training mode</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Zero-Decision Training Mode</div>
           </div>
         </div>
 
@@ -442,7 +442,7 @@ export default function AutopilotPage() {
                           {avgAccuracy}% Overall
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-                          {totalCorrect}/{totalQ} questions correct
+                          {totalCorrect}/{totalQ} Questions Correct
                         </div>
                       </div>
                     </div>
@@ -498,7 +498,7 @@ export default function AutopilotPage() {
                       Coach Recommendation
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
-                      Focus your next session on <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> - it was your weakest area at {weakest.accuracy}%.
+                      Focus Your Next Session On <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> - It Was Your Weakest Area At {weakest.accuracy}%.
                     </div>
                   </div>
                 );
@@ -601,9 +601,9 @@ export default function AutopilotPage() {
                   3 Weak Spots Detected
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 20, lineHeight: 1.5 }}>
-                  We analyzed your training history and found areas
+                  We Analyzed Your Training History And Found Areas
                   <br />
-                  that need the most attention. One click to start.
+                  That Need The Most Attention. One Click To Start.
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}

@@ -63,7 +63,7 @@ export function TypingIndicator({ name, theme: C = defaultTheme }) {
                     }} />
                 ))}
             </div>
-            <span>{name} is typing...</span>
+            <span>{name} Is Typing...</span>
         </div>
     );
 }
@@ -135,7 +135,7 @@ export function EmptyConversationState({ theme: C = defaultTheme }) {
                 No Conversations Yet
             </h3>
             <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 14, lineHeight: 1.5 }}>
-                Add friends and start chatting! Your poker network is waiting.
+                Add Friends And Start Chatting! Your Poker Network Is Waiting.
             </p>
             <Link href="/hub/friends" style={{
                 padding: '10px 24px', background: C.blue,

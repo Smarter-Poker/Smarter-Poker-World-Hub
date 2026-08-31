@@ -134,7 +134,7 @@ export default function LiveActivityFeed({ currentUser }) {
             </div>
 
             {/* Loading */}
-            {loading && <div style={{ color: T.textSec, textAlign: 'center', padding: 20, fontSize: 13 }}>Loading live sessions...</div>}
+            {loading && <div style={{ color: T.textSec, textAlign: 'center', padding: 20, fontSize: 13 }}>Loading Live Sessions...</div>}
 
             {/* Empty state */}
             {!loading && activeSessions.length === 0 && (

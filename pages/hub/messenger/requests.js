@@ -246,8 +246,8 @@ export default function MessageRequests() {
                     </div>
 
                     <p style={styles.description}>
-                        Messages from people you're not friends with appear here.
-                        Accept to start chatting or decline to remove.
+                        Messages From People You're Not Friends With Appear Here.
+                        Accept To Start Chatting Or Decline To Remove.
                     </p>
 
                     {loading ? (
@@ -273,8 +273,8 @@ export default function MessageRequests() {
                             </div>
                             <h2 style={styles.emptyTitle}>No Message Requests</h2>
                             <p style={styles.emptyText}>
-                                When someone who isn't your friend sends you a message,
-                                it will appear here for you to review.
+                                When Someone Who Isn't Your Friend Sends You A Message,
+                                It Will Appear Here For You To Review.
                             </p>
                             <Link href="/hub/messenger" style={styles.inboxLink}>
                                 Go To Inbox

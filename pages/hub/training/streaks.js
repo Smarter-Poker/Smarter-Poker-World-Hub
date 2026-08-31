@@ -385,7 +385,7 @@ export default function StreaksPage() {
                     Your {streak.currentStreak}-Day Streak Is At Risk!
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                    Train today to keep it alive.
+                    Train Today To Keep It Alive.
                   </div>
                 </div>
                 <Link
@@ -426,7 +426,7 @@ export default function StreaksPage() {
             <div style={styles.streakNumber} role="status" aria-label={`${streak.currentStreak} day streak`}>{streak.currentStreak}</div>
             <div style={styles.streakLabel}>Day Streak</div>
             {streak.longestStreak > streak.currentStreak && (
-              <div style={styles.longestStreak}>Best: {streak.longestStreak} days</div>
+              <div style={styles.longestStreak}>Best: {streak.longestStreak} Days</div>
             )}
 
             {/* Diamond Multiplier Badge */}
@@ -569,7 +569,7 @@ export default function StreaksPage() {
                 />
               </div>
               <div style={styles.progressText}>
-                {streak.currentStreak}/{nextMilestone.days} days
+                {streak.currentStreak}/{nextMilestone.days} Days
               </div>
             </div>
           )}
@@ -667,7 +667,7 @@ export default function StreaksPage() {
                     </div>
                     <div style={styles.milestoneInfo}>
                       <div style={styles.milestoneName}>{baseData.name}</div>
-                      <div style={styles.milestoneDays}>{baseData.days} days</div>
+                      <div style={styles.milestoneDays}>{baseData.days} Days</div>
                     </div>
                     <div style={styles.milestoneReward}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>

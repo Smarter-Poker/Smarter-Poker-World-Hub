@@ -1908,7 +1908,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   <button type="button" className={isSaved ? 'is-active' : ''} onClick={handleSaveVenue}>
                     {isSaved ? 'Saved' : 'Save venue'}
                   </button>
-                  {!locationConflict && <button type="button" onClick={function () { openNativeMaps('directions'); }}>Get directions</button>}
+                  {!locationConflict && <button type="button" onClick={function () { openNativeMaps('directions'); }}>Get Directions</button>}
                 </>
               )}
             />
@@ -1919,8 +1919,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               <section className="venue-location-integrity" role="status" aria-label="Venue location under review">
                 <span className="venue-location-integrity__signal" aria-hidden="true" />
                 <div>
-                  <strong>Location signal held for review</strong>
-                  <p>This venue’s coordinates do not match its listed state. Map placement and directions are paused until the source record is verified.</p>
+                  <strong>Location Signal Held For Review</strong>
+                  <p>This Venue’s Coordinates Do Not Match Its Listed State. Map Placement And Directions Are Paused Until The Source Record Is Verified.</p>
                 </div>
               </section>
             )}
@@ -2428,7 +2428,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                               })}
                             </div>
                           ) : (
-                            <div className="game-schedule-no-games">No games scheduled</div>
+                            <div className="game-schedule-no-games">No Games Scheduled</div>
                           )}
                         </div>
                       );
@@ -2553,7 +2553,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       <line x1="8" y1="2" x2="8" y2="18" />
                       <line x1="16" y1="6" x2="16" y2="22" />
                     </svg>
-                    View on Map
+                    View On Map
                   </button>
                   {venue.address && (
                     <span className="map-address-text">
@@ -2635,7 +2635,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
-                      Check venue website for current schedule
+                      Check Venue Website For Current Schedule
                     </a>
                   )}
                 </div>
@@ -2740,7 +2740,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                             );
                           })}
                           {(wl.players || []).length > 15 && (
-                            <div className="waitlist-overflow">+{wl.players.length - 15} more</div>
+                            <div className="waitlist-overflow">+{wl.players.length - 15} More</div>
                           )}
                         </div>
                         <div className="waitlist-column-footer">
@@ -2761,7 +2761,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </svg>
                     Join The Waitlist
                   </a>
-                  <p className="waitlist-powered-by">Powered by Club Commander</p>
+                  <p className="waitlist-powered-by">Powered By Club Commander</p>
                 </div>
               </section>
             )}
@@ -2778,7 +2778,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </svg>
                   Live Games
                   {liveGames.length > 0 && (
-                    <span className="live-count-badge">{liveGames.length} active</span>
+                    <span className="live-count-badge">{liveGames.length} Active</span>
                   )}
                 </h2>
                 <button
@@ -2800,7 +2800,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         value={reportForm.game_type}
                         onChange={function (e) { setReportForm(Object.assign({}, reportForm, { game_type: e.target.value })); }}
                       >
-                        <option value="NL Holdem">NL Hold&apos;em</option>
+                        <option value="NL Holdem">NL Hold&apos;Em</option>
                         <option value="PLO">PLO</option>
                         <option value="PLO8">PLO8</option>
                         <option value="Mixed">Mixed</option>
@@ -2833,7 +2833,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Wait (mins)</label>
+                      <label className="form-label">Wait (Mins)</label>
                       <input
                         type="number"
                         className="form-input"
@@ -2885,7 +2885,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
                               </svg>
-                              {game.wait_time} mins
+                              {game.wait_time} Mins
                             </span>
                           )}
                         </div>
@@ -2893,7 +2893,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           <p className="live-game-notes">{game.notes}</p>
                         )}
                         {game.created_at && (
-                          <span className="live-game-time">reported {timeAgo(game.created_at)}</span>
+                          <span className="live-game-time">Reported {timeAgo(game.created_at)}</span>
                         )}
                       </div>
                     );
@@ -2905,7 +2905,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <circle cx="12" cy="12" r="10" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  <p>No Live Game Reports. Be The First To Report What&apos;s Running!</p>
+                  <p>No Live Game Reports. Be The First To Report What&apos;S Running!</p>
                 </div>
               )}
             </section>
@@ -2922,7 +2922,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </svg>
                   Check-Ins
                   {checkinCount > 0 && (
-                    <span className="checkin-count-text">{checkinCount} {checkinCount === 1 ? 'person' : 'people'} checked in today</span>
+                    <span className="checkin-count-text">{checkinCount} {checkinCount === 1 ? 'person' : 'people'} Checked In Today</span>
                   )}
                 </h2>
                 {!hasCheckedIn ? (
@@ -2976,7 +2976,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     )}
                   </div>
                   <div style={{ flex: 1, fontSize: 13, color: '#c8d6e5' }}>
-                    <strong style={{ color: '#00D4FF' }}>{whosHere.total}</strong> {whosHere.total === 1 ? 'person' : 'people'} here now
+                    <strong style={{ color: '#00D4FF' }}>{whosHere.total}</strong> {whosHere.total === 1 ? 'person' : 'people'} Here Now
                     {whosHere.friends.length > 0 && (
                       <span style={{ color: '#22c55e', fontWeight: 600 }}>
                         {' '}· {whosHere.friends.length} {whosHere.friends.length === 1 ? 'friend' : 'friends'}
@@ -2993,7 +2993,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    Checked in! Others can see you&apos;re here.
+                    Checked In! Others Can See You&apos;Re Here.
                   </div>
                   <button
                     onClick={function() { router.push('/hub/social-media?checkin_venue=' + encodeURIComponent(venue?.name || '') + '&checkin_id=' + id); }}
@@ -3003,7 +3003,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
                     }}
                   >
-                    Share to Feed
+                    Share To Feed
                   </button>
                 </div>
               )}
@@ -3024,7 +3024,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Message (optional)</label>
+                    <label className="form-label">Message (Optional)</label>
                     <input
                       type="text"
                       className="form-input"
@@ -3176,7 +3176,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <span style={{ fontSize: 32, marginBottom: 8 }}>🔒</span>
                     <h4 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16, fontWeight: 800 }}>VIP Feature</h4>
                     <p style={{ color: '#a0aec0', fontSize: 13, marginBottom: 16, textAlign: 'center', maxWidth: 220 }}>
-                      Upgrade to view peak hour predictions and avoid long wait lists.
+                      Upgrade To View Peak Hour Predictions And Avoid Long Wait Lists.
                     </p>
                     <button
                       onClick={() => guardAction(() => {})}
@@ -3226,7 +3226,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               {showPostForm && (
                 <form className="inline-form" onSubmit={handlePostActivity}>
                   <div className="form-group">
-                    <label className="form-label">What&apos;s Happening?</label>
+                    <label className="form-label">What&apos;S Happening?</label>
                     <textarea
                       className="form-textarea"
                       rows="3"
@@ -3339,7 +3339,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <path d="M10 22V2h4v20" />
                     <path d="M8 9h8" />
                   </svg>
-                  Tournament Series at This Venue
+                  Tournament Series At This Venue
                 </h2>
                 <div className="related-series-list">
                   {relatedSeries.map(function (s) {
@@ -3352,7 +3352,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                             <span className="related-series-dates">{formatDateRange(s.start_date, s.end_date)}</span>
                           </div>
                           <div className="related-series-meta">
-                            {s.total_events && <span className="related-series-events">{s.total_events} events</span>}
+                            {s.total_events && <span className="related-series-events">{s.total_events} Events</span>}
                             {s.main_event_buyin && <span className="related-series-buyin">ME: {formatMoney(s.main_event_buyin)}</span>}
                           </div>
                           <svg className="related-series-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3438,7 +3438,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                   <div className="claim-pending-text">
                     <span className="claim-pending-title">Claim Pending Review</span>
-                    <span className="claim-pending-desc">Your Claim For This Page Is Being Reviewed. We&apos;ll Be In Touch Soon.</span>
+                    <span className="claim-pending-desc">Your Claim For This Page Is Being Reviewed. We&apos;Ll Be In Touch Soon.</span>
                   </div>
                 </div>
               ) : (
@@ -3447,7 +3447,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     <div className="claim-cta-content">
                       <h3 className="claim-cta-title">Own Or Manage This Venue?</h3>
                       <p className="claim-cta-desc">
-                        Claim this page to update info, respond to reviews, and post updates.
+                        Claim This Page To Update Info, Respond To Reviews, And Post Updates.
                       </p>
                       {!showClaimForm && (
                         <button
@@ -3493,7 +3493,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       </div>
                       <div className="form-row">
                         <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Phone (optional)</label>
+                          <label className="form-label">Phone (Optional)</label>
                           <input
                             type="tel"
                             className="form-input"

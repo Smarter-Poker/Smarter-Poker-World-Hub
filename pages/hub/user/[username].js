@@ -557,7 +557,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                   </div>
                   {friend.mutualCount > 0 && (
                     <div style={{ fontSize: 13, color: C.textSec }}>
-                      {friend.mutualCount} mutual friend{friend.mutualCount !== 1 ? 's' : ''}
+                      {friend.mutualCount} Mutual friend{friend.mutualCount !== 1 ? 's' : ''}
                     </div>
                   )}
                 </div>
@@ -897,7 +897,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
             fontFamily: 'inherit',
           }}
         >
-          View Full Resume on HendonMob →
+          View Full Resume On HendonMob →
         </button>
       )}
     </div>
@@ -1573,7 +1573,7 @@ function PostCard({
                   : (Object.values(typists || {}).length - 1) * 12,
             }}
           >
-            <span>{Object.values(typists || {})[0].name.split(' ')[0]} is typing</span>
+            <span>{Object.values(typists || {})[0].name.split(' ')[0]} Is Typing</span>
             <div style={{ display: 'flex' }}>
               <TypingDot delay="-0.32s" />
               <TypingDot delay="-0.16s" />
@@ -4252,7 +4252,7 @@ export default function UserProfilePage() {
                       Your Share Streak Boost Lapsed
                     </div>
                     <div style={{ fontSize: 12, color: '#92400e' }}>
-                      Share a post today to re-activate your diamond multiplier!
+                      Share A Post Today To Re-Activate Your Diamond Multiplier!
                     </div>
                   </div>
                 </div>
@@ -4589,7 +4589,7 @@ export default function UserProfilePage() {
                     const mutualTotal = friends.filter((f) => f.mutualCount > 0).length;
                     return mutualTotal > 0 ? (
                       <span style={{ fontSize: 12, color: C.blue, fontWeight: 600 }}>
-                        {mutualTotal} mutual friend{mutualTotal !== 1 ? 's' : ''}
+                        {mutualTotal} Mutual friend{mutualTotal !== 1 ? 's' : ''}
                       </span>
                     ) : null;
                   })()}
@@ -5510,7 +5510,7 @@ export default function UserProfilePage() {
                       <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>
                         Friends
                       </h3>
-                      <div style={{ fontSize: 14, color: C.textSec }}>{stats.friends} friends</div>
+                      <div style={{ fontSize: 14, color: C.textSec }}>{stats.friends} Friends</div>
                     </div>
                     <button
                       onClick={() => setShowFriendsModal(true)}
@@ -5617,7 +5617,7 @@ export default function UserProfilePage() {
                             fontSize: 15,
                           }}
                         >
-                          What's on your mind,{' '}
+                          What's On Your Mind,{' '}
                           {profile.full_name?.split(' ')[0] || profile.username}?
                         </div>
                       </div>
@@ -6096,7 +6096,7 @@ export default function UserProfilePage() {
                       </Link>
                       <span style={{ color: C.textSec }}>
                         {' '}
-                        ({checkinStats.favoriteVenue.count} visits)
+                        ({checkinStats.favoriteVenue.count} Visits)
                       </span>
                     </div>
                   )}
@@ -6143,8 +6143,8 @@ export default function UserProfilePage() {
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                         <circle cx="12" cy="10" r="3" />
                       </svg>
-                      {pokerCheckins.length} check-in{pokerCheckins.length !== 1 ? 's' : ''} across{' '}
-                      {checkinStats?.uniqueVenues || '-'} venues
+                      {pokerCheckins.length} Check-in{pokerCheckins.length !== 1 ? 's' : ''} across{' '}
+                      {checkinStats?.uniqueVenues || '-'} Venues
                     </div>
                   </div>
                 </div>
@@ -6204,7 +6204,7 @@ export default function UserProfilePage() {
                     <div
                       style={{ fontSize: 11, color: C.textSec, marginTop: 8, textAlign: 'center' }}
                     >
-                      Most active: <b style={{ color: C.text }}>{checkinHeatmap.peakDay}</b> at{' '}
+                      Most Active: <b style={{ color: C.text }}>{checkinHeatmap.peakDay}</b> at{' '}
                       <b style={{ color: C.text }}>
                         {checkinHeatmap.peakHour === 0
                           ? '12a'
@@ -6526,7 +6526,7 @@ export default function UserProfilePage() {
                         textDecoration: 'none',
                       }}
                     >
-                      Create a Post
+                      Create A Post
                     </Link>
                   )}
                 </div>
@@ -6656,7 +6656,7 @@ export default function UserProfilePage() {
                         textDecoration: 'none',
                       }}
                     >
-                      Create a Post
+                      Create A Post
                     </Link>
                   )}
                 </div>
@@ -6816,7 +6816,7 @@ export default function UserProfilePage() {
                         textDecoration: 'none',
                       }}
                     >
-                      Create a Reel
+                      Create A Reel
                     </Link>
                   )}
                 </div>
@@ -7060,7 +7060,7 @@ export default function UserProfilePage() {
               Unfriend {profile?.username || profile?.full_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              Are you sure you want to remove this person from your friends list?
+              Are You Sure You Want To Remove This Person From Your Friends List?
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -7128,7 +7128,7 @@ export default function UserProfilePage() {
               Block {profile?.username || profile?.full_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              They won't be able to see your posts or message you.
+              They Won't Be Able To See Your Posts Or Message You.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -7233,7 +7233,7 @@ export default function UserProfilePage() {
               Report {profile?.username || profile?.full_name}
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
-              Why are you reporting this user?
+              Why Are You Reporting This User?
             </div>
             <textarea
               value={reportReason}

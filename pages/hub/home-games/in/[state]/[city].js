@@ -295,25 +295,25 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
 
           <header className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Poker Home Games in <span className="text-[#C4B5FD]">{cityTitle}, {stateCode}</span>
+              Poker Home Games In <span className="text-[#C4B5FD]">{cityTitle}, {stateCode}</span>
             </h1>
             <p className="text-base text-[#94A3B8] mt-3 max-w-2xl">
               <span className="text-white font-semibold">{games.length}</span> active{' '}
-              {games.length === 1 ? 'game' : 'games'} in {cityTitle}. Click any card for schedule, stakes, and
-              how to request a seat.
+              {games.length === 1 ? 'game' : 'games'} In {cityTitle}. Click Any Card For Schedule, Stakes, And
+              How To Request A Seat.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 href={`https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate`}
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium text-sm transition-colors"
               >
-                Host in {cityTitle} →
+                Host In {cityTitle} →
               </Link>
               <Link
                 href={`/hub/home-games/in/${stateSlug}`}
                 className="inline-flex items-center px-5 py-2.5 rounded-lg border border-[#334155] hover:border-[#8B5CF6] text-white font-medium text-sm transition-colors"
               >
-                All {stateName} games
+                All {stateName} Games
               </Link>
             </div>
           </header>

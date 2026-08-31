@@ -225,7 +225,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                     <div style={{ fontSize: 80, marginBottom: 20 }}></div>
                     <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 36, color: '#ff4444', marginBottom: 16 }}>PRESSURE COOKER</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
-                        Answer 10 hands before time runs out!<br />Correct = +3 seconds<br />✗ Wrong = -5 seconds<br />
+                        Answer 10 Hands Before Time Runs Out!<br />Correct = +3 Seconds<br />✗ Wrong = -5 Seconds<br />
                         <span style={{ color: '#ff4444' }}>Clock Is Ticking...</span>
                     </p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #ff4444, #ff0066)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
@@ -261,7 +261,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             <div style={{ fontSize: 36, fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}</div>
                         </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{handsCompleted}/{handsRequired} hands</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{handsCompleted}/{handsRequired} Hands</div>
                     </CircularTimer>
                     {gameState === 'revealed' && (
                         <div aria-live="assertive" style={{ marginBottom: 16, border: `2px solid ${lastAnswerCorrect ? '#00ff88' : '#ff5c74'}`, background: lastAnswerCorrect ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,92,0.12)', padding: 14, borderRadius: 0 }}>
@@ -356,7 +356,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
                                         </div>
                                     ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus on these spots in your next session</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
                                 </div>
                             );
                         })()}
@@ -485,7 +485,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
                                         </div>
                                     ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus on these spots in your next session</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
                                 </div>
                             );
                         })()}

@@ -46,21 +46,21 @@ export default function OfficialRules() {
 
                             <h2 style={styles.heading}>1. Eligibility</h2>
                             <p style={styles.paragraph}>
-                                The Smarter.Poker promotional rewards program ("Program") is open to legal residents
-                                of the 50 United States who are at least 18 years of age at the time of entry.
+                                The Smarter.Poker Promotional Rewards Program ("Program") Is Open To Legal Residents
+                                Of The 50 United States Who Are At Least 18 Years Of Age At The Time Of Entry.
                             </p>
                             <p style={styles.paragraph}>
-                                <strong>Geographic Restrictions For Prize Redemption:</strong> Real-world prize
-                                redemptions are <strong>VOID in Washington (WA), Idaho (ID), Michigan (MI),
-                                    Nevada (NV), and California (CA)</strong>. Residents of these states may
-                                participate in training and social features but are not eligible to redeem
-                                Diamonds for cash-equivalent prizes.
+                                <strong>Geographic Restrictions For Prize Redemption:</strong> Real-World Prize
+                                Redemptions Are <strong>VOID In Washington (WA), Idaho (ID), Michigan (MI),
+                                    Nevada (NV), And California (CA)</strong>. Residents Of These States May
+                                Participate In Training And Social Features But Are Not Eligible To Redeem
+                                Diamonds For Cash-Equivalent Prizes.
                             </p>
 
                             <h2 style={styles.heading}>2. Platform Description</h2>
                             <p style={styles.paragraph}>
-                                Smarter.Poker is a <strong>Social Training Platform</strong> available nationwide.
-                                Users can access:
+                                Smarter.Poker Is A <strong>Social Training Platform</strong> Available Nationwide.
+                                Users Can Access:
                             </p>
                             <ul style={styles.list}>
                                 <li><strong>PokerIQ Training:</strong> GTO Strategy Lessons And Interactive Drills</li>
@@ -76,10 +76,10 @@ export default function OfficialRules() {
 
                             <h3 style={styles.subheading}>Free Entry Methods (AMOE)</h3>
                             <p style={styles.paragraph}>
-                                You may earn Entry Diamonds without making any purchase:
+                                You May Earn Entry Diamonds Without Making Any Purchase:
                             </p>
                             <ul style={styles.list}>
-                                <li><strong>Daily Login Streak:</strong> Log In Daily To Earn Free Entry Diamonds (up To 100/day)</li>
+                                <li><strong>Daily Login Streak:</strong> Log In Daily To Earn Free Entry Diamonds (Up To 100/Day)</li>
                                 <li><strong>Training Completion:</strong> Complete GTO Training Modules To Earn Diamonds</li>
                                 <li><strong>Social Tasks:</strong> Post, Share, And Engage With The Community</li>
                                 <li><strong>Referral Program:</strong> Invite Friends To Earn Bonus Diamonds</li>
@@ -89,17 +89,17 @@ export default function OfficialRules() {
 
                             <h3 style={styles.subheading}>Premium Features (Optional)</h3>
                             <p style={styles.paragraph}>
-                                Optional premium purchases enhance your training experience but <strong>DO NOT</strong>
-                                improve your chances of winning prizes. Premium features include cosmetic upgrades,
-                                advanced analytics, and additional training content.
+                                Optional Premium Purchases Enhance Your Training Experience But <strong>DO NOT</strong>
+                                Improve Your Chances Of Winning Prizes. Premium Features Include Cosmetic Upgrades,
+                                Advanced Analytics, And Additional Training Content.
                             </p>
 
                             {/* MAIL-IN AMOE SECTION */}
                             <div style={styles.mailInBox}>
                                 <h3 style={styles.mailInTitle}>📬 Mail-In Entry (AMOE)</h3>
                                 <p style={styles.paragraph}>
-                                    To receive free Entry Diamonds without using the platform, mail a handwritten
-                                    3×5 index card to the address below:
+                                    To Receive Free Entry Diamonds Without Using The Platform, Mail A Handwritten
+                                    3×5 Index Card To The Address Below:
                                 </p>
                                 <div style={styles.addressBlock}>
                                     <strong>Smarter.Poker AMOE Entry</strong><br />
@@ -113,20 +113,20 @@ export default function OfficialRules() {
                                 <ul style={styles.list}>
                                     <li>Must Be A <strong>Handwritten 3×5 Index Card</strong></li>
                                     <li>Include: Your <strong>Full Legal Name</strong>, <strong>Email Address</strong>, And <strong>State Of Residence</strong></li>
-                                    <li>Place The Card In A <strong>Hand-addressed #10 Envelope</strong> With A <strong>First-Class Stamp</strong></li>
+                                    <li>Place The Card In A <strong>Hand-Addressed #10 Envelope</strong> With A <strong>First-Class Stamp</strong></li>
                                     <li>No Photocopies, Mechanical Reproductions, Or Printed Labels Allowed</li>
                                 </ul>
                                 <p style={styles.paragraph}>
-                                    <strong>Entry Limit:</strong> <strong>ONE (1)</strong> mail-in request per person per week.
+                                    <strong>Entry Limit:</strong> <strong>ONE (1)</strong> Mail-In Request Per Person Per Week.
                                 </p>
                                 <p style={styles.paragraph}>
-                                    <strong>Reward:</strong> Each Valid Mail-in Entry Receives <strong>500 Entry Diamonds</strong> -
-                                    equivalent to the maximum a player can earn in a day through free platform activity.
+                                    <strong>Reward:</strong> Each Valid Mail-In Entry Receives <strong>500 Entry Diamonds</strong> -
+                                    Equivalent To The Maximum A Player Can Earn In A Day Through Free Platform Activity.
                                 </p>
                                 <p style={styles.paragraph}>
-                                    <em>Mail-in entries have the same value as Diamonds earned through platform activity.
-                                        This alternative method of entry ensures compliance with sweepstakes regulations
-                                        in all 50 states.</em>
+                                    <em>Mail-In Entries Have The Same Value As Diamonds Earned Through Platform Activity.
+                                        This Alternative Method Of Entry Ensures Compliance With Sweepstakes Regulations
+                                        In All 50 States.</em>
                                 </p>
                             </div>
 
@@ -196,48 +196,48 @@ export default function OfficialRules() {
                                 </tbody>
                             </table>
                             <p style={styles.paragraph}>
-                                <em>If you reside in a restricted state, your Diamonds remain active for in-world
-                                    upgrades, leaderboard standing, and platform enhancements. Prize redemptions are
-                                    not available in your region.</em>
+                                <em>If You Reside In A Restricted State, Your Diamonds Remain Active For In-World
+                                    Upgrades, Leaderboard Standing, And Platform Enhancements. Prize Redemptions Are
+                                    Not Available In Your Region.</em>
                             </p>
 
                             <h2 style={styles.heading}>5. Prizes & Redemption</h2>
                             <p style={styles.paragraph}>
-                                Eligible users may redeem Diamonds in the Diamond Store for:
+                                Eligible Users May Redeem Diamonds In The Diamond Store For:
                             </p>
                             <ul style={styles.list}>
                                 <li><strong>Merchandise:</strong> Official Smarter.Poker Branded Apparel And Accessories</li>
-                                <li><strong>Gift Cards:</strong> Digital Gift Cards For Popular Retailers (up To $100 Value)</li>
+                                <li><strong>Gift Cards:</strong> Digital Gift Cards For Popular Retailers (Up To $100 Value)</li>
                                 <li><strong>Platform Upgrades:</strong> Premium Cosmetics And Feature Unlocks</li>
                                 <li><strong>Tournament Buy-Ins:</strong> Entry Into Partner Live Poker Events</li>
                             </ul>
                             <p style={styles.paragraph}>
-                                Maximum prize value per redemption: <strong>$1,100</strong>. Annual prize limit per
-                                user: <strong>$5,000</strong>. Winners may be required to complete a W-9 form for
-                                tax purposes.
+                                Maximum Prize Value Per Redemption: <strong>$1,100</strong>. Annual Prize Limit Per
+                                User: <strong>$5,000</strong>. Winners May Be Required To Complete A W-9 Form For
+                                Tax Purposes.
                             </p>
 
                             <h2 style={styles.heading}>6. Odds Of Winning</h2>
                             <p style={styles.paragraph}>
-                                Diamond accumulation and prize eligibility are based solely on skill, activity,
-                                and participation. The odds of accumulating sufficient Diamonds for prize
-                                redemption depend on individual user engagement and performance on the Platform.
+                                Diamond Accumulation And Prize Eligibility Are Based Solely On Skill, Activity,
+                                And Participation. The Odds Of Accumulating Sufficient Diamonds For Prize
+                                Redemption Depend On Individual User Engagement And Performance On The Platform.
                             </p>
 
                             <h2 style={styles.heading}>7. Legal Compliance</h2>
                             <p style={styles.paragraph}>
-                                This Program structure ensures compliance with all applicable state and federal laws:
+                                This Program Structure Ensures Compliance With All Applicable State And Federal Laws:
                             </p>
                             <ul style={styles.list}>
-                                <li><strong>Entertainment Shield:</strong> Training and social features operate as a
-                                    Social Casino platform, legal entertainment in all 50 states</li>
-                                <li><strong>Redemption Guard:</strong> Prize redemptions physically locked for
-                                    residents of states where sweepstakes/promotional rewards are restricted</li>
-                                <li><strong>Skill-Based Classification:</strong> Smarter.Poker is a skill-based
-                                    training platform with an optional promotional sweepstakes layer for eligible users</li>
-                                <li><strong>2026 Compliance:</strong> Structure addresses California AB 831 and
-                                    similar state regulations by classification as "Skill-Based Training Platform
-                                    with optional Promotional Sweepstakes"</li>
+                                <li><strong>Entertainment Shield:</strong> Training And Social Features Operate As A
+                                    Social Casino Platform, Legal Entertainment In All 50 States</li>
+                                <li><strong>Redemption Guard:</strong> Prize Redemptions Physically Locked For
+                                    Residents Of States Where Sweepstakes/Promotional Rewards Are Restricted</li>
+                                <li><strong>Skill-Based Classification:</strong> Smarter.Poker Is A Skill-Based
+                                    Training Platform With An Optional Promotional Sweepstakes Layer For Eligible Users</li>
+                                <li><strong>2026 Compliance:</strong> Structure Addresses California AB 831 And
+                                    Similar State Regulations By Classification As "Skill-Based Training Platform
+                                    With Optional Promotional Sweepstakes"</li>
                             </ul>
 
                             <h2 style={styles.heading}>8. General Conditions</h2>
@@ -252,25 +252,25 @@ export default function OfficialRules() {
                             <h2 style={styles.heading}>9. Sponsor Contact</h2>
                             <p style={styles.paragraph}>
                                 <strong>Smarter.Poker</strong><br />
-                                Email: <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a><br />
-                                Website: <a href="https://smarter.poker" style={styles.link}>https://smarter.poker</a>
+                                Email: <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a><br />
+                                Website: <a href="https://smarter.poker" style={styles.link}>Https://Smarter.Poker</a>
                             </p>
 
                             <h2 style={styles.heading}>10. Governing Law</h2>
                             <p style={styles.paragraph}>
-                                This Program is governed by the laws of the State of Illinois, without regard to
-                                conflict of law principles. Any disputes arising from this Program shall be
-                                resolved in the state or federal courts located in Cook County, Illinois.
+                                This Program Is Governed By The Laws Of The State Of Illinois, Without Regard To
+                                Conflict Of Law Principles. Any Disputes Arising From This Program Shall Be
+                                Resolved In The State Or Federal Courts Located In Cook County, Illinois.
                             </p>
                         </div>
 
                         {/* Footer */}
                         <div style={styles.footer}>
-                            <p style={styles.lastUpdated}>Last Updated: January 12, 2026 (v2.0)</p>
+                            <p style={styles.lastUpdated}>Last Updated: January 12, 2026 (V2.0)</p>
                             <p style={styles.contact}>
-                                Questions? Contact us at{' '}
+                                Questions? Contact Us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>
-                                    support@smarter.poker
+                                    Support@Smarter.Poker
                                 </a>
                             </p>
                         </div>

@@ -142,7 +142,7 @@ const WinnersTab = ({ winners }) => {
   const [expandedId, setExpandedId] = useState(null);
 
   if (!winners || winners.length === 0) {
-    return <div style={{ textAlign: 'center', color: METAL.textMuted, padding: '40px' }}>No jackpots hit yet.</div>;
+    return <div style={{ textAlign: 'center', color: METAL.textMuted, padding: '40px' }}>No Jackpots Hit Yet.</div>;
   }
 
   return (
@@ -373,7 +373,7 @@ export const BBJModal = ({ clubId, onClose }) => {
         </div>
         {data.hourlyRate > 0 && (
           <div style={{ color: METAL.success, fontSize: '12px', marginTop: '8px', fontWeight: 700 }}>
-            +{formatMoney(data.hourlyRate)} / hr
+            +{formatMoney(data.hourlyRate)} / Hr
           </div>
         )}
       </div>

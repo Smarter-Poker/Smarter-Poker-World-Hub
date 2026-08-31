@@ -33,7 +33,7 @@ export default function NotFound() {
         </h1>
         <div style={{ display: 'inline-block' }}>
           <h2 style={{ fontSize: 14, fontWeight: 400, lineHeight: '49px', margin: 0 }}>
-            This page could not be found.
+            This Page Could Not Be Found.
           </h2>
         </div>
       </div>

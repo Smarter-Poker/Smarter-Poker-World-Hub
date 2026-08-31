@@ -163,7 +163,7 @@ export default function PlayerCheckInPage() {
               <CheckCircle className="w-10 h-10 text-[#10B981]" />
             </div>
             <h1 className="text-3xl font-extrabold tracking-wider mb-2" style={{ textShadow: '0 0 15px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.2)' }}>You're Checked In!</h1>
-            <p className="text-[#64748B] mb-6">Welcome to {venue.name}</p>
+            <p className="text-[#64748B] mb-6">Welcome To {venue.name}</p>
 
             <div className="cmd-panel mb-6" style={{ borderColor: '#10B981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(16, 185, 129, 0.15), inset 0 -2px 0 rgba(0,0,0,0.3)' }}>
               <p className="text-sm text-[#64748B] mb-1">Your Session Has Started</p>
@@ -174,7 +174,7 @@ export default function PlayerCheckInPage() {
               onClick={handleJoinWaitlist}
               className="cmd-btn cmd-btn-success w-full max-w-xs mx-auto"
             >
-              Join a Game Waitlist
+              Join A Game Waitlist
             </button>
           </div>
         </div>
@@ -219,7 +219,7 @@ export default function PlayerCheckInPage() {
           <div className="cmd-panel text-center">
             <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-2">Ready To Play?</h2>
             <p className="text-sm text-[#64748B] mb-4">
-              Check in to start tracking your session and earn rewards
+              Check In To Start Tracking Your Session And Earn Rewards
             </p>
             <button
               onClick={handleCheckIn}

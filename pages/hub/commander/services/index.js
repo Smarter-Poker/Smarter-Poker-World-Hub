@@ -219,7 +219,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           {type === 'food' && (
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                What would you like?
+                What Would You Like?
               </label>
               <textarea
                 value={details}
@@ -234,7 +234,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           {type === 'table_change' && (
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Preference (optional)
+                Preference (Optional)
               </label>
               <textarea
                 value={details}
@@ -249,7 +249,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           {type === 'floor' && (
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                What do you need help with?
+                What Do You Need Help With?
               </label>
               <textarea
                 value={details}
@@ -265,7 +265,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
             <div className="cmd-inset rounded-xl p-4">
               <p className="text-[#10B981] font-medium">Ready To Cash Out?</p>
               <p className="text-sm text-[#64748B] mt-1">
-                A chip runner will come to collect your chips and bring your cash.
+                A Chip Runner Will Come To Collect Your Chips And Bring Your Cash.
               </p>
             </div>
           )}
@@ -402,13 +402,13 @@ export default function ServicesPage() {
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Not Currently Seated</h1>
             <p className="text-[#64748B] mb-6">
-              You need to be seated at a table to request services.
+              You Need To Be Seated At A Table To Request Services.
             </p>
             <button
               onClick={() => router.push('/hub/commander/venues')}
               className="cmd-btn cmd-btn-primary"
             >
-              Find a Game
+              Find A Game
             </button>
           </div>
         </div>
@@ -478,7 +478,7 @@ export default function ServicesPage() {
           {/* Info */}
           <div className="cmd-inset rounded-xl p-4">
             <p className="text-sm text-[#64748B]">
-              Your requests will be sent to the poker room staff. Average response time is 3-5 minutes.
+              Your Requests Will Be Sent To The Poker Room Staff. Average Response Time Is 3-5 Minutes.
             </p>
           </div>
         </main>

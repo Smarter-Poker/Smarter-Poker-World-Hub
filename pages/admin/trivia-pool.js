@@ -208,7 +208,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                     </div>
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 24 }}>
-                    Phase 49 target: 1,500 per category · 60-day floor: 1,200 · 20/50/30 easy/medium/hard mix
+                    Phase 49 Target: 1,500 Per Category · 60-Day Floor: 1,200 · 20/50/30 Easy/Medium/Hard Mix
                 </div>
 
                 {/* Top summary cards */}
@@ -254,7 +254,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                 {/* Phase 52: fact-check audit panel */}
                 {audit && (
                     <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B only)</h3>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
                             <Card title="Grok questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
                             <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
@@ -264,19 +264,19 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         </div>
                         {audit.recentFlagged.length > 0 && (
                             <>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - needs human review</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - Needs Human Review</div>
                                 <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
                                     {audit.recentFlagged.map((f, i) => (
                                         <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
                                             <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
-                                                <span style={{ color: '#ef4444', fontWeight: 600 }}>conf {Math.round(f.confidence * 100)}%</span>
+                                                <span style={{ color: '#ef4444', fontWeight: 600 }}>Conf {Math.round(f.confidence * 100)}%</span>
                                                 <span style={{ color: 'rgba(255,255,255,0.4)' }}>{new Date(f.audited_at).toLocaleString()}</span>
                                                 <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{f.question_id.slice(0, 8)}</code>
                                             </div>
                                             <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{f.reasoning}</div>
                                             {f.corrected_answer_text && (
                                                 <div style={{ marginTop: 4, color: '#22c55e', fontSize: 11 }}>
-                                                    suggested correct answer: <strong>{f.corrected_answer_text}</strong>
+                                                    Suggested Correct Answer: <strong>{f.corrected_answer_text}</strong>
                                                 </div>
                                             )}
                                         </div>
@@ -304,7 +304,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         {/* Circuit breaker / category health */}
                         {phase54.categoryHealth.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - per-category audit pass rate</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - Per-Category Audit Pass Rate</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
                                     {phase54.categoryHealth.map(h => (
                                         <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
@@ -313,7 +313,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                                                 {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
                                                 {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 10, color: '#ef4444' }}>PAUSED</span>}
                                             </div>
-                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>n={h.audited_count}</div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>N={h.audited_count}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -342,13 +342,13 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         {/* Recent regression failures */}
                         {phase54.recentRegressionFailures.length > 0 && (
                             <div>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - last 48h</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - Last 48h</div>
                                 <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
                                     {phase54.recentRegressionFailures.map((f, i) => (
                                         <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
                                             <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
                                             {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.5)' }}>{f.category}</span>}
-                                            <span style={{ marginLeft: 8 }}>metric {f.metric} (threshold {f.threshold})</span>
+                                            <span style={{ marginLeft: 8 }}>Metric {f.metric} (Threshold {f.threshold})</span>
                                             <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{new Date(f.ran_at).toLocaleString()}</span>
                                         </div>
                                     ))}
@@ -360,13 +360,13 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
 
                 {/* Operational hints */}
                 <div style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12, padding: 16, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 6 }}>How the refill works</div>
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>How The Refill Works</div>
                     <div style={{ lineHeight: 1.6 }}>
-                        Every 4 hours, the openclaw dispatcher fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>/cron/generate-trivia-questions</code> on
-                        the workers VM. The handler picks the most-undertarget bucket, runs Track A (deterministic, free) for strategy
-                        categories or Track B (Grok-3-mini, ~$0.002 per batch) for fact categories, and inserts directly into
-                        <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>trivia_questions</code>.
-                        At ~30 questions per tick × 6 ticks/day, the pool fills in ~5-6 weeks at well under $20 total Grok spend.
+                        Every 4 Hours, The Openclaw Dispatcher Fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>/Cron/Generate-Trivia-Questions</code> On
+                        The Workers VM. The Handler Picks The Most-Undertarget Bucket, Runs Track A (Deterministic, Free) For Strategy
+                        Categories Or Track B (Grok-3-Mini, ~$0.002 Per Batch) For Fact Categories, And Inserts Directly Into
+                        <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>Trivia_Questions</code>.
+                        At ~30 Questions Per Tick × 6 Ticks/Day, The Pool Fills In ~5-6 Weeks At Well Under $20 Total Grok Spend.
                     </div>
                 </div>
             </div>

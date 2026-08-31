@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
                     {phase === 'checking' && (
                         <>
                             <h1 style={styles.title}>Verifying…</h1>
-                            <p style={styles.subtitle}>Checking your reset link.</p>
+                            <p style={styles.subtitle}>Checking Your Reset Link.</p>
                         </>
                     )}
 
@@ -114,22 +114,22 @@ export default function ResetPasswordPage() {
                         <>
                             <h1 style={{ ...styles.title, color: '#ff6b6b' }}>Link Expired</h1>
                             <p style={styles.subtitle}>
-                                Your password-reset link has expired or was already used.
-                                Request a new one to continue.
+                                Your Password-Reset Link Has Expired Or Was Already Used.
+                                Request A New One To Continue.
                             </p>
                             <button
                                 type="button"
                                 onClick={() => router.replace('/auth/forgot-password')}
                                 style={styles.button}
                             >
-                                Request a new reset link
+                                Request A New Reset Link
                             </button>
                             <button
                                 type="button"
                                 onClick={() => router.push('/auth/login')}
                                 style={styles.linkButton}
                             >
-                                ← Back to sign in
+                                ← Back To Sign In
                             </button>
                         </>
                     )}
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
                         <>
                             <h1 style={styles.title}>Set New Password</h1>
                             <p style={styles.subtitle}>
-                                Pick a strong password you don&apos;t use anywhere else.
+                                Pick A Strong Password You Don&apos;T Use Anywhere Else.
                             </p>
 
                             <form onSubmit={handleSubmit} style={styles.form}>
@@ -172,7 +172,7 @@ export default function ResetPasswordPage() {
                                         checked={showPassword}
                                         onChange={(e) => setShowPassword(e.target.checked)}
                                     />
-                                    <span style={{ marginLeft: 8 }}>Show passwords</span>
+                                    <span style={{ marginLeft: 8 }}>Show Passwords</span>
                                 </label>
 
                                 {error && <div style={styles.error}>{error}</div>}
@@ -187,7 +187,7 @@ export default function ResetPasswordPage() {
                     {phase === 'success' && (
                         <>
                             <h1 style={{ ...styles.title, color: '#10d97e' }}>Password Updated</h1>
-                            <p style={styles.subtitle}>Redirecting you to the hub…</p>
+                            <p style={styles.subtitle}>Redirecting You To The Hub…</p>
                         </>
                     )}
                 </div>

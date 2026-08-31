@@ -284,7 +284,7 @@ export default async function handler(req) {
                         color: 'rgba(255,255,255,0.2)',
                         fontWeight: 600,
                     }}>
-                        smarter.poker
+                        Smarter.Poker
                     </div>
                 </div>
             ),

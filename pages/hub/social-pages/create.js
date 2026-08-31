@@ -238,24 +238,24 @@ export default function CreateSocialPage() {
                                     Club Commander Required
                                 </h2>
                                 <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 20px', lineHeight: 1.5 }}>
-                                    Creating Social Pages is available to Club Commander account holders.
-                                    Set up your club first to unlock this feature.
+                                    Creating Social Pages Is Available To Club Commander Account Holders.
+                                    Set Up Your Club First To Unlock This Feature.
                                 </p>
                                 <button onClick={() => router.push('/hub/commander')} style={{
                                     padding: '10px 24px', background: C.blue, border: 'none',
                                     borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600,
                                     cursor: 'pointer', fontFamily: 'inherit',
                                 }}>
-                                    Go to Club Commander
+                                    Go To Club Commander
                                 </button>
                             </div>
                         ) : (
                         <>
                         <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 4px' }}>
-                            Create a Page
+                            Create A Page
                         </h1>
                         <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 8px' }}>
-                            Step {step} of 2 - {step === 1 ? 'Choose type' : 'Page details'}
+                            Step {step} Of 2 - {step === 1 ? 'Choose type' : 'Page details'}
                         </p>
                         {/* Visual Progress Bar */}
                         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
@@ -269,7 +269,7 @@ export default function CreateSocialPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>
                                     <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Quick Templates</span>
-                                    <span style={{ fontSize: 11, color: C.textSec, marginLeft: 'auto' }}>Pre-fill your page</span>
+                                    <span style={{ fontSize: 11, color: C.textSec, marginLeft: 'auto' }}>Pre-Fill Your Page</span>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                     {[
@@ -453,7 +453,7 @@ export default function CreateSocialPage() {
                                         placeholder="Enter Page Name" style={{ ...inputStyle, borderColor: error && !form.name.trim() ? C.red : undefined }} maxLength={100}
                                         aria-label="Page name" />
                                     {error && !form.name.trim() && (
-                                        <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Page name is required</p>
+                                        <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Page Name Is Required</p>
                                     )}
                                 </div>
 
@@ -501,7 +501,7 @@ export default function CreateSocialPage() {
                                             placeholder="contact@example.com" aria-label="Contact email"
                                             style={{ ...inputStyle, borderColor: form.contact_email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.contact_email) ? C.red : undefined }} />
                                         {form.contact_email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.contact_email) && (
-                                            <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Invalid email format</p>
+                                            <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Invalid Email Format</p>
                                         )}
                                     </div>
                                     <div>
@@ -515,7 +515,7 @@ export default function CreateSocialPage() {
                                 <div>
                                     <label style={labelStyle}>Custom URL (Optional)</label>
                                     <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 6px' }}>
-                                        Leave blank for an auto-generated URL
+                                        Leave Blank For An Auto-Generated URL
                                     </p>
                                     <div style={{
                                         display: 'flex', alignItems: 'center', gap: 0,
@@ -528,7 +528,7 @@ export default function CreateSocialPage() {
                                             whiteSpace: 'nowrap', background: '#E4E6EB', borderRight: `1px solid ${C.border}`,
                                             fontWeight: 500,
                                         }}>
-                                            smarter.poker/.../
+                                            Smarter.Poker/.../
                                         </span>
                                         <input
                                             type="text"
@@ -598,12 +598,12 @@ export default function CreateSocialPage() {
                                     )}
                                     {slugStatus === 'available' && (
                                         <p style={{ fontSize: 11, marginTop: 4, marginBottom: 0, color: '#42B72A', fontWeight: 500 }}>
-                                            Available: smarter.poker/hub/social-pages/{form.slug}
+                                            Available: Smarter.Poker/Hub/Social-Pages/{form.slug}
                                         </p>
                                     )}
                                     {slugSuggestions.length > 0 && slugStatus === 'taken' && (
                                         <div style={{ marginTop: 6 }}>
-                                            <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try these instead:</p>
+                                            <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try These Instead:</p>
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                                 {slugSuggestions.map(s => (
                                                     <button key={s} onClick={() => {
@@ -674,7 +674,7 @@ export default function CreateSocialPage() {
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
                                         Social Links
                                     </h3>
-                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Connect your social accounts (optional)</p>
+                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Connect Your Social Accounts (Optional)</p>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                         {[
                                             { key: 'social_twitter', label: 'Twitter/X', placeholder: '@handle', color: '#1DA1F2' },
@@ -756,8 +756,8 @@ export default function CreateSocialPage() {
                                             {form.description || 'Description will appear here...'}
                                         </div>
                                         <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 11, color: C.textSec }}>
-                                            <span>0 followers</span>
-                                            <span>0 posts</span>
+                                            <span>0 Followers</span>
+                                            <span>0 Posts</span>
                                             {form.location_city && <span>{form.location_city}{form.location_state ? `, ${form.location_state}` : ''}</span>}
                                         </div>
                                         {/* Preview social links */}

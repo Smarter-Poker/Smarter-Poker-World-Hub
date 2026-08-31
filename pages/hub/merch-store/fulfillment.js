@@ -162,7 +162,7 @@ export default function MerchandiseFulfillmentConsole() {
         <header className={styles.hero}>
           <div className={styles.eyebrow}><ShieldCheck size={16} /> Protected Store Operations</div>
           <h1>Fulfillment Command Vault</h1>
-          <p>Paid orders, manual handoff, tracking, delivery, and atomic Diamond refunds.</p>
+          <p>Paid Orders, Manual Handoff, Tracking, Delivery, And Atomic Diamond Refunds.</p>
           <div className={styles.actions}>
             <button type="button" onClick={() => void loadOrders()} disabled={state.kind === 'loading'}>
               <RefreshCw size={16} /> Refresh Queue
@@ -202,10 +202,10 @@ export default function MerchandiseFulfillmentConsole() {
                 )}
                 {isQuarantined && (
                   <div className={styles.quarantine} role="status">
-                    <strong>Automatic fulfillment quarantined</strong>
+                    <strong>Automatic Fulfillment Quarantined</strong>
                     <span>{metadata.reason || 'Provider state requires reconciliation.'}</span>
-                    {metadata.printful_order_id && <code>Provider order {metadata.printful_order_id}</code>}
-                    <small>Manual shipping and refunds are locked until the provider order is reconciled or cancelled.</small>
+                    {metadata.printful_order_id && <code>Provider Order {metadata.printful_order_id}</code>}
+                    <small>Manual Shipping And Refunds Are Locked Until The Provider Order Is Reconciled Or Cancelled.</small>
                   </div>
                 )}
                 {isManual ? (
@@ -232,7 +232,7 @@ export default function MerchandiseFulfillmentConsole() {
                   )}
                   </div>
                 ) : !isQuarantined ? (
-                  <p className={styles.providerManaged}>This order is managed by its connected fulfillment provider.</p>
+                  <p className={styles.providerManaged}>This Order Is Managed By Its Connected Fulfillment Provider.</p>
                 ) : null}
               </article>
             );

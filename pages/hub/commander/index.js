@@ -316,7 +316,7 @@ export default function CommanderHub() {
                           {game.waitlist_count > 0 && (
                             <span className="text-[#F59E0B] flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {game.waitlist_count} waiting
+                              {game.waitlist_count} Waiting
                             </span>
                           )}
                           <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>

@@ -70,7 +70,7 @@ function MSPTBoxBody({ msptNews = [], onOpenMSPT }) {
                 {/* Description */}
                 <p className="box-excerpt">
                     {prizePool ? `${prizePool} - ` : ''}
-                    Latest updates from Mid-States Poker Tour events and tournaments.
+                    Latest Updates From Mid-States Poker Tour Events And Tournaments.
                 </p>
 
                 {/* Meta */}

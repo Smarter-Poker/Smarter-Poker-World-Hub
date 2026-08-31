@@ -344,8 +344,8 @@ export default function TwoFactorAuthModal({
                     {enabled ? 'Two-Factor Authentication' : 'Turn On Two-Factor Authentication'}
                 </h2>
                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                    We text a short code to your mobile number. One code covers everything for 30 days -
-                    you will not be asked again on a remembered device until then.
+                    We Text A Short Code To Your Mobile Number. One Code Covers Everything For 30 Days -
+                    You Will Not Be Asked Again On A Remembered Device Until Then.
                 </p>
 
                 {!enabled ? (
@@ -359,11 +359,11 @@ export default function TwoFactorAuthModal({
                                 padding: 20,
                                 marginBottom: 20
                             }}>
-                                <h3 style={{ color: '#FFC107', fontSize: 16, marginBottom: 8 }}>Verify a mobile number first</h3>
+                                <h3 style={{ color: '#FFC107', fontSize: 16, marginBottom: 8 }}>Verify A Mobile Number First</h3>
                                 <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, margin: '0 0 16px' }}>
-                                    Two-factor codes are sent by text, so we need a mobile number we have confirmed
-                                    is yours. Add and verify one under Settings → Account → Phone Number, then come
-                                    back here.
+                                    Two-Factor Codes Are Sent By Text, So We Need A Mobile Number We Have Confirmed
+                                    Is Yours. Add And Verify One Under Settings → Account → Phone Number, Then Come
+                                    Back Here.
                                 </p>
                                 <div style={{ display: 'flex', gap: 12 }}>
                                     {typeof onStartPhoneVerification === 'function' && (
@@ -411,11 +411,11 @@ export default function TwoFactorAuthModal({
                                     padding: 20,
                                     marginBottom: 20
                                 }}>
-                                    <h3 style={{ color: '#00D4FF', fontSize: 16, marginBottom: 12 }}>How it works</h3>
+                                    <h3 style={{ color: '#00D4FF', fontSize: 16, marginBottom: 12 }}>How It Works</h3>
                                     <ol style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, paddingLeft: 20, margin: 0 }}>
-                                        <li style={{ marginBottom: 8 }}>We text a code to the mobile number verified on your account.</li>
-                                        <li style={{ marginBottom: 8 }}>You type it in here once.</li>
-                                        <li>That is it - no app to install, and no new code for 30 days.</li>
+                                        <li style={{ marginBottom: 8 }}>We Text A Code To The Mobile Number Verified On Your Account.</li>
+                                        <li style={{ marginBottom: 8 }}>You Type It In Here Once.</li>
+                                        <li>That Is It - No App To Install, And No New Code For 30 Days.</li>
                                     </ol>
                                 </div>
 
@@ -465,8 +465,8 @@ export default function TwoFactorAuthModal({
                                     marginBottom: 20
                                 }}>
                                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, margin: 0 }}>
-                                        We texted {expectedLen ? `a ${expectedLen}-digit code` : 'a code'} to{' '}
-                                        <strong style={{ color: '#fff' }}>{destination}</strong>. Enter it below to finish.
+                                        We Texted {expectedLen ? `a ${expectedLen}-digit code` : 'a code'} to{' '}
+                                        <strong style={{ color: '#fff' }}>{destination}</strong>. Enter It Below To Finish.
                                     </p>
                                 </div>
 
@@ -501,7 +501,7 @@ export default function TwoFactorAuthModal({
                                 />
 
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20, fontSize: 13 }}>
-                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>Didn&apos;t get it?</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>Didn&apos;T Get It?</span>
                                     <button
                                         onClick={() => startSetup({ isResend: true })}
                                         disabled={busy || cooldown > 0}
@@ -577,8 +577,8 @@ export default function TwoFactorAuthModal({
                         }}>
                             <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA Is Active</h3>
                             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
-                                We text a code to {phoneHint ? <strong style={{ color: '#fff' }}>{phoneHint}</strong> : 'your verified mobile number'} when
-                                something sensitive needs confirming - and not again for 30 days on a remembered device.
+                                We Text A Code To {phoneHint ? <strong style={{ color: '#fff' }}>{phoneHint}</strong> : 'your verified mobile number'} When
+                                Something Sensitive Needs Confirming - And Not Again For 30 Days On A Remembered Device.
                             </p>
                         </div>
 
@@ -604,13 +604,13 @@ export default function TwoFactorAuthModal({
                         ) : (
                             <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
                                 <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>
-                                    Are you sure? This will make your account less secure, and your backup codes will stop working.
+                                    Are You Sure? This Will Make Your Account Less Secure, And Your Backup Codes Will Stop Working.
                                 </p>
 
                                 {disableNeedsCode && (
                                     <>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 8 }}>
-                                            Enter the code we texted to {destination} - or one of your backup codes.
+                                            Enter The Code We Texted To {destination} - Or One Of Your Backup Codes.
                                         </p>
                                         <input
                                             type="text"
@@ -720,8 +720,8 @@ export default function TwoFactorAuthModal({
                             </button>
                         </div>
                         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 12 }}>
-                            Save these somewhere safe. Each works once, is {BACKUP_CODE_LEN} characters long, and they
-                            are the only way in if you lose the phone we text.
+                            Save These Somewhere Safe. Each Works Once, Is {BACKUP_CODE_LEN} Characters Long, And They
+                            Are The Only Way In If You Lose The Phone We Text.
                         </p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                             {codes.map((c, i) => (

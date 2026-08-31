@@ -839,7 +839,7 @@ export default function SeriesDetailPage() {
                       <circle cx="7" cy="7" r="5" />
                       <path d="M14 14l-3.5-3.5" strokeLinecap="round" />
                     </svg>
-                    Find on Poker Near Me
+                    Find On Poker Near Me
                   </a>
                 </Link>
               )}

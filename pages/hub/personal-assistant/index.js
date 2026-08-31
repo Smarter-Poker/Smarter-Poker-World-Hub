@@ -512,7 +512,7 @@ export default function PersonalAssistantPage() {
               <span className={styles.syncAlertIcon} aria-hidden="true"><AlertTriangle size={18} /></span>
               <span className={styles.syncAlertCopy}>
                 <strong>Live Data Could Not Refresh</strong>
-                <small>Your saved poker data is unchanged. Retry the connection to refresh sessions and statistics.</small>
+                <small>Your Saved Poker Data Is Unchanged. Retry The Connection To Refresh Sessions And Statistics.</small>
               </span>
               <button type="button" className={styles.secondaryButton} onClick={retryAssistantData} disabled={isRetrying}>
                 <RotateCw size={14} aria-hidden="true" />{isRetrying ? 'Retrying' : 'Retry Now'}

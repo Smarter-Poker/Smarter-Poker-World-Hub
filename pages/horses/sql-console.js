@@ -280,7 +280,7 @@ export default function OmnichannelSQLConsole() {
                 justifyContent: 'center', alignItems: 'center', gap: 16, color: C.text, padding: 24, textAlign: 'center' }}>
                 <div role="alert" style={{ color: C.danger, fontWeight: 700 }}>{authError}</div>
                 <div style={{ color: C.textDim, fontSize: 14, maxWidth: 480 }}>
-                    This is a failure to check your role, not a refusal. Your access has not changed.
+                    This Is A Failure To Check Your Role, Not A Refusal. Your Access Has Not Changed.
                 </div>
                 <button
                     onClick={() => router.reload()}
@@ -340,13 +340,13 @@ export default function OmnichannelSQLConsole() {
                 <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: `1px solid ${C.line}`, paddingBottom: '1rem' }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: C.text }}>Omnichannel SQL Console</h1>
-                        <p style={{ margin: '0.5rem 0 0 0', color: C.textDim, fontSize: '0.875rem' }}>Browser Interface for live Supabase PostgreSQL execution.</p>
+                        <p style={{ margin: '0.5rem 0 0 0', color: C.textDim, fontSize: '0.875rem' }}>Browser Interface For Live Supabase PostgreSQL Execution.</p>
                     </div>
                     <button
                         className="sqlc-focusable"
                         onClick={() => router.push('/horses')}
                         style={{ background: 'transparent', color: C.textDim, border: `1px solid ${C.lineStrong}`, padding: '0.5rem 1rem', minHeight: TAP, borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
-                        &larr; Back to Horses
+                        &larr; Back To Horses
                     </button>
                 </header>
 
@@ -358,7 +358,7 @@ export default function OmnichannelSQLConsole() {
                                 <label htmlFor="sql-editor">SQL Query</label>
                             </h2>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.75rem', color: C.textMuted, whiteSpace: 'nowrap' }}>Cmd/Ctrl + Enter to run</span>
+                                <span style={{ fontSize: '0.75rem', color: C.textMuted, whiteSpace: 'nowrap' }}>Cmd/Ctrl + Enter To Run</span>
                                 <button
                                     className="sqlc-focusable"
                                     onClick={handleExecute}
@@ -389,7 +389,7 @@ export default function OmnichannelSQLConsole() {
                                         borderRadius: '4px', padding: '0.4rem 0.5rem', fontSize: '0.75rem',
                                         fontFamily: 'monospace', cursor: 'pointer'
                                     }}>
-                                    <option value="">Reload a previous query ({history.length} this session)</option>
+                                    <option value="">Reload A Previous Query ({history.length} This Session)</option>
                                     {history.map((q, i) => (
                                         <option key={`${i}-${q.slice(0, 24)}`} value={i}>
                                             {q.replace(/\s+/g, ' ').slice(0, 90)}{q.length > 90 ? '...' : ''}
@@ -421,11 +421,11 @@ export default function OmnichannelSQLConsole() {
                         />
 
                         <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: '1rem 0 0 0', lineHeight: 1.6 }}>
-                            <strong style={{ color: C.textDim }}>How this runs:</strong> reads execute and return normally.
-                            Anything that changes state - INSERT, UPDATE, DELETE, TRUNCATE, DROP, ALTER, GRANT, CREATE -
-                            runs inside a transaction that is <strong>rolled back</strong>, so you see the row count it
-                            would have affected and nothing is written. To commit it, confirm below. Every committed
-                            mutation is written to <code>admin_audit_log</code>. Hard 10 second statement timeout.
+                            <strong style={{ color: C.textDim }}>How This Runs:</strong> Reads Execute And Return Normally.
+                            Anything That Changes State - INSERT, UPDATE, DELETE, TRUNCATE, DROP, ALTER, GRANT, CREATE -
+                            Runs Inside A Transaction That Is <strong>Rolled Back</strong>, So You See The Row Count It
+                            Would Have Affected And Nothing Is Written. To Commit It, Confirm Below. Every Committed
+                            Mutation Is Written To <code>Admin_Audit_Log</code>. Hard 10 Second Statement Timeout.
                         </p>
                     </div>
 
@@ -436,9 +436,9 @@ export default function OmnichannelSQLConsole() {
                                 Commit This Mutation
                             </h2>
                             <p style={{ fontSize: '0.8125rem', color: C.textDim, margin: '0 0 0.75rem 0', lineHeight: 1.6 }}>
-                                The statement below was executed and rolled back. It affected{' '}
-                                <strong style={{ color: C.text }}>{result?.data?.rowCount ?? 0}</strong> row(s) and wrote nothing.
-                                To run it for real, type or paste the statement back exactly as written:
+                                The Statement Below Was Executed And Rolled Back. It affected{' '}
+                                <strong style={{ color: C.text }}>{result?.data?.rowCount ?? 0}</strong> Row(S) And Wrote Nothing.
+                                To Run It For Real, Type Or Paste The Statement Back Exactly As Written:
                             </p>
                             <pre style={{
                                 margin: '0 0 0.75rem 0', padding: '0.75rem', background: C.inset,
@@ -542,7 +542,7 @@ export default function OmnichannelSQLConsole() {
                             </div>
                         ) : (
                             <div style={{ color: C.textMuted, textAlign: 'center', padding: '4rem 0', fontStyle: 'italic' }}>
-                                Run a query to see the database output here.
+                                Run A Query To See The Database Output Here.
                             </div>
                         )}
                     </div>

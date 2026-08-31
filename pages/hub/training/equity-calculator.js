@@ -168,7 +168,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                       cursor: 'pointer',
                     }}
                   >
-                    x
+                    X
                   </div>
                 </>
               ) : (
@@ -228,7 +228,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                   fontSize: 14,
                 }}
               >
-                x
+                X
               </button>
             </div>
             {SUITS.map((suit) => (
@@ -389,7 +389,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                       cursor: 'pointer',
                     }}
                   >
-                    x
+                    X
                   </div>
                 </>
               ) : (
@@ -449,7 +449,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   fontSize: 14,
                 }}
               >
-                x
+                X
               </button>
             </div>
             {SUITS.map((suit) => (
@@ -1078,10 +1078,10 @@ export default function EquityCalculatorPage() {
               About This Tool
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              The Equity Calculator uses Monte Carlo simulation (5,000 iterations) to determine
-              win/tie percentages for each hand. Enter specific hole cards for up to 4 players and
-              optionally add board cards to see how equity changes on different textures. This is a
-              core study tool for understanding pre-flop hand strength and post-flop equity shifts.
+              The Equity Calculator Uses Monte Carlo Simulation (5,000 Iterations) To Determine
+              Win/Tie Percentages For Each Hand. Enter Specific Hole Cards For Up To 4 Players And
+              Optionally Add Board Cards To See How Equity Changes On Different Textures. This Is A
+              Core Study Tool For Understanding Pre-Flop Hand Strength And Post-Flop Equity Shifts.
             </p>
           </div>
         </div>

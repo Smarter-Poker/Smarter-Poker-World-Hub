@@ -188,7 +188,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                                 style={{ ...btn('primary'), width: '100%' }}
                             >
                                 <RefreshCw size={18} strokeWidth={2} aria-hidden="true" />
-                                Try again
+                                Try Again
                             </button>
                         )}
                         <a
@@ -198,7 +198,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                                 width: '100%', textDecoration: 'none',
                             }}
                         >
-                            Open the Sandbox
+                            Open The Sandbox
                         </a>
                     </div>
                 </div>
@@ -211,13 +211,13 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                     }}>
                         <ExternalLink size={24} strokeWidth={2} aria-hidden="true" />
                     </div>
-                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>Almost there</h1>
+                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>Almost There</h1>
                     <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
-                        The hand loaded, but your browser blocked the automatic hand-off. Tap below to open it.
+                        The Hand Loaded, But Your Browser Blocked The Automatic Hand-Off. Tap Below To Open It.
                     </p>
                     <a href={fallbackHref} style={{ ...btn('primary'), width: '100%', textDecoration: 'none' }}>
                         <ExternalLink size={18} strokeWidth={2} aria-hidden="true" />
-                        Open this hand
+                        Open This Hand
                     </a>
                 </div>
             ) : (
@@ -231,15 +231,15 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                         }}
                         aria-hidden="true"
                     />
-                    <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: 0 }}>Loading scenario…</p>
+                    <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: 0 }}>Loading Scenario…</p>
                     {slow && (
                         <div style={{ marginTop: S.lg }}>
                             <p style={{ color: T.textMuted, fontSize: F.caption, lineHeight: 1.45, margin: `0 0 ${S.md}px` }}>
-                                Still loading. Your browser may have blocked the automatic redirect.
+                                Still Loading. Your Browser May Have Blocked The Automatic Redirect.
                             </p>
                             <a href={fallbackHref} style={{ ...btn('primary'), textDecoration: 'none' }}>
                                 <ExternalLink size={18} strokeWidth={2} aria-hidden="true" />
-                                Open the Sandbox
+                                Open The Sandbox
                             </a>
                         </div>
                     )}

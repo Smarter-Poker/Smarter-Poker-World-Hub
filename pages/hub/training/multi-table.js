@@ -22,7 +22,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
-    <div style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading table...</div>
+    <div style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading Table...</div>
   ),
 });
 
@@ -439,7 +439,7 @@ export default function MultiTablePage() {
                       SESSION COMPLETE
                     </h2>
                     <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-                      {tableCount} tables · {combinedStats.totalHands} total decisions
+                      {tableCount} Tables · {combinedStats.totalHands} Total Decisions
                     </p>
 
                     {/* Save Status Indicator */}
@@ -619,7 +619,7 @@ export default function MultiTablePage() {
               Multi-Table Practice
             </h1>
             <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
-              Train on multiple tables simultaneously to build speed and accuracy under pressure.
+              Train On Multiple Tables Simultaneously To Build Speed And Accuracy Under Pressure.
             </p>
 
             {/* Table Count Selector */}
@@ -758,7 +758,7 @@ export default function MultiTablePage() {
                 cursor: 'pointer',
               }}
             >
-              ← Back to Training
+              ← Back To Training
             </button>
           </div>
         ) : (
@@ -819,7 +819,7 @@ export default function MultiTablePage() {
                     ? combinedStats.totalEVLoss
                     : 0
                   ).toFixed(1)}
-                  bb
+                  BB
                 </span>
                 <span style={{ color: 'var(--sp-accent-purple)' }}>
                   Done: {completedTables.size}/{tableCount}

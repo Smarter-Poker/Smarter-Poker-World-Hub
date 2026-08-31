@@ -242,7 +242,7 @@ export default function TournamentPrepPlanner() {
                 <span style={styles.statusValue}>{currentBlindInfo.ante}</span>
               </div>
               <div style={styles.statusRow}>
-                <span style={styles.statusLabel}>Starting Stack in BBs</span>
+                <span style={styles.statusLabel}>Starting Stack In BBs</span>
                 <span
                   style={{ ...styles.statusValue, color: initialBBs < 20 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}
                 >
@@ -364,13 +364,13 @@ export default function TournamentPrepPlanner() {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h3 style={{ color: '#fff', marginBottom: 16 }}>Nash Equilibrium Push/Fold</h3>
                   <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 20 }}>
-                    Calculated for your estimated stack depth at Level {currentLevel} (
-                    {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB initial,
-                    currently ~
+                    Calculated For Your Estimated Stack Depth At Level {currentLevel} (
+                    {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB Initial,
+                    Currently ~
                     {currentBlindInfo.bb > 0
                       ? (Number.isFinite(Number(startStack / currentBlindInfo.bb)) ? Number(startStack / currentBlindInfo.bb) : 0).toFixed(1)
                       : '0.0'}{' '}
-                    BB effective).
+                    BB Effective).
                   </p>
 
                   <div style={{ display: 'flex', gap: 16 }}>
@@ -379,8 +379,8 @@ export default function TournamentPrepPlanner() {
                       <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
                         Push: 77+, A9s+, AJo+, KTs+, KQo
                         <br />
-                        <span style={{ color: 'var(--sp-accent-red)' }}>Fold everything else.</span> The danger
-                        of calling off with medium stacks is immense.
+                        <span style={{ color: 'var(--sp-accent-red)' }}>Fold Everything Else.</span> The Danger
+                        Of Calling Off With Medium Stacks Is Immense.
                       </p>
                     </div>
                     <div style={{ ...styles.card, flex: 1 }}>
@@ -388,8 +388,8 @@ export default function TournamentPrepPlanner() {
                       <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
                         Push: 22+, A2s+, A2o+, K2s+, K8o+, Q8s+, QTo+, J8s+, T8s+, 98s
                         <br />
-                        <span style={{ color: 'var(--sp-accent-green)' }}>Expand shoving range</span> to exploit
-                        tight blinds.
+                        <span style={{ color: 'var(--sp-accent-green)' }}>Expand Shoving Range</span> To Exploit
+                        Tight Blinds.
                       </p>
                     </div>
                   </div>

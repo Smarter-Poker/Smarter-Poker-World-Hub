@@ -274,15 +274,15 @@ export default function ShortDeckTrainerPage() {
         >
           <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
             <p style={{ marginTop: 0 }}>
-              Short Deck removes 2-5 from the deck (36 cards total). That shifts
-              hand probabilities significantly: <strong>flushes beat full houses</strong>,
-              straights are far more common, and equity vs. ranges shifts. Calc
-              mode lets you simulate equity; Quiz mode drills the rule changes
-              and rank-order shifts.
+              Short Deck Removes 2-5 From The Deck (36 Cards Total). That Shifts
+              Hand Probabilities Significantly: <strong>Flushes Beat Full Houses</strong>,
+              Straights Are Far More Common, And Equity Vs. Ranges Shifts. Calc
+              Mode Lets You Simulate Equity; Quiz Mode Drills The Rule Changes
+              And Rank-Order Shifts.
             </p>
             <p>
-              Use Quiz mode to hammer the rule changes until they're automatic
-              before stacking off in real games.
+              Use Quiz Mode To Hammer The Rule Changes Until They're Automatic
+              Before Stacking Off In Real Games.
             </p>
           </div>
         </BottomSheet>
@@ -328,7 +328,7 @@ export default function ShortDeckTrainerPage() {
                 textTransform: 'uppercase',
               }}
             >
-              How it works
+              How It Works
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
@@ -550,7 +550,7 @@ export default function ShortDeckTrainerPage() {
                       {equity}%
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 8 }}>
-                      Estimated via Short Deck Monte Carlo (36 cards)
+                      Estimated Via Short Deck Monte Carlo (36 Cards)
                     </div>
                   </motion.div>
                 )}

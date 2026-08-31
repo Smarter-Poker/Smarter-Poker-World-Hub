@@ -97,17 +97,17 @@ export default function RewardDetail({ reward }) {
           <h2>How This Signal Unlocks</h2>
           <p>{marketplaceCopy(reward.detail)}</p>
           <p>
-            Reward telemetry is verified by Smarter.Poker. Eligible actions are credited to the same diamond wallet used throughout the marketplace.
+            Reward Telemetry Is Verified By Smarter.Poker. Eligible Actions Are Credited To The Same Diamond Wallet Used Throughout The Marketplace.
           </p>
         </section>
         <section className={detailStyles.detailCard}>
           <h2>Economy Rules</h2>
           <ul>
-            <li>Standard daily cap: {Number(DAILY_CAP.free).toLocaleString()} Diamonds</li>
-            <li>VIP daily cap: {Number(DAILY_CAP.vip).toLocaleString()} Diamonds</li>
-            <li>Standard monthly cap: {Number(MONTHLY_CAP.free).toLocaleString()} Diamonds</li>
-            <li>VIP monthly cap: {Number(MONTHLY_CAP.vip).toLocaleString()} Diamonds</li>
-            <li>Hidden-achievement monthly budget: {Number(EASTER_EGG_MONTHLY_CAP).toLocaleString()} Diamonds</li>
+            <li>Standard Daily Cap: {Number(DAILY_CAP.free).toLocaleString()} Diamonds</li>
+            <li>VIP Daily Cap: {Number(DAILY_CAP.vip).toLocaleString()} Diamonds</li>
+            <li>Standard Monthly Cap: {Number(MONTHLY_CAP.free).toLocaleString()} Diamonds</li>
+            <li>VIP Monthly Cap: {Number(MONTHLY_CAP.vip).toLocaleString()} Diamonds</li>
+            <li>Hidden-Achievement Monthly Budget: {Number(EASTER_EGG_MONTHLY_CAP).toLocaleString()} Diamonds</li>
             <li>{reward.countsTowardDailyCap ? 'This reward counts toward the daily cap.' : 'This reward is tracked outside the standard daily-cap calculation.'}</li>
           </ul>
         </section>

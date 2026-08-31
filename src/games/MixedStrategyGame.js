@@ -220,7 +220,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                 <div style={{ marginTop: 60 }}>
                     <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83C\uDFB0'}</div>
                     <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>Not every decision is 100% frequency.<br />Dial in the exact GTO frequency for mixed spots.<br />Correct Frequency = Massive Points!</p>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>Not Every Decision Is 100% Frequency.<br />Dial In The Exact GTO Frequency For Mixed Spots.<br />Correct Frequency = Massive Points!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #A855F7, #D946EF)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
                 </div>
             )}
@@ -242,7 +242,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                     <div style={{ width: 140, height: 100, background: 'linear-gradient(145deg, #2e1a2e, #1a1a2e)', border: '2px solid #A855F7', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 auto 40px', boxShadow: '0 10px 30px rgba(168, 85, 247, 0.2)' }}>
                         <div style={{ fontSize: 36, fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontWeight: 900, color: '#fff' }}>{currentScenario.hand}</div>
                     </div>
-                    <h2 style={{ fontSize: 24, marginBottom: 40 }}>Frequency of <span style={{ color: ACTION_COLORS[targetAction]?.border || '#fff', fontWeight: 900 }}>{targetAction.toUpperCase()}</span>?</h2>
+                    <h2 style={{ fontSize: 24, marginBottom: 40 }}>Frequency Of <span style={{ color: ACTION_COLORS[targetAction]?.border || '#fff', fontWeight: 900 }}>{targetAction.toUpperCase()}</span>?</h2>
                     <div style={{ position: 'relative', height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 20, marginBottom: 20 }}>
                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${gameState === 'revealed' ? currentScenario.frequencies[targetAction] : userFreq}%`, background: gameState === 'revealed' ? 'linear-gradient(90deg, #00ff88, #00cc6a)' : 'linear-gradient(90deg, #A855F7, #D946EF)', borderRadius: 20, transition: 'width 0.3s ease', opacity: gameState === 'revealed' ? 0.3 : 1 }} />
                         {gameState === 'revealed' && (<div style={{ position: 'absolute', left: `calc(${userFreq}% - 2px)`, top: -10, bottom: -10, width: 4, background: diff <= 5 ? '#00ff88' : '#ff4444', zIndex: 10, boxShadow: '0 0 10px rgba(0,0,0,0.5)' }} />)}
@@ -320,10 +320,10 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                                     {sorted.map((m, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
                                             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{m.position} ({m.action})</span>
-                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>off by {m.diff}%</span>
+                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>Off By {m.diff}%</span>
                                         </div>
                                     ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Study these frequencies to improve</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Study These Frequencies To Improve</div>
                                 </div>
                             );
                         })()}

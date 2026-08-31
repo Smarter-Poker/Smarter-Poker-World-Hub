@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
                     {!sent ? (
                         <>
                             <p style={styles.subtitle}>
-                                Enter your email and we&apos;ll send you a secure link to reset your password.
+                                Enter Your Email And We&apos;Ll Send You A Secure Link To Reset Your Password.
                             </p>
 
                             <form onSubmit={handleSubmit} style={styles.form}>
@@ -121,11 +121,11 @@ export default function ForgotPasswordPage() {
                     ) : (
                         <>
                             <p style={styles.subtitle}>
-                                If an account exists for that email, a reset link is on its way.
-                                Check your inbox (and the spam folder, just in case).
+                                If An Account Exists For That Email, A Reset Link Is On Its Way.
+                                Check Your Inbox (And The Spam Folder, Just In Case).
                             </p>
                             <p style={{ ...styles.subtitle, fontSize: 14, opacity: 0.7 }}>
-                                The link expires in 1 hour.
+                                The Link Expires In 1 Hour.
                             </p>
                         </>
                     )}
@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
                         onClick={() => router.push('/auth/login')}
                         style={styles.linkButton}
                     >
-                        ← Back to sign in
+                        ← Back To Sign In
                     </button>
                 </div>
             </div>

@@ -572,7 +572,7 @@ export default function TourDetailPage() {
                           <option value="all">All Games</option>
                           {gameTypes.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
-                        <span className="sp-filter-count">{filtered.length} events</span>
+                        <span className="sp-filter-count">{filtered.length} Events</span>
                       </div>
                     )}
 
@@ -580,7 +580,7 @@ export default function TourDetailPage() {
                     {filtered.length === 0 && (
                       <div className="sp-empty">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <p>No events found{eventFilter ? ` matching "${eventFilter}"` : '. Schedule coming soon.'}.</p>
+                        <p>No Events found{eventFilter ? ` matching "${eventFilter}"` : '. Schedule coming soon.'}.</p>
                       </div>
                     )}
 
@@ -653,7 +653,7 @@ export default function TourDetailPage() {
                       </div>
                     )}
                     {srcEvents.length > 0 && srcEvents[0]?.data_quality === 'pending' && (
-                      <p className="sp-data-note">⚠ Showing registry data - live schedule scrape pending</p>
+                      <p className="sp-data-note">⚠ Showing Registry Data - Live Schedule Scrape Pending</p>
                     )}
                   </>
                 );
@@ -688,7 +688,7 @@ export default function TourDetailPage() {
 
               {/* All stops list */}
               {(allStops.length > 0 ? allStops : []).length === 0 && (!tour.upcoming_series || tour.upcoming_series.length === 0) && (!tour.stops_2026 || tour.stops_2026.length === 0) && (
-                <div className="empty-state"><p>No stops announced yet.</p></div>
+                <div className="empty-state"><p>No Stops Announced Yet.</p></div>
               )}
               <div className="series-grid">
                 {/* Prefer registry venue stops over generic consolidated DB stops (e.g. "RGPS 2026") */}

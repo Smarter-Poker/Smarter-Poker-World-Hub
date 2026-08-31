@@ -91,7 +91,7 @@ function FlowCard({ name, runs, ok, failed, lastRun, expectedCadenceMin }) {
                 <span style={{ background: color, color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{status}</span>
             </div>
             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 8 }}>{msg}</div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>last: {fmtAge(lastRun)}</div>
+            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Last: {fmtAge(lastRun)}</div>
         </div>
     );
 }
@@ -144,21 +144,21 @@ export default function AuthHealthDashboard(props) {
     }, [props.clientMode]);
 
     const { loading, health, heartbeats, error, generatedAt } = state;
-    if (loading) return <main style={S.page}><div style={S.err}>Loading auth health…</div></main>;
+    if (loading) return <main style={S.page}><div style={S.err}>Loading Auth Health…</div></main>;
     if (error) return <main style={S.page}><div style={S.err}>{error}</div></main>;
-    if (!health) return <main style={S.page}><div style={S.err}>No health data yet - wait for first probe runs (5-15 min after deploy).</div></main>;
+    if (!health) return <main style={S.page}><div style={S.err}>No Health Data Yet - Wait For First Probe Runs (5-15 Min After Deploy).</div></main>;
 
     return (
         <main style={S.page}>
             <header style={S.header}>
                 <div>
                     <h1 style={S.h1}>Auth Health - Unified</h1>
-                    <p style={S.p}>Generated {fmtAge(generatedAt)}. <a href="/admin/auth-health" style={S.link}>↻ refresh</a> · <a href="/admin/signup-health" style={S.link}>signup-only view</a></p>
+                    <p style={S.p}>Generated {fmtAge(generatedAt)}. <a href="/admin/auth-health" style={S.link}>↻ Refresh</a> · <a href="/admin/signup-health" style={S.link}>Signup-Only View</a></p>
                 </div>
             </header>
 
             <section style={S.section}>
-                <h2 style={S.h2}>Flow status</h2>
+                <h2 style={S.h2}>Flow Status</h2>
                 <div style={S.grid}>
                     <FlowCard name="Signup" runs={health.signup_runs_15m} ok={health.signup_ok_15m} failed={health.signup_failed_1h} lastRun={health.signup_last_run} expectedCadenceMin={5} />
                     <FlowCard name="Login" runs={health.login_runs_15m} ok={health.login_ok_15m} failed={health.login_failed_1h} lastRun={health.login_last_run} expectedCadenceMin={5} />
@@ -169,16 +169,16 @@ export default function AuthHealthDashboard(props) {
             </section>
 
             <section style={S.section}>
-                <h2 style={S.h2}>Real-user signal</h2>
+                <h2 style={S.h2}>Real-User Signal</h2>
                 <div style={S.grid}>
-                    <div style={S.statCard}><div style={S.statLabel}>Real signups (24h)</div><div style={{ ...S.statValue, color: Number(health.real_signups_24h) === 0 ? '#ef4444' : '#fff' }}>{health.real_signups_24h}</div></div>
-                    <div style={S.statCard}><div style={S.statLabel}>Real signups (1h)</div><div style={S.statValue}>{health.real_signups_1h}</div></div>
-                    <div style={S.statCard}><div style={S.statLabel}>Trigger errors (1h)</div><div style={{ ...S.statValue, color: Number(health.trigger_errors_1h) > 0 ? '#ef4444' : '#fff' }}>{health.trigger_errors_1h}</div></div>
+                    <div style={S.statCard}><div style={S.statLabel}>Real Signups (24h)</div><div style={{ ...S.statValue, color: Number(health.real_signups_24h) === 0 ? '#ef4444' : '#fff' }}>{health.real_signups_24h}</div></div>
+                    <div style={S.statCard}><div style={S.statLabel}>Real Signups (1h)</div><div style={S.statValue}>{health.real_signups_1h}</div></div>
+                    <div style={S.statCard}><div style={S.statLabel}>Trigger Errors (1h)</div><div style={{ ...S.statValue, color: Number(health.trigger_errors_1h) > 0 ? '#ef4444' : '#fff' }}>{health.trigger_errors_1h}</div></div>
                 </div>
             </section>
 
             <section style={S.section}>
-                <h2 style={S.h2}>Recent probe heartbeats (last 40)</h2>
+                <h2 style={S.h2}>Recent Probe Heartbeats (Last 40)</h2>
                 <table style={S.table}>
                     <thead><tr><th style={S.th}>When</th><th style={S.th}>Probe</th><th style={S.th}>Status</th><th style={S.th}>Duration</th></tr></thead>
                     <tbody>
@@ -195,7 +195,7 @@ export default function AuthHealthDashboard(props) {
             </section>
 
             <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#6b7280', fontSize: 12 }}>
-                Backed by <code>public.auth_health_view</code> + <code>probe_heartbeats</code>. Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.md</a>.
+                Backed By <code>Public.Auth_Health_View</code> + <code>Probe_Heartbeats</code>. Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>.
             </footer>
         </main>
     );

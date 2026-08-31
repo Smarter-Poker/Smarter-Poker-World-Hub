@@ -51,7 +51,7 @@ test('command-rail selection and shareable query state cannot drift apart', () =
 test('personal subviews receive distinct responsive identity and signed-out guidance', () => {
   assert.match(PAGE, /const LIBRARY_VIEW_META =/);
   assert.match(PAGE, /className="vl-subview-banner"/);
-  assert.match(PAGE, /Sign in to sync/);
+  assert.match(PAGE, /Sign In To Sync/);
   assert.match(PAGE, /Favorites Need Your Profile/);
   assert.match(PAGE, /History Needs Your Profile/);
   assert.match(CSS, /\.vl-subview-banner/);

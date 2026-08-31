@@ -140,7 +140,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                             </svg>
                             {/* audit L-4: discover rounds to whole miles for host-address
                                 privacy — .toFixed(1) rendered a fake "7.0 mi" decimal. */}
-                            {Math.round(Number(venue.distance_miles))} mi
+                            {Math.round(Number(venue.distance_miles))} Mi
                         </div>
                     )}
                     {onFavorite && (
@@ -188,7 +188,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                         <div className="hgc-col-sub">Buy-In {buyinLine}</div>
                     )}
                     {venue.max_players && (
-                        <div className="hgc-col-sub">{venue.max_players} max players</div>
+                        <div className="hgc-col-sub">{venue.max_players} Max Players</div>
                     )}
                 </div>
                 <div className="hgc-col">
@@ -206,13 +206,13 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
             {/* Footer: stats + Details action */}
             <div className="hgc-footer">
                 <div className="hgc-stats">
-                    <span><strong>{venue.member_count || 0}</strong> members</span>
+                    <span><strong>{venue.member_count || 0}</strong> Members</span>
                     <span>·</span>
-                    <span><strong>{venue.saves_count || 0}</strong> followers</span>
+                    <span><strong>{venue.saves_count || 0}</strong> Followers</span>
                     {venue.games_hosted > 0 && (
                         <>
                             <span>·</span>
-                            <span><strong>{venue.games_hosted}</strong> hosted</span>
+                            <span><strong>{venue.games_hosted}</strong> Hosted</span>
                         </>
                     )}
                 </div>

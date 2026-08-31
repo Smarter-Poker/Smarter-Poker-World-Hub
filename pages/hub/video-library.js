@@ -114,9 +114,9 @@ class VideoLibraryReelsBoundary extends Component {
         if (!this.state.hasError) return this.props.children;
         return (
             <div className="vl-reels-fallback" role="alert">
-                <span>Reels signal interrupted</span>
+                <span>Reels Signal Interrupted</span>
                 <h2>Reopen The Feed</h2>
-                <p>The full library is still available. Retry Reels or return without losing your place.</p>
+                <p>The Full Library Is Still Available. Retry Reels Or Return Without Losing Your Place.</p>
                 <div>
                     <button type="button" onClick={() => this.setState({ hasError: false })}>Try Again</button>
                     <button type="button" onClick={this.props.onClose}>Back To Library</button>
@@ -1717,7 +1717,7 @@ export default function VideoLibraryPage() {
                             marginBottom: 8,
                             paddingLeft: 2,
                         }}>
-                            {videos.length} result{videos.length !== 1 ? 's' : ''} for <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
+                            {videos.length} result{videos.length !== 1 ? 's' : ''} For <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
                             {videos.length === 0 && (
                                 <button
                                     type="button"
@@ -1872,7 +1872,7 @@ export default function VideoLibraryPage() {
                                     {catalogTotal === 1 ? 'matching video' : 'matching videos'}
                                     {userId ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                                 </span>
-                                {!userId && <em>Sign in to sync</em>}
+                                {!userId && <em>Sign In To Sync</em>}
                             </div>
                         </section>
                     )}
@@ -1880,7 +1880,7 @@ export default function VideoLibraryPage() {
                     {userId && libraryFilter !== 'ALL' && librarySyncState === 'loading' && (
                         <div className="vl-sync-panel is-loading" role="status" aria-live="polite">
                             <span className="vl-sync-pulse" aria-hidden="true" />
-                            <div><strong>Syncing your library</strong><span>Loading saved videos and cross-device progress.</span></div>
+                            <div><strong>Syncing Your Library</strong><span>Loading Saved Videos And Cross-Device Progress.</span></div>
                         </div>
                     )}
 
@@ -1897,12 +1897,12 @@ export default function VideoLibraryPage() {
                     {hasActiveFilters && (
                         <div className="vl-active-view" aria-label="Active video filters">
                             <div className="vl-active-view-copy">
-                                <span>Active view</span>
+                                <span>Active View</span>
                                 <div className="vl-active-filter-list">
                                     {activeFilterLabels.map(label => <strong key={label}>{label}</strong>)}
                                 </div>
                             </div>
-                            <button type="button" onClick={clearAllFilters}>Reset view</button>
+                            <button type="button" onClick={clearAllFilters}>Reset View</button>
                         </div>
                     )}
 
@@ -1916,11 +1916,11 @@ export default function VideoLibraryPage() {
                     }}>
                         <div className="vl-continuity-header">
                             <div>
-                                <span className="vl-continuity-kicker">Session continuity</span>
+                                <span className="vl-continuity-kicker">Session Continuity</span>
                                 <h2><span aria-hidden="true">▶</span> Continue Watching</h2>
                             </div>
                             <div className="vl-continuity-actions">
-                                <span>{continueWatchingVideos.length} {continueWatchingVideos.length === 1 ? 'session' : 'sessions'} ready</span>
+                                <span>{continueWatchingVideos.length} {continueWatchingVideos.length === 1 ? 'session' : 'sessions'} Ready</span>
                                 <button
                                     type="button"
                                     onClick={() => handleOpenVideo(continueWatchingVideos[0].video)}
@@ -2019,7 +2019,7 @@ export default function VideoLibraryPage() {
                                                 fontSize: 11,
                                                 marginTop: 4,
                                             }}>
-                                                {roundedProgress}% complete · {formatTime(item.watch_duration_seconds || 0)} watched
+                                                {roundedProgress}% Complete · {formatTime(item.watch_duration_seconds || 0)} Watched
                                             </div>
                                         </div>
                                     </div>
@@ -2071,7 +2071,7 @@ export default function VideoLibraryPage() {
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
                     <div className="vl-catalog-notice" role="alert">
-                        <span>Live catalog refresh is temporarily unavailable. Showing the verified fallback library.</span>
+                        <span>Live Catalog Refresh Is Temporarily Unavailable. Showing The Verified Fallback Library.</span>
                         <button type="button" onClick={() => void fetchCatalogPage({ append: false })}>Retry Catalog</button>
                     </div>
                 )}
@@ -2289,7 +2289,7 @@ export default function VideoLibraryPage() {
                                         {video.source.replace('_', ' ')}
                                     </span>
                                     <span className="vl-card-views" style={{ color: C.textSec, fontSize: 13 }}>
-                                        {video.views} views
+                                        {video.views} Views
                                     </span>
                                     {/* Share button */}
                                     <button
@@ -2327,7 +2327,7 @@ export default function VideoLibraryPage() {
                     <div ref={loadMoreRef} className="vl-load-more-sentinel" aria-hidden="true" />
                 )}
 
-                {catalogLoadingMore && <div className="vl-load-more-status" role="status">Loading more videos</div>}
+                {catalogLoadingMore && <div className="vl-load-more-status" role="status">Loading More Videos</div>}
 
                 {/* No results */}
                 {!catalogLoading && videos.length === 0 && (
@@ -2353,7 +2353,7 @@ export default function VideoLibraryPage() {
                     color: C.textSec,
                     fontSize: 14,
                 }}>
-                    Showing {videos.length} of {catalogTotal} matching
+                    Showing {videos.length} Of {catalogTotal} Matching
                     {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                 </div>
                 </main>
@@ -2381,7 +2381,7 @@ export default function VideoLibraryPage() {
                     }}
                 >
                     <p id="vl-viewer-help" className="vl-sr-only">
-                        Use the arrow keys for the previous or next video, F for fullscreen, and Escape to close.
+                        Use The Arrow Keys For The Previous Or Next Video, F For Fullscreen, And Escape To Close.
                     </p>
                     {/* Close button — positioned top-right, clear of YouTube's title bar */}
                     <button
@@ -2784,7 +2784,7 @@ export default function VideoLibraryPage() {
                                     {selectedVideo.source.replace('_', ' ')}
                                 </span>
                                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                    {selectedVideo.views} views
+                                    {selectedVideo.views} Views
                                 </span>
                                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                                     {selectedVideo.duration}
@@ -3057,7 +3057,7 @@ export default function VideoLibraryPage() {
                         border: '1px solid #333'
                     }} onClick={e => e.stopPropagation()}>
                         <div className="vl-playlist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <h3 id="vl-playlist-title" style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save to Playlist</h3>
+                            <h3 id="vl-playlist-title" style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save To Playlist</h3>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
                                 type="button" aria-label="Close playlist dialog"
                                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: 0 }}>×</button>
@@ -3067,7 +3067,7 @@ export default function VideoLibraryPage() {
                                 <div className="vl-playlist-empty" style={{ textAlign: 'center', padding: '24px 0 16px', color: 'rgba(255,255,255,0.35)' }}>
                                     <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
                                     <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No Playlists Yet</div>
-                                    <div style={{ fontSize: 12 }}>Create one below to save this video</div>
+                                    <div style={{ fontSize: 12 }}>Create One Below To Save This Video</div>
                                 </div>
                             )}
                             {playlists.map(p => {
@@ -3173,7 +3173,7 @@ export default function VideoLibraryPage() {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-matched drills for this video</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
                             </div>
                             <button ref={ttsCloseButtonRef} type="button" aria-label="Close training recommendations" onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
                         </div>

@@ -263,7 +263,7 @@ export function ProfilePictureHistory({
                         {/* Hover tooltip */}
                         {hoveredId === item.media_id && !item.is_current && (
                             <div style={styles.tooltip}>
-                                Click to restore
+                                Click To Restore
                             </div>
                         )}
                     </div>

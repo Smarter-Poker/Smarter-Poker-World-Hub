@@ -19,8 +19,8 @@ export default function PokerResumeSection({ profile, updateField, saving, setPr
     return (
 <CollapsibleSection id="sec-resume" title="Poker Resume" icon="🏆">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
-                            Link your Hendon Mob profile to automatically display your tournament stats.
-                            Stats are synced directly from HendonMob.
+                            Link Your Hendon Mob Profile To Automatically Display Your Tournament Stats.
+                            Stats Are Synced Directly From HendonMob.
                         </p>
 
                         <ProfileField

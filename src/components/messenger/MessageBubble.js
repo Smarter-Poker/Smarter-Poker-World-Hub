@@ -379,7 +379,7 @@ export function ClubStatementCard({ meta, isOwn, theme: C = defaultTheme }) {
         >
             <div style={{ padding: '10px 12px', borderBottom: `1px solid ${isOwn ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)'}` }}>
                 <div style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec }}>
-                    Weekly statement
+                    Weekly Statement
                 </div>
                 {period ? (
                     <div style={{ fontSize: 11, marginTop: 2, color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec }}>{period}</div>
@@ -407,8 +407,8 @@ export function ClubStatementCard({ meta, isOwn, theme: C = defaultTheme }) {
                     {lines.eco_enabled ? row('ECO adjustment', lines.eco_amount) : null}
                     {Number(lines.presettled || 0) !== 0 ? row('Payments received', lines.presettled) : null}
                     <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: isOwn ? 'rgba(255,255,255,0.65)' : C.textSec }}>
-                        Player win/loss and rakeback already moved in chips during the week.
-                        The amount above is what is left to square up.
+                        Player Win/Loss And Rakeback Already Moved In Chips During The Week.
+                        The Amount Above Is What Is Left To Square Up.
                     </div>
                 </div>
             ) : null}
@@ -854,8 +854,8 @@ export function MessageBubble({
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
                                     <span style={{ fontSize: 24 }}>🎥</span>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600 }}>Live co-host invite</div>
-                                        <div style={{ fontSize: 12, opacity: 0.8 }}>Tap to join the live stream</div>
+                                        <div style={{ fontWeight: 600 }}>Live CO-Host Invite</div>
+                                        <div style={{ fontSize: 12, opacity: 0.8 }}>Tap To Join The Live Stream</div>
                                     </div>
                                     {!isOwn && (
                                         <a

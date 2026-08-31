@@ -147,7 +147,7 @@ export default function HelpPage() {
                         color: C.textSec,
                         fontSize: 15,
                     }}>
-                        Find answers to common questions and get support
+                        Find Answers To Common Questions And Get Support
                     </p>
                 </div>
 
@@ -183,10 +183,10 @@ export default function HelpPage() {
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                                Live Chat with Geeves
+                                Live Chat With Geeves
                             </div>
                             <div style={{ color: C.textSec, fontSize: 13 }}>
-                                Your AI support assistant
+                                Your AI Support Assistant
                             </div>
                         </div>
                     </Link>
@@ -219,7 +219,7 @@ export default function HelpPage() {
                                 Email Support
                             </div>
                             <div style={{ color: C.textSec, fontSize: 13 }}>
-                                support@smarter.poker
+                                Support@Smarter.Poker
                             </div>
                         </div>
                     </a>
@@ -340,7 +340,7 @@ export default function HelpPage() {
                                 padding: '12px 0',
                             }}>
                                 <span>📄</span>
-                                Terms of Service
+                                Terms Of Service
                                 <span style={{ marginLeft: 'auto', color: C.textSec }}>→</span>
                             </Link>
                         </div>

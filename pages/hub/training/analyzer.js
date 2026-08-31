@@ -529,7 +529,7 @@ function AggregateStats({ hands }) {
             textTransform: 'uppercase',
           }}
         >
-          Action Frequencies by Street
+          Action Frequencies By Street
         </div>
         {Object.entries(stats.streetActionCounts || {})
           .filter(([_, actions]) => Object.keys(actions || {}).length > 0)
@@ -700,8 +700,8 @@ export default function HandAnalyzer() {
             </h1>
           </div>
           <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6, maxWidth: 600 }}>
-            Paste or upload your hand histories to review every decision against GTO solver data.
-            Supports PokerStars, GGPoker, ClubGG, and generic formats.
+            Paste Or Upload Your Hand Histories To Review Every Decision Against GTO Solver Data.
+            Supports PokerStars, GGPoker, ClubGG, And Generic Formats.
           </p>
         </div>
 
@@ -736,10 +736,10 @@ export default function HandAnalyzer() {
                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
                   <div style={{ fontSize: 36, marginBottom: 8 }}></div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
-                    Drop a file, multiple files, or a folder
+                    Drop A File, Multiple Files, Or A Folder
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                    .txt, .log, .hh files supported (Batch capable)
+                    .Txt, .Log, .Hh Files Supported (Batch Capable)
                   </div>
                 </label>
               </div>
@@ -756,7 +756,7 @@ export default function HandAnalyzer() {
                     marginBottom: 6,
                   }}
                 >
-                  Or paste hand history text
+                  Or Paste Hand History Text
                 </div>
                 <textarea
                   value={rawText}
@@ -818,8 +818,8 @@ export default function HandAnalyzer() {
                     color: 'var(--sp-accent-red)',
                   }}
                 >
-                  ▲ No valid hands found. Make sure the text contains PokerStars-format hand
-                  histories.
+                  ▲ No Valid Hands Found. Make Sure The Text Contains PokerStars-Format Hand
+                  Histories.
                 </motion.div>
               )}
             </div>
@@ -878,7 +878,7 @@ export default function HandAnalyzer() {
                     marginBottom: 10,
                   }}
                 >
-                  Hand-by-Hand Review
+                  Hand-By-Hand Review
                 </div>
                 {parsedHands.map((hand, i) => (
                   <HandCard

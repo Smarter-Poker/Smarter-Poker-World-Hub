@@ -791,8 +791,8 @@ function LeakReport({ hands }) {
   if (graded.length === 0) {
     return (
       <div role="status" style={{ marginBottom: 20, padding: '16px 20px', borderRadius: 14, background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
-        <strong style={{ color: 'var(--sp-accent-blue)' }}>No verified solver leak score yet.</strong>{' '}
-        These hands remain available for replay, but unmatched or ambiguous decisions are excluded from GTO accuracy, EV loss, and Leak Finder evidence.
+        <strong style={{ color: 'var(--sp-accent-blue)' }}>No Verified Solver Leak Score Yet.</strong>{' '}
+        These Hands Remain Available For Replay, But Unmatched Or Ambiguous Decisions Are Excluded From GTO Accuracy, EV Loss, And Leak Finder Evidence.
       </div>
     );
   }
@@ -862,7 +862,7 @@ function LeakReport({ hands }) {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)'}}> GTO Leak Report</div>
-        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} verified decisions</div>
+        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} Verified Decisions</div>
       </div>
 
       {/* Grade Distribution Bar */}
@@ -1001,7 +1001,7 @@ function LeakReport({ hands }) {
             marginBottom: 8,
           }}
         >
-          Leak Hotspots by Street
+          Leak Hotspots By Street
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
           {Object.entries(streetLeaks || {}).map(([street, data]) => (
@@ -1055,10 +1055,10 @@ function LeakReport({ hands }) {
              Primary Leak
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
-            Your biggest leak is on the{' '}
+            Your Biggest Leak Is On the{' '}
             <strong style={{ color: 'var(--sp-accent-red)' }}>{worstStreet[0]}</strong> ({worstStreet[1].count}{' '}
-            mistakes, -${(Number.isFinite(Number(worstStreet[1].evLoss)) ? Number(worstStreet[1].evLoss) : 0).toFixed(1)} EV). Focus your study on {worstStreet[0]}{' '}
-            play to recapture the most EV.
+            Mistakes, -${(Number.isFinite(Number(worstStreet[1].evLoss)) ? Number(worstStreet[1].evLoss) : 0).toFixed(1)} EV). Focus Your Study On {worstStreet[0]}{' '}
+            Play To Recapture The Most EV.
           </div>
         </div>
       )}
@@ -1553,14 +1553,14 @@ export default function HandHistoryUploadPage() {
               justifyContent: 'center',
             }}
           >
-            \u2190
+            \U2190
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Hand History Analysis
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Upload hands from PokerStars, GGPoker, or ACR
+              Upload Hands From PokerStars, GGPoker, Or ACR
             </div>
           </div>
         </div>
@@ -1619,7 +1619,7 @@ export default function HandHistoryUploadPage() {
                 />
               </div>
               <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                {uploadProgress.current} / {uploadProgress.total} files processed
+                {uploadProgress.current} / {uploadProgress.total} Files Processed
               </div>
             </motion.div>
           )}
@@ -1655,11 +1655,11 @@ export default function HandHistoryUploadPage() {
                     >
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                          {session.totalHands} hands from {session.site}
+                          {session.totalHands} Hands From {session.site}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                           {new Date(session.timestamp).toLocaleDateString()} • {session.heroActions}{' '}
-                          decisions • Avg pot ${(Number.isFinite(Number(session.avgPot)) ? Number(session.avgPot) : 0).toFixed(0) || 'N/A'}
+                          Decisions • Avg Pot ${(Number.isFinite(Number(session.avgPot)) ? Number(session.avgPot) : 0).toFixed(0) || 'N/A'}
                         </div>
                       </div>
                       <div
@@ -1708,8 +1708,8 @@ export default function HandHistoryUploadPage() {
                     {isAnalyzing ? 'Analyzing...' : 'Drop Hand History File Here'}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                    Supports .txt files from PokerStars, GGPoker, 888, ACR - drop multiple files at
-                    once
+                    Supports .Txt Files From PokerStars, GGPoker, 888, ACR - Drop Multiple Files At
+                    Once
                   </div>
                   <div
                     style={{
@@ -1825,7 +1825,7 @@ export default function HandHistoryUploadPage() {
                     <div
                       style={{ textAlign: 'center', padding: 12, color: 'var(--sp-fg-dim)', fontSize: 12 }}
                     >
-                      Showing first 50 of {parsedHands.length} hands
+                      Showing First 50 Of {parsedHands.length} Hands
                     </div>
                   )}
                 </>

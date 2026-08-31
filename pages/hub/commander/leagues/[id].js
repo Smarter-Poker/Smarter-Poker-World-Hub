@@ -31,11 +31,11 @@ function StandingRow({ entry, rank, isCurrentUser }) {
             {entry.player_name}
             {isCurrentUser && <span className="text-xs ml-1">(You)</span>}
           </p>
-          <p className="text-xs text-[#64748B]">{entry.events_played} events</p>
+          <p className="text-xs text-[#64748B]">{entry.events_played} Events</p>
         </div>
       </div>
       <div className="text-right">
-        <p className="font-bold text-white">{entry.points.toLocaleString()} pts</p>
+        <p className="font-bold text-white">{entry.points.toLocaleString()} Pts</p>
         {entry.earnings > 0 && (
           <p className="text-xs text-[#10B981]">${entry.earnings.toLocaleString()}</p>
         )}
@@ -196,11 +196,11 @@ export default function LeagueDetailPage() {
             <div className="flex items-center gap-4 text-sm text-white/80">
               <span className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
-                {league.player_count} players
+                {league.player_count} Players
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                {league.events_count} events
+                {league.events_count} Events
               </span>
               {league.prize_pool > 0 && (
                 <span className="flex items-center gap-1">
@@ -289,7 +289,7 @@ export default function LeagueDetailPage() {
                 </div>
               ) : (
                 <div className="p-6 text-center text-[#64748B]">
-                  No standings yet
+                  No Standings Yet
                 </div>
               )}
             </section>
@@ -306,7 +306,7 @@ export default function LeagueDetailPage() {
                   ))
               ) : (
                 <div className="cmd-panel p-6 text-center text-[#64748B]">
-                  No events scheduled
+                  No Events Scheduled
                 </div>
               )}
             </section>
@@ -321,7 +321,7 @@ export default function LeagueDetailPage() {
                   {Object.entries(league.scoring_system || {}).map(([place, points]) => (
                     <div key={place} className="flex items-center justify-between py-2 border-b border-[#4A5E78] last:border-0">
                       <span className="text-[#64748B]">{place}</span>
-                      <span className="font-medium text-white">{points} pts</span>
+                      <span className="font-medium text-white">{points} Pts</span>
                     </div>
                   ))}
                 </div>

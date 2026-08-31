@@ -124,7 +124,7 @@ function FeedItem({ item }) {
               {item.user}
             </span>
             {' completed a '}
-            <span style={{ fontWeight: 700, color: eventType.color }}>{item.handsPlayed}-hand</span>
+            <span style={{ fontWeight: 700, color: eventType.color }}>{item.handsPlayed}-Hand</span>
             {' session on '}
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
             {' - '}
@@ -145,7 +145,7 @@ function FeedItem({ item }) {
           <>
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' hit a '}
-            <span style={{ fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{item.streakDays}-day streak</span>
+            <span style={{ fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{item.streakDays}-Day Streak</span>
             {' milestone!'}
           </>
         );
@@ -425,7 +425,7 @@ export default function TrainingFeedPage() {
                   borderRadius: '50%',
                 }}
               />
-              Loading feed...
+              Loading Feed...
             </div>
           )}
 

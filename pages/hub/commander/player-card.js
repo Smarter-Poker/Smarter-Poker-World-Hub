@@ -180,7 +180,7 @@ export default function PlayerCard() {
                 )}
               </div>
               <div style={{ marginTop: 8, fontSize: 11, color: '#65676B' }}>
-                Scan at kiosk or show to staff • Refreshes every 30s
+                Scan At Kiosk Or Show To Staff • Refreshes Every 30s
               </div>
             </div>
           </div>

@@ -55,14 +55,14 @@ function SquadCard({ squad, onView }) {
           <span className="text-[#64748B]">Position #{squad.position}</span>
           <span className="flex items-center gap-1 text-[#22D3EE]">
             <Clock className="w-4 h-4" />
-            ~{squad.estimated_wait || '--'} min
+            ~{squad.estimated_wait || '--'} Min
           </span>
         </div>
       )}
 
       {squad.status === 'forming' && (
         <div className="text-sm text-[#F59E0B]">
-          Waiting for {memberCount - confirmedCount} member(s) to confirm
+          Waiting For {memberCount - confirmedCount} Member(S) To Confirm
         </div>
       )}
     </button>
@@ -77,7 +77,7 @@ function EmptyState({ onCreateSquad }) {
       </div>
       <h3 className="font-bold text-white mb-2">No Active Squads</h3>
       <p className="text-[#64748B] mb-6">
-        Create a squad to join a waitlist with friends and get seated together.
+        Create A Squad To Join A Waitlist With Friends And Get Seated Together.
       </p>
       <button
         onClick={onCreateSquad}
@@ -205,11 +205,11 @@ export default function SquadsPage() {
                             <p className="text-sm text-[#64748B]">{invitation.venue_name}</p>
                           </div>
                           <span className="text-sm text-[#64748B]">
-                            {invitation.member_count} members
+                            {invitation.member_count} Members
                           </span>
                         </div>
                         <p className="text-sm text-[#64748B] mb-3">
-                          {invitation.leader_name} invited you to join for {invitation.stakes} {invitation.game_type?.toUpperCase()}
+                          {invitation.leader_name} Invited You To Join For {invitation.stakes} {invitation.game_type?.toUpperCase()}
                         </p>
                         <div className="flex gap-2">
                           <button
@@ -257,15 +257,15 @@ export default function SquadsPage() {
                 <ul className="space-y-2 text-sm text-[#64748B]">
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">1</span>
-                    Create a squad and invite friends
+                    Create A Squad And Invite Friends
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">2</span>
-                    Once everyone confirms, join the waitlist together
+                    Once Everyone Confirms, Join The Waitlist Together
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">3</span>
-                    Get seated at the same table when available
+                    Get Seated At The Same Table When Available
                   </li>
                 </ul>
               </section>

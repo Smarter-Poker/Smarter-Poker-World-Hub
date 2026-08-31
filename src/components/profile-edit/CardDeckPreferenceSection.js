@@ -13,7 +13,7 @@ export default function CardDeckPreferenceSection({ profile, updateField }) {
     return (
 <CollapsibleSection id="sec-cards" title="Card Deck Preference" icon="🎴">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
-                            Choose your preferred card back design. This will be used across all games (Training, Club Arena, Diamond Arena).
+                            Choose Your Preferred Card Back Design. This Will Be Used Across All Games (Training, Club Arena, Diamond Arena).
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>

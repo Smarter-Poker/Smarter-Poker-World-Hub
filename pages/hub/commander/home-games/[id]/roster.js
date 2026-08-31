@@ -25,7 +25,7 @@ function AnnounceModal({ isOpen, onClose, onSend, sending }) {
         </div>
         <div className="p-4">
           <p className="text-sm text-[#64748B] mb-4">
-            This will send a Push Notification to all opted-in players. Use this for urgent updates like game cancellations or table changes.
+            This Will Send A Push Notification To All Opted-In Players. Use This For Urgent Updates Like Game Cancellations Or Table Changes.
           </p>
           <textarea
             value={message}
@@ -215,7 +215,7 @@ export default function HomeGameRosterPage() {
                 <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-white">Database of Players</h1>
+                <h1 className="font-bold text-white">Database Of Players</h1>
                 <p className="text-sm text-[#64748B]">{group?.name}</p>
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function HomeGameRosterPage() {
                 ))}
                 {roster.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-[#64748B]">No players in roster</td>
+                    <td colSpan={6} className="p-8 text-center text-[#64748B]">No Players In Roster</td>
                   </tr>
                 )}
               </tbody>
