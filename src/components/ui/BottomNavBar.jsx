@@ -75,7 +75,9 @@ import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterN
 // Keep the global footer above page-local fixed overlays and decorative shells.
 // Product modals/portals can still use the browser top layer when they must
 // intentionally cover navigation.
-export const BOTTOM_NAV_Z = 2147483000;
+// Page content stays below the footer, while dialogs/sheets (typically 1000+)
+// must remain truly modal and clickable above it.
+export const BOTTOM_NAV_Z = 900;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
@@ -292,6 +294,9 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
         translate: 'none',
         transition: 'none',
         animation: 'none',
+        // Only the authored controls should receive pointer input. Transparent
+        // artwork capture margins must never become an invisible click shield.
+        pointerEvents: 'none',
       }}
     >
       <div
@@ -302,6 +307,10 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
           ...artworkStageStyle(artwork),
           position: 'relative',
           minWidth: 0,
+          // Only the six explicit destination hit zones should capture input.
+          // The transparent remainder of the full artwork frame otherwise
+          // blocks buttons and links near the bottom of marketplace pages.
+          pointerEvents: 'none',
         }}
       >
         <img
@@ -358,6 +367,7 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
                 textDecoration: 'none',
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
+                pointerEvents: 'auto',
               }}
             />
           );
@@ -374,6 +384,12 @@ function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
             }
             @media (prefers-reduced-motion: reduce) {
               .bn-artwork-nav, .bn-artwork-hit-zone { transition: none !important; }
+            }
+            html {
+              scroll-padding-bottom: calc(min(${((displayBounds.height / displayBounds.width) * 100).toFixed(4)}vw, ${displayBounds.height}px) + 16px + env(safe-area-inset-bottom, 0px));
+            }
+            :root {
+              --active-world-footer-height: min(${((displayBounds.height / displayBounds.width) * 100).toFixed(4)}vw, ${displayBounds.height}px);
             }
           `,
         }}

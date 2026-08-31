@@ -19,13 +19,13 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import {
   chooseTrainingCacheMatch,
   mapTrainingQuestionToAnalysis,
 } from '../../../../src/lib/sandbox/trainingCacheSolver.mjs';
 import { getGrokClient } from '../../../../src/lib/grokClient';
-import { rateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { rateLimit, LIMITS, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -1187,15 +1187,13 @@ async function persistSandboxAnalysis({
       primary_action: responseData.optimalAction?.label,
       primary_frequency: responseData.optimalAction?.frequency,
       alternative_actions: responseData.actions?.filter(action => !action.isOptimal),
-      data_source: responseData.matchTier <= 3 ? 'solver_verified' : 'ai_approx',
+      data_source: responseData.truthLevel || 'ai_approx',
       confidence: responseData.confidence?.toLowerCase(),
       sensitivity_flags: Number(heroStack) < 50 ? ['stack_sensitive'] : [],
       why_not_check: explanation,
       full_analysis: responseData,
       truth_seal: {
-        source: responseData.matchTier <= 2
-          ? 'solver_verified'
-          : responseData.matchTier === 3 ? 'solver_approx' : 'ai_approx',
+        source: responseData.truthLevel || 'ai_approx',
         matchTier: responseData.matchTier,
         canonicalQuestionId: responseData.canonicalQuestionId || null,
         timestamp: new Date().toISOString(),
@@ -1247,21 +1245,21 @@ export default async function handler(req, res) {
     }
 
     try {
-      // JWT Authentication — optional for guest access
+      // Analysis is account-only. Never downgrade an invalid or expired
+      // account session to anonymous/education access.
       let userId = null;
       const authHeader = req.headers.authorization;
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          // NOTE: `authError` was referenced here instead of `authErr`. Module
-          // code is strict-mode, so that threw a ReferenceError on EVERY
-          // authenticated request, was swallowed by the catch below, and left
-          // userId null — no session row, no stats, no context-authority check.
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-          if (!authErr && authUser) {
-            userId = authUser.id;
-          }
-        } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
       }
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+      if (authErr || !authUser) {
+        return res.status(401).json({ success: false, error: 'Invalid or expired session' });
+      }
+      userId = authUser.id;
+      if (!await applyDurableRateLimit(getSupabase(), res, {
+        key: `pa:sandbox:analyze:${userId}`, max: 30, windowSeconds: 60,
+      })) return;
 
       const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, villainRange, socratic } = req.body || {};
 
@@ -1270,18 +1268,15 @@ export default async function handler(req, res) {
       const rawBubble = Number(req.body?.bubbleFactor);
       const bubbleFactor = isFinite(rawBubble) && rawBubble > 0 ? rawBubble : 1.0;
 
-      // Context authority check — only for authenticated users
-      if (userId) {
-        try {
-          const contextAccess = await checkSandboxAccess(getSupabase(), userId);
-          if (!contextAccess.allowed) {
-            return res.status(403).json({
-              success: false, blocked: true,
-              contextState: contextAccess.contextState,
-              error: contextAccess.message,
-            });
-          }
-        } catch (accessErr) { console.warn('[App] Handled exception:', accessErr?.message || accessErr); }
+      // Full analysis is post-session/training only. The authority helper is
+      // fail-closed, and the feature-level gate also excludes limited review.
+      const contextAccess = await checkSandboxAccess(getSupabase(), userId);
+      if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'sandbox_analyze')) {
+        return res.status(403).json({
+          success: false, blocked: true,
+          contextState: contextAccess.contextState,
+          error: contextAccess.message || 'Sandbox analysis is unavailable in the current session context.',
+        });
       }
 
       // (Rate limiting happens at the top of the handler, before any DB work.)
@@ -1320,6 +1315,7 @@ export default async function handler(req, res) {
       let matchTier = 4;
       let source = 'Grok AI Analysis';
       let explanation = '';
+      let solverBacked = false;
 
       const solverResult = await querySolverData({
         heroHand, heroPosition, heroStack, gameType, board, facingBet,
@@ -1334,6 +1330,7 @@ export default async function handler(req, res) {
           // Training, and Leak Finder read the same action ids/frequencies.
           analysis = mapTrainingQuestionToAnalysis(solverResult.trainingQuestion, { facingBet });
           if (analysis) {
+            solverBacked = true;
             explanation = analysis.explanation
               || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
           }
@@ -1341,6 +1338,7 @@ export default async function handler(req, res) {
           // Preflop chart data (short-stack push/fold only)
           analysis = parsePreflopChart(solverResult.chart, heroNotation);
           if (analysis) {
+            solverBacked = true;
             rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
             explanation = buildExplanation(analysis, matchTier, 'preflop', exploitMode, villainArchetype, bubbleFactor);
           }
@@ -1349,6 +1347,7 @@ export default async function handler(req, res) {
           analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot, facingBet);
 
           if (analysis) {
+            solverBacked = true;
             rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix, facingBet);
             explanation = buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
           }
@@ -1378,6 +1377,12 @@ export default async function handler(req, res) {
       }
 
       // ━━━ BUILD RESPONSE ━━━
+      // Only an exact canonical Training question proves the full decision
+      // context. Raw solved-board lookups omit position/action-line identity
+      // and therefore remain approximations even when the board is exact.
+      const truthLevel = solverBacked && solverResult?.trainingQuestion && matchTier === 1
+        ? 'solver_verified'
+        : (solverBacked ? 'solver_approx' : 'ai_approx');
       const responseData = {
         // Core analysis
         heroHand: analysis.heroHand,
@@ -1390,8 +1395,9 @@ export default async function handler(req, res) {
         // Metadata
         source,
         matchTier,
+        truthLevel,
         street,
-        confidence: matchTier <= 2 ? 'High' : matchTier === 3 ? 'Medium' : 'Low',
+        confidence: truthLevel === 'solver_verified' ? 'High' : truthLevel === 'solver_approx' ? 'Medium' : 'Low',
         canonicalQuestionId: solverResult?.cacheRow?.question_id || null,
 
         // Range heatmap (may be null for Grok fallback)

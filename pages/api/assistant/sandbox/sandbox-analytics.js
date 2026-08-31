@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
         if (req.method === 'POST') {
-            const { position, street, gameType, action, isCorrect, handStrength } = req.body || {};
+            const { position, street, gameType, action, handStrength } = req.body || {};
 
             // Whitelist the dimensions we aggregate on; free text is bounded.
             const pos = POSITIONS.includes(String(position || '').toUpperCase())
@@ -57,7 +57,9 @@ export default async function handler(req, res) {
                     street: st,
                     game_type: String(gameType || 'cash').slice(0, 20),
                     action_taken: action ? String(action).slice(0, 40) : null,
-                    is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
+                    // Descriptive study telemetry is accepted here, but score
+                    // truth is written only by server-graded quiz/coach routes.
+                    is_correct: null,
                     hand_strength: handStrength ? String(handStrength).slice(0, 40) : null,
                 });
 

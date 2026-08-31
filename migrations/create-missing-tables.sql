@@ -304,7 +304,13 @@ CREATE TABLE IF NOT EXISTS leak_hand_examples (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE leak_hand_examples ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anyone_read_examples" ON leak_hand_examples FOR SELECT USING (true);
+CREATE POLICY "users_read_own_leak_examples" ON leak_hand_examples
+  FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM user_leaks
+    WHERE user_leaks.id = leak_hand_examples.leak_id
+      AND user_leaks.user_id = (SELECT auth.uid())
+  ));
 CREATE INDEX idx_leak_hand_examples_leak_id ON leak_hand_examples(leak_id);
 CREATE INDEX idx_leak_hand_examples_hand_id ON leak_hand_examples(hand_history_id);
 

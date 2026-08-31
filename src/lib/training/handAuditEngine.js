@@ -91,6 +91,10 @@ function positionedPlayers(rawPlayers, buttonSeat) {
 /** Convert a persisted Club Arena hand into the parser's canonical hand shape. */
 export function normalizeClubArenaHand(row, userId) {
   const summary = parseJson(row?.summary) || {};
+  const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
+  // Missing/unsupported variants must never be silently priced with NLHE
+  // ranges. A false solver match is worse than leaving a hand unpriced.
+  if (!['nlh', 'nlhe', 'no-limit-holdem', 'holdem'].includes(gameType)) return null;
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -112,7 +116,6 @@ export function normalizeClubArenaHand(row, userId) {
     heroRaw.heroCards,
     heroRaw.cards,
     row?.hole_cards?.[userId],
-    summary.heroCards,
   ].map(cards).find(candidate => candidate.length >= 2) || [];
   if (heroCards.length < 2) return null;
 
@@ -123,14 +126,26 @@ export function normalizeClubArenaHand(row, userId) {
     const source = Array.isArray(summaryActions) && summaryActions.length > 0
       ? summaryActions
       : topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
-    return source.map(action => ({
-      player: action.player || action.playerName || action.username || '',
-      playerId: action.playerId ?? action.userId ?? action.player_id,
-      action: actionName(action),
-      amount: Number(action.amount) || 0,
-      isHero: action.isHero === true || action.is_hero === true
-        || String(action.playerId ?? action.userId ?? action.player_id) === String(userId),
-    })).filter(action => action.action);
+    return source.map(action => {
+      const actionPlayer = action.player || action.playerName || action.username || '';
+      const actionPlayerId = action.playerId ?? action.userId ?? action.player_id;
+      const hasPlayerId = actionPlayerId !== null && actionPlayerId !== undefined && String(actionPlayerId) !== '';
+      const heroNames = [heroRaw.displayName, heroRaw.username, heroRaw.name]
+        .filter(Boolean).map(name => String(name).trim().toLowerCase());
+      // An explicit player id is authoritative even when a legacy boolean
+      // incorrectly says isHero. Without an id, require an identity-bound
+      // name match; never trust an unscoped isHero flag by itself.
+      const isHero = hasPlayerId
+        ? String(actionPlayerId) === String(userId)
+        : heroNames.includes(String(actionPlayer).trim().toLowerCase());
+      return {
+        player: actionPlayer,
+        playerId: actionPlayerId,
+        action: actionName(action),
+        amount: Number(action.amount) || 0,
+        isHero,
+      };
+    }).filter(action => action.action);
   };
 
   const flop = cards(summaryStreets?.flop?.cards || summaryStreets?.flop?.board);
@@ -146,8 +161,8 @@ export function normalizeClubArenaHand(row, userId) {
   return {
     id: `club-arena:${row.id || summary.id || summary.handId || row.hand_number}`,
     site: 'smarter-poker-club-arena',
-    format: summary.format || 'cash',
-    gameType: String(row.game_variant || summary.variant || 'nlhe').toLowerCase(),
+    format: summary.format || row?.format || 'unknown',
+    gameType: ['nlh', 'nlhe'].includes(gameType) ? 'nlhe' : 'no-limit-holdem',
     tableSize: players.length,
     buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
     players,
@@ -647,6 +662,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     legacy: cursor?.legacy || null,
     modernDone: cursor?.modernDone === true,
     legacyDone: cursor?.legacyDone === true,
+    cumulativeHandsFound: Math.max(0, Number(cursor?.cumulativeHandsFound) || 0),
   };
   const [modern, legacy] = await Promise.all([
     fetchClubHandsForKey(db, userId, 'userId', {
@@ -662,6 +678,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     return {
       available: false,
       handsFound: 0,
+      cumulativeHandsFound: requestedCursor.cumulativeHandsFound,
       handsEligible: 0,
       handsAudited: 0,
       decisionsAnalyzed: 0,
@@ -673,14 +690,15 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   const byId = new Map();
   for (const row of [...(modern.data || []), ...(legacy.data || [])]) byId.set(String(row.id), row);
   const sourceIncomplete = modern.complete !== true || legacy.complete !== true;
+  const handRows = [...byId.values()];
   const advancedCursor = {
     snapshotAt,
     modern: modern.nextCursor,
     legacy: legacy.nextCursor,
     modernDone: modern.complete === true,
     legacyDone: legacy.complete === true,
+    cumulativeHandsFound: requestedCursor.cumulativeHandsFound + handRows.length,
   };
-  const handRows = [...byId.values()];
   const privateFacts = await fetchPrivateHeroCards(db, userId, handRows);
   let privateCardsRecovered = 0;
   const rowsWithPrivateCards = handRows.map(row => {
@@ -699,6 +717,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       privateCardsRecovered,
       handsMissingPrivateCards,
       handsFound: handRows.length,
+      cumulativeHandsFound: requestedCursor.cumulativeHandsFound,
       handsEligible: normalized.length,
       handsAudited: 0,
       decisionsAnalyzed: 0,
@@ -713,6 +732,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       available: true,
       partial: errors.length > 0,
       handsFound: handRows.length,
+      cumulativeHandsFound: errors.length === 0
+        ? advancedCursor.cumulativeHandsFound
+        : requestedCursor.cumulativeHandsFound,
       handsEligible: 0,
       privateFactsAvailable: privateFacts.available,
       privateCardsRecovered,
@@ -795,6 +817,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     available: true,
     partial: errors.length > 0,
     handsFound: handRows.length,
+    cumulativeHandsFound: pageSucceeded
+      ? advancedCursor.cumulativeHandsFound
+      : requestedCursor.cumulativeHandsFound,
     handsEligible,
     privateFactsAvailable: privateFacts.available,
     privateCardsRecovered,

@@ -118,6 +118,60 @@ const BACKGROUND_FILES = {
   final_table_broadcast: 'bg_final_table_broadcast.jpg',
 };
 
+/**
+ * DEALER BUTTON per Controls design (Arena button_id).
+ *
+ * Copied VERBATIM from club-arena/src/components/table/ControlThemeTokens.css,
+ * which sets seven CSS custom properties per design. Only these two are
+ * carried here, and deliberately so: the other five style Fold / Check /
+ * Raise, and no World Hub surface has those controls. Shipping the full sheet
+ * would put five variables in the bundle that nothing reads - the exact
+ * "defined 37 times, read by var() zero times" defect Arena's own comments
+ * record. If a Hub surface ever grows real action controls, port the rest
+ * then, next to their consumer.
+ */
+const DEALER_BUTTON_STYLES = {
+  'classic-white': {
+    bg: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 50%, #d0d0d0 100%)',
+    color: '#111',
+  },
+  'red-d-gear': { bg: 'linear-gradient(135deg, #c62828, #e53935)', color: '#fff' },
+  'gray-d-gear': { bg: 'linear-gradient(135deg, #616161, #757575)', color: '#fff' },
+  'blue-crystal': { bg: 'linear-gradient(135deg, #1565c0, #42a5f5)', color: '#fff' },
+  'gold-star': { bg: 'linear-gradient(135deg, #f57f17, #fbc02d)', color: '#1a1a1e' },
+  'sports-themed': { bg: 'linear-gradient(135deg, #2ea043, #4dc660)', color: '#fff' },
+  'jade-seal': {
+    bg: 'radial-gradient(circle at 34% 28%, #d6f7df 0%, #4dc660 35%, #145039 74%, #09271d 100%)',
+    color: '#f4fff8',
+  },
+  'amethyst-chip': {
+    bg: 'radial-gradient(circle at 34% 28%, #ecdfff 0%, #9c69d2 34%, #4a2476 72%, #1e0d34 100%)',
+    color: '#fff',
+  },
+  'carbon-ion': {
+    bg: 'conic-gradient(from 20deg, #12181b, #38464a, #0d1214, #263438, #12181b)',
+    color: '#65ead8',
+  },
+  'ocean-pearl': {
+    bg: 'radial-gradient(circle at 32% 25%, #ffffff 0%, #dff5fb 30%, #71b8d2 70%, #2c708d 100%)',
+    color: '#092b3d',
+  },
+};
+
+/** Theme-preset ids -> the Controls design they bundle (Arena catalog). */
+const PRESET_BUTTONS = {
+  'default-dark': 'classic-white',
+  'classic-brown': 'gray-d-gear',
+  'neon-blue': 'blue-crystal',
+  'rustic-wood': 'gold-star',
+  'casino-green': 'gold-star',
+  'ocean-depths': 'classic-white',
+  'crimson-club': 'red-d-gear',
+  'arctic-suite': 'ocean-pearl',
+  'amethyst-night': 'amethyst-chip',
+  'carbon-ion': 'carbon-ion',
+};
+
 const CARD_BACK_IDS = [
   'classic_blue', 'classic_red', 'royal', 'neon', 'galaxy', 'diamond',
   'dragon', 'gold', 'carbon', 'holographic', 'club-branded', 'diamond-foil',
@@ -186,6 +240,19 @@ export function resolveArenaBackgroundLayers(backgroundId) {
   return `${AMBIENCE}, url(${BG_BASE}/${file}), ${BACKDROP}`;
 }
 
+/**
+ * The dealer-button paint for a saved button_id, falling back through the
+ * theme preset and finally to Arena's own default. Never returns undefined:
+ * a table with no dealer marker is worse than one wearing the default.
+ */
+export function resolveArenaDealerButton(buttonId, themeId) {
+  const direct = buttonId && DEALER_BUTTON_STYLES[buttonId];
+  if (direct) return direct;
+  const viaPreset = themeId && PRESET_BUTTONS[themeId];
+  if (viaPreset && DEALER_BUTTON_STYLES[viaPreset]) return DEALER_BUTTON_STYLES[viaPreset];
+  return DEALER_BUTTON_STYLES['classic-white'];
+}
+
 export function resolveArenaCardBackUrl(cardsId) {
   const id = CARD_BACK_IDS.includes(cardsId) ? cardsId : 'classic_blue';
   return `${CARD_BACK_BASE}/${id}.webp`;
@@ -244,6 +311,8 @@ export function getClubArenaTheme() {
     feltGradient: resolveArenaFeltGradient(row?.table_id, row?.theme_id),
     backgroundLayers: resolveArenaBackgroundLayers(row?.background_id),
     cardBackUrl: resolveArenaCardBackUrl(row?.cards_id),
+    buttonId: row?.button_id || null,
+    dealerButton: resolveArenaDealerButton(row?.button_id, row?.theme_id),
   };
 }
 

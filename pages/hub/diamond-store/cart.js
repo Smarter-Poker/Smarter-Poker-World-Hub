@@ -747,6 +747,7 @@ export default function ShoppingCart() {
                     <button
                       type="button"
                       role="radio"
+                      aria-label="Pay With Diamonds"
                       aria-checked={usingDiamonds}
                       tabIndex={usingDiamonds ? 0 : -1}
                       onClick={() => setPayWithDiamonds(true)}
@@ -830,6 +831,7 @@ export default function ShoppingCart() {
                   <button
                     type="button"
                     role="radio"
+                    aria-label="Pay With Card"
                     aria-checked={!usingDiamonds}
                     tabIndex={!usingDiamonds ? 0 : -1}
                     onClick={() => setPayWithDiamonds(false)}

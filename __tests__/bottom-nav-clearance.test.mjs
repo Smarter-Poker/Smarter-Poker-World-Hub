@@ -214,6 +214,9 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(nav, /data-exact-approved-artwork="true"/);
   assert.match(nav, /className="bn-artwork-hit-zone"/);
   assert.match(nav, /minHeight: 44/);
+  assert.match(nav, /className="bn-artwork-stage"[\s\S]*pointerEvents: 'none'/);
+  assert.match(nav, /className="bn-artwork-hit-zone"[\s\S]*pointerEvents: 'auto'/);
+  assert.match(nav, /className="bn-nav bn-artwork-nav"[\s\S]*pointerEvents: 'none'/);
   assert.match(nav, /objectFit: 'contain'/);
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);

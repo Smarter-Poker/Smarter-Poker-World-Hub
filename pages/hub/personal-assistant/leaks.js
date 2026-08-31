@@ -1118,8 +1118,8 @@ function ResolutionProgressSection({ record }) {
   }
 
   return (
-    <section style={styles.detailSection} aria-label="Progress to resolution">
-      <h3 style={styles.detailSectionTitle}>Progress to resolution</h3>
+    <section style={styles.detailSection} aria-label="Progress To Resolution">
+      <h3 style={styles.detailSectionTitle}>Progress To Resolution</h3>
 
       <div style={styles.progressHeaderRow}>
         <span style={{ ...styles.progressPercent, ...numeric, color: tone }}>
@@ -1318,7 +1318,7 @@ function LeakDetail({
             </div>
           ) : examplesError ? (
             <ErrorState
-              title="Could not load example hands"
+              title="Could Not Load Example Hands"
               body={String(examplesError)}
               onRetry={refetchExamples}
             />
@@ -1740,12 +1740,11 @@ export default function LeakFinderPage() {
     if (Number.isFinite(last) && last > 0 && Date.now() - last < COOLDOWN_MS) return;
 
     autoDetectRef.current = true;
-    safeStorage.set(KEY, String(Date.now()));   // written BEFORE the call, so a
-                                                // failure cannot spin the retry
     setAutoDetecting(true);
     (async () => {
       try {
-        await runDetection();
+        const result = await runDetection();
+        if (result?.success === true) safeStorage.set(KEY, String(Date.now()));
       } catch (e) {
         console.warn('[LeakFinder] auto-detection failed:', e?.message || e);
       } finally {
@@ -2392,7 +2391,7 @@ export default function LeakFinderPage() {
               {leaksError && !leaksLoading && (
                 <div style={{ marginBottom: S.md }}>
                   <ErrorState
-                    title="Could not load your leaks"
+                    title="Could Not Load Your Leaks"
                     body={friendlyLoadError(leaksError)}
                     onRetry={() => refetchLeaks()}
                   />
@@ -2428,7 +2427,7 @@ export default function LeakFinderPage() {
                   />
                   {(onboardingLeaks || []).length > 0 && (
                     <div>
-                      <h2 style={styles.sectionHeading}>Example leaks (not yours)</h2>
+                      <h2 style={styles.sectionHeading}>Example Leaks (Not Yours)</h2>
                       <ul className="leak-list-grid" style={styles.leakList} role="list">
                         {onboardingLeaks.slice(0, 3).map(leak => (
                           <LeakCard
@@ -2506,7 +2505,7 @@ export default function LeakFinderPage() {
                     <EmptyState
                       compact
                       icon={<Search size={22} strokeWidth={2} />}
-                      title="No matching leaks"
+                      title="No Matching Leaks"
                       body="No leak matches this filter. Clear the search or switch back to All."
                       action={(
                         <button
@@ -2601,24 +2600,24 @@ export default function LeakFinderPage() {
             <section id="leak-insights" aria-label="Insights">
               <h2 style={styles.sectionHeading}>
                 <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
-                Session analytics
+                Session Analytics
               </h2>
 
               <div className="leak-insights-grid" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                <LeakErrorBoundary label="Session analytics">
+                <LeakErrorBoundary label="Session Analytics">
                   <SessionAnalytics userId={userId} />
                 </LeakErrorBoundary>
 
                 {/* Worst coach-mode spots */}
                 <div className={toolStyles.instrumentPanel} style={card}>
-                  <h3 style={styles.cardHeading}>Worst coach-mode spots</h3>
+                  <h3 style={styles.cardHeading}>Worst Coach-Mode Spots</h3>
                   {coachLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
                       <Skeleton h={56} />
                       <Skeleton h={56} />
                     </div>
                   ) : coachError ? (
-                    <ErrorState title="Coach stats unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
+                    <ErrorState title="Coach Stats Unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
                   ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
                     <p style={styles.detailBody}>
                       No coach-mode mistakes recorded yet. Turn on coach mode in the sandbox and your worst spots appear here.

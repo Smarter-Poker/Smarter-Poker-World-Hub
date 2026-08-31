@@ -123,3 +123,29 @@ export function applyRateLimit(req, res, opts = {}) {
     }
     return true;
 }
+
+/** Durable companion for expensive authenticated routes. */
+export async function applyDurableRateLimit(supabase, res, {
+    key, max = 30, windowSeconds = 60,
+} = {}) {
+    if (!supabase || !key) {
+        res.status(503).json({ success: false, error: 'Rate-limit authority unavailable' });
+        return false;
+    }
+    const { data, error } = await supabase.rpc('check_rate_limit_strict', {
+        p_key: String(key).slice(0, 240),
+        p_limit: Math.max(1, Math.trunc(max)),
+        p_window_seconds: Math.max(1, Math.trunc(windowSeconds)),
+    });
+    if (error) {
+        console.warn('[RateLimit] Durable authority failed closed:', error.message);
+        res.status(503).json({ success: false, error: 'Request protection is temporarily unavailable' });
+        return false;
+    }
+    if (data !== true) {
+        res.setHeader('Retry-After', String(windowSeconds));
+        res.status(429).json({ success: false, error: 'Too many requests', retryAfter: windowSeconds });
+        return false;
+    }
+    return true;
+}

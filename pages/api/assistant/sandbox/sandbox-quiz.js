@@ -8,6 +8,8 @@ import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
+import { curatedWeeklySpotById } from '../../../../src/lib/personal-assistant/weeklySpotCatalog';
+import { gradeAction } from '../../../../src/lib/sandbox/actionGrading';
 
 let _supabase = null;
 function getSupabase() {
@@ -37,16 +39,27 @@ export default async function handler(req, res) {
       const userId = authUser.id; // Trust JWT, not client-supplied value
 
       if (req.method === 'POST') {
-          const { scenarioHash, userAction, correctAction, isCorrect } = req.body || {};
-          if (!scenarioHash || !userAction || !correctAction) {
+          const { spotId, userAction } = req.body || {};
+          if (!spotId || !userAction) {
               return res.status(400).json({ error: 'Missing required fields' });
           }
+
+          let canonical = curatedWeeklySpotById(String(spotId));
+          if (!canonical) {
+              const { data, error: spotError } = await supabase
+                  .from('sandbox_weekly_spots').select('id, correct_action').eq('id', spotId).maybeSingle();
+              if (spotError || !data) return res.status(404).json({ error: 'Quiz spot not found' });
+              canonical = data;
+          }
+          const correctAction = String(canonical.correct_action || '').slice(0, 40);
+          if (!correctAction) return res.status(422).json({ error: 'Quiz spot has no answer key' });
+          const isCorrect = gradeAction(userAction, correctAction);
 
           try {
               // Save quiz result
               const { error } = await supabase.from('sandbox_quiz_results').insert({
                   user_id: userId,
-                  scenario_hash: String(scenarioHash).slice(0, 120),
+                  scenario_hash: String(spotId).slice(0, 120),
                   user_action: String(userAction).slice(0, 40),
                   correct_action: String(correctAction).slice(0, 40),
                   is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
@@ -60,7 +73,7 @@ export default async function handler(req, res) {
                   ));
               }
 
-              return res.status(200).json(persistedResult());
+              return res.status(200).json(persistedResult({ isCorrect, correctAction }));
           } catch (err) {
               console.warn('Quiz API error:', err);
               return res.status(500).json({ error: 'Internal server error' });
