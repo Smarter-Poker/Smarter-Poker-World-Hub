@@ -200,3 +200,24 @@ membership errors fail closed instead of masquerading as “No Club Found”; an
 unmount cleanup invalidates pending work. The mandatory Marketplace gate now
 contains 190 contracts, including this terminal-state and latest-request-wins
 regression.
+
+### Authenticated Club Shop Data-Path Closure — 2026-08-31
+
+The first post-publication signed-in replay proved that the infinite loader was
+gone, but it also showed that the browser's direct `club_members` read could
+time out while authenticated server APIs (including the order ledger) remained
+healthy. A retryable error is a safe terminal state, but it is not a usable
+storefront, so Phase 1 remained open.
+
+Membership resolution now runs inside the authenticated `marketplace-items`
+API. The optional `clubId` remains membership-checked, while an omitted ID is
+resolved from the signed-in user's server-owned membership record. A user with
+no club receives an explicit successful empty-store response; an unauthorized
+requested club still fails with 403. The browser now makes one bounded,
+abortable request and receives the verified club ID with the catalog response.
+
+Independent balance/catalog reads and catalog-count, per-user-count, and
+purchase-history reads execute concurrently. Every result that affects balance
+or limits is error-checked, preserving fail-closed commerce behavior while
+removing avoidable database round trips. No purchase, Diamond burn, card
+settlement, inventory, entitlement, commission, or Printful contract changed.
