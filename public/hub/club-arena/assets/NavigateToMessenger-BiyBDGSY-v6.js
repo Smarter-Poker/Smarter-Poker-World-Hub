@@ -1,0 +1,2 @@
+import{d as i,c as d,r as u}from"./vendor-react-C6BNlpfB-v6.js";function m(){const[s]=i(),{clubId:a,conversationId:t}=d();return u.useEffect(()=>{const e=new URLSearchParams(s),o=a||s.get("club");o&&e.set("clubId",o),t&&e.set("conversation",t);const n=s.get("uid")||s.get("compose");n&&e.set("uid",n),e.delete("hideHeader"),e.delete("bottomPad");const r=e.toString(),c=`/hub/messenger${r?"?"+r:""}`;window.location.replace(c)},[a,t,s]),null}export{m as default};
+//# sourceMappingURL=NavigateToMessenger-BiyBDGSY-v6.js.map

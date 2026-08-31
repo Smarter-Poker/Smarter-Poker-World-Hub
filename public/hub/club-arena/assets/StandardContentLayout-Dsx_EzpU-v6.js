@@ -1,2 +1,0 @@
-import{j as e}from"./vendor-react-C2kmzSSi-v6.js";const s="_pageContainer_sz872_6",c="_contentColumn_sz872_31",i="_feedLayout_sz872_38",l="_pageTitle_sz872_45",n={pageContainer:s,contentColumn:c,feedLayout:i,pageTitle:l};function d({children:a,title:t,className:o=""}){return e.jsx("div",{className:`${n.pageContainer} ${o}`,children:e.jsxs("div",{className:n.contentColumn,children:[t&&e.jsx("h1",{className:n.pageTitle,children:t}),e.jsx("div",{className:n.feedLayout,children:a})]})})}export{d as S};
-//# sourceMappingURL=StandardContentLayout-Dsx_EzpU-v6.js.map
