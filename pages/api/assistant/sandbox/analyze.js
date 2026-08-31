@@ -30,6 +30,7 @@ import {
   applyNodeLockModel,
   buildDecisionFingerprint,
   buildDecisionLine,
+  isHeroFacingWager,
   validateAndNormalizeScenario,
 } from '../../../../src/lib/sandbox/scenarioContract.mjs';
 import { getGrokClient } from '../../../../src/lib/grokClient';
@@ -67,6 +68,11 @@ function getActionLabel(actionCode, potSize = 6, facingBet = false) {
   if (typeof actionCode !== 'string' || actionCode.length === 0) return 'Unknown';
   // 'c' means "check" when the action is open, "call" when facing a bet.
   if (actionCode === 'c') return facingBet ? 'Call' : 'Check';
+  // The fallback model uses the solver's compact bXX sizing vocabulary in
+  // both states. Once a wager is outstanding the exact same sizing denotes a
+  // raise, never a second opening bet.
+  const contextualSize = actionCode.match(/^b(\d+)$/);
+  if (facingBet && contextualSize) return `Raise ${contextualSize[1]}%`;
   if (ACTION_LABELS[actionCode]) return ACTION_LABELS[actionCode];
   const betMatch = actionCode.match(/^b(\d+)$/);
   if (betMatch) {
@@ -84,43 +90,6 @@ function getActionColor(actionLabel) {
     if (label.startsWith(key)) return color;
   }
   return '#3b82f6';
-}
-
-const AGGRESSIVE_ACTION_RE = /bet|raise|all[\s_-]?in|shove/;
-
-/**
- * Whether hero is facing a bet/raise ON THE CURRENT STREET.
- * Used to disambiguate the 'c' action code (Check vs Call).
- *
- * Scanning the whole history is wrong: a villain's PREFLOP raise would keep
- * reading as "facing a bet" on the flop/turn/river, so hero would be told to
- * 'Call' when they are actually first to act and should see 'Check'.
- *
- * Newer clients tag each entry with `street`; when any entry carries the tag we
- * filter to the current street. For untagged legacy payloads we fall back to
- * "the LAST entry overall is an aggressive villain action" — i.e. hero has not
- * acted since, which is the only safe read without street information.
- */
-function isFacingBet(actionHistory, heroPosition, currentStreet) {
-  if (!Array.isArray(actionHistory) || actionHistory.length === 0) return false;
-  const entries = actionHistory.filter(a => a && typeof a === 'object');
-  if (entries.length === 0) return false;
-
-  const isAggressive = (a) =>
-    AGGRESSIVE_ACTION_RE.test(`${a.action || ''} ${a.label || ''}`.toLowerCase());
-
-  const tagged = entries.some(a => typeof a.street === 'string' && a.street);
-  if (tagged && currentStreet) {
-    const onStreet = entries.filter(a => a.street === currentStreet);
-    if (onStreet.length === 0) return false;
-    // The last action on this street decides: an aggressive villain action that
-    // hero has not yet answered means hero is facing a bet.
-    const last = onStreet[onStreet.length - 1];
-    return last.position !== heroPosition && isAggressive(last);
-  }
-
-  const last = entries[entries.length - 1];
-  return !!last && last.position !== heroPosition && isAggressive(last);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -893,7 +862,7 @@ function buildPreflopHeatmap(chart) {
 async function analyzeWithGrok(params) {
   try {
     const grok = getGrokClient();
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic, actionHistory } = params;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic, actionHistory, facingBet } = params;
 
     const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
     const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
@@ -965,6 +934,7 @@ RULES:
 - Frequencies MUST sum to 100
 - Provide 2-4 actions
 - Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
+- Hero Is Facing A Wager: ${facingBet ? 'Yes — c means Call and bXX means Raise XX%' : 'No — c means Check and bXX means Bet XX%'}
 - Be precise about GTO frequencies
 - Consider stack depth, position, and board texture`;
 
@@ -987,8 +957,6 @@ RULES:
     if (!jsonMatch) throw new Error('No JSON in Grok response');
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const facingBet = isFacingBet(params.actionHistory, heroPosition, getStreet(board));
-
     // Grok is NOT guaranteed to return actions sorted by frequency, nor to make
     // them sum to 100 — normalize both before trusting the ordering.
     //
@@ -997,24 +965,37 @@ RULES:
     // `typeof action.ev === 'number'` as "this EV was measured", which would
     // switch off its `evDeltaEstimated` warning for a number the model made up.
     // No per-action EV is derivable on this path, so none is emitted.
+    const allowedActionIds = new Set(facingBet
+      ? ['f', 'c', 'r', 'b25', 'b33', 'b50', 'b66', 'b75', 'b100', 'b150', 'allin']
+      : ['c', 'b25', 'b33', 'b50', 'b66', 'b75', 'b100', 'b150', 'allin']);
     const rawActions = (parsed.actions || [])
       .filter(a => a && typeof a === 'object')
-      .map(a => ({
-        id: typeof a.id === 'string' ? a.id : 'c',
-        label: typeof a.label === 'string' && a.label ? a.label : null,
-        frequency: Number(a.frequency) > 0 ? Number(a.frequency) : 0,
-      }));
+      .map(a => ({ id: String(a.id || '').trim().toLowerCase(), frequency: Number(a.frequency) }))
+      .filter(a => allowedActionIds.has(a.id) && Number.isFinite(a.frequency) && a.frequency > 0)
+      .slice(0, 4);
 
-    const freqTotal = rawActions.reduce((s, a) => s + a.frequency, 0);
-    const grokActions = rawActions
+    const combined = [...rawActions.reduce((map, action) => {
+      map.set(action.id, (map.get(action.id) || 0) + action.frequency);
+      return map;
+    }, new Map())].map(([id, frequency]) => ({ id, frequency }));
+
+    const freqTotal = combined.reduce((sum, action) => sum + action.frequency, 0);
+    const allocated = combined.map(action => {
+      const exact = freqTotal > 0 ? (action.frequency * 100) / freqTotal : 0;
+      return { ...action, exact, frequency: Math.floor(exact), remainder: exact - Math.floor(exact) };
+    });
+    let pointsLeft = 100 - allocated.reduce((sum, action) => sum + action.frequency, 0);
+    [...allocated].sort((a, b) => b.remainder - a.remainder || a.id.localeCompare(b.id))
+      .forEach(action => { if (pointsLeft > 0) { action.frequency += 1; pointsLeft -= 1; } });
+
+    const grokActions = allocated
       .map(a => {
-        const normalized = freqTotal > 0 ? (a.frequency * 100) / freqTotal : 0;
-        const label = a.label || getActionLabel(a.id, potSize, facingBet);
+        const label = getActionLabel(a.id, potSize, facingBet);
         return {
           id: a.id,
           label,
-          frequency: Math.round(normalized),
-          frequencyRaw: normalized / 100,
+          frequency: a.frequency,
+          frequencyRaw: a.frequency / 100,
           color: getActionColor(label),
           isOptimal: false,
         };
@@ -1028,10 +1009,11 @@ RULES:
       heroHand: heroHandToNotation(heroHand) || `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`.trim() || 'Unknown',
       actions: grokActions,
       optimalAction: grokActions[0] || { id: 'c', label: 'Check', frequency: 100, color: '#6b7280' },
-      isMixed: parsed.isMixed || false,
+      isMixed: grokActions.filter(action => action.frequency >= 5).length > 1,
       ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
-      explanation: parsed.explanation || 'Analysis based on GTO principles.',
-      confidence: parsed.confidence || 'Medium',
+      explanation: String(parsed.explanation || 'Analysis based on GTO principles.')
+        .replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 1200),
+      confidence: 'Low',
     };
   } catch (error) {
     console.warn('[Sandbox] Grok analysis failed:', error.message);
@@ -1047,12 +1029,18 @@ RULES:
  * client as a real EV (see the honesty contract above parseStrategyForHand).
  */
 function ruleBasedFallback(params) {
-  const { heroHand, heroPosition, heroStack, board, potSize } = params;
+  const { heroHand, heroPosition, heroStack, board, potSize, facingBet } = params;
   const street = getStreet(board);
   const inPosition = ['BTN', 'CO', 'HJ'].includes(heroPosition);
 
   let actions;
-  if (street === 'preflop') {
+  if (facingBet) {
+    actions = [
+      { id: 'c', label: 'Call', frequency: 50, color: '#f59e0b', isOptimal: true },
+      { id: 'f', label: 'Fold', frequency: 30, color: '#ef4444', isOptimal: false },
+      { id: 'r', label: 'Raise', frequency: 20, color: '#22c55e', isOptimal: false },
+    ];
+  } else if (street === 'preflop') {
     actions = [
       { id: 'r25', label: 'Raise 2.5x', frequency: 70, color: '#22c55e', isOptimal: true },
       { id: 'f', label: 'Fold', frequency: 20, color: '#ef4444', isOptimal: false },
@@ -1192,12 +1180,18 @@ async function persistSandboxAnalysis({
       data_source: responseData.truthLevel || 'ai_approx',
       confidence: responseData.confidence?.toLowerCase(),
       sensitivity_flags: Number(heroStack) < 50 ? ['stack_sensitive'] : [],
-      why_not_check: explanation,
+      why_not_check: responseData.explanation,
       full_analysis: responseData,
       truth_seal: {
         source: responseData.truthLevel || 'ai_approx',
         matchTier: responseData.matchTier,
         canonicalQuestionId: responseData.canonicalQuestionId || null,
+        decisionFingerprint: responseData.decisionFingerprint || null,
+        contextVerified: responseData.contextVerified === true,
+        contextMismatches: responseData.contextMismatches || [],
+        nodeLockApplied: responseData.nodeLockApplied === true,
+        nodeLocks: responseData.nodeLocks || [],
+        nodeLockModelVersion: responseData.nodeLockModelVersion || null,
         timestamp: new Date().toISOString(),
       },
     });
@@ -1302,7 +1296,7 @@ export default async function handler(req, res) {
       const street = getStreet(board);
       const heroNotation = heroHandToNotation(heroHand);
       const calculatedPot = potSize;
-      const facingBet = isFacingBet(actionHistory, heroPosition, street);
+      const facingBet = isHeroFacingWager(decisionContext);
 
       // Check cache
       const cacheKey = getCacheKey(decisionContext);
@@ -1376,13 +1370,13 @@ export default async function handler(req, res) {
         rangeHeatmap = null;
         analysis = await analyzeWithGrok({
           heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
-          exploitMode, villainArchetype, bubbleFactor, villainRange, socratic, actionHistory,
+          exploitMode, villainArchetype, bubbleFactor, villainRange, socratic, actionHistory, facingBet,
         });
 
         if (!analysis) {
           // Hard fallback
           analysis = ruleBasedFallback({
-            heroHand, heroPosition, heroStack, board, potSize: calculatedPot,
+            heroHand, heroPosition, heroStack, board, potSize: calculatedPot, facingBet,
           });
           source = 'Heuristic Estimation';
         }
