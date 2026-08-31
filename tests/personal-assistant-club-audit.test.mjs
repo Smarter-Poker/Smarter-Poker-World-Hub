@@ -669,7 +669,8 @@ await test('renders an inspectable audit receipt with coverage and retry telemet
   assert.ok(page.includes('Deterministic Audit Receipt'));
   assert.ok(page.includes('Retried For Coverage'));
   assert.ok(page.includes('Private Hands Recovered'));
-  assert.ok(page.includes('<AuditReceipt result={detectionResult} />'));
+  assert.ok(page.includes('<AuditReceipt result={detectionResult || (auditJob ? {'));
+  assert.ok(page.includes('reconciliation: auditJob.reconciliation'));
 });
 
 await test('persists authoritative Club Arena cards, board, payouts, rake, and pot', async () => {

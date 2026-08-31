@@ -20,6 +20,7 @@ import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant
 
 import { applyRateLimit, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
+import { openAuditJobToken } from '../../../../src/lib/personal-assistant/auditJobToken.mjs';
 
 export const config = { maxDuration: 60 };
 
@@ -37,7 +38,10 @@ function getSupabase() {
     return _supabase;
 }
 
-const AUDIT_CURSOR_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// Durable jobs can survive deploys and multi-day infrastructure outages. The
+// cursor remains owner-bound and HMAC-signed, so extending its recovery window
+// does not turn it into a bearer credential for another account.
+const AUDIT_CURSOR_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function auditCursorSecret() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET || '';
@@ -886,25 +890,41 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 
 export default async function handler(req, res) {
   try {
+    const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
     // The generic AI limit (5/minute) made accounts with >500 hands impossible
     // to finish, while 12 bounded, authenticated batches still keeps the route
     // protected at both token and infrastructure-IP levels.
-    if (!applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
+    if (!workerAuth && !applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
 
     // Require JWT auth for write operations
     let authenticatedUser = null;
     if (req.method !== 'GET') {
-      const _token = req.headers.authorization?.replace('Bearer ', '');
-      if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-      authenticatedUser = _authUser;
-      if (!await applyDurableRateLimit(getSupabase(), res, {
-        key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
-      })) return;
-      // Rebuild the body so an empty/non-JSON body still carries the JWT userId
-      req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
+      if (workerAuth) {
+        const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
+        if (requestBody.jobId !== workerAuth.jobId) {
+          return res.status(401).json({ success: false, error: 'Invalid worker job identity' });
+        }
+        const { data: workerJob, error: workerJobError } = await getSupabase()
+          .from('pa_leak_audit_jobs').select('id, user_id, status')
+          .eq('id', workerAuth.jobId).eq('user_id', workerAuth.userId).eq('status', 'running').maybeSingle();
+        if (workerJobError || !workerJob) {
+          return res.status(409).json({ success: false, error: 'Audit job is not claimable' });
+        }
+        authenticatedUser = { id: workerAuth.userId };
+        req.body = { ...requestBody, userId: workerAuth.userId };
+      } else {
+        const _token = req.headers.authorization?.replace('Bearer ', '');
+        if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+        if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        authenticatedUser = _authUser;
+        if (!await applyDurableRateLimit(getSupabase(), res, {
+          key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
+        })) return;
+        // Rebuild the body so an empty/non-JSON body still carries the JWT userId
+        req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
+      }
     }
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -916,14 +936,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId required' });
     }
 
-    const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
-    if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
-      return res.status(403).json({
-        success: false,
-        blocked: true,
-        contextState: contextAccess.contextState,
-        error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
-      });
+    if (!workerAuth) {
+      const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
+      if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+        return res.status(403).json({
+          success: false,
+          blocked: true,
+          contextState: contextAccess.contextState,
+          error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
+        });
+      }
     }
 
     let auditCursor = null;

@@ -213,7 +213,8 @@ test('hooks and Leak Finder render retryable partial and unavailable states', ()
   assert.match(leakPage, /Assistant Stats Unavailable/);
   assert.match(leakPage, /refetchStats/);
   assert.match(detectApi, /code: 'invalid_audit_cursor'/);
-  assert.match(assistantHook, /data\?\.code === 'invalid_audit_cursor'/);
-  assert.match(assistantHook, /auditCursorRef\.current = null/);
-  assert.match(assistantHook, /setDetectionResult\(null\)/);
+  assert.match(assistantHook, /\/api\/assistant\/leaks\/audit-jobs/);
+  assert.match(assistantHook, /job\.status === 'failed'/);
+  assert.match(assistantHook, /Restarting will resume from its saved checkpoint/);
+  assert.doesNotMatch(assistantHook, /auditCursorRef/);
 });
