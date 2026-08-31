@@ -621,7 +621,7 @@ function SetupSheet({
   villains, onVillainPatch, onVillainArchetype, onAddVillain, onRemoveVillain,
   onOpenPresets, onOpenRanges,
   bubbleFactor, setBubbleFactor,
-  tableFelt, onChangeFelt,
+  tableFelt, onChangeFelt, arenaThemeActive = false,
   isListening, onVoice, voiceSupported,
   equityVsRange, setEquityVsRange,
   onImportHH, onTemplates,
@@ -842,9 +842,13 @@ function SetupSheet({
                 onClick={() => onChangeFelt(f.id)}
                 aria-label={`${f.label} felt`}
                 aria-pressed={tableFelt === f.id}
+                disabled={arenaThemeActive}
+                title={arenaThemeActive ? 'Your Club Arena table theme is showing here' : undefined}
                 style={{
-                  width: 44, height: 44, borderRadius: '50%', padding: 0, cursor: 'pointer',
+                  width: 44, height: 44, borderRadius: '50%', padding: 0,
+                  cursor: arenaThemeActive ? 'not-allowed' : 'pointer',
                   background: f.swatch, flexShrink: 0,
+                  opacity: arenaThemeActive ? 0.35 : 1,
                   border: tableFelt === f.id ? `3px solid ${T.accent}` : `1px solid ${T.borderHi}`,
                   touchAction: 'manipulation',
                 }}
@@ -852,7 +856,9 @@ function SetupSheet({
             ))}
           </div>
           <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.sm}px 0 0` }}>
-            {FELT_COLORS.find(f => f.id === tableFelt)?.label || 'Black'} felt selected
+            {arenaThemeActive
+              ? 'Your Club Arena table theme is showing here. Change it in Table Studio.'
+              : `${FELT_COLORS.find(f => f.id === tableFelt)?.label || 'Black'} felt selected`}
           </p>
         </section>
 
@@ -3105,7 +3111,20 @@ export default function VirtualSandbox() {
         <div
           id="sandbox-table"
           className="sandbox-table-wrap"
-          style={{ width: '100%', filter: FELT_COLORS.find(f => f.id === tableFelt)?.filter || 'none' }}
+          /* ONE SOURCE OF TRUTH FOR THE FELT (Dan 2026-08-31).
+             This wrapper applies a hue-rotate to tint a black felt. Now that
+             the table underneath paints the player's saved Club Arena theme,
+             that filter does not choose a colour - it DISTORTS the chosen one:
+             Crimson with "Green" selected renders as hue-rotated crimson,
+             which is neither. Whoever set a theme in Table Studio has already
+             answered this question, so the legacy tint stands down while a
+             theme is in play and the picker says so. */
+          style={{
+            width: '100%',
+            filter: arenaTheme?.fromCache
+              ? 'none'
+              : FELT_COLORS.find(f => f.id === tableFelt)?.filter || 'none',
+          }}
         >
           <MemoSandboxPokerTable
             heroCards={heroCardsMemo}
@@ -3441,6 +3460,7 @@ export default function VirtualSandbox() {
         onOpenRanges={() => { setShowSetup(false); setShowRangeExplorer(true); }}
         bubbleFactor={bubbleFactor} setBubbleFactor={setBubbleFactor}
         tableFelt={tableFelt} onChangeFelt={changeFeltColor}
+        arenaThemeActive={!!arenaTheme?.fromCache}
         isListening={isListening} onVoice={startVoiceInput} voiceSupported={voiceSupported}
         equityVsRange={equityVsRange} setEquityVsRange={setEquityVsRange}
         onImportHH={() => { setShowSetup(false); setShowHHImport(true); }}

@@ -4200,6 +4200,13 @@ function UniversalDynamicTable({
                     return (
                         <div style={{
                             ...styles.dealerButton,
+                            // BUTTONS ARE PART OF THE THEME too (Dan 2026-08-30). The dealer
+                            // marker is the only real button on this surface, so it is the
+                            // only thing button_id can paint here; the rest of Arena's
+                            // control tokens style Fold/Check/Raise, which this table has none of.
+                            ...(arenaTheme?.dealerButton
+                                ? { background: arenaTheme.dealerButton.bg, color: arenaTheme.dealerButton.color }
+                                : null),
                             top: `${btnPos.top}%`,
                             left: `${btnPos.left}%`,
                             width: ui(22),
