@@ -1459,3 +1459,20 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Coverage:** Eight secondary route families plus the family-navigation contract across all 354 current directory-driven URLs; dynamic venue, home-game, series, and tour instances inherit from their family implementation.
 
 **Verification:** 77/77 focused Poker Near Me contracts, 538/538 repository prebuild checks, TypeScript, the exact webpack production build (402 static pages), 6/6 compiled-production journeys, and 6/6 live-production desktop/mobile journeys passed. PR #1103 auto-merged; Vercel production health reported a main head containing the Phase 3 merge. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-3-secondary-interaction.md`.
+
+---
+
+## PHASE 66 — Personal Assistant Phase 2 Of 8: Durable Audit Operations (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Durable audit jobs | Owner-private jobs persist signed Club Arena continuation cursors, cumulative coverage, results, reconciliation, attempts, leases, heartbeats, and failures. |
+| Atomic execution | Concurrent starts converge on one job; claims and checkpoints are worker-token guarded; stale leases and failed checkpoints resume safely. |
+| Server-owned continuation | A bounded post-response worker processes every signed page, checkpoints each batch, retries transient failures, and self-chains independently of the browser. |
+| Reload-safe UI | Leak Finder restores server progress after reload/device changes and renders the complete coverage/reconciliation receipt without exposing internal cursors or worker credentials. |
+| Real-account reconciliation | The authenticated production account completed 1,347 hands in seven persisted batches and reconciled 1,570 evidence decisions consistently. |
+| Notification idempotency | Audit completion creates one notification per job and rejects duplicate completion work. |
+| Duplicate-push repair | Delivery evidence proved one outbox row reached two iPhone registrations; the confirmed legacy pair was consolidated to one active endpoint with history retained. |
+| Permanent regression gates | Leak-engine, API/security, durable-operation, push-identity, TypeScript, production-build, and desktop/mobile browser checks cover the phase. |
+
+**Release state:** Implementation and live-schema verification are complete. Merge, production deployment, and live deployed-artifact verification remain the Phase 2 closeout gate. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-2-durable-audit-operations.md`.
