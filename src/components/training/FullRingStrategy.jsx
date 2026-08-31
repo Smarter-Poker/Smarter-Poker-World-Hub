@@ -14,23 +14,23 @@ const FR_CONCEPTS = [
   { concept: 'Position is Amplified', icon: '◆', color: '#3b82f6',
     detail: 'With more players behind, early position hands face more risk. Late position advantage is massive.',
     ranges: 'CO and BTN account for 60%+ of your profit in full ring. EP should be breakeven or slightly positive.',
-    keyDiff: 'In 6-max, UTG is playable wide. In full ring, UTG is almost like the SB — a losing position by default.',
+    keyDiff: 'In 6-max, UTG is playable wide. In full ring, UTG is almost like the SB - a losing position by default.',
     tip: 'Track your win rate by position. If EP isn\'t near breakeven, you\'re playing too many hands there.' },
   { concept: 'Multiway Pot Dynamics', icon: '●', color: '#ef4444',
     detail: 'Full ring creates more multiway pots. Your equity realization drops with more players in the hand.',
     ranges: 'In 3-way+ pots, suited connectors gain value, offsuit broadways lose value. Pairs and sets are gold.',
     keyDiff: '6-max pots are usually heads-up. Full ring pots are often 3-4 way. Adjust your hand selection accordingly.',
-    tip: 'In multiway pots, bet for value with strong hands. Bluff less — someone usually has something.' },
+    tip: 'In multiway pots, bet for value with strong hands. Bluff less - someone usually has something.' },
   { concept: 'Blind Defense is Less Critical', icon: '■', color: '#f59e0b',
     detail: 'You\'re in the blinds only 22% of the time (vs 33% in 6-max). You can afford to fold more from the blinds.',
     ranges: 'BB defense: ~35-45% vs CO/BTN. Tighter than 6-max because more players = stronger open ranges.',
     keyDiff: 'In 6-max, blind defense is critical. In full ring, you can survive with tighter blind play.',
-    tip: 'Don\'t over-defend your BB in full ring. Respect EP and MP opens — they have real hands.' },
+    tip: 'Don\'t over-defend your BB in full ring. Respect EP and MP opens - they have real hands.' },
   { concept: 'Nit Strategy & Table Image', icon: '◇', color: '#8b5cf6',
     detail: 'Full ring allows you to cultivate a tight image, then exploit it with well-timed aggression.',
     ranges: 'Play tight for 30 minutes, then make a big 3-bet bluff. Your table image makes it credible.',
     keyDiff: 'In 6-max, everyone plays wide and image matters less. In full ring, a tight image is a weapon.',
-    tip: 'Use your nit image as a weapon. When you finally 3-bet from UTG, everyone folds — even strong hands.' },
+    tip: 'Use your nit image as a weapon. When you finally 3-bet from UTG, everyone folds - even strong hands.' },
 ];
 
 export default function FullRingStrategy() {
@@ -42,7 +42,7 @@ export default function FullRingStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Full Ring (9-Max) Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master 9-handed play — the classic poker format.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master 9-handed play - the classic poker format.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {FR_CONCEPTS.map((c, i) => (

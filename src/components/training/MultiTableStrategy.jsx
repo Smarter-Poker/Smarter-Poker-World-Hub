@@ -25,7 +25,7 @@ const TABLE_TIERS = [
 ];
 
 const TIPS = [
-  'Use a tiling layout — never overlap tables',
+  'Use a tiling layout - never overlap tables',
   'Color-code table positions (hero seat always same spot)',
   'Hotkey bet sizes: 33%, 50%, 66%, 75%, pot',
   'Timer: if you need more than 15s, you\'re playing too many tables',

@@ -443,7 +443,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                         {classificationInfo.subType || classificationInfo.classification}
                     </span>
                 ) : (
-                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>—</span>
+                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>-</span>
                 )}
                 {handEV !== undefined && handEV !== null && (
                     <span style={{

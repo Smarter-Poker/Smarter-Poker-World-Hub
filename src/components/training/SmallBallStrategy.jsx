@@ -33,7 +33,7 @@ export default function SmallBallStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Small Ball Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Low-variance, high-frequency poker — win many small pots with controlled risk.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Low-variance, high-frequency poker - win many small pots with controlled risk.</p>
 
       {/* Sizing guide */}
       <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, marginBottom: 16 }}>

@@ -17,7 +17,7 @@ const DEPTHS = [
       'Limp-shove can be effective from SB',
     ],
     postflop: [
-      'Rarely see a flop — most pots are all-in preflop',
+      'Rarely see a flop - most pots are all-in preflop',
       'When you do see a flop, SPR is <2 = commit with top pair+',
       'No multi-street planning needed',
       'Check-shove replaces check-raise',
@@ -31,14 +31,14 @@ const DEPTHS = [
     preflop: [
       'Standard open sizes (2-2.5x)',
       '3-bet to ~7-8x or jam',
-      'Flatting 3-bets is marginal — prefer 4-bet jam or fold',
+      'Flatting 3-bets is marginal - prefer 4-bet jam or fold',
       'Wider stealing ranges but careful of reshoves',
     ],
     postflop: [
       'SPR of 3-5 on flop = commit with overpairs+',
       'C-bet smaller (25-33%) to preserve fold equity',
       'One street of betting often commits you',
-      'Check-raising is powerful — puts opponent all-in by turn',
+      'Check-raising is powerful - puts opponent all-in by turn',
     ],
     keyHands: 'Overpairs are gold. Top pair + good kicker is often a stack-off hand.',
     tip: 'This is where tournament poker lives. Master 25-50bb play for MTT success.',

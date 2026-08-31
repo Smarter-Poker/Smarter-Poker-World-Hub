@@ -912,7 +912,7 @@ export default function PostflopRangeViewer({
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 9, color: '#475569', lineHeight: 1.6, textAlign: 'center',
             }}>
-                <strong style={{ color: '#94a3b8' }}>Postflop Range Viewer</strong> — Frequencies from PioSolver-calibrated strategy matrices.
+                <strong style={{ color: '#94a3b8' }}>Postflop Range Viewer</strong> - Frequencies from PioSolver-calibrated strategy matrices.
                 Cell color = dominant action. Click any cell for full breakdown. Filter by action with the buttons above.
             </div>
         </div>

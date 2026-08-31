@@ -9,9 +9,9 @@ import React, { useState, useMemo } from 'react';
 const BLUFF_SCENARIOS = [
   { name: 'C-Bet Bluff (Flop)', betPct: 33, foldPct: 55, equity: 15, description: 'Flop c-bet with air. High fold frequency expected on many textures.' },
   { name: 'Double Barrel (Turn)', betPct: 67, foldPct: 45, equity: 12, description: 'Turn barrel with missed draw. Villain folded weak hands on flop already.' },
-  { name: 'River Bluff (Missed Draw)', betPct: 75, foldPct: 35, equity: 0, description: 'River bluff with no equity. Pure bluff — need high fold rate.' },
+  { name: 'River Bluff (Missed Draw)', betPct: 75, foldPct: 35, equity: 0, description: 'River bluff with no equity. Pure bluff - need high fold rate.' },
   { name: 'Semi-Bluff (Flush Draw)', betPct: 67, foldPct: 40, equity: 35, description: 'Turn bet with flush draw. Even if called, 35% equity to improve.' },
-  { name: 'Overbet Bluff (River)', betPct: 150, foldPct: 50, equity: 0, description: 'Large overbet on river. Polarizing — villain must defend less.' },
+  { name: 'Overbet Bluff (River)', betPct: 150, foldPct: 50, equity: 0, description: 'Large overbet on river. Polarizing - villain must defend less.' },
   { name: 'Squeeze Bluff (Preflop)', betPct: 300, foldPct: 60, equity: 25, description: '3-bet squeeze preflop. Fold equity from multiple players.' },
 ];
 

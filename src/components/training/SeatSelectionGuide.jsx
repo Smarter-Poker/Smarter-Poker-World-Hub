@@ -12,7 +12,7 @@ const SEATS = [
     rating: 5,
     color: '#10b981',
     reason: 'You act AFTER the weak player. Isolate them in position with raises.',
-    tips: ['Widen your ISO range vs their limps', 'Value bet thinner — they call too wide', 'Avoid bluffing — they don\'t fold'],
+    tips: ['Widen your ISO range vs their limps', 'Value bet thinner - they call too wide', 'Avoid bluffing - they don\'t fold'],
   },
   {
     pos: 'Direct Left of Aggro',
@@ -27,8 +27,8 @@ const SEATS = [
     icon: '■',
     rating: 4,
     color: '#8b5cf6',
-    reason: 'The nit folds too much — steal their blinds and attack their tight range.',
-    tips: ['Raise wide when they\'re in the blinds', 'Their 3-bets are always strong — fold trash', 'Steal relentlessly on the button'],
+    reason: 'The nit folds too much - steal their blinds and attack their tight range.',
+    tips: ['Raise wide when they\'re in the blinds', 'Their 3-bets are always strong - fold trash', 'Steal relentlessly on the button'],
   },
   {
     pos: 'Direct Right of Whale',
@@ -36,7 +36,7 @@ const SEATS = [
     rating: 2,
     color: '#f59e0b',
     reason: 'Whale acts before you preflop BUT after you postflop from blinds. Awkward.',
-    tips: ['You\'ll be OOP postflop frequently', 'Harder to isolate — others act after you', 'Not ideal but workable with tight ranges'],
+    tips: ['You\'ll be OOP postflop frequently', 'Harder to isolate - others act after you', 'Not ideal but workable with tight ranges'],
   },
   {
     pos: 'Across from Aggro',

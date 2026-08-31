@@ -8,19 +8,19 @@ import { motion } from 'framer-motion';
 const DRAWS = [
   { name: 'Nut Flush Draw', outs: 9, equity: '35%', icon: '♥', color: '#ef4444',
     play: 'Semi-bluff aggressively. Check-raise or bet when you have fold equity. Call when priced in.',
-    sizing: 'Bet 66-75% or check-raise to 3x as semi-bluff', avoid: 'Passive calling on the flop — you have too much equity to just call' },
+    sizing: 'Bet 66-75% or check-raise to 3x as semi-bluff', avoid: 'Passive calling on the flop - you have too much equity to just call' },
   { name: 'Open-Ended Straight', outs: 8, equity: '31%', icon: '·', color: '#f59e0b',
     play: 'Similar to flush draws but slightly less equity. Semi-bluff in position, check-call OOP.',
-    sizing: 'Bet 55-66% as semi-bluff, call reasonable bets', avoid: 'Overplaying gutshots as OESDs — count your outs carefully' },
+    sizing: 'Bet 55-66% as semi-bluff, call reasonable bets', avoid: 'Overplaying gutshots as OESDs - count your outs carefully' },
   { name: 'Combo Draw (Flush + Straight)', outs: 15, equity: '54%', icon: '◆', color: '#22c55e',
     play: 'You\'re actually a FAVORITE. Play ultra-aggressively. Get it all in on the flop if possible.',
-    sizing: 'Check-raise all-in or bet 100% pot. You want max money in.', avoid: 'Playing passively with a combo draw — you\'re leaving money on the table' },
+    sizing: 'Check-raise all-in or bet 100% pot. You want max money in.', avoid: 'Playing passively with a combo draw - you\'re leaving money on the table' },
   { name: 'Gutshot', outs: 4, equity: '17%', icon: '●', color: '#64748b',
     play: 'Mostly a fold or a bluff. Not enough equity to call big bets. Use as bluff candidates.',
-    sizing: 'Only semi-bluff when you have strong fold equity', avoid: 'Calling large bets hoping to hit — pot odds rarely justify it' },
+    sizing: 'Only semi-bluff when you have strong fold equity', avoid: 'Calling large bets hoping to hit - pot odds rarely justify it' },
   { name: 'Backdoor Flush + Backdoor Straight', outs: '~6', equity: '~12%', icon: '↻', color: '#8b5cf6',
     play: 'Not enough to call big bets alone, but great to add to your floating/bluffing range.',
-    sizing: 'Float flop bets in position, barrel favorable turns', avoid: 'Overvaluing backdoor draws — they\'re a bonus, not a primary draw' },
+    sizing: 'Float flop bets in position, barrel favorable turns', avoid: 'Overvaluing backdoor draws - they\'re a bonus, not a primary draw' },
 ];
 
 export default function DrawPlayingGuide() {

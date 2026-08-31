@@ -19,7 +19,7 @@ const TRAP_HANDS = [
     reason: 'Ace on river is terrible for QJ. Villain calls with AQ, AT, and folds worse Qx. Classic value-own.',
     rule: 'When a scare card hits the river, your medium hands lose value. Check for showdown.' },
   { hand: 'AA on A♦K♠Q♥J♣T♠', action: 'CHECK ✓', wrong: 'Bet big',
-    reason: 'Board is AKQJT — any suited hand has a straight. Your aces are barely ahead. Check and pray.',
+    reason: 'Board is AKQJT - any suited hand has a straight. Your aces are barely ahead. Check and pray.',
     rule: 'On monotone or 4-straight boards, even strong hands should check for pot control.' },
 ];
 

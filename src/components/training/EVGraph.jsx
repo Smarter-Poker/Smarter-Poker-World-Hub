@@ -232,7 +232,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
                                                 <span>{data.avgEV >= 0 ? '+' : ''}{data.avgEV.toFixed(2)}</span>
                                                 <TrendArrow current={data.avgEV} previous={data.previousAvgEV} />
                                             </>
-                                        ) : '—'}
+                                        ) : '-'}
                                     </div>
                                 </Tooltip>
 
@@ -275,7 +275,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
                                     <span style={styles.streetText}>{data.label}</span>
                                 </div>
                                 <div style={styles.decisionCount}>
-                                    {data.decisions > 0 ? `${data.decisions} decisions` : '—'}
+                                    {data.decisions > 0 ? `${data.decisions} decisions` : '-'}
                                 </div>
 
                                 {/* Sparkline for historical trend */}

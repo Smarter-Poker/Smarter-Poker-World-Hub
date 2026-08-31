@@ -25,7 +25,7 @@ const PUSH_FOLD_CHARTS = [
       { pos: 'MP', range: 'AA-44, AKs-A5s, KQs-K9s, QJs, AKo-A9o, KQo', pct: 22, color: '#f59e0b' },
       { pos: 'CO', range: 'AA-22, A2s+, K7s+, Q9s+, J9s+, T9s, ATo+, KTo+, QJo', pct: 30, color: '#eab308' },
       { pos: 'BTN', range: 'AA-22, A2s+, K2s+, Q6s+, J7s+, T7s+, 97s+, 86s+, A2o+, K8o+, Q9o+, JTo', pct: 45, color: '#22c55e' },
-      { pos: 'SB', range: 'Nearly any two cards — 60-70%', pct: 65, color: '#3b82f6' },
+      { pos: 'SB', range: 'Nearly any two cards - 60-70%', pct: 65, color: '#3b82f6' },
     ],
     notes: 'At 8bb, fold equity is diminishing. Need to shove wider or you will blind out. SB should shove very wide vs BB.',
   },
@@ -38,7 +38,7 @@ const PUSH_FOLD_CHARTS = [
       { pos: 'BTN', range: 'Almost any two cards (65%+)', pct: 65, color: '#22c55e' },
       { pos: 'SB', range: 'Any two cards', pct: 80, color: '#3b82f6' },
     ],
-    notes: 'At 5bb, zero fold equity. Shove or fold only. Any ace, any pair, any two broadway cards — just get it in.',
+    notes: 'At 5bb, zero fold equity. Shove or fold only. Any ace, any pair, any two broadway cards - just get it in.',
   },
   {
     bb: '15bb', label: '15 Big Blinds',
@@ -94,7 +94,7 @@ function ShortStackStrategy() {
 
             {/* Header */}
             <div style={{ textAlign: 'center', padding: 10, background: 'rgba(251,113,133,0.06)', borderRadius: 8, marginBottom: 16, border: '1px solid rgba(251,113,133,0.15)' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#fb7185' }}>{chart.label} — Push/Fold</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fb7185' }}>{chart.label} - Push/Fold</div>
             </div>
 
             {/* Position Ranges */}

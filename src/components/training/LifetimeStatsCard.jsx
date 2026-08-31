@@ -131,9 +131,9 @@ export default function LifetimeStatsCard({
             {/* Progress narrative */}
             <div style={styles.narrative}>
                 {totalHands === 0 && "Start training to build your stats!"}
-                {totalHands > 0 && totalHands < 100 && `Getting started — ${100 - totalHands} more hands to unlock insights`}
-                {totalHands >= 100 && totalHands < 500 && `Solid progress — keep pushing for ${500 - totalHands} more`}
-                {totalHands >= 500 && totalHands < 1000 && "Advanced player — closing in on 1,000 hands"}
+                {totalHands > 0 && totalHands < 100 && `Getting started - ${100 - totalHands} more hands to unlock insights`}
+                {totalHands >= 100 && totalHands < 500 && `Solid progress - keep pushing for ${500 - totalHands} more`}
+                {totalHands >= 500 && totalHands < 1000 && "Advanced player - closing in on 1,000 hands"}
                 {totalHands >= 1000 && `Elite: ${totalHands.toLocaleString()} hands analyzed`}
             </div>
         </div>

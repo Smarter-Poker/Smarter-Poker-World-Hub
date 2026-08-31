@@ -40,7 +40,7 @@ const SCENARIOS = [
     payouts: [10000, 6500],
     stacks: [155000, 100000],
     blinds: '4000/8000 + 800', heroSeat: 0,
-    description: 'Heads-up for the title. ICM still matters — $3,500 pay difference.',
+    description: 'Heads-up for the title. ICM still matters - $3,500 pay difference.',
   },
 ];
 
@@ -71,7 +71,7 @@ function StackBar({ stack, maxStack, label, color, equity, isHero }) {
         </span>
       </div>
       <div style={{ width: 60, fontSize: 11, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>
-        ${equity ? equity.toFixed(0) : '—'}
+        ${equity ? equity.toFixed(0) : '-'}
       </div>
     </div>
   );
@@ -125,7 +125,7 @@ function FinalTableICM() {
 
         {/* Description */}
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12, padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 6, border: '1px solid rgba(249,115,22,0.1)' }}>
-          {scenario.description} — Blinds: {scenario.blinds}
+          {scenario.description} - Blinds: {scenario.blinds}
         </div>
 
         {/* Stack Visualization */}
@@ -168,7 +168,7 @@ function FinalTableICM() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
           {[
             { label: 'Hero Chip EV', value: `$${((scenario.stacks[scenario.heroSeat] / totalChips) * totalPrizePool).toFixed(0)}`, color: '#3b82f6' },
-            { label: 'Hero $EV (ICM)', value: `$${equities[scenario.heroSeat]?.toFixed(0) || '—'}`, color: '#10b981' },
+            { label: 'Hero $EV (ICM)', value: `$${equities[scenario.heroSeat]?.toFixed(0) || '-'}`, color: '#10b981' },
             { label: 'Bubble Factor', value: bubbleFactor.toFixed(2), color: bubbleFactor > 1.3 ? '#ef4444' : '#f59e0b' },
             { label: 'ICM Tax', value: `${((1 - (equities[scenario.heroSeat] / ((scenario.stacks[scenario.heroSeat] / totalChips) * totalPrizePool))) * 100).toFixed(1)}%`, color: '#ec4899' },
             { label: 'Players Left', value: scenario.stacks.length, color: '#8b5cf6' },

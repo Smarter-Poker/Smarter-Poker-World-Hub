@@ -27,7 +27,7 @@ const RANGE_TYPES = [
       { step: 'Value 3-Bets', hands: 'QQ+, AKs, AKo', pct: 3, reason: 'Hands too strong to flat. Want to build pot and isolate.' },
       { step: 'Add Thin Value', hands: 'JJ, AQs, AQo (position dependent)', pct: 5, reason: 'Strong hands that play better in 3-bet pots with initiative.' },
       { step: 'Suited Ace Bluffs', hands: 'A5s, A4s, A3s, A2s', pct: 7, reason: 'Ace blockers reduce villain premium combos. Nut flush potential if called.' },
-      { step: 'Suited Connector Bluffs', hands: '76s, 87s, T9s (polarized)', pct: 9, reason: 'Play well as bluffs — if called, still have equity. Balanced with value.' },
+      { step: 'Suited Connector Bluffs', hands: '76s, 87s, T9s (polarized)', pct: 9, reason: 'Play well as bluffs - if called, still have equity. Balanced with value.' },
       { step: 'Adjustments', hands: 'Widen vs late position, tighten vs early position', pct: 12, reason: 'Vs BTN open: 3-bet wider. Vs UTG open: only premiums + a few bluffs.' },
     ],
   },

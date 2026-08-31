@@ -328,7 +328,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                         fontSize: 16, fontWeight: 700,
                         color: isCorrect ? '#22c55e' : '#f59e0b',
                     }}>
-                        {handData.action || '—'}
+                        {handData.action || '-'}
                     </div>
                 </div>
                 {/* Solver action */}
@@ -341,7 +341,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                         Solver Recommends
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>
-                        {handData.correctAction || evAnalysis?.bestAction || '—'}
+                        {handData.correctAction || evAnalysis?.bestAction || '-'}
                     </div>
                     {evAnalysis?.bestAction && (
                         <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
@@ -358,7 +358,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     marginBottom: 10,
                 }}>
                     <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>
-                        EV Analysis — All Actions
+                        EV Analysis - All Actions
                     </div>
                     {sortedActions.map(([action, data]) => (
                         <EVBar
@@ -382,7 +382,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     borderRadius: 6, padding: 10,
                 }}>
                     <div style={{ fontSize: 9, color: '#818cf8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.08em' }}>
-                        Why? — {explanation.strategicConcept || 'Strategy Insight'}
+                        Why? - {explanation.strategicConcept || 'Strategy Insight'}
                     </div>
                     <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
                         {explanation.explanation}

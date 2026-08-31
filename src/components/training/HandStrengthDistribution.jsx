@@ -41,7 +41,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 8, villainNuts: 5,
-    vulnerability: 'Low — dry board, few draws to worry about',
+    vulnerability: 'Low - dry board, few draws to worry about',
     insight: 'BTN has significant nut advantage with more sets and strong top pairs. Can c-bet at high frequency with small sizing.',
   },
   {
@@ -71,7 +71,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'villain',
     heroNuts: 5, villainNuts: 7,
-    vulnerability: 'High — many draws, board will change significantly on turn',
+    vulnerability: 'High - many draws, board will change significantly on turn',
     insight: 'BB has more two-pair and straight combos on this connected board. CO should check more and use larger sizing when betting.',
   },
   {
@@ -101,7 +101,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 10, villainNuts: 4,
-    vulnerability: 'Very Low — extremely dry, almost no draws',
+    vulnerability: 'Very Low - extremely dry, almost no draws',
     insight: 'Massive BTN advantage. Ace blocks BB\'s strongest hands. C-bet very frequently with 33% sizing.',
   },
   {
@@ -131,7 +131,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'villain',
     heroNuts: 6, villainNuts: 8,
-    vulnerability: 'Medium — flush draw still live, but fewer outs remaining',
+    vulnerability: 'Medium - flush draw still live, but fewer outs remaining',
     insight: 'BTN retains range advantage on turn. SB should check-raise polarized and check-call medium strength.',
   },
   {
@@ -161,8 +161,8 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 12, villainNuts: 6,
-    vulnerability: 'None — river, all draws resolved',
-    insight: 'BTN has 2x the nut combos on river. Should bet polarized — value with nuts, bluff with busted draws.',
+    vulnerability: 'None - river, all draws resolved',
+    insight: 'BTN has 2x the nut combos on river. Should bet polarized - value with nuts, bluff with busted draws.',
   },
 ];
 

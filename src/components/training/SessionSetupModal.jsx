@@ -336,7 +336,7 @@ export default function SessionSetupModal({
               </div>
               {lastSession && (
                 <div className="sp-caption" style={{ marginTop: 4 }}>
-                  Last: <span className="sp-num-tabular">{lastScore != null ? `${lastScore}%` : '—'}</span>
+                  Last: <span className="sp-num-tabular">{lastScore != null ? `${lastScore}%` : '-'}</span>
                   {lastHands != null ? ` · ${lastHands} Hands` : ''}
                   {lastRel ? ` · ${lastRel}` : ''}
                 </div>

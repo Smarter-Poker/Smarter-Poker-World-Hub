@@ -20,7 +20,7 @@ const INDIFF_SPOTS = [
     practical: 'Use on wet boards where you want to charge draws. Strong sizing for value+bluff combos.' },
   { bet: '100% Pot', mdf: '50%', bluffFreq: '50%', color: '#ef4444', icon: '●',
     explain: 'Pot-sized bets force villain to fold half their range. Maximum pressure at standard sizing.',
-    implication: 'You can be 50/50 value and bluffs. Very polarized — you have the nuts or nothing.',
+    implication: 'You can be 50/50 value and bluffs. Very polarized - you have the nuts or nothing.',
     practical: 'River pot-sized bets should be 1:1 value-to-bluff. If you\'re not bluffing enough, you\'re leaving money on the table.' },
   { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#8b5cf6', icon: '●',
     explain: 'Overbets force villain to fold 60% of range! Only the top of their range can call.',
