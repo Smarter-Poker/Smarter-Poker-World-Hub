@@ -223,7 +223,7 @@ export default async function handler(req, res) {
                       console.warn('[DailyBonus] Rollback delete failed:', rbErr?.message || rbErr);
                   }
                   console.warn('[DailyBonus] Diamond RPC failed (rolled back so user can retry):', rpcErr);
-                  return res.status(500).json({ success: false, error: 'Failed to credit daily bonus — please retry' });
+                  return res.status(500).json({ success: false, error: 'Failed to credit daily bonus - please retry' });
               }
 
               // Send push notification if not called during session

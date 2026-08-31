@@ -15,7 +15,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[diamond-transactions] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; reads may be blocked by RLS');
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[diamond-transactions] SUPABASE_SERVICE_ROLE_KEY missing - falling back to anon key; reads may be blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;

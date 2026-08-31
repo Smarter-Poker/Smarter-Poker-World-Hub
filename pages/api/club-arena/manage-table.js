@@ -130,7 +130,7 @@ export default async function handler(req, res) {
 
           // ── E-09: State pre-check — only closeable statuses ──────────
           if (['closed', 'deleted'].includes(table.status)) {
-            return res.status(400).json({ success: false, error: `Cannot close table — current status is '${table.status}'` });
+            return res.status(400).json({ success: false, error: `Cannot close table - current status is '${table.status}'` });
           }
 
           // ── C-01: Atomic conditional update ──
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
         case 'pause': {
           // ── E-10: State pre-check — only running/active can be paused ──
           if (!['running', 'active'].includes(table.status)) {
-            return res.status(400).json({ success: false, error: `Cannot pause table — current status is '${table.status}'. Only running or active tables can be paused.` });
+            return res.status(400).json({ success: false, error: `Cannot pause table - current status is '${table.status}'. Only running or active tables can be paused.` });
           }
 
           // ── C-01: Atomic conditional update ──

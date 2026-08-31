@@ -142,7 +142,7 @@ export default async function handler(req, res) {
               console.warn(
                   '[verify-otp] Ignoring body-supplied userId',
                   req.body.userId,
-                  '— identity comes from the bearer token only (authed:', authedUserId || 'none', ')'
+                  '- identity comes from the bearer token only (authed:', authedUserId || 'none', ')'
               );
           }
 
@@ -410,7 +410,7 @@ export default async function handler(req, res) {
                               user_id: authedUserId,
                               amount: 0,
                               transaction_type: 'bonus',
-                              description: `VIP Card Activated — ${PHONE_VIP_TRIAL_DAYS}-Day FREE VIP For Phone Verification! 📱`,
+                              description: `VIP Card Activated - ${PHONE_VIP_TRIAL_DAYS}-Day FREE VIP For Phone Verification! 📱`,
                               metadata: {
                                   source: 'phone_verification_vip',
                                   phone: cleanPhone,

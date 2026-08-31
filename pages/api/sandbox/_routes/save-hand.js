@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
               if (delError) {
                   if (delError.code === '42P01') {
-                      console.warn('[save-hand] sandbox_saved_hands table missing — delete is a no-op');
+                      console.warn('[save-hand] sandbox_saved_hands table missing - delete is a no-op');
                       return res.status(503).json(persistenceFailure(
                           'Study folders are temporarily unavailable. Nothing was deleted.',
                           'storage_unavailable',
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
 
           if (error) {
               if (error.code === '42P01') {
-                  console.warn('[save-hand] sandbox_saved_hands table missing — run migration to restore');
+                  console.warn('[save-hand] sandbox_saved_hands table missing - run migration to restore');
               }
               console.warn('[save-hand] Insert error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });

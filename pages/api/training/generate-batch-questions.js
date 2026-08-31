@@ -28,7 +28,7 @@ export default function handler(req, res) {
         success: false,
         error: 'Endpoint removed',
         message:
-            'This endpoint was retired by Operation Grok-Sweep Phase 46 — it produced ' +
+            'This endpoint was retired by Operation Grok-Sweep Phase 46 - it produced ' +
             'hallucinated, schema-incorrect rows that bypassed solver verification. For bulk ' +
             'cache generation, write a SQL migration that clones verified-correct donors from ' +
             'training_question_cache or extracts directly from solved_spots_gold via the ' +

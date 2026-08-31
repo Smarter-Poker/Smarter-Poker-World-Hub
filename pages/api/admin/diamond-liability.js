@@ -187,7 +187,7 @@ export default async function handler(req, res) {
                 .eq('id', userData.user.id)
                 .maybeSingle();
             if (profile?.is_admin !== true) {
-                return res.status(403).json({ error: 'Forbidden — admin only' });
+                return res.status(403).json({ error: 'Forbidden - admin only' });
             }
         }
 
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: `Failed to read profiles: ${profilesPage.error.message}` });
         }
         if (profilesPage.truncated) {
-            notes.push(`Outstanding balance scan stopped at ${MAX_PROFILE_ROWS.toLocaleString('en-US')} profiles — the figure is a floor, not a total.`);
+            notes.push(`Outstanding balance scan stopped at ${MAX_PROFILE_ROWS.toLocaleString('en-US')} profiles - the figure is a floor, not a total.`);
         }
         let outstandingDiamonds = 0;
         for (const p of profilesPage.rows) outstandingDiamonds += Number(p.diamonds) || 0;
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: `Failed to read diamond_transactions: ${ledgerPage.error.message}` });
         }
         if (ledgerPage.truncated) {
-            notes.push(`Ledger scan stopped at ${MAX_LEDGER_ROWS.toLocaleString('en-US')} rows (newest first) — 30d figures are a floor.`);
+            notes.push(`Ledger scan stopped at ${MAX_LEDGER_ROWS.toLocaleString('en-US')} rows (newest first) - 30d figures are a floor.`);
         }
 
         let issued24h = 0, issued30d = 0, redeemed24h = 0, redeemed30d = 0;
@@ -278,12 +278,12 @@ export default async function handler(req, res) {
                 // 42P01 = undefined_table, PGRST205 = schema cache miss. Both mean
                 // 20260726120000_diamond_rewards_v2_security_and_caps.sql is unapplied.
                 if (budgetErr.code === '42P01' || budgetErr.code === 'PGRST205' || /does not exist/i.test(budgetErr.message || '')) {
-                    notes.push('diamond_platform_budget does not exist — migration 20260726120000_diamond_rewards_v2_security_and_caps.sql has not been applied. The platform-wide circuit breaker is NOT armed.');
+                    notes.push('diamond_platform_budget does not exist - migration 20260726120000_diamond_rewards_v2_security_and_caps.sql has not been applied. The platform-wide circuit breaker is NOT armed.');
                 } else {
                     notes.push(`Budget lookup failed: ${budgetErr.message}`);
                 }
             } else if (!budgetRow) {
-                notes.push(`No diamond_platform_budget row for period ${period} yet — it is created lazily by the first award of the month.`);
+                notes.push(`No diamond_platform_budget row for period ${period} yet - it is created lazily by the first award of the month.`);
             } else {
                 const budgetDiamonds = Number(budgetRow.budget_diamonds) || 0;
                 const spentDiamonds = Number(budgetRow.spent_diamonds) || 0;
@@ -337,7 +337,7 @@ export default async function handler(req, res) {
                 };
             });
             if (topEarners.some((e) => e.overCap)) {
-                notes.push('One or more top earners exceeded the per-user monthly cap over the trailing 30 days. The cap is a CALENDAR-month ceiling and this window is rolling, so a small overage can be legitimate month-boundary spill — a large one cannot.');
+                notes.push('One or more top earners exceeded the per-user monthly cap over the trailing 30 days. The cap is a CALENDAR-month ceiling and this window is rolling, so a small overage can be legitimate month-boundary spill - a large one cannot.');
             }
         }
 

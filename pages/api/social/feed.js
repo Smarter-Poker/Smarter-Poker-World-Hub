@@ -36,7 +36,7 @@ async function supaFetch(path, options = {}) {
     });
     if (!res.ok) {
         const txt = await res.text();
-        throw new Error(`Supabase ${path}: HTTP ${res.status} — ${txt.slice(0, 200)}`);
+        throw new Error(`Supabase ${path}: HTTP ${res.status} - ${txt.slice(0, 200)}`);
     }
     return res.json();
 }

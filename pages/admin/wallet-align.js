@@ -149,7 +149,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
                 zIndex: 10,
                 minWidth: 90,
               }}
-              title={`Drag to reposition — currently top: ${o.topPct}%, left: ${o.leftPct}%`}
+              title={`Drag to reposition - currently top: ${o.topPct}%, left: ${o.leftPct}%`}
             >
               {o.id === 'diamonds' ? (
                 <>
@@ -277,7 +277,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
         </div>
 
         <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
-          When happy with placement — copy coords and paste them to me. I'll lock them in immediately.
+          When happy with placement - copy coords and paste them to me. I'll lock them in immediately.
         </p>
       </div>
     </>

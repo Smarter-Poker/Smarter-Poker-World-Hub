@@ -166,7 +166,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ success: false, error: 'You already have a pending application for this union' });
       }
       if (existing?.status === 'approved') {
-        return res.status(409).json({ success: false, error: 'Application already approved — club should be in the union' });
+        return res.status(409).json({ success: false, error: 'Application already approved - club should be in the union' });
       }
 
       // Insert application
@@ -300,7 +300,7 @@ export default async function handler(req, res) {
         console.error('[union-application] fn_union_close_club_tables_for_join failed:', closeErr);
         return res.status(500).json({
           success: false,
-          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed.`,
+          error: `Could not close ${app.club_name}'s tables - approval aborted, nothing was changed.`,
         });
       }
       if (closeRes && closeRes.success === false) {
@@ -313,7 +313,7 @@ export default async function handler(req, res) {
         console.error('[union-application] close-tables RPC reported failure:', closeRes);
         return res.status(500).json({
           success: false,
-          error: `Could not close ${app.club_name}'s tables — approval aborted, nothing was changed.`,
+          error: `Could not close ${app.club_name}'s tables - approval aborted, nothing was changed.`,
         });
       }
 
@@ -338,7 +338,7 @@ export default async function handler(req, res) {
         return res.status(500).json({
           success: false,
           error: `Could not add ${app.club_name} to the union. `
-            + `Its tables were already closed and players refunded — re-run the approval `
+            + `Its tables were already closed and players refunded - re-run the approval `
             + `once the cause is fixed.`,
           tablesAlreadyClosed: closedTables,
         });
@@ -364,7 +364,7 @@ export default async function handler(req, res) {
         return res.status(500).json({
           success: false,
           error: `${app.club_name} was added to union_clubs but its club record could not `
-            + `be updated. The club is half-joined — rake would `
+            + `be updated. The club is half-joined - rake would `
             + `route to the wrong treasury. Re-run the approval.`,
           halfJoined: true,
         });
@@ -384,7 +384,7 @@ export default async function handler(req, res) {
           success: false,
           error: `${app.club_name} was integrated into the union, but marking the `
             + `application approved failed. `
-            + `Set it to 'approved' by hand — do NOT re-run the approval.`,
+            + `Set it to 'approved' by hand - do NOT re-run the approval.`,
           integrationComplete: true,
         });
       }
@@ -417,7 +417,7 @@ export default async function handler(req, res) {
         message:
           `${app.club_name} approved and added to union with ${(rate * 100).toFixed(0)}% commission rate` +
           (closedTables > 0
-            ? `. ${closedTables} club table(s) were closed with ${refundedSeats} seat(s) refunded — union tables take over from here.`
+            ? `. ${closedTables} club table(s) were closed with ${refundedSeats} seat(s) refunded - union tables take over from here.`
             : ''),
       });
     }
@@ -574,7 +574,7 @@ export default async function handler(req, res) {
         return res.status(500).json({
           success: false,
           error: `${lr.club_name} was removed from union_clubs but its club record still `
-            + `points at the union. The club is half-out — re-run the approval.`,
+            + `points at the union. The club is half-out - re-run the approval.`,
           halfLeft: true,
         });
       }
@@ -588,7 +588,7 @@ export default async function handler(req, res) {
         return res.status(500).json({
           success: false,
           error: `${lr.club_name} has left the union, but marking the leave request approved `
-            + `failed. Set it to 'approved' by hand — do NOT re-run the approval.`,
+            + `failed. Set it to 'approved' by hand - do NOT re-run the approval.`,
           integrationComplete: true,
         });
       }

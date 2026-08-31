@@ -82,7 +82,7 @@ function statusBadge(status) {
 }
 
 function fmtAge(iso) {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const ms = Date.now() - new Date(iso).getTime();
     if (ms < 0) return '0s';
     if (ms < 60_000) return Math.round(ms / 1000) + 's ago';
@@ -212,7 +212,7 @@ export default function SignupHealthDashboard(props) {
             <section style={S.section}>
                 <h2 style={S.h2}>Recent probe heartbeats (last 20)</h2>
                 {heartbeats.length === 0 ? (
-                    <p style={S.p}>No heartbeats recorded yet. Wait for the cron to fire (5–15 min after first deploy).</p>
+                    <p style={S.p}>No heartbeats recorded yet. Wait for the cron to fire (5-15 min after first deploy).</p>
                 ) : (
                     <table style={S.table}>
                         <thead>
@@ -229,7 +229,7 @@ export default function SignupHealthDashboard(props) {
                                     <td style={S.td}>{fmtAge(h.occurred_at)}</td>
                                     <td style={S.td}><code>{h.probe_name}</code></td>
                                     <td style={S.td}>{statusBadge(h.status)}</td>
-                                    <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '—'}</td>
+                                    <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -284,7 +284,7 @@ function Stat({ label, value, alert, hint }) {
             padding: 16,
         }}>
             <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-            <div style={{ fontSize: 28, fontWeight: 600, color: alert ? '#ef4444' : '#fff', marginTop: 4 }}>{value ?? '—'}</div>
+            <div style={{ fontSize: 28, fontWeight: 600, color: alert ? '#ef4444' : '#fff', marginTop: 4 }}>{value ?? '-'}</div>
             {hint && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{hint}</div>}
         </div>
     );

@@ -25,7 +25,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn('[Trivia Pool Status] SUPABASE_SERVICE_ROLE_KEY missing — counts may be RLS-filtered');
+            console.warn('[Trivia Pool Status] SUPABASE_SERVICE_ROLE_KEY missing - counts may be RLS-filtered');
         }
         _supabase = createClient(url, key);
     }
@@ -260,7 +260,7 @@ export default async function handler(req, res) {
 
     if (!poolStatus.guarantee.survival.meetsGuarantee) {
         poolStatus.recommendations.push(
-            `CRITICAL: 60-day no-repeat guarantee is NOT met for Survival — ` +
+            `CRITICAL: 60-day no-repeat guarantee is NOT met for Survival - ` +
             `${totalUsable} usable of ${SURVIVAL_SIXTY_DAY_FLOOR} required ` +
             `(short by ${poolStatus.guarantee.survival.shortfall}).`
         );

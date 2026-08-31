@@ -217,13 +217,13 @@ export default async function handler(req, res) {
                     p_user_id: referrer.id,
                     p_amount: REFERRAL_BONUS_REFERRER,
                     p_type: 'referral_bonus',
-                    p_description: `Referral Bonus — New Player Joined`,
+                    p_description: `Referral Bonus - New Player Joined`,
                     p_reference_id: referrerCreditRefId,
                 });
                 if (referrerErr) {
                     await rollbackReferral('referrer credit failed');
                     console.warn('[Referral] Referrer credit RPC failed (rolled back so user can retry):', referrerErr);
-                    return res.status(500).json({ error: 'Failed to credit referrer — please retry' });
+                    return res.status(500).json({ error: 'Failed to credit referrer - please retry' });
                 }
 
                 // Award diamonds to referee.
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
                     p_user_id: user.id,
                     p_amount: REFERRAL_BONUS_REFEREE,
                     p_type: 'referral_bonus',
-                    p_description: `Welcome Bonus — Referred By ${referrer.username || 'A Friend'}`,
+                    p_description: `Welcome Bonus - Referred By ${referrer.username || 'A Friend'}`,
                     p_reference_id: refereeCreditRefId,
                 });
                 if (refereeErr) {
@@ -258,18 +258,18 @@ export default async function handler(req, res) {
                             p_user_id: referrer.id,
                             p_amount: -REFERRAL_BONUS_REFERRER,
                             p_type: 'referral_bonus_reversal',
-                            p_description: `Referral bonus reversal — referee credit failed`,
+                            p_description: `Referral bonus reversal - referee credit failed`,
                             p_reference_id: reversalRefId,
                         });
                         if (revErr) {
-                            console.warn('[Referral] CRITICAL: reversal RPC failed — referrer', referrer.id, 'is overpaid by', REFERRAL_BONUS_REFERRER, ':', revErr?.message || revErr);
+                            console.warn('[Referral] CRITICAL: reversal RPC failed - referrer', referrer.id, 'is overpaid by', REFERRAL_BONUS_REFERRER, ':', revErr?.message || revErr);
                         }
                     } catch (compErr) {
                         console.warn('[Referral] Referrer compensation reversal threw:', compErr?.message || compErr);
                     }
                     await rollbackReferral('referee credit failed');
                     console.warn('[Referral] Referee credit RPC failed (rolled back so user can retry):', refereeErr);
-                    return res.status(500).json({ error: 'Failed to credit welcome bonus — please retry' });
+                    return res.status(500).json({ error: 'Failed to credit welcome bonus - please retry' });
                 }
 
                 return res.status(200).json({

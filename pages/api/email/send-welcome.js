@@ -79,7 +79,7 @@ export default async function handler(req, res) {
               </p>
               
               <p style="font-size: 16px; color: #3f3f46; line-height: 1.6; margin: 0 0 24px 0;">
-                Congratulations! Your <strong>${clubName}</strong> account has been created. ${COMMANDER_FREE_MODE ? `All Club Commander features are <strong>${COMMANDER_FREE_TAGLINE}</strong> — no credit card required.` : 'Your <strong>14-day free trial</strong> is now active.'}
+                Congratulations! Your <strong>${clubName}</strong> account has been created. ${COMMANDER_FREE_MODE ? `All Club Commander features are <strong>${COMMANDER_FREE_TAGLINE}</strong> - no credit card required.` : 'Your <strong>14-day free trial</strong> is now active.'}
               </p>
               
               <!-- Plan Info Box -->

@@ -75,7 +75,7 @@ try {
           if (!verifiedUserId) {
             return res.status(400).json({
               success: false,
-              error: 'page_activity.user_id must be a UUID — send an Authorization bearer token, a body user_id, or configure SYSTEM_ACTIVITY_USER_ID',
+              error: 'page_activity.user_id must be a UUID - send an Authorization bearer token, a body user_id, or configure SYSTEM_ACTIVITY_USER_ID',
             });
           }
         } else {

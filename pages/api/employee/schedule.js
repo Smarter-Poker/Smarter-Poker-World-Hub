@@ -59,7 +59,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (!staff) {
-              return res.status(403).json({ success: false, error: 'Access denied — not your staff record' });
+              return res.status(403).json({ success: false, error: 'Access denied - not your staff record' });
           }
 
           const { start, end } = getWeekBounds(week);

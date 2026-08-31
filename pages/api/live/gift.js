@@ -578,7 +578,7 @@ export default async function handler(req, res) {
           p_user_id: user.id,
           p_amount: parsedAmount,
           p_type: 'live_gift_refund',
-          p_description: `Live gift refund — ${reason}`,
+          p_description: `Live gift refund - ${reason}`,
           p_reference_id: `live_gift_refund_${giftId}`,
         });
         if (refundErr) {
@@ -611,7 +611,7 @@ export default async function handler(req, res) {
       );
       return res
         .status(500)
-        .json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
     }
     // 2026-08-15 audit: require an explicit success/duplicate — a null/undefined
     // creditResult (PostgREST schema-cache race) was previously treated as
@@ -621,13 +621,13 @@ export default async function handler(req, res) {
       console.warn('[live/gift] Credit did not confirm success (refunded sender):', creditResult);
       return res
         .status(500)
-        .json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
     }
 
     creditSuccess = true;
 
     if (creditResult && creditResult.duplicate) {
-      console.info(`[live/gift] Idempotent retry detected for gift ${giftId} — skipping refund`);
+      console.info(`[live/gift] Idempotent retry detected for gift ${giftId} - skipping refund`);
     }
 
     // STREAM-POLISH-R3 GIFT-2: upsert the gift row so client retries
@@ -714,8 +714,8 @@ export default async function handler(req, res) {
       await refundSender(`uncaught handler error: ${err.message}`);
       return res
         .status(500)
-        .json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
     }
-    return res.status(500).json({ error: 'Gift failed — please try again.' });
+    return res.status(500).json({ error: 'Gift failed - please try again.' });
   }
 }

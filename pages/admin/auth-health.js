@@ -70,7 +70,7 @@ function readLocalAccessToken() {
 }
 
 const fmtAge = (iso) => {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const ms = Date.now() - new Date(iso).getTime();
     if (ms < 60_000) return Math.round(ms / 1000) + 's ago';
     if (ms < 3600_000) return Math.round(ms / 60_000) + 'm ago';
@@ -146,13 +146,13 @@ export default function AuthHealthDashboard(props) {
     const { loading, health, heartbeats, error, generatedAt } = state;
     if (loading) return <main style={S.page}><div style={S.err}>Loading auth health…</div></main>;
     if (error) return <main style={S.page}><div style={S.err}>{error}</div></main>;
-    if (!health) return <main style={S.page}><div style={S.err}>No health data yet — wait for first probe runs (5–15 min after deploy).</div></main>;
+    if (!health) return <main style={S.page}><div style={S.err}>No health data yet - wait for first probe runs (5-15 min after deploy).</div></main>;
 
     return (
         <main style={S.page}>
             <header style={S.header}>
                 <div>
-                    <h1 style={S.h1}>Auth Health — Unified</h1>
+                    <h1 style={S.h1}>Auth Health - Unified</h1>
                     <p style={S.p}>Generated {fmtAge(generatedAt)}. <a href="/admin/auth-health" style={S.link}>↻ refresh</a> · <a href="/admin/signup-health" style={S.link}>signup-only view</a></p>
                 </div>
             </header>
@@ -187,7 +187,7 @@ export default function AuthHealthDashboard(props) {
                                 <td style={S.td}>{fmtAge(h.occurred_at)}</td>
                                 <td style={S.td}><code>{h.probe_name}</code></td>
                                 <td style={S.td}><span style={{ background: h.status === 'ok' ? '#22c55e' : h.status === 'failed' ? '#ef4444' : '#eab308', color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 11 }}>{h.status}</span></td>
-                                <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '—'}</td>
+                                <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '-'}</td>
                             </tr>
                         ))}
                     </tbody>

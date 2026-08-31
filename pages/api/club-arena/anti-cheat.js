@@ -477,7 +477,7 @@ try {
             success: true,
             message: tableId
               ? 'Player removed from engine table'
-              : 'Player not at any active table — kick logged only',
+              : 'Player not at any active table - kick logged only',
             engine_result: engineResult,
           });
         }

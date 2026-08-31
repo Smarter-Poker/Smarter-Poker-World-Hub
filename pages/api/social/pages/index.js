@@ -682,7 +682,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (!existing || existing.owner_id !== authUser.id) {
-              return res.status(403).json({ success: false, error: 'Not authorized — only the page owner can delete' });
+              return res.status(403).json({ success: false, error: 'Not authorized - only the page owner can delete' });
           }
 
           // #4/#10: Save slug to history before deletion (enables cooldown)

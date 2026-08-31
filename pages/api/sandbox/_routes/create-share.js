@@ -132,7 +132,7 @@ async function handleCreate(req, res, supabase) {
 
     if (lastError) {
         if (lastError.code === '42P01') {
-            console.warn('[create-share] sandbox_shared_scenarios table missing — run migration to restore');
+            console.warn('[create-share] sandbox_shared_scenarios table missing - run migration to restore');
         }
         console.warn('[create-share] Insert error:', lastError.message);
         return res.status(lastError.code === '42P01' ? 503 : 500).json(persistenceFailure(
@@ -226,7 +226,7 @@ async function handleRevoke(req, res, supabase) {
         // caller wanted to hear. Degrading here keeps the control from
         // erroring on environments that never ran the migration.
         if (error.code === '42P01') {
-            console.warn('[create-share] sandbox_shared_scenarios table missing — nothing to revoke');
+            console.warn('[create-share] sandbox_shared_scenarios table missing - nothing to revoke');
             return res.status(404).json({ success: false, error: 'Share link not found' });
         }
         console.warn('[create-share] Delete error:', error.message);
