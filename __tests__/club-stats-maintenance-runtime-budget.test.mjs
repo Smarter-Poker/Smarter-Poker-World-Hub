@@ -9,15 +9,35 @@ test('Stats maintenance finishes inside its Open Claw request deadline', () => {
   const drainBudget = Number(
     handler.match(/const DRAIN_BUDGET_SECONDS = (\d+);/)?.[1] ?? Number.NaN
   );
+  const handlerBudget = Number(
+    handler.match(/const HANDLER_BUDGET_SECONDS = (\d+);/)?.[1] ?? Number.NaN
+  );
+  const responseReserve = Number(
+    handler.match(/const RESPONSE_RESERVE_SECONDS = (\d+);/)?.[1] ?? Number.NaN
+  );
   const requestTimeout = Number(dispatcher.match(/REQUEST_TIMEOUT = (\d+)/)?.[1] ?? Number.NaN);
 
   assert.ok(Number.isFinite(drainBudget), 'handler drain budget must remain explicit');
+  assert.ok(Number.isFinite(handlerBudget), 'whole-handler budget must remain explicit');
+  assert.ok(Number.isFinite(responseReserve), 'response reserve must remain explicit');
   assert.ok(Number.isFinite(requestTimeout), 'dispatcher request timeout must remain explicit');
   assert.ok(
-    drainBudget <= requestTimeout - 30,
-    `drain budget ${drainBudget}s leaves less than 30s inside ${requestTimeout}s caller timeout`
+    handlerBudget <= requestTimeout - 30,
+    `handler budget ${handlerBudget}s leaves less than 30s inside ${requestTimeout}s caller timeout`
   );
-  assert.match(handler, /const drainDeadline = Date\.now\(\) \+ DRAIN_BUDGET_SECONDS \* 1000/);
+  assert.ok(responseReserve >= 15, 'final response work needs at least 15 seconds');
+  assert.match(handler, /const handlerDeadline = started \+ HANDLER_BUDGET_SECONDS \* 1000/);
+  assert.match(handler, /const drainDeadline = Math\.min\(/);
+  assert.match(handler, /handlerDeadline - RESPONSE_RESERVE_SECONDS \* 1000/);
   assert.match(handler, /drainDeadline - Date\.now\(\)/);
+  assert.match(
+    handler,
+    /if \(Date\.now\(\) < handlerDeadline - RESPONSE_RESERVE_SECONDS \* 1000\)/
+  );
+  assert.match(
+    handler,
+    /if \(Date\.now\(\) >= handlerDeadline - RESPONSE_RESERVE_SECONDS \* 1000\)/
+  );
+  assert.match(handler, /result\.budget_exhausted = true/);
   assert.doesNotMatch(handler, /Math\.max\(20, Math\.floor\(DRAIN_BUDGET_SECONDS/);
 });

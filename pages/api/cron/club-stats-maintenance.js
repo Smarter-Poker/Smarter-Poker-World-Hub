@@ -66,6 +66,12 @@ export const config = { maxDuration: 300 };
 // is resumable and runs every 15 minutes; a smaller successful slice advances
 // the backlog more reliably than a larger slice whose response is discarded.
 const DRAIN_BUDGET_SECONDS = 60;
+// Open Claw's timeout covers the whole request, not only rebuild draining.
+// Heavy production pre-drain work has taken about 55 seconds, so target a
+// 90-second whole-handler finish and stop scheduling optional work at 75
+// seconds, leaving 15 seconds for the heartbeat and response.
+const HANDLER_BUDGET_SECONDS = 90;
+const RESPONSE_RESERVE_SECONDS = 15;
 
 async function handler(req, res) {
   if (!validateCronAuth(req)) {
@@ -79,12 +85,14 @@ async function handler(req, res) {
   }
 
   const started = Date.now();
+  const handlerDeadline = started + HANDLER_BUDGET_SECONDS * 1000;
   const result = {
     drained: [],
     rollup: [],
     hand_index: null,
     stat_rollup: null,
     stat_distribution: null,
+    budget_exhausted: false,
     errors: [],
   };
 
@@ -266,10 +274,16 @@ async function handler(req, res) {
 
     const clubs = (pending || []).map((r) => r.club_id).filter(Boolean);
     if (clubs.length > 0) {
-      const drainDeadline = Date.now() + DRAIN_BUDGET_SECONDS * 1000;
+      const drainDeadline = Math.min(
+        Date.now() + DRAIN_BUDGET_SECONDS * 1000,
+        handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000
+      );
       for (const [index, clubId] of clubs.entries()) {
         const remainingSeconds = Math.floor((drainDeadline - Date.now()) / 1000);
-        if (remainingSeconds < 1) break;
+        if (remainingSeconds < 1) {
+          result.budget_exhausted = true;
+          break;
+        }
         const clubsRemaining = clubs.length - index;
         const perClub = Math.max(1, Math.floor(remainingSeconds / clubsRemaining));
         const { data, error } = await admin.rpc('ca_drain_club_rebuild', {
@@ -287,24 +301,32 @@ async function handler(req, res) {
     }
 
     // ── 2. Roll club_hand_daily forward for yesterday (immutable) ────────
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const { data: clubsNeedingRollup, error: rollupProbeErr } = await admin.rpc(
-      'ca_clubs_missing_hand_daily',
-      { p_date: yesterday }
-    );
-    if (rollupProbeErr) {
-      result.errors.push(`rollup probe: ${rollupProbeErr.message}`);
-    }
-    for (const row of clubsNeedingRollup || []) {
-      const { data, error } = await admin.rpc('ca_backfill_club_hand_daily', {
-        p_club_id: row.club_id,
-        p_date: yesterday,
-      });
-      if (error) {
-        result.errors.push(`rollup ${row.club_id}: ${error.message}`);
-        continue;
+    if (Date.now() < handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const { data: clubsNeedingRollup, error: rollupProbeErr } = await admin.rpc(
+        'ca_clubs_missing_hand_daily',
+        { p_date: yesterday }
+      );
+      if (rollupProbeErr) {
+        result.errors.push(`rollup probe: ${rollupProbeErr.message}`);
       }
-      result.rollup.push({ club_id: row.club_id, date: yesterday, hands: data });
+      for (const row of clubsNeedingRollup || []) {
+        if (Date.now() >= handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000) {
+          result.budget_exhausted = true;
+          break;
+        }
+        const { data, error } = await admin.rpc('ca_backfill_club_hand_daily', {
+          p_club_id: row.club_id,
+          p_date: yesterday,
+        });
+        if (error) {
+          result.errors.push(`rollup ${row.club_id}: ${error.message}`);
+          continue;
+        }
+        result.rollup.push({ club_id: row.club_id, date: yesterday, hands: data });
+      }
+    } else {
+      result.budget_exhausted = true;
     }
 
     const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
