@@ -66,7 +66,7 @@ export default function CommanderLayout({ children, title }) {
   const [staff, setStaff] = useState(null);
   const [profileAvatar, setProfileAvatar] = useState('/default-avatar.png');
   const [isVip, setIsVip] = useState(false);
-  const [vipShimmerVisible, setVipShimmerVisible] = useState(false);
+  const [iconShimmerVisible, setIconShimmerVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -127,24 +127,19 @@ export default function CommanderLayout({ children, title }) {
   }, []);
 
   useEffect(() => {
-    if (!isVip) {
-      setVipShimmerVisible(false);
-      return;
-    }
-
     let pauseTimer;
     let shimmerTimer;
     let cancelled = false;
     const scheduleNextShimmer = () => {
-      const randomDelayMs = 5_000 + Math.floor(Math.random() * 5_001);
+      const randomDelayMs = 15_000 + Math.floor(Math.random() * 5_001);
       pauseTimer = window.setTimeout(() => {
         if (cancelled) return;
-        setVipShimmerVisible(true);
+        setIconShimmerVisible(true);
         shimmerTimer = window.setTimeout(() => {
           if (cancelled) return;
-          setVipShimmerVisible(false);
+          setIconShimmerVisible(false);
           scheduleNextShimmer();
-        }, 1_250);
+        }, 1_500);
       }, randomDelayMs);
     };
 
@@ -154,7 +149,7 @@ export default function CommanderLayout({ children, title }) {
       if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
       if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
     };
-  }, [isVip]);
+  }, []);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
   const [clubPageId, setClubPageId] = useState(null); // Set when venue has an existing club page
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
@@ -873,14 +868,17 @@ export default function CommanderLayout({ children, title }) {
         .cmd-approved-header__back { left: 8%; width: 12%; }
         .cmd-approved-header__hub { left: 19.1%; width: 12.9%; }
         .cmd-approved-header__profile {
-          top: 13%;
+          top: 15%;
           left: 66.75%;
           width: 7.15%;
-          height: 75%;
+          height: auto;
+          aspect-ratio: 1;
           position: absolute !important;
+          box-sizing: border-box;
           overflow: hidden;
           contain: layout paint;
           isolation: isolate;
+          border: 1px solid rgba(0, 0, 0, .92);
           border-radius: 0;
           background: #000;
         }
@@ -895,11 +893,11 @@ export default function CommanderLayout({ children, title }) {
         .cmd-approved-header__notifications { left: 92.3%; width: 6.2%; }
         .cmd-approved-header__avatar-slot {
           position: absolute !important;
-          inset: 0 !important;
+          inset: 1px !important;
           z-index: 1;
           display: block;
-          width: 100%;
-          height: 100%;
+          width: auto;
+          height: auto;
           aspect-ratio: auto;
           transform: none !important;
           overflow: hidden;
@@ -933,23 +931,33 @@ export default function CommanderLayout({ children, title }) {
           background: rgba(0, 0, 0, .42);
           pointer-events: none;
         }
-        .cmd-approved-header__vip--shimmer::after {
+        .cmd-approved-header__vip--active {
+          border-radius: 12%;
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, .92),
+            0 0 5px rgba(255, 255, 255, .75),
+            0 0 10px rgba(210, 240, 255, .38);
+        }
+        .cmd-approved-header__controls--shimmer .cmd-approved-header__button {
+          overflow: hidden;
+        }
+        .cmd-approved-header__controls--shimmer .cmd-approved-header__button::before {
           content: '';
           position: absolute;
-          top: -25%;
-          bottom: -25%;
-          left: -55%;
-          z-index: 2;
-          width: 45%;
+          z-index: 20;
+          top: -15%;
+          bottom: -15%;
+          left: -45%;
+          width: 34%;
           transform: skewX(-18deg);
           background: linear-gradient(90deg, transparent, rgba(85, 190, 255, .55) 25%, rgba(255, 255, 255, .98) 52%, rgba(255, 211, 88, .7) 74%, transparent);
           box-shadow: 0 0 20px rgba(61, 171, 255, .8);
-          animation: cmdApprovedGlobalVipShimmer 1.25s cubic-bezier(.2, .65, .35, 1) both;
+          animation: cmdApprovedGlobalRightIconShimmer 1.5s cubic-bezier(.2, .65, .35, 1) both;
           pointer-events: none;
         }
-        @keyframes cmdApprovedGlobalVipShimmer {
-          from { left: -55%; }
-          to { left: 125%; }
+        @keyframes cmdApprovedGlobalRightIconShimmer {
+          from { left: -45%; }
+          to { left: 115%; }
         }
         @media (display-mode: standalone), (display-mode: fullscreen) {
           .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
@@ -961,7 +969,7 @@ export default function CommanderLayout({ children, title }) {
 
         <header className="cmd-approved-header" data-artwork="approved-global-header">
         <img src="/images/global-header/global-header-desktop.png" alt="" width="1648" height="168" className="cmd-approved-header__art" aria-hidden="true" fetchpriority="high" decoding="sync" />
-          <div className="cmd-approved-header__controls">
+          <div className={`cmd-approved-header__controls${iconShimmerVisible ? ' cmd-approved-header__controls--shimmer' : ''}`} data-header-icons-shimmer={iconShimmerVisible ? 'active' : 'idle'}>
             <button type="button" className="cmd-approved-header__button cmd-approved-header__menu" onClick={() => setMenuOpen(true)} aria-label="Open Menu" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__back" onClick={() => router.back()} aria-label="Go back" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__hub" onClick={() => router.push('/hub')} aria-label="Go to the Hub" />
@@ -976,7 +984,7 @@ export default function CommanderLayout({ children, title }) {
               </span>
             </button>
             <button type="button" className="cmd-approved-header__button cmd-approved-header__wallet" onClick={() => router.push('/hub/diamond-store')} aria-label="Diamond Wallet" />
-            <button type="button" className={`cmd-approved-header__button cmd-approved-header__vip${isVip ? ' cmd-approved-header__vip--active' : ''}${isVip && vipShimmerVisible ? ' cmd-approved-header__vip--shimmer' : ''}`} onClick={() => router.push('/hub/vip-membership')} aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'} data-vip-active={isVip ? 'true' : 'false'} />
+            <button type="button" className={`cmd-approved-header__button cmd-approved-header__vip${isVip ? ' cmd-approved-header__vip--active' : ''}`} onClick={() => router.push('/hub/vip-membership')} aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'} data-vip-active={isVip ? 'true' : 'false'} />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__messenger" onClick={() => router.push('/hub/messenger')} aria-label="Messages" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__notifications" onClick={() => router.push('/hub/notifications')} aria-label="Notifications" />
           </div>
