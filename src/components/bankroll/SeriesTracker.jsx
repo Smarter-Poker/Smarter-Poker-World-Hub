@@ -356,7 +356,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                         <div key={entry.id} style={styles.entryRow}>
                                             <div style={styles.entryInfo}>
                                                 <span style={styles.entryDate}>
-                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                                                 </span>
                                                 <span style={styles.entryCat}>{catLabel}</span>
                                                 {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}

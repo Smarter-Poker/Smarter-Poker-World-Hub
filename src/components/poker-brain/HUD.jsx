@@ -2160,7 +2160,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 }>
                   <div className="text-[9px] text-white/60 uppercase">Push/Fold</div>
                   <div className="text-sm font-bold">
-                    {decision.pushFoldHint.handCode} — {decision.pushFoldHint.inRange ? 'SHOVE' : 'FOLD'}
+                    {decision.pushFoldHint.handCode} - {decision.pushFoldHint.inRange ? 'SHOVE' : 'FOLD'}
                   </div>
                 </div>
               )}

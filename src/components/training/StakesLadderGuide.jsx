@@ -35,7 +35,7 @@ export default function StakesLadderGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Stakes Ladder Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're ready to move up — and when to move down.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're ready to move up - and when to move down.</p>
 
       {/* Ladder visual */}
       <div style={{ display: 'grid', gap: 4, marginBottom: 16 }}>

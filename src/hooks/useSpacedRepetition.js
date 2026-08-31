@@ -79,7 +79,7 @@ export default function useSpacedRepetition(gameId = null) {
             id: `review_${spot.spot_signature}_${idx}`,
             type: 'PIO',
             source: 'SPACED_REPETITION',
-            question: `Review: ${spot.hero_position || 'Hero'} vs ${spot.villain_position || 'Villain'} on ${spot.street || 'flop'} — ${spot.spot_type || 'general'} spot`,
+            question: `Review: ${spot.hero_position || 'Hero'} vs ${spot.villain_position || 'Villain'} on ${spot.street || 'flop'} - ${spot.spot_type || 'general'} spot`,
             scenario: {
                 heroPosition: spot.hero_position || 'BTN',
                 villainPosition: spot.villain_position || 'BB',

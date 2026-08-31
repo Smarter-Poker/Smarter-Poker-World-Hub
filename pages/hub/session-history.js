@@ -89,7 +89,7 @@ export default function SessionHistoryPage() {
       // I6: VPIP/PFR trend data + I12: Career aggregates
       lifetimeVpip: totalHands ? ((totalVpipCount / totalHands) * 100).toFixed(1) : '0',
       lifetimePfr: totalHands ? ((totalPfrCount / totalHands) * 100).toFixed(1) : '0',
-      lifetimeAF: totalAggCalls > 0 ? (totalAggBets / totalAggCalls).toFixed(1) : '—',
+      lifetimeAF: totalAggCalls > 0 ? (totalAggBets / totalAggCalls).toFixed(1) : '-',
       totalSessions: sessions.length,
     };
   }, [sessions]);
@@ -137,7 +137,7 @@ export default function SessionHistoryPage() {
   }, [sessions]);
 
   const formatDate = (d) => {
-    if (!d) return '—';
+    if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
@@ -455,7 +455,7 @@ export default function SessionHistoryPage() {
                         {[
                           { label: 'Buy-in', value: (s.starting_stack || 0).toLocaleString() },
                           { label: 'Cashout', value: (s.ending_stack || 0).toLocaleString() },
-                          { label: 'Win Rate', value: s.hands_played ? `${((s.hands_won / s.hands_played) * 100).toFixed(0)}%` : '—' },
+                          { label: 'Win Rate', value: s.hands_played ? `${((s.hands_won / s.hands_played) * 100).toFixed(0)}%` : '-' },
                           { label: 'Best Win', value: `+${(s.biggest_win || 0).toLocaleString()}` },
                           { label: 'Worst Loss', value: `-${(s.biggest_loss || 0).toLocaleString()}` },
                           { label: 'Won', value: `${s.hands_won || 0}/${s.hands_played || 0}` },

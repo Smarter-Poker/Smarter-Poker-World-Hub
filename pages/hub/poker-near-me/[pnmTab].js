@@ -1690,7 +1690,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       const { getFreshAccessToken } = await import('../../../src/lib/authUtils');
       const token = await getFreshAccessToken();
       if (!token) {
-        console.warn('[PNM] Geofence ping skipped — no signed-in session');
+        console.warn('[PNM] Geofence ping skipped - no signed-in session');
         return;
       }
       const res = await fetch('/api/venues/record-geofence', {
@@ -3648,13 +3648,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               'Loading Live Data...'
             ) : (
               <>
-                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
+                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Venues &nbsp;&bull;&nbsp;
                 {/* UX FIX: 'mixed' means the published total is real observations
                     PLUS simulator output, so it must carry the approximate label
                     too. Pending and offline feeds cannot prove a zero count, so
                     they render an em dash instead of a misleading zero. */}
                 {liveDataMode == null || liveDataMode === 'none'
-                  ? '—'
+                  ? '-'
                   : liveTableCount.toLocaleString()}{' '}
                 {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                   ? 'Tables (Approx.)'
@@ -3697,7 +3697,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
               <span>
                 {directorySource === 'supabase'
-                  ? `Loading live venue registry — ${directoryProgress.loaded} rooms ready.`
+                  ? `Loading live venue registry - ${directoryProgress.loaded} rooms ready.`
                   : directorySource === 'unavailable'
                   ? 'The venue registry is temporarily unavailable.'
                   : directorySource === 'partial_live'

@@ -346,10 +346,10 @@ export default async function handler(req, res) {
                 const realGroupName = groupNameById[gid];  // string or null
                 if (realGroupName) {
                     // Group exists and has a real name
-                    message = `Your friend is now in ${realGroupName} — check it out`;
+                    message = `Your friend is now in ${realGroupName} - check it out`;
                 } else {
                     // Group not found OR found with null/empty name → avoid showing slug
-                    message = 'Your friend joined a Home Game — check it out';
+                    message = 'Your friend joined a Home Game - check it out';
                 }
             }
             message = enforceTitleCase(message);

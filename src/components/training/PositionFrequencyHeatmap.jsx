@@ -78,7 +78,7 @@ function HeatCell({ value, maxVal, selected, onClick }) {
         minWidth: 48,
       }}
     >
-      {value > 0 ? `${value}%` : '—'}
+      {value > 0 ? `${value}%` : '-'}
     </div>
   );
 }

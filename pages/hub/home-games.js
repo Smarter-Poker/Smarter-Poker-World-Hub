@@ -59,7 +59,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
     const formatBuyin = () => {
         const lo = venue.typical_buyin_min;
         const hi = venue.typical_buyin_max;
-        if (lo != null && hi != null) return `$${lo}–$${hi}`;
+        if (lo != null && hi != null) return `$${lo}-$${hi}`;
         if (lo != null) return `$${lo}+`;
         if (hi != null) return `up to $${hi}`;
         return null;
@@ -183,7 +183,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
             <div className="hgc-body-grid">
                 <div className="hgc-col">
                     <div className="hgc-col-label">STAKES</div>
-                    <div className="hgc-col-primary">{stakesLine || '—'}</div>
+                    <div className="hgc-col-primary">{stakesLine || '-'}</div>
                     {buyinLine && (
                         <div className="hgc-col-sub">Buy-In {buyinLine}</div>
                     )}
@@ -833,7 +833,7 @@ export default function HomeGamesPage() {
     return (
         <>
             <SEOHead
-                title="Home Games — Find Poker Home Games Near You"
+                title="Home Games - Find Poker Home Games Near You"
                 description="Discover poker home games near you. Find local private games, join the community, and host your own."
                 canonical="/hub/home-games"
             />

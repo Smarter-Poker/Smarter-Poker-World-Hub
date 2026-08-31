@@ -171,7 +171,7 @@ export default function TrainingAchievements() {
   return (
     <PageTransition>
       <SEOHead
-        title="Training Achievements — Milestones Unlocked"
+        title="Training Achievements - Milestones Unlocked"
         description="Track Your GTO Training Achievements And Milestones On Smarter.Poker."
         canonical="/hub/training/achievements"
       />

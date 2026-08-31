@@ -12,7 +12,7 @@ const SITUATIONS = [
     sizes: [
       { pct: '25%', verdict: 'Best', reason: 'Small bet gets called by most worse hands. Maximizes call frequency.' },
       { pct: '50%', verdict: 'OK', reason: 'Reasonable but loses some calls from marginal hands.' },
-      { pct: '75%', verdict: 'Bad', reason: 'Too large — only better hands call. Turns value into a bluff.' },
+      { pct: '75%', verdict: 'Bad', reason: 'Too large - only better hands call. Turns value into a bluff.' },
       { pct: '100%+', verdict: 'Terrible', reason: 'Only sets and better call. You lose max when behind.' },
     ],
     optimal: '25-33% pot',
@@ -23,7 +23,7 @@ const SITUATIONS = [
     sizes: [
       { pct: '25%', verdict: 'Weak', reason: 'Leaves money on the table. Strong hands want bigger pots.' },
       { pct: '50%', verdict: 'OK', reason: 'Decent but could go bigger, especially on wet boards.' },
-      { pct: '75%', verdict: 'Best', reason: 'Optimal — gets called by top pair, overpairs, draws.' },
+      { pct: '75%', verdict: 'Best', reason: 'Optimal - gets called by top pair, overpairs, draws.' },
       { pct: '100%+', verdict: 'Good', reason: 'Overbet is fine when you have the nuts. Polarized strategy.' },
     ],
     optimal: '66-100% pot',

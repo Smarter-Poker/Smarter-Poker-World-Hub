@@ -171,7 +171,7 @@ async function handler(req, res) {
         }
         if (rosterGaps.length > 0) {
             actions.push(
-                `Daily roster incomplete for ${today} in: ${rosterGaps.map(([id]) => id).join(', ')} — ` +
+                `Daily roster incomplete for ${today} in: ${rosterGaps.map(([id]) => id).join(', ')} - ` +
                 'invoke /api/cron/generate-trivia?rosterOnly=1'
             );
         }
@@ -180,7 +180,7 @@ async function handler(req, res) {
 
         if (!healthy) {
             console.warn(
-                `[TriviaPoolGuard] UNHEALTHY — ${below.length} categories below the ` +
+                `[TriviaPoolGuard] UNHEALTHY - ${below.length} categories below the ` +
                 `${NO_REPEAT_WINDOW_DAYS}-day floor, total shortfall ${totalShortfall} usable questions.`
             );
         }

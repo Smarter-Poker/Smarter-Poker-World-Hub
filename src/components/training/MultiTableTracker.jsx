@@ -8,22 +8,22 @@ import React, { useState, useMemo } from 'react';
 
 const TABLES = [
   {
-    id: 1, name: 'Table 1 — NL200', stake: 'NL200', hands: 142, vpip: 24.3, pfr: 19.1, af: 3.2,
+    id: 1, name: 'Table 1 - NL200', stake: 'NL200', hands: 142, vpip: 24.3, pfr: 19.1, af: 3.2,
     winRate: 8.4, profit: 168.00, status: 'active', players: 6,
     recentHands: ['+$45', '-$12', '+$8', '+$22', '-$35', '+$15', '-$6', '+$18'],
   },
   {
-    id: 2, name: 'Table 2 — NL200', stake: 'NL200', hands: 128, vpip: 22.8, pfr: 18.5, af: 2.9,
+    id: 2, name: 'Table 2 - NL200', stake: 'NL200', hands: 128, vpip: 22.8, pfr: 18.5, af: 2.9,
     winRate: -3.2, profit: -41.00, status: 'active', players: 6,
     recentHands: ['-$18', '+$5', '-$22', '+$10', '-$8', '-$15', '+$12', '-$5'],
   },
   {
-    id: 3, name: 'Table 3 — NL500', stake: 'NL500', hands: 95, vpip: 21.5, pfr: 17.8, af: 3.5,
+    id: 3, name: 'Table 3 - NL500', stake: 'NL500', hands: 95, vpip: 21.5, pfr: 17.8, af: 3.5,
     winRate: 12.6, profit: 315.00, status: 'active', players: 6,
     recentHands: ['+$120', '-$45', '+$65', '+$30', '-$20', '+$85', '-$10', '+$40'],
   },
   {
-    id: 4, name: 'Table 4 — NL100', stake: 'NL100', hands: 186, vpip: 25.1, pfr: 20.4, af: 2.7,
+    id: 4, name: 'Table 4 - NL100', stake: 'NL100', hands: 186, vpip: 25.1, pfr: 20.4, af: 2.7,
     winRate: 5.1, profit: 51.00, status: 'paused', players: 6,
     recentHands: ['+$8', '+$12', '-$5', '+$3', '-$10', '+$15', '+$6', '-$2'],
   },
@@ -205,7 +205,7 @@ function MultiTableTracker() {
         {/* Detail Panel */}
         {detail && (
           <div style={{ padding: 14, background: 'rgba(59,130,246,0.06)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.2)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', marginBottom: 10 }}>{detail.name} — Detailed Stats</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', marginBottom: 10 }}>{detail.name} - Detailed Stats</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
               {[
                 { label: 'Hands Played', value: detail.hands },

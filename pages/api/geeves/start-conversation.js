@@ -73,11 +73,11 @@ export default async function handler(req, res) {
           const greeting = `Good evening, ${userName}! I'm Geeves, your poker strategy expert.
 
   I have deep knowledge of:
-  • **GTO Strategy** — Optimal play theory
-  • **Tournament Poker** — ICM, bubble play, final tables
-  • **Cash Games** — All stakes and formats
-  • **Hand Analysis** — Detailed breakdowns
-  • **Poker Math** — Equity, odds, EV calculations
+  • **GTO Strategy** - Optimal play theory
+  • **Tournament Poker** - ICM, bubble play, final tables
+  • **Cash Games** - All stakes and formats
+  • **Hand Analysis** - Detailed breakdowns
+  • **Poker Math** - Equity, odds, EV calculations
 
   What poker question can I help you with today?`;
 

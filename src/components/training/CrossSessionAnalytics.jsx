@@ -423,7 +423,7 @@ const RecentSessionsList = memo(({ sessions }) => {
                         borderBottom: i < recent.length - 1 ? '1px solid rgba(100,116,139,0.08)' : 'none',
                     }}>
                         <span style={{ fontSize: 9, color: '#64748b', width: 64, flexShrink: 0 }}>
-                            {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}
+                            {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '-'}
                         </span>
                         <span style={{ flex: 1, fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {s.gameName || s.gameId || 'Training'}
@@ -432,7 +432,7 @@ const RecentSessionsList = memo(({ sessions }) => {
                             {score > 0 ? `+${score}` : score}
                         </span>
                         <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
-                            {acc !== null ? `${acc}%` : '—'}
+                            {acc !== null ? `${acc}%` : '-'}
                         </span>
                         <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
                             {`-${(s.evLossTotal || 0).toFixed(1)}`}

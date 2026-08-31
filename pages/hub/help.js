@@ -103,7 +103,7 @@ export default function HelpPage() {
     return (
         <>
             <SEOHead
-                title="Help Center — Support & FAQ"
+                title="Help Center - Support & FAQ"
                 description="Get Help With Smarter.Poker Features. FAQ, Tutorials, And Live Support With Geeves, Your Poker Help Assistant."
                 canonical="/hub/help"
             />

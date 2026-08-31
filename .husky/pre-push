@@ -15,4 +15,10 @@ FAIL=0
 sh "$ROOT/scripts/hooks/pre-push-js-safety.sh"   "$@" || FAIL=1
 sh "$ROOT/scripts/hooks/pre-push-club-arena.sh"  "$@" || FAIL=1
 
+# Dan, 2026-08-31: "REMOVE ANY AND ALL M BARS AS THEY ARE BANNED FROM USE."
+# Club Arena has had this gate since 2026-08-27; the apex site never did, so
+# every page it serves was unchecked. Comments are stripped before scanning, so
+# this only ever speaks about text a person can actually read.
+node "$ROOT/scripts/ci/check-ui-text.mjs" || FAIL=1
+
 exit $FAIL

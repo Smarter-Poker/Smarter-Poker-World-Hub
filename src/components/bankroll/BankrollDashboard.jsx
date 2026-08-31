@@ -28,7 +28,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
     <div style={styles.statCard}>
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
-        <div style={styles.statLoading}>—</div>
+        <div style={styles.statLoading}>-</div>
       ) : (
         <div style={styles.statValue}>
           <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
@@ -290,7 +290,7 @@ export default function BankrollDashboard({ userId }) {
           <div style={styles.statsGrid}>
             <StatCard
               title="Total Bankroll"
-              value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '—'}
+              value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '-'}
               change={stats?.allInNet}
               isLoading={isLoading}
             />
@@ -299,7 +299,7 @@ export default function BankrollDashboard({ userId }) {
               value={
                 stats
                   ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
-                  : '—'
+                  : '-'
               }
               isLoading={isLoading}
             />
@@ -314,7 +314,7 @@ export default function BankrollDashboard({ userId }) {
               value={
                 stats
                   ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
-                  : '—'
+                  : '-'
               }
               suffix="Last Trip"
               isLoading={isLoading}

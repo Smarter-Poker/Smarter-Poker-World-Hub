@@ -148,7 +148,7 @@ export function useFeatureGate(featureKey) {
 
         const handleVipChange = (e) => {
             if (e.detail?.vipGranted !== false) {
-                console.debug(`[useFeatureGate] 🚌 VIP granted via bus — unlocking ${featureKey}`);
+                console.debug(`[useFeatureGate] 🚌 VIP granted via bus - unlocking ${featureKey}`);
                 setHasAccess(true);
             }
         };

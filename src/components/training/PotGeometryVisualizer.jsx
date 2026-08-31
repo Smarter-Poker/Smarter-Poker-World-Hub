@@ -128,10 +128,10 @@ function PotGeometryVisualizer() {
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', marginBottom: 4 }}>Pot Geometry Insight</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-            {calc.pctStackUsed < 30 ? 'Small sizing — leaves room for multi-street play. Consider larger sizes with strong hands to build pot.' :
-             calc.pctStackUsed < 70 ? 'Moderate commitment — good for value hands. Enough behind for river decisions.' :
-             calc.allIn ? 'Over-committed — simplify to jam/fold on earlier street. Consider geometric sizing to spread bets evenly.' :
-             'Deep commitment — pot is large relative to stack. River decisions will be for significant portions of stack.'}
+            {calc.pctStackUsed < 30 ? 'Small sizing - leaves room for multi-street play. Consider larger sizes with strong hands to build pot.' :
+             calc.pctStackUsed < 70 ? 'Moderate commitment - good for value hands. Enough behind for river decisions.' :
+             calc.allIn ? 'Over-committed - simplify to jam/fold on earlier street. Consider geometric sizing to spread bets evenly.' :
+             'Deep commitment - pot is large relative to stack. River decisions will be for significant portions of stack.'}
           </div>
         </div>
       </div>

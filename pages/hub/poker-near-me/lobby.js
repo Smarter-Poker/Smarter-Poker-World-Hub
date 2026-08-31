@@ -1372,7 +1372,7 @@ export default function PokerNearMeLobby() {
               setShowEnablePopup(true);
               setShowManualLocation(false);
             } else {
-              setGpsError('Could not determine location — set your location manually below');
+              setGpsError('Could not determine location - set your location manually below');
               gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
               setShowManualLocation(true);
             }
@@ -1651,13 +1651,13 @@ export default function PokerNearMeLobby() {
           .catch(err => console.warn('Manual location venue fetch failed:', err));
         // Manual location set — user must click search to see results
       } else {
-        setGpsError('Could not find that location — try a different city');
+        setGpsError('Could not find that location - try a different city');
         if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
         gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
       }
     } catch (err) {
       console.warn('Manual geocode failed:', err);
-      setGpsError('Geocoding failed — check your connection');
+      setGpsError('Geocoding failed - check your connection');
       if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
       gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
     } finally {
@@ -2426,7 +2426,7 @@ export default function PokerNearMeLobby() {
   return (
     <>
       <SEOHead
-        title="Poker Near Me — Find Live Poker Rooms & Casinos"
+        title="Poker Near Me - Find Live Poker Rooms & Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me/lobby"
         jsonLd={LOBBY_JSON_LD}

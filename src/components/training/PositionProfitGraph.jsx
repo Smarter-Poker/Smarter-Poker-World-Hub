@@ -133,7 +133,7 @@ function PositionProfitGraph() {
         {/* Detail Panel */}
         {detail && (
           <div style={{ padding: 14, background: 'rgba(34,211,238,0.06)', borderRadius: 10, border: '1px solid rgba(34,211,238,0.15)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: POS_COLORS[selectedPos], marginBottom: 10 }}>{selectedPos} — Detailed Stats</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: POS_COLORS[selectedPos], marginBottom: 10 }}>{selectedPos} - Detailed Stats</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
               {[
                 { label: 'Hands', value: detail.hands.toLocaleString() },

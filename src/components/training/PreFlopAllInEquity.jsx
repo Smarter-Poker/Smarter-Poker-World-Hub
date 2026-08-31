@@ -78,10 +78,10 @@ function PreFlopAllInEquity() {
                   <div style={{ marginTop: 8, textAlign: 'center' }}>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', padding: '2px 8px', background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>{m.category}</span>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-                      {m.eq1 > 80 ? 'Massive favorite — calling is always correct' :
-                       m.eq1 > 60 ? 'Solid favorite — profitable all-in' :
-                       m.eq1 > 52 ? 'Coin flip — small edge, high variance' :
-                       'Underdog — need pot odds or ICM reasons to call'}
+                      {m.eq1 > 80 ? 'Massive favorite - calling is always correct' :
+                       m.eq1 > 60 ? 'Solid favorite - profitable all-in' :
+                       m.eq1 > 52 ? 'Coin flip - small edge, high variance' :
+                       'Underdog - need pot odds or ICM reasons to call'}
                     </div>
                   </div>
                 )}

@@ -68,7 +68,7 @@ export const copyReferralLink = async (user) => {
             }
         }
         await navigator.clipboard.writeText(link);
-        await notify('success', 'Referral link copied — you earn 500 diamonds per signup.');
+        await notify('success', 'Referral link copied - you earn 500 diamonds per signup.');
     } catch (err) {
         console.warn('Copy referral link error:', err);
         await notify('error', 'Failed to copy referral link. Please try again.');
@@ -1467,7 +1467,7 @@ export function applyWorldMenuDeck(config = {}, worldOrPath) {
 export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
     const config = MENU_CONFIGS[worldKey] || MENU_CONFIGS['hub-home'];
     if (!MENU_CONFIGS[worldKey] && process.env.NODE_ENV !== 'production') {
-        console.warn(`No menu config found for world: ${worldKey} — falling back to hub-home`);
+        console.warn(`No menu config found for world: ${worldKey} - falling back to hub-home`);
     }
     const result = config(user, state, handlers) || {};
     const world = getWorldMenuByKey(worldKey);

@@ -125,7 +125,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
                 border: '1px solid rgba(100,116,139,0.05)',
                 opacity: 0.3, fontSize: 10, color: '#475569',
             }}>
-                {texture} — card conflict
+                {texture} - card conflict
             </div>
         );
     }

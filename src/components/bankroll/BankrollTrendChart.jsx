@@ -160,7 +160,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
             const hi = lo + step;
             buckets.push({
                 range: `$${Math.round(lo)}`,
-                rangeLabel: `$${Math.round(lo)} – $${Math.round(hi)}`,
+                rangeLabel: `$${Math.round(lo)} - $${Math.round(hi)}`,
                 count: nets.filter(n => n >= lo && (i === bucketCount - 1 ? n <= hi : n < hi)).length,
                 lo, hi,
             });
@@ -314,7 +314,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14 }}>{d.date}{d.hasData && d.category ? ` - ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
                             <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 16 }}>
                                 {d.hasData ? fmtVal(d.value) : 'No sessions'}
                             </div>

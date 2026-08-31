@@ -1157,7 +1157,7 @@ function FriendsPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Friends — Your Poker Network"
+                title="Friends - Your Poker Network"
                 description="Manage Your Poker Friends Network. Add Friends, View Their Stats, Challenge Them To Games, And Stay Connected."
                 canonical="/hub/friends"
             />

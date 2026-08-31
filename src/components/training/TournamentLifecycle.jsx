@@ -24,7 +24,7 @@ const MTT_STAGES = [
   { stage: 'In the Money (20-40 BB)', icon: '●', color: '#8b5cf6',
     blinds: 'Levels 12+ | Pay jumps matter',
     strategy: 'After the bubble bursts, play for the win, not laddering. Re-accumulate aggressively.',
-    avoid: 'Don\'t play scared money. Min-cashing is not the goal — you want a deep run.',
+    avoid: 'Don\'t play scared money. Min-cashing is not the goal - you want a deep run.',
     key: 'The payout structure is top-heavy. 1st place is 20-30% of the total pool. Play to win.' },
   { stage: 'Final Table (10 BB - Deep)', icon: '★', color: '#ef4444',
     blinds: 'High | ICM: Critical at pay jumps',

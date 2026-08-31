@@ -73,7 +73,7 @@ export function validateVideoFile(file) {
         const connLabel = connType === '2g' || connType === 'slow-2g' ? 'on a slow connection'
                         : connType === '3g' ? 'on 3G'
                         : 'on mobile';
-        warning = `Large video (${sizeMB}MB) — upload may take a few minutes ${connLabel}.`;
+        warning = `Large video (${sizeMB}MB) - upload may take a few minutes ${connLabel}.`;
     }
 
     // Detect formats that need server-side transcoding

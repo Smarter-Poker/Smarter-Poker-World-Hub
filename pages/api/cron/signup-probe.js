@@ -166,7 +166,7 @@ async function handler(req, res) {
             return res.status(503).json({
                 status: 'failed',
                 duration_ms,
-                error: `Trigger chain broken — missing rows: ${failedChecks.join(', ')}`,
+                error: `Trigger chain broken - missing rows: ${failedChecks.join(', ')}`,
                 failed_checks: failedChecks,
                 checks,
             });

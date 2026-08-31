@@ -41,7 +41,7 @@ export default async function handler(req, res) {
           // exposed this endpoint's env-configuration inventory.
           const adminApiToken = process.env.ADMIN_API_TOKEN;
           if (!adminApiToken) {
-              console.warn('[security-audit] ADMIN_API_TOKEN is not configured — rejecting request');
+              console.warn('[security-audit] ADMIN_API_TOKEN is not configured - rejecting request');
               return res.status(500).json({ error: 'Server misconfigured' });
           }
           const authHeader = req.headers.authorization;
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
                       addCheck(
                           `RLS on ${table}`,
                           'pass',
-                          `Table ${table} accessible — verify RLS in Supabase dashboard`
+                          `Table ${table} accessible - verify RLS in Supabase dashboard`
                       );
                   }
               } catch {

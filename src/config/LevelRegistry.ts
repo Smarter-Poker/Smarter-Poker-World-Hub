@@ -91,7 +91,7 @@ export const LEVEL_REGISTRY: Record<number, LevelDefinition> = {
     // BEGINNER (Levels 1-2)
     1: {
         id: 1, name: 'Foundations', tier: 'BEGINNER',
-        description: 'Full solver-backed GTO training — all spot types and streets',
+        description: 'Full solver-backed GTO training - all spot types and streets',
         masteryThreshold: MASTERY_THRESHOLD, minQuestionsRequired: 20,
         evToleranceBB: 0.50, timeLimitSeconds: 30,
         scenarioTypes: ['PREFLOP_RANGES', 'POSTFLOP_DECISION', 'BOARD_TEXTURE', 'SIZING_LOGIC', 'POSITION_BATTLE'], scenarioComplexity: 1,
@@ -100,7 +100,7 @@ export const LEVEL_REGISTRY: Record<number, LevelDefinition> = {
     },
     2: {
         id: 2, name: 'Opening Ranges', tier: 'BEGINNER',
-        description: 'Full solver-backed GTO training — all spot types and streets',
+        description: 'Full solver-backed GTO training - all spot types and streets',
         masteryThreshold: MASTERY_THRESHOLD, minQuestionsRequired: 20,
         evToleranceBB: 0.40, timeLimitSeconds: 25,
         scenarioTypes: ['PREFLOP_RANGES', 'POSTFLOP_DECISION', 'BOARD_TEXTURE', 'SIZING_LOGIC', 'POSITION_BATTLE'], scenarioComplexity: 2,
@@ -202,7 +202,7 @@ export const LEVEL_REGISTRY: Record<number, LevelDefinition> = {
     // BOSS MODE (Level 12) — 90% threshold
     12: {
         id: 12, name: 'BOSS MODE', tier: 'BOSS',
-        description: 'THE ULTIMATE CHALLENGE — Random scenarios, max pressure',
+        description: 'THE ULTIMATE CHALLENGE - Random scenarios, max pressure',
         masteryThreshold: BOSS_MODE_THRESHOLD,
         minQuestionsRequired: 30,
         evToleranceBB: 0.05, timeLimitSeconds: 8,

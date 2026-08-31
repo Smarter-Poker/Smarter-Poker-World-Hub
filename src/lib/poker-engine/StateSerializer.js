@@ -503,7 +503,7 @@ class StateSerializer {
       // Check staleness (don't recover states older than 5 minutes)
       const state = data.live_state;
       if (state.savedAt && Date.now() - state.savedAt > 300000) {
-        console.debug(`[StateSerializer] Stale state for ${tableId} (${Math.round((Date.now() - state.savedAt) / 1000)}s old) — skipping recovery`);
+        console.debug(`[StateSerializer] Stale state for ${tableId} (${Math.round((Date.now() - state.savedAt) / 1000)}s old) - skipping recovery`);
         return null;
       }
 

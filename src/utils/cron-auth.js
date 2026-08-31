@@ -34,7 +34,7 @@ export function validateCronAuth(req) {
     // fails CLOSED at any call site that was missed. Returning an object here
     // would make `!result` permanently false and authorize every caller.
     if (!cronSecret) {
-        console.warn('[cron-auth] CRON_SECRET is not configured — rejecting cron request');
+        console.warn('[cron-auth] CRON_SECRET is not configured - rejecting cron request');
         throw new Error('Cron authentication is not configured');
     }
 

@@ -28,7 +28,7 @@ function formatMoney(amount) {
 }
 
 function formatChips(n) {
-  if (!n) return '—';
+  if (!n) return '-';
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
   return n.toLocaleString();
@@ -120,7 +120,7 @@ function EventRow({ ev, idx }) {
 
       {/* Starts */}
       <div className="ssm-col ssm-col-time">
-        {startTime ? <span className="ssm-time">{startTime}</span> : <span className="ssm-na">—</span>}
+        {startTime ? <span className="ssm-time">{startTime}</span> : <span className="ssm-na">-</span>}
       </div>
 
       {/* Event Name */}
@@ -146,14 +146,14 @@ function EventRow({ ev, idx }) {
 
       {/* Reg Open */}
       <div className="ssm-col ssm-col-reg">
-        {regOpen ? <span className="ssm-reg">{regOpen}</span> : <span className="ssm-na">—</span>}
+        {regOpen ? <span className="ssm-reg">{regOpen}</span> : <span className="ssm-na">-</span>}
       </div>
 
       {/* GTD */}
       <div className="ssm-col ssm-col-gtd">
         {gtd
           ? <span className="ssm-gtd">{formatMoney(gtd)}</span>
-          : <span className="ssm-na">—</span>
+          : <span className="ssm-na">-</span>
         }
       </div>
 
@@ -161,7 +161,7 @@ function EventRow({ ev, idx }) {
       <div className="ssm-col ssm-col-chips">
         {chips
           ? <span className="ssm-chips">{formatChips(chips)}</span>
-          : <span className="ssm-na">—</span>
+          : <span className="ssm-na">-</span>
         }
       </div>
 
@@ -169,7 +169,7 @@ function EventRow({ ev, idx }) {
       <div className="ssm-col ssm-col-levels">
         {levels
           ? <span className="ssm-levels">{levels}<span className="ssm-min">m</span></span>
-          : <span className="ssm-na">—</span>
+          : <span className="ssm-na">-</span>
         }
       </div>
     </div>
@@ -245,7 +245,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
   const dates = stop?.stop_start_date || stop?.dates ? (
     stop.stop_start_date
       ? new Date(stop.stop_start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        + (stop.stop_end_date ? ' – ' + new Date(stop.stop_end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')
+        + (stop.stop_end_date ? ' - ' + new Date(stop.stop_end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')
       : stop.dates || ''
   ) : '';
 
@@ -304,7 +304,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
               <span className="ssm-main-name">
                 {mainEvent.event_name || mainEvent.name}
                 {mainEvent.guaranteed || mainEvent.guarantee
-                  ? <strong> — {formatMoney(mainEvent.guaranteed || mainEvent.guarantee)} GTD</strong>
+                  ? <strong> - {formatMoney(mainEvent.guaranteed || mainEvent.guarantee)} GTD</strong>
                   : ''}
               </span>
               <span className="ssm-main-star">★</span>

@@ -204,7 +204,7 @@ export default function NodeLockEditor() {
         {/* ●●● GAME TREE ●●● */}
         <div style={{ flex: '1 1 400px', maxHeight: 500, overflowY: 'auto' }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>
-            Game Tree — BTN vs BB SRP (K♠ 8♦ 3♣)
+            Game Tree - BTN vs BB SRP (K♠ 8♦ 3♣)
           </div>
           <TreeNode node={tree} depth={0} selectedNode={selectedNode} onSelect={setSelectedNode}
             locks={locks} onToggleLock={toggleLock} onUpdateFreq={updateLockedFreq} />

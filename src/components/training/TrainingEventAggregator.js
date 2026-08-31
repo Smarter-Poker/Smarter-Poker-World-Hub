@@ -40,7 +40,7 @@ export default function TrainingEventAggregator() {
                 }
 
                 // Dispatch native info toast
-                toast.info(`◆ ${toolName} — ${performanceStr}`, 4000);
+                toast.info(`◆ ${toolName} - ${performanceStr}`, 4000);
             } catch (err) {
                 console.warn('[TrainingEventAggregator] Failed to parse and toast event:', err);
             }

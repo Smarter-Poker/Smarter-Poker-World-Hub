@@ -764,8 +764,8 @@ export default function EventsCalendarPage({ fallbackData }) {
   return (
     <>
       <SEOHead
-        title="Poker Events Calendar — Find Any Tournament"
-        description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops — all in one place."
+        title="Poker Events Calendar - Find Any Tournament"
+        description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops - all in one place."
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
@@ -1089,7 +1089,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                       className={`ec-cell has-day ${cell.isToday ? 'today' : ''} ${cell.dateKey === selectedCalDate ? 'selected' : ''}`}
                       onClick={() => setSelectedCalDate(cell.dateKey === selectedCalDate ? null : cell.dateKey)}
                       aria-pressed={cell.dateKey === selectedCalDate}
-                      aria-label={`${MONTH_NAMES[calMonth]} ${cell.day}, ${calYear}${cell.count > 0 ? ` — ${cell.count} event${cell.count !== 1 ? 's' : ''}` : ''}`}
+                      aria-label={`${MONTH_NAMES[calMonth]} ${cell.day}, ${calYear}${cell.count > 0 ? ` - ${cell.count} event${cell.count !== 1 ? 's' : ''}` : ''}`}
                     >
                       <span className={`ec-day-num ${cell.isToday ? 'today' : ''}`}>{cell.day}</span>
                       {cell.count > 0 && (

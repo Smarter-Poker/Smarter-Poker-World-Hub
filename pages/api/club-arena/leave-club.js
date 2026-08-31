@@ -259,7 +259,7 @@ export default async function handler(req, res) {
           creditTreasuryRpcErr ||
           (creditTreasuryRes?.success ? null : new Error(creditTreasuryRes?.error || 'treasury credit refused'));
         if (creditTreasuryErr) {
-          console.warn('[leave-club] fn_credit_treasury failed after successful debit — chips may be lost:', creditTreasuryErr.message);
+          console.warn('[leave-club] fn_credit_treasury failed after successful debit - chips may be lost:', creditTreasuryErr.message);
         } else {
           chipsReturnedToTreasury = totalChips;
 
@@ -270,7 +270,7 @@ export default async function handler(req, res) {
             to_user_id: null,
             amount: totalChips,
             transaction_type: 'withdrawal',
-            notes: `Player left club — ${totalChips.toLocaleString()} chips returned to club treasury`,
+            notes: `Player left club - ${totalChips.toLocaleString()} chips returned to club treasury`,
           });
           if (chipTxErr) console.warn('[leave-club] Failed to log chip tx:', chipTxErr.message);
         }
@@ -288,7 +288,7 @@ export default async function handler(req, res) {
         to_user_id: null,
         amount: creditUsed,
         transaction_type: 'credit_forgiven',
-        notes: `Player left club with ${creditUsed.toLocaleString()} outstanding credit — written off`,
+        notes: `Player left club with ${creditUsed.toLocaleString()} outstanding credit - written off`,
       });
       if (creditTxErr) console.warn('[leave-club] Failed to log credit forgiven tx:', creditTxErr.message);
     }

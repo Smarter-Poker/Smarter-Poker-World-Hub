@@ -147,7 +147,7 @@ export default async function handler(req, res) {
       await notifyUser(supabaseAdmin, {
         userId: toUserId, type: 'chip_transfer',
         title: `💰 ${amount.toLocaleString()} Chips Received`,
-        message: `A player sent you ${amount.toLocaleString()} chips${note ? ` — ${note}` : ''}.`,
+        message: `A player sent you ${amount.toLocaleString()} chips${note ? ` - ${note}` : ''}.`,
         data: { clubId, amount, fromUserId: user.id },
         pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));

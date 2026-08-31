@@ -150,7 +150,7 @@ function TableCard({ table, onJoin }) {
           {table.smallBlind}/{table.bigBlind}
         </div>
         <div style={{ color: T.textMuted, fontSize: 11 }}>
-          Buy-in: {table.minBuyIn}–{table.maxBuyIn}
+          Buy-in: {table.minBuyIn}-{table.maxBuyIn}
         </div>
       </div>
 
@@ -171,8 +171,8 @@ function TableCard({ table, onJoin }) {
       {/* Footer stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', color: T.textMuted, fontSize: 11 }}>
         <span>{table.playerCount}/{table.maxSeats} players</span>
-        <span>Avg pot: {table.avgPot || '—'}</span>
-        <span>{table.handsPerHour || '—'} h/hr</span>
+        <span>Avg pot: {table.avgPot || '-'}</span>
+        <span>{table.handsPerHour || '-'} h/hr</span>
       </div>
     </motion.div>
   );
@@ -278,7 +278,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
         </Field>
 
         {/* Buy-in range */}
-        <Field label={`Buy-in: ${config.minBuyIn}–${config.maxBuyIn}`}>
+        <Field label={`Buy-in: ${config.minBuyIn}-${config.maxBuyIn}`}>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="number" value={config.minBuyIn}
@@ -606,7 +606,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
           <div style={{ fontSize: 15, fontWeight: 600 }}>No tables found</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>
             {tables.length === 0
-              ? 'Be the first — create a table!'
+              ? 'Be the first - create a table!'
               : 'Try adjusting your filters'}
           </div>
         </div>

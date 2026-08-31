@@ -160,7 +160,7 @@ export function UnreadProvider({ children }) {
                 if (typeof result.unreadMessages === 'number') setMessageCount(result.unreadMessages);
                 return;
             }
-            console.warn('[UnreadProvider] header-stats gave no usable count — falling back to direct query');
+            console.warn('[UnreadProvider] header-stats gave no usable count - falling back to direct query');
         } catch (e) {
             console.warn('[UnreadProvider] header-stats fetch failed, falling back:', e?.message || e);
         }
@@ -270,7 +270,7 @@ export function UnreadProvider({ children }) {
                     })
                     .subscribe();
             } catch (realtimeErr) {
-                console.warn('[UnreadProvider] notifications realtime subscription failed — falling back to polling:', realtimeErr);
+                console.warn('[UnreadProvider] notifications realtime subscription failed - falling back to polling:', realtimeErr);
             }
 
             // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.

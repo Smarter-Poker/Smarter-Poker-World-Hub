@@ -44,7 +44,7 @@ async function _flushPendingSettings() {
         // CRITICAL: If read fails, do NOT proceed — writing with empty 'current'
         // would overwrite all existing settings with only the new keys.
         if (readError) {
-            console.warn('[AppSettings] Flush aborted — SELECT failed:', readError.message);
+            console.warn('[AppSettings] Flush aborted - SELECT failed:', readError.message);
             // Re-queue the values so they're retried on the next flush cycle
             Object.assign(_pendingValues, toSave);
             if (!_flushTimer) _flushTimer = setTimeout(_flushPendingSettings, 2000);
@@ -101,7 +101,7 @@ export async function saveAppSettingsBatch(settingsMap) {
 
         // CRITICAL: If read fails, do NOT proceed — would overwrite all settings
         if (readError) {
-            console.warn('[AppSettings] Batch aborted — SELECT failed:', readError.message);
+            console.warn('[AppSettings] Batch aborted - SELECT failed:', readError.message);
             return;
         }
 
@@ -191,7 +191,7 @@ export async function seedLocalStorageFromDB(userId) {
                 try { localStorage.setItem(lsKey, str); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         }
-        console.debug('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings || {}).length, 'keys');
+        console.debug('[AppSettings] ✅ Seeded localStorage from DB -', Object.keys(settings || {}).length, 'keys');
     } catch (err) {
         console.warn('[AppSettings] Seed failed:', err);
     }

@@ -21,7 +21,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Club Arena',
     gradient: ['#ffb347', '#cc7722'],
     imageUrl: '/cards/club-arena.png?v=splash4',
-    description: 'JOIN PRIVATE CLUBS — COMPETE WITH PLAYERS FROM AROUND THE WORLD',
+    description: 'JOIN PRIVATE CLUBS - COMPETE WITH PLAYERS FROM AROUND THE WORLD',
   },
   {
     id: 'bankroll-manager',
@@ -30,7 +30,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Bankroll Manager',
     gradient: ['#f48fb1', '#c2185b'],
     imageUrl: '/cards/bankroll-manager.png?v=splash1',
-    description: 'PROFESSIONAL TRACKING — MANAGE AND GROW YOUR POKER BANKROLL',
+    description: 'PROFESSIONAL TRACKING - MANAGE AND GROW YOUR POKER BANKROLL',
   },
   {
     id: 'preflop-charts',
@@ -39,7 +39,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Preflop Charts',
     gradient: ['#84ffff', '#00bcd4'],
     imageUrl: '/cards/preflop-charts.png?v=splash1',
-    description: 'MASTER GTO RANGES — TRAIN PREFLOP DECISIONS UNDER PRESSURE',
+    description: 'MASTER GTO RANGES - TRAIN PREFLOP DECISIONS UNDER PRESSURE',
   },
   {
     id: 'poker-near-me',
@@ -56,7 +56,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Marketplace',
     gradient: ['#ffe066', '#ccaa00'],
     imageUrl: '/cards/marketplace.png?v=splash4',
-    description: 'PREMIUM POKER GEAR — CARDS, CHIPS, AND EXCLUSIVE MERCH',
+    description: 'PREMIUM POKER GEAR - CARDS, CHIPS, AND EXCLUSIVE MERCH',
   },
   {
     id: 'personal-assistant',
@@ -64,7 +64,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Personal Assistant',
     gradient: ['#64b5f6', '#1565c0'],
     imageUrl: '/cards/personal-assistant.png?v=splash4',
-    description: 'YOUR AI COACH — FINDS YOUR LEAKS AND LEVELS UP YOUR GAME',
+    description: 'YOUR AI COACH - FINDS YOUR LEAKS AND LEVELS UP YOUR GAME',
   },
   {
     id: 'training',
@@ -73,7 +73,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Training',
     gradient: ['#69f0ae', '#00c853'],
     imageUrl: '/cards/training.png?v=splash1',
-    description: '100 GAMES TO MASTER — LEVEL UP YOUR POKER IQ ONE DRILL AT A TIME',
+    description: '100 GAMES TO MASTER - LEVEL UP YOUR POKER IQ ONE DRILL AT A TIME',
   },
   {
     id: 'news',
@@ -82,7 +82,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'News',
     gradient: ['#ff8c42', '#e55812'],
     imageUrl: '/cards/news.png?v=splash1',
-    description: 'BREAKING POKER NEWS — TOURNAMENTS, DRAMA, AND LEGEND STORIES',
+    description: 'BREAKING POKER NEWS - TOURNAMENTS, DRAMA, AND LEGEND STORIES',
   },
   {
     id: 'trivia',
@@ -91,7 +91,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Trivia',
     gradient: ['#4dd0e1', '#0097a7'],
     imageUrl: '/cards/trivia.png?v=splash4',
-    description: 'TEST YOUR KNOWLEDGE — POKER HISTORY, STRATEGY, AND FUN FACTS',
+    description: 'TEST YOUR KNOWLEDGE - POKER HISTORY, STRATEGY, AND FUN FACTS',
   },
   {
     id: 'social-media',
@@ -100,7 +100,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Social Media',
     gradient: ['#ff6b6b', '#c73d3d'],
     imageUrl: '/cards/social-media.png?v=splash4',
-    description: 'STAY CONNECTED TO THE POKER WORLD — SHARE YOUR WINS, FOLLOW YOUR HEROES',
+    description: 'STAY CONNECTED TO THE POKER WORLD - SHARE YOUR WINS, FOLLOW YOUR HEROES',
   },
   {
     id: 'diamond-arena',
@@ -108,7 +108,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Diamond Arena',
     gradient: ['#fff176', '#c9b000'],
     imageUrl: '/cards/diamond-arena.png?v=splash4',
-    description: 'HIGH STAKES ACTION — PLAY FOR DIAMONDS AGAINST ELITE COMPETITION',
+    description: 'HIGH STAKES ACTION - PLAY FOR DIAMONDS AGAINST ELITE COMPETITION',
   },
   {
     id: 'my-clubs',
@@ -117,7 +117,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'My Clubs',
     gradient: ['#4dd0e1', '#00838f'],
     imageUrl: '/cards/my-clubs.png?v=splash1',
-    description: 'YOUR CLUBS & VENUES — QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE',
+    description: 'YOUR CLUBS & VENUES - QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE',
   },
   {
     id: 'video-library',
@@ -126,7 +126,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Video Library',
     gradient: ['#ff6666', '#cc3333'],
     imageUrl: '/cards/video-library.png?v=splash1',
-    description: 'ENDLESS CONTENT — THOUSANDS OF HOURS OF CASH AND TOURNAMENT PLAY',
+    description: 'ENDLESS CONTENT - THOUSANDS OF HOURS OF CASH AND TOURNAMENT PLAY',
   },
   {
     id: 'poker-tools',
@@ -135,7 +135,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     label: 'Odds Calculator',
     gradient: ['#4299E1', '#1A56DB'],
     imageUrl: '/cards/poker-tools.png?v=splash1',
-    description: "CALCULATE YOUR EDGE — INSTANT EQUITY FOR HOLD'EM, OMAHA, PLO5, PLO6",
+    description: "CALCULATE YOUR EDGE - INSTANT EQUITY FOR HOLD'EM, OMAHA, PLO5, PLO6",
   },
 ];
 
@@ -147,7 +147,7 @@ export const COMMANDER_ORB: OrbConfig = {
   label: 'Club Commander',
   gradient: ['#991111', '#440000'],
   imageUrl: '/cards/club-commander.png?v=splash1',
-  description: 'MANAGE YOUR POKER ROOM — FULL COMMAND CENTER FOR YOUR VENUE',
+  description: 'MANAGE YOUR POKER ROOM - FULL COMMAND CENTER FOR YOUR VENUE',
 };
 
 // Work Schedule & Dealer Downs — only shown to users linked as staff at a venue
@@ -157,7 +157,7 @@ export const EMPLOYEE_PORTAL_ORB: OrbConfig = {
   label: 'Work Schedule & Dealer Downs',
   gradient: ['#2374e1', '#1a56db'],
   imageUrl: '/cards/employee-portal.png?v=splash1',
-  description: 'YOUR WORK HUB — VIEW SCHEDULE, TRACK DOWNS, AND TIME CLOCK',
+  description: 'YOUR WORK HUB - VIEW SCHEDULE, TRACK DOWNS, AND TIME CLOCK',
 };
 
 // Toke Tracker — always shown for ALL authenticated users (traveler/independent dealer access)
@@ -167,7 +167,7 @@ export const TOKE_TRACKER_ORB: OrbConfig = {
   label: 'Toke Tracker',
   gradient: ['#f59e0b', '#b45309'],
   imageUrl: '/cards/toke-tracker.png?v=splash3',
-  description: 'DEALER INCOME ENGINE — TRACK TOKES, DOWNS, EXPENSES & CAREER STATS',
+  description: 'DEALER INCOME ENGINE - TRACK TOKES, DOWNS, EXPENSES & CAREER STATS',
 };
 
 // Cards that can never be hidden by the user (core identity cards)

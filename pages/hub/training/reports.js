@@ -982,7 +982,7 @@ export default function GTOReports() {
                           }}
                         >
                           <span style={{ fontSize: 16, fontWeight: 'bold' }}>●</span>
-                          Weakest Spots — Fix These First
+                          Weakest Spots - Fix These First
                         </div>
 
                         {weakest.map((w, idx) => (

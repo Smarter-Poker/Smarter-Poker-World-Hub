@@ -57,7 +57,7 @@ const DETECTED_LEAKS = [
   {
     id: 4, category: 'defense', severity: 'major',
     title: 'Over-folding to Turn Barrels',
-    description: 'You fold 45% to turn bets after calling flop. This is too high — you should be continuing with ~60% of your flop calling range.',
+    description: 'You fold 45% to turn bets after calling flop. This is too high - you should be continuing with ~60% of your flop calling range.',
     evCost: 2.1, frequency: 'Moderate',
     examples: ['Folded middle pair on safe turn card', 'Folded gutshot + backdoor flush', 'Folded top pair weak kicker'],
     fix: 'Continue with: all top pairs, pocket pairs with equity, gutshots + overcard, flush draws. Only fold bottom pairs with no draw on scary turn cards.',

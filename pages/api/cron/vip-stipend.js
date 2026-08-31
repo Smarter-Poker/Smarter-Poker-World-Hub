@@ -126,7 +126,7 @@ async function handler(req, res) {
     if (!supabase) {
         // award_diamonds_v2 is GRANTed to service_role ONLY. No anon fallback:
         // it would 42501 on every row and report a successful no-op run.
-        console.error('[cron/vip-stipend] SUPABASE_SERVICE_ROLE_KEY is not configured — stipend NOT running.');
+        console.error('[cron/vip-stipend] SUPABASE_SERVICE_ROLE_KEY is not configured - stipend NOT running.');
         return res.status(500).json({ success: false, error: 'Service role key not configured' });
     }
 
@@ -251,7 +251,7 @@ async function handler(req, res) {
                 if (r.error) {
                     stats.failed += 1;
                     if (stats.failed <= 5) {
-                        console.warn('[cron/vip-stipend] award failed for', r.userId, '—', r.error.message);
+                        console.warn('[cron/vip-stipend] award failed for', r.userId, '-', r.error.message);
                     }
                     continue;
                 }
@@ -290,7 +290,7 @@ async function handler(req, res) {
         if (stats.notEligible > 0) {
             console.warn(
                 `[cron/vip-stipend] ${stats.notEligible} PAYING subscriber(s) were refused by award_diamonds_v2 ` +
-                'as not_eligible — their profiles row is missing is_vip / vip_tier / vip_expires_at. ' +
+                'as not_eligible - their profiles row is missing is_vip / vip_tier / vip_expires_at. ' +
                 'Fix pages/api/store/webhooks/stripe.js (follow-up F2) and backfill from vip_subscriptions.'
             );
         }

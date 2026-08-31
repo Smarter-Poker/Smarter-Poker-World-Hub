@@ -95,7 +95,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
             if (updateError) throw updateError;
             // maybeSingle() returns null data on zero rows (RLS denial) — the
             // old code reported success while nothing was written.
-            if (!data) throw new Error('Post not updated — you may not have permission');
+            if (!data) throw new Error('Post not updated - you may not have permission');
 
             onSaved?.({
                 ...post,

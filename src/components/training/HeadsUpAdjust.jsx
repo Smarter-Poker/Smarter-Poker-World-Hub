@@ -19,7 +19,7 @@ const HU_ADJUSTMENTS = [
   { area: 'Positional Advantage', icon: '★', color: '#3b82f6',
     adjust: 'IP (button/SB) should play extremely aggressively. OOP (BB) should check-raise more often.',
     why: 'Position is EVERYTHING heads-up. The button acts last on every street and controls the pot.',
-    mistake: 'Not utilizing position enough. IP should be printing money in HU — it\'s a massive advantage.',
+    mistake: 'Not utilizing position enough. IP should be printing money in HU - it\'s a massive advantage.',
     tip: 'Track your win rate IP vs OOP. If you\'re not winning significantly more IP, you\'re too passive.' },
   { area: 'Bluffing & Value', icon: '◇', color: '#f59e0b',
     adjust: 'Bluff more. Value bet thinner. Second pair is often a value bet HU. Ace-high can check down.',

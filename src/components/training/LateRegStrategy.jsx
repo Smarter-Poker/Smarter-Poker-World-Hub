@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const LATE_REG_FACTORS = [
   { factor: 'Field Size Matters', icon: '', color: '#3b82f6',
     pro: 'Bigger fields = more value in late-regging. The fish who bust early can re-enter.',
-    con: 'Very small fields — every chip matters from the start. Don\'t miss early levels.' },
+    con: 'Very small fields - every chip matters from the start. Don\'t miss early levels.' },
   { factor: 'Structure Quality', icon: '', color: '#22c55e',
     pro: 'Deep structures (200BB+): Late reg is fine. You still have plenty of play.',
     con: 'Turbo/hyper structures: Every blind level matters. Late reg means starting short.' },
@@ -16,7 +16,7 @@ const LATE_REG_FACTORS = [
     pro: 'If starting stack > 40BB, you can still play poker and have room to maneuver.',
     con: 'If starting stack < 20BB, you\'re in push/fold. Only late reg if the prize pool justifies it.' },
   { factor: 'Overlay Opportunities', icon: '', color: '#ef4444',
-    pro: 'Late reg when there\'s a guaranteed prize pool not yet met — you\'re getting extra value.',
+    pro: 'Late reg when there\'s a guaranteed prize pool not yet met - you\'re getting extra value.',
     con: 'If the tournament is already above guarantee, there\'s less mathematical incentive.' },
   { factor: 'Your Edge', icon: '', color: '#8b5cf6',
     pro: 'If you\'re significantly better than the field, playing more hands = more edge realized.',

@@ -78,7 +78,7 @@ export function SharedPostCreator({
     _timingsRef.current[key] = Math.round(now - t0);
     // Format for inline display
     const t = _timingsRef.current;
-    const fmt = (ms) => (ms == null ? '–' : ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+    const fmt = (ms) => (ms == null ? '-' : ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
     const line = [
       t.tap != null ? `tap=0` : null,
       t.focus != null ? `focus=${fmt(t.focus)}` : null,
@@ -129,7 +129,7 @@ export function SharedPostCreator({
       setCheckInVenue(venue);
       if (!content.trim()) {
         setContent(
-          `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
+          `Checked in at ${venue.name}${venue.city ? ` - ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
         );
       }
       // Scroll to post creator smoothly
@@ -288,7 +288,7 @@ export function SharedPostCreator({
         formData.append('prefix', user.id);
         const token = getAccessToken();
         if (!token) {
-          setError('Authentication required — please refresh the page and try again.');
+          setError('Authentication required - please refresh the page and try again.');
           continue;
         }
         const res = await fetch('/api/social/upload', {
@@ -509,7 +509,7 @@ export function SharedPostCreator({
         // AUDIT-9: previously the banner just disappeared with no
         // explanation. Surface a visible error so the user knows WHY.
         try {
-          toast.error('No file was staged — file may be too large (>5GB) or unsupported format');
+          toast.error('No file was staged - file may be too large (>5GB) or unsupported format');
         } catch (_) {}
         setError('No file was staged. The file may be too large or in an unsupported format.');
         return;
@@ -599,7 +599,7 @@ export function SharedPostCreator({
               (result.originalSize - result.compressedSize) / (1024 * 1024)
             );
             toast.success(
-              `Video compressed — saved ${savedMB}MB (${result.savings}% smaller)`,
+              `Video compressed - saved ${savedMB}MB (${result.savings}% smaller)`,
               3000
             );
             setMedia((prev) =>
@@ -846,7 +846,7 @@ export function SharedPostCreator({
           // available everywhere; treating it as fatal would falsely
           // block users on browsers that don't expose it.
           try {
-            toast.info('Slow connection detected — upload may take a while.', 4000);
+            toast.info('Slow connection detected - upload may take a while.', 4000);
           } catch (_) {}
         }
       }
@@ -1054,7 +1054,7 @@ export function SharedPostCreator({
                     uploadedMedia.push({ type: 'thumbnail', url: thumbUrl });
                   } else {
                     console.warn(
-                      '[SharedPostCreator] uploadThumbnail returned null — see thumbnailUploader logs for HTTP details'
+                      '[SharedPostCreator] uploadThumbnail returned null - see thumbnailUploader logs for HTTP details'
                     );
                   }
                 } catch (e) {
@@ -1062,7 +1062,7 @@ export function SharedPostCreator({
                 }
               } else {
                 console.warn(
-                  '[SharedPostCreator] no thumbnail dataUrl after wait — post will save without thumbnail_url'
+                  '[SharedPostCreator] no thumbnail dataUrl after wait - post will save without thumbnail_url'
                 );
               }
               // Cleanup: free the promise ref so we don't leak memory
@@ -1086,7 +1086,7 @@ export function SharedPostCreator({
               formData.append('prefix', user.id);
               const _imgToken = getAccessToken();
               if (!_imgToken) {
-                setError('Authentication required — please refresh the page and try again.');
+                setError('Authentication required - please refresh the page and try again.');
                 // Revoke blob URL for skipped file
                 if (staged.url?.startsWith('blob:')) {
                   try {
@@ -1169,7 +1169,7 @@ export function SharedPostCreator({
               rawMsg.includes('row level security')
             ) {
               friendlyMsg =
-                'Permission denied — your account may not have upload access. Please log out and back in.';
+                'Permission denied - your account may not have upload access. Please log out and back in.';
             } else if (
               rawMsg.includes('mime') ||
               rawMsg.includes('type not allowed') ||
@@ -1258,7 +1258,7 @@ export function SharedPostCreator({
       let finalContent = cleanContent;
       if (checkInVenue) {
         const prefix = `Checked in at ${checkInVenue.name}`;
-        finalContent = cleanContent ? `${prefix} — ${cleanContent}` : prefix;
+        finalContent = cleanContent ? `${prefix} - ${cleanContent}` : prefix;
       }
 
       // If posting as a home group, route through /api/social/pages/posts with the group's social_page_id
@@ -1266,7 +1266,7 @@ export function SharedPostCreator({
       if (activeHomeGroup?.social_page_id) {
         try {
           const token = getAccessToken();
-          if (!token) throw new Error('Authentication required — please refresh and try again.');
+          if (!token) throw new Error('Authentication required - please refresh and try again.');
           const res = await fetch('/api/social/pages/posts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -2792,7 +2792,7 @@ export function SharedPostCreator({
             setCheckInVenue(venue);
             if (!content.trim()) {
               setContent(
-                `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
+                `Checked in at ${venue.name}${venue.city ? ` - ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
               );
             }
           }}

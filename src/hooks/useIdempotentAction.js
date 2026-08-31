@@ -35,13 +35,13 @@ export function useIdempotentAction(defaultDebounceMs = 1000) {
     }) => {
         // Guard 1: In-flight request already running
         if (inFlightRef.current) {
-            console.warn('[IdempotentAction] Request already in flight — ignoring duplicate');
+            console.warn('[IdempotentAction] Request already in flight - ignoring duplicate');
             return { success: false, reason: 'in_flight', replayed: false };
         }
 
         // Guard 2: Cooldown period active (fat-finger debounce)
         if (cooldownRef.current) {
-            console.warn('[IdempotentAction] Cooldown active — ignoring duplicate');
+            console.warn('[IdempotentAction] Cooldown active - ignoring duplicate');
             return { success: false, reason: 'cooldown', replayed: false };
         }
 

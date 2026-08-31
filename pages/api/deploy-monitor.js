@@ -214,7 +214,7 @@ async function sendSmsAlert(message) {
   const ownerPhone = '+17086775221';
 
   if (!accountSid || !authToken || !fromPhone) {
-    console.warn('[deploy-monitor] Twilio credentials missing — skipping SMS');
+    console.warn('[deploy-monitor] Twilio credentials missing - skipping SMS');
     return;
   }
 
@@ -255,7 +255,7 @@ async function sendSmsAlert(message) {
 async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.warn('[deploy-monitor] RESEND_API_KEY not set — skipping email');
+    console.warn('[deploy-monitor] RESEND_API_KEY not set - skipping email');
     return;
   }
   const to = process.env.OPS_ALERT_EMAIL || 'admin@smarter.poker';
@@ -545,13 +545,13 @@ export default async function handler(req, res) {
     }
     // Method 3: Rejected — fire alert so this never vanishes silently
     else {
-      console.warn('[deploy-monitor] AUTH FAILED — hmac=%s querySecret=%s headerSecret=%s',
+      console.warn('[deploy-monitor] AUTH FAILED - hmac=%s querySecret=%s headerSecret=%s',
         sigHeader ? 'present(mismatch)' : 'absent',
         querySecret ? 'present(mismatch)' : 'absent',
         headerSecret ? 'present(mismatch)' : 'absent');
 
       await createAlertIssue(
-        `Deploy webhook auth failing — ${new Date().toISOString().slice(0, 10)}`,
+        `Deploy webhook auth failing - ${new Date().toISOString().slice(0, 10)}`,
         `## Webhook auth rejected
 
 The deploy-monitor webhook is rejecting incoming Vercel events because no valid auth is being provided.
@@ -582,7 +582,7 @@ Alert is rate-limited to 1 issue/comment per hour.`,
     // authMethod = 'unauthenticated_dev' and fell through to the handler, so an
     // unset secret let anyone POST a forged Vercel deployment-failure event and
     // drive the autofix pipeline (Claude API spend + commits pushed via GH_PAT).
-    console.warn('[deploy-monitor] DEPLOY_WEBHOOK_SECRET is not configured — rejecting webhook');
+    console.warn('[deploy-monitor] DEPLOY_WEBHOOK_SECRET is not configured - rejecting webhook');
     return res.status(500).json({ error: 'Server misconfigured' });
   }
 
@@ -607,7 +607,7 @@ Alert is rate-limited to 1 issue/comment per hour.`,
     return res.status(200).json({
       action: 'ignored',
       authMethod,
-      reason: `Event type '${eventType}' with state '${deployState}' is not a failure — no action needed`,
+      reason: `Event type '${eventType}' with state '${deployState}' is not a failure - no action needed`,
     });
   }
 
@@ -637,7 +637,7 @@ Alert is rate-limited to 1 issue/comment per hour.`,
     if (commitMsg.startsWith('[autofix]')) {
       console.warn(`[deploy-monitor] Refusing to auto-fix an [autofix] commit: ${commitSha}`);
       await createAlertIssue(
-        `Autofix commit failed to build — ${commitSha.substring(0, 8)}`,
+        `Autofix commit failed to build - ${commitSha.substring(0, 8)}`,
         `## Autofix Commit Failed
 
 An \`[autofix]\` commit itself failed to build. The AI-generated fix introduced a new error.
@@ -651,7 +651,7 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
       );
       return res.status(200).json({
         action: 'refused',
-        reason: 'Will not auto-fix an [autofix] commit — prevents infinite loops.',
+        reason: 'Will not auto-fix an [autofix] commit - prevents infinite loops.',
         commitSha,
         authMethod,
       });
@@ -674,7 +674,7 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
         if (lastGood) {
           const rb = await rollbackToDeploy(lastGood.id);
           if (rb.ok) {
-            rollbackNote = `\n\n**AUTO-ROLLBACK EXECUTED** — production alias promoted to deploy \`${lastGood.id}\` (sha \`${lastGood.sha.substring(0, 8)}\`, originally built ${lastGood.createdAt}). Git history is unchanged; only the prod alias moved.`;
+            rollbackNote = `\n\n**AUTO-ROLLBACK EXECUTED** - production alias promoted to deploy \`${lastGood.id}\` (sha \`${lastGood.sha.substring(0, 8)}\`, originally built ${lastGood.createdAt}). Git history is unchanged; only the prod alias moved.`;
             logTelemetry('rollback_executed', {
               from: commitSha.substring(0, 8),
               to: lastGood.sha.substring(0, 8),
@@ -690,7 +690,7 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
       }
 
       await createAlertIssue(
-        `Deploy autofix circuit breaker tripped — ${commitSha.substring(0, 8)}`,
+        `Deploy autofix circuit breaker tripped - ${commitSha.substring(0, 8)}`,
         `## Circuit Breaker Tripped
 
 Autofix exhausted all ${MAX_FIX_ATTEMPTS} attempts for commit \`${commitSha}\` without successfully fixing the build.
@@ -717,7 +717,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     if (eventType === 'deployment.canceled' || state === 'CANCELED') {
       return res.status(200).json({
         action: 'ignored',
-        reason: 'CANCELED deployments are superseded builds — no fix needed',
+        reason: 'CANCELED deployments are superseded builds - no fix needed',
         commitSha,
         authMethod,
       });
@@ -728,7 +728,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     if (!vercelToken) {
       console.warn('[deploy-monitor] Missing VERCEL_TOKEN env var');
       await createAlertIssue(
-        `Deploy monitor misconfigured — VERCEL_TOKEN missing`,
+        `Deploy monitor misconfigured - VERCEL_TOKEN missing`,
         `The deploy-monitor endpoint received a valid webhook but \`VERCEL_TOKEN\` is not set. Cannot fetch build logs. Set it in Vercel project env.`,
         { alertKey: 'missing_vercel_token', ghPat: process.env.GH_PAT }
       );
@@ -766,8 +766,8 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       // Fire agent notification — empty log = pipeline blind spot, not a benign skip.
       // The deployment failed but we cannot auto-fix. Human or agent must investigate.
       await createAlertIssue(
-        `Deploy failed — logs unavailable for ${commitSha.substring(0, 8)}`,
-        `## Vercel Deployment Failed — Build Log Unavailable\n\n**Commit:** \`${commitSha}\`\n**Message:** ${commitMsg.substring(0, 200)}\n**Deployment:** ${deploymentId}\n**Auth:** ${authMethod}\n\nThe Vercel deployment failed, but the build log API returned no error lines to analyze.\nThis could mean:\n- The build log was empty (infrastructure failure)\n- The error happened before Next.js compilation (install/config phase)\n- The deployment ID is synthetic or expired\n\nManual investigation required: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
+        `Deploy failed - logs unavailable for ${commitSha.substring(0, 8)}`,
+        `## Vercel Deployment Failed - Build Log Unavailable\n\n**Commit:** \`${commitSha}\`\n**Message:** ${commitMsg.substring(0, 200)}\n**Deployment:** ${deploymentId}\n**Auth:** ${authMethod}\n\nThe Vercel deployment failed, but the build log API returned no error lines to analyze.\nThis could mean:\n- The build log was empty (infrastructure failure)\n- The error happened before Next.js compilation (install/config phase)\n- The deployment ID is synthetic or expired\n\nManual investigation required: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
         { alertKey: `no_build_logs_${deploymentId}`, ghPat: process.env.GH_PAT }
       );
       return res.status(200).json({
@@ -860,7 +860,7 @@ If the fix looks wrong, revert it: \`git revert ${newShortSha}\``,
     else if (autofixResult.action === 'pr_opened') {
       const shortSha = commitSha.substring(0, 8);
       await sendEmailAlert({
-        subject: `[Smarter.Poker Autofix] 👀 Review needed: PR #${autofixResult.prNumber} — ${autofixResult.filePath || 'fix'}`,
+        subject: `[Smarter.Poker Autofix] 👀 Review needed: PR #${autofixResult.prNumber} - ${autofixResult.filePath || 'fix'}`,
         markdown: `## Autofix staged a fix for your review
 
 The file touched is either in a sensitive area (auth / payments / engine / lib) OR was modified in the last 24h (hot zone), so the fix was pushed to a branch and a PR was opened INSTEAD of being merged to main.
@@ -886,12 +886,12 @@ Vercel will NOT rebuild main until you merge. Production continues serving the l
 
 **Commit:** \`${commitSha}\`
 **Message:** ${commitMsg.substring(0, 200)}
-**Action:** \`${autofixResult.action}\` ${autofixResult.action === 'skipped' ? '(guard rejected the fix)' : autofixResult.action === 'api_error' ? '(Anthropic API call failed)' : autofixResult.action === 'timeout' ? '(Claude call exceeded 45s timeout)' : autofixResult.action === 'push_failed' ? '(GitHub push rejected — likely SHA conflict or permissions)' : autofixResult.action === 'pr_failed' ? '(branch was created and pushed, but PR open failed)' : ''}
+**Action:** \`${autofixResult.action}\` ${autofixResult.action === 'skipped' ? '(guard rejected the fix)' : autofixResult.action === 'api_error' ? '(Anthropic API call failed)' : autofixResult.action === 'timeout' ? '(Claude call exceeded 45s timeout)' : autofixResult.action === 'push_failed' ? '(GitHub push rejected - likely SHA conflict or permissions)' : autofixResult.action === 'pr_failed' ? '(branch was created and pushed, but PR open failed)' : ''}
 **Reason:** ${autofixResult.reason || '(none given)'}
 **Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
 **Duration:** ${duration}ms
 
-${autofixResult.action === 'pr_failed' && autofixResult.branch ? `A branch was already created — you can open the PR manually: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/pull/new/${autofixResult.branch}\n\n` : ''}Build errors (first 500 chars):
+${autofixResult.action === 'pr_failed' && autofixResult.branch ? `A branch was already created - you can open the PR manually: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/pull/new/${autofixResult.branch}\n\n` : ''}Build errors (first 500 chars):
 \`\`\`
 ${(buildErrors || '').substring(0, 500)}
 \`\`\`
@@ -905,7 +905,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       });
 
       await createAlertIssue(
-        `Deploy autofix failed — ${commitSha.substring(0, 8)}`,
+        `Deploy autofix failed - ${commitSha.substring(0, 8)}`,
         markdownBody,
         { alertKey: `autofix_failure_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
       );
@@ -925,7 +925,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
     console.warn('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(
-      `deploy-monitor threw an exception — ${new Date().toISOString().slice(0, 10)}`,
+      `deploy-monitor threw an exception - ${new Date().toISOString().slice(0, 10)}`,
       `The monitor handler threw during webhook processing. Check Vercel runtime logs.\n\nError: \`${err.message || 'unknown'}\`\nStack:\n\`\`\`\n${(err.stack || '').substring(0, 2000)}\n\`\`\``,
       { alertKey: `monitor_exception_fallback`, ghPat: process.env.GH_PAT }
     );

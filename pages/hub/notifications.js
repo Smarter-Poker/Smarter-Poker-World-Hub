@@ -581,7 +581,7 @@ function NotificationsPage() {
                     try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     return next;
                 });
-                toast.success('Request declined — they now follow you.');
+                toast.success('Request declined - they now follow you.');
             }
 
             // Fire-and-forget DB updates with fetch-on-failure

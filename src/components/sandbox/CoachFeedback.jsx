@@ -41,7 +41,7 @@ const INCORRECT_TIPS = [
 
 const FREQUENCY_INSIGHTS = {
     high: 'High-frequency play (65%+) · the solver takes this action nearly every time it reaches this node.',
-    medium: 'Mixed-frequency spot (35–65%) · both actions are defensible; exploitative reads break the tie.',
+    medium: 'Mixed-frequency spot (35-65%) · both actions are defensible; exploitative reads break the tie.',
     low: 'Low-frequency play (under 35%) · the solver only takes this line with specific combos.',
 };
 

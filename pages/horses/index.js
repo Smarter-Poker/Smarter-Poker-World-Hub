@@ -1921,7 +1921,7 @@ export default function HorsesAdmin() {
                       ? <>, {num(avatarResult.remaining)} still without an avatar</>
                       : null}
                   {(avatarResult.results || []).some((r) => !r.success) && (
-                    <> — failures: {(avatarResult.results || []).filter((r) => !r.success)
+                    <> - failures: {(avatarResult.results || []).filter((r) => !r.success)
                       .map((r) => `${r.horse}: ${r.error}`).join('; ')}</>
                   )}
                   {avatarResult.remaining > 0 && ' Run it again to continue.'}
@@ -2047,7 +2047,7 @@ export default function HorsesAdmin() {
                   <button onClick={() => setPage(0)} disabled={safePage === 0}>First</button>
                   <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>Previous</button>
                   <span className={styles.pageInfo}>
-                    Page {safePage + 1} of {totalPages} — {num(filteredPersonas.length)} horses
+                    Page {safePage + 1} of {totalPages} - {num(filteredPersonas.length)} horses
                   </span>
                   <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}>Next</button>
                   <button onClick={() => setPage(totalPages - 1)} disabled={safePage >= totalPages - 1}>Last</button>
@@ -2103,7 +2103,7 @@ export default function HorsesAdmin() {
                   <span className={styles.statNumber}
                     style={{ color: Number(grinderData?.totalProfit || 0) >= 0 ? T.accent : T.danger }}>
                     {grinderData?.totalProfit === null || grinderData?.totalProfit === undefined
-                      ? '—' : signed(grinderData.totalProfit)}
+                      ? '-' : signed(grinderData.totalProfit)}
                   </span>
                   <span className={styles.statLabel}>Fleet Profit</span>
                 </div>
@@ -2226,7 +2226,7 @@ export default function HorsesAdmin() {
                                 </div>
                               </div>
                             </td>
-                            <td>{persona.specialty?.replace(/_/g, ' ') || '—'}</td>
+                            <td>{persona.specialty?.replace(/_/g, ' ') || '-'}</td>
                             <td><span className={styles.voiceTag}>{persona.voice || 'casual'}</span></td>
                             <td>{num(stats?.tables, '0')}/{num(settings.grinder_max_tables ?? 4)}</td>
                             {/* hands and profit are null, not 0, when they cannot be derived. */}
@@ -2236,7 +2236,7 @@ export default function HorsesAdmin() {
                               color: stats?.profit === null || stats?.profit === undefined
                                 ? T.dim : (Number(stats.profit) >= 0 ? T.accent : T.danger),
                             }}>
-                              {stats?.profit === null || stats?.profit === undefined ? '—' : signed(stats.profit)}
+                              {stats?.profit === null || stats?.profit === undefined ? '-' : signed(stats.profit)}
                             </td>
                             <td>
                               {stats?.status === 'playing'
@@ -2315,7 +2315,7 @@ export default function HorsesAdmin() {
                             <td><span className={`${styles.runType} ${styles[run.run_type] || ''}`}>{run.run_type}</span></td>
                             <td>{num(run.text_posts_created, '0')}</td>
                             <td>{num(run.videos_created, '0')}</td>
-                            <td>{run.duration_seconds !== null && run.duration_seconds !== undefined ? `${run.duration_seconds}s` : '—'}</td>
+                            <td>{run.duration_seconds !== null && run.duration_seconds !== undefined ? `${run.duration_seconds}s` : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2978,8 +2978,8 @@ export default function HorsesAdmin() {
                           <tbody>
                             {economyData.recentUsers.map((u) => (
                               <tr key={u.id}>
-                                <td>{u.username || '—'}</td>
-                                <td>{u.full_name || '—'}</td>
+                                <td>{u.username || '-'}</td>
+                                <td>{u.full_name || '-'}</td>
                                 <td>{when(u.created_at)}</td>
                               </tr>
                             ))}
@@ -3003,7 +3003,7 @@ export default function HorsesAdmin() {
                               return (
                                 <tr key={tx.id || i}>
                                   <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(tx.created_at, true)}</td>
-                                  <td style={{ fontSize: 12 }}>{tx.user_id ? `${String(tx.user_id).slice(0, 8)}...` : '—'}</td>
+                                  <td style={{ fontSize: 12 }}>{tx.user_id ? `${String(tx.user_id).slice(0, 8)}...` : '-'}</td>
                                   <td>
                                     <span style={{
                                       padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
@@ -3012,9 +3012,9 @@ export default function HorsesAdmin() {
                                     }}>{tx.type || 'unknown'}</span>
                                   </td>
                                   <td style={{ fontWeight: 700, color: credit ? T.accent : T.danger }}>{signed(tx.amount)}</td>
-                                  <td style={{ fontSize: 12 }}>{tx.source || '—'}</td>
+                                  <td style={{ fontSize: 12 }}>{tx.source || '-'}</td>
                                   <td style={{ fontSize: 12, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {tx.description || '—'}
+                                    {tx.description || '-'}
                                   </td>
                                 </tr>
                               );
@@ -3035,9 +3035,9 @@ export default function HorsesAdmin() {
                             {economyData.vipSubscriptions.map((s, i) => (
                               <tr key={s.id || i}>
                                 <td>{when(s.created_at)}</td>
-                                <td style={{ fontSize: 12 }}>{s.user_id ? `${String(s.user_id).slice(0, 8)}...` : '—'}</td>
+                                <td style={{ fontSize: 12 }}>{s.user_id ? `${String(s.user_id).slice(0, 8)}...` : '-'}</td>
                                 <td><span className={styles.voiceTag}>{s.plan || 'VIP'}</span></td>
-                                <td style={{ color: s.status === 'active' ? T.accent : T.danger }}>{s.status || '—'}</td>
+                                <td style={{ color: s.status === 'active' ? T.accent : T.danger }}>{s.status || '-'}</td>
                                 <td>{when(s.current_period_end)}</td>
                               </tr>
                             ))}
@@ -3133,7 +3133,7 @@ export default function HorsesAdmin() {
                             <div>
                               <div style={{ fontWeight: 600, color: T.danger, fontSize: 13 }}>{alert.reason}</div>
                               <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
-                                {alert.email} — IP {alert.ip} — Deletions {num(alert.deletions, '0')}
+                                {alert.email} - IP {alert.ip} - Deletions {num(alert.deletions, '0')}
                               </div>
                             </div>
                             <span style={{ fontSize: 11, color: T.muted, whiteSpace: 'nowrap' }}>{when(alert.at, true)}</span>
@@ -3159,7 +3159,7 @@ export default function HorsesAdmin() {
                                 <td style={{ fontSize: 12, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {entry.raw_email || (entry.email_hash ? `${entry.email_hash.slice(0, 12)}...` : 'Unknown')}
                                 </td>
-                                <td style={{ fontSize: 12, fontFamily: 'monospace' }}>{entry.ip_address || '—'}</td>
+                                <td style={{ fontSize: 12, fontFamily: 'monospace' }}>{entry.ip_address || '-'}</td>
                                 <td style={{ textAlign: 'center' }}>{num(entry.signup_count, '1')}</td>
                                 <td style={{
                                   textAlign: 'center',
@@ -3269,9 +3269,9 @@ export default function HorsesAdmin() {
                             {abuseData.economy.topHolders.map((holder, i) => (
                               <tr key={holder.id}>
                                 <td style={{ fontWeight: 700, color: i < 3 ? T.warn : T.muted }}>{i + 1}</td>
-                                <td>{holder.username || '—'}</td>
+                                <td>{holder.username || '-'}</td>
                                 <td style={{ fontWeight: 700, color: T.accent }}>{num(holder.diamonds, '0')}</td>
-                                <td>{holder.is_vip ? (holder.vip_tier || 'VIP') : '—'}</td>
+                                <td>{holder.is_vip ? (holder.vip_tier || 'VIP') : '-'}</td>
                                 <td style={{ color: holder.phone_verified ? T.accent : T.muted }}>
                                   {holder.phone_verified ? 'Verified' : 'No'}
                                 </td>
@@ -3300,12 +3300,12 @@ export default function HorsesAdmin() {
                                   }}>{entry.action}</span>
                                 </td>
                                 <td style={{ fontSize: 12 }}>
-                                  {entry.target_type} {entry.target_id ? String(entry.target_id).slice(0, 8) : '—'}
+                                  {entry.target_type} {entry.target_id ? String(entry.target_id).slice(0, 8) : '-'}
                                 </td>
                                 <td style={{ fontSize: 11, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {JSON.stringify(entry.details || {}).slice(0, 80)}
                                 </td>
-                                <td style={{ fontSize: 11, fontFamily: 'monospace' }}>{entry.ip_address || '—'}</td>
+                                <td style={{ fontSize: 11, fontFamily: 'monospace' }}>{entry.ip_address || '-'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -3409,13 +3409,13 @@ export default function HorsesAdmin() {
                               {(caFinance?.recentTxns || []).slice(0, 25).map((txn, i) => (
                                 <tr key={txn.id || i}>
                                   <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(txn.created_at, true)}</td>
-                                  <td>{txn.club_name || '—'}</td>
+                                  <td>{txn.club_name || '-'}</td>
                                   <td><span className={styles.voiceTag}>{txn.transaction_type || 'unknown'}</span></td>
                                   <td style={{ fontWeight: 700, color: Number(txn.amount) > 0 ? T.accent : T.danger }}>
                                     {signed(txn.amount)}
                                   </td>
                                   <td style={{ fontSize: 12, color: T.dim, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {txn.notes || '—'}
+                                    {txn.notes || '-'}
                                   </td>
                                 </tr>
                               ))}
@@ -3446,10 +3446,10 @@ export default function HorsesAdmin() {
                               {club.name}
                             </button>
                             <div style={{ fontSize: 12, color: T.dim, marginBottom: 10 }}>
-                              Code {club.club_id || club.code || '—'} — {num(club.member_count, '0')} members — {num(club.table_count, '0')} tables
+                              Code {club.club_id || club.code || '-'} - {num(club.member_count, '0')} members - {num(club.table_count, '0')} tables
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>
-                              Owner {club.owner_name || '—'} — created {when(club.created_at)}
+                              Owner {club.owner_name || '-'} - created {when(club.created_at)}
                             </div>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                               <span style={{
@@ -3488,7 +3488,7 @@ export default function HorsesAdmin() {
                         <div>
                           <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{caSelectedClub.name}</span>
                           <span style={{ fontSize: 12, color: T.dim, marginLeft: 10 }}>
-                            Code {caSelectedClub.club_id || '—'} — {num(caSelectedClub.member_count, '0')} members
+                            Code {caSelectedClub.club_id || '-'} - {num(caSelectedClub.member_count, '0')} members
                           </span>
                         </div>
                         <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
@@ -3548,7 +3548,7 @@ export default function HorsesAdmin() {
                                       <td style={{ fontWeight: 700, color: Number(txn.amount) > 0 ? T.accent : T.danger }}>
                                         {signed(txn.amount)}
                                       </td>
-                                      <td style={{ fontSize: 12, color: T.dim }}>{txn.notes || '—'}</td>
+                                      <td style={{ fontSize: 12, color: T.dim }}>{txn.notes || '-'}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -3575,7 +3575,7 @@ export default function HorsesAdmin() {
                                     <td><span className={styles.voiceTag}>{m.role || 'member'}</span></td>
                                     <td style={{ fontWeight: 600, color: T.accent }}>{num(m.chip_balance, '0')}</td>
                                     <td>{num(m.hands_played, '0')}</td>
-                                    <td style={{ color: m.status === 'active' ? T.accent : T.dim }}>{m.status || '—'}</td>
+                                    <td style={{ color: m.status === 'active' ? T.accent : T.dim }}>{m.status || '-'}</td>
                                     <td style={{ fontSize: 12, color: T.dim }}>{when(m.joined_at || m.created_at)}</td>
                                   </tr>
                                 ))}
@@ -3596,10 +3596,10 @@ export default function HorsesAdmin() {
                                     <td style={{ fontWeight: 600 }}>{a.player_name}</td>
                                     <td><span className={styles.voiceTag}>{a.role || 'agent'}</span></td>
                                     <td>{a.commission_rate !== null && a.commission_rate !== undefined
-                                      ? `${(Number(a.commission_rate) * 100).toFixed(0)}%` : '—'}</td>
+                                      ? `${(Number(a.commission_rate) * 100).toFixed(0)}%` : '-'}</td>
                                     <td>{num(a.credit_used, '0')} / {num(a.credit_limit, '0')}</td>
                                     <td>{num(a.total_players, '0')}</td>
-                                    <td style={{ color: a.status === 'active' ? T.accent : T.dim }}>{a.status || '—'}</td>
+                                    <td style={{ color: a.status === 'active' ? T.accent : T.dim }}>{a.status || '-'}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -3617,8 +3617,8 @@ export default function HorsesAdmin() {
                                 {caClubDetail.tables.map((t) => (
                                   <tr key={t.id}>
                                     <td style={{ fontWeight: 600 }}>{t.name || `Table ${String(t.id).slice(0, 8)}`}</td>
-                                    <td>{t.game_type || '—'}</td>
-                                    <td>{t.stakes || '—'}</td>
+                                    <td>{t.game_type || '-'}</td>
+                                    <td>{t.stakes || '-'}</td>
                                     {/* max_players, not max_seats — the old query 42703'd on this column. */}
                                     <td>{num(t.current_players, '0')} / {num(t.max_players)}</td>
                                     <td style={{ color: ['running', 'active'].includes(t.status) ? T.accent : T.dim }}>
@@ -3662,7 +3662,7 @@ export default function HorsesAdmin() {
                                 </div>
                                 <div style={{ fontSize: 13, color: T.dim, marginBottom: 10 }}>
                                   Player <strong style={{ color: T.text }}>{flag.player_name || flag.user_id || 'unknown'}</strong>
-                                  {flag.description && <> — {flag.description}</>}
+                                  {flag.description && <> - {flag.description}</>}
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                   <button className={styles.filterBtn} disabled={caProcessing}
@@ -3696,10 +3696,10 @@ export default function HorsesAdmin() {
                                   <tr key={session.id || i}>
                                     <td style={{ fontWeight: 600 }}>{session.player_name || session.user_id || 'unknown'}</td>
                                     <td style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                                      {session.table_id ? String(session.table_id).slice(0, 8) : '—'}
+                                      {session.table_id ? String(session.table_id).slice(0, 8) : '-'}
                                     </td>
                                     <td>{session.duration_minutes !== undefined && session.duration_minutes !== null
-                                      ? `${num(session.duration_minutes)}m` : '—'}</td>
+                                      ? `${num(session.duration_minutes)}m` : '-'}</td>
                                     <td>
                                       <button className={styles.btnDanger} disabled={caProcessing}
                                         onClick={() => kickSession(session)}>Kick</button>
@@ -3723,7 +3723,7 @@ export default function HorsesAdmin() {
                                     <td style={{ fontWeight: 600 }}>{c.player_name}</td>
                                     <td style={{ fontWeight: 700, color: T.warn }}>{num(c.amount)}</td>
                                     <td style={{ fontSize: 12, color: T.dim }}>{when(c.created_at, true)}</td>
-                                    <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || c.player_note || '—'}</td>
+                                    <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || c.player_note || '-'}</td>
                                     <td>
                                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                         <button className={styles.filterBtn} disabled={caProcessing}
@@ -3775,12 +3775,12 @@ export default function HorsesAdmin() {
                             <tbody>
                               {caPendingCashouts.map((c) => (
                                 <tr key={c.id}>
-                                  <td>{c.club_name || '—'}</td>
+                                  <td>{c.club_name || '-'}</td>
                                   <td style={{ fontWeight: 600 }}>{c.player_name}</td>
                                   <td style={{ fontWeight: 700, color: T.warn }}>{num(c.amount)}</td>
                                   <td style={{ fontSize: 12, color: T.dim }}>{when(c.created_at, true)}</td>
                                   <td style={{ fontSize: 12, color: T.dim, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {c.agent_note || c.player_note || '—'}
+                                    {c.agent_note || c.player_note || '-'}
                                   </td>
                                   <td>
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -3808,12 +3808,12 @@ export default function HorsesAdmin() {
                               {caFinance.recentTxns.map((txn, i) => (
                                 <tr key={txn.id || i}>
                                   <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(txn.created_at, true)}</td>
-                                  <td>{txn.club_name || '—'}</td>
+                                  <td>{txn.club_name || '-'}</td>
                                   <td>{txn.transaction_type || 'unknown'}</td>
                                   <td style={{ fontWeight: 700, color: Number(txn.amount) > 0 ? T.accent : T.danger }}>
                                     {signed(txn.amount)}
                                   </td>
-                                  <td style={{ fontSize: 12, color: T.dim }}>{txn.notes || '—'}</td>
+                                  <td style={{ fontSize: 12, color: T.dim }}>{txn.notes || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -3931,7 +3931,7 @@ export default function HorsesAdmin() {
                                 {caRevenue.unsettledCommissions.byAgent.map((a) => (
                                   <tr key={a.user_id || 'unassigned'}>
                                     <td style={{ fontWeight: 600 }}>{a.agent_name}</td>
-                                    <td>{a.club_name || '—'}</td>
+                                    <td>{a.club_name || '-'}</td>
                                     <td style={{ fontWeight: 700, color: T.warn }}>{num(a.amount)}</td>
                                     <td>{num(a.rows)}</td>
                                   </tr>
@@ -4005,7 +4005,7 @@ export default function HorsesAdmin() {
                                 <tbody>
                                   {caLedger.circulation.map((c, i) => (
                                     <tr key={c.club_id || i}>
-                                      <td>{c.club_name || '—'}</td>
+                                      <td>{c.club_name || '-'}</td>
                                       <td>{num(c.member_wallets)}</td>
                                       <td>{num(c.on_the_felt)}</td>
                                       <td>{num(c.treasury)}</td>
@@ -4049,7 +4049,7 @@ export default function HorsesAdmin() {
                                 {caLedger.critical.map((r) => (
                                   <tr key={r.id}>
                                     <td>
-                                      <div style={{ fontWeight: 600 }}>{r.entity_name || '—'}</div>
+                                      <div style={{ fontWeight: 600 }}>{r.entity_name || '-'}</div>
                                       <div style={{ fontSize: 11, color: T.muted, fontFamily: 'monospace' }}>
                                         {r.entity_id ? String(r.entity_id).slice(0, 8) : ''}
                                       </div>
@@ -4091,9 +4091,9 @@ export default function HorsesAdmin() {
                                     <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(e.occurred_at, true)}</td>
                                     <td style={{ fontWeight: 600 }}>{e.player_name}</td>
                                     <td style={{ fontWeight: 700, color: T.danger }}>{num(e.stack)}</td>
-                                    <td>{e.exit_kind || '—'}</td>
-                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.db_role || '—'}</td>
-                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.app_name || '—'}</td>
+                                    <td>{e.exit_kind || '-'}</td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.db_role || '-'}</td>
+                                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{e.app_name || '-'}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -4134,13 +4134,13 @@ export default function HorsesAdmin() {
                             </div>
                             <div style={{ fontSize: 13, color: T.dim, marginTop: 4 }}>
                               @{caSelectedUser.profile?.username || caSelectedUser.username || 'unknown'}
-                              {' — '}{caSelectedUser.profile?.email || caSelectedUser.email || 'no email'}
-                              {' — '}player #{num(caSelectedUser.profile?.player_number ?? caSelectedUser.player_number)}
+                              {' - '}{caSelectedUser.profile?.email || caSelectedUser.email || 'no email'}
+                              {' - '}player #{num(caSelectedUser.profile?.player_number ?? caSelectedUser.player_number)}
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>
                               Role {caSelectedUser.profile?.role || caSelectedUser.role || 'user'}
-                              {' — '}diamonds {num(caSelectedUser.profile?.diamonds ?? caSelectedUser.diamonds)}
-                              {' — '}joined {when(caSelectedUser.profile?.created_at || caSelectedUser.created_at)}
+                              {' - '}diamonds {num(caSelectedUser.profile?.diamonds ?? caSelectedUser.diamonds)}
+                              {' - '}joined {when(caSelectedUser.profile?.created_at || caSelectedUser.created_at)}
                             </div>
                           </div>
 
@@ -4161,11 +4161,11 @@ export default function HorsesAdmin() {
                                     <tbody>
                                       {caSelectedUser.memberships.map((m) => (
                                         <tr key={m.row_key}>
-                                          <td>{m.club_name || '—'} <span style={{ color: T.muted, fontSize: 11 }}>{m.club_code || ''}</span></td>
+                                          <td>{m.club_name || '-'} <span style={{ color: T.muted, fontSize: 11 }}>{m.club_code || ''}</span></td>
                                           <td><span className={styles.voiceTag}>{m.role || 'member'}</span></td>
                                           <td style={{ color: T.accent, fontWeight: 600 }}>{num(m.chip_balance, '0')}</td>
                                           <td>{num(m.hands_played, '0')}</td>
-                                          <td>{m.status || '—'}</td>
+                                          <td>{m.status || '-'}</td>
                                           <td style={{ fontSize: 12, color: T.dim }}>{when(m.joined_at || m.created_at)}</td>
                                         </tr>
                                       ))}
@@ -4185,7 +4185,7 @@ export default function HorsesAdmin() {
                                       {caSelectedUser.txns.map((t, i) => (
                                         <tr key={t.id || i}>
                                           <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(t.created_at, true)}</td>
-                                          <td>{t.club_name || '—'}</td>
+                                          <td>{t.club_name || '-'}</td>
                                           <td style={{ color: t.direction === 'in' ? T.accent : T.danger }}>
                                             {t.direction === 'in' ? 'Received' : 'Sent'}
                                           </td>
@@ -4209,10 +4209,10 @@ export default function HorsesAdmin() {
                                       {caSelectedUser.cashouts.map((c) => (
                                         <tr key={c.id}>
                                           <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{when(c.created_at, true)}</td>
-                                          <td>{c.club_name || '—'}</td>
+                                          <td>{c.club_name || '-'}</td>
                                           <td style={{ fontWeight: 700 }}>{num(c.amount)}</td>
-                                          <td style={{ color: c.status === 'pending' ? T.warn : T.dim }}>{c.status || '—'}</td>
-                                          <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || '—'}</td>
+                                          <td style={{ color: c.status === 'pending' ? T.warn : T.dim }}>{c.status || '-'}</td>
+                                          <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || '-'}</td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -4241,8 +4241,8 @@ export default function HorsesAdmin() {
                               </button>
                               <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>{u.email || 'no email'}</div>
                               <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>
-                                Player #{num(u.player_number)} — {u.role || 'user'}
-                                {u.is_vip ? ` — ${u.vip_tier || 'VIP'}` : ''}
+                                Player #{num(u.player_number)} - {u.role || 'user'}
+                                {u.is_vip ? ` - ${u.vip_tier || 'VIP'}` : ''}
                               </div>
                             </div>
                           ))}
@@ -4261,10 +4261,10 @@ export default function HorsesAdmin() {
                           <div key={u.id} className={styles.card}>
                             <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{u.name}</div>
                             <div style={{ fontSize: 12, color: T.dim, marginTop: 4 }}>
-                              Code {u.union_code || u.code || '—'}
+                              Code {u.union_code || u.code || '-'}
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
-                              {num(u.club_count, '0')} clubs — {num(u.member_count, '0')} members
+                              {num(u.club_count, '0')} clubs - {num(u.member_count, '0')} members
                             </div>
                             <div style={{ fontSize: 12, color: T.accent, marginTop: 4 }}>
                               Chip balance {num(u.chip_balance, '0')}
@@ -4315,8 +4315,8 @@ export default function HorsesAdmin() {
                             }}>{app.status || 'unknown'}</span>
                           </div>
                           <div style={{ fontSize: 12, color: T.dim }}>
-                            {num(app.member_count, '0')} members — applied {when(app.applied_at)}
-                            {app.profiles?.display_name && <> — owner <strong style={{ color: T.text }}>{app.profiles.display_name}</strong></>}
+                            {num(app.member_count, '0')} members - applied {when(app.applied_at)}
+                            {app.profiles?.display_name && <> - owner <strong style={{ color: T.text }}>{app.profiles.display_name}</strong></>}
                             {app.profiles?.email && <> ({app.profiles.email})</>}
                           </div>
                           {app.message && (
@@ -4400,8 +4400,8 @@ export default function HorsesAdmin() {
                           </div>
                           <div style={{ fontSize: 12, color: T.dim }}>
                             Requested {when(req.requested_at)}
-                            {req.profiles?.display_name && <> — owner <strong style={{ color: T.text }}>{req.profiles.display_name}</strong></>}
-                            {req.unions?.name && <> — union <strong style={{ color: T.text }}>{req.unions.name}</strong></>}
+                            {req.profiles?.display_name && <> - owner <strong style={{ color: T.text }}>{req.profiles.display_name}</strong></>}
+                            {req.unions?.name && <> - union <strong style={{ color: T.text }}>{req.unions.name}</strong></>}
                           </div>
                           {req.reason && (
                             <div style={{
@@ -4501,7 +4501,7 @@ export default function HorsesAdmin() {
                                 )}
                               </td>
                               <td style={{ fontSize: 12, color: T.dim, whiteSpace: 'nowrap' }}>
-                                {q.page ? q.page.replace('/hub/', '') : '—'}
+                                {q.page ? q.page.replace('/hub/', '') : '-'}
                               </td>
                               <td style={{
                                 fontWeight: 700, textAlign: 'center',
@@ -4565,7 +4565,7 @@ export default function HorsesAdmin() {
               </div>
               {reviewsStats.avg_rating_sampled && (
                 <div className={styles.warnBanner}>
-                  The average rating is sampled, not exact — the review table is larger than the sample cap.
+                  The average rating is sampled, not exact - the review table is larger than the sample cap.
                 </div>
               )}
 
@@ -4649,7 +4649,7 @@ export default function HorsesAdmin() {
                             }}>Flag reason: {review.flag_reason}</div>
                           )}
                           <div style={{ marginTop: 6, fontSize: 11, color: T.muted }}>
-                            Helpful {num(review.helpful_count, '0')} — Unhelpful {num(review.unhelpful_count, '0')}
+                            Helpful {num(review.helpful_count, '0')} - Unhelpful {num(review.unhelpful_count, '0')}
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -4693,7 +4693,7 @@ export default function HorsesAdmin() {
                       return pageBasis !== null && pageBasis !== undefined
                         ? ` of ${Math.max(1, Math.ceil(pageBasis / REVIEWS_PER_PAGE))}` : '';
                     })()}
-                    {' '}— showing {num(visibleReviews.length)} of {num(reviewsData.length)} on this page
+                    {' '}- showing {num(visibleReviews.length)} of {num(reviewsData.length)} on this page
                   </span>
                   <button onClick={() => setReviewsPage((p) => p + 1)}
                     disabled={reviewsData.length < REVIEWS_PER_PAGE || reviewsLoading}>Next</button>
@@ -4975,7 +4975,7 @@ export default function HorsesAdmin() {
                               <div>
                                 <div style={{ fontWeight: 700, color: T.text, fontSize: 15 }}>{daemon.label}</div>
                                 <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>
-                                  {daemon.type ? `${daemon.type} — ` : ''}interval {daemon.interval || 'unknown'}
+                                  {daemon.type ? `${daemon.type} - ` : ''}interval {daemon.interval || 'unknown'}
                                 </div>
                                 {daemon.statusReason && (
                                   <div style={{ fontSize: 12, color: T.muted, marginTop: 4, maxWidth: 420 }}>

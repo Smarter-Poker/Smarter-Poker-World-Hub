@@ -36,7 +36,7 @@ function toWeekly(data) {
         const total = chunk.reduce((sum, d) => sum + (Number(d.total) || 0), 0);
         const correct = chunk.reduce((sum, d) => sum + ((Number(d.pct) || 0) * (Number(d.total) || 0)) / 100, 0);
         out.unshift({
-            date: chunk.length > 1 ? `${chunk[0]?.date} – ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
+            date: chunk.length > 1 ? `${chunk[0]?.date} - ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
             total,
             pct: total > 0 ? Math.round((100 * correct) / total) : 0,
         });

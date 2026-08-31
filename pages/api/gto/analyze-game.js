@@ -102,28 +102,28 @@ function detectPatterns(mistakes) {
     if (overFolds.length >= Math.max(2, mistakes.length * 0.4)) {
         insights.push({
             pattern: 'Range Too Tight',
-            insight: `You folded ${overFolds.length} hand${overFolds.length !== 1 ? 's' : ''} that the solver plays — your opening/defense range is narrower than equilibrium.`,
+            insight: `You folded ${overFolds.length} hand${overFolds.length !== 1 ? 's' : ''} that the solver plays - your opening/defense range is narrower than equilibrium.`,
             severity: 'high',
         });
     }
     if (overAggression.length >= Math.max(2, mistakes.length * 0.4)) {
         insights.push({
             pattern: 'Range Too Wide',
-            insight: `You raised or 3-bet ${overAggression.length} hand${overAggression.length !== 1 ? 's' : ''} that the solver folds — your aggressive range is leaking value.`,
+            insight: `You raised or 3-bet ${overAggression.length} hand${overAggression.length !== 1 ? 's' : ''} that the solver folds - your aggressive range is leaking value.`,
             severity: 'high',
         });
     }
     if (callInsteadOfRaise.length >= 2) {
         insights.push({
             pattern: 'Missing Raises',
-            insight: `On ${callInsteadOfRaise.length} hand${callInsteadOfRaise.length !== 1 ? 's' : ''}, you called when the solver raises for value — flat-calling these hands gives up fold equity.`,
+            insight: `On ${callInsteadOfRaise.length} hand${callInsteadOfRaise.length !== 1 ? 's' : ''}, you called when the solver raises for value - flat-calling these hands gives up fold equity.`,
             severity: 'medium',
         });
     }
     if (raiseInsteadOfCall.length >= 2) {
         insights.push({
             pattern: 'Over-3-Betting',
-            insight: `${raiseInsteadOfCall.length} of your raises should have been calls — flatting keeps the opener's range wide and lets you realize equity in position.`,
+            insight: `${raiseInsteadOfCall.length} of your raises should have been calls - flatting keeps the opener's range wide and lets you realize equity in position.`,
             severity: 'medium',
         });
     }
@@ -140,7 +140,7 @@ function detectPatterns(mistakes) {
         const label = HAND_CLASS_LABEL[cls] || 'this hand class';
         insights.push({
             pattern: 'Hand-Class Leak',
-            insight: `${count} of your ${mistakes.length} mistakes were on ${label} — drill this category specifically.`,
+            insight: `${count} of your ${mistakes.length} mistakes were on ${label} - drill this category specifically.`,
             severity: 'medium',
         });
     }
@@ -150,7 +150,7 @@ function detectPatterns(mistakes) {
     if (totalMistakes >= 5) {
         insights.push({
             pattern: 'Boundary-Hand Focus',
-            insight: 'The hands at the edge of any range (mixed-frequency spots) are the highest-leverage to memorize — one wrong frequency there costs more EV than missing a clear value hand.',
+            insight: 'The hands at the edge of any range (mixed-frequency spots) are the highest-leverage to memorize - one wrong frequency there costs more EV than missing a clear value hand.',
             severity: 'low',
         });
     }
@@ -180,24 +180,24 @@ function buildRecommendations(insights, mistakes, finalScore, position, stackDep
     // Pattern-driven recommendations
     for (const ins of insights) {
         if (ins.pattern === 'Range Too Tight') {
-            recs.push(`Open or defend wider from ${heroPos || 'this position'} — the solver opens ~${heroPos === 'BTN' ? '50%' : heroPos === 'CO' ? '30%' : '15-25%'} at ${sd}bb effective.`);
+            recs.push(`Open or defend wider from ${heroPos || 'this position'} - the solver opens ~${heroPos === 'BTN' ? '50%' : heroPos === 'CO' ? '30%' : '15-25%'} at ${sd}bb effective.`);
         } else if (ins.pattern === 'Range Too Wide') {
             recs.push(`Tighten your aggressive range; many speculative hands are folds preflop, not raises.`);
         } else if (ins.pattern === 'Missing Raises') {
             recs.push(`Convert flats to value-raises with hands like AKs, AQs, JJ+ when in position.`);
         } else if (ins.pattern === 'Over-3-Betting') {
-            recs.push(`Add more flats with hands like AJs, KQs, TT — they realize equity better than 3-bets at 100bb.`);
+            recs.push(`Add more flats with hands like AJs, KQs, TT - they realize equity better than 3-bets at 100bb.`);
         } else if (ins.pattern === 'Hand-Class Leak') {
             // Pull the hand class from the insight text
-            recs.push(`Run a focused drill on the leaky hand class — repetition closes the gap fastest.`);
+            recs.push(`Run a focused drill on the leaky hand class - repetition closes the gap fastest.`);
         }
     }
 
     // Position-specific recommendation
     if (heroPos === 'UTG' || heroPos === 'MP') {
-        recs.push(`From ${heroPos}, range discipline matters most — the solver is tight here for a reason.`);
+        recs.push(`From ${heroPos}, range discipline matters most - the solver is tight here for a reason.`);
     } else if (heroPos === 'CO' || heroPos === 'BTN') {
-        recs.push(`From ${heroPos}, fold equity rewards wider opens — practice the marginal-edge hands.`);
+        recs.push(`From ${heroPos}, fold equity rewards wider opens - practice the marginal-edge hands.`);
     } else if (heroPos === 'BB') {
         recs.push(`BB defense is mostly flat-calls; reserve 3-bets for the polar value+bluff range.`);
     }
@@ -220,12 +220,12 @@ function buildRecommendations(insights, mistakes, finalScore, position, stackDep
 
 function getEncouragement(score) {
     const s = Number(score);
-    if (!Number.isFinite(s)) return 'Every mistake is a lesson — drill these spots and your accuracy will compound.';
-    if (s >= 90) return 'Almost perfect — keep grinding the boundary hands to lock in mastery.';
+    if (!Number.isFinite(s)) return 'Every mistake is a lesson - drill these spots and your accuracy will compound.';
+    if (s >= 90) return 'Almost perfect - keep grinding the boundary hands to lock in mastery.';
     if (s >= 75) return 'Strong session. The remaining gaps are the highest-leverage to study.';
-    if (s >= 60) return 'Solid foundation. Focus on the patterns above — they compound fast.';
-    if (s >= 40) return 'Decent effort. The patterns above are the next step — drill them deliberately.';
-    return 'Great learning opportunity. Re-run this exact range type a few times — accuracy climbs quickly.';
+    if (s >= 60) return 'Solid foundation. Focus on the patterns above - they compound fast.';
+    if (s >= 40) return 'Decent effort. The patterns above are the next step - drill them deliberately.';
+    return 'Great learning opportunity. Re-run this exact range type a few times - accuracy climbs quickly.';
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────
@@ -238,17 +238,17 @@ function buildSummary(mistakes, finalScore, position, stackDepth) {
         : '';
 
     if (count === 0) {
-        return `Perfect session — zero mistakes.${scoreFrag} Keep the discipline going.`;
+        return `Perfect session - zero mistakes.${scoreFrag} Keep the discipline going.`;
     }
 
     const plural = count !== 1 ? 's' : '';
     const lead = count <= 3
         ? `Small session leak: ${count} mistake${plural}`
         : count <= 7
-            ? `${count} mistakes this run — clear pattern visible below.`
-            : `${count} mistakes — the patterns below are the fastest path to closing the gap.`;
+            ? `${count} mistakes this run - clear pattern visible below.`
+            : `${count} mistakes - the patterns below are the fastest path to closing the gap.`;
 
-    return `${lead}${scoreFrag} ${heroPos}at ${sd}bb effective — review the leaks and re-drill this range type.`;
+    return `${lead}${scoreFrag} ${heroPos}at ${sd}bb effective - review the leaks and re-drill this range type.`;
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({
                     success: true,
                     analysis: {
-                        summary: 'Perfect game! Zero mistakes — locked-in execution at this stack depth.',
+                        summary: 'Perfect game! Zero mistakes - locked-in execution at this stack depth.',
                         patternInsights: [],
                         recommendations: ['Keep this range type warm with one drill per day to maintain edge.'],
                     },

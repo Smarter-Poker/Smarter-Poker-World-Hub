@@ -43,7 +43,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[merch-catalog] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; reads rely on the public RLS policy');
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[merch-catalog] SUPABASE_SERVICE_ROLE_KEY missing - falling back to anon key; reads rely on the public RLS policy');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
             });
         } catch (itemErr) {
             if (isMissingTable(itemErr)) {
-                console.warn('[merch-catalog] merchandise_items missing — migration 20260803120000 not applied yet');
+                console.warn('[merch-catalog] merchandise_items missing - migration 20260803120000 not applied yet');
                 res.setHeader('Cache-Control', 'no-store');
                 return res.status(200).json({
                     success: true,

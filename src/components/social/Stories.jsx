@@ -760,7 +760,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         // Validate file size (50MB limit for stories bucket)
         const MAX_STORY_BYTES = 50 * 1024 * 1024;
         if (file.size > MAX_STORY_BYTES) {
-            setError(`File too large — max 50MB for stories (your file: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+            setError(`File too large - max 50MB for stories (your file: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
             return;
         }
 
@@ -820,7 +820,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 body: file,
             });
             if (!putRes.ok) {
-                throw new Error(`Upload failed (HTTP ${putRes.status}) — please try again`);
+                throw new Error(`Upload failed (HTTP ${putRes.status}) - please try again`);
             }
 
             setMediaUrl(meta.publicUrl);

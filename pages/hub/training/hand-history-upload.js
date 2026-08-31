@@ -332,7 +332,7 @@ function _flattenActions(hand) {
 const GRADE_TIERS = {
   UNPRICED: {
     label: 'Not priced',
-    icon: '—',
+    icon: '-',
     color: 'var(--sp-fg-dim)',
     bg: 'rgba(148,163,184,0.07)',
     border: 'rgba(148,163,184,0.18)',
@@ -403,7 +403,7 @@ function gradeHand(hand) {
         correctDecisions: correct,
         mistakeDecisions: verified.length - correct,
         tips: verified.map(d => ({
-          text: `${d.street}: ${d.playerAction} — ${d.classification}${d.solverAction ? ` | Solver: ${d.solverAction}` : ''}${d.evLossMeasured ? ` (${Number(d.evLoss).toFixed(2)} BB)` : ' (EV not exposed)'}`,
+          text: `${d.street}: ${d.playerAction} - ${d.classification}${d.solverAction ? ` | Solver: ${d.solverAction}` : ''}${d.evLossMeasured ? ` (${Number(d.evLoss).toFixed(2)} BB)` : ' (EV not exposed)'}`,
           type: ['best', 'correct'].includes(d.classification) ? 'good' : 'warning',
         })),
       };
@@ -454,10 +454,10 @@ function gradeHand(hand) {
         else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
         // Convert engine decisions to tips
         const tips = analysis.decisions.map(d => ({
-          text: `${d.street || 'preflop'}: ${d.playerAction || '?'} — ${d.classification || 'unknown'}${d.evLoss > 0 ? ` (${d.evLoss.toFixed(2)} bb EV loss)` : ''}${d.gtoAction ? ` | GTO: ${d.gtoAction}` : ''}`,
+          text: `${d.street || 'preflop'}: ${d.playerAction || '?'} - ${d.classification || 'unknown'}${d.evLoss > 0 ? ` (${d.evLoss.toFixed(2)} bb EV loss)` : ''}${d.gtoAction ? ` | GTO: ${d.gtoAction}` : ''}`,
           type: d.classification === 'correct' ? 'good' : d.classification === 'blunder' ? 'warning' : 'info',
         }));
-        if (tips.length === 0) tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
+        if (tips.length === 0) tips.push({ text: 'Clean line - no detectable GTO deviations', type: 'good' });
         return {
           grade: gradeName,
           tier,
@@ -502,7 +502,7 @@ function gradeHand(hand) {
         tier: GRADE_TIERS.CORRECT,
         color: GRADE_TIERS.CORRECT.color,
         evLoss: 0,
-        tips: [{ text: 'Folded preflop — standard line', type: 'info' }],
+        tips: [{ text: 'Folded preflop - standard line', type: 'info' }],
         position: deriveHeroPosition(hand),
         street: 'preflop',
       };
@@ -536,7 +536,7 @@ function gradeHand(hand) {
     // ── RULE 1: Passive play leak (calls without raising) ──────────
     if (calls > 2 && raises === 0) {
       tips.push({
-        text: 'Too passive — calling station pattern detected. GTO requires balanced aggression with raises and re-raises',
+        text: 'Too passive - calling station pattern detected. GTO requires balanced aggression with raises and re-raises',
         type: 'warning',
       });
       score -= 30;
@@ -552,14 +552,14 @@ function gradeHand(hand) {
         const ipFlatOK = heroPos === 'BTN' || heroPos === 'CO';
         if (!ipFlatOK) {
           tips.push({
-            text: `Flatting vs raise from ${heroPos || 'OOP'} — consider 3-betting or folding. Flatting OOP leads to difficult postflop spots`,
+            text: `Flatting vs raise from ${heroPos || 'OOP'} - consider 3-betting or folding. Flatting OOP leads to difficult postflop spots`,
             type: 'warning',
           });
           score -= 20;
           evLoss += potSize * 0.05;
         } else {
           tips.push({
-            text: 'Flatting in position — acceptable with suited connectors and pocket pairs, but 3-betting is often higher EV',
+            text: 'Flatting in position - acceptable with suited connectors and pocket pairs, but 3-betting is often higher EV',
             type: 'info',
           });
           score -= 5;
@@ -575,7 +575,7 @@ function gradeHand(hand) {
     if (bigBets.length > 0 && board.length >= 3) {
       const betPct = Math.round(((bigBets[0].amount || 0) / potSize) * 100);
       tips.push({
-        text: `Overbetting ${betPct}% pot — GTO uses 25-33% on dry/static boards and 66-75% on wet/dynamic textures`,
+        text: `Overbetting ${betPct}% pot - GTO uses 25-33% on dry/static boards and 66-75% on wet/dynamic textures`,
         type: 'info',
       });
       score -= 10;
@@ -586,7 +586,7 @@ function gradeHand(hand) {
     const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
     if (isPreRaiser && checks > 0 && board.length >= 3) {
       tips.push({
-        text: 'Missed c-bet as preflop aggressor — solver c-bets ~60-70% IP and ~30-40% OOP on most textures',
+        text: 'Missed c-bet as preflop aggressor - solver c-bets ~60-70% IP and ~30-40% OOP on most textures',
         type: 'warning',
       });
       score -= 20;
@@ -598,7 +598,7 @@ function gradeHand(hand) {
       const lastAction = heroActions[heroActions.length - 1];
       if (lastAction?.action === 'calls' && hand?.result === 0) {
         tips.push({
-          text: 'Called river and lost — check your blocker effects before hero-calling. Having a blocker to villain value hands improves call EV significantly',
+          text: 'Called river and lost - check your blocker effects before hero-calling. Having a blocker to villain value hands improves call EV significantly',
           type: 'warning',
         });
         score -= 25;
@@ -610,7 +610,7 @@ function gradeHand(hand) {
     const allins = heroActions.filter((a) => a.action === 'all-in');
     if (allins.length > 0 && board.length === 0) {
       score -= 5;
-      tips.push({ text: 'Preflop all-in — verify this is +EV using push/fold charts for your stack depth and position', type: 'info' });
+      tips.push({ text: 'Preflop all-in - verify this is +EV using push/fold charts for your stack depth and position', type: 'info' });
     }
 
     // ── RULE 7 (NEW): Min-raise / undersized bet detection ──────────
@@ -622,7 +622,7 @@ function gradeHand(hand) {
       : [];
     if (smallBets.length > 0 && board.length >= 3) {
       tips.push({
-        text: 'Undersized bet detected — min-betting gives villain great pot odds to continue. Use at least 25-33% pot sizing',
+        text: 'Undersized bet detected - min-betting gives villain great pot odds to continue. Use at least 25-33% pot sizing',
         type: 'warning',
       });
       score -= 12;
@@ -632,7 +632,7 @@ function gradeHand(hand) {
     // ── RULE 8 (NEW): Multi-street call-down without aggression ──
     if (calls >= 3 && raises === 0 && board.length >= 5) {
       tips.push({
-        text: 'Call-call-call line across 3 streets — consider check-raising at least one street to build a balanced range and deny equity',
+        text: 'Call-call-call line across 3 streets - consider check-raising at least one street to build a balanced range and deny equity',
         type: 'warning',
       });
       score -= 18;
@@ -656,8 +656,8 @@ function gradeHand(hand) {
         tips.push({
           text:
             potOdds !== null
-              ? `Folded river after calling 2+ streets — you needed ${potOdds}% equity to call. Verify you don't have enough showdown value or blockers`
-              : `Folded river after calling 2+ streets — verify you don't have enough showdown value or blockers before giving up the pot`,
+              ? `Folded river after calling 2+ streets - you needed ${potOdds}% equity to call. Verify you don't have enough showdown value or blockers`
+              : `Folded river after calling 2+ streets - verify you don't have enough showdown value or blockers before giving up the pot`,
           type: 'warning',
         });
         score -= 15;
@@ -670,7 +670,7 @@ function gradeHand(hand) {
       const isLimp = !actions.some((a) => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
       if (isLimp) {
         tips.push({
-          text: 'Completing SB — GTO prefers raising or folding from SB. Limping creates an uncapped BB range and puts you OOP',
+          text: 'Completing SB - GTO prefers raising or folding from SB. Limping creates an uncapped BB range and puts you OOP',
           type: 'warning',
         });
         score -= 15;
@@ -680,17 +680,17 @@ function gradeHand(hand) {
 
     // ── RULE 11 (NEW): Multi-street aggression (positive) ──────────
     if (raises >= 2 && board.length >= 4) {
-      tips.push({ text: 'Good multi-street aggression — applying pressure across streets is a key GTO principle', type: 'good' });
+      tips.push({ text: 'Good multi-street aggression - applying pressure across streets is a key GTO principle', type: 'good' });
       score += 8;
     }
 
     // Positive detection
     if (isPreRaiser && raises >= 2 && (hand?.result || 0) > 0) {
       score += 10;
-      tips.push({ text: 'Aggressive value line rewarded — strong play', type: 'good' });
+      tips.push({ text: 'Aggressive value line rewarded - strong play', type: 'good' });
     }
     if (tips.length === 0) {
-      tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
+      tips.push({ text: 'Clean line - no detectable GTO deviations', type: 'good' });
     }
 
     // Clamp
@@ -1282,7 +1282,7 @@ function AnalyzedHandRow({ hand, index }) {
                 )}
               </div>
               <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                {coaching.solverVerified ? 'Verified shared solver audit' : coaching.estimated ? 'Heuristic preview — excluded from Leak Finder' : 'Unpriced — excluded from Leak Finder'}
+                {coaching.solverVerified ? 'Verified shared solver audit' : coaching.estimated ? 'Heuristic preview - excluded from Leak Finder' : 'Unpriced - excluded from Leak Finder'}
               </div>
               {coaching.tips.map((tip, i) => (
                 <div
@@ -1708,7 +1708,7 @@ export default function HandHistoryUploadPage() {
                     {isAnalyzing ? 'Analyzing...' : 'Drop Hand History File Here'}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                    Supports .txt files from PokerStars, GGPoker, 888, ACR — drop multiple files at
+                    Supports .txt files from PokerStars, GGPoker, 888, ACR - drop multiple files at
                     once
                   </div>
                   <div

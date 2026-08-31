@@ -144,7 +144,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
     disabled: isDisabled,
     type: 'button',
     'aria-label': eliminated
-      ? `Answer ${letter}: ${option} — eliminated`
+      ? `Answer ${letter}: ${option} - eliminated`
       : `Answer ${letter}: ${option}`,
     // Always a boolean: toggling the ATTRIBUTE's presence (undefined when
     // unselected) makes screen readers announce only the selected option as a

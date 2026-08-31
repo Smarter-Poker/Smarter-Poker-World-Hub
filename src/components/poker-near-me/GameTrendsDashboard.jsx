@@ -12,7 +12,7 @@ function TrendIcon({ trend, changePct }) {
   // 'new' (a game type that just appeared, the most interesting signal the endpoint
   // produces). 'new' fell through to "— Stable", i.e. it was reported as unchanged.
   if (trend === 'new') return <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>NEW</span>;
-  return <span style={{ color: '#64748b' }}>— Stable</span>;
+  return <span style={{ color: '#64748b' }}>- Stable</span>;
 }
 
 export default function GameTrendsDashboard() {

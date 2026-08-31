@@ -1501,7 +1501,7 @@ export default function SurvivalGamePage() {
                                     {/* Economy clarity: the 10-diamond entry fee is charged on
                                         level 1 only, so retrying a failed level costs nothing. */}
                                     <div style={{ color: '#22c55e', fontSize: '13px', marginBottom: '20px' }}>
-                                        Retries Are Free — You Only Pay To Start A New Run
+                                        Retries Are Free - You Only Pay To Start A New Run
                                     </div>
 
                                     {/* Post-run review: learn from the ones you missed.

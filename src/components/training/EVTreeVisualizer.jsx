@@ -324,7 +324,7 @@ export default function EVTreeVisualizer() {
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>EV Decision Tree</h3>
             <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-              {scenario.board} — Pot: {scenario.pot}bb
+              {scenario.board} - Pot: {scenario.pot}bb
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>

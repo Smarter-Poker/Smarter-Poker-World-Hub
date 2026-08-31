@@ -2884,7 +2884,7 @@ function GodModeArenaInner({
 
         const areas = [];
         if (cc.blunder > 0)
-          areas.push(`${cc.blunder} blunder${cc.blunder > 1 ? 's' : ''} — review these hands`);
+          areas.push(`${cc.blunder} blunder${cc.blunder > 1 ? 's' : ''} - review these hands`);
         if (weakSpots.length > 0) {
           const worst = weakSpots[0];
           areas.push(
@@ -2907,14 +2907,14 @@ function GodModeArenaInner({
             acc >= 90 ? 'A+' : acc >= 80 ? 'A' : acc >= 70 ? 'B' : acc >= 60 ? 'C' : 'D',
           headline:
             acc >= 90
-              ? 'Exceptional session — GTO mastery in action.'
+              ? 'Exceptional session - GTO mastery in action.'
               : acc >= 80
-                ? 'Strong session — your GTO fundamentals are solid.'
+                ? 'Strong session - your GTO fundamentals are solid.'
                 : acc >= 70
-                  ? 'Good session — a few spots to tighten up.'
+                  ? 'Good session - a few spots to tighten up.'
                   : acc >= 60
                     ? 'Decent session with room for improvement.'
-                    : 'Focus on the basics — review your biggest mistakes.',
+                    : 'Focus on the basics - review your biggest mistakes.',
           strengths,
           areasToImprove: areas,
           detailedFeedback: feedback,
@@ -4547,13 +4547,13 @@ function GodModeArenaInner({
                       if (leak.type === 'fold_too_much')
                         tips.push({
                           priority: 1,
-                          text: "You're folding too often. Practice defending wider — use pot odds to decide close calls.",
+                          text: "You're folding too often. Practice defending wider - use pot odds to decide close calls.",
                           color: '#ef4444',
                         });
                       else if (leak.type === 'call_too_much')
                         tips.push({
                           priority: 1,
-                          text: 'Over-calling is costing you. Tighten up against aggression — not every pair is worth a call.',
+                          text: 'Over-calling is costing you. Tighten up against aggression - not every pair is worth a call.',
                           color: '#ef4444',
                         });
                       else if (leak.type === 'bet_too_small')
@@ -4571,7 +4571,7 @@ function GodModeArenaInner({
                       else if (leak.type === 'missed_value')
                         tips.push({
                           priority: 1,
-                          text: "You're missing value bets. When you have a strong hand, bet for value — don't be afraid to build the pot.",
+                          text: "You're missing value bets. When you have a strong hand, bet for value - don't be afraid to build the pot.",
                           color: '#ef4444',
                         });
                       else if (leak.type === 'bluff_too_much')
@@ -4634,7 +4634,7 @@ function GodModeArenaInner({
                       else
                         tips.push({
                           priority: 3,
-                          text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% — review board texture analysis for this street.`,
+                          text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% - review board texture analysis for this street.`,
                           color: '#fbbf24',
                         });
                     });
@@ -4656,7 +4656,7 @@ function GodModeArenaInner({
                   if (avgEVLossPerHand > 0.3) {
                     tips.push({
                       priority: 1,
-                      text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders — those cost the most.`,
+                      text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders - those cost the most.`,
                       color: '#ef4444',
                     });
                   } else if (avgEVLossPerHand > 0.1) {
@@ -5157,7 +5157,7 @@ function GodModeArenaInner({
                               minWidth: 30,
                             }}
                           >
-                            {leak.heroPosition || '—'}
+                            {leak.heroPosition || '-'}
                           </span>
                           <span
                             style={{
@@ -5168,7 +5168,7 @@ function GodModeArenaInner({
                               minWidth: 42,
                             }}
                           >
-                            {leak.street || '—'}
+                            {leak.street || '-'}
                           </span>
                           <span
                             style={{
@@ -5277,10 +5277,10 @@ function GodModeArenaInner({
                   </div>
                   <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
                     {mixedStrategyScore >= 60
-                      ? 'Great mixing — GTO-balanced!'
+                      ? 'Great mixing - GTO-balanced!'
                       : mixedStrategyScore >= 35
-                        ? 'Moderate — try diversifying your actions'
-                        : 'Too predictable — mix in more actions'}
+                        ? 'Moderate - try diversifying your actions'
+                        : 'Too predictable - mix in more actions'}
                   </div>
                 </div>
               )}
@@ -5649,7 +5649,7 @@ function GodModeArenaInner({
                     gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay — Review with GTO Line
+                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay - Review with GTO Line
                 </motion.button>
               )}
             </>
@@ -5715,8 +5715,8 @@ function GodModeArenaInner({
                           }}
                         >
                           {totalMistakes === 0
-                            ? '✓ No mistakes to cluster — clean session.'
-                            : 'Mistakes were one-offs — no repeated pattern formed.'}
+                            ? '✓ No mistakes to cluster - clean session.'
+                            : 'Mistakes were one-offs - no repeated pattern formed.'}
                         </div>
                       ) : (
                         clusters.map((c, i) => (
@@ -5939,7 +5939,7 @@ function GodModeArenaInner({
                             </span>
                           </div>
                           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
-                            Correct in a tough spot — well played.
+                            Correct in a tough spot - well played.
                           </div>
                         </div>
                       ))}
@@ -6256,7 +6256,7 @@ function GodModeArenaInner({
                                       ? hot
                                         ? `-${cell.avgEVLoss.toFixed(2)}`
                                         : '✓'
-                                      : '—'}
+                                      : '-'}
                                   </div>
                                   {cell && cell.hands > 0 && (
                                     <div style={{ fontSize: 8, color: '#64748b' }}>
@@ -9078,7 +9078,7 @@ function GodModeArenaInner({
                             }}
                           >
                             <span style={{ fontWeight: 700 }}>#{d.handNumber}</span> {d.action} on{' '}
-                            {d.street} — great play!
+                            {d.street} - great play!
                           </div>
                         ))}
                       </div>
@@ -9556,7 +9556,7 @@ function GodModeArenaInner({
                               {s.label}
                             </div>
                             <div style={{ fontSize: 9, color: '#94a3b8' }}>
-                              {s.focus} — {s.hands} hands — {s.goal}
+                              {s.focus} - {s.hands} hands - {s.goal}
                             </div>
                           </div>
                         ))}
@@ -9729,7 +9729,7 @@ function GodModeArenaInner({
                         </div>
                         {ms.gap !== null && ms.gap > 15 && (
                           <div style={{ fontSize: 10, color: '#fbbf24', fontStyle: 'italic' }}>
-                            Gap of {ms.gap}% — mixed spots need work
+                            Gap of {ms.gap}% - mixed spots need work
                           </div>
                         )}
                         <div
@@ -10047,7 +10047,7 @@ function GodModeArenaInner({
                               marginTop: 6,
                             }}
                           >
-                            Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} —{' '}
+                            Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} -{' '}
                             {wh.weakestCell.accuracy}%
                           </div>
                         )}
@@ -13135,7 +13135,7 @@ function GodModeArenaInner({
                           letterSpacing: 0.5,
                         }}
                       >
-                        {levelDef.name} — {String(levelDef.tier || '').toLowerCase()}
+                        {levelDef.name} - {String(levelDef.tier || '').toLowerCase()}
                       </div>
                     ) : null;
                   })()}
@@ -13217,7 +13217,7 @@ function GodModeArenaInner({
                         >
                           {crossSessionAnalytics.milestones.last5Avg ||
                             crossSessionAnalytics.milestones.overallAccuracy ||
-                            '—'}
+                            '-'}
                           %
                         </div>
                         <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>

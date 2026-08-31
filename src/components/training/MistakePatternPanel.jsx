@@ -94,7 +94,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                     <div style={styles.insightText}>
                         {generateInsight(mistakePatterns[0])}
                         <span style={styles.insightMeta}>
-                            {' '}— {mistakePatterns[0].count} occurrences, -{mistakePatterns[0].avgEvLoss.toFixed(2)} avg EV
+                            {' '}- {mistakePatterns[0].count} occurrences, -{mistakePatterns[0].avgEvLoss.toFixed(2)} avg EV
                         </span>
                     </div>
                 </motion.div>

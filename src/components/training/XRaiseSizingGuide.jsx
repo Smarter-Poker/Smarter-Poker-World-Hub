@@ -13,7 +13,7 @@ const TEXTURES = [
     color: '#3b82f6',
     sizing: '3x-3.5x bet',
     value: { hands: 'Sets (KK, 77, 22), K7s, strong Kx', note: 'Dry boards dont change much. Size to build pot with strong hands. Villains calling range is defined.' },
-    bluff: { hands: 'Gutshots (T9, 98), backdoor draws, A5s-A3s', note: 'Bluff with hands that have some equity. Dont over-bluff on static boards — villain calling range is sticky.' },
+    bluff: { hands: 'Gutshots (T9, 98), backdoor draws, A5s-A3s', note: 'Bluff with hands that have some equity. Dont over-bluff on static boards - villain calling range is sticky.' },
     freq: 8, tip: 'Check-raise less on dry boards. Villain c-bets wide here, so you get better value by calling and check-raising turn.',
   },
   {
@@ -31,7 +31,7 @@ const TEXTURES = [
     color: '#10b981',
     sizing: '3x bet',
     value: { hands: 'Nut flush, sets, two pair (must have a spade often)', note: 'Size standard. Nut flush is the key hand. Sets need to size to protect. Without a flush blocker, be cautious.' },
-    bluff: { hands: 'A♠x (nut flush blocker), bare high spade', note: 'Bluff with nut flush blockers. A♠ is the best blocker — it removes villains nut flush combos.' },
+    bluff: { hands: 'A♠x (nut flush blocker), bare high spade', note: 'Bluff with nut flush blockers. A♠ is the best blocker - it removes villains nut flush combos.' },
     freq: 10, tip: 'Monotone boards are scary for everyone. Check-raise with nut flush and strong blockers only.',
   },
   {

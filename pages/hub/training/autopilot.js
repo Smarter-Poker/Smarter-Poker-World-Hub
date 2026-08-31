@@ -211,7 +211,7 @@ function analyzeWeakSpots(sessions) {
         accuracy: null,
         evLoss: 0,
         score: 50,
-        reason: 'Not enough data — needs practice',
+        reason: 'Not enough data - needs practice',
       };
     }
     const accuracy = Math.round((stats.correct / stats.hands) * 100);
@@ -226,10 +226,10 @@ function analyzeWeakSpots(sessions) {
       score,
       reason:
         accuracy < 60
-          ? `Only ${accuracy}% — significant leak`
+          ? `Only ${accuracy}% - significant leak`
           : accuracy < 75
-            ? `${accuracy}% — room for improvement`
-            : `${accuracy}% — maintain consistency`,
+            ? `${accuracy}% - room for improvement`
+            : `${accuracy}% - maintain consistency`,
     };
   }).sort((a, b) => b.score - a.score);
 
@@ -498,7 +498,7 @@ export default function AutopilotPage() {
                       Coach Recommendation
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
-                      Focus your next session on <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> — it was your weakest area at {weakest.accuracy}%.
+                      Focus your next session on <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> - it was your weakest area at {weakest.accuracy}%.
                     </div>
                   </div>
                 );
@@ -545,10 +545,10 @@ export default function AutopilotPage() {
                         }),
                       });
                       if (res.ok) toast.success('Autopilot Results Shared To Your Feed!');
-                      else toast.error('Share Failed — Please Try Again.');
+                      else toast.error('Share Failed - Please Try Again.');
                     } catch (e) {
                       console.warn('Share error:', e);
-                      toast.error('Share Failed — Please Try Again.');
+                      toast.error('Share Failed - Please Try Again.');
                     } finally {
                       setSharing(false);
                     }

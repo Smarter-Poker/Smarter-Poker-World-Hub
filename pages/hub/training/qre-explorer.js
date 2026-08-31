@@ -184,7 +184,7 @@ export default function QREExplorerPage() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Explorer</div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Population Tendencies — Quantal Response Equilibrium
+              Population Tendencies - Quantal Response Equilibrium
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ export default function DiamondArenaTableSettings() {
         <>
             <SEOHead
                 title="Diamond Arena Table Settings"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
 

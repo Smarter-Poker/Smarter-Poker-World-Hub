@@ -12,19 +12,19 @@ export const GATEWAY_NODES = {
     landingPage: {
         path: 'pages/index.js',
         type: 'gateway',
-        description: 'Marketing Landing Page — Video game aesthetic, Orange Ball accents',
+        description: 'Marketing Landing Page - Video game aesthetic, Orange Ball accents',
         features: ['Hero Section', 'Orb Study Previews', 'Diamond Multiplier Preview', 'Stats Bar'],
     },
     signIn: {
         path: 'pages/auth/signin.js',
         type: 'gateway',
-        description: 'Sign-In Access Node — Phone OTP via Supabase + Twilio',
+        description: 'Sign-In Access Node - Phone OTP via Supabase + Twilio',
         redirectTo: '/hub',
     },
     signUp: {
         path: 'pages/auth/signup.js',
         type: 'gateway',
-        description: 'Sign-Up Registration Node — Profile initialization (Diamonds=0, Multiplier=1x)',
+        description: 'Sign-Up Registration Node - Profile initialization (Diamonds=0, Multiplier=1x)',
         redirectTo: '/hub',
         initializesProfile: true,
     },

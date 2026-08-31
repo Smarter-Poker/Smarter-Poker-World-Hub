@@ -20,10 +20,10 @@ export default function PotCommittedCalc() {
     const breakEvenEq = (potOdds * 100).toFixed(1);
 
     let verdict, color, emoji;
-    if (spr <= 1) { verdict = 'FULLY COMMITTED — Just get it in'; color = '#ef4444'; emoji = '●'; }
-    else if (spr <= 2) { verdict = 'POT COMMITTED — Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
-    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED — Need decent equity'; color = '#3b82f6'; emoji = '●'; }
-    else { verdict = 'NOT COMMITTED — Can still fold'; color = '#22c55e'; emoji = '●'; }
+    if (spr <= 1) { verdict = 'FULLY COMMITTED - Just get it in'; color = '#ef4444'; emoji = '●'; }
+    else if (spr <= 2) { verdict = 'POT COMMITTED - Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
+    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED - Need decent equity'; color = '#3b82f6'; emoji = '●'; }
+    else { verdict = 'NOT COMMITTED - Can still fold'; color = '#22c55e'; emoji = '●'; }
 
     return { spr: spr.toFixed(2), sprAfterCall: sprAfterCall.toFixed(2), potOdds: breakEvenEq, committed, verdict, color, emoji, remainAfterCall };
   }, [stack, pot, betToCall]);

@@ -135,7 +135,7 @@ export default function JarvisDashboard() {
   return (
     <PageTransition>
       <SEOHead
-        title="Jarvis AI Coach — GTO Analysis"
+        title="Jarvis AI Coach - GTO Analysis"
         description="Get Personalized GTO Coaching From Jarvis, Your AI Poker Intelligence. Solver-grade Analysis For Every Hand."
         canonical="/hub/training/jarvis"
       />

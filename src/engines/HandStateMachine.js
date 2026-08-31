@@ -249,7 +249,7 @@ export class HandStateMachine {
 
             case 'check':
                 if (player.streetInvested < this.currentBet) {
-                    return { valid: false, error: 'Cannot check — must call or raise' };
+                    return { valid: false, error: 'Cannot check - must call or raise' };
                 }
                 this._recordAction(player, 'check', 0);
                 break;

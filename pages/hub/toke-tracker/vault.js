@@ -120,7 +120,7 @@ export default function DealerVaultPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Dealer Vault — Secure Document Storage"
+                title="Dealer Vault - Secure Document Storage"
                 description="Store and manage your tax documents, gaming licenses, W-2s, and employment paperwork securely."
                 canonical="/hub/toke-tracker/vault"
             />

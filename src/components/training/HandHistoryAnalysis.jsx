@@ -27,7 +27,7 @@ const ANALYSIS_STEPS = [
     why: 'Fixing one systematic leak (like always calling river bets) can improve your win rate by 2-3bb/100 instantly.',
     tool: 'Create a spreadsheet of mistakes by category. Review it weekly to track improvement.' },
   { step: '5. Study Sessions, Not Hands', icon: '▲', color: '#8b5cf6',
-    detail: 'Don\'t just review individual hands — look at your session as a whole. How did your play change over time? Did you tilt?',
+    detail: 'Don\'t just review individual hands - look at your session as a whole. How did your play change over time? Did you tilt?',
     howto: 'Plot your session graph. Look for slope changes. Did your play deteriorate after a bad beat? After hour 3?',
     why: 'Session-level analysis reveals mental game leaks that hand-level analysis misses. Maybe you always tilt after losing a flip.',
     tool: 'Use your tracker\'s session review. Look at win rate by hour played. Most players deteriorate after 2-3 hours.' },

@@ -51,7 +51,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                 <div style={popupStyles.header}>
                     <div style={popupStyles.warningIcon}>⚠️</div>
                     <h2 style={popupStyles.title}>Software Neutrality Disclaimer</h2>
-                    <p style={popupStyles.subtitle}>Club Arena — Play Money Home Games</p>
+                    <p style={popupStyles.subtitle}>Club Arena - Play Money Home Games</p>
                 </div>
 
                 {/* Disclaimer Content */}
@@ -135,7 +135,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                         disabled={!canProceed}
                         onClick={onAccept}
                     >
-                        {canProceed ? 'I Accept — Enter Club Arena' : 'Read & Accept Terms to Continue'}
+                        {canProceed ? 'I Accept - Enter Club Arena' : 'Read & Accept Terms to Continue'}
                     </button>
 
                     <p style={popupStyles.footerNote}>
@@ -215,11 +215,11 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                 <div style={lobbyStyles.lobbyContent}>
                     <header style={lobbyStyles.header}>
                         <h1 style={lobbyStyles.title}>🏛️ Club Arena</h1>
-                        <p style={lobbyStyles.subtitle}>Play Money Home Games — Train With Friends</p>
+                        <p style={lobbyStyles.subtitle}>Play Money Home Games - Train With Friends</p>
 
                         {/* Play Money Badge */}
                         <div style={lobbyStyles.playMoneyBadge}>
-                            🎮 PLAY MONEY ONLY — NO CASH VALUE
+                            🎮 PLAY MONEY ONLY - NO CASH VALUE
                         </div>
                     </header>
 

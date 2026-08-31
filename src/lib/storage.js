@@ -117,7 +117,7 @@ export function checkQuota() {
     const estimatedMax = 5 * 1024 * 1024; // 5MB typical
     const pct = ((totalBytes / estimatedMax) * 100).toFixed(1);
     if (totalBytes > estimatedMax * 0.8) {
-      console.warn(`[Storage] Usage at ${pct}% (${usedKB} KB) — consider cleanup`);
+      console.warn(`[Storage] Usage at ${pct}% (${usedKB} KB) - consider cleanup`);
     }
   } catch {
     // Ignore — storage may be unavailable

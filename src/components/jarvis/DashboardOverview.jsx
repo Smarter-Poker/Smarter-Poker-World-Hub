@@ -82,7 +82,7 @@ export default function DashboardOverview({ stats, isLoading }) {
             <h2 style={styles.title}>Dashboard Overview</h2>
             {isDemo && (
                 <p style={styles.demoNote}>
-                    Sample view — sign in to see your own sessions, hands and leaks.
+                    Sample view - sign in to see your own sessions, hands and leaks.
                 </p>
             )}
             <div style={styles.grid}>

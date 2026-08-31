@@ -311,7 +311,7 @@ export default function StreaksPage() {
   if (loading) {
     return (
       <>
-        <SEOHead title="Training Streaks — Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
+        <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
         <div style={{ ...styles.loadingContainer, padding: 24 }} role="status" aria-label="Loading Streak Data">
           <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
           <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
@@ -323,7 +323,7 @@ export default function StreaksPage() {
   if (!user) {
     return (
       <PageTransition>
-        <SEOHead title="Training Streaks — Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
+        <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <TrainerEmptyState
@@ -343,7 +343,7 @@ export default function StreaksPage() {
   return (
     <PageTransition>
       <SEOHead
-        title="Training Streaks — Stay Consistent"
+        title="Training Streaks - Stay Consistent"
         description="Build And Maintain Your Daily Training Streaks On Smarter.Poker."
         canonical="/hub/training/streaks"
         noindex={true}

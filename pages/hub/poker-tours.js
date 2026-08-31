@@ -813,7 +813,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     return (
         <>
             <Head>
-                <title>Poker Tours — Traveling Poker Series & Circuits | Smarter.Poker</title>
+                <title>Poker Tours - Traveling Poker Series & Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
             
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -1974,7 +1974,7 @@ function withBuildTimeout(promise, label) {
     let timer;
     const timeout = new Promise((resolve) => {
         timer = setTimeout(() => {
-            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms — continuing without it; ISR will populate on first request.`);
+            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms - continuing without it; ISR will populate on first request.`);
             resolve(null);
         }, BUILD_FETCH_TIMEOUT_MS);
     });

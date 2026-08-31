@@ -26,7 +26,7 @@ const CONCEPTS = [
     when: ['Small bet sizes (25-33% pot)', 'When opponent calls too wide', 'Multiway pots', 'When opponent doesnt fold to big bets'],
     example: {
       board: 'A♣ Q♦ 7♣ 3♥ 9♠',
-      hand: 'AJ, AK, KQ, QJ — all for thin value',
+      hand: 'AJ, AK, KQ, QJ - all for thin value',
       sizing: 'Bet 25-33% pot',
       reasoning: 'Against a calling station, bet thin with any pair. They wont fold, so no point bluffing. Extract value from second-best hands.',
     },
@@ -39,7 +39,7 @@ const QUIZ = [
   { q: 'You have a set on a dry river. Opponent is a tight player.', a: 'Polarized', reason: 'Bet big for value. Tight player only calls with strong hands, so maximize when they do call.' },
   { q: 'You have top pair on a wet river. Opponent is a calling station.', a: 'Linear', reason: 'Bet small for thin value. Calling station wont fold, so extract value with medium hands.' },
   { q: 'You have a missed flush draw on the river. Opponent checked to you.', a: 'Polarized', reason: 'If you bet, it should be as a bluff in a polarized range. Bet big to represent the nuts or check.' },
-  { q: 'Multiway pot on the river. You have second pair.', a: 'Linear', reason: 'In multiway pots, use small bets with merged ranges. Checking is also fine — bluffing is dangerous multiway.' },
+  { q: 'Multiway pot on the river. You have second pair.', a: 'Linear', reason: 'In multiway pots, use small bets with merged ranges. Checking is also fine - bluffing is dangerous multiway.' },
 ];
 
 function RiverPolarizationGuide() {

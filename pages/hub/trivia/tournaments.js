@@ -473,7 +473,7 @@ export default function TournamentsPage() {
         try {
             const token = getAccessToken();
             if (!token) {
-                console.warn('[Tournaments] No session token — cannot register');
+                console.warn('[Tournaments] No session token - cannot register');
                 return;
             }
             const resp = await fetch('/api/trivia/tournament-enter', {
@@ -503,7 +503,7 @@ export default function TournamentsPage() {
             busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
         } catch (e) {
             console.warn('[Tournaments] Entry RPC failed:', e?.message || e);
-            setRegisterError('Network error — please try again');
+            setRegisterError('Network error - please try again');
             return;
         }
 
@@ -522,7 +522,7 @@ export default function TournamentsPage() {
             case 'not_entered': return 'You are not entered in this tournament.';
             case 'eliminated': return 'You have been eliminated from this tournament.';
             case 'not_in_round': return 'You are not scheduled in this round.';
-            case 'bye_round': return 'You have a bye — you advance automatically.';
+            case 'bye_round': return 'You have a bye - you advance automatically.';
             case 'already_submitted': return 'You have already played this round.';
             case 'no_questions':
             case 'no_playable_questions': return 'No questions are available for this round yet. Please try again shortly.';
@@ -549,7 +549,7 @@ export default function TournamentsPage() {
             // to hand the answer key to every client.
             const token = getAccessToken();
             if (!token) {
-                setSubmitError('Your session expired — please sign in again.');
+                setSubmitError('Your session expired - please sign in again.');
                 return;
             }
             const resp = await fetch(
@@ -580,7 +580,7 @@ export default function TournamentsPage() {
             timer.resetTimer();
         } catch (e) {
             console.warn('[Tournaments] Round question fetch failed:', e?.message || e);
-            setSubmitError('Network error — please try again');
+            setSubmitError('Network error - please try again');
         } finally {
             setRoundLoading(false);
         }
@@ -605,7 +605,7 @@ export default function TournamentsPage() {
         if (currentRoundData && myMatchup) {
             const submitOnce = async () => {
                 const token = getAccessToken();
-                if (!token) throw new Error('No session token — cannot submit round');
+                if (!token) throw new Error('No session token - cannot submit round');
                 // display_index === null means "did not answer" (timeout / skipped);
                 // the server counts it as unanswered rather than wrong-by-sentinel.
                 const answersPayload = questions
@@ -772,7 +772,7 @@ export default function TournamentsPage() {
         <TriviaErrorBoundary pageName="Tournaments">
         <PageTransition>
             <SEOHead
-                title="Trivia Tournaments — Compete For Prizes"
+                title="Trivia Tournaments - Compete For Prizes"
                 description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
                 canonical="/hub/trivia/tournaments"
             >
@@ -849,7 +849,7 @@ export default function TournamentsPage() {
                                 <MetalFrame padding="24px" showBolts={true} className="active-tournament">
                                     <div className="tournament-badge live">
                                         <span className="pulse" />
-                                        LIVE — Round {activeTournament.current_round || 1}
+                                        LIVE - Round {activeTournament.current_round || 1}
                                     </div>
                                     <h2>{activeTournament.name}</h2>
 
@@ -873,7 +873,7 @@ export default function TournamentsPage() {
                                     {/* Your Match Status */}
                                     {userEntry && !isEliminated && myMatchup && (
                                         <div className="match-card">
-                                            <h4>Your Match — {getRoundName(activeTournament.current_round, activeTournament.total_rounds)}</h4>
+                                            <h4>Your Match - {getRoundName(activeTournament.current_round, activeTournament.total_rounds)}</h4>
                                             <div className="match-vs">
                                                 <div className="match-player you">
                                                     <span className="player-name">You</span>
@@ -895,7 +895,7 @@ export default function TournamentsPage() {
                                             {myMatchup.is_bye ? (
                                                 <div className="bye-notice">
                                                     <CheckCircle size={20} color="#22c55e" />
-                                                    <span>BYE — You Advance Automatically!</span>
+                                                    <span>BYE - You Advance Automatically!</span>
                                                 </div>
                                             ) : hasPlayedThisRound ? (
                                                 <div className="already-played">

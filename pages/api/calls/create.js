@@ -64,7 +64,7 @@ export default async function handler(req, res) {
                       .eq('id', sharedConv[0].conversation_id)
                       .maybeSingle();
                   if (convRow?.is_request) {
-                      return res.status(403).json({ success: false, error: 'Cannot call — message request not accepted yet' });
+                      return res.status(403).json({ success: false, error: 'Cannot call - message request not accepted yet' });
                   }
               } else {
                   return res.status(403).json({ success: false, error: 'No shared conversation with this user' });

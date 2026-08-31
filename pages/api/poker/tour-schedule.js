@@ -577,7 +577,7 @@ async function returnRegistryFallback(tour_code, stop, res, all_stops) {
         success: true,
         tour_code,
         data_source: 'registry_fallback',
-        message: 'Live schedule not yet scraped — showing registry data',
+        message: 'Live schedule not yet scraped - showing registry data',
         current_stop: classified.current?.stop_name || null,
         next_stop: classified.next?.stop_name || null,
         total_stops: allStops.length,
@@ -612,7 +612,7 @@ async function returnRegistryFallback(tour_code, stop, res, all_stops) {
         success: true,
         tour_code,
         data_source: 'registry_fallback',
-        message: 'Live schedule not yet scraped — showing registry data',
+        message: 'Live schedule not yet scraped - showing registry data',
         stop_type: stop === 'current' && classified.current === stopData
           ? 'current'
           : (classified.next === stopData ? 'next' : 'future'),
@@ -630,7 +630,7 @@ async function returnRegistryFallback(tour_code, stop, res, all_stops) {
       success: true,
       tour_code,
       data_source: 'registry_fallback',
-      message: 'Live schedule not yet scraped — showing registry data',
+      message: 'Live schedule not yet scraped - showing registry data',
       current_stop: classified.current?.stop_name || null,
       next_stop: classified.next?.stop_name || null,
       total_events: events.length,

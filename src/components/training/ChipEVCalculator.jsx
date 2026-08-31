@@ -17,7 +17,7 @@ const SCENARIOS = [
   {
     id: 'bubble_shove',
     name: 'Bubble Shove',
-    desc: 'Final table bubble — 5 players, 4 pay',
+    desc: 'Final table bubble - 5 players, 4 pay',
     stacks: [
       { seat: 1, name: 'Hero (BTN)', chips: 25000, position: 'BTN' },
       { seat: 2, name: 'SB', chips: 15000, position: 'SB' },
@@ -33,7 +33,7 @@ const SCENARIOS = [
     dollarEV: 620,
     bubbleFactor: 1.42,
     riskPremium: 18,
-    optimalPlay: 'Shove — +chipEV despite ICM pressure. A9o is profitable here due to fold equity.',
+    optimalPlay: 'Shove - +chipEV despite ICM pressure. A9o is profitable here due to fold equity.',
   },
   {
     id: 'icm_call',
@@ -54,12 +54,12 @@ const SCENARIOS = [
     dollarEV: 1180,
     bubbleFactor: 1.15,
     riskPremium: 8,
-    optimalPlay: 'Call — Strong +chipEV and +$EV. TT dominates UTG shove range. Low ICM cost.',
+    optimalPlay: 'Call - Strong +chipEV and +$EV. TT dominates UTG shove range. Low ICM cost.',
   },
   {
     id: 'deep_3bet',
     name: 'Deep Stack 3-Bet Pot',
-    desc: 'Early stages — deep stacks, low ICM pressure',
+    desc: 'Early stages - deep stacks, low ICM pressure',
     stacks: [
       { seat: 1, name: 'Hero (CO)', chips: 45000, position: 'CO' },
       { seat: 2, name: 'BTN (3-Bettor)', chips: 52000, position: 'BTN' },
@@ -75,12 +75,12 @@ const SCENARIOS = [
     dollarEV: 2950,
     bubbleFactor: 1.05,
     riskPremium: 3,
-    optimalPlay: '4-Bet — Deep stacks mean chipEV ≈ $EV. Play close to cash game strategy.',
+    optimalPlay: '4-Bet - Deep stacks mean chipEV ≈ $EV. Play close to cash game strategy.',
   },
   {
     id: 'final_table',
     name: 'Final Table Pay Jump',
-    desc: '3 players left — massive pay jump to 1st',
+    desc: '3 players left - massive pay jump to 1st',
     stacks: [
       { seat: 1, name: 'Hero', chips: 35000, position: 'BTN' },
       { seat: 2, name: 'Chip Leader', chips: 42000, position: 'SB' },
@@ -94,7 +94,7 @@ const SCENARIOS = [
     dollarEV: -340,
     bubbleFactor: 2.15,
     riskPremium: 35,
-    optimalPlay: 'Fold — Despite +chipEV, the $EV is negative. ICM pressure is extreme 3-handed with pay jumps.',
+    optimalPlay: 'Fold - Despite +chipEV, the $EV is negative. ICM pressure is extreme 3-handed with pay jumps.',
   },
 ];
 

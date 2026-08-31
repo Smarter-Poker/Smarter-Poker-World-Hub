@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const BLOCKER_SPOTS = [
   { hand: 'A♥ on 3-heart board', board: 'K♥ T♥ 7♥ 4♠ 2♣', blocker: 'Nut flush',
     quality: 'EXCELLENT', color: '#22c55e',
-    reason: 'You hold the A♥ so villain CANNOT have the nut flush. This makes your bluff much more credible — you can rep the nut flush.' },
+    reason: 'You hold the A♥ so villain CANNOT have the nut flush. This makes your bluff much more credible - you can rep the nut flush.' },
   { hand: 'K♣Q♣ on 3-club board', board: 'J♣ 9♣ 5♣ 8♦ 2♠', blocker: 'Second nut flush',
     quality: 'GOOD', color: '#3b82f6',
     reason: 'You block the K-high flush and Q-high flush. Villain is less likely to have a flush, making your bluff more effective.' },

@@ -1107,7 +1107,7 @@ function ThrowableEmojis({
             }}
             onClick={handleTableThrow}
           >
-            🎯 Tap a player to throw — or tap here for table
+            🎯 Tap a player to throw - or tap here for table
           </motion.div>
         )}
       </AnimatePresence>
