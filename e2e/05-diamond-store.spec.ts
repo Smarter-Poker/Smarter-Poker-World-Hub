@@ -505,6 +505,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        clubId,
         balance: 5000,
         items: [{ id: itemId, name: 'Phase 13 Time Bank', description: 'Verified test item', price: 1500, category: 'Time Banks' }],
       }),
@@ -696,16 +697,12 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         diamond_multiplier: 1,
       }),
     }));
-    await page.route('**/rest/v1/club_members?*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ club_id: clubId }),
-    }));
-    await page.route('**/api/club-arena/marketplace-items?*', (route) => route.fulfill({
+    await page.route('**/api/club-arena/marketplace-items*', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        clubId,
         role: 'owner',
         balance: 5000,
         items: [{
