@@ -47,3 +47,15 @@ Leak Finder audits are server-owned, checkpointed, owner-private, resumable acro
 ## Production Closeout
 
 PR [#1112](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1112) merged the durable workflow at `255f661e`. Live probing then found nested owner identifiers in otherwise owner-scoped result rows; PR [#1122](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1122) added recursive public projection hardening at `b262cb2b`. Vercel health reported that exact revision before the final API, browser, reconciliation, and duplicate-push probes passed.
+
+## Final Closeout Addendum
+
+The final Phase 2 audit reopened the notification evidence instead of relying on the earlier endpoint count. Notification generation remained correct at one `notifications` row and one `push_outbox` row per audit job, but the authenticated account had accumulated five active browser subscriptions: two iPhone and three Mac rows. Three were older, never-confirmed rows with the same account, device label, and user agent as a newer receipt-confirmed endpoint.
+
+- Migration `20260831162000` adds one atomic, service-role-only receipt RPC. A confirmed endpoint retires only older, never-confirmed rows with the same account/device signature; it preserves all history and any newer candidate device.
+- The live migration retired three recoverable duplicate endpoints and left exactly one receipt-confirmed iPhone plus one receipt-confirmed Mac subscription.
+- The audit-completion notification unique index and active-device unique index were inspected directly in production.
+- Every Personal Assistant route now installs one shared copy policy. It capitalizes every rendered word across route content, portals, sheets, toasts, fields, and placeholders, and replaces em-dash characters in dynamic text and accessible attributes. SEO titles use the approved middle-dot separator directly.
+- Regression coverage checks route installation, dynamic mutations, accessible copy, browser titles, responsive layout, and every primary/secondary Personal Assistant surface.
+
+Closeout verification before release: 103 deterministic/Personal Assistant/push tests passed, TypeScript passed, the full webpack production build passed with 403 generated pages, and the local desktop/mobile Personal Assistant matrix passed every unauthenticated-compatible case. The authenticated durable-job browser case is reserved for the production-origin fixture after deployment.

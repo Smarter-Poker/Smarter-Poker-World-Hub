@@ -178,3 +178,16 @@ test('standalone_detected analytics survived the rewrite', () => {
     assert.match(src2, /recordOnServer\('standalone_detected'\)/, 'standalone_detected must still be recorded');
     assert.match(src2, /alreadyCountedRef/, 'it must be guarded or it fires repeatedly per session');
 });
+
+test('confirmed receipts atomically retire only older unconfirmed duplicate signatures', () => {
+    const migration = readFileSync(join(ROOT, 'supabase/migrations/20260831162000_confirmed_push_receipt_dedup.sql'), 'utf8');
+    assert.match(migration, /confirm_push_subscription_receipt/);
+    assert.match(migration, /older\.last_receipt_at IS NULL/);
+    assert.match(migration, /older\.created_at < v_current\.created_at/);
+    assert.match(migration, /older\.device_label IS NOT DISTINCT FROM v_current\.device_label/);
+    assert.match(migration, /older\.user_agent IS NOT DISTINCT FROM v_current\.user_agent/);
+
+    const receipt = readFileSync(join(ROOT, 'pages/api/push/receipt.js'), 'utf8');
+    assert.match(receipt, /\.rpc\('confirm_push_subscription_receipt', \{ p_endpoint: endpoint \}\)/);
+    assert.doesNotMatch(receipt, /\.update\(\{ last_receipt_at:/);
+});
