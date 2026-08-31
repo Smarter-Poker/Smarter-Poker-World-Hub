@@ -22,6 +22,7 @@ import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion';
 import { RotateCcw, Pencil, X as XIcon, Check } from 'lucide-react';
 import { T, F, R, Z, usePrefersReducedMotion } from './paTokens';
+import { getClubArenaTheme, onClubArenaThemeChange } from '../../lib/clubArenaTheme';
 
 /* ═══════════════════════════════════════════════════════════════════════
    LONG PRESS — with movement cancellation + pending feedback
@@ -332,6 +333,14 @@ export default function SandboxPokerTable({
     const [tw, setTw] = useState(BASE_WIDTH);
     const [editMode, setEditMode] = useState(false);
 
+    // Club Arena theme lock-in: the sandbox felt paints the player's saved
+    // Arena table look. Client-only (localStorage), never at module scope/SSR.
+    const [arenaTheme, setArenaTheme] = useState(null);
+    useEffect(() => {
+        setArenaTheme(getClubArenaTheme());
+        return onClubArenaThemeChange(setArenaTheme);
+    }, []);
+
     // ── Width-driven scale ────────────────────────────────────────────────
     useEffect(() => {
         const node = rootRef.current;
@@ -443,7 +452,7 @@ export default function SandboxPokerTable({
                 zIndex: 0,
                 isolation: 'isolate',
                 touchAction: 'pan-y',
-                background: 'radial-gradient(ellipse at 50% 45%, #1d7a4f 0%, #12603c 38%, #0d4a2e 70%, #08301e 100%)',
+                background: arenaTheme ? arenaTheme.feltLayers : 'radial-gradient(ellipse at 50% 45%, #1d7a4f 0%, #12603c 38%, #0d4a2e 70%, #08301e 100%)',
                 borderRadius: R.lg,
             }}>
             <style>{`

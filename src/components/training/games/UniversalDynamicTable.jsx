@@ -12,7 +12,8 @@
  */
 
 // TRAIN-CSS-TOKENS-SHARED-5 — token adoption in UniversalDynamicTable (5496 lines, 366 hex)
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getClubArenaTheme, onClubArenaThemeChange } from '../../../lib/clubArenaTheme';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import RangeGrid from '../RangeGrid';
 import {
@@ -1084,6 +1085,13 @@ const ACTION_COLORS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function LoadingSkeleton() {
+    // Club Arena theme lock-in: the skeleton felt matches the player's saved
+    // Arena table look. Client-only (localStorage), never at module scope/SSR.
+    const [arenaTheme, setArenaTheme] = useState(null);
+    useEffect(() => {
+        setArenaTheme(getClubArenaTheme());
+        return onClubArenaThemeChange(setArenaTheme);
+    }, []);
     return (
         <div style={loadingStyles.container}>
             {/* The pulse keyframes normally live in the main component's style
@@ -1108,7 +1116,7 @@ function LoadingSkeleton() {
                     }} />
                     <div style={{
                         position: 'absolute', inset: 8, borderRadius: '50%',
-                        background: 'radial-gradient(ellipse at 50% 40%, #1a472a 0%, #0d2a18 55%, #081a10 100%)',
+                        background: arenaTheme ? arenaTheme.feltLayers : 'radial-gradient(ellipse at 50% 40%, #1a472a 0%, #0d2a18 55%, #081a10 100%)',
                     }} />
                 </div>
                 <div style={loadingStyles.loadingText}>Dealing...</div>

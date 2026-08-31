@@ -26,6 +26,7 @@ import {
     useActionReplay
 } from '../../engine/actionReplayEngine';
 import { trainingSounds } from '../../utils/trainingSounds';
+import { getClubArenaTheme, onClubArenaThemeChange } from '../../lib/clubArenaTheme';
 
 // TypeScript interfaces
 interface Question {
@@ -84,6 +85,14 @@ interface UniversalTrainingTableProps {
 export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTrainingTableProps) {
     // Get authenticated user ID on mount
     const [userId, setUserId] = useState<string | null>(null);
+
+    // Club Arena theme lock-in: the player's saved Arena table look paints the
+    // training felt too. Client-only (localStorage), never at module scope/SSR.
+    const [arenaTheme, setArenaTheme] = useState<ReturnType<typeof getClubArenaTheme> | null>(null);
+    useEffect(() => {
+        setArenaTheme(getClubArenaTheme());
+        return onClubArenaThemeChange(setArenaTheme);
+    }, []);
 
     useEffect(() => {
         // BULLETPROOF: Use authUtils (safe getter) to avoid AbortError
@@ -591,7 +600,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 <div style={{
                     width: 700,
                     height: 400,
-                    background: 'linear-gradient(135deg, #166534, #14532d)',
+                    background: arenaTheme ? arenaTheme.feltLayers : 'linear-gradient(135deg, #166534, #14532d)',
                     borderRadius: '50%',
                     border: '8px solid #78350f',
                     animation: 'pulse 1.5s ease-in-out infinite'
@@ -660,7 +669,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 transform: 'translate(-50%, -50%)',
                 width: 700,
                 height: 400,
-                background: 'linear-gradient(135deg, #166534, #14532d)',
+                background: arenaTheme ? arenaTheme.feltLayers : 'linear-gradient(135deg, #166534, #14532d)',
                 borderRadius: '50%',
                 border: '8px solid #78350f',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'

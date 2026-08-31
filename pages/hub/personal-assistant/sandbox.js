@@ -44,6 +44,10 @@ import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
 import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
 import { saveAppSetting } from '../../../src/lib/appSettingsSync';
 import {
+  getClubArenaTheme, onClubArenaThemeChange,
+  ARENA_BACKGROUND_SIZE, ARENA_BACKGROUND_REPEAT, ARENA_BACKDROP_COLOR,
+} from '../../../src/lib/clubArenaTheme';
+import {
   // design tokens + primitives (single source of truth for this surface)
   T, F, S, R, Z, btn, iconBtn, pill, cardCompact, sectionTitle, NUM,
   BottomSheet, EmptyState, ErrorState, SkeletonRows,
@@ -1485,6 +1489,14 @@ export default function VirtualSandbox() {
     const saved = safeLocal.get('sandbox-felt', null);
     if (saved) setTableFelt(saved);
   }, []);
+  // Club Arena theme bridge: the player's saved Arena background paints this
+  // page too. Client-only (hydration-safe): null until mounted, and only
+  // applied when a saved theme actually exists (fromCache).
+  const [arenaTheme, setArenaTheme] = useState(null);
+  useEffect(() => {
+    setArenaTheme(getClubArenaTheme());
+    return onClubArenaThemeChange(setArenaTheme);
+  }, []);
   const [leakStats, setLeakStats] = useState(null);
   const [leakStatsStatus, setLeakStatsStatus] = useState('loading');
   const [leakStatsError, setLeakStatsError] = useState(null);
@@ -2893,6 +2905,12 @@ export default function VirtualSandbox() {
       style={{
         width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: T.bg, color: T.text,
+        ...(arenaTheme?.fromCache ? {
+          background: arenaTheme.backgroundLayers,
+          backgroundSize: ARENA_BACKGROUND_SIZE,
+          backgroundRepeat: ARENA_BACKGROUND_REPEAT,
+          backgroundColor: ARENA_BACKDROP_COLOR,
+        } : {}),
         fontFamily: "'Inter',-apple-system,BlinkMacSystemFont,sans-serif",
         // clears the sticky action bar (60) + BottomNavBar (56) + safe area
         paddingBottom: 'calc(60px + 56px + 16px + env(safe-area-inset-bottom, 0px))',

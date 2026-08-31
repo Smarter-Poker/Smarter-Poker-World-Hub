@@ -8,6 +8,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { dealSeatAvatars, HERO_DEFAULT_AVATAR } from '../../lib/tableAvatars';
+import { getClubArenaTheme, onClubArenaThemeChange } from '../../lib/clubArenaTheme';
 
 const CLUB_SEAT_LAYOUTS = {
   2: [{ x: 50, y: 100 }, { x: 50, y: 5 }],
@@ -144,6 +145,14 @@ function TrainingGameTable({
   actionLabels = { fold: 'Fold', call: 'Check', raise: 'Raise', allIn: 'All-In' },
   feedback = null, onFold, onCall, onRaise, onAllIn, onNext, onBack,
 }) {
+  // Club Arena theme lock-in: the table art paints the player's saved Arena
+  // skin. Client-only (localStorage), never at module scope/SSR.
+  const [arenaTheme, setArenaTheme] = React.useState(null);
+  React.useEffect(() => {
+    setArenaTheme(getClubArenaTheme());
+    return onClubArenaThemeChange(setArenaTheme);
+  }, []);
+
   const resolvedSeatCount = Math.max(2, Math.min(9, seatCount || 6));
   const seatLayout = CLUB_SEAT_LAYOUTS[resolvedSeatCount] || CLUB_SEAT_LAYOUTS[6];
   const resolvedPlayers = seatLayout.map((_, index) => ({ ...FALLBACK_PLAYERS[index], ...(players[index] || {}) }));
@@ -179,7 +188,7 @@ function TrainingGameTable({
         </div>
 
         <div className="sp-club-arena-canvas">
-          <img className="sp-club-table-art" src="/hub/club-arena/assets/skin_carbon_ion-DknFfmaT-v6.png" alt="" />
+          <img className="sp-club-table-art" src={arenaTheme ? arenaTheme.feltUrl : '/hub/club-arena/assets/skin_carbon_ion-DknFfmaT-v6.png'} alt="" />
 
           <div className={`sp-club-timer ${timer <= 5 ? 'is-urgent' : ''}`}><span>Time</span><strong>{timer}</strong></div>
           <div className="sp-club-pot"><span>Pot</span><strong>{pot}</strong></div>
