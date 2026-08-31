@@ -1,5 +1,5 @@
 /**
- * pages/hub/training.js — REDESIGNED
+ * pages/hub/training.js · REDESIGNED
  * ─────────────────────────────────────────────────────────────────────────────
  * Drop-in replacement for Smarter-Poker-World-Hub/pages/hub/training.js
  *
@@ -79,6 +79,7 @@ export default function TrainingPage() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const libraryHeadingRef = useRef(null);
+  const launchQueryHandledRef = useRef(null);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query), 120);
@@ -90,11 +91,11 @@ export default function TrainingPage() {
     setAuthUser(user);
   }, []);
 
-  // Real data from RPC + Jarvis API — no hardcoded fallbacks
+  // Real data from RPC + Jarvis API · no hardcoded fallbacks
   const { stats, statsLoading, recommendation, recommendationLoading } = useTrainingDashboard(authUser);
   // Lifetime cross-session progress: real training_sessions rows +
   // training_answers position aggregates. Empty history renders an honest
-  // "No sessions yet" — never invented numbers.
+  // "No sessions yet" · never invented numbers.
   const { lifetimeSessions, positionAccuracy, progressLoading } = useLifetimeProgress(authUser);
   // The old hub called an optional getBiggest() method that does not exist on
   // LeakSignalAnalyzer, so this entire real-data panel was permanently dead.
@@ -130,6 +131,51 @@ export default function TrainingPage() {
     setSetupGame(game);  // show modal; modal will call onStart to flip showArena
   }, [setActiveGame]);
 
+  // Leak Finder And Sandbox Both Deep-Link Into The Training Center. These
+  // Query Parameters Previously Had No Consumer, So The Promised Focused Game
+  // Opened An Unfiltered Lobby. Resolve Only Real Library Identifiers, Open The
+  // Existing Session Setup For An Exact Match, And Fall Back To A Visible
+  // Library Search When A Historical Recommendation No Longer Exists.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const rawAutoLaunch = typeof router.query.autoLaunch === 'string' ? router.query.autoLaunch.trim().toLowerCase() : '';
+    const rawFocus = typeof router.query.focus === 'string' ? router.query.focus.trim().toLowerCase() : '';
+    const rawCategory = typeof router.query.category === 'string' ? router.query.category.trim().toUpperCase() : '';
+    const requestKey = `${rawAutoLaunch}|${rawFocus}|${rawCategory}`;
+    if (!rawAutoLaunch && !rawFocus && !rawCategory) return;
+    if (launchQueryHandledRef.current === requestKey) return;
+    launchQueryHandledRef.current = requestKey;
+
+    const requestedGame = rawAutoLaunch || rawFocus;
+    const aliases = requestedGame
+      ? new Set([requestedGame, requestedGame.replace(/_/g, '-'), requestedGame.replace(/-/g, '_')])
+      : new Set();
+    const game = TRAINING_LIBRARY.find(item => {
+      const id = String(item?.id || '').toLowerCase();
+      return aliases.has(id) || aliases.has(id.replace(/_/g, '-')) || aliases.has(id.replace(/-/g, '_'));
+    });
+
+    if (game && rawAutoLaunch) {
+      setActiveCat(game.category || 'ALL');
+      setQuery('');
+      setDebouncedQuery('');
+      startDrill(game);
+      return;
+    }
+    if (game) {
+      setActiveCat(game.category || 'ALL');
+      setQuery(game.name || game.id);
+      setDebouncedQuery(game.name || game.id);
+      return;
+    }
+    if (CATEGORY_ORDER.includes(rawCategory)) setActiveCat(rawCategory);
+    if (requestedGame) {
+      const readable = requestedGame.replace(/[-_]+/g, ' ');
+      setQuery(readable);
+      setDebouncedQuery(readable);
+    }
+  }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, startDrill]);
+
   const handleSetupClose = useCallback(() => {
     setSetupGame(null);
   }, []);
@@ -159,7 +205,7 @@ export default function TrainingPage() {
   // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
   // arena fell back to its own defaults AND showed a second identical setup
   // screen (difficulty / timer / mode) before you could play.
-  // roadmap #47 — defensive unlock. The library page is the reported symptom:
+  // roadmap #47 · defensive unlock. The library page is the reported symptom:
   // it will not scroll. GodModeArena locks body overflow while mounted, and any
   // path that leaves that lock behind (an unmount whose cleanup did not run, a
   // stale value restored by the pre-2026-07-26 capture-and-restore version, a
@@ -185,7 +231,7 @@ export default function TrainingPage() {
     }
     // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
     // used to be handed to GodModeArena's wrapper, which rendered N copies of
-    // the arena with IDENTICAL props — same drill, same userId, same sessionId.
+    // the arena with IDENTICAL props · same drill, same userId, same sessionId.
     // Every copy independently fetched questions, emitted its own SESSION_END
     // and banked its own diamond reward, so a 4-table session paid out four
     // times for what the player experienced as one. It also stacked four
@@ -234,7 +280,7 @@ export default function TrainingPage() {
       autoAdvance: false,
       // GTOW parity #7: `applyHandSelection` in useGTOTrainer reads
       // trainerConfig.handSelection. Dropping it here is what kept the filter
-      // dead — the hook received undefined and returned the unfiltered set on
+      // dead · the hook received undefined and returned the unfiltered set on
       // every session regardless of what the player picked.
       handSelection: prefs.handSelection
     } : null);
@@ -256,7 +302,7 @@ export default function TrainingPage() {
 
       <GlobalStyle />
 
-      {/* BUG FIX (TRAIN-SETUP-MODAL-1): Session Setup modal — shown between
+      {/* BUG FIX (TRAIN-SETUP-MODAL-1): Session Setup modal · shown between
           tile click and arena mount. Reads training_dashboard_30day_stats
           and training_dashboard_last_session RPCs for the YOUR PERFORMANCE
           card. Persists difficulty / timer / mode in localStorage. */}
@@ -598,7 +644,7 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
 }
 
 /**
- * Real-data hero headline — never fabricates progression.
+ * Real-data hero headline · never fabricates progression.
  * Shape:
  *   1) recommendation loaded + grade data exists → "<delta> correct hands away from <next>."
  *   2) recommendation loaded + no graded data    → "Ready to start training? Run your first drill."
@@ -727,7 +773,7 @@ function ArenaSkeleton() {
 }
 
 /**
- * ProgressBlock — compact lifetime progress: signed GTOW score sparkline
+ * ProgressBlock · compact lifetime progress: signed GTOW score sparkline
  * across recent sessions, lifetime accuracy by position, and a sessions
  * list (date · game · score · accuracy · EV loss). All values come from
  * /api/training/get-sessions and /api/training/analytics; scores are
@@ -850,7 +896,7 @@ function normalizeActiveLeak(leak) {
 }
 
 /**
- * useActiveTrainingLeak — authenticated leak lifecycle from Supabase.
+ * useActiveTrainingLeak · authenticated leak lifecycle from Supabase.
  * The hub previously called leakAnalyzer.getBiggest?.(), but that method never
  * existed, making the entire feature unreachable. This hook only displays
  * persisted evidence and never invents an EV rate, sample, grade, or drill.
@@ -887,7 +933,7 @@ function useActiveTrainingLeak(authUser) {
 }
 
 /**
- * useLifetimeProgress — recent training_sessions rows (score_scale
+ * useLifetimeProgress · recent training_sessions rows (score_scale
  * normalized server-side) + lifetime position accuracy from
  * training_answers via /api/training/analytics.
  */
@@ -931,13 +977,13 @@ function useLifetimeProgress(authUser) {
 }
 
 /**
- * useTrainingDashboard — single source of truth for the dashboard surface.
+ * useTrainingDashboard · single source of truth for the dashboard surface.
  * Pulls aggregated weekly stats from /api/training/weekly-stats (RPC-backed)
  * and the recommended drill from /api/training/recommendations (Jarvis).
  *
  * Returns { stats, statsLoading, recommendation, recommendationLoading }.
  * No fallback values. When the user has no session history, fields render as
- * empty-state ("—") in the UI so we never show invented numbers.
+ * empty-state ("·") in the UI so we never show invented numbers.
  */
 function useTrainingDashboard(authUser) {
   const [stats, setStats] = useState(null);
@@ -1015,7 +1061,7 @@ function GlobalStyle() {
       .sp-skip { position: absolute; left: -9999px; }
       .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
       .sp-num { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
-      /* 2026-07-26 — VERIFIED ON SCREEN. Orbitron's zero is a squared glyph with
+      /* 2026-07-26 · VERIFIED ON SCREEN. Orbitron's zero is a squared glyph with
          a diagonal slash. At the 22px stat size it reads as a missing-glyph box,
          so a dashboard of zeroes looked like four broken tiles -- this was the
          "boxes" defect reported against the training dashboard. It was never a
@@ -1085,7 +1131,7 @@ function GlobalStyle() {
       .sp-progress-fill { height: 100%; background: linear-gradient(90deg, var(--sp-good), var(--sp-primary)); border-radius: 999px; }
       .sp-grade-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--sp-ink-3); margin-top: 6px; }
 
-      /* Loading skeletons — avoid layout shift while real data loads */
+      /* Loading skeletons · avoid layout shift while real data loads */
       .sp-skel-text { color: transparent; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
       .sp-skel-line { height: 14px; margin: 2px 0 10px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; width: 70%; }
       .sp-skel-block { height: 6px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 999px; }
@@ -1184,7 +1230,7 @@ function GlobalStyle() {
       .sp-spin { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--sp-primary); border-radius: 50%; animation: sp-spin 1s linear infinite; margin: 0 auto; }
       @keyframes sp-spin { to { transform: rotate(360deg); } }
 
-      /* 2026-08-26 — Smarter.Poker Training Orb visual system.
+      /* 2026-08-26 · Smarter.Poker Training Orb visual system.
          Every frame is a complete rectangle. There are deliberately no
          clip-path corners, corner caps, screw boxes, or ornamental pseudo
          elements: depth comes from full-width metallic highlights and shadows. */
@@ -1535,7 +1581,7 @@ function GlobalStyle() {
         display: none !important;
       }
 
-      /* Mobile Training Orb composition — designed as a phone-native poker
+      /* Mobile Training Orb composition · designed as a phone-native poker
          cockpit, not a reduced desktop canvas. The global header is outside
          every selector in this block and remains completely unchanged. */
       @media (max-width: 720px) {

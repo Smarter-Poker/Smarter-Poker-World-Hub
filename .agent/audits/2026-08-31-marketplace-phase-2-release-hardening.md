@@ -64,4 +64,3 @@ family and account subpage.
 No price, Stripe charge, Diamond grant, Diamond burn, inventory mutation,
 entitlement rule, database schema, or Club commission changed. Club sales
 remain fully platform-owned. Automatic Printful connection remains deferred.
-

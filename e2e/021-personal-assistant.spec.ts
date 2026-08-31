@@ -267,7 +267,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
       window.localStorage.removeItem('pa-auto-guidance');
     });
-    await page.route('**/api/assistant/leaks', route => route.fulfill({
+    await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -286,7 +286,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
           occurrence_count: 18,
           source_system: 'solver_engine',
           leak_category: 'preflop',
-          recommended_drill: 'cash-rfi',
+          recommended_drill: 'cash-002',
           suggested_fix: 'Open the solver-approved button range and compare every boundary hand.',
           why_leaking_ev: 'Folding profitable opens gives up uncontested blinds and positional equity.',
           trend_data: [{ date: '2026-08-29', value: 38 }, { date: '2026-08-30', value: 41 }],
@@ -303,14 +303,21 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(details.getByRole('heading', { name: 'How To Fix It' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Recent Example Hands' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Suggested Fixes' })).toBeVisible();
+    await expect(details.getByRole('heading', { name: 'Corrective Review' })).toBeVisible();
+    await expect(details.getByText('Exact Training Game', { exact: true })).toBeVisible();
+    await expect(details.getByRole('button', { name: 'Start Corrective Review' })).toBeVisible();
     await expect(details.getByRole('button', { name: 'Practice Leak in Sandbox' })).toBeVisible();
-    await expect(details.getByRole('button', { name: 'Train with Focused Drills' })).toBeVisible();
+    const exactTraining = details.getByRole('button', { name: 'Open Exact Training Game' });
+    await expect(exactTraining).toBeVisible();
     const guidance = details.getByRole('switch');
     await expect(guidance).toHaveAttribute('aria-checked', 'false');
     await guidance.click();
     await expect(guidance).toHaveAttribute('aria-checked', 'true');
-    await page.keyboard.press('Escape');
-    await expect(details).toHaveCount(0);
+    await Promise.all([
+      page.waitForURL(/\/hub\/training\?.*autoLaunch=cash-002/, { timeout: 15_000 }),
+      exactTraining.click(),
+    ]);
+    await expect(page.getByRole('dialog', { name: 'C-Bet Academy' })).toBeVisible();
     await expectHealthyLayout(page);
   });
 

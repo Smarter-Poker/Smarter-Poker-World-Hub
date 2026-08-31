@@ -217,7 +217,7 @@ function ensureAnswerable(q) {
     return { ...q, options: shuffle(repaired.slice(0, 4)), correct_answer: correct };
 }
 
-export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = null }) {
+export default function QuickSpotDrill({ onClose, onReviewComplete, customParams, reviewLeakId = null }) {
     const reduce = usePrefersReducedMotion();
 
     const [questions, setQuestions] = useState([]);
@@ -389,6 +389,10 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         let serverState = null;
         let persisted = false;
         let reached = false;
+        const reviewController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const reviewDeadline = reviewController
+            ? setTimeout(() => reviewController.abort(), 15000)
+            : null;
 
         try {
             const outcome = { correct, total, reviewId };
@@ -398,6 +402,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
+                ...(reviewController ? { signal: reviewController.signal } : {}),
             });
             const ct = res.headers.get('content-type') || '';
             if (ct.includes('application/json')) {
@@ -410,6 +415,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             }
         } catch (e) {
             console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
+        } finally {
+            if (reviewDeadline) clearTimeout(reviewDeadline);
         }
 
         if (drillToken && !reached) {
@@ -455,13 +462,19 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         // claiming a save that did not happen.
         const stored = writeReviewRecord(reviewLeakId, record);
 
-        setReview({
+        const completion = {
             status: 'done',
+            leakId: String(reviewLeakId),
+            correct,
+            total,
             intervalDays: record.intervalDays,
             persisted: persisted && reached,
             stored,
             verified: serverState?.lastOutcome?.serverVerified === true,
-        });
+            remediationMastered: serverState?.lastOutcome?.remediationMastered === true,
+        };
+        setReview(completion);
+        onReviewComplete?.(completion);
 
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('pa-leak-review-updated', {
@@ -473,7 +486,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                 }));
             }
         }
-    }, [reviewLeakId, drillToken]);
+    }, [reviewLeakId, drillToken, onReviewComplete]);
 
     const retryReview = useCallback(() => {
         const last = lastOutcomeRef.current;
@@ -692,14 +705,16 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
     // Backdrop / Esc / ✕ must not silently bin a drill in progress.
     const inProgress = !loading && !finished && questions.length > 0 && !loadError;
+    const reviewSaving = Boolean(reviewLeakId && finished && review?.status === 'saving');
     const requestClose = useCallback(() => {
+        if (reviewSaving) return;
         if (inProgress && answeredSoFar > 0) {
             pausedRef.current = true;
             setConfirmQuit(true);
             return;
         }
         onClose?.();
-    }, [inProgress, answeredSoFar, onClose]);
+    }, [reviewSaving, inProgress, answeredSoFar, onClose]);
 
     const target = promotionTarget(level);
     const ladderPct = Math.min(100, Math.round((accuracy / Math.max(1, target)) * 100));
@@ -728,7 +743,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             subtitle={subtitle}
             headerRight={headerRight}
             ariaLabel="Quick spot drill"
-            dismissOnBackdrop={!inProgress || answeredSoFar === 0}
+            dismissOnBackdrop={!reviewSaving && (!inProgress || answeredSoFar === 0)}
+            hideClose={reviewSaving}
             closeLabel="Close drill"
             footer={!loading && !confirmQuit && questions.length > 0 && !finished && revealed ? (
                 <button type="button" className="pa-btn" onClick={handleNext} style={{ ...btn('primary', { block: true }) }}>
@@ -963,11 +979,23 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     )}
 
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
-                        <button type="button" className="pa-btn" onClick={load} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
+                        <button
+                            type="button"
+                            className="pa-btn"
+                            onClick={load}
+                            disabled={reviewLeakId && review?.status === 'saving'}
+                            style={{ ...btn('secondary', { disabled: reviewLeakId && review?.status === 'saving' }), flex: '1 1 140px' }}
+                        >
                             <RotateCcw size={18} strokeWidth={2} /> Drill Again
                         </button>
-                        <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('primary'), flex: '1 1 120px' }}>
-                            Done
+                        <button
+                            type="button"
+                            className="pa-btn"
+                            onClick={onClose}
+                            disabled={reviewLeakId && review?.status === 'saving'}
+                            style={{ ...btn('primary', { disabled: reviewLeakId && review?.status === 'saving' }), flex: '1 1 120px' }}
+                        >
+                            {reviewLeakId && review?.status === 'saving' ? 'Saving Review…' : 'Done'}
                         </button>
                     </div>
                 </div>
