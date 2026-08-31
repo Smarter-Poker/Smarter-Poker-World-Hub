@@ -47,3 +47,12 @@ required. Printful remains deferred.
 - Repository TypeScript validation passed.
 - The full repository prebuild and optimized Next.js webpack production build
   passed, generating 402 static pages.
+- Post-merge browser certification exposed one stale Club Shop fixture that
+  still mocked the retired browser-side purchase-table reads. The fixture now
+  intercepts the authenticated `/api/club-arena/manage-shop` report, and the
+  guarded operator-delete journey passes against production in desktop
+  Chromium and mobile Chrome.
+- The production marketplace verifier passed every storefront, detail route,
+  account route, cinematic asset, readiness capability, and private purchase
+  boundary. The live Club Shop returned 200 and both operator-report endpoints
+  returned the expected 401 without authentication.

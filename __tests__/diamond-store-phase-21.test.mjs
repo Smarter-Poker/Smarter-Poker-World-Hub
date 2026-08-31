@@ -34,9 +34,10 @@ test('Club Shop reporting separates currencies and subtracts refunds from histor
 });
 
 test('operator report is server-owned, stable-paged, and never rewrites history from current prices', async () => {
-  const [api, store] = await Promise.all([
+  const [api, store, e2e] = await Promise.all([
     read('pages/api/club-arena/manage-shop.js'),
     read('pages/hub/diamond-store.js'),
+    read('e2e/05-diamond-store.spec.ts'),
   ]);
 
   assert.match(api, /select\('id, item_id, price_paid, currency, refunded_at, created_at'/);
@@ -52,6 +53,8 @@ test('operator report is server-owned, stable-paged, and never rewrites history 
   assert.match(loader, /\/api\/club-arena\/manage-shop\?clubId=/);
   assert.doesNotMatch(loader, /\.from\('club_shop_purchases'\)/);
   assert.match(loader, /setClubShopAdminError/);
+  assert.match(e2e, /page\.route\('\*\*\/api\/club-arena\/manage-shop\?\*'/);
+  assert.doesNotMatch(e2e, /rest\/v1\/club_shop_purchases/);
 });
 
 test('operator UI labels platform Diamond burns, legacy chips, partial data, and retry recovery honestly', async () => {
