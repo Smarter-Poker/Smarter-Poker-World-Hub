@@ -127,7 +127,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
                                 animate={{ opacity: 0.5 }}
                                 transition={{ delay: 1 }}
                             >
-                                Tap to skip
+                                Tap To Skip
                             </motion.div>
 
                             {/* Loading indicator (hidden but shows generation status) */}

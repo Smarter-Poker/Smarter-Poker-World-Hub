@@ -163,7 +163,7 @@ export default function BetSlider({
         onClick={onCancel}
         className="w-full mt-2 text-gray-500 text-[11px] text-center hover:text-gray-400"
       >
-        Tap to cancel
+        Tap To Cancel
       </button>
     </div>
   );

@@ -19,7 +19,7 @@ export default function TableWizardPage() {
 
   return (
     <>
-      <SEOHead title="Table Selection — Smarter.Poker" description="Verified table-selection training." noindex />
+      <SEOHead title="Table Selection - Smarter.Poker" description="Verified table-selection training." noindex />
       <UniversalHeader pageDepth={2} />
       <main style={{ minHeight: 'calc(100vh - 70px)', padding: 'clamp(30px, 8vw, 90px) 18px', background: 'radial-gradient(circle at 50% 15%, #12354d 0, #050910 50%, #020407 100%)', color: '#fff' }}>
         <section style={{ position: 'relative', maxWidth: 720, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px)', border: '1px solid rgba(145,229,255,.45)', background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)' }}>

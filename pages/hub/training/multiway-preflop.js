@@ -44,7 +44,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'UTG Open → MP 3-Bet → CO Decision',
     positions: ['UTG', 'MP', 'CO'],
     desc: 'Action Folds To Under The Gun, Who Raises. Middle Position 3-Bets, Then The Cutoff Must Respond With A Tight Continuing Range.',
-    tip: 'CO should mostly fold here — only continue with hands that dominate MP\u2019s 3-bet range.',
+    tip: 'CO should mostly fold here - only continue with hands that dominate MP\u2019s 3-bet range.',
     ranges: {
       UTG: { open: 'AA-66, AKs-ATs, KQs-KJs, QJs, JTs, AKo-AJo, KQo' },
       MP: { threeBet: 'AA-QQ, AKs, AKo' },
@@ -55,7 +55,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'CO Open → BTN Flat → BB Squeeze',
     positions: ['CO', 'BTN', 'BB'],
     desc: 'BTN flats CO open, BB has a squeeze opportunity with a polarized range.',
-    tip: 'BB squeeze range should be polarized — premiums + suited bluffs (A5s/A4s type hands).',
+    tip: 'BB squeeze range should be polarized - premiums + suited bluffs (A5s/A4s type hands).',
     ranges: {
       CO: {
         open: 'AA-22, AKs-A2s, KQs-K8s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, 76s, 65s, 54s, AKo-ATo, KQo-KJo, QJo',
@@ -68,7 +68,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'SB Limp → BB Iso-Raise → 3-Way',
     positions: ['SB', 'BB', 'Caller'],
     desc: 'SB limps, BB iso-raises, one caller. Common 3-way limped pot scenario.',
-    tip: 'BB should iso-raise wide for value — SB limp/call range is typically weak.',
+    tip: 'BB should iso-raise wide for value - SB limp/call range is typically weak.',
     ranges: {
       SB: {
         limp: 'AA-22, AKs-A2s, KQs-K6s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s-86s, 76s, 65s, 54s, AKo-A8o, KQo-KTo, QJo-QTo, JTo',
@@ -81,7 +81,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'EP Open → BTN/SB/BB All Call → 4-Way',
     positions: ['UTG', 'BTN', 'SB', 'BB'],
     desc: 'EP opens, BTN and both blinds all flat. 4-way pot with wide ranges.',
-    tip: 'In 4-way pots, play tighter postflop — your equity realization drops significantly.',
+    tip: 'In 4-way pots, play tighter postflop - your equity realization drops significantly.',
     ranges: {
       UTG: { open: 'AA-66, AKs-ATs, KQs-KJs, QJs, JTs, AKo-AJo, KQo' },
       BTN: { flat: 'TT-55, AQs-ATs, KQs-KTs, QJs-QTs, JTs, T9s, 98s, 87s, AQo-AJo, KQo' },
@@ -106,7 +106,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'UTG Limp → MP Limp → CO Iso-Raise',
     positions: ['UTG', 'MP', 'CO'],
     desc: 'Double limp from early positions. CO has a prime iso-raise opportunity.',
-    tip: 'CO should iso-raise aggressively — limpers have weak/passive ranges.',
+    tip: 'CO should iso-raise aggressively - limpers have weak/passive ranges.',
     ranges: {
       UTG: {
         limp: 'AA-22, AKs-A7s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, 76s, AKo-ATo, KQo-KJo, QJo',
@@ -119,7 +119,7 @@ const MULTIWAY_SCENARIOS = {
     name: 'SB Open → BB 3-Bet → BTN Over-Call',
     positions: ['SB', 'BB', 'BTN'],
     desc: 'Action Folds To The Small Blind, Who Raises. The Big Blind 3-Bets, Then The Button Makes An Unusual Cold-Call To Create A Three-Way Pot.',
-    tip: 'BTN over-call range should be hands that play well multiway — suited broadways and pairs.',
+    tip: 'BTN over-call range should be hands that play well multiway - suited broadways and pairs.',
     ranges: {
       SB: {
         open: 'AA-22, AKs-A2s, KQs-K5s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s, 76s, 65s, AKo-A7o, KQo-K9o, QJo-QTo, JTo',
@@ -557,7 +557,7 @@ export default function MultiwayPreflopPage() {
                   key={pos}
                   rangeStr={rangeStr}
                   color={posColors[pos] || 'var(--sp-fg-muted)'}
-                  label={`${pos} — ${action.replace(/([A-Z])/g, ' $1').trim()}`}
+                  label={`${pos} - ${action.replace(/([A-Z])/g, ' $1').trim()}`}
                 />
               );
             })}

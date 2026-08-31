@@ -69,8 +69,8 @@ function DecisionRow({ street, decision }) {
       <span className="w-12 uppercase tracking-wider font-semibold">{street}</span>
       <span className={'font-bold ' + actionColor}>{decision.action}</span>
       {decision.raiseAmount > 0 && <span>{decision.raiseAmount}</span>}
-      {equity !== null && <span>eq {equity}%</span>}
-      {potOdds !== null && potOdds > 0 && <span>odds {potOdds}%</span>}
+      {equity !== null && <span>Eq {equity}%</span>}
+      {potOdds !== null && potOdds > 0 && <span>Odds {potOdds}%</span>}
     </div>
   );
 }
@@ -167,7 +167,7 @@ export default function HandHistory({ hands = [] }) {
           Hand History
         </h2>
         <p className="text-[11px] text-slate-500">
-          Completed hands from this session will appear here.
+          Completed Hands From This Session Will Appear Here.
         </p>
       </div>
     );

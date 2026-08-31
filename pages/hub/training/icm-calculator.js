@@ -983,7 +983,7 @@ export default function ICMCalculatorPage() {
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               The Independent Chip Model (ICM) converts tournament chip stacks into real dollar
               equity based on the prize structure. Unlike chip EV (where each chip is worth the
-              same), ICM accounts for the diminishing value of chips — the chip leader's stack is
+              same), ICM accounts for the diminishing value of chips - the chip leader's stack is
               worth less per chip than a short stack's. The bubble factor measures this effect:
               values above 1.0 mean survival is more important than accumulation.
             </p>

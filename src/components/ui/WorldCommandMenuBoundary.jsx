@@ -46,7 +46,7 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
               {world?.label || 'Smarter.Poker'} Commands
             </h2>
             <p role="alert" style={{ margin: 0, color: '#b7c4d1', fontSize: 13, lineHeight: 1.45 }}>
-              A menu module could not load. Your primary destinations remain available.
+              A Menu Module Could Not Load. Your Primary Destinations Remain Available.
             </p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Close Safe Navigation" style={recoveryButtonStyle}>

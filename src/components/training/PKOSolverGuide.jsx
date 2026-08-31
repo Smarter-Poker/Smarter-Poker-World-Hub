@@ -16,17 +16,17 @@ const BOUNTY_SCENARIOS = [
     adjust: 'Significant adjustment. Bounty is worth 30% of your stack. Call 10-15% wider than standard.',
     calling: '+10-15% wider. Call with suited connectors (54s+), any Ace, suited Kings, pocket pairs.',
     shoving: 'Shove range widens ~10%. Include hands like K5s, Q8s, J9o from late position.',
-    example: 'You have 20bb, villain covers. Bounty = 6bb. This is almost 1/3 of your stack — fight for it.' },
+    example: 'You have 20bb, villain covers. Bounty = 6bb. This is almost 1/3 of your stack - fight for it.' },
   { name: 'Large Bounty (0.5x)', ratio: 0.5, icon: '●', color: '#ef4444',
     adjust: 'Major adjustment. The bounty is worth half your stack. Your calling range expands massively.',
     calling: '+20-25% wider. Call with almost any two suited, any broadway, any pair, suited one-gappers.',
     shoving: 'Shove with virtually any hand from BTN/SB when covering the bounty. ATC shoves are close.',
-    example: 'You have 15bb, villain covers. Bounty = 7.5bb. This changes the math completely — call very wide.' },
+    example: 'You have 15bb, villain covers. Bounty = 7.5bb. This changes the math completely - call very wide.' },
   { name: 'Mega Bounty (1x+)', ratio: 1.0, icon: '●', color: '#dc2626',
     adjust: 'Extreme adjustment. The bounty equals or exceeds your stack. Almost any hand is a profitable call.',
     calling: 'Call with any two cards. The bounty alone justifies the call regardless of hand strength.',
     shoving: 'Shove any two cards if you\'re getting the bounty. The math is overwhelming.',
-    example: 'You have 12bb, villain has 2bb with 15bb bounty. Call with literally anything — you can\'t lose money.' },
+    example: 'You have 12bb, villain has 2bb with 15bb bounty. Call with literally anything - you can\'t lose money.' },
   { name: 'Covered (No Bounty)', ratio: 0, icon: '○', color: '#64748b',
     adjust: 'When you don\'t cover the villain, there\'s no bounty incentive. Play standard ICM-adjusted strategy.',
     calling: 'Standard ranges. No bounty adjustment. Focus on chip EV and ICM considerations.',
@@ -51,7 +51,7 @@ export default function PKOSolverGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         PKO / Bounty Solver
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Bounty-adjusted strategy for Progressive Knockout tournaments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Bounty-Adjusted Strategy For Progressive Knockout Tournaments.</p>
 
       {/* Bounty Ratio Selector */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>

@@ -110,7 +110,7 @@ export default function SessionTimer({ onSessionEnd, onOpenLog }) {
                         {formatTime(elapsedSeconds)}
                     </div>
                     <div style={styles.startedAt}>
-                        Started at {startTime ? new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        Started At {startTime ? new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                     </div>
                     <div style={styles.buttonRow}>
                         <button onClick={handleStop} style={styles.stopBtn}>

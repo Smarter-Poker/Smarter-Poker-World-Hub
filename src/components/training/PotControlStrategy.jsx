@@ -33,7 +33,7 @@ const SPOTS = [
     color: '#8b5cf6',
     category: 'Control',
     reasoning: 'Second pair on an ace-high board. Many hands that bet have you beat (Ax). Checking keeps the pot small. You can call a small bet but should avoid inflating the pot yourself.',
-    doList: ['Check flop — you\'re not strong enough to bet', 'Call one small bet if villain bets', 'Consider folding to large multi-street aggression'],
+    doList: ['Check flop - you\'re not strong enough to bet', 'Call one small bet if villain bets', 'Consider folding to large multi-street aggression'],
     dontList: ['Don\'t lead into the preflop raiser', 'Don\'t call multiple large bets', 'Don\'t turn your hand into a bluff'],
   },
   {
@@ -42,7 +42,7 @@ const SPOTS = [
     action: 'Build the Pot!',
     color: '#10b981',
     category: 'No Control',
-    reasoning: 'You have a SET on a dry board — DO NOT pot control! You want to build the biggest pot possible. Bet all three streets. Sets are too strong to slow-play on most textures.',
+    reasoning: 'You have a SET on a dry board - DO NOT pot control! You want to build the biggest pot possible. Bet all three streets. Sets are too strong to slow-play on most textures.',
     doList: ['Bet flop, bet turn, bet river', 'Size up with each street', 'Consider check-raise if OOP'],
     dontList: ['Don\'t check back for deception', 'Don\'t worry about scaring opponents', 'Don\'t slow-play unless board is super dry'],
   },
@@ -52,9 +52,9 @@ const SPOTS = [
     action: 'Call or Raise',
     color: '#e879f9',
     category: 'Semi-Aggro',
-    reasoning: 'Nut flush draw has great equity (~35% vs top pair). In position, you can call to keep the pot controlled, or raise as a semi-bluff. Checking back is wasting equity — you have fold equity + draw equity.',
-    doList: ['Call a bet to see turn cheaply', 'Raise as semi-bluff if you want fold equity', 'Bet if checked to — charge weaker draws'],
-    dontList: ['Don\'t fold — you have massive equity', 'Don\'t check back with 9+ outs', 'Don\'t overbet as a semi-bluff on flop'],
+    reasoning: 'Nut flush draw has great equity (~35% vs top pair). In position, you can call to keep the pot controlled, or raise as a semi-bluff. Checking back is wasting equity - you have fold equity + draw equity.',
+    doList: ['Call a bet to see turn cheaply', 'Raise as semi-bluff if you want fold equity', 'Bet if checked to - charge weaker draws'],
+    dontList: ['Don\'t fold - you have massive equity', 'Don\'t check back with 9+ outs', 'Don\'t overbet as a semi-bluff on flop'],
   },
 ];
 
@@ -112,7 +112,7 @@ function PotControlStrategy() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Control Strategy failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Control Strategy Failed: {err.message}</div>;
   }
 }
 

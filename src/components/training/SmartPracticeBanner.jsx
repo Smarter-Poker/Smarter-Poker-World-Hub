@@ -132,7 +132,7 @@ export default function SmartPracticeBanner({ gameId, onStartSmartPractice }) {
                     transition={{ duration: 1.5, repeat: Infinity }}
                     style={styles.loadingText}
                 >
-                    Analyzing your training data...
+                    Analyzing Your Training Data...
                 </motion.div>
             </div>
         );
@@ -158,8 +158,8 @@ export default function SmartPracticeBanner({ gameId, onStartSmartPractice }) {
                 </div>
                 {analytics && (
                     <div style={styles.analyticsRow}>
-                        <span style={styles.analyticsStat}>{analytics.totalHands} hands</span>
-                        <span style={styles.analyticsStat}>{analytics.overallAccuracy}% acc</span>
+                        <span style={styles.analyticsStat}>{analytics.totalHands} Hands</span>
+                        <span style={styles.analyticsStat}>{analytics.overallAccuracy}% Acc</span>
                     </div>
                 )}
             </div>

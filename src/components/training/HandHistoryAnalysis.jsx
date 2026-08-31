@@ -27,7 +27,7 @@ const ANALYSIS_STEPS = [
     why: 'Fixing one systematic leak (like always calling river bets) can improve your win rate by 2-3bb/100 instantly.',
     tool: 'Create a spreadsheet of mistakes by category. Review it weekly to track improvement.' },
   { step: '5. Study Sessions, Not Hands', icon: '▲', color: '#8b5cf6',
-    detail: 'Don\'t just review individual hands — look at your session as a whole. How did your play change over time? Did you tilt?',
+    detail: 'Don\'t just review individual hands - look at your session as a whole. How did your play change over time? Did you tilt?',
     howto: 'Plot your session graph. Look for slope changes. Did your play deteriorate after a bad beat? After hour 3?',
     why: 'Session-level analysis reveals mental game leaks that hand-level analysis misses. Maybe you always tilt after losing a flip.',
     tool: 'Use your tracker\'s session review. Look at win rate by hour played. Most players deteriorate after 2-3 hours.' },
@@ -42,7 +42,7 @@ export default function HandHistoryAnalysis() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Hand History Analysis
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The ultimate guide to reviewing your own play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Ultimate Guide To Reviewing Your Own Play.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {ANALYSIS_STEPS.map((step, i) => (

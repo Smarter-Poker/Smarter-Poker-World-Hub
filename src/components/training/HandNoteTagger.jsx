@@ -91,7 +91,7 @@ export default function HandNoteTagger() {
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Hand Notes</h3>
             <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-              {filteredHands.length} hands • {hands.filter(h => h.starred).length} starred • Total EV Loss: {totalEVLoss.toFixed(1)}bb
+              {filteredHands.length} Hands • {hands.filter(h => h.starred).length} Starred • Total EV Loss: {totalEVLoss.toFixed(1)}bb
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -228,7 +228,7 @@ export default function HandNoteTagger() {
 
         {filteredHands.length === 0 && (
           <div style={{ textAlign: 'center', padding: 20, color: '#475569', fontSize: 12 }}>
-            No hands match your filters
+            No Hands Match Your Filters
           </div>
         )}
       </div>
@@ -237,7 +237,7 @@ export default function HandNoteTagger() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Hand Notes</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

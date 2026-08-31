@@ -142,7 +142,7 @@ export default function RangeGrid({
       </div>
       {rangeSet && (
         <div className="mt-1.5 text-[8px] text-white/50 text-center">
-          {rangeSet.size} combos
+          {rangeSet.size} Combos
         </div>
       )}
     </div>

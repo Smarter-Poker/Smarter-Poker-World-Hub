@@ -164,7 +164,7 @@ export default function TournamentLobby({
                             <div className="status-info">
                                 <span className="status-label">Your Rank</span>
                                 <span className="status-value">
-                                    #{userRank || '-'} - {Number(userScore || 0).toLocaleString()} pts
+                                    #{userRank || '-'} - {Number(userScore || 0).toLocaleString()} Pts
                                 </span>
                             </div>
                         </div>
@@ -198,7 +198,7 @@ export default function TournamentLobby({
                                     <div key={idx} className="lb-row">
                                         <span className="lb-rank">#{idx + 1}</span>
                                         <span className="lb-name">{entry?.username || 'Player'}</span>
-                                        <span className="lb-score">{Number(entry?.score || 0).toLocaleString()} pts</span>
+                                        <span className="lb-score">{Number(entry?.score || 0).toLocaleString()} Pts</span>
                                     </div>
                                 ))}
                             </div>
@@ -210,7 +210,7 @@ export default function TournamentLobby({
                         {!isRegistered && status === 'upcoming' && (
                             <>
                                 <div className="entry-fee">
-                                    Entry Fee: <strong>{entryFee.toLocaleString()} diamonds</strong>
+                                    Entry Fee: <strong>{entryFee.toLocaleString()} Diamonds</strong>
                                 </div>
                                 <HexButton
                                     label={canAfford ? 'Register Now' : 'Not Enough Diamonds'}
@@ -223,7 +223,7 @@ export default function TournamentLobby({
                                 />
                                 {!canAfford && (
                                     <p className="need-diamonds">
-                                        You need {Math.max(0, entryFee - Number(userDiamonds || 0)).toLocaleString()} more diamonds
+                                        You Need {Math.max(0, entryFee - Number(userDiamonds || 0)).toLocaleString()} More Diamonds
                                     </p>
                                 )}
                             </>

@@ -160,7 +160,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
             const hi = lo + step;
             buckets.push({
                 range: `$${Math.round(lo)}`,
-                rangeLabel: `$${Math.round(lo)} – $${Math.round(hi)}`,
+                rangeLabel: `$${Math.round(lo)} - $${Math.round(hi)}`,
                 count: nets.filter(n => n >= lo && (i === bucketCount - 1 ? n <= hi : n < hi)).length,
                 lo, hi,
             });
@@ -314,11 +314,11 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14 }}>{d.date}{d.hasData && d.category ? ` - ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
                             <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 16 }}>
                                 {d.hasData ? fmtVal(d.value) : 'No sessions'}
                             </div>
-                            {d.hasData && d.sessions > 1 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 2 }}>{d.sessions} sessions</div>}
+                            {d.hasData && d.sessions > 1 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 2 }}>{d.sessions} Sessions</div>}
                         </TT>
                     );
                 }} />
@@ -483,7 +483,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 10, fontSize: 14 }}>
                     <span style={{ color: '#4ade80', fontWeight: 600 }}>{winDays}W ({fmtVal(totalWin)})</span>
                     <span style={{ color: '#f87171', fontWeight: 600 }}>{lossDays}L ({fmtVal(totalLoss)})</span>
-                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{winDays + lossDays > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0}% win rate</span>
+                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{winDays + lossDays > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0}% Win Rate</span>
                 </div>
                 {/* Month labels */}
                 {monthMarkers.length > 0 && (
@@ -636,7 +636,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
                                         <span style={{ color: d.color, fontWeight: 700, fontSize: 14 }}>{d.name}</span>
                                     </div>
                                     <div style={{ fontSize: 18, fontWeight: 800, color: d.rawValue >= 0 ? '#4ade80' : '#f87171', marginBottom: 2 }}>{fmtVal(d.rawValue)}</div>
-                                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{pct}% of total volume</div>
+                                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{pct}% Of Total Volume</div>
                                 </TT>
                             );
                         }} />

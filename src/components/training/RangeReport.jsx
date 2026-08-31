@@ -98,7 +98,7 @@ function DonutChart({ segments, size = 100 }) {
                 {total}
             </text>
             <text x="50" y="62" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
-                combos
+                Combos
             </text>
         </svg>
     );
@@ -262,7 +262,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
 
             {/* Category Action Breakdown */}
             <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>
-                Action by Category
+                Action By Category
             </div>
             {Object.entries(CATEGORY_COLORS || {}).map(([cat, info]) => {
                 const bd = categoryBreakdown[cat];

@@ -105,7 +105,7 @@ class CentralBusEngine {
         // If offline, queue for later and return warning
         if (!this.isOnline) {
             this.pendingEvents.push(event);
-            console.warn(`[CentralBus] OFFLINE — Event queued: ${eventType}`);
+            console.warn(`[CentralBus] OFFLINE - Event queued: ${eventType}`);
             return { success: false, offline: true, queued: true };
         }
 
@@ -226,7 +226,7 @@ class CentralBusEngine {
             if (error) {
                 // If table doesn't exist, log but don't fail completely
                 if (error.code === '42P01') {
-                    console.warn('[CentralBus] training_events table not found — events logged locally only');
+                    console.warn('[CentralBus] training_events table not found - events logged locally only');
                     return { success: true, localOnly: true };
                 }
                 throw error;
@@ -274,7 +274,7 @@ class CentralBusEngine {
         if (!this.isOnline) {
             this.isOnline = true;
             eventBus.emit(TrainingEventType.CENTRAL_BUS_ONLINE, {}, 'CentralBus');
-            console.debug('[CentralBus] 🟢 ONLINE — Authoritative mode active');
+            console.debug('[CentralBus] 🟢 ONLINE - Authoritative mode active');
             
             // Flush pending events
             this._flushPendingEvents();
@@ -285,7 +285,7 @@ class CentralBusEngine {
         if (this.isOnline) {
             this.isOnline = false;
             eventBus.emit(TrainingEventType.CENTRAL_BUS_OFFLINE, {}, 'CentralBus');
-            console.warn('[CentralBus] 🔴 OFFLINE — Progress will NOT be recorded');
+            console.warn('[CentralBus] 🔴 OFFLINE - Progress will NOT be recorded');
         }
     }
 

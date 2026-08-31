@@ -77,22 +77,22 @@ const HERO_HANDS = [
  */
 const POSITION_MATCHUPS = [
     // PFR in position (most common and most important)
-    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot — BTN vs BB', isPFR: true, potType: 'SRP' },
-    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot — CO vs BB', isPFR: true, potType: 'SRP' },
-    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot — BTN vs SB', isPFR: true, potType: 'SRP' },
+    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot - BTN vs BB', isPFR: true, potType: 'SRP' },
+    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot - CO vs BB', isPFR: true, potType: 'SRP' },
+    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot - BTN vs SB', isPFR: true, potType: 'SRP' },
     // PFR out of position
-    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot — UTG vs BTN', isPFR: true, potType: 'SRP' },
-    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot — MP vs CO', isPFR: true, potType: 'SRP' },
+    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot - UTG vs BTN', isPFR: true, potType: 'SRP' },
+    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot - MP vs CO', isPFR: true, potType: 'SRP' },
     // Caller in position (facing c-bet)
-    { hero: 'BTN', villain: 'CO', context: 'Caller IP — BTN cold-called CO open', isPFR: false, potType: 'SRP' },
+    { hero: 'BTN', villain: 'CO', context: 'Caller IP - BTN cold-called CO open', isPFR: false, potType: 'SRP' },
     // Caller out of position (BB defense)
-    { hero: 'BB', villain: 'BTN', context: 'BB Defense — called BTN open', isPFR: false, potType: 'SRP' },
-    { hero: 'BB', villain: 'CO', context: 'BB Defense — called CO open', isPFR: false, potType: 'SRP' },
-    { hero: 'BB', villain: 'SB', context: 'BB Defense — called SB open', isPFR: false, potType: 'SRP' },
+    { hero: 'BB', villain: 'BTN', context: 'BB Defense - called BTN open', isPFR: false, potType: 'SRP' },
+    { hero: 'BB', villain: 'CO', context: 'BB Defense - called CO open', isPFR: false, potType: 'SRP' },
+    { hero: 'BB', villain: 'SB', context: 'BB Defense - called SB open', isPFR: false, potType: 'SRP' },
     // 3-bet pots
-    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot — BB 3-bet vs BTN', isPFR: true, potType: '3BET' },
-    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot — BTN called BB 3-bet', isPFR: false, potType: '3BET' },
-    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true, potType: '3BET' },
+    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot - BB 3-bet vs BTN', isPFR: true, potType: '3BET' },
+    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot - BTN called BB 3-bet', isPFR: false, potType: '3BET' },
+    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot - SB 3-bet vs BTN', isPFR: true, potType: '3BET' },
 ].map(m => ({
     ...m,
     posContext: positionContext(m.hero, m.villain),
@@ -247,7 +247,7 @@ export function generateLevel8() {
                     shouldRaise: xr.raise >= xr.call && xr.raise >= xr.fold,
                     raiseSizing: xr.raiseSizing,
                     boardTexture: textureKey,
-                    reason: `${handClass} on ${textureKey} — XR ${Math.round(xr.raise * 100)}% / call ${Math.round(xr.call * 100)}% / fold ${Math.round(xr.fold * 100)}%`,
+                    reason: `${handClass} on ${textureKey} - XR ${Math.round(xr.raise * 100)}% / call ${Math.round(xr.call * 100)}% / fold ${Math.round(xr.fold * 100)}%`,
                     isEnhanced: true,
                 };
             }
@@ -276,7 +276,7 @@ export function generateLevel8() {
             scenarios.push({
                 id: `l8-${matchup.idTag}-${handIdx}`,
                 level: 8,
-                title: `Flop: ${handNotation} — ${matchup.context}`,
+                title: `Flop: ${handNotation} - ${matchup.context}`,
                 description: `${matchup.context}. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
                 lastAction,
                 tip: strategy.reason,
@@ -558,7 +558,7 @@ export function generateLevel9() {
             scenarios.push({
                 id: `l9-turn-${matchup.idTag}-${handIdx}`,
                 level: 9,
-                title: `Turn: ${handNotation} — ${matchup.context}`,
+                title: `Turn: ${handNotation} - ${matchup.context}`,
                 description: `${matchup.context}. Hero c-bet flop, villain called. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
                 lastAction,
                 tip: strategy.reason,
@@ -662,7 +662,7 @@ export function generateLevel10() {
             scenarios.push({
                 id: `l10-river-${matchup.idTag}-${handIdx}`,
                 level: 10,
-                title: `River: ${handNotation} — ${matchup.context}`,
+                title: `River: ${handNotation} - ${matchup.context}`,
                 description,
                 lastAction,
                 tip: strategy.reason,
@@ -728,7 +728,7 @@ function buildMultiSizeOptions(strategy, street) {
             frequency: checkFreq,
             feedback: !isBet
                 ? `Good pot control. ${strategy.reason}`
-                : `Too passive — missed value or bluff. ${strategy.reason}`,
+                : `Too passive - missed value or bluff. ${strategy.reason}`,
             evDelta: !isBet ? 0 : -0.5,
         },
     ];
@@ -805,8 +805,8 @@ function buildRiverOptions(strategy, madeHand, prevAction) {
                 isCorrect: madeHand.strength >= 0.25,
                 frequency: callFreq,
                 feedback: madeHand.strength >= 0.25
-                    ? `Good call — ${madeHand.description} is strong enough to bluff-catch.`
-                    : `Loose call — ${madeHand.description} is too weak here.`,
+                    ? `Good call - ${madeHand.description} is strong enough to bluff-catch.`
+                    : `Loose call - ${madeHand.description} is too weak here.`,
                 evDelta: madeHand.strength >= 0.25 ? 0.2 : -0.8,
             },
             {

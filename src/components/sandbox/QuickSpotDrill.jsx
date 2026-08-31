@@ -487,7 +487,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             position: q?.hero_position || null,
             scenario: q?.scenario_text || '',
             pick: pick || 'No answer',
-            correct: q?.correct_answer || '—',
+            correct: q?.correct_answer || '-',
             explanation: q?.gto_explanation || null,
         }]);
     }, []);
@@ -541,7 +541,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         setAnnouncement(locked.timedOut
             ? `Time up. The solver prefers ${graded?.correct_answer || 'another line'}.`
             : locked.correct
-                ? 'Correct — this action is inside the solver range.'
+                ? 'Correct - this action is inside the solver range.'
                 : `Incorrect. You picked ${locked.pick}; the solver prefers ${graded?.correct_answer}.`);
         try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         persistResult(graded, locked.timedOut ? 'timeout' : locked.pick, locked.correct);
@@ -742,10 +742,10 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             {/* ── quit confirmation ─────────────────────────────────────── */}
             {confirmQuit ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                    <h4 style={{ fontSize: F.h3, fontWeight: 800, color: T.text, margin: 0 }}>Quit this drill?</h4>
+                    <h4 style={{ fontSize: F.h3, fontWeight: 800, color: T.text, margin: 0 }}>Quit This Drill?</h4>
                     <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        You have answered {answeredSoFar} of {questions.length} spots. Answered spots are already saved,
-                        but the rest of this run will be discarded.
+                        You Have Answered {answeredSoFar} Of {questions.length} Spots. Answered Spots Are Already Saved,
+                        But The Rest Of This Run Will Be Discarded.
                     </p>
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         <button
@@ -758,10 +758,10 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             }}
                             style={{ ...btn('primary'), flex: '1 1 140px' }}
                         >
-                            Keep drilling
+                            Keep Drilling
                         </button>
                         <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('danger'), flex: '1 1 120px' }}>
-                            Quit drill
+                            Quit Drill
                         </button>
                     </div>
                 </div>
@@ -797,7 +797,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                     onClick={() => setIgnoreFilters(true)}
                                     style={btn('primary')}
                                 >
-                                    Try without filters
+                                    Try Without Filters
                                 </button>
                             )}
                             <button type="button" className="pa-btn" onClick={load} style={btn('secondary')}>
@@ -812,7 +812,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 34, fontWeight: 800, color: pctTone(accuracy), ...numeric }}>{accuracy}%</div>
                         <div style={{ fontSize: F.bodySm, color: T.textMuted, marginTop: S.xs }}>
-                            {score.correct} of {score.total} correct
+                            {score.correct} Of {score.total} Correct
                         </div>
                     </div>
 
@@ -831,7 +831,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             {review.status === 'saving' && (
                                 <>
                                     <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.textMuted }}>
-                                        Scheduling your next review…
+                                        Scheduling Your Next Review…
                                     </span>
                                     <Skeleton h={14} w="60%" />
                                 </>
@@ -850,7 +850,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                         {review.persisted
                                             ? 'Saved to your review schedule.'
                                             : review.stored
-                                                ? 'Saved on this device for now — it will move to your account once your review schedule is available.'
+                                                ? 'Saved on this device for now - it will move to your account once your review schedule is available.'
                                                 : 'This browser is blocking storage, so the date above could not be saved. The leak stays in your queue.'}
                                     </span>
                                     {review.verified === true && (
@@ -865,7 +865,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                     )}
                                     {review.verified === false && (
                                         <span style={{ fontSize: F.caption, color: T.warn }}>
-                                            The review was scheduled, but this run was not eligible for a verified achievement.
+                                            The Review Was Scheduled, But This Run Was Not Eligible For A Verified Achievement.
                                         </span>
                                     )}
                                 </>
@@ -873,17 +873,17 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
                             {review.status === 'skipped' && (
                                 <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                    Filters were off for this run, so it has not changed this leak&apos;s review schedule.
+                                    Filters Were Off For This Run, So It Has Not Changed This Leak&apos;S Review Schedule.
                                 </span>
                             )}
 
                             {review.status === 'error' && (
                                 <>
                                     <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn }}>
-                                        Could not update your review schedule
+                                        Could Not Update Your Review Schedule
                                     </span>
                                     <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                        Your answers were still saved. Try again, or carry on — the leak stays in your queue.
+                                        Your Answers Were Still Saved. Try Again, Or Carry On - The Leak Stays In Your Queue.
                                     </span>
                                     <button
                                         type="button"
@@ -903,7 +903,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             background: T.successSoft, border: '1px solid rgba(77,224,165,0.4)', borderRadius: R.sm,
                             padding: S.md, fontSize: F.bodySm, fontWeight: 700, color: T.success, textAlign: 'center',
                         }}>
-                            Level {level} unlocked
+                            Level {level} Unlocked
                         </div>
                     )}
                     {levelChange === 'down' && (
@@ -911,7 +911,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             background: T.warnSoft, border: '1px solid rgba(255,198,109,0.4)', borderRadius: R.sm,
                             padding: S.md, fontSize: F.bodySm, fontWeight: 700, color: T.warn, textAlign: 'center',
                         }}>
-                            Dropped to level {level} — easier spots next run.
+                            Dropped To Level {level} - Easier Spots Next Run.
                         </div>
                     )}
 
@@ -922,7 +922,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs,
                         }}>
                             <span>Level {level}</span>
-                            <span style={numeric}>{target}% to promote</span>
+                            <span style={numeric}>{target}% To Promote</span>
                         </div>
                         <div style={{ height: 8, borderRadius: R.pill, background: T.surface2, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${ladderPct}%`, background: pctTone(accuracy) }} />
@@ -932,7 +932,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     {misses.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Review your {misses.length} miss{misses.length === 1 ? '' : 'es'}
+                                Review Your {misses.length} miss{misses.length === 1 ? '' : 'es'}
                             </h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
                                 {misses.map((m, i) => (
@@ -948,7 +948,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                             {m.position && <span style={pill('accent')}>{m.position}</span>}
                                         </div>
                                         <div style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                            You picked <strong style={{ color: T.danger }}>{m.pick}</strong> · solver plays{' '}
+                                            You Picked <strong style={{ color: T.danger }}>{m.pick}</strong> · Solver plays{' '}
                                             <strong style={{ color: T.success }}>{m.correct}</strong>
                                         </div>
                                         {m.explanation && (
@@ -964,7 +964,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
 
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         <button type="button" className="pa-btn" onClick={load} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
-                            <RotateCcw size={18} strokeWidth={2} /> Drill again
+                            <RotateCcw size={18} strokeWidth={2} /> Drill Again
                         </button>
                         <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('primary'), flex: '1 1 120px' }}>
                             Done
@@ -1069,8 +1069,8 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'center', gap: S.lg, fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        <span style={{ color: T.success }}>{score.correct} correct</span>
-                        <span style={{ color: T.danger }}>{score.total - score.correct} missed</span>
+                        <span style={{ color: T.success }}>{score.correct} Correct</span>
+                        <span style={{ color: T.danger }}>{score.total - score.correct} Missed</span>
                         <span style={{ color: pctTone(accuracy) }}>{accuracy}%</span>
                     </div>
                 </div>

@@ -11,7 +11,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!key) {
-            console.warn('[chat] SUPABASE_SERVICE_ROLE_KEY not set — refusing to start with anon key');
+            console.warn('[chat] SUPABASE_SERVICE_ROLE_KEY not set - refusing to start with anon key');
             throw new Error('Server misconfiguration: missing service role key');
         }
         _supabase = createClient(url, key);

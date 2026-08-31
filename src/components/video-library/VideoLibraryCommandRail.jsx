@@ -105,7 +105,7 @@ const VideoLibraryCommandRail = forwardRef(function VideoLibraryCommandRail({
 
             <div className="vl-rail-count" aria-live="polite">
                 <strong>{visibleCount}</strong>
-                <span>videos showing</span>
+                <span>Videos Showing</span>
             </div>
         </aside>
     );

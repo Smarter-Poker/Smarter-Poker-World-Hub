@@ -2505,7 +2505,7 @@ ${messages.map(m =>
                 const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
                 return `[${time}] ${sender}: ${m.text || `[${m.message_type}]`}`;
             });
-            const content = `${convName} — Exported ${timestamp}\n${'='.repeat(50)}\n\n${lines.join('\n')}`;
+            const content = `${convName} - Exported ${timestamp}\n${'='.repeat(50)}\n\n${lines.join('\n')}`;
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `${convName}_${timestamp}.txt`; a.click();

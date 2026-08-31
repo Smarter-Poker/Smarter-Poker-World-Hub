@@ -45,7 +45,7 @@ const SCENARIOS = [
     pfrNuts: ['KK', 'K9', 'K4', 'AK', 'KQ', 'KJ', 'KT'],
     defNuts: ['K9', 'K4s', '99', '44'],
     explanation: 'Turn K gives PFR a massive nut advantage. PFR has all AK, KQ, KJ, KT that BB would often 3-bet. PFR can overbet this turn.',
-    implication: 'PFR should bet large or overbet. Defender is in terrible shape — few trips and many hands that cant continue.',
+    implication: 'PFR should bet large or overbet. Defender is in terrible shape - few trips and many hands that cant continue.',
   },
   {
     board: 'T♣ 8♣ 3♦ | 5♣', street: 'Turn', context: 'CO vs BB SRP',
@@ -117,7 +117,7 @@ function NutAdvantageTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Nut Advantage Tracker failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Nut Advantage Tracker Failed To Load: {err.message}</div>;
   }
 }
 

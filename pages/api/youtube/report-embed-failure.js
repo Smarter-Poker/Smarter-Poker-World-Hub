@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         if (dbError) {
             // If table doesn't exist yet, log and return OK (graceful degradation)
             if (dbError.code === '42P01') {
-                console.warn('[youtube-report] Table youtube_embed_failures not yet created — skipping');
+                console.warn('[youtube-report] Table youtube_embed_failures not yet created - skipping');
                 return res.status(200).json({ ok: true, note: 'table_pending' });
             }
             console.error('[youtube-report] DB error:', dbError.message, dbError.code);

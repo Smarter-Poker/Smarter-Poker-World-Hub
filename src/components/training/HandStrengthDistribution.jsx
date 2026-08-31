@@ -41,7 +41,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 8, villainNuts: 5,
-    vulnerability: 'Low — dry board, few draws to worry about',
+    vulnerability: 'Low - dry board, few draws to worry about',
     insight: 'BTN has significant nut advantage with more sets and strong top pairs. Can c-bet at high frequency with small sizing.',
   },
   {
@@ -71,7 +71,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'villain',
     heroNuts: 5, villainNuts: 7,
-    vulnerability: 'High — many draws, board will change significantly on turn',
+    vulnerability: 'High - many draws, board will change significantly on turn',
     insight: 'BB has more two-pair and straight combos on this connected board. CO should check more and use larger sizing when betting.',
   },
   {
@@ -101,7 +101,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 10, villainNuts: 4,
-    vulnerability: 'Very Low — extremely dry, almost no draws',
+    vulnerability: 'Very Low - extremely dry, almost no draws',
     insight: 'Massive BTN advantage. Ace blocks BB\'s strongest hands. C-bet very frequently with 33% sizing.',
   },
   {
@@ -131,7 +131,7 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'villain',
     heroNuts: 6, villainNuts: 8,
-    vulnerability: 'Medium — flush draw still live, but fewer outs remaining',
+    vulnerability: 'Medium - flush draw still live, but fewer outs remaining',
     insight: 'BTN retains range advantage on turn. SB should check-raise polarized and check-call medium strength.',
   },
   {
@@ -161,8 +161,8 @@ const SCENARIOS = [
     ],
     nutAdvantage: 'hero',
     heroNuts: 12, villainNuts: 6,
-    vulnerability: 'None — river, all draws resolved',
-    insight: 'BTN has 2x the nut combos on river. Should bet polarized — value with nuts, bluff with busted draws.',
+    vulnerability: 'None - river, all draws resolved',
+    insight: 'BTN has 2x the nut combos on river. Should bet polarized - value with nuts, bluff with busted draws.',
   },
 ];
 
@@ -225,7 +225,7 @@ export default function HandStrengthDistribution() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Hand Strength Distribution</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Equity bucket analysis for range matchups</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Equity Bucket Analysis For Range Matchups</div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['sidebyside', 'overlay'].map(m => (
@@ -257,7 +257,7 @@ export default function HandStrengthDistribution() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
           <div style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{selectedScenario.board}</div>
           <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>{selectedScenario.street}</span>
-          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 9, fontWeight: 600 }}>{selectedScenario.hero} vs {selectedScenario.villain}</span>
+          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 9, fontWeight: 600 }}>{selectedScenario.hero} Vs {selectedScenario.villain}</span>
         </div>
 
         {/* Summary stats */}
@@ -326,7 +326,7 @@ export default function HandStrengthDistribution() {
           <NutAdvantageBar heroNuts={selectedScenario.heroNuts} villainNuts={selectedScenario.villainNuts} heroLabel={selectedScenario.hero} villainLabel={selectedScenario.villain} />
           <div style={{ marginTop: 6, display: 'flex', gap: 10 }}>
             <span style={{ padding: '3px 8px', borderRadius: 4, background: selectedScenario.nutAdvantage === 'hero' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: selectedScenario.nutAdvantage === 'hero' ? '#22c55e' : '#ef4444', fontSize: 10, fontWeight: 700 }}>
-              {selectedScenario.nutAdvantage === 'hero' ? selectedScenario.hero : selectedScenario.villain} has nut advantage
+              {selectedScenario.nutAdvantage === 'hero' ? selectedScenario.hero : selectedScenario.villain} Has Nut Advantage
             </span>
             <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 10, fontWeight: 600 }}>
               Vulnerability: {selectedScenario.vulnerability}
@@ -345,7 +345,7 @@ export default function HandStrengthDistribution() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Hand Strength Distribution</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

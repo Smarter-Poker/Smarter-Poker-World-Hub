@@ -11,22 +11,22 @@ const SB_STRATEGIES = [
     ranges: [
       { label: '3-Bet Value', hands: 'QQ+, AKs, AKo', color: '#22c55e' },
       { label: '3-Bet Bluff', hands: 'A5s-A2s, K5s, Q5s (blockers)', color: '#f59e0b' },
-      { label: 'Fold', hands: 'Everything else — don\'t flat OOP', color: '#ef4444' },
+      { label: 'Fold', hands: 'Everything else - don\'t flat OOP', color: '#ef4444' },
     ],
     tip: 'Flatting from SB is a major leak. You\'re OOP with a capped range. 3-bet or fold.' },
   { title: 'SB Complete vs Limp', color: '#22c55e', icon: '·',
     desc: 'When there are limpers, SB can complete for 0.5 BB getting great odds.',
     ranges: [
-      { label: 'Complete', hands: 'Any suited hand, small pairs, connectors — amazing pot odds', color: '#22c55e' },
-      { label: 'Raise to ISO', hands: 'JJ+, AQ+, KQs — isolate the limpers', color: '#f59e0b' },
+      { label: 'Complete', hands: 'Any suited hand, small pairs, connectors - amazing pot odds', color: '#22c55e' },
+      { label: 'Raise to ISO', hands: 'JJ+, AQ+, KQs - isolate the limpers', color: '#f59e0b' },
     ],
     tip: 'You\'re getting 3:1+ odds. Complete wide. But raise premiums to thin the field.' },
   { title: 'SB vs BB (heads up)', color: '#3b82f6', icon: '»',
     desc: 'SB vs BB is a unique dynamic. Open to 2.5-3x with a wide range.',
     ranges: [
-      { label: 'Open-Raise', hands: '~55-65% of hands — very wide', color: '#22c55e' },
-      { label: 'Limp', hands: 'Weak suited hands, K2o-K5o — too weak to raise, too good to fold', color: '#f59e0b' },
-      { label: 'Fold', hands: 'Bottom ~20% — total trash', color: '#ef4444' },
+      { label: 'Open-Raise', hands: '~55-65% of hands - very wide', color: '#22c55e' },
+      { label: 'Limp', hands: 'Weak suited hands, K2o-K5o - too weak to raise, too good to fold', color: '#f59e0b' },
+      { label: 'Fold', hands: 'Bottom ~20% - total trash', color: '#ef4444' },
     ],
     tip: 'Some solvers recommend a mixed limp/raise strategy from SB vs BB. Both are valid.' },
 ];
@@ -40,7 +40,7 @@ export default function SmallBlindComplete() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Small Blind Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The hardest position — minimize losses with the right approach.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Hardest Position - Minimize Losses With The Right Approach.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {SB_STRATEGIES.map((s, i) => (
@@ -72,7 +72,7 @@ export default function SmallBlindComplete() {
 
       <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>SB Expected Loss</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Even the best players lose ~15-25 bb/100 from the SB. The goal is to lose LESS, not win.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Even The Best Players Lose ~15-25 BB/100 From The SB. The Goal Is To Lose LESS, Not Win.</div>
       </div>
     </div>
   );

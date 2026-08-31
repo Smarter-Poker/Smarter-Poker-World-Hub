@@ -33,6 +33,6 @@ export async function GET() {
     ok: true,
     runtime: 'app-router',
     migrated_at: '2026-04-26',
-    pilot: 'Phase 4.5 — first App Router route',
+    pilot: 'Phase 4.5 - first App Router route',
   });
 }

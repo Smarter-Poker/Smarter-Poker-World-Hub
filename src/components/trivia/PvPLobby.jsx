@@ -92,7 +92,7 @@ export default function PvPLobby({
             <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
                 <div className="lobby-header">
                     <Swords size={48} className="pvp-icon" />
-                    <h1>1v1 BATTLE</h1>
+                    <h1>1V1 BATTLE</h1>
                     <p>Challenge Another Player. Winner Takes All!</p>
                 </div>
 

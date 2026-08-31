@@ -238,7 +238,7 @@ export default async function handler(req, res) {
             .delete()
               .eq('id', userId);
           if (err_profiles_2sqi2) {
-              console.error('[delete-account] CRITICAL: profile delete FAILED — refusing to hard-delete the auth user, which would orphan this PII:', err_profiles_2sqi2.message);
+              console.error('[delete-account] CRITICAL: profile delete FAILED - refusing to hard-delete the auth user, which would orphan this PII:', err_profiles_2sqi2.message);
               return res.status(500).json({
                   success: false,
                   error: 'Your profile could not be removed, so the deletion was stopped before your login was destroyed. Your account still exists. Please contact support.',
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
           const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);
 
           if (deleteError) {
-              console.error('[delete-account] CRITICAL: auth user deletion failed AFTER profile data was removed — the login still exists with no profile behind it:', deleteError.message);
+              console.error('[delete-account] CRITICAL: auth user deletion failed AFTER profile data was removed - the login still exists with no profile behind it:', deleteError.message);
               return res.status(500).json({
                   success: false,
                   error: 'Your data was removed but your login could not be deleted. Please contact support so this can be completed.',
@@ -262,7 +262,7 @@ export default async function handler(req, res) {
           // Only now is "permanently deleted" a true statement -- and only for
           // the tables that actually succeeded.
           if (erasureFailures.length > 0) {
-              console.error('[delete-account] PARTIAL ERASURE — account deleted but these tables still hold data:', erasureFailures);
+              console.error('[delete-account] PARTIAL ERASURE - account deleted but these tables still hold data:', erasureFailures);
               return res.status(200).json({
                   success: true,
                   partial: true,

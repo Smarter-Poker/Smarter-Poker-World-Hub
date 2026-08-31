@@ -32,7 +32,7 @@ export default function RestealGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Re-Steal Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Light 3-bets to punish wide openers and steal dead money.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Light 3-Bets To Punish Wide Openers And Steal Dead Money.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {RESTEAL_SPOTS.map((s, i) => (

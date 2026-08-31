@@ -42,7 +42,7 @@ export default function CommonLeaksGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Common Leaks Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Find your leaks, plug them, profit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Find Your Leaks, Plug Them, Profit.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {LEAKS.map((l, i) => (
@@ -73,11 +73,11 @@ export default function CommonLeaksGuide() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>How to Diagnose</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>How To Diagnose</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{leak.diagnostic}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How to Fix</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{leak.plug}</div>
           </div>
         </div>

@@ -201,9 +201,9 @@ export default async function handler(req, res) {
           // chip paths are not exercised speculatively. Returning 501 means
           // the UI cannot claim success for work that did not occur.
           const NOT_IMPLEMENTED = {
-              add_to_club: 'add_to_club is not implemented yet — no horses were added and no chips were moved.',
-              start: 'start is not implemented yet — no horses were seated and no chips were moved.',
-              stop: 'stop is not implemented yet — no horses were removed from any table.',
+              add_to_club: 'add_to_club is not implemented yet - no horses were added and no chips were moved.',
+              start: 'start is not implemented yet - no horses were seated and no chips were moved.',
+              stop: 'stop is not implemented yet - no horses were removed from any table.',
           };
 
           if (Object.prototype.hasOwnProperty.call(NOT_IMPLEMENTED, action)) {

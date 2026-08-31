@@ -609,7 +609,7 @@ export default function SandboxPokerTable({
                         fontVariantNumeric: 'tabular-nums',
                         textShadow: '0 1px 4px rgba(0,0,0,0.6)',
                     }}>
-                        {equityValue.toFixed(1)}% equity
+                        {equityValue.toFixed(1)}% Equity
                     </div>
                 )}
                 {hasEquity && equityLabel && (
@@ -631,7 +631,7 @@ export default function SandboxPokerTable({
                     color: T.textMuted, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
                     pointerEvents: 'none',
                 }}>
-                    Swipe left to deal · right to undo
+                    Swipe Left To Deal · Right To Undo
                 </div>
             )}
 

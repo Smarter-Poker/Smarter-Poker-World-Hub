@@ -90,7 +90,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
             recommendations.push({
                 type: 'weak_position',
                 title: `Fix ${weakest.pos} Play`,
-                description: `Your ${weakest.pos} accuracy is ${weakest.accuracy}%${gap >= 10 ? ` — ${gap}pts below your ${overall}% average` : ''}. ${weakest.total} hands analyzed.`,
+                description: `Your ${weakest.pos} accuracy is ${weakest.accuracy}%${gap >= 10 ? ` - ${gap}pts below your ${overall}% average` : ''}. ${weakest.total} hands analyzed.`,
                 targetPositions: [weakest.pos],
                 targetStreet: null,
                 priority: weakest.accuracy < 40 ? 5 : weakest.accuracy < 55 ? 4 : 3,

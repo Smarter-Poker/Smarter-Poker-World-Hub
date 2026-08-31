@@ -142,7 +142,7 @@ function SessionGoalTracker() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#8b5cf6' }}>Session Goals</h3>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{completedCount}/{goals.length} complete</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{completedCount}/{goals.length} Complete</span>
             <button
               onClick={() => setShowHistory(!showHistory)}
               style={{
@@ -168,7 +168,7 @@ function SessionGoalTracker() {
             <div style={{ height: '100%', width: `${totalPct}%`, background: totalPct >= 100 ? '#10b981' : 'linear-gradient(90deg, #8b5cf6, #a78bfa)', borderRadius: 5, transition: 'width 0.3s ease' }} />
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Current streak: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{currentStreak} days</span></span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Current Streak: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{currentStreak} Days</span></span>
             {activePreset && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Preset: <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{activePreset}</span></span>}
           </div>
         </div>
@@ -201,7 +201,7 @@ function SessionGoalTracker() {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{s.date}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: s.completed >= s.total ? '#10b981' : s.completed >= s.total - 1 ? '#f59e0b' : '#ef4444' }}>
-                    {s.completed}/{s.total} goals
+                    {s.completed}/{s.total} Goals
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -222,7 +222,7 @@ function SessionGoalTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Session Goal Tracker failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Session Goal Tracker Failed To Load: {err.message}</div>;
   }
 }
 

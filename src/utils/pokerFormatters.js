@@ -103,7 +103,7 @@ export function formatDateRange(startDate, endDate) {
     const end = new Date(endDate);
     if (isNaN(end.getTime())) return startStr;
     const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return `${startStr} – ${endStr}`;
+    return `${startStr} - ${endStr}`;
 }
 
 /**

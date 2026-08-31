@@ -42,7 +42,7 @@ export default function HandCombinatorics() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Hand Combinatorics
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Count combos like a pro. The math behind ranges.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Count Combos Like A Pro. The Math Behind Ranges.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {COMBO_LESSONS.map((t, i) => (
@@ -67,7 +67,7 @@ export default function HandCombinatorics() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>On a Board</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>On A Board</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.onBoard}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>

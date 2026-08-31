@@ -16,7 +16,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[cancel-vip] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[cancel-vip] SUPABASE_SERVICE_ROLE_KEY missing - falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           if (sub.stripe_subscription_id) {
               if (!stripe) {
                   // Stripe not configured — do NOT claim success while billing continues
-                  console.warn('[Cancel VIP] STRIPE_SECRET_KEY missing — cannot cancel subscription', sub.stripe_subscription_id);
+                  console.warn('[Cancel VIP] STRIPE_SECRET_KEY missing - cannot cancel subscription', sub.stripe_subscription_id);
                   return res.status(503).json({ success: false, error: 'Payment system unavailable. Please try again later or contact support.' });
               }
               await stripe.subscriptions.update(sub.stripe_subscription_id, {

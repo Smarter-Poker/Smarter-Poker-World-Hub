@@ -475,7 +475,7 @@ async function dispatchHostNotification(supabase, ctx) {
     : `New seat request from ${requesterName}`;
   const bodyText = rsvp.message
     ? `"${String(rsvp.message).slice(0, 140)}${rsvp.message.length > 140 ? '…' : ''}"`
-    : `At ${group_name} — tap to approve.`;
+    : `At ${group_name} - tap to approve.`;
 
   // ── 1. In-app notification row ────────────────────────────────────────────
   // Only real columns on public.notifications: user_id, type, title, message,
@@ -535,7 +535,7 @@ async function dispatchHostNotification(supabase, ctx) {
   const messageNote = rsvp.message ? `\n\n${rsvp.message}` : '';
 
   const dmContent =
-    `${waitlistPrefix}Hi ${hostName} — ${requesterName} here. ` +
+    `${waitlistPrefix}Hi ${hostName} - ${requesterName} here. ` +
     `I'd love a seat at ${eventLabel}${guestsSuffix}. ` +
     `Requested via your public home-game page.` +
     messageNote +

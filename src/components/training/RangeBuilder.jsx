@@ -351,7 +351,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                 {/* Compare selector */}
                 {showCompare && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <span style={{ fontSize: 9, color: '#64748b' }}>Compare to:</span>
+                        <span style={{ fontSize: 9, color: '#64748b' }}>Compare To:</span>
                         <select
                             value={comparePreset}
                             onChange={e => setComparePreset(e.target.value)}

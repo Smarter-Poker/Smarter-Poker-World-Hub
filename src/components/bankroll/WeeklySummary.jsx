@@ -203,14 +203,14 @@ export default function WeeklySummary({
                                 <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Data</span>
                                 <span>No Sessions Logged This Week</span>
                                 <span style={{ fontSize: 14, color: '#8a8d91' }}>
-                                    Keep tracking to see your weekly trends!
+                                    Keep Tracking To See Your Weekly Trends!
                                 </span>
                             </div>
                         )}
 
                         {/* Close Button */}
                         <button onClick={handleClose} style={styles.closeBtn}>
-                            Got it
+                            Got It
                         </button>
                     </motion.div>
                 </motion.div>

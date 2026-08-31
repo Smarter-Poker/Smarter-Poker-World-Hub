@@ -237,7 +237,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div>
                         <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Sound Effects</div>
-                        <div style={{ color: '#65676B', fontSize: 11 }}>Cards, chips, timer alerts</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Cards, Chips, Timer Alerts</div>
                       </div>
                       <button
                         onClick={() => onToggleSound?.()}
@@ -260,7 +260,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div>
                         <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Haptic Feedback</div>
-                        <div style={{ color: '#65676B', fontSize: 11, marginTop: 2 }}>Vibration on your turn (mobile)</div>
+                        <div style={{ color: '#65676B', fontSize: 11, marginTop: 2 }}>Vibration On Your Turn (Mobile)</div>
                       </div>
                       <button
                         onClick={() => onToggleHaptic?.()}
@@ -282,7 +282,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
 
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
-                        Tip: Mute sounds for multi-tabling or late-night sessions
+                        Tip: Mute Sounds For Multi-Tabling Or Late-Night Sessions
                       </div>
                     </div>
 
@@ -330,7 +330,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div>
                         <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>4-Color Deck</div>
-                        <div style={{ color: '#65676B', fontSize: 11 }}>Green clubs, blue diamonds</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Green Clubs, Blue Diamonds</div>
                       </div>
                       <button
                         onClick={() => onToggleFourColor?.()}
@@ -354,7 +354,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div>
                         <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Haptic Feedback</div>
-                        <div style={{ color: '#65676B', fontSize: 11 }}>Vibration on your turn</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Vibration On Your Turn</div>
                       </div>
                       <button
                         onClick={() => onToggleHaptic?.()}
@@ -378,7 +378,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div>
                         <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Auto-Muck</div>
-                        <div style={{ color: '#65676B', fontSize: 11 }}>Auto-hide losing hands</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Auto-Hide Losing Hands</div>
                       </div>
                       <button
                         onClick={() => {
@@ -406,7 +406,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
 
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
-                        4-color deck uses green for ♣ and blue for ♦ to reduce misreads
+                        4-Color Deck Uses Green For ♣ And Blue For ♦ To Reduce Misreads
                       </div>
                     </div>
                   </div>

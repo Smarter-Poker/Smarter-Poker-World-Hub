@@ -199,7 +199,7 @@ export function PreflopCharts({ onAskJarvis, onClose }: PreflopChartsProps) {
                     {selectedPosition} {chartType.toUpperCase()} Range
                 </div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFD700' }}>
-                    {currentRange.length} combos ({((currentRange.length / 169) * 100).toFixed(1)}%)
+                    {currentRange.length} Combos ({((currentRange.length / 169) * 100).toFixed(1)}%)
                 </div>
             </div>
         </div>

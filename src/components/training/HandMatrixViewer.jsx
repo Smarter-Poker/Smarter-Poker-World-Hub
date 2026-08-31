@@ -103,7 +103,7 @@ export default function HandMatrixViewer() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Hand Strategy Matrix
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>13x13 grid showing GTO action frequencies for every starting hand.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>13X13 Grid Showing GTO Action Frequencies For Every Starting Hand.</p>
 
       {/* Spot Selector */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>

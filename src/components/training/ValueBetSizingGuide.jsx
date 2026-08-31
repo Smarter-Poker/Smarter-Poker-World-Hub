@@ -9,7 +9,7 @@ const SIZING_TIERS = [
   { size: '25-33%', label: 'Small', color: '#22c55e', emoji: '',
     when: 'When you have range advantage on dry boards. Want calls from many hands.',
     hands: 'Top pair on dry flops, overpairs on low boards, when entire range bets',
-    avoid: 'When draws are present — you\'re giving too good a price' },
+    avoid: 'When draws are present - you\'re giving too good a price' },
   { size: '50-66%', label: 'Medium', color: '#3b82f6', emoji: '',
     when: 'Standard bet sizing. Good balance of value extraction and protection.',
     hands: 'Strong top pair, overpairs on somewhat wet boards, two pair',
@@ -17,7 +17,7 @@ const SIZING_TIERS = [
   { size: '75-100%', label: 'Large', color: '#f59e0b', emoji: '',
     when: 'Polarized spots. You have a very strong hand or are bluffing.',
     hands: 'Sets, straights, flushes on wet boards. Also your bluffs.',
-    avoid: 'With medium-strength hands — you only get called by better' },
+    avoid: 'With medium-strength hands - you only get called by better' },
   { size: '120-200%', label: 'Overbet', color: '#ef4444', emoji: '',
     when: 'When you have significant nut advantage. Villain can\'t have the nuts.',
     hands: 'Nut flushes, full houses on river. Boards where villain\'s range is capped.',
@@ -41,7 +41,7 @@ export default function ValueBetSizingGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Value Bet Sizing Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Size your value bets to extract maximum chips.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Size Your Value Bets To Extract Maximum Chips.</p>
 
       {/* Tier selector */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>

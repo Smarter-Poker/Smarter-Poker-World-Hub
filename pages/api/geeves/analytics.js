@@ -163,7 +163,7 @@ export default async function handler(req, res) {
               if (!Number.isSafeInteger(numericId)) {
                   return res.status(400).json({
                       success: false,
-                      error: 'id must be an integer — geeves_missed_questions.id is a bigint. A client-generated placeholder id (for example "live-1756...") belongs to an unsaved row and cannot be resolved.',
+                      error: 'id must be an integer - geeves_missed_questions.id is a bigint. A client-generated placeholder id (for example "live-1756...") belongs to an unsaved row and cannot be resolved.',
                   });
               }
 

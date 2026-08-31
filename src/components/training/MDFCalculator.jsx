@@ -54,12 +54,12 @@ function MDFCalculator() {
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Pot Size</div>
             <input type="range" min={2} max={100} value={pot} onChange={e => setPot(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#10b981' }} />
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#10b981' }}>{pot} bb</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#10b981' }}>{pot} BB</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Bet Size</div>
             <input type="range" min={1} max={100} value={betSize} onChange={e => setBetSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#ef4444' }} />
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#ef4444' }}>{betSize} bb ({calc.betPotPct}% pot)</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#ef4444' }}>{betSize} BB ({calc.betPotPct}% Pot)</div>
           </div>
         </div>
 
@@ -68,17 +68,17 @@ function MDFCalculator() {
           <div style={{ padding: 12, background: 'rgba(139,92,246,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(139,92,246,0.2)' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#8b5cf6' }}>{calc.mdf}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Must defend</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Must Defend</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(59,130,246,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(59,130,246,0.2)' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#3b82f6' }}>{calc.potOdds}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Need to win</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Need To Win</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(239,68,68,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(239,68,68,0.2)' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Max Fold %</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#ef4444' }}>{calc.foldPct}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Can fold</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Can Fold</div>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ function MDFCalculator() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>MDF Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>MDF Calculator Failed To Load: {err.message}</div>;
   }
 }
 

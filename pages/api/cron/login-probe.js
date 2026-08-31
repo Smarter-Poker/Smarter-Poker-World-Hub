@@ -156,7 +156,7 @@ async function handler(req, res) {
         if (authorizeRes.status < 300 || authorizeRes.status >= 400) {
             steps.oauth_chain.ok = false;
             steps.oauth_chain.severity = 'CRITICAL';
-            steps.oauth_chain.error = `authorize returned ${authorizeRes.status} (expected 302 to Google — provider disabled or misconfigured?)`;
+            steps.oauth_chain.error = `authorize returned ${authorizeRes.status} (expected 302 to Google - provider disabled or misconfigured?)`;
             throw new Error(`oauth-chain: ${steps.oauth_chain.error}`);
         }
         let callbackHost = null;

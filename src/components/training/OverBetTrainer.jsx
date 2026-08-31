@@ -33,7 +33,7 @@ const SPOTS = [
     frequency: 8, evGain: '+2.1 bb/100',
     valueRange: 'Kx (trip kings), full houses (33), AA',
     bluffRange: 'A-high no pair, suited connectors planning multi-barrel',
-    vilReaction: 'Villain is in very tough spot — almost no Kx in BB flat range vs SB.',
+    vilReaction: 'Villain is in very tough spot - almost no Kx in BB flat range vs SB.',
     reasoning: 'Flop overbets rare but powerful on paired king board. SB has all KQ/KJ/KT from raises while BB mostly called with middling hands.',
     tips: ['Flop overbets work on paired broadway boards', 'SB 3-bet range has more Kx combos', 'Follow through with big turn bets'],
   },
@@ -44,7 +44,7 @@ const SPOTS = [
     valueRange: 'QQ, TT, QT, rivered two pair, sets',
     bluffRange: 'Missed club flush draws (A♣K♣, J♣9♣), 98 busted OESD',
     vilReaction: 'Villain must fold ~60% facing 2x pot. Only calls with two pair+ and some Qx.',
-    reasoning: 'River queen changes everything. CO can credibly rep QQ, QT, queens up. 2x pot overbet is maximum pressure — villain can\'t profitably call with one pair.',
+    reasoning: 'River queen changes everything. CO can credibly rep QQ, QT, queens up. 2x pot overbet is maximum pressure - villain can\'t profitably call with one pair.',
     tips: ['2x pot on river = villain must fold 60%+', 'Card change rivers are best overbet spots', 'Missed draws become ideal bluffs at this sizing'],
   },
   {
@@ -107,7 +107,7 @@ function OverBetTrainer() {
         {!showAnswer && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10, textAlign: 'center' }}>
-              What is the optimal overbet sizing?
+              What Is The Optimal Overbet Sizing?
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {sizingOptions.map(s => (
@@ -172,7 +172,7 @@ function OverBetTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

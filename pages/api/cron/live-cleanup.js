@@ -23,7 +23,7 @@ async function handler(req, res) {
     // zombie-stream cleanup.
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
-        console.warn('[live-cleanup] CRON_SECRET is not configured — rejecting request');
+        console.warn('[live-cleanup] CRON_SECRET is not configured - rejecting request');
         return res.status(500).json({ error: 'Server misconfigured' });
     }
 

@@ -45,9 +45,9 @@ export default function RangeVsRange() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        Range vs Range
+        Range Vs Range
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Think in ranges, not hands.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Think In Ranges, Not Hands.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {RVR_MATCHUPS.map((m, i) => (

@@ -5,7 +5,7 @@ export default function OfficialRules() {
     return (
         <>
             <SEOHead
-                title="Official Rules — Promotions & Contests"
+                title="Official Rules - Promotions & Contests"
                 description="Official Rules For Smarter.Poker Promotions, Contests, And Giveaways."
                 canonical="/legal/official-rules"
             />
@@ -84,7 +84,7 @@ export default function OfficialRules() {
                                 <li><strong>Social Tasks:</strong> Post, Share, And Engage With The Community</li>
                                 <li><strong>Referral Program:</strong> Invite Friends To Earn Bonus Diamonds</li>
                                 <li><strong>Leaderboard Ranking:</strong> Top Performers On Weekly Leaderboards Receive Diamond Bonuses</li>
-                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With <strong>ZERO Entry Fee</strong> — Winners Receive Diamond Prizes</li>
+                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With <strong>ZERO Entry Fee</strong> - Winners Receive Diamond Prizes</li>
                             </ul>
 
                             <h3 style={styles.subheading}>Premium Features (Optional)</h3>
@@ -120,7 +120,7 @@ export default function OfficialRules() {
                                     <strong>Entry Limit:</strong> <strong>ONE (1)</strong> mail-in request per person per week.
                                 </p>
                                 <p style={styles.paragraph}>
-                                    <strong>Reward:</strong> Each Valid Mail-in Entry Receives <strong>500 Entry Diamonds</strong> —
+                                    <strong>Reward:</strong> Each Valid Mail-in Entry Receives <strong>500 Entry Diamonds</strong> -
                                     equivalent to the maximum a player can earn in a day through free platform activity.
                                 </p>
                                 <p style={styles.paragraph}>

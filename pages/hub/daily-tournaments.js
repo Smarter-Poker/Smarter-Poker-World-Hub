@@ -380,7 +380,7 @@ export default function DailyTournaments() {
     return (
         <>
             <SEOHead
-                title="Daily Poker Tournaments — Compete Every Day"
+                title="Daily Poker Tournaments - Compete Every Day"
                 description="Join daily poker tournaments on Smarter.Poker. Compete against players worldwide with daily challenges and prize pools."
                 canonical="/hub/daily-tournaments"
             >
@@ -583,7 +583,7 @@ export default function DailyTournaments() {
                             className="pnm-filter-select"
                             value={distanceFilter}
                             onChange={(e) => handleDistanceChange(e.target.value)}
-                            title={gpsStatus === 'denied' ? 'Location access denied — enable in browser settings' : ''}
+                            title={gpsStatus === 'denied' ? 'Location access denied - enable in browser settings' : ''}
                         >
                             <option value="all">Any distance</option>
                             <option value="25">Within 25 mi</option>

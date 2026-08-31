@@ -25,7 +25,7 @@ const IMAGES = [
     perception: 'Opponents think you\'re a maniac who plays too many hands aggressively.',
     exploits: [
       { adj: 'Value bet thinner', reason: 'Opponents call you down lighter. Get paid with marginal hands.' },
-      { adj: 'Reduce bluff frequency', reason: 'You\'re already getting called — make sure you have goods.' },
+      { adj: 'Reduce bluff frequency', reason: 'You\'re already getting called - make sure you have goods.' },
       { adj: 'Trap more', reason: 'Let opponents hang themselves trying to catch your bluffs.' },
     ],
     counters: ['You\'ll face more check-raises', 'Opponents trap with strong hands', 'Variance is much higher'],
@@ -58,8 +58,8 @@ const IMAGES = [
 
 const TIPS = [
   'Your image changes throughout a session based on shown hands',
-  'After showing a bluff, tighten up — opponents will call you wider',
-  'After showing premiums, bluff more — opponents will over-fold',
+  'After showing a bluff, tighten up - opponents will call you wider',
+  'After showing premiums, bluff more - opponents will over-fold',
   'New to the table? Default TAG image. Adjust after 30+ minutes',
 ];
 
@@ -92,7 +92,7 @@ function TableImageTracker() {
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>How to Exploit This Image</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>How To Exploit This Image</div>
           {img.exploits.map((e, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: img.color, marginBottom: 2 }}>{e.adj}</div>
@@ -117,7 +117,7 @@ function TableImageTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Table Image Tracker failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Table Image Tracker Failed: {err.message}</div>;
   }
 }
 

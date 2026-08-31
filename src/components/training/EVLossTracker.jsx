@@ -204,7 +204,7 @@ function PositionHeatmap({ handHistory }) {
                             {p.evLoss > 0 ? `-${p.evLoss.toFixed(1)}` : '0.0'}
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b', marginTop: 1 }}>
-                            {p.hands} hands
+                            {p.hands} Hands
                         </div>
                     </div>
                 );
@@ -392,7 +392,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
     if (!summary || summary.hands < 2) {
         return (
             <div style={{ padding: 16, textAlign: 'center', color: '#475569', fontSize: 11 }}>
-                Play at least 2 hands to see EV tracking data.
+                Play At Least 2 Hands To See EV Tracking Data.
             </div>
         );
     }
@@ -434,7 +434,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {summary.avgLoss.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b' }}>BB/hand</div>
+                        <div style={{ fontSize: 8, color: '#64748b' }}>BB/Hand</div>
                     </div>
                     <div>
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>

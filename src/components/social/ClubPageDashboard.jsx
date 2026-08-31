@@ -1123,7 +1123,7 @@ const PostCard = React.memo(
                     display: 'inline-block',
                   }}
                 />
-                Editing as {post.author?.name || 'Club Page'} - club branding preserved
+                Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
               </div>
             )}
             <textarea
@@ -1251,7 +1251,7 @@ const PostCard = React.memo(
                           marginLeft: 4,
                         }}
                       >
-                        See more
+                        See More
                       </span>
                     )}
                   </>
@@ -2191,7 +2191,7 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} is typing</span>
+              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing</span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -2595,7 +2595,7 @@ const PostCard = React.memo(
                   marginTop: 4,
                 }}
               >
-                View more comments
+                View More Comments
               </button>
             )}
 
@@ -2611,7 +2611,7 @@ const PostCard = React.memo(
                 }}
               >
                 <span>
-                  Replying to <strong>{replyingTo.name}</strong>
+                  Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
                   style={{ cursor: 'pointer', fontWeight: 600 }}
@@ -4709,7 +4709,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPnmEdit ? 12 : 0 }}>
             <div>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Edit Poker Near Me Details</h3>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: C.textSec }}>Contact info shown publicly on your Poker Near Me card and details page.</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: C.textSec }}>Contact Info Shown Publicly On Your Poker Near Me Card And Details Page.</p>
             </div>
             <button
               onClick={() => setShowPnmEdit(!showPnmEdit)}
@@ -4731,7 +4731,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                     maxLength={30}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
                   />
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Shown as a tap-to-call link on mobile.</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Shown As A Tap-To-Call Link On Mobile.</p>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Website / Social Link</label>
@@ -4743,7 +4743,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                     maxLength={255}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
                   />
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Facebook group, website, or any URL.</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Facebook Group, Website, Or Any URL.</p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -4792,7 +4792,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                 {(page.name || 'C')[0].toUpperCase()}
               </div>
               <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-                Post as {page.name}
+                Post As {page.name}
               </span>
             </div>
             <textarea
@@ -4864,7 +4864,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                         lineHeight: 1,
                       }}
                     >
-                      x
+                      X
                     </button>
                   </div>
                 ))}
@@ -5063,7 +5063,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                             fontSize: 14,
                           }}
                         >
-                          x
+                          X
                         </button>
                       </div>
                     </div>
@@ -5123,8 +5123,8 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                       color: C.textSec,
                     }}
                   >
-                    <span>{post.like_count || 0} likes</span>
-                    <span>{post.comment_count || 0} comments</span>
+                    <span>{post.like_count || 0} Likes</span>
+                    <span>{post.comment_count || 0} Comments</span>
                   </div>
                 </div>
               ))}
@@ -5905,8 +5905,8 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
               marginBottom: 12,
             }}
           >
-            Live games are managed through Club Commander. This board shows the current game status
-            in real-time.
+            Live Games Are Managed Through Club Commander. This Board Shows The Current Game Status
+            In Real-Time.
           </div>
 
           {/* Read-Only Games List */}
@@ -5923,7 +5923,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                   margin: '0 auto 12px',
                 }}
               />
-              Loading games...
+              Loading Games...
             </div>
           ) : liveGames.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
@@ -6046,7 +6046,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                         <div>
                           <div style={{ fontSize: 16, fontWeight: 800 }}>{game.game_name}</div>
                           <div style={{ fontSize: 13, opacity: 0.9 }}>
-                            {game.game_type} &middot; ${game.stakes} &middot; {game.max_seats}-max
+                            {game.game_type} &middot; ${game.stakes} &middot; {game.max_seats}-Max
                             {game.table_number ? ` · ${game.table_number}` : ''}
                           </div>
                         </div>
@@ -6064,10 +6064,10 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                             {game.status === 'running' ? '🟢 RUNNING' : '🔵 OPEN'}
                           </span>
                           <div style={{ fontSize: 11, marginTop: 4, opacity: 0.85 }}>
-                            {occupiedCount}/{game.max_seats} seated
+                            {occupiedCount}/{game.max_seats} Seated
                             {openSeats > 0 && (
                               <span style={{ color: '#86efac', marginLeft: 4 }}>
-                                ({openSeats} open)
+                                ({openSeats} Open)
                               </span>
                             )}
                           </div>

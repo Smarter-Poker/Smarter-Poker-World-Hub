@@ -30,7 +30,7 @@ export default function OverbetBluffGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #dc2626)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Overbet Bluff Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximum pressure bluffs — when the board tells your story.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximum Pressure Bluffs - When The Board Tells Your Story.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLUFF_SPOTS.map((s, i) => (
@@ -46,7 +46,7 @@ export default function OverbetBluffGuide() {
       <motion.div key={spotIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, textAlign: 'center', marginBottom: 4 }}>{spot.board}</div>
-        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>Hand: <span style={{ color: '#ef4444', fontWeight: 700 }}>{spot.hand}</span> (air)</div>
+        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>Hand: <span style={{ color: '#ef4444', fontWeight: 700 }}>{spot.hand}</span> (Air)</div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
           <div style={{ background: `${spot.color}15`, borderRadius: 8, padding: '6px 16px', textAlign: 'center' }}>
@@ -72,12 +72,12 @@ export default function OverbetBluffGuide() {
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#22c55e' }}>{spot.foldEq}%</div>
               </div>
               <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Need to Fold</div>
+                <div style={{ fontSize: 10, color: '#64748b' }}>Need To Fold</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{spot.neededFoldEq}%</div>
               </div>
             </div>
             <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
-              ✓ +EV Bluff ({spot.foldEq}% fold &gt; {spot.neededFoldEq}% needed)
+              ✓ +EV Bluff ({spot.foldEq}% Fold &gt; {spot.neededFoldEq}% Needed)
             </div>
           </motion.div>
         )}

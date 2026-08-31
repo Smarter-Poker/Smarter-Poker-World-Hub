@@ -29,7 +29,7 @@ export default function IsoRaiseStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Isolation Raise Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Isolate the fish. Get heads-up in position. Profit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Isolate The Fish. Get Heads-Up In Position. Profit.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {ISO_SPOTS.map((s, i) => (

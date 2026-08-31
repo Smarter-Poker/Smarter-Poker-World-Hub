@@ -195,7 +195,7 @@ export default function EquityHeatmapOverlay({ isVisible, board, heroPosition, v
                                 fontSize: F.caption, fontWeight: 700, color: T.textMuted,
                                 textAlign: 'center', lineHeight: 1.35, maxWidth: '100%',
                             }}>
-                                Pick hero cards to compute equity
+                                Pick Hero Cards To Compute Equity
                             </span>
                         )}
                     </div>

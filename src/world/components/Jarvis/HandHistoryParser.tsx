@@ -337,7 +337,7 @@ Dealt to Hero [Ah Kh]
                 color: 'rgba(255, 255, 255, 0.5)',
                 marginBottom: '12px'
             }}>
-                <strong style={{ color: '#FFD700' }}>Supported:</strong> PokerStars, GGPoker (partial), ACR (partial)
+                <strong style={{ color: '#FFD700' }}>Supported:</strong> PokerStars, GGPoker (Partial), ACR (Partial)
             </div>
 
             {/* Action Button */}
@@ -358,7 +358,7 @@ Dealt to Hero [Ah Kh]
                     cursor: parsedHand ? 'pointer' : 'not-allowed'
                 }}
             >
-                🎩 Ask Jarvis to Analyze
+                🎩 Ask Jarvis To Analyze
             </button>
         </div>
     );

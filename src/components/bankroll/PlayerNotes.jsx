@@ -90,7 +90,7 @@ export default function PlayerNotes({ userId }) {
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
                     <p style={{ margin: 0 }}>No Players Yet</p>
                     <p style={{ margin: '8px 0 0', fontSize: 14, opacity: 0.6 }}>
-                        Add notes on opponents you've played against
+                        Add Notes On Opponents You've Played Against
                     </p>
                 </div>
             ) : (
@@ -446,7 +446,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                         style={{ ...styles.input, flex: 1 }}
                                     />
                                     {savedStakes.length > 0 && (
-                                        <button type="button" onClick={() => setCustomStakes(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#x21A9;</button>
+                                        <button type="button" onClick={() => setCustomStakes(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#X21A9;</button>
                                     )}
                                 </div>
                             )}
@@ -485,7 +485,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                     style={{ ...styles.input, flex: 1 }}
                                 />
                                 {savedVenues.length > 0 && (
-                                    <button type="button" onClick={() => setCustomVenue(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#x21A9;</button>
+                                    <button type="button" onClick={() => setCustomVenue(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#X21A9;</button>
                                 )}
                             </div>
                         )}

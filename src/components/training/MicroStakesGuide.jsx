@@ -8,14 +8,14 @@ import { motion } from 'framer-motion';
 const MICRO_TIPS = [
   { title: 'Value Bet Relentlessly', icon: '●', color: '#22c55e',
     detail: 'At micros, players call too much. Bet thinner for value than you would at higher stakes. Top pair good kicker is often 3 streets of value.',
-    mistake: 'Checking back rivers with strong hands "to be safe" — you\'re leaving money on the table.',
+    mistake: 'Checking back rivers with strong hands "to be safe" - you\'re leaving money on the table.',
     adjustment: 'If villain calls 2 streets, they\'ll usually call 3. Size up on value bets (75-100% pot).' },
   { title: 'Bluff Less, Not Never', icon: '◇', color: '#ef4444',
-    detail: 'Reduce bluff frequency by ~30% vs optimal. Players at micros are calling stations — but they still fold sometimes.',
+    detail: 'Reduce bluff frequency by ~30% vs optimal. Players at micros are calling stations - but they still fold sometimes.',
     mistake: 'Triple-barreling as a bluff into players who never fold. Save your bluffs for good spots.',
     adjustment: 'Bluff on scary boards (4-flush, 4-straight). Skip bluffs on dry, paired boards where they "have something."' },
   { title: 'Play ABC Preflop', icon: '□', color: '#3b82f6',
-    detail: 'Tight-aggressive preflop wins at micros. Don\'t get creative with 3-bet bluffs or 4-bet light — just play strong hands.',
+    detail: 'Tight-aggressive preflop wins at micros. Don\'t get creative with 3-bet bluffs or 4-bet light - just play strong hands.',
     mistake: 'Over-adjusting and playing too loose because "it\'s just micros." Discipline still matters.',
     adjustment: 'Open 15-20% from EP, 25-30% from CO/BTN. 3-bet for value with QQ+, AKs. Fold the rest to 3-bets.' },
   { title: 'Ignore Bet Sizing Tells', icon: '○', color: '#f59e0b',
@@ -37,7 +37,7 @@ export default function MicroStakesGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Micro Stakes Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Beat NL2-NL25 with rock-solid fundamentals.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Beat NL2-NL25 With Rock-Solid Fundamentals.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {MICRO_TIPS.map((t, i) => (

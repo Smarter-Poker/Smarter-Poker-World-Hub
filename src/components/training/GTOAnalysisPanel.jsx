@@ -146,7 +146,7 @@ export default function GTOAnalysisPanel({
                     </p>
                     {isVipError ? (
                         <button onClick={showUpgradeModal} style={{ ...styles.closeButton, background: '#FFD700', color: '#000', marginBottom: 12 }}>
-                            Unlock with VIP
+                            Unlock With VIP
                         </button>
                     ) : null}
                     <button onClick={onClose} style={styles.closeButton}>Close</button>

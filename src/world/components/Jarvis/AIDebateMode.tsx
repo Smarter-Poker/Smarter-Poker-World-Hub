@@ -83,7 +83,7 @@ Format your response exactly like this with clear separators:
                         fontSize: '10px',
                         color: 'rgba(255, 255, 255, 0.5)'
                     }}>
-                        Two AI perspectives argue your decision
+                        Two AI Perspectives Argue Your Decision
                     </p>
                 </div>
                 {onClose && (
@@ -163,7 +163,7 @@ Format your response exactly like this with clear separators:
                     display: 'block',
                     marginBottom: '6px'
                 }}>
-                    Describe your decision:
+                    Describe Your Decision:
                 </label>
                 <textarea
                     value={scenario}
@@ -190,7 +190,7 @@ Format your response exactly like this with clear separators:
                     fontSize: '10px',
                     color: 'rgba(255, 215, 0, 0.7)'
                 }}>
-                    Quick examples:
+                    Quick Examples:
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {exampleScenarios.map((ex, i) => (
@@ -247,7 +247,7 @@ Format your response exactly like this with clear separators:
                 color: 'rgba(255, 255, 255, 0.4)',
                 textAlign: 'center'
             }}>
-                Jarvis will present both sides and give a verdict
+                Jarvis Will Present Both Sides And Give A Verdict
             </p>
         </div>
     );

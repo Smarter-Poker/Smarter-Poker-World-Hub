@@ -36,10 +36,10 @@ const SPNavBar = ({
             {/* left: Logo + Search */}
             <div className="sp-nav-left">
                 <div className="sp-logo" onClick={() => onNavigate?.('/app')} style={{ cursor: 'pointer' }}>
-                    <span className="logo-icon">&#x1F0CF;</span>
+                    <span className="logo-icon">&#X1F0CF;</span>
                 </div>
                 <div className="sp-search">
-                    <span className="search-icon">&#x1F50D;</span>
+                    <span className="search-icon">&#X1F50D;</span>
                     <input
                         type="text"
                         placeholder="Search Smarter Poker"
@@ -55,42 +55,42 @@ const SPNavBar = ({
                     title="Home"
                     onClick={() => onNavigate?.('/app/social')}
                 >
-                    <span className="tab-icon">&#x1F3E0;</span>
+                    <span className="tab-icon">&#X1F3E0;</span>
                 </button>
                 <button
                     className="sp-nav-tab"
                     title="Watch"
                     onClick={() => onNavigate?.('/app/watch')}
                 >
-                    <span className="tab-icon">&#x1F4FA;</span>
+                    <span className="tab-icon">&#X1F4FA;</span>
                 </button>
                 <button
                     className="sp-nav-tab"
                     title="Clubs"
                     onClick={() => onNavigate?.('/app/clubs')}
                 >
-                    <span className="tab-icon">&#x1F3B0;</span>
+                    <span className="tab-icon">&#X1F3B0;</span>
                 </button>
                 <button
                     className="sp-nav-tab"
                     title="GTO Training"
                     onClick={() => onNavigate?.('/app/training')}
                 >
-                    <span className="tab-icon">&#x1F9E0;</span>
+                    <span className="tab-icon">&#X1F9E0;</span>
                 </button>
                 <button
                     className="sp-nav-tab"
                     title="Games"
                     onClick={() => onNavigate?.('/app/arcade')}
                 >
-                    <span className="tab-icon">&#x1F3AE;</span>
+                    <span className="tab-icon">&#X1F3AE;</span>
                 </button>
 
             </div>
 
             {/* right: User Actions */}
             <div className="sp-nav-right">
-                <button className="sp-nav-icon" title="Menu">&#x229E;</button>
+                <button className="sp-nav-icon" title="Menu">&#X229E;</button>
 
                 <div style={{ position: 'relative' }}>
                     <button
@@ -98,7 +98,7 @@ const SPNavBar = ({
                         title="Messenger"
                         onClick={() => setShowMessenger(!showMessenger)}
                     >
-                        &#x1F4AC;
+                        &#X1F4AC;
                     </button>
                     <UnreadBadge count={unreadCount} style={{ top: -2, right: -2 }} />
                 </div>

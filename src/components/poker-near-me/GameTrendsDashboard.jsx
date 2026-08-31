@@ -12,7 +12,7 @@ function TrendIcon({ trend, changePct }) {
   // 'new' (a game type that just appeared, the most interesting signal the endpoint
   // produces). 'new' fell through to "— Stable", i.e. it was reported as unchanged.
   if (trend === 'new') return <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>NEW</span>;
-  return <span style={{ color: '#64748b' }}>— Stable</span>;
+  return <span style={{ color: '#64748b' }}>- Stable</span>;
 }
 
 export default function GameTrendsDashboard() {
@@ -64,7 +64,7 @@ export default function GameTrendsDashboard() {
         background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
         borderRadius: 16, padding: 24, border: '1px solid rgba(0,212,255,0.15)',
       }}>
-        <div style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>Loading trends...</div>
+        <div style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>Loading Trends...</div>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export default function GameTrendsDashboard() {
       }}>
         <h3 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16 }}>Game Type Trends</h3>
         <div style={{ color: '#f59e0b', fontSize: 13, marginBottom: 14 }}>
-          Trend data could not be loaded.
+          Trend Data Could Not Be Loaded.
         </div>
         <button
           onClick={() => { setError(null); setLoading(true); setReloadKey(k => k + 1); }}
@@ -107,7 +107,7 @@ export default function GameTrendsDashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>Game Type Trends</h3>
         <div style={{ color: '#64748b', fontSize: 12 }}>
-          {data?.total_games_now || 0} tables active
+          {data?.total_games_now || 0} Tables Active
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export default function GameTrendsDashboard() {
           borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12,
           color: '#fbbf24',
         }}>
-          Historical comparison available after 7 days of data collection.
+          Historical Comparison Available After 7 Days Of Data Collection.
         </div>
       )}
 
@@ -145,7 +145,7 @@ export default function GameTrendsDashboard() {
                 {trend.game}
               </div>
               <div style={{ color: '#64748b', fontSize: 11 }}>
-                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''} running
+                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''} Running
               </div>
             </div>
 

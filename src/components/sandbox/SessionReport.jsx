@@ -62,12 +62,12 @@ function drawReportCanvas(data) {
     ctx.fillText('SMARTER.POKER', W / 2, 62);
     ctx.fillStyle = T.textMuted;
     ctx.font = font(16);
-    ctx.fillText(`Virtual Sandbox — ${scopeLabel}`, W / 2, 90);
+    ctx.fillText(`Virtual Sandbox - ${scopeLabel}`, W / 2, 90);
 
     const boxes = [
         { val: String(totalHands), label: 'HANDS', color: T.accent },
-        { val: scoredHands > 0 ? `${accuracy}%` : '—', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
-        { val: coachStreak > 0 ? String(coachStreak) : '—', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
+        { val: scoredHands > 0 ? `${accuracy}%` : '-', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
+        { val: coachStreak > 0 ? String(coachStreak) : '-', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
     ];
     const boxW = (W - 80 - 2 * 16) / 3;
     boxes.forEach((b, i) => {
@@ -133,11 +133,11 @@ function drawReportCanvas(data) {
         ctx.fillText(!scored ? '·' : entry.isCorrect ? '✓' : '✗', 40, y);
         ctx.fillStyle = T.text;
         ctx.font = font(16, '700');
-        ctx.fillText(String(entry.hand || '—'), 70, y);
+        ctx.fillText(String(entry.hand || '-'), 70, y);
         ctx.fillStyle = T.textMuted;
         ctx.font = font(15);
-        ctx.fillText(String(entry.position || '—'), 200, y);
-        wrapText(ctx, String(entry.optimalAction || '—'), 300, y, W - 340, 20, 1);
+        ctx.fillText(String(entry.position || '-'), 200, y);
+        wrapText(ctx, String(entry.optimalAction || '-'), 300, y, W - 340, 20, 1);
         y += 30;
     });
 
@@ -375,10 +375,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                         : 'Play a few hands in the sandbox to generate a report.'}
                     action={archivedCount > 0 && scope === 'session' ? (
                         <button type="button" className="pa-btn" onClick={() => setScope('all')} style={btn('secondary')}>
-                            Show all loaded hands
+                            Show All Loaded Hands
                         </button>
                     ) : (
-                        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back to the table</button>
+                        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back To The Table</button>
                     )}
                 />
             ) : (
@@ -389,10 +389,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                             { label: 'Hands', value: String(stats.totalHands), colour: T.accent },
                             {
                                 label: 'GTO accuracy',
-                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : '—',
+                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : '-',
                                 colour: stats.scoredHands > 0 ? pctTone(stats.accuracy) : T.textMuted,
                             },
-                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : '—', colour: coachStreak > 0 ? T.warn : T.textMuted },
+                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : '-', colour: coachStreak > 0 ? T.warn : T.textMuted },
                         ].map(box => (
                             <div
                                 key={box.label}
@@ -410,22 +410,22 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
 
                     {stats.scoredHands > 0 && stats.scoredHands < stats.totalHands && (
                         <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                            Accuracy is based on {stats.scoredHands} coached hand{stats.scoredHands === 1 ? '' : 's'} of {stats.totalHands}.
+                            Accuracy Is Based On {stats.scoredHands} Coached hand{stats.scoredHands === 1 ? '' : 's'} Of {stats.totalHands}.
                         </p>
                     )}
 
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         <span style={pill(stats.evSum >= 0 ? 'success' : 'danger')}>
-                            {stats.evSum >= 0 ? '+' : ''}{stats.evSum.toFixed(2)} BB total
+                            {stats.evSum >= 0 ? '+' : ''}{stats.evSum.toFixed(2)} BB Total
                         </span>
                         <span style={pill('neutral')}>Avg {stats.avgEvDelta} BB</span>
-                        <span style={pill('neutral')}>{stats.evCount} scored spot{stats.evCount === 1 ? '' : 's'}</span>
+                        <span style={pill('neutral')}>{stats.evCount} Scored spot{stats.evCount === 1 ? '' : 's'}</span>
                     </div>
 
                     {stats.posEntries.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Positions played
+                                Positions Played
                             </h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                                 {stats.posEntries.map(([pos, count]) => (
@@ -438,7 +438,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {stats.streetEntries.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Streets analysed
+                                Streets Analysed
                             </h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                                 {stats.streetEntries.map(([street, count]) => (
@@ -451,7 +451,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {/* Recent hands */}
                     <div>
                         <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                            Recent hands
+                            Recent Hands
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {stats.recent.map((entry, i) => {
@@ -469,10 +469,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                                             width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                                             background: !isScored ? T.textDim : entry.isCorrect ? T.success : T.danger,
                                         }} />
-                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || '—'}</span>
-                                        <span>{entry?.position || '—'}</span>
+                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || '-'}</span>
+                                        <span>{entry?.position || '-'}</span>
                                         <span style={{ marginLeft: 'auto', color: T.textDim, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {entry?.optimalAction || '—'}
+                                            {entry?.optimalAction || '-'}
                                         </span>
                                     </div>
                                 );
@@ -483,7 +483,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {/* Export preview */}
                     <div>
                         <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                            Shareable card
+                            Shareable Card
                         </h4>
                         {previewUrl ? (
                             /* eslint-disable-next-line @next/next/no-img-element */

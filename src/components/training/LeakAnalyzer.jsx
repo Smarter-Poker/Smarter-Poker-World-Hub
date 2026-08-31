@@ -7,24 +7,24 @@ import { motion } from 'framer-motion';
 
 const LEAK_STATS = [
   { stat: 'VPIP (Voluntarily Put $ In Pot)', optimal: '22-28%', color: '#22c55e', icon: '■',
-    tooHigh: '>30% — You\'re playing too many hands. Tighten preflop ranges, especially from EP.',
-    tooLow: '<18% — You\'re too tight. Missing value from late position steals and blind defense.',
+    tooHigh: '>30% - You\'re playing too many hands. Tighten preflop ranges, especially from EP.',
+    tooLow: '<18% - You\'re too tight. Missing value from late position steals and blind defense.',
     fix: 'Track VPIP by position. UTG should be ~13%, BTN should be ~40%. Overall ~24%.' },
   { stat: 'PFR (Preflop Raise %)', optimal: '18-24%', color: '#3b82f6', icon: '▲',
-    tooHigh: '>28% — You\'re raising too many weak hands. Tighten your open-raise ranges.',
-    tooLow: '<15% — You\'re too passive preflop. Open-limping or calling too much instead of raising.',
+    tooHigh: '>28% - You\'re raising too many weak hands. Tighten your open-raise ranges.',
+    tooLow: '<15% - You\'re too passive preflop. Open-limping or calling too much instead of raising.',
     fix: 'PFR should be close to VPIP (gap < 6). Large gap = too much calling preflop.' },
   { stat: 'AF (Aggression Factor)', optimal: '2.5-3.5', color: '#f59e0b', icon: '▲',
-    tooHigh: '>4.0 — You\'re too aggressive postflop. Over-bluffing and getting caught.',
-    tooLow: '<2.0 — You\'re too passive postflop. Check-calling too much instead of betting/raising.',
+    tooHigh: '>4.0 - You\'re too aggressive postflop. Over-bluffing and getting caught.',
+    tooLow: '<2.0 - You\'re too passive postflop. Check-calling too much instead of betting/raising.',
     fix: 'AF = (Bets + Raises) / Calls. Increase by betting more flops and raising more turns.' },
   { stat: 'WTSD (Went to Showdown %)', optimal: '25-28%', color: '#ef4444', icon: '◆',
-    tooHigh: '>30% — You\'re calling too much. Getting to showdown with weak hands and losing.',
-    tooLow: '<22% — You\'re folding too much. Getting bluffed off good hands too often.',
+    tooHigh: '>30% - You\'re calling too much. Getting to showdown with weak hands and losing.',
+    tooLow: '<22% - You\'re folding too much. Getting bluffed off good hands too often.',
     fix: 'High WTSD = calling station. Low WTSD = folding too much. Both cost you money.' },
   { stat: 'W$SD (Won $ at Showdown)', optimal: '50-55%', color: '#8b5cf6', icon: '●',
-    tooHigh: '>58% — You\'re too tight at showdown. You\'re folding hands that should go to showdown.',
-    tooLow: '<48% — You\'re reaching showdown with too many weak hands. Tighten your calling ranges.',
+    tooHigh: '>58% - You\'re too tight at showdown. You\'re folding hands that should go to showdown.',
+    tooLow: '<48% - You\'re reaching showdown with too many weak hands. Tighten your calling ranges.',
     fix: 'W$SD works WITH WTSD. High WTSD + Low W$SD = massive leak (calling station).' },
 ];
 
@@ -37,7 +37,7 @@ export default function LeakAnalyzer() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Leak Analyzer
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use your stats to diagnose and fix leaks.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use Your Stats To Diagnose And Fix Leaks.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {LEAK_STATS.map((s, i) => (
@@ -68,7 +68,7 @@ export default function LeakAnalyzer() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How to Fix</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.fix}</div>
           </div>
         </div>

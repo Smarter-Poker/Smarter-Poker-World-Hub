@@ -37,7 +37,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
             <img src={user.coverPhoto || ''} alt="" style={{ background: '#2d2d2d', objectPosition: user.coverPosition || '50% 50%' }} />
             {isOwnProfile && (
                 <button className="edit-cover-btn">
-                    <CameraIcon size={18} /> Edit cover photo
+                    <CameraIcon size={18} /> Edit Cover Photo
                 </button>
             )}
         </div>
@@ -65,7 +65,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 </div>
 
                 <p className="profile-friends-count">
-                    {user.friendsCount?.toLocaleString()} friends
+                    {user.friendsCount?.toLocaleString()} Friends
                     {user.mutualFriends > 0 && ` · ${user.mutualFriends} mutual`}
                 </p>
 
@@ -81,10 +81,10 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 {isOwnProfile ? (
                     <>
                         <button className="btn-primary" onClick={onEditProfile}>
-                            ✏️ Edit profile
+                            ✏️ Edit Profile
                         </button>
                         <button className="btn-secondary">
-                            📷 Add to story
+                            📷 Add To Story
                         </button>
                     </>
                 ) : (
@@ -370,7 +370,7 @@ const PokerStatsCard = ({ stats }) => (
             </div>
             <div className="stat-item">
                 <span className="stat-label">Current Streak</span>
-                <span className="stat-value">{stats.streak} days 🔥</span>
+                <span className="stat-value">{stats.streak} Days 🔥</span>
             </div>
         </div>
 
@@ -382,7 +382,7 @@ const PokerStatsCard = ({ stats }) => (
                     style={{ width: `${stats.gtoMastery || 0}%` }}
                 />
             </div>
-            <span className="mastery-percent">{stats.gtoMastery || 0}% / 85% required</span>
+            <span className="mastery-percent">{stats.gtoMastery || 0}% / 85% Required</span>
         </div>
 
         <style>{`
@@ -848,7 +848,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         lifetimeProfit: user.lifetimeProfit || 0,
         handsPlayed: user.handsPlayed || 0,
         winRate: user.winRate || 0,
-        bestHand: user.bestHand || '—',
+        bestHand: user.bestHand || '-',
         biggestPot: user.biggestPot || 0,
         streak: user.streak || 0,
         gtoMastery: user.gtoMastery || 0
@@ -908,7 +908,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                             <h3>Friends</h3>
                             <a href="#friends">See All Friends</a>
                         </div>
-                        <span className="friends-count">{user.friendsCount} friends</span>
+                        <span className="friends-count">{user.friendsCount} Friends</span>
                         <div className="friends-grid">
                             {user.topFriends?.slice(0, 9).map((friend, i) => (
                                 <div key={i} className="friend-preview">

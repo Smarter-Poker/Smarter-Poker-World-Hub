@@ -142,7 +142,7 @@ export default function VillainPresetPicker({
 
             {presets.length === 0 ? (
                 <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
-                    Opponent profiles are unavailable right now. Set a range by hand in the Range Explorer instead.
+                    Opponent Profiles Are Unavailable Right Now. Set A Range By Hand In The Range Explorer Instead.
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -175,7 +175,7 @@ export default function VillainPresetPicker({
                                             )}
                                             {applied && (
                                                 <span style={pill('success')}>
-                                                    <Check size={12} strokeWidth={3} /> Applied to {applied}
+                                                    <Check size={12} strokeWidth={3} /> Applied To {applied}
                                                 </span>
                                             )}
                                         </div>
@@ -195,7 +195,7 @@ export default function VillainPresetPicker({
                                             background: `${p.colour}1F`, color: p.colour, borderColor: `${p.colour}55`,
                                         }}
                                     >
-                                        Apply to {seatLabel}
+                                        Apply To {seatLabel}
                                     </button>
                                     <button
                                         type="button"
@@ -213,7 +213,7 @@ export default function VillainPresetPicker({
                                         <RangeMiniMap range={p.range} />
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                                                {combos} combos ({((combos / 1326) * 100).toFixed(1)}%)
+                                                {combos} Combos ({((combos / 1326) * 100).toFixed(1)}%)
                                             </div>
                                             {p.tip && (
                                                 <div style={{ fontSize: F.caption, color: T.textDim, marginTop: S.xs, lineHeight: 1.45 }}>

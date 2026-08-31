@@ -715,6 +715,24 @@ jobs:
       - name: "CHECK 18: No direct Vercel deploy invocations"
         run: node scripts/ci/check-no-vercel-deploy.mjs
 
+      # ===============================================================
+      # CHECK 19/20: player-facing copy laws, ported from Club Arena.
+      #
+      # Both laws are Dan's and both were enforced ONLY inside Club
+      # Arena, which is one app inside the site. The World Hub is most
+      # of the pages a player ever sees and had neither gate, so it had
+      # drifted to ~3,900 lines of copy carrying an em dash and ~2,000
+      # text nodes that were not Title Cased. Fixing that without also
+      # landing the gate would just start the drift again.
+      #
+      # Both scripts autofix: add --fix to the command locally.
+      # ===============================================================
+      - name: "CHECK 19: No em dashes in player-facing copy"
+        run: node scripts/ci/check-ui-text.mjs
+
+      - name: "CHECK 20: Title Case on every player-facing page"
+        run: node scripts/ci/check-title-case.mjs
+
       # ═══════════════════════════════════════════════════════════════
       # CHECK 8: Auth-critical files exist on disk
       # Single source of truth: __tests__/auth-routes-exist.test.mjs

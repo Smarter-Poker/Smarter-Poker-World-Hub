@@ -192,7 +192,7 @@ async function handler(req, res) {
                     body: JSON.stringify({
                         from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
                         to: process.env.OPS_ALERT_EMAIL,
-                        subject: `[smarter.poker] Trigger audit FAILED — ${failures.length} assertions`,
+                        subject: `[smarter.poker] Trigger audit FAILED - ${failures.length} assertions`,
                         text: JSON.stringify({ failures, allResults: results }, null, 2),
                     }),
                 });

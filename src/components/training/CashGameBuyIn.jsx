@@ -17,12 +17,12 @@ const BUYIN_TOPICS = [
     when: 'When you\'re a beginner, playing above your skill level, or multi-tabling and want simpler decisions.',
     math: 'At 20bb, all-in preflop or on the flop is standard. SPR ≈ 2 after a 3x open, meaning 1 bet commits you.' },
   { title: 'Top-Off Strategy', icon: '↻', color: '#3b82f6',
-    detail: 'Always top off to maximum when your stack drops below 100bb. Never sit with 60-80bb — it\'s the worst of both worlds.',
+    detail: 'Always top off to maximum when your stack drops below 100bb. Never sit with 60-80bb - it\'s the worst of both worlds.',
     why: 'With 70bb you\'re too deep for short-stack play but too shallow for deep-stack maneuvers. It\'s an awkward, -EV stack size.',
     when: 'After every hand where you lose chips. Most sites let you add chips between hands. Do it automatically.',
     math: 'If you lose a 30bb pot and drop to 70bb, immediately top up to 100bb. The difference in EV is significant.' },
   { title: 'Deep Stack Games (200bb+)', icon: '▲', color: '#8b5cf6',
-    detail: 'Some games allow 200bb+ buy-ins. These are extremely skill-intensive — the best players in the world thrive in deep games.',
+    detail: 'Some games allow 200bb+ buy-ins. These are extremely skill-intensive - the best players in the world thrive in deep games.',
     why: 'At 200bb, you can play every hand type: set-mining, floating, multi-street bluffs, thin value bets. Maximum skill expression.',
     when: 'Only if you\'re a strong post-flop player with deep-stack experience. Weak players get crushed at 200bb.',
     math: 'SPR after a 3x open at 200bb ≈ 12. You can comfortably bet 3 streets and still have fold equity on the river.' },
@@ -42,7 +42,7 @@ export default function CashGameBuyIn() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Cash Game Buy-In Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Optimize your stack size for maximum profit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Optimize Your Stack Size For Maximum Profit.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {BUYIN_TOPICS.map((topic, i) => (

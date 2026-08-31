@@ -31,7 +31,7 @@ function assert(condition, label) {
 }
 
 console.debug('\n═══════════════════════════════════════════');
-console.debug('  🐴 HORSE AI — ALL 39 FEATURES TEST');
+console.debug('  🐴 HORSE AI - ALL 39 FEATURES TEST');
 console.debug('═══════════════════════════════════════════\n');
 
 const HORSE_ID = '00000000-0000-0000-0000-000000000028';
@@ -355,7 +355,7 @@ if (failed > 0) {
     console.debug('\n❌ FAILURES:');
     failures.forEach(f => console.debug(`  - ${f}`));
 } else {
-    console.debug('\n✅ ALL TESTS PASSED — 100% VERIFIED');
+    console.debug('\n✅ ALL TESTS PASSED - 100% VERIFIED');
 }
 
 console.debug('');

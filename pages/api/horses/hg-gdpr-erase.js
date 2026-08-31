@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId must be a valid uuid' });
     }
     if (confirmed !== true) {
-      return res.status(400).json({ success: false, error: 'confirmed must be true — this action is irreversible' });
+      return res.status(400).json({ success: false, error: 'confirmed must be true - this action is irreversible' });
     }
 
     // CRITICAL: p_requested_by MUST match auth.uid() — server-side enforced

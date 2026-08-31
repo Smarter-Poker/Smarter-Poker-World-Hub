@@ -234,7 +234,7 @@ export default function HomeGamesSeatReservation({
   if (loading) {
     return (
       <div className="py-12 flex items-center justify-center text-[#94A3B8]">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading tables…
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading Tables…
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default function HomeGamesSeatReservation({
       <div className="rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 p-4 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
         <div className="flex-1">
-          <div className="text-[#F59E0B] font-medium">Can't show the seat list</div>
+          <div className="text-[#F59E0B] font-medium">Can't Show The Seat List</div>
           <div className="text-sm text-[#F59E0B]/80 mt-1">{error.message}</div>
         </div>
         <button onClick={() => load()} className="text-[#F59E0B] hover:text-[#FBBF24]">
@@ -256,7 +256,7 @@ export default function HomeGamesSeatReservation({
 
   if (tables.length === 0) {
     return (
-      <div className="text-center py-8 text-[#94A3B8]">No tables yet for this event.</div>
+      <div className="text-center py-8 text-[#94A3B8]">No Tables Yet For This Event.</div>
     );
   }
 
@@ -312,7 +312,7 @@ export default function HomeGamesSeatReservation({
       {refreshing && (
         <div className="text-[10px] uppercase tracking-widest text-[#22D3EE]/70
                         flex items-center gap-1 justify-end">
-          <Loader2 className="w-3 h-3 animate-spin" /> live
+          <Loader2 className="w-3 h-3 animate-spin" /> Live
         </div>
       )}
 
@@ -339,7 +339,7 @@ export default function HomeGamesSeatReservation({
                      flex items-center justify-center gap-2 transition"
         >
           <Plus className="w-4 h-4" />
-          Add another table
+          Add Another Table
         </button>
       )}
     </div>

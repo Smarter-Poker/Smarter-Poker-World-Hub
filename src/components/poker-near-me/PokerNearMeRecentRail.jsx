@@ -21,8 +21,8 @@ export default function PokerNearMeRecentRail({ currentHref }) {
   return (
     <section className="pnm-recent-rail" aria-labelledby="pnm-recent-title">
       <div>
-        <p>Private on this device</p>
-        <h2 id="pnm-recent-title">Recently viewed</h2>
+        <p>Private On This Device</p>
+        <h2 id="pnm-recent-title">Recently Viewed</h2>
       </div>
       <div className="pnm-recent-rail__track" role="list">
         {places.map((place) => (

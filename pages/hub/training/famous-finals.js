@@ -77,7 +77,7 @@ const FINAL_TABLES = [
           { id: 'cbet-125', text: 'C-Bet 125% pot', freq: 0, ev: 0.6 },
         ],
         explanation:
-          "Top pair top kicker on a dry board. Small c-bet is optimal — it gets value from worse Ax and doesn't build the pot unnecessarily.",
+          "Top pair top kicker on a dry board. Small c-bet is optimal - it gets value from worse Ax and doesn't build the pot unnecessarily.",
       },
       {
         street: 'turn',
@@ -138,7 +138,7 @@ const FINAL_TABLES = [
           { id: 'cbet-125', text: 'C-Bet 125%', freq: 0, ev: 0.9 },
         ],
         explanation:
-          'Open-ended straight draw with two overcards. Small c-bet is optimal — you have massive equity and want to build the pot cheaply.',
+          'Open-ended straight draw with two overcards. Small c-bet is optimal - you have massive equity and want to build the pot cheaply.',
       },
     ],
   },
@@ -261,7 +261,7 @@ const FINAL_TABLES = [
           { id: 'cbet-125', text: 'C-Bet 125%', freq: 0, ev: 1.6 },
         ],
         explanation:
-          'Top pair with a nut flush draw. This is a monster draw — c-betting 50% pot sets up for a turn barrel or free card.',
+          'Top pair with a nut flush draw. This is a monster draw - c-betting 50% pot sets up for a turn barrel or free card.',
       },
     ],
   },

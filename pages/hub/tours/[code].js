@@ -357,7 +357,7 @@ export default function TourDetailPage() {
   return (
     <>
       <SEOHead
-        title={tour ? (tour.tour_name + ' — Poker Tour Details') : 'Poker Tour Details'}
+        title={tour ? (tour.tour_name + ' - Poker Tour Details') : 'Poker Tour Details'}
         description={tour ? ('View ' + tour.tour_name + ' schedule, stops, and results on Smarter.Poker.') : 'View details for this poker tour on Smarter.Poker.'}
       >
 
@@ -637,7 +637,7 @@ export default function TourDetailPage() {
                                 <span className="sp-time-val">{evt.start_time || 'TBD'}</span>
                               </div>
                               <div className="sp-col-latereg">
-                                <span className="sp-latereg-val">{evt.late_registration || '—'}</span>
+                                <span className="sp-latereg-val">{evt.late_registration || '-'}</span>
                               </div>
                               <div className="sp-col-chips">
                                 <span className="sp-chips-val">{evt.starting_chips_display || (evt.starting_chips ? evt.starting_chips.toLocaleString() : 'TBD')}</span>
@@ -645,7 +645,7 @@ export default function TourDetailPage() {
                               <div className="sp-col-gtd">
                                 {evt.guarantee ? (
                                   <span className="sp-gtd-chip">{formatMoney(evt.guarantee)}</span>
-                                ) : <span className="sp-na">—</span>}
+                                ) : <span className="sp-na">-</span>}
                               </div>
                             </div>
                           );
@@ -653,7 +653,7 @@ export default function TourDetailPage() {
                       </div>
                     )}
                     {srcEvents.length > 0 && srcEvents[0]?.data_quality === 'pending' && (
-                      <p className="sp-data-note">⚠ Showing registry data — live schedule scrape pending</p>
+                      <p className="sp-data-note">⚠ Showing registry data - live schedule scrape pending</p>
                     )}
                   </>
                 );

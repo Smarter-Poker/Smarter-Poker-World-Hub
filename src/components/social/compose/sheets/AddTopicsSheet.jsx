@@ -74,7 +74,7 @@ export default function AddTopicsSheet({ onClose }) {
                     background: '#f0f2f5', borderRadius: 10,
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                 }}>
-                    <span aria-hidden="true">&#x1F50D;</span>
+                    <span aria-hidden="true">&#X1F50D;</span>
                     <input
                         autoFocus
                         value={query}
@@ -100,7 +100,7 @@ export default function AddTopicsSheet({ onClose }) {
                                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                 display: 'inline-flex', alignItems: 'center', gap: 4,
                             }}
-                        >#{t} <span aria-hidden="true">&#x2715;</span></span>
+                        >#{t} <span aria-hidden="true">&#X2715;</span></span>
                     ))}
                 </div>
             )}
@@ -115,8 +115,8 @@ export default function AddTopicsSheet({ onClose }) {
                         color: '#1877F2', fontWeight: 600, fontSize: 14,
                     }}
                 >
-                    <span aria-hidden="true" style={{ fontSize: 20 }}>&#xff0b;</span>
-                    Add new topic: #{customTopic}
+                    <span aria-hidden="true" style={{ fontSize: 20 }}>&#Xff0b;</span>
+                    Add New Topic: #{customTopic}
                 </button>
             )}
 
@@ -133,7 +133,7 @@ export default function AddTopicsSheet({ onClose }) {
                                 borderTop: '1px solid #e4e6eb', cursor: 'pointer', textAlign: 'left',
                             }}
                         >
-                            <span aria-hidden="true" style={{ fontSize: 18, width: 24, textAlign: 'center', color: '#65676B' }}>&#x1F516;</span>
+                            <span aria-hidden="true" style={{ fontSize: 18, width: 24, textAlign: 'center', color: '#65676B' }}>&#X1F516;</span>
                             <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>#{t}</span>
                             <span aria-hidden="true" style={{
                                 width: 22, height: 22, borderRadius: 4,

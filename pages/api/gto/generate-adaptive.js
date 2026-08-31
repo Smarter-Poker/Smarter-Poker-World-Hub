@@ -124,9 +124,9 @@ function buildAdaptiveScenario(weakness) {
 
     return {
         id: `adaptive-${position}-${Date.now()}`,
-        title: `${position} Opening Range — Targeted Drill`,
+        title: `${position} Opening Range - Targeted Drill`,
         description: `Practice your ${position} open-raise frequencies at ${stackDepth}bb. ` +
-            `This range was flagged as your weakest spot — the solver-equilibrium ` +
+            `This range was flagged as your weakest spot - the solver-equilibrium ` +
             `frequencies below close that gap fastest.`,
         position,
         stackDepth,

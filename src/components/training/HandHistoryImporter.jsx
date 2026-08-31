@@ -292,8 +292,8 @@ export default function HandHistoryImporter() {
         <div>
           <div style={sectionStyle}>
             <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
-              Paste hand history text from PokerStars, GGPoker, WPN/ACR, 888poker, partypoker, or iPoker.
-              Exact shared-solver auditing currently supports PokerStars, GGPoker, and 888; other formats can still be parsed for replay.
+              Paste Hand History Text From PokerStars, GGPoker, WPN/ACR, 888Poker, Partypoker, Or IPoker.
+              Exact Shared-Solver Auditing Currently Supports PokerStars, GGPoker, And 888; Other Formats Can Still Be Parsed For Replay.
             </div>
             <textarea
               value={inputText}
@@ -323,12 +323,12 @@ export default function HandHistoryImporter() {
               background: 'rgba(255,255,255,0.06)', color: '#94a3b8',
               fontSize: 13, fontWeight: 600,
             }}>
-              Upload .txt File
+              Upload .Txt File
               <input type="file" accept=".txt,.log,.hh" onChange={handleFile} style={{ display: 'none' }} />
             </label>
 
             <div style={{ color: '#64748b', fontSize: 11 }}>
-              Solver audit: PokerStars, GGPoker, 888
+              Solver Audit: PokerStars, GGPoker, 888
             </div>
           </div>
           {analysisError && (
@@ -354,7 +354,7 @@ export default function HandHistoryImporter() {
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Total EV Loss</div>
-              <div style={{ color: totalEVLoss > 2 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalEVLoss} bb</div>
+              <div style={{ color: totalEVLoss > 2 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalEVLoss} BB</div>
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Mistakes</div>
@@ -370,7 +370,7 @@ export default function HandHistoryImporter() {
 
           {analysisError && (
             <div role="alert" style={{ ...sectionStyle, color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
-              {analysisError} No unverified result was counted as solver evidence.
+              {analysisError} No Unverified Result Was Counted As Solver Evidence.
             </div>
           )}
 
@@ -395,7 +395,7 @@ export default function HandHistoryImporter() {
                           padding: '1px 5px', borderRadius: 3, fontSize: 9, fontWeight: 700,
                           background: 'rgba(239,68,68,0.2)', color: '#ef4444',
                         }}>
-                          {analysis.mistakes} err
+                          {analysis.mistakes} Err
                         </span>
                       )}
                     </div>
@@ -533,7 +533,7 @@ export default function HandHistoryImporter() {
                             <div>
                               <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>EV Lost</div>
                               <div style={{ color: parseFloat(analysis.totalEVLoss) > 0.5 ? '#ef4444' : '#22c55e', fontSize: 16, fontWeight: 700 }}>
-                                {analysis.totalEVLoss} bb
+                                {analysis.totalEVLoss} BB
                               </div>
                             </div>
                             <div>

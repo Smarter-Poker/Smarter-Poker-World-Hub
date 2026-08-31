@@ -155,7 +155,7 @@ export default function DoubleOrNothing({
                             <h2>NOTHING TO DOUBLE</h2>
                         </div>
                         <p className="empty-copy">
-                            You have no winnings from this game to put at risk. Play another round to build a stake.
+                            You Have No Winnings From This Game To Put At Risk. Play Another Round To Build A Stake.
                         </p>
                         <HexButton label="Close" onClick={handleDismiss} variant="primary" />
                     </MetalFrame>
@@ -207,7 +207,7 @@ export default function DoubleOrNothing({
                                             style={{ '--countdown-progress': `${(secondsLeft / Math.max(1, Math.floor(offerSeconds))) * 100}%` }}
                                         />
                                         <span className="countdown-num">{secondsLeft}</span>
-                                        <span className="countdown-label">to decide</span>
+                                        <span className="countdown-label">To Decide</span>
                                     </div>
                                 )}
                             </div>
@@ -242,7 +242,7 @@ export default function DoubleOrNothing({
 
                             <div className="warning-box">
                                 <AlertTriangle size={16} />
-                                <span>Answer incorrectly and lose ALL {stake} diamonds!</span>
+                                <span>Answer Incorrectly And Lose ALL {stake} Diamonds!</span>
                             </div>
 
                             <div className="offer-actions">
@@ -269,7 +269,7 @@ export default function DoubleOrNothing({
                     >
                         <MetalFrame padding="24px" showBolts={true}>
                             <div className="risk-banner">
-                                <Gem size={16} /> {stake} diamonds at risk!
+                                <Gem size={16} /> {stake} Diamonds At Risk!
                             </div>
 
                             <p className="question-text">{question.question}</p>

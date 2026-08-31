@@ -75,7 +75,7 @@ export default function OddsOracleWidget() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Odds Oracle</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Quick-reference poker odds and probabilities</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Quick-Reference Poker Odds And Probabilities</div>
         </div>
 
         {/* Tab selector */}
@@ -127,7 +127,7 @@ export default function OddsOracleWidget() {
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
               <div style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, marginBottom: 8 }}>RULE OF 2 & 4 CALCULATOR</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>Number of Outs</span>
+                <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>Number Of Outs</span>
                 <span style={{ color: '#f59e0b', fontSize: 18, fontWeight: 800 }}>{outsInput}</span>
               </div>
               <input type="range" min={1} max={20} value={outsInput}
@@ -201,7 +201,7 @@ export default function OddsOracleWidget() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Odds Oracle</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

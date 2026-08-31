@@ -82,7 +82,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
       }}>
         <div style={{ color: '#64748b', textAlign: 'center', padding: 40, fontFamily: 'Rajdhani, Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Loading activity data...
+          Loading Activity Data...
         </div>
       </div>
     );
@@ -165,7 +165,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
                     role="button"
                     tabIndex={0}
                     aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
-                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} — Avg: ${cell.avg_tables} tables`}
+                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} - Avg: ${cell.avg_tables} tables`}
                     onMouseEnter={() => setHoveredCell(cell)}
                     onMouseLeave={() => setHoveredCell(null)}
                     onClick={() => setHoveredCell(cell)}
@@ -202,7 +202,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
           color: '#fff', fontSize: 13, textAlign: 'center',
           border: '1px solid rgba(0,212,255,0.2)',
         }}>
-          {DAY_LABELS[hoveredCell.day]} at {HOUR_LABELS[hoveredCell.hour]} — Avg: {hoveredCell.avg_tables} tables
+          {DAY_LABELS[hoveredCell.day]} At {HOUR_LABELS[hoveredCell.hour]} - Avg: {hoveredCell.avg_tables} Tables
         </div>
       )}
 

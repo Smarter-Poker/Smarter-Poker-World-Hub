@@ -165,7 +165,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
 
       {accuracyPct != null ? (
         <span style={{ ...chipStyle, color: accuracyPct >= 75 ? 'var(--sp-accent-green)' : accuracyPct >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)' }}>
-          {accuracyPct}% acc
+          {accuracyPct}% Acc
         </span>
       ) : null}
 

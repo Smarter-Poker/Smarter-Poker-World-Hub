@@ -84,7 +84,7 @@ function PotGeometryVisualizer() {
             const colors = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
             return (
               <div key={st.name} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{Math.round(st.pot * 10) / 10} bb</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{Math.round(st.pot * 10) / 10} BB</div>
                 <div style={{ width: '100%', height, background: `${colors[i]}33`, borderRadius: 6, border: `1px solid ${colors[i]}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {st.bet > 0 && <div style={{ fontSize: 10, color: colors[i], fontWeight: 700 }}>+{Math.round(st.bet * 10) / 10}</div>}
                 </div>
@@ -99,20 +99,20 @@ function PotGeometryVisualizer() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stack Commitment</span>
             <span style={{ fontSize: 11, fontWeight: 700, color: calc.allIn ? '#ef4444' : '#10b981' }}>
-              {Math.round(calc.totalInvested * 10) / 10} / {stack} bb ({calc.pctStackUsed}%)
+              {Math.round(calc.totalInvested * 10) / 10} / {stack} BB ({calc.pctStackUsed}%)
             </span>
           </div>
           <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${calc.pctStackUsed}%`, borderRadius: 6, background: calc.allIn ? '#ef4444' : calc.pctStackUsed > 70 ? '#f59e0b' : '#10b981', transition: 'width 0.3s' }} />
           </div>
-          {calc.allIn && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4, fontWeight: 700, textAlign: 'center' }}>ALL-IN before river completes!</div>}
+          {calc.allIn && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4, fontWeight: 700, textAlign: 'center' }}>ALL-IN Before River Completes!</div>}
         </div>
 
         {/* Summary cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Final Pot</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#8b5cf6' }}>{Math.round(calc.potAfterRiver)} bb</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#8b5cf6' }}>{Math.round(calc.potAfterRiver)} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Pot Growth</div>
@@ -121,23 +121,23 @@ function PotGeometryVisualizer() {
           <div style={{ padding: 10, background: 'rgba(59,130,246,0.06)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Geo Size</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#3b82f6' }}>{calc.geoX}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>for all-in by river</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>For All-In By River</div>
           </div>
         </div>
 
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', marginBottom: 4 }}>Pot Geometry Insight</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-            {calc.pctStackUsed < 30 ? 'Small sizing — leaves room for multi-street play. Consider larger sizes with strong hands to build pot.' :
-             calc.pctStackUsed < 70 ? 'Moderate commitment — good for value hands. Enough behind for river decisions.' :
-             calc.allIn ? 'Over-committed — simplify to jam/fold on earlier street. Consider geometric sizing to spread bets evenly.' :
-             'Deep commitment — pot is large relative to stack. River decisions will be for significant portions of stack.'}
+            {calc.pctStackUsed < 30 ? 'Small sizing - leaves room for multi-street play. Consider larger sizes with strong hands to build pot.' :
+             calc.pctStackUsed < 70 ? 'Moderate commitment - good for value hands. Enough behind for river decisions.' :
+             calc.allIn ? 'Over-committed - simplify to jam/fold on earlier street. Consider geometric sizing to spread bets evenly.' :
+             'Deep commitment - pot is large relative to stack. River decisions will be for significant portions of stack.'}
           </div>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Geometry failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Geometry Failed To Load: {err.message}</div>;
   }
 }
 

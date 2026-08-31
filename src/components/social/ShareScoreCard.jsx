@@ -158,7 +158,7 @@ export const ShareScoreCard = ({
               <span key={i} className="gto-line">{line}</span>
             ))}
             {scoreData.gtoLines.length > 3 && (
-              <span className="gto-more">+{scoreData.gtoLines.length - 3} more</span>
+              <span className="gto-more">+{scoreData.gtoLines.length - 3} More</span>
             )}
           </div>
         </div>

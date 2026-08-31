@@ -220,13 +220,13 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                     </div>
 
                     <div style={styles.daysRemaining}>
-                        {getDaysRemaining(activeGoal.end_date)} days remaining
+                        {getDaysRemaining(activeGoal.end_date)} Days Remaining
                     </div>
 
                     {/* Milestone Check */}
                     {calculateProgress(activeGoal) >= 100 && (
                         <div style={styles.milestone}>
-                            Goal achieved!
+                            Goal Achieved!
                         </div>
                     )}
                 </div>
@@ -237,7 +237,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Active Goal</span>
                     <button onClick={() => setShowAddGoal(true)} style={styles.setGoalBtn}>
-                        Set a Profit Target
+                        Set A Profit Target
                     </button>
                 </div>
             )}

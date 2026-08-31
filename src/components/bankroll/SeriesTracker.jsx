@@ -244,7 +244,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                         onClick={() => setConfirmDelete(true)}
                         style={styles.deleteX}
                         title="Delete Series"
-                    >&#x2715;</button>
+                    >&#X2715;</button>
 
                     <div style={styles.activeHeader}>
                         <div style={styles.activeLed} />
@@ -356,7 +356,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                         <div key={entry.id} style={styles.entryRow}>
                                             <div style={styles.entryInfo}>
                                                 <span style={styles.entryDate}>
-                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                                                 </span>
                                                 <span style={styles.entryCat}>{catLabel}</span>
                                                 {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
@@ -453,7 +453,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Series</span>
                     <div>
                         <div style={styles.createTitle}>Start A New Series</div>
-                        <div style={styles.createSub}>Track Multi-day Tournament Series, WSOP Runs, And Events</div>
+                        <div style={styles.createSub}>Track Multi-Day Tournament Series, WSOP Runs, And Events</div>
                     </div>
                 </motion.button>
             )}
@@ -646,7 +646,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                     )}
                                 </div>
                                 <div style={styles.seriesCardFooter}>
-                                    <span>{series.entryCount || 0} entries</span>
+                                    <span>{series.entryCount || 0} Entries</span>
                                     <span style={styles.viewReportLink}>View Report --&gt;</span>
                                 </div>
                             </motion.div>

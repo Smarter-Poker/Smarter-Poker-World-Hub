@@ -324,7 +324,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
           color: 'rgba(255,255,255,0.7)',
           fontSize: '16px'
         }}>
-          Checking authentication...
+          Checking Authentication...
         </p>
       </div>
     );
@@ -358,7 +358,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
           fontSize: '16px',
           marginBottom: '25px'
         }}>
-          Please sign in to create your custom AI-powered avatar
+          Please Sign In To Create Your Custom AI-Powered Avatar
         </p>
         <button
           onClick={() => window.top.location.href = '/auth/login'}
@@ -981,13 +981,13 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
           {effectiveVip && <span className="vip-badge">VIP</span>}
         </h2>
         <p className="builder-subtitle">
-          Create a unique custom avatar using AI
+          Create A Unique Custom Avatar Using AI
         </p>
 
         {/* VIP Slot Counter */}
         {effectiveVip && (
           <div className="vip-slots">
-            Custom Avatars: {currentCount}/5 slots used
+            Custom Avatars: {currentCount}/5 Slots Used
             {!canCreate && (
               <button
                 className="manage-gallery-btn"
@@ -1002,17 +1002,17 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
         {/* Limit Warnings */}
         {!effectiveVip && currentCount >= 1 && (
           <div className="limit-warning limit-reached">
-            You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
+            You've Used Your 1 Free Custom Avatar. Upgrade To VIP For Up To 5 Avatars!
           </div>
         )}
         {!effectiveVip && currentCount === 0 && (
           <div className="limit-warning">
-            FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
+            FREE Users Get 1 Custom Avatar (One Time Only). Upgrade To VIP For Up To 5!
           </div>
         )}
         {effectiveVip && !canCreate && (
           <div className="limit-warning limit-reached">
-            VIP limit reached! Delete an avatar below to create a new one.
+            VIP Limit Reached! Delete An Avatar Below To Create A New One.
           </div>
         )}
 
@@ -1053,7 +1053,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
         </button>
 
         <div className="powered-by">
-          Powered by AI Image Generation
+          Powered By AI Image Generation
         </div>
 
         {/* VIP Gallery Management Modal */}

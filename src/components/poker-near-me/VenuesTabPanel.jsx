@@ -99,7 +99,7 @@ export default function VenuesTabPanel({
             <div className="search-landing">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 12 }}>Find Poker Near You</p>
-                <p style={{ fontSize: 13, opacity: 0.6, marginTop: 4, maxWidth: 340, lineHeight: 1.5 }}>Search A City Above To See Card Rooms, Casinos, Charity Rooms And Home Games — Or Use Your Location For The Closest Games First.</p>
+                <p style={{ fontSize: 13, opacity: 0.6, marginTop: 4, maxWidth: 340, lineHeight: 1.5 }}>Search A City Above To See Card Rooms, Casinos, Charity Rooms And Home Games - Or Use Your Location For The Closest Games First.</p>
                 {requestGpsLocation && (
                     <button
                         onClick={requestGpsLocation}
@@ -286,7 +286,7 @@ export default function VenuesTabPanel({
                                         <polyline points="8 12 12 16 16 12" />
                                         <line x1="12" y1="8" x2="12" y2="16" />
                                     </svg>
-                                    Search Farther — Expand To {nextTier} Miles
+                                    Search Farther - Expand To {nextTier} Miles
                                 </button>
                             </div>
                         );

@@ -216,7 +216,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
                 </div>
                 {villainPosition && (
                     <div style={styles.villainBadge}>
-                        vs {villainPosition}
+                        Vs {villainPosition}
                     </div>
                 )}
             </div>

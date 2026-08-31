@@ -414,7 +414,7 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
           color: '#ff4444', fontFamily: 'Rajdhani, sans-serif', fontSize: 14,
           zIndex: 10,
         }}>
-          3D Scene failed to load: {error || singletonError}
+          3D Scene Failed To Load: {error || singletonError}
         </div>
       )}
     </div>

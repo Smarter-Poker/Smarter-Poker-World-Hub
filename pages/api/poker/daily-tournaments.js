@@ -721,7 +721,7 @@ async function handler(req, res) {
               return mins >= 0 && mins < SUSPICIOUS_TIME_FLOOR_MINUTES;
           }).length;
           if (suspiciousCount > 0) {
-              console.warn(`[daily-tournaments] Suppressed ${suspiciousCount} pre-10AM records — flagged for manual review`);
+              console.warn(`[daily-tournaments] Suppressed ${suspiciousCount} pre-10AM records - flagged for manual review`);
           }
           tournaments = tournaments.filter(t => {
               const mins = parseTime(t.start_time);

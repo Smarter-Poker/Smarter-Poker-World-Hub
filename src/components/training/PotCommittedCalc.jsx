@@ -20,10 +20,10 @@ export default function PotCommittedCalc() {
     const breakEvenEq = (potOdds * 100).toFixed(1);
 
     let verdict, color, emoji;
-    if (spr <= 1) { verdict = 'FULLY COMMITTED — Just get it in'; color = '#ef4444'; emoji = '●'; }
-    else if (spr <= 2) { verdict = 'POT COMMITTED — Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
-    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED — Need decent equity'; color = '#3b82f6'; emoji = '●'; }
-    else { verdict = 'NOT COMMITTED — Can still fold'; color = '#22c55e'; emoji = '●'; }
+    if (spr <= 1) { verdict = 'FULLY COMMITTED - Just get it in'; color = '#ef4444'; emoji = '●'; }
+    else if (spr <= 2) { verdict = 'POT COMMITTED - Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
+    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED - Need decent equity'; color = '#3b82f6'; emoji = '●'; }
+    else { verdict = 'NOT COMMITTED - Can still fold'; color = '#22c55e'; emoji = '●'; }
 
     return { spr: spr.toFixed(2), sprAfterCall: sprAfterCall.toFixed(2), potOdds: breakEvenEq, committed, verdict, color, emoji, remainAfterCall };
   }, [stack, pot, betToCall]);
@@ -44,7 +44,7 @@ export default function PotCommittedCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Pot Committed Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're priced in and can't fold.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know When You're Priced In And Can't Fold.</p>
 
       <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <InputSlider label="Your Stack" value={stack} setValue={setStack} min={5} max={200} />
@@ -57,7 +57,7 @@ export default function PotCommittedCalc() {
         style={{ background: `${analysis.color}15`, border: `1px solid ${analysis.color}40`, borderRadius: 12, padding: 16, textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 28 }}>{analysis.emoji}</div>
         <div style={{ fontSize: 16, fontWeight: 800, color: analysis.color, marginBottom: 4 }}>{analysis.verdict}</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>SPR: {analysis.spr} → {analysis.sprAfterCall} after call</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>SPR: {analysis.spr} → {analysis.sprAfterCall} After Call</div>
       </motion.div>
 
       {/* Stats grid */}

@@ -170,11 +170,11 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
           {entry.net_result >= 0 ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
         </span>
         {entry._isTripSummary && (
-          <span style={styles.entryDuration}>({entry._sessionCount} sessions)</span>
+          <span style={styles.entryDuration}>({entry._sessionCount} Sessions)</span>
         )}
         {!entry._isTripSummary && duration && <span style={styles.entryDuration}>({duration})</span>}
         {entry.location_name && (
-          <span style={styles.entryLocation}>at {entry.location_name}</span>
+          <span style={styles.entryLocation}>At {entry.location_name}</span>
         )}
         {!entry._isTripSummary && details && !entry.location_name && (
           <span style={styles.entryDetails}>{details}</span>
@@ -262,7 +262,7 @@ export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete })
         <div style={styles.emptyIcon}></div>
         <p style={styles.emptyTitle}>No Entries Yet</p>
         <p style={styles.emptyText}>
-          Start logging sessions to track your bankroll
+          Start Logging Sessions To Track Your Bankroll
         </p>
       </div>
     );

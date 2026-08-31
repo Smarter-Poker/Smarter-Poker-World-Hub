@@ -96,7 +96,7 @@ export default function TokeAnalyticsPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Toke Analytics — Earnings Dashboard"
+                title="Toke Analytics - Earnings Dashboard"
                 description="Analyze your dealing earnings with detailed breakdowns, hourly rates, and trend analysis."
                 canonical="/hub/toke-tracker/analytics"
             />

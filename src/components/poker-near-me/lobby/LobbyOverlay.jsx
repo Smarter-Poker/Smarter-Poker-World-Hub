@@ -333,7 +333,7 @@ export default function LobbyOverlay({
                     Enable Location
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
-                    Find Poker Rooms, Live Games, and Events Near You
+                    Find Poker Rooms, Live Games, And Events Near You
                   </div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>

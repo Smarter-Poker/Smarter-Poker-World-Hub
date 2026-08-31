@@ -349,7 +349,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                 padding: '4px 8px', background: 'rgba(255,255,255,0.03)',
                 borderRadius: 6,
             }}>
-                Hand class: <span style={{ color: '#e2e8f0', fontWeight: 700 }}>
+                Hand Class: <span style={{ color: '#e2e8f0', fontWeight: 700 }}>
                     {strategy.handClass?.replace(/_/g, ' ')}
                 </span>
                 {strategy.boardState && (
@@ -399,7 +399,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
             {strategy.sizes && Object.keys(strategy.sizes || {}).length > 0 && (
                 <div>
                     <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>
-                        When betting:
+                        When Betting:
                     </div>
                     {Object.entries(strategy.sizes || {})
                         .filter(([_, w]) => w > 0.02)
@@ -473,7 +473,7 @@ function RunoutSummary({ strategies }) {
                 Avg: Bet {stats.avgBet}% / Check {stats.avgCheck}%
             </div>
             <div style={{ fontSize: 9, color: '#64748b' }}>
-                {stats.count} runouts analyzed
+                {stats.count} Runouts Analyzed
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
                 {Object.entries(stats.types || {}).filter(([_, c]) => c > 0).map(([type, count]) => (
@@ -548,7 +548,7 @@ export default function RunoutStrategyMatrix({
                     {street === 'turn' ? 'TURN' : 'RIVER'} RUNOUT STRATEGY
                 </div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>
-                    How does the optimal action change per card?
+                    How Does The Optimal Action Change Per Card?
                 </div>
             </div>
 
@@ -633,8 +633,8 @@ export default function RunoutStrategyMatrix({
                 fontSize: 8, color: '#475569', textAlign: 'center',
                 padding: '4px 8px',
             }}>
-                Cell color = dominant action on that runout. Bet% shown in each cell.
-                Click any card for full strategy + sizing breakdown.
+                Cell Color = Dominant Action On That Runout. Bet% Shown In Each Cell.
+                Click Any Card For Full Strategy + Sizing Breakdown.
             </div>
         </div>
     );

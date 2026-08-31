@@ -39,14 +39,14 @@ const DAILY_QUESTIONS = [
     options: [
       { action: 'Check', ev: 0.8, correct: true, explain: 'Correct! AQo missed. The turn brick doesn\'t improve you. Check and reassess. You can bluff some rivers.' },
       { action: 'Bet 7bb (33%)', ev: 0.2, correct: false, explain: 'Small barrel has some merit but AQo isn\'t the best bluff candidate here. Save bullets for better spots.' },
-      { action: 'Bet 15bb (66%)', ev: -1.2, correct: false, explain: 'Too aggressive. Villain called flop on a K-high board — they have Kx, 99, draws. Don\'t barrel into strength.' },
+      { action: 'Bet 15bb (66%)', ev: -1.2, correct: false, explain: 'Too aggressive. Villain called flop on a K-high board - they have Kx, 99, draws. Don\'t barrel into strength.' },
       { action: 'Bet 22bb (pot)', ev: -2.5, correct: false, explain: 'Massively overplaying A-high. This is a disaster bet that only gets called by hands that crush you.' },
     ] },
   { category: 'bluffcatch', difficulty: 'Expert',
     scenario: 'Action folds to the Button, who raises; you call from the Big Blind. On Q♥T♣7♠ 2♦ 5♥, the Button bets 33% pot on the flop, 66% on the turn, and 100% on the river. You hold J♥J♣. What is your best action?',
     board: 'Q♥ T♣ 7♠ 2♦ 5♥', pot: '38bb', position: 'BB vs BTN 3-barrel',
     options: [
-      { action: 'Fold', ev: 0.4, correct: true, explain: 'Correct! JJ is a fold vs 3-barrel with overbet river. BTN\'s range is polarized — QT+, sets, or bluffs. JJ loses to all value.' },
+      { action: 'Fold', ev: 0.4, correct: true, explain: 'Correct! JJ is a fold vs 3-barrel with overbet river. BTN\'s range is polarized - QT+, sets, or bluffs. JJ loses to all value.' },
       { action: 'Call', ev: -3.2, correct: false, explain: 'JJ can\'t beat any value bet on this board. Q7, QT, T7, sets, straights all crush you. Don\'t be a calling station.' },
       { action: 'Raise to 95bb', ev: -8.5, correct: false, explain: 'Raising JJ as a bluff on this runout is suicide. You block nothing and BTN is never folding better.' },
       { action: 'Min-Raise to 76bb', ev: -6.9, correct: false, explain: 'A small river raise represents very little and gives the Button excellent odds to continue with every value hand.' },
@@ -56,7 +56,7 @@ const DAILY_QUESTIONS = [
     board: 'K♣ 7♦ 2♠ 9♥ 3♣', pot: '15bb', position: 'IP vs tight villain',
     options: [
       { action: 'Check', ev: 0.5, correct: false, explain: 'You\'re leaving value on the table. AA is strong and villain can have Kx, 99, 77 that pay off.' },
-      { action: 'Bet 5bb (33%)', ev: 2.8, correct: true, explain: 'Correct! Thin value bet with small sizing. Villain is tight — they\'ll call 33% with Kx but fold to larger sizes.' },
+      { action: 'Bet 5bb (33%)', ev: 2.8, correct: true, explain: 'Correct! Thin value bet with small sizing. Villain is tight - they\'ll call 33% with Kx but fold to larger sizes.' },
       { action: 'Bet 10bb (66%)', ev: 1.5, correct: false, explain: 'Decent but too large vs a tight player. They fold Kx hands which are the bulk of their calling range.' },
       { action: 'Bet 15bb (pot)', ev: -0.3, correct: false, explain: 'Way too large. Tight player folds everything except sets and two pair. You get no value.' },
     ] },
@@ -92,13 +92,13 @@ export default function DailyPersonalQuiz() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Daily Strategy Quiz
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized daily challenges targeting your weak spots.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized Daily Challenges Targeting Your Weak Spots.</p>
 
       {/* Stats Bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
           { label: 'Score', value: `${score}/${answered}`, color: '#22c55e' },
-          { label: 'Accuracy', value: answered > 0 ? `${Math.round(score/answered*100)}%` : '—', color: '#3b82f6' },
+          { label: 'Accuracy', value: answered > 0 ? `${Math.round(score/answered*100)}%` : '-', color: '#3b82f6' },
           { label: 'Streak', value: `${streak}▲`, color: '#f59e0b' },
           { label: 'Question', value: `${qIdx + 1}/${DAILY_QUESTIONS.length}`, color: '#8b5cf6' },
         ].map((s, i) => (
@@ -153,7 +153,7 @@ export default function DailyPersonalQuiz() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: showResult ? (opt.correct ? '#22c55e' : isSelected ? '#ef4444' : '#64748b') : '#e2e8f0' }}>
                     {opt.action}
                   </span>
-                  {showResult && <span style={{ fontSize: 10, fontFamily: 'monospace', color: opt.ev >= 0 ? '#22c55e' : '#ef4444' }}>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} bb</span>}
+                  {showResult && <span style={{ fontSize: 10, fontFamily: 'monospace', color: opt.ev >= 0 ? '#22c55e' : '#ef4444' }}>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} BB</span>}
                 </div>
                 {showResult && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>

@@ -8,10 +8,10 @@ import { motion } from 'framer-motion';
 const MODULES = [
   { title: 'Tilt Recognition', icon: '○', color: '#ef4444',
     content: [
-      { q: 'Am I playing to win or playing to get even?', flag: 'Revenge tilt — stop playing to recover losses' },
-      { q: 'Am I calling lighter than usual?', flag: 'Frustration tilt — tightening up is the fix' },
-      { q: 'Am I opening too wide because I\'m bored?', flag: 'Boredom tilt — take a break or switch stakes' },
-      { q: 'Did a bad beat change my mood?', flag: 'Injustice tilt — remember: variance is math, not personal' },
+      { q: 'Am I playing to win or playing to get even?', flag: 'Revenge tilt - stop playing to recover losses' },
+      { q: 'Am I calling lighter than usual?', flag: 'Frustration tilt - tightening up is the fix' },
+      { q: 'Am I opening too wide because I\'m bored?', flag: 'Boredom tilt - take a break or switch stakes' },
+      { q: 'Did a bad beat change my mood?', flag: 'Injustice tilt - remember: variance is math, not personal' },
     ]},
   { title: 'Focus Protocol', icon: '◆', color: '#3b82f6',
     content: [
@@ -50,7 +50,7 @@ export default function MentalGameCoach() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Mental Game Coach
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Your edge isn't just strategy — it's your mental game.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Your Edge Isn't Just Strategy - It's Your Mental Game.</p>
 
       {/* Module selector */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
@@ -95,7 +95,7 @@ export default function MentalGameCoach() {
       {/* Quick reminder */}
       <div style={{ marginTop: 16, background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(34,197,94,0.08))', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', marginBottom: 4 }}>Remember</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>The best poker players in the world aren't the smartest — they're the most disciplined.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>The Best Poker Players In The World Aren't The Smartest - They're The Most Disciplined.</div>
       </div>
     </div>
   );

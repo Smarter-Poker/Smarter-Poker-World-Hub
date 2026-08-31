@@ -354,21 +354,21 @@ export default function PushNotificationToggle({
 
             {needsIosInstall && (
                 <div className="mt-4 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-200">
-                    On iPhone and iPad, notifications only work once Smarter Poker is on your
-                    Home Screen. Tap Share, then Add to Home Screen, then open it from there.
+                    On IPhone And IPad, Notifications Only Work Once Smarter Poker Is On Your
+                    Home Screen. Tap Share, Then Add To Home Screen, Then Open It From There.
                 </div>
             )}
 
             {!supported && !needsIosInstall && (
                 <div className="mt-4 rounded-lg bg-white/5 p-3 text-sm text-gray-400">
-                    This browser does not support push notifications.
+                    This Browser Does Not Support Push Notifications.
                 </div>
             )}
 
             {blocked && (
                 <div className="mt-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-200">
-                    Notifications are blocked for smarter.poker. Open your browser site settings,
-                    switch Notifications to Allow, then reload this page.
+                    Notifications Are Blocked For Smarter.Poker. Open Your Browser Site Settings,
+                    Switch Notifications To Allow, Then Reload This Page.
                 </div>
             )}
 
@@ -388,7 +388,7 @@ export default function PushNotificationToggle({
                     <div className="flex items-center justify-between">
                         <div>
                             <h4 className="text-sm font-semibold">Mute Everything</h4>
-                            <p className="text-xs text-gray-400">Stops every push without unsubscribing this device.</p>
+                            <p className="text-xs text-gray-400">Stops Every Push Without Unsubscribing This Device.</p>
                         </div>
                         <Switch checked={muteAll} onChange={handleMuteAll} label="Mute all push notifications" />
                     </div>
@@ -399,15 +399,15 @@ export default function PushNotificationToggle({
                     <div className="mt-6 border-t border-white/10 pt-5">
                         <h4 className="text-sm font-semibold">Your Devices</h4>
                         <p className="mb-3 text-xs text-gray-400">
-                            Every phone or computer signed in to this account. Confirmed is the
-                            last time a notification actually appeared on it.
+                            Every Phone Or Computer Signed In To This Account. Confirmed Is The
+                            Last Time A Notification Actually Appeared On It.
                         </p>
 
                         {devices === null ? (
-                            <p className="text-sm text-gray-500">Loading devices...</p>
+                            <p className="text-sm text-gray-500">Loading Devices...</p>
                         ) : devices.length === 0 ? (
                             <p className="text-sm text-gray-500">
-                                No devices yet. Turn on the switch above to add this one.
+                                No Devices Yet. Turn On The Switch Above To Add This One.
                             </p>
                         ) : (
                             <div className="space-y-2">
@@ -421,10 +421,10 @@ export default function PushNotificationToggle({
                                                 <p className="truncate text-sm">
                                                     {d.device_label || 'Unknown device'}
                                                     {!d.is_active && (
-                                                        <span className="ml-2 text-xs text-gray-500">(inactive)</span>
+                                                        <span className="ml-2 text-xs text-gray-500">(Inactive)</span>
                                                     )}
                                                     {zombie && (
-                                                        <span className="ml-2 text-xs text-amber-300">(not confirming)</span>
+                                                        <span className="ml-2 text-xs text-amber-300">(Not Confirming)</span>
                                                     )}
                                                 </p>
                                                 <p className="truncate text-xs text-gray-500">
@@ -454,8 +454,8 @@ export default function PushNotificationToggle({
                             <div>
                                 <h4 className="text-sm font-semibold">Quiet Hours</h4>
                                 <p className="text-xs text-gray-400">
-                                    Hold non-urgent alerts overnight. Calls, open seats and tournament
-                                    starts still come through.
+                                    Hold Non-Urgent Alerts Overnight. Calls, Open Seats And Tournament
+                                    Starts Still Come Through.
                                 </p>
                             </div>
                             <Switch
@@ -503,7 +503,7 @@ export default function PushNotificationToggle({
                             <div>
                                 <h4 className="text-sm font-semibold">Daily Limit</h4>
                                 <p className="text-xs text-gray-400">
-                                    Cap non-urgent pushes per day. Urgent alerts are never capped.
+                                    Cap Non-Urgent Pushes Per Day. Urgent Alerts Are Never Capped.
                                 </p>
                             </div>
                             <select
@@ -511,9 +511,9 @@ export default function PushNotificationToggle({
                                 onChange={(e) => saveDailyCap(Number(e.target.value))}
                                 className="rounded-md border border-white/10 bg-[#0B1120] px-2 py-1 text-sm text-white"
                             >
-                                <option value={0}>No limit</option>
+                                <option value={0}>No Limit</option>
                                 {[5, 10, 20, 50].map((n) => (
-                                    <option key={n} value={n}>{n} per day</option>
+                                    <option key={n} value={n}>{n} Per Day</option>
                                 ))}
                             </select>
                         </div>
@@ -521,11 +521,11 @@ export default function PushNotificationToggle({
 
                     <h4 className="mt-6 text-sm font-semibold">Alert Categories</h4>
                     <p className="mb-3 text-xs text-gray-400">
-                        Everything is on unless you switch it off. Changes save instantly.
+                        Everything Is On Unless You Switch It Off. Changes Save Instantly.
                     </p>
 
                     {loadingPrefs ? (
-                        <p className="text-sm text-gray-500">Loading categories...</p>
+                        <p className="text-sm text-gray-500">Loading Categories...</p>
                     ) : (
                         groupedPushTypes().map(({ group, types }) => (
                             <div key={group} className="mb-5">

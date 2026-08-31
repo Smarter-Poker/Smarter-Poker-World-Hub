@@ -19,12 +19,12 @@ export default function FoldProtection({ onCheck, onFold, onClose }) {
 
         {/* Title */}
         <h3 className="text-white text-lg font-bold text-center mb-2">
-          Check or Fold?
+          Check Or Fold?
         </h3>
 
         {/* Body */}
         <p className="text-gray-400 text-sm text-center mb-5">
-          Notice: You can check this hand instead of folding.
+          Notice: You Can Check This Hand Instead Of Folding.
         </p>
 
         {/* Buttons */}

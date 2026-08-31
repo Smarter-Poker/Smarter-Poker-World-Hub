@@ -294,7 +294,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                         <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    <span><strong>{matches.length}</strong> tournament{matches.length > 1 ? 's' : ''} match your alerts!</span>
+                    <span><strong>{matches.length}</strong> tournament{matches.length > 1 ? 's' : ''} Match Your Alerts!</span>
                 </div>
             )}
 
@@ -325,7 +325,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                         <label>Buy-In Range</label>
                         <div className="ta-range-row">
                             <input type="number" placeholder="Min $" value={prefs.minBuyin} onChange={e => setPrefs(p => ({ ...p, minBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
-                            <span className="ta-range-sep">—</span>
+                            <span className="ta-range-sep">-</span>
                             <input type="number" placeholder="Max $" value={prefs.maxBuyin} onChange={e => setPrefs(p => ({ ...p, maxBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
                         </div>
                     </div>
@@ -334,13 +334,13 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                         <label>Distance</label>
                         <div className="ta-chips">
                             {[25, 50, 100, 250].map(d => (
-                                <button key={d} className={'ta-chip' + (prefs.distanceMi === d ? ' active' : '')} onClick={() => setPrefs(p => ({ ...p, distanceMi: d }))}>{d} mi</button>
+                                <button key={d} className={'ta-chip' + (prefs.distanceMi === d ? ' active' : '')} onClick={() => setPrefs(p => ({ ...p, distanceMi: d }))}>{d} Mi</button>
                             ))}
                         </div>
                     </div>
 
                     <div className="ta-pref-group">
-                        <label>Days of Week</label>
+                        <label>Days Of Week</label>
                         <div className="ta-chips">
                             {DAYS.map(d => (
                                 <button key={d} className={'ta-chip small' + (prefs.days.includes(d) ? ' active' : '')} onClick={() => toggleDay(d)}>{d}</button>
@@ -375,7 +375,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                             </div>
                         </div>
                     ))}
-                    {matches.length > 10 && <div className="ta-more">+{matches.length - 10} more</div>}
+                    {matches.length > 10 && <div className="ta-more">+{matches.length - 10} More</div>}
                 </div>
             )}
 
@@ -385,8 +385,8 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                         <circle cx="11" cy="11" r="8" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
-                    <p>No tournaments match your current preferences.</p>
-                    <p style={{ fontSize: 12 }}>Try broadening your filters.</p>
+                    <p>No Tournaments Match Your Current Preferences.</p>
+                    <p style={{ fontSize: 12 }}>Try Broadening Your Filters.</p>
                 </div>
             )}
 

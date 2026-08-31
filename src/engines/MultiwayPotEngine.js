@@ -247,21 +247,21 @@ function generateMultiwayExplanation(numPlayers, motivation, handClass, position
     if (motivation === 'value + protection') {
         parts.push(`betting for value and to protect against ${numPlayers - 1} opponents' draws`);
     } else if (motivation === 'value') {
-        parts.push('betting for value — strong hand on a dry board');
+        parts.push('betting for value - strong hand on a dry board');
     } else if (motivation === 'semi-bluff') {
         parts.push('semi-bluffing with draw equity, though less frequently multiway');
     } else if (motivation === 'semi-bluff (draw)') {
         parts.push('semi-bluffing with a draw, but cautious with multiple opponents');
     } else if (motivation === 'thin value / pot control') {
-        parts.push('pot controlling — medium strength hand plays better as a check multiway');
+        parts.push('pot controlling - medium strength hand plays better as a check multiway');
     } else if (motivation === 'bluff') {
-        parts.push('rarely bluffing — need to get through multiple opponents');
+        parts.push('rarely bluffing - need to get through multiple opponents');
     } else {
-        parts.push('checking — conservative play with marginal holding');
+        parts.push('checking - conservative play with marginal holding');
     }
 
     if (position === 'IP') parts.push('(benefit of position)');
-    else if (position === 'MIDDLE') parts.push('(sandwiched between opponents — extra caution)');
+    else if (position === 'MIDDLE') parts.push('(sandwiched between opponents - extra caution)');
     else parts.push('(out of position)');
 
     return parts.join('. ') + '.';

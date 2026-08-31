@@ -301,7 +301,7 @@ export default async function handler(req, res) {
               recipients: 0,
               articles: 0,
               subject: null,
-              message: `No published articles in the last ${days} day(s) — nothing sent.`
+              message: `No published articles in the last ${days} day(s) - nothing sent.`
           });
       }
 
@@ -359,7 +359,7 @@ export default async function handler(req, res) {
               from,
               emailConfigured: Boolean(apiKey),
               sent: 0,
-              message: 'Dry run — no email was sent.'
+              message: 'Dry run - no email was sent.'
           });
       }
 
@@ -372,7 +372,7 @@ export default async function handler(req, res) {
               recipients: 0,
               articles: articles.length,
               subject,
-              message: 'No active subscribers — nothing sent.'
+              message: 'No active subscribers - nothing sent.'
           });
       }
 

@@ -464,7 +464,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const handleDoubleDownYes = async () => {
         if (!promptDown || !activeGig) return;
         const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
-        if (!currentDay) { toast.error('No open day — start a new day first.'); return; }
+        if (!currentDay) { toast.error('No open day - start a new day first.'); return; }
         // Optimistic: add a placeholder down immediately
         const tempDown = {
             id: `temp-${Date.now()}`,
@@ -545,7 +545,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         let actualUserId = userId || resolvedUserIdRef.current;
 
         if (!actualUserId) {
-            console.warn('[TokeTracker] userId is null — resolving via getSafeUser');
+            console.warn('[TokeTracker] userId is null - resolving via getSafeUser');
             try {
                 const { getSafeUser, restoreSessionBackup } = await import('../../lib/authUtils');
                 // Try session backup recovery first
@@ -563,8 +563,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         }
 
         if (!actualUserId) {
-            console.warn('[TokeTracker] ALL 4 userId resolution layers failed — user session is expired or missing');
-            const errMsg = 'Session expired — please log out and log back in to start an event';
+            console.warn('[TokeTracker] ALL 4 userId resolution layers failed - user session is expired or missing');
+            const errMsg = 'Session expired - please log out and log back in to start an event';
             setCreateError(errMsg);
             toast.error(errMsg, 8000);
             setIsCreating(false);
@@ -592,7 +592,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             } else if (isAbortError(err)) {
                 // AbortError after all retries exhausted — tell user to try again
                 console.warn('[TokeTracker] createGig aborted after all retries');
-                toast.error('Connection interrupted — please try again', 5000);
+                toast.error('Connection interrupted - please try again', 5000);
             } else {
                 console.warn('[TokeTracker] createGig failed:', err);
                 toast.error(err.message || 'Failed to create event', 5000);
@@ -980,7 +980,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             ]);
             setJarvisQuery('');
         } catch (err) {
-            toast.error(err.message || 'Jarvis unavailable — try again');
+            toast.error(err.message || 'Jarvis unavailable - try again');
         } finally {
             setJarvisLoading(false);
         }
@@ -1041,8 +1041,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         if (!selectedReport) return;
         const { gig, stats } = selectedReport;
         const lines = [
-            `TOKE REPORT — ${gig.venue_name}`,
-            `Date: ${new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}${gig.end_date ? ` – ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}` : ''}`,
+            `TOKE REPORT - ${gig.venue_name}`,
+            `Date: ${new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}${gig.end_date ? ` - ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}` : ''}`,
             ``,
             `Total Tokes:   ${formatCurrency(stats.totalTokes)}`,
             `Hourly Pay:    ${formatCurrency(stats.hourlyPay)}`,
@@ -1112,7 +1112,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {gig.venue_address && <p style={styles.reportAddress}>{gig.venue_address}</p>}
                     <p style={styles.reportDates}>
                         {new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}
-                        {gig.end_date && ` — ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}`}
+                        {gig.end_date && ` - ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}`}
                         {' · '}{stats.durationDays} day{stats.durationDays !== 1 ? 's' : ''}
                     </p>
 
@@ -1124,8 +1124,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <span>🚗</span>
-                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} miles × ${rate}/mi</span>
-                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
+                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} Miles × ${rate}/Mi</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} Deductible</span>
                             </div>
                         );
                     })()}
@@ -1157,7 +1157,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Mileage</span>
-                            <span style={styles.reportStatValue}>{gig.mileage || 0} mi</span>
+                            <span style={styles.reportStatValue}>{gig.mileage || 0} Mi</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Per Day</span>
@@ -1184,11 +1184,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 {selectedReport.days.map(day => (
                                     <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.06)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8' }}>
-                                            Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                         <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
                                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
-                                            <span>{day.totalDowns || 0} downs</span>
+                                            <span>{day.totalDowns || 0} Downs</span>
                                             <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                             {(day.totalExpenses || 0) > 0 && <span style={{ color: '#ef4444' }}>-{formatCurrency(day.totalExpenses)}</span>}
                                         </div>
@@ -1207,7 +1207,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                                         <span style={{ color: '#B0B3B8', fontSize: 13 }}>
                                             {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
-                                            {exp.description && ` — ${exp.description}`}
+                                            {exp.description && ` - ${exp.description}`}
                                         </span>
                                         <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
                                     </div>
@@ -1325,7 +1325,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             border: `2px solid ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`, boxShadow: `inset 0 0 0 1px ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: 20, padding: '4px 12px',
                         }}>
-                            {isDayOpen ? `Day ${currentDayNumber} — In Progress` : `Day ${currentDayNumber} — Closed`}
+                            {isDayOpen ? `Day ${currentDayNumber} - In Progress` : `Day ${currentDayNumber} - Closed`}
                         </span>
                     </div>
 
@@ -1338,7 +1338,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             )}
                             <p style={styles.activeGigMeta}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
-                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} total
+                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
@@ -1460,11 +1460,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 style={styles.closedDayHeader}
                                 onClick={() => setCollapsedDays(prev => ({ ...prev, [day.id]: !prev[day.id] }))}
                             >
-                                <span style={styles.closedDayLabel}>Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                <span style={styles.closedDayLabel}>Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 <span style={styles.closedDayStats}>
                                     <span style={{ color: '#38bdf8' }}>{formatCurrency(day.totalTokes || 0)}</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
-                                    <span>{day.totalDowns || 0} downs</span>
+                                    <span>{day.totalDowns || 0} Downs</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
                                     <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                 </span>
@@ -1553,7 +1553,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                         {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                         {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
                                                             <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
-                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} buy-in
+                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} Buy-In
                                                             </span>
                                                         )}
                                                         {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -1582,10 +1582,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     editingMultiplierId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
                                                             <select value={multiplierEditValue} onChange={e => setMultiplierEditValue(e.target.value)} style={{ ...styles.tokeInput, width: 70 }}>
-                                                                <option value="1">1.0x</option>
-                                                                <option value="1.2">1.2x</option>
-                                                                <option value="1.5">1.5x</option>
-                                                                <option value="2">2.0x</option>
+                                                                <option value="1">1.0X</option>
+                                                                <option value="1.2">1.2X</option>
+                                                                <option value="1.5">1.5X</option>
+                                                                <option value="2">2.0X</option>
                                                             </select>
                                                             <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
@@ -1643,7 +1643,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={styles.activeActions}>
                         {confirmCloseDay ? (
                             <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                                <span style={styles.confirmText}>Close out Day {currentDayNumber}? Add a note (optional):</span>
+                                <span style={styles.confirmText}>Close Out Day {currentDayNumber}? Add A Note (Optional):</span>
                                 <input
                                     type="text"
                                     value={closeDayNotes}
@@ -1922,7 +1922,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             return (
                                 <>
                                     <div style={styles.goalText}>
-                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
+                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
                                     </div>
                                     <div style={styles.goalBarBg}>
                                         <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
@@ -1940,7 +1940,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <span style={styles.jarvisHeaderLeft}>
                         <img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={styles.jarvisAvatarImg} />
                         <div>
-                            <div style={styles.jarvisTitle}>Jarvis — Dealer Reference</div>
+                            <div style={styles.jarvisTitle}>Jarvis - Dealer Reference</div>
                             <div style={styles.jarvisSub}>Ask For Rules, TDA Lookups & Game Refreshers</div>
                         </div>
                     </span>

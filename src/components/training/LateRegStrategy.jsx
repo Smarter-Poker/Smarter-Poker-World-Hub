@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const LATE_REG_FACTORS = [
   { factor: 'Field Size Matters', icon: '', color: '#3b82f6',
     pro: 'Bigger fields = more value in late-regging. The fish who bust early can re-enter.',
-    con: 'Very small fields — every chip matters from the start. Don\'t miss early levels.' },
+    con: 'Very small fields - every chip matters from the start. Don\'t miss early levels.' },
   { factor: 'Structure Quality', icon: '', color: '#22c55e',
     pro: 'Deep structures (200BB+): Late reg is fine. You still have plenty of play.',
     con: 'Turbo/hyper structures: Every blind level matters. Late reg means starting short.' },
@@ -16,7 +16,7 @@ const LATE_REG_FACTORS = [
     pro: 'If starting stack > 40BB, you can still play poker and have room to maneuver.',
     con: 'If starting stack < 20BB, you\'re in push/fold. Only late reg if the prize pool justifies it.' },
   { factor: 'Overlay Opportunities', icon: '', color: '#ef4444',
-    pro: 'Late reg when there\'s a guaranteed prize pool not yet met — you\'re getting extra value.',
+    pro: 'Late reg when there\'s a guaranteed prize pool not yet met - you\'re getting extra value.',
     con: 'If the tournament is already above guarantee, there\'s less mathematical incentive.' },
   { factor: 'Your Edge', icon: '', color: '#8b5cf6',
     pro: 'If you\'re significantly better than the field, playing more hands = more edge realized.',
@@ -32,7 +32,7 @@ export default function LateRegStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ⏰ Late Registration Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When to late-reg tournaments and how to play when you do.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When To Late-Reg Tournaments And How To Play When You Do.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {LATE_REG_FACTORS.map((f, i) => (

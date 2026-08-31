@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
     return (
         <>
             <SEOHead
-                title="Set New Password — Smarter.Poker"
+                title="Set New Password - Smarter.Poker"
                 description="Set a new password for your Smarter.Poker account."
                 canonical="/auth/reset-password"
                 noindex={true}

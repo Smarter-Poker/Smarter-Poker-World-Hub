@@ -72,7 +72,7 @@ function SessionReviewChecklist() {
           <h3 style={{ margin: 0, fontSize: 18, color: '#14b8a6' }}>Session Review</h3>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444' }}>{score}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{positives} yes / {negatives} no</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{positives} Yes / {negatives} No</div>
           </div>
         </div>
 
@@ -123,7 +123,7 @@ function SessionReviewChecklist() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Session Review failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Session Review Failed To Load: {err.message}</div>;
   }
 }
 

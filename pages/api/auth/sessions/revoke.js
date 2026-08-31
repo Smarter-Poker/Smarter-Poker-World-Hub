@@ -67,7 +67,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               tokensInvalidated: false,
-              message: 'Device removed from your session list. Its sign-in remains valid until it expires — change your password to force sign-out everywhere.'
+              message: 'Device removed from your session list. Its sign-in remains valid until it expires - change your password to force sign-out everywhere.'
           });
 
       } catch (error) {

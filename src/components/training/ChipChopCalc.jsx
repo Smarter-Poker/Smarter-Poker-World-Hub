@@ -13,7 +13,7 @@ const DEAL_TYPES = [
     verdict: 'Almost always BAD for the chip leader. Only accept if you\'re the short stack.' },
   { deal: 'Chip Chop', icon: '■', color: '#3b82f6',
     how: 'Divide prize pool proportional to chip counts. Each player gets their share of total chips × total prizes.',
-    when: 'Simple and fast. Better than even chop but still imperfect — doesn\'t account for ICM.',
+    when: 'Simple and fast. Better than even chop but still imperfect - doesn\'t account for ICM.',
     example: 'You have 50% of chips in play. Total remaining prizes = $10K. You get $5K.',
     verdict: 'Overvalues big stacks, undervalues small stacks. Use ICM chop instead.' },
   { deal: 'ICM Chop', icon: '■', color: '#f59e0b',
@@ -28,7 +28,7 @@ const DEAL_TYPES = [
     verdict: 'Reasonable if you\'re clearly the best player. Hard to negotiate but worth asking.' },
   { deal: 'Save + Play On', icon: '★', color: '#ef4444',
     how: 'Lock up a guaranteed amount for everyone, then play for the remaining prize pool.',
-    when: 'Best of both worlds — reduces risk while keeping the competitive element alive.',
+    when: 'Best of both worlds - reduces risk while keeping the competitive element alive.',
     example: '$10K total. Lock up $2K each (3 players). Play for remaining $4K. Winner gets $2K + $4K = $6K.',
     verdict: 'Great compromise. Everyone gets security, but there\'s still something to play for.' },
 ];
@@ -42,7 +42,7 @@ export default function ChipChopCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Chip Chop Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Make smart deals at final tables.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Make Smart Deals At Final Tables.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {DEAL_TYPES.map((d, i) => (

@@ -209,11 +209,11 @@ export default async function handler(req, res) {
   // route that spends ANTHROPIC_API_KEY and pushes commits with GH_PAT open to
   // the public internet.
   if (!internalSecret) {
-    console.warn('[deploy-autofix] DEPLOY_INTERNAL_SECRET is not configured — rejecting request');
+    console.warn('[deploy-autofix] DEPLOY_INTERNAL_SECRET is not configured - rejecting request');
     return res.status(500).json({ error: 'Server misconfigured' });
   }
   if (providedSecret !== internalSecret) {
-    return res.status(401).json({ error: 'Unauthorized — invalid internal secret' });
+    return res.status(401).json({ error: 'Unauthorized - invalid internal secret' });
   }
 
   const { commitSha, commitMessage, deploymentId, buildErrors, attempt, escalation } = req.body;
@@ -306,7 +306,7 @@ export default async function handler(req, res) {
       console.warn('[deploy-autofix] Anthropic API call timed out (45s limit)');
       return res.status(200).json({
         action: 'timeout',
-        reason: 'Claude API call exceeded 45s timeout — Vercel function would have timed out',
+        reason: 'Claude API call exceeded 45s timeout - Vercel function would have timed out',
       });
     }
     console.warn('[deploy-autofix] Error:', err);
@@ -335,7 +335,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
       console.warn(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
       return {
         action: 'skipped',
-        reason: `Extracted path "${errorFile}" has no recognized file extension — cannot autofix a directory`,
+        reason: `Extracted path "${errorFile}" has no recognized file extension - cannot autofix a directory`,
       };
     }
 
@@ -402,7 +402,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
     if (Array.isArray(fileData)) {
       return {
         action: 'skipped',
-        reason: `Path ${normalizedPath} is a directory, not a file — autofix cannot target directories`,
+        reason: `Path ${normalizedPath} is a directory, not a file - autofix cannot target directories`,
       };
     }
     if (fileData.type !== 'file' || typeof fileData.content !== 'string' || !fileData.content) {
@@ -438,10 +438,10 @@ ${originalContent.substring(0, 15000)}
 
 RULES:
 - Fix ONLY the specific error shown in the build output
-- Do NOT rewrite the entire file — make the MINIMUM change needed
+- Do NOT rewrite the entire file - make the MINIMUM change needed
 - Do NOT add emoji characters anywhere (they break the SWC compiler)
 - Do NOT change .single() to .maybeSingle() unless that is the actual error
-- Do NOT remove functionality — only fix the compilation/build error
+- Do NOT remove functionality - only fix the compilation/build error
 - If the error is a missing import, add the import
 - If the error is a syntax error, fix the syntax
 - If the error is an unused variable/import, remove it
@@ -523,7 +523,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       clearTimeout(apiTimeout);
       const grokAbort = new AbortController();
       const grokTimeout = setTimeout(() => grokAbort.abort(), 45000);
-      console.warn(`[deploy-autofix] Anthropic unavailable — falling back to Grok...`);
+      console.warn(`[deploy-autofix] Anthropic unavailable - falling back to Grok...`);
       try {
         const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
           method: 'POST',
@@ -584,7 +584,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     if (fixedContent.trim() === originalContent.trim()) {
       return {
         action: 'skipped',
-        reason: 'Claude returned identical content — no fix identified',
+        reason: 'Claude returned identical content - no fix identified',
       };
     }
 
@@ -600,7 +600,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     if (originalContent.length === 0) {
       return {
         action: 'skipped',
-        reason: 'Original file is empty — nothing to fix; refusing to seed arbitrary content',
+        reason: 'Original file is empty - nothing to fix; refusing to seed arbitrary content',
       };
     }
     const sizeRatio = fixedContent.length / originalContent.length;
@@ -610,7 +610,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       console.warn(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return {
         action: 'skipped',
-        reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size — too destructive, skipping`,
+        reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size - too destructive, skipping`,
         originalSize: originalContent.length,
         fixSize: fixedContent.length,
       };
@@ -619,7 +619,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       console.warn(`[deploy-autofix] Size ratio guard (expand): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return {
         action: 'skipped',
-        reason: `Fix is ${Math.round(sizeRatio * 100)}% of original file size — suspicious mass expansion (likely hallucination), skipping`,
+        reason: `Fix is ${Math.round(sizeRatio * 100)}% of original file size - suspicious mass expansion (likely hallucination), skipping`,
         originalSize: originalContent.length,
         fixSize: fixedContent.length,
       };
@@ -629,7 +629,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     if (fixedContent.includes('<<<<<<<') || fixedContent.includes('>>>>>>>')) {
       return {
         action: 'skipped',
-        reason: 'Fix contains merge conflict markers — rejecting',
+        reason: 'Fix contains merge conflict markers - rejecting',
       };
     }
 

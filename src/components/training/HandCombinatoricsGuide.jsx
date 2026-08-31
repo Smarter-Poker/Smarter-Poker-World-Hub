@@ -74,7 +74,7 @@ function HandCombinatoricsGuide() {
             <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ minWidth: 50, textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: COMBOS[activeTab].color }}>{h.total}</div>
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>combos</div>
+                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>Combos</div>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{h.hand}</div>
@@ -98,7 +98,7 @@ function HandCombinatoricsGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Combinatorics Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Combinatorics Guide Failed To Load: {err.message}</div>;
   }
 }
 

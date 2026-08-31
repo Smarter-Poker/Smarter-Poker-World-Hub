@@ -180,7 +180,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: kind,
                 title: `${position} Open-Raise (${sd}bb)`,
                 description: `Open-raise frequencies from ${position} at ${sd}bb effective stacks. Solver-equilibrium ranges for 6-max cash.`,
-                tip: 'The mixed-strategy hands at the edge of the range are the highest-leverage spots — wrong frequencies here cost the most EV over time.',
+                tip: 'The mixed-strategy hands at the edge of the range are the highest-leverage spots - wrong frequencies here cost the most EV over time.',
             };
         }
 
@@ -190,7 +190,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: 'THREE_BET',
                 title: `${position} 3-Bet vs ${opponent}`,
                 description: `3-bet ranges from ${position} facing a ${opponent} open at ~100bb. Includes value 3-bets, polar bluffs, and the mixed-frequency boundary.`,
-                tip: '3-bet ranges are tighter than they look — most "borderline" suited connectors get folded, with a dedicated polar-bluff tier for blockers.',
+                tip: '3-bet ranges are tighter than they look - most "borderline" suited connectors get folded, with a dedicated polar-bluff tier for blockers.',
             };
         }
 
@@ -201,7 +201,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: 'BB_DEFENSE',
                 title: `${position} Defense vs ${opponent}`,
                 description: `Defending range from ${position} facing a ${opponent} open. Combines flat-calls (call-heavy) with the polar 3-bet tier.`,
-                tip: 'BB defense is wider than feels intuitive because of the discount on calling — but most of those hands are pure flats, not 3-bets.',
+                tip: 'BB defense is wider than feels intuitive because of the discount on calling - but most of those hands are pure flats, not 3-bets.',
             };
         }
 
@@ -229,7 +229,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: `SQUEEZE_${pickedKey || 'default'}`,
                 title: `${position} Squeeze vs ${opponent} + caller`,
                 description: `Squeeze 3-bet ranges from ${position} when ${opponent} opens and a player calls. Tighter for value, more polar than a standard 3-bet.`,
-                tip: 'Squeezing is mostly a value play — the dead money in the pot rewards stronger ranges, not wider bluffs.',
+                tip: 'Squeezing is mostly a value play - the dead money in the pot rewards stronger ranges, not wider bluffs.',
             };
         }
 
@@ -244,7 +244,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: `FOUR_BET_${position}`,
                 title: `${position} 4-Bet vs ${opponent} 3-bet`,
                 description: `4-bet ranges from ${position} facing a ${opponent} 3-bet. Tight value range plus a small polar bluff tier.`,
-                tip: '4-betting is a tight value game — most "almost 4-bet" hands like AQs and JJ are actually flat-calls at 100bb.',
+                tip: '4-betting is a tight value game - most "almost 4-bet" hands like AQs and JJ are actually flat-calls at 100bb.',
             };
         }
 
@@ -252,8 +252,8 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
             return {
                 range: SB_COMPLETE.SB_open || SB_COMPLETE || {},
                 source: 'SB_COMPLETE',
-                title: 'SB vs BB — Open Range',
-                description: 'SB open-raise frequencies vs BB at 100bb. Wide and aggressive — BB defends ~70% in response.',
+                title: 'SB vs BB - Open Range',
+                description: 'SB open-raise frequencies vs BB at 100bb. Wide and aggressive - BB defends ~70% in response.',
                 tip: 'SB plays a polar strategy: very wide raises with limps mixed in for trap-style play.',
             };
         }
@@ -278,7 +278,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: `SHOVE_FOLD_${bucketKey || 'default'}`,
                 title: `${position} Push/Fold (~${bucketKey || sd + 'bb'})`,
                 description: `Push-or-fold equilibrium ranges from ${position} at short stacks (${bucketKey || sd + 'bb'}). Below 15bb, calling is rarely profitable; above 25bb, post-flop play returns.`,
-                tip: 'Pay attention to the ICM premium on tournament bubbles — chip-EV ranges shrink ~10-15% under real ICM pressure.',
+                tip: 'Pay attention to the ICM premium on tournament bubbles - chip-EV ranges shrink ~10-15% under real ICM pressure.',
             };
         }
 
@@ -298,8 +298,8 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 range,
                 source: `BB_CALL_VS_SHOVE_${bucketKey || 'default'}`,
                 title: `BB Call vs ${opponent} Shove (~${bucketKey || sd + 'bb'})`,
-                description: `Call ranges in the BB vs a ${opponent} all-in shove at ${bucketKey || sd + 'bb'}. Wider than people think — pot odds force calls with surprising hands.`,
-                tip: 'BB getting ~2:1 to call needs only ~33% equity — even hands like 65s clear that bar against many shoving ranges.',
+                description: `Call ranges in the BB vs a ${opponent} all-in shove at ${bucketKey || sd + 'bb'}. Wider than people think - pot odds force calls with surprising hands.`,
+                tip: 'BB getting ~2:1 to call needs only ~33% equity - even hands like 65s clear that bar against many shoving ranges.',
             };
         }
 
@@ -310,7 +310,7 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
                 source: kind,
                 title: `${position} Open-Raise (${sd}bb)`,
                 description: `Default open-raise scenario at ${position}, ${sd}bb effective.`,
-                tip: 'Memorize the upper boundary of the range first — those are the highest-EV hands to get right.',
+                tip: 'Memorize the upper boundary of the range first - those are the highest-EV hands to get right.',
             };
         }
     }

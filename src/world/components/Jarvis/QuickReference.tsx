@@ -207,9 +207,9 @@ export function QuickReference({ onAskJarvis, onClose }: QuickReferenceProps) {
                                 C-Bet Sizing
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
-                                • Dry boards: 25-33% pot<br />
-                                • Wet boards: 50-75% pot<br />
-                                • Multiway: Larger sizes
+                                • Dry Boards: 25-33% Pot<br />
+                                • Wet Boards: 50-75% Pot<br />
+                                • Multiway: Larger Sizes
                             </div>
                         </div>
                         <div style={{ marginBottom: '12px' }}>
@@ -217,8 +217,8 @@ export function QuickReference({ onAskJarvis, onClose }: QuickReferenceProps) {
                                 Value Bet Sizing
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
-                                • Thin value: 33-50% pot<br />
-                                • Strong value: 66-100% pot<br />
+                                • Thin Value: 33-50% Pot<br />
+                                • Strong Value: 66-100% Pot<br />
                                 • Nutted: Overbet 125%+
                             </div>
                         </div>
@@ -227,9 +227,9 @@ export function QuickReference({ onAskJarvis, onClose }: QuickReferenceProps) {
                                 3-Bet Sizing
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
-                                • IP: 3x original raise<br />
-                                • OOP: 3.5-4x original raise<br />
-                                • vs limp: 4-5 BB
+                                • IP: 3X Original Raise<br />
+                                • OOP: 3.5-4X Original Raise<br />
+                                • Vs Limp: 4-5 BB
                             </div>
                         </div>
                     </div>

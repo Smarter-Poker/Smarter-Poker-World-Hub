@@ -58,7 +58,7 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
             >
                 <h2 style={styles.title}>Adjust Bankroll</h2>
                 <p style={styles.subtitle}>
-                    Add or remove money from outside sources (not gambling results).
+                    Add Or Remove Money From Outside Sources (Not Gambling Results).
                 </p>
 
                 {/* Type Toggle */}

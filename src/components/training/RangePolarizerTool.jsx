@@ -37,7 +37,7 @@ export default function RangePolarizerTool() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Range Polarizer
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Visualize how your range splits between value, bluffs, and medium.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Visualize How Your Range Splits Between Value, Bluffs, And Medium.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {STREET_RANGES.map((s, i) => (

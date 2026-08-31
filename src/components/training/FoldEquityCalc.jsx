@@ -9,9 +9,9 @@ import React, { useState, useMemo } from 'react';
 const BLUFF_SCENARIOS = [
   { name: 'C-Bet Bluff (Flop)', betPct: 33, foldPct: 55, equity: 15, description: 'Flop c-bet with air. High fold frequency expected on many textures.' },
   { name: 'Double Barrel (Turn)', betPct: 67, foldPct: 45, equity: 12, description: 'Turn barrel with missed draw. Villain folded weak hands on flop already.' },
-  { name: 'River Bluff (Missed Draw)', betPct: 75, foldPct: 35, equity: 0, description: 'River bluff with no equity. Pure bluff — need high fold rate.' },
+  { name: 'River Bluff (Missed Draw)', betPct: 75, foldPct: 35, equity: 0, description: 'River bluff with no equity. Pure bluff - need high fold rate.' },
   { name: 'Semi-Bluff (Flush Draw)', betPct: 67, foldPct: 40, equity: 35, description: 'Turn bet with flush draw. Even if called, 35% equity to improve.' },
-  { name: 'Overbet Bluff (River)', betPct: 150, foldPct: 50, equity: 0, description: 'Large overbet on river. Polarizing — villain must defend less.' },
+  { name: 'Overbet Bluff (River)', betPct: 150, foldPct: 50, equity: 0, description: 'Large overbet on river. Polarizing - villain must defend less.' },
   { name: 'Squeeze Bluff (Preflop)', betPct: 300, foldPct: 60, equity: 25, description: '3-bet squeeze preflop. Fold equity from multiple players.' },
 ];
 
@@ -88,7 +88,7 @@ function FoldEquityCalc() {
           border: `1px solid ${calc.profitable ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
         }}>
           <div style={{ fontSize: 32, fontWeight: 900, color: calc.profitable ? '#10b981' : '#ef4444' }}>
-            {calc.totalEV > 0 ? '+' : ''}{calc.totalEV} bb
+            {calc.totalEV > 0 ? '+' : ''}{calc.totalEV} BB
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, color: calc.profitable ? '#10b981' : '#ef4444' }}>
             {calc.profitable ? 'Profitable Bluff' : 'Unprofitable Bluff'}
@@ -115,8 +115,8 @@ function FoldEquityCalc() {
         <div style={{ padding: 10, background: 'rgba(192,132,252,0.06)', borderRadius: 8, border: '1px solid rgba(192,132,252,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', marginBottom: 6 }}>How It Works</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-            When villain folds ({villainFoldPct}%), you win the {potSize}bb pot.
-            When called ({100 - villainFoldPct}%), you have {equityWhenCalled}% equity in a {potSize + calc.bet * 2}bb pot.
+            When Villain Folds ({villainFoldPct}%), You Win The {potSize}bb Pot.
+            When Called ({100 - villainFoldPct}%), You Have {equityWhenCalled}% Equity In A {potSize + calc.bet * 2}bb Pot.
             {equityWhenCalled > 0
               ? ` Semi-bluff breakeven: villain needs to fold only ${calc.breakEvenAdjPct}% (vs ${calc.breakEvenPurePct}% for pure bluff).`
               : ` Pure bluff: villain must fold ≥${calc.breakEvenPurePct}% for profit.`}
@@ -125,7 +125,7 @@ function FoldEquityCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Fold Equity Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Fold Equity Calculator Failed To Load: {err.message}</div>;
   }
 }
 

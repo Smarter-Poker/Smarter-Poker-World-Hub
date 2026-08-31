@@ -497,7 +497,7 @@ What did I do right? What could I improve?`;
                                             color: '#000', fontSize: '10px', fontWeight: 600, cursor: 'pointer'
                                         }}
                                     >
-                                        🎯 Analyze with Jarvis
+                                        🎯 Analyze With Jarvis
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); deleteHand(hand.id); }}
@@ -526,7 +526,7 @@ What did I do right? What could I improve?`;
                     borderRadius: '6px', fontSize: '10px', color: 'rgba(255, 255, 255, 0.7)',
                     display: 'flex', justifyContent: 'space-between'
                 }}>
-                    <span>Total: {hands.length} hands</span>
+                    <span>Total: {hands.length} Hands</span>
                     <span style={{ color: '#4CAF50' }}>Won: {hands.filter(h => h.result === 'won').length}</span>
                     <span style={{ color: '#f44336' }}>Lost: {hands.filter(h => h.result === 'lost').length}</span>
                 </div>

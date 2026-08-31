@@ -154,32 +154,32 @@ export function getCbetStrategy(board, posContext, holeCards) {
     // Strong made hands — always bet (or sometimes trap)
     if (madeHand.strength >= 0.75) {
         freqAdjust = 0.30;
-        reason = `Strong ${madeHand.description} — value bet`;
+        reason = `Strong ${madeHand.description} - value bet`;
     }
     // Top pair+ — bet most of the time
     else if (madeHand.strength >= 0.45) {
         freqAdjust = 0.15;
-        reason = `${madeHand.description} — standard value c-bet`;
+        reason = `${madeHand.description} - standard value c-bet`;
     }
     // Middle pair — check more on wet boards, bet on dry
     else if (madeHand.strength >= 0.25) {
         freqAdjust = boardAnalysis.wetness.isDry ? 0.05 : -0.15;
         reason = boardAnalysis.wetness.isDry
-            ? `${madeHand.description} on dry board — thin value`
-            : `${madeHand.description} on wet board — check to control pot`;
+            ? `${madeHand.description} on dry board - thin value`
+            : `${madeHand.description} on wet board - check to control pot`;
     }
     // Nothing or bottom pair — bluff candidates
     else {
         // Good draw = semi-bluff candidate
         if (draws.outs >= 8) {
             freqAdjust = 0.10;
-            reason = `${draws.description} — semi-bluff with equity`;
+            reason = `${draws.description} - semi-bluff with equity`;
         } else if (draws.outs >= 4) {
             freqAdjust = -0.05;
-            reason = `Weak ${madeHand.description} with ${draws.description} — marginal bluff`;
+            reason = `Weak ${madeHand.description} with ${draws.description} - marginal bluff`;
         } else {
             freqAdjust = -0.20;
-            reason = `${madeHand.description}, no draw — give up or thin bluff`;
+            reason = `${madeHand.description}, no draw - give up or thin bluff`;
         }
     }
 
@@ -246,36 +246,36 @@ export function getCheckRaiseStrategy(board, holeCards, betSizeFraction = 0.33) 
     // Monster hands — check-raise for value
     if (madeHand.strength >= 0.70) {
         freqAdjust = 0.60;
-        reason = `${madeHand.description} — check-raise for value`;
+        reason = `${madeHand.description} - check-raise for value`;
     }
     // Two pair / overpair — strong check-raise candidate
     else if (madeHand.strength >= 0.50) {
         freqAdjust = 0.30;
-        reason = `${madeHand.description} — check-raise for value/protection`;
+        reason = `${madeHand.description} - check-raise for value/protection`;
     }
     // Strong draws — check-raise as semi-bluff
     else if (draws.isCombo || draws.outs >= 12) {
         freqAdjust = 0.40;
-        reason = `${draws.description} — check-raise semi-bluff (combo draw)`;
+        reason = `${draws.description} - check-raise semi-bluff (combo draw)`;
     }
     else if (draws.outs >= 8) {
         freqAdjust = 0.20;
-        reason = `${draws.description} — check-raise semi-bluff`;
+        reason = `${draws.description} - check-raise semi-bluff`;
     }
     // Gutshots with backdoor equity — occasional bluff raise
     else if (draws.outs >= 4) {
         freqAdjust = 0.05;
-        reason = `${draws.description} — occasional bluff check-raise`;
+        reason = `${draws.description} - occasional bluff check-raise`;
     }
     // Nothing — only raise with blocker effects or as pure bluff at low freq
     else if (madeHand.strength <= 0.15) {
         freqAdjust = -0.05;
-        reason = `${madeHand.description} — mostly fold to c-bet`;
+        reason = `${madeHand.description} - mostly fold to c-bet`;
     }
     // Middle pair type hands — call, don't raise
     else {
         freqAdjust = -0.05;
-        reason = `${madeHand.description} — call rather than raise`;
+        reason = `${madeHand.description} - call rather than raise`;
     }
 
     // Larger c-bets discourage check-raises slightly
@@ -335,25 +335,25 @@ export function getTurnStrategy(holeCards, board, flopAction, posContext) {
     if (madeHand.strength >= 0.70) {
         baseFreq = 0.90;
         sizingKey = boardAnalysis.wetness.isWet ? 'LARGE' : 'MEDIUM';
-        reason = `${madeHand.description} — value barrel`;
+        reason = `${madeHand.description} - value barrel`;
     }
     // Good top pair — continue betting
     else if (madeHand.strength >= 0.45) {
         baseFreq = 0.65;
         sizingKey = 'MEDIUM';
-        reason = `${madeHand.description} — continue value`;
+        reason = `${madeHand.description} - continue value`;
 
         // Scary turn card reduces frequency
         if (turnBrought.completedDraw) {
             baseFreq -= 0.20;
-            reason += ` (draw completed — slow down)`;
+            reason += ` (draw completed - slow down)`;
         }
     }
     // Medium hands — check for pot control
     else if (madeHand.strength >= 0.25) {
         baseFreq = 0.25;
         sizingKey = 'SMALL';
-        reason = `${madeHand.description} — pot control`;
+        reason = `${madeHand.description} - pot control`;
 
         if (turnBrought.improvesTexture) {
             baseFreq -= 0.10;
@@ -363,22 +363,22 @@ export function getTurnStrategy(holeCards, board, flopAction, posContext) {
     else if (draws.outs >= 8) {
         baseFreq = 0.60;
         sizingKey = 'MEDIUM';
-        reason = `${draws.description} — semi-bluff barrel`;
+        reason = `${draws.description} - semi-bluff barrel`;
     }
     else if (draws.outs >= 4) {
         baseFreq = 0.30;
         sizingKey = 'MEDIUM';
-        reason = `${draws.description} — occasional barrel`;
+        reason = `${draws.description} - occasional barrel`;
     }
     // Nothing — give up or bluff with backdoor blockers
     else {
         baseFreq = 0.15;
-        reason = `${madeHand.description} — mostly give up`;
+        reason = `${madeHand.description} - mostly give up`;
 
         // Blank turn card is better for bluffing
         if (turnBrought.isBlank) {
             baseFreq += 0.10;
-            reason = `${madeHand.description} — blank turn, occasional bluff`;
+            reason = `${madeHand.description} - blank turn, occasional bluff`;
         }
     }
 
@@ -462,12 +462,12 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
         frequency = 0.90;
         sizingKey = 'LARGE';
         category = 'value';
-        reason = `${madeHand.description} — clear value bet`;
+        reason = `${madeHand.description} - clear value bet`;
 
         // Nuts: consider overbet
         if (madeHand.strength >= 0.93) {
             sizingKey = 'OVERBET';
-            reason = `${madeHand.description} — overbet for max value`;
+            reason = `${madeHand.description} - overbet for max value`;
         }
     }
     // STRONG TOP PAIR+ — Thin value bet
@@ -476,7 +476,7 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
         frequency = 0.60;
         sizingKey = 'MEDIUM';
         category = 'value';
-        reason = `${madeHand.description} — thin value bet`;
+        reason = `${madeHand.description} - thin value bet`;
 
         // Scary board reduces thin value
         const boardAnalysis = analyzeBoard(board);
@@ -490,13 +490,13 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
         action = ACTIONS.CHECK;
         frequency = 0.10; // Rarely bet, mostly check-call
         category = 'bluff_catcher';
-        reason = `${madeHand.description} — bluff catcher, check and evaluate`;
+        reason = `${madeHand.description} - bluff catcher, check and evaluate`;
 
         // If we were the aggressor, sometimes we can still bet thin
         if (prevAction === 'bet') {
             frequency = 0.20;
             sizingKey = 'SMALL';
-            reason = `${madeHand.description} — thin value/block bet`;
+            reason = `${madeHand.description} - thin value/block bet`;
         }
     }
     // NOTHING — Bluff candidate
@@ -515,17 +515,17 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
             action = ACTIONS.BET;
             frequency = 0.40;
             sizingKey = 'LARGE';
-            reason = `Missed draw with flush blockers — river bluff`;
+            reason = `Missed draw with flush blockers - river bluff`;
         } else if (prevAction === 'bet') {
             // Triple barrel bluff — need to follow through sometimes
             action = ACTIONS.BET;
             frequency = 0.25;
             sizingKey = 'LARGE';
-            reason = `${madeHand.description} — follow-through bluff`;
+            reason = `${madeHand.description} - follow-through bluff`;
         } else {
             action = ACTIONS.CHECK;
             frequency = 0.05;
-            reason = `${madeHand.description} — give up`;
+            reason = `${madeHand.description} - give up`;
         }
     }
 
@@ -575,18 +575,18 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
     if (madeHand.strength >= 0.70) {
         action = ACTIONS.RAISE;
         frequency = 0.75;
-        reason = `${madeHand.description} — raise for value`;
+        reason = `${madeHand.description} - raise for value`;
     }
     // STRONG HANDS — Call (sometimes raise)
     else if (madeHand.strength >= 0.45) {
         action = ACTIONS.CALL;
         frequency = 0.85;
-        reason = `${madeHand.description} — call, ahead of betting range`;
+        reason = `${madeHand.description} - call, ahead of betting range`;
 
         // Raise sometimes with top pair good kicker+ for protection
         if (madeHand.strength >= 0.55) {
             frequency = 0.80;
-            reason = `${madeHand.description} — call (occasional raise)`;
+            reason = `${madeHand.description} - call (occasional raise)`;
         }
     }
     // MEDIUM HANDS + DRAWS — Call if odds are right
@@ -595,11 +595,11 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
         if (equity >= potOdds - impliedOdds) {
             action = ACTIONS.CALL;
             frequency = 0.65;
-            reason = `${madeHand.description} / ${draws.description} — call with ${Math.round(equity * 100)}% equity vs ${Math.round(potOdds * 100)}% pot odds`;
+            reason = `${madeHand.description} / ${draws.description} - call with ${Math.round(equity * 100)}% equity vs ${Math.round(potOdds * 100)}% pot odds`;
         } else {
             action = ACTIONS.FOLD;
             frequency = 0.55;
-            reason = `${madeHand.description} — insufficient equity (${Math.round(equity * 100)}% vs ${Math.round(potOdds * 100)}% needed)`;
+            reason = `${madeHand.description} - insufficient equity (${Math.round(equity * 100)}% vs ${Math.round(potOdds * 100)}% needed)`;
         }
     }
     // WEAK DRAWS — Call only with good odds
@@ -607,18 +607,18 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
         if (draws.equity >= potOdds) {
             action = ACTIONS.CALL;
             frequency = 0.55;
-            reason = `${draws.description} — call with direct odds`;
+            reason = `${draws.description} - call with direct odds`;
         } else {
             action = ACTIONS.FOLD;
             frequency = 0.60;
-            reason = `${draws.description} — fold, insufficient odds`;
+            reason = `${draws.description} - fold, insufficient odds`;
         }
     }
     // NOTHING — Fold (occasionally bluff-raise)
     else {
         action = ACTIONS.FOLD;
         frequency = 0.85;
-        reason = `${madeHand.description} — fold to bet`;
+        reason = `${madeHand.description} - fold to bet`;
     }
 
     return {
@@ -965,7 +965,7 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) on ${textureKey} — solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) on ${textureKey} - solver freq ${Math.round(betFreq * 100)}%`,
             handCategory: madeHand.category,
             handClass,
             boardTexture: textureKey,
@@ -1011,7 +1011,7 @@ export function getEnhancedTurnStrategy(holeCards, board, flopAction, posContext
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) — ${runoutKey} turn — solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) - ${runoutKey} turn - solver freq ${Math.round(betFreq * 100)}%`,
             handCategory: madeHand.category,
             handClass,
             turnRunout: runoutKey,
@@ -1068,7 +1068,7 @@ export function getEnhancedRiverStrategy(holeCards, board, posContext, prevActio
             sizing: BET_SIZES[sizingKey],
             sizingKey,
             sizeDistribution: sizes,
-            reason: `${madeHand.description} (${handClass}) on ${boardState} river — solver freq ${Math.round(betFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) on ${boardState} river - solver freq ${Math.round(betFreq * 100)}%`,
             category,
             handCategory: madeHand.category,
             handClass,
@@ -1107,7 +1107,7 @@ export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize,
             callFreq: strategy.call,
             raiseFreq: strategy.raise,
             foldFreq: strategy.fold,
-            reason: `${madeHand.description} (${handClass}) vs ${sizeCategory} bet — ${action} ${Math.round(actionFreq * 100)}%`,
+            reason: `${madeHand.description} (${handClass}) vs ${sizeCategory} bet - ${action} ${Math.round(actionFreq * 100)}%`,
             handCategory: madeHand.category,
             handClass,
             drawInfo: draws,

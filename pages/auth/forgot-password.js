@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
     return (
         <>
             <SEOHead
-                title="Reset Password — Smarter.Poker"
+                title="Reset Password - Smarter.Poker"
                 description="Reset your Smarter.Poker password."
                 canonical="/auth/forgot-password"
                 noindex={true}

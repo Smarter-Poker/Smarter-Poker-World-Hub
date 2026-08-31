@@ -41,7 +41,7 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
     const cH = svgH - pad.t - pad.b;
 
     if (!data || data.length < 2) {
-        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 10 }}>Not enough data</div>;
+        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 10 }}>Not Enough Data</div>;
     }
 
     const values = data.map(d => typeof d === 'number' ? d : d[valueKey] || 0);
@@ -144,7 +144,7 @@ const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
                             {(acc * 100).toFixed(0)}%
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
-                            {p.total} hands
+                            {p.total} Hands
                         </div>
                     </div>
                 );
@@ -256,7 +256,7 @@ const LeakTimeline = memo(({ sessions }) => {
     if (leaks.length === 0) {
         return (
             <div style={{ padding: 12, textAlign: 'center', color: '#22c55e', fontSize: 11 }}>
-                No significant leaks detected. Keep it up!
+                No Significant Leaks Detected. Keep It Up!
             </div>
         );
     }
@@ -423,7 +423,7 @@ const RecentSessionsList = memo(({ sessions }) => {
                         borderBottom: i < recent.length - 1 ? '1px solid rgba(100,116,139,0.08)' : 'none',
                     }}>
                         <span style={{ fontSize: 9, color: '#64748b', width: 64, flexShrink: 0 }}>
-                            {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}
+                            {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '-'}
                         </span>
                         <span style={{ flex: 1, fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {s.gameName || s.gameId || 'Training'}
@@ -432,7 +432,7 @@ const RecentSessionsList = memo(({ sessions }) => {
                             {score > 0 ? `+${score}` : score}
                         </span>
                         <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
-                            {acc !== null ? `${acc}%` : '—'}
+                            {acc !== null ? `${acc}%` : '-'}
                         </span>
                         <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
                             {`-${(s.evLossTotal || 0).toFixed(1)}`}
@@ -600,7 +600,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     </div>
                     {!loading && (
                         <div style={{ fontSize: 11, color: '#64748b' }}>
-                            Complete a training session and your score trend, position accuracy and session history will build here.
+                            Complete A Training Session And Your Score Trend, Position Accuracy And Session History Will Build Here.
                         </div>
                     )}
                 </div>

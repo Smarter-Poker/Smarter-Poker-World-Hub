@@ -209,7 +209,7 @@ export default function MTTDeepStackUI({
             <div style={styles.timerCounterRow}>
                 <div style={styles.timer}>{timeLeft}</div>
                 <div style={styles.questionCounter}>
-                    Question {questionNumber} of {totalQuestions}
+                    Question {questionNumber} Of {totalQuestions}
                 </div>
             </div>
 

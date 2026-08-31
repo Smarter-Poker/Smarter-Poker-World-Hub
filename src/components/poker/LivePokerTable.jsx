@@ -542,7 +542,7 @@ function TableLayoutManager({ onClose }) {
         background: 'rgba(79,172,254,0.15)', border: '1px solid rgba(79,172,254,0.3)',
         color: '#4facfe', cursor: 'pointer', marginBottom: 8,
       }}>+ Save Current Layout</button>
-      {layouts.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 8 }}>No saved layouts</div>}
+      {layouts.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 8 }}>No Saved Layouts</div>}
       {layouts.map((lay, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <button onClick={() => loadLayout(lay)} style={{ background: 'none', border: 'none', color: '#E4E6EB', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{lay.name}</button>
@@ -812,7 +812,7 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <div style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 800 }}>Session Stack Graph</div>
-            <div style={{ color: '#888', fontSize: 11 }}>{history.length} hands played</div>
+            <div style={{ color: '#888', fontSize: 11 }}>{history.length} Hands Played</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ color, fontSize: 18, fontWeight: 900 }}>{net >= 0 ? '+' : ''}{fmt(net)}</div>
@@ -1255,7 +1255,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
         }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB' }}>Hand History</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 11, color: '#8E8E93' }}>{hands.length} hands</span>
+            <span style={{ fontSize: 11, color: '#8E8E93' }}>{hands.length} Hands</span>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8E8E93', fontSize: 18, cursor: 'pointer' }}>✕</button>
           </div>
         </div>
@@ -1264,7 +1264,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
           {hands.length === 0 && (
             <div style={{ textAlign: 'center', color: '#6B7280', padding: 40, fontSize: 13 }}>
-              No hands played yet
+              No Hands Played Yet
             </div>
           )}
           {hands.map((h, idx) => {
@@ -1297,7 +1297,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                     Pot: {formatStack ? formatStack(h.potTotal) : h.potTotal?.toLocaleString() || '0'}
                   </span>
                   <span style={{ fontSize: 11, color: pnlColor, fontWeight: 700 }}>
-                    {heroWon ? '✓ Won' : '—'}
+                    {heroWon ? '✓ Won' : '-'}
                   </span>
                 </div>
                 {/* Board cards */}
@@ -1383,7 +1383,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                       </div>
                     )}
                     {h.phase && (
-                      <div style={{ fontSize: 9, color: '#6B7280', marginTop: 4 }}>Ended at: {h.phase}</div>
+                      <div style={{ fontSize: 9, color: '#6B7280', marginTop: 4 }}>Ended At: {h.phase}</div>
                     )}
                   </motion.div>
                 )}
@@ -1448,7 +1448,7 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
         ))}
       </div>
       <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 8px', maxHeight: 155 }}>
-        {filtered.length === 0 && <div style={{ color: '#4B5563', fontSize: 9, textAlign: 'center', padding: 12 }}>Waiting for action…</div>}
+        {filtered.length === 0 && <div style={{ color: '#4B5563', fontSize: 9, textAlign: 'center', padding: 12 }}>Waiting For Action…</div>}
         {filtered.map((e, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 * Math.min(i, 5) }} style={{ fontSize: 9, color: '#B0B0B0', padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
             <span style={{ marginRight: 4 }}>{ICON_MAP[e.type] || '•'}</span>
@@ -1481,7 +1481,7 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
   // G8: Expanded metrics
   const vpipPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.vpipCount || 0) / sessionStats.handsPlayed * 100) : 0;
   const pfrPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.pfrCount || 0) / sessionStats.handsPlayed * 100) : 0;
-  const af = (sessionStats.aggressionCalls || 0) > 0 ? ((sessionStats.aggressionBets || 0) / sessionStats.aggressionCalls).toFixed(1) : '—';
+  const af = (sessionStats.aggressionCalls || 0) > 0 ? ((sessionStats.aggressionBets || 0) / sessionStats.aggressionCalls).toFixed(1) : '-';
   const winRate = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.handsWon || 0) / sessionStats.handsPlayed * 100) : 0;
   // Position win rates
   const posStats = Object.entries(sessionStats.positionTotal || {}).map(([pos, total]) => ({
@@ -1517,7 +1517,7 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
       {/* Row 1: Core metrics */}
       <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginBottom: 8 }}>
         <Stat icon="" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
-        <Stat icon="" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
+        <Stat icon="" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '-'} color="#FFD700" />
         <Stat icon="" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
         <Stat icon="" label="Players" value={activePlayers.length} />
         <Stat icon="" label="Total" value={sessionStats.handsPlayed || 0} />
@@ -1618,12 +1618,12 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
 
       <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>Run It Twice?</div>
       <div style={{ fontSize: 11, color: '#8E8E93', marginBottom: 16 }}>
-        Deal the remaining board cards twice for two separate outcomes
+        Deal The Remaining Board Cards Twice For Two Separate Outcomes
       </div>
 
       {/* Countdown */}
       <div style={{ fontSize: 10, color: countdown <= 3 ? '#ef4444' : '#65676B', marginBottom: 12, fontWeight: 600 }}>
-        Auto-decline in {countdown}s
+        Auto-Decline In {countdown}s
       </div>
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -2956,7 +2956,7 @@ function PotDisplay({ potTotal, pots = [], formatFn, seats = [] }) {
                     {(pot.amount || 0).toLocaleString()}
                   </div>
                   {pot.eligible && (
-                    <div style={{ color: '#8E8E93', fontSize: 8 }}>{pot.eligible} eligible</div>
+                    <div style={{ color: '#8E8E93', fontSize: 8 }}>{pot.eligible} Eligible</div>
                   )}
                 </div>
                 {/* E3: Player avatar thumbnails */}
@@ -3664,7 +3664,7 @@ function AdminTablePanel({ tableId, clubId, tableState, seats, userId, userRole,
       <div style={{ padding: '12px 16px', borderTop: '1px solid #3E4042' }}>
         <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Players ({seatedPlayers.length})</div>
         {seatedPlayers.length === 0 ? (
-          <div style={{ color: '#666', fontSize: 12 }}>No players seated</div>
+          <div style={{ color: '#666', fontSize: 12 }}>No Players Seated</div>
         ) : seatedPlayers.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #2a2b2c' }}>
             <div>
@@ -3770,7 +3770,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
         >
           <div>
             <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>Seat Available!</div>
-            <div style={{ color: '#81C784', fontSize: 12 }}>Seat #{seatOffer.seatIndex + 1} reserved for you</div>
+            <div style={{ color: '#81C784', fontSize: 12 }}>Seat #{seatOffer.seatIndex + 1} Reserved For You</div>
           </div>
           <div style={{
             fontSize: 22, fontWeight: 900, color: offerSecs < 10 ? '#FF6B6B' : '#4caf50',
@@ -3816,7 +3816,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
       ) : tableFull ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ color: '#B0B3B8', fontSize: 13 }}>
-            Table full ({seats.filter(s => s.player).length}/{seats.length})
+            Table Full ({seats.filter(s => s.player).length}/{seats.length})
           </div>
           <button
             onClick={() => send('join_waitlist', {})}
@@ -3833,7 +3833,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ color: '#81C784', fontSize: 13 }}>
-            {emptySeats.length} seat{emptySeats.length !== 1 ? 's' : ''} available
+            {emptySeats.length} seat{emptySeats.length !== 1 ? 's' : ''} Available
           </div>
           <button
             onClick={() => {
@@ -3856,7 +3856,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
       {/* Waitlist count (when not on it) */}
       {!isOnWaitlist && waitlist.length > 0 && (
         <div style={{ color: '#B0B3B8', fontSize: 11 }}>
-          {waitlist.length} player{waitlist.length !== 1 ? 's' : ''} on waitlist
+          {waitlist.length} player{waitlist.length !== 1 ? 's' : ''} On Waitlist
         </div>
       )}
     </motion.div>
@@ -3895,7 +3895,7 @@ function RebuyModal({ currentStack, maxBuyIn, chipBalance, loading, error, onCon
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>Add Chips</div>
-        <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 16 }}>Top up your stack at the table</div>
+        <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 16 }}>Top Up Your Stack At The Table</div>
 
         {/* Balance info */}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 12 }}>
@@ -3914,18 +3914,18 @@ function RebuyModal({ currentStack, maxBuyIn, chipBalance, loading, error, onCon
         {/* Max add-on info */}
         {!loading && maxAdd > 0 && (
           <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 12 }}>
-            Max add: <strong style={{ color: '#fff' }}>{maxAdd.toLocaleString()}</strong>
-            <span style={{ color: '#666' }}> (table max: {maxBuyIn.toLocaleString()})</span>
+            Max Add: <strong style={{ color: '#fff' }}>{maxAdd.toLocaleString()}</strong>
+            <span style={{ color: '#666' }}> (Table Max: {maxBuyIn.toLocaleString()})</span>
           </div>
         )}
 
         {insufficient ? (
           <div style={{ color: '#ef5350', fontSize: 13, fontWeight: 600, padding: '10px 0' }}>
-            Insufficient chip balance to add chips.
+            Insufficient Chip Balance To Add Chips.
           </div>
         ) : maxAdd <= 0 && !loading ? (
           <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 600, padding: '10px 0' }}>
-            Stack is already at maximum buy-in ({maxBuyIn.toLocaleString()}).
+            Stack Is Already At Maximum Buy-In ({maxBuyIn.toLocaleString()}).
           </div>
         ) : !loading && (
           <>
@@ -4020,10 +4020,10 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
         }}
       >
         <h3 style={{ color: T.accent, fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-          Take a Seat
+          Take A Seat
         </h3>
         <p style={{ color: T.textSecondary, fontSize: 13, marginBottom: isClubTable ? 4 : 20 }}>
-          Buy-in: {minBuyIn.toLocaleString()} – {effectiveMax.toLocaleString()} chips
+          Buy-In: {minBuyIn.toLocaleString()} - {effectiveMax.toLocaleString()} Chips
         </p>
         {isClubTable && chipBalance !== null && (
           <p style={{ color: insufficientChips ? '#FA383E' : '#31A24C', fontSize: 12, marginBottom: 16 }}>
@@ -4236,7 +4236,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
                   {m.type === 'dealer' ? (
                     <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>{m.text}</span>
                   ) : m.type === 'emoji' ? (
-                    <span style={{ color: T.textSecondary, fontSize: 10 }}>{m.senderName || 'Player'} threw {m.emoji}</span>
+                    <span style={{ color: T.textSecondary, fontSize: 10 }}>{m.senderName || 'Player'} Threw {m.emoji}</span>
                   ) : (
                     <>
                       <span style={{ color: T.accent, fontWeight: 700 }}>{m.displayName}: </span>
@@ -4475,7 +4475,7 @@ function TournamentHUD({ tournamentId, userId }) {
           <>
             <div style={{ fontSize: 10, fontWeight: 800, color: '#4ECDC4', textTransform: 'uppercase' }}>BREAK</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-              Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '—'}
+              Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '-'}
             </div>
             <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: '#4ECDC4', marginLeft: 'auto' }}>
               {breakCountdown > 0 ? fmtTime(breakCountdown) : '--:--'}
@@ -4511,7 +4511,7 @@ function TournamentHUD({ tournamentId, userId }) {
           background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.5)',
           color: '#fbbf24', textAlign: 'center',
         }}>
-          ▲ BUBBLE — {remaining} players left, {paidPlaces} paid
+          ▲ BUBBLE - {remaining} Players Left, {paidPlaces} Paid
         </div>
       )}
 
@@ -4613,7 +4613,7 @@ function TournamentHUD({ tournamentId, userId }) {
                   flex: 1, padding: '6px 10px', background: 'rgba(76,175,80,0.2)', color: '#81C784',
                   border: '1px solid rgba(76,175,80,0.4)', borderRadius: 6, fontSize: 11,
                   fontWeight: 700, cursor: 'pointer',
-                }}>Add-on</button>
+                }}>Add-On</button>
               )}
             </div>
           </motion.div>
@@ -4683,7 +4683,7 @@ function ThemePresetBar({ onSave, onLoad, onDelete }) {
 
             {presets.length === 0 ? (
               <div style={{ fontSize: 9, color: T.textMuted, textAlign: 'center', padding: 8 }}>
-                No presets saved yet
+                No Presets Saved Yet
               </div>
             ) : (
               <div style={{ maxHeight: 120, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -4767,9 +4767,9 @@ function HandHistoryBrowser({ tableId, userId, onClose }) {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loading ? (
-          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>Loading hands...</div>
+          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>Loading Hands...</div>
         ) : hands.length === 0 ? (
-          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>No hands found in this session.</div>
+          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>No Hands Found In This Session.</div>
         ) : (
           hands.map((h, i) => <HandHistoryRow key={h.id || i} hand={h} userId={userId} />)
         )}
@@ -4786,7 +4786,7 @@ function HandHistoryBrowser({ tableId, userId, onClose }) {
             borderRadius: 6, color: page === 0 ? T.textMuted : T.textPrimary, cursor: page === 0 ? 'not-allowed' : 'pointer',
           }}
         >◀ Prev</button>
-        <span style={{ color: T.textMuted, fontSize: 13 }}>Page {page + 1} of {Math.max(1, Math.ceil(total / 10))}</span>
+        <span style={{ color: T.textMuted, fontSize: 13 }}>Page {page + 1} Of {Math.max(1, Math.ceil(total / 10))}</span>
         <button
           onClick={() => fetchHands(page + 1)} disabled={(page + 1) * 10 >= total || loading}
           style={{
@@ -4937,8 +4937,8 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 
       {/* Footer stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#65676B' }}>
-        <span>Buy-in: {sessionStats.initialBuyIn?.toLocaleString()}{sessionStats.totalAdded > 0 ? ` +${sessionStats.totalAdded.toLocaleString()}` : ''}</span>
-        <span>{hrs.toFixed(1)} hours</span>
+        <span>Buy-In: {sessionStats.initialBuyIn?.toLocaleString()}{sessionStats.totalAdded > 0 ? ` +${sessionStats.totalAdded.toLocaleString()}` : ''}</span>
+        <span>{hrs.toFixed(1)} Hours</span>
         {sessionStats.biggestPot > 0 && <span>Max Pot: {sessionStats.biggestPot.toLocaleString()}</span>}
       </div>
     </motion.div>
@@ -5023,7 +5023,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           const hrs = sessionStats.sessionStart ? ((Date.now() - sessionStats.sessionStart) / 3600000).toFixed(1) : '0';
           return (
             <span style={{ color, fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', marginLeft: 'auto' }}>
-              {pnl >= 0 ? '+' : ''}{pnl.toLocaleString()} • {sessionStats.handsPlayed} hands • {hrs}hr
+              {pnl >= 0 ? '+' : ''}{pnl.toLocaleString()} • {sessionStats.handsPlayed} Hands • {hrs}hr
             </span>
           );
         })()}
@@ -5176,7 +5176,7 @@ function GTOCheckBadge({ result, heroAction, visible }) {
     const { action, potOdds, handStrength, phase } = heroAction;
 
     // Simple heuristic: compare action vs. expected play
-    if (!action) return { grade: 'neutral', label: '—', color: '#888', tip: 'No action recorded' };
+    if (!action) return { grade: 'neutral', label: '-', color: '#888', tip: 'No action recorded' };
 
     // Fold with strong hand = major deviation
     if (action === 'fold' && handStrength > 60) {
@@ -5188,11 +5188,11 @@ function GTOCheckBadge({ result, heroAction, visible }) {
     }
     // Raise with premium = optimal
     if ((action === 'raise' || action === 'bet') && handStrength > 70) {
-      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Value bet with strong hand — well played.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Value bet with strong hand - well played.' };
     }
     // Fold with weak hand = optimal
     if (action === 'fold' && handStrength < 20) {
-      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Good fold — limited equity vs. opponent range.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Good fold - limited equity vs. opponent range.' };
     }
     // Default: slight leak for passive play
     if (action === 'check' && handStrength > 50 && phase === 'river') {
@@ -5461,7 +5461,7 @@ function ResultOverlay({ result, send, userId }) {
       const name = w.displayName || w.playerName || `Player`;
       const amt = w.amount ? ` (+${w.amount})` : '';
       const hand = w.handDescription || '';
-      lines.push(`★ ${name}${amt}${hand ? ` — ${hand}` : ''}`);
+      lines.push(`★ ${name}${amt}${hand ? ` - ${hand}` : ''}`);
     });
 
     if (result.rake) lines.push(`Rake: ${result.rake}`);
@@ -5511,7 +5511,7 @@ function ResultOverlay({ result, send, userId }) {
       {result.winners?.map((w, i) => (
         <div key={i} style={{ marginBottom: 6 }}>
           <div style={{ color: T.accent, fontSize: 16, fontWeight: 800 }}>
-            {w.displayName || w.playerId} wins {w.amount?.toLocaleString()}
+            {w.displayName || w.playerId} Wins {w.amount?.toLocaleString()}
           </div>
           {w.handDescription && (
             <motion.div
@@ -5573,7 +5573,7 @@ function ResultOverlay({ result, send, userId }) {
                 fontSize: 10, color: '#65676B', marginBottom: 6,
                 textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
               }}>
-                Would have been dealt
+                Would Have Been Dealt
               </div>
 
               {/* Show existing board + rabbit cards */}
@@ -5663,7 +5663,7 @@ function ResultOverlay({ result, send, userId }) {
             fontSize: 10, color: '#65676B', marginBottom: 6,
             textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
           }}>
-            Would have been dealt
+            Would Have Been Dealt
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
             {(onDemandRabbit.board || []).map((card, i) => (
@@ -5724,7 +5724,7 @@ function ResultOverlay({ result, send, userId }) {
       )}
       {cardsShown && (
         <div style={{ marginTop: 6, color: '#4caf50', fontSize: 11, fontWeight: 600 }}>
-          Cards revealed ✓
+          Cards Revealed ✓
         </div>
       )}
 
@@ -7980,7 +7980,7 @@ function LivePokerTable({
               {[
                 { section: 'Game Actions', keys: [
                   ['F', 'Fold'], ['C / Space', 'Check / Call'], ['A', 'All-In'],
-                  ['T', 'Use Time Bank'], ['1–9', 'Bet Size (Min → Max)'],
+                  ['T', 'Use Time Bank'], ['1-9', 'Bet Size (Min → Max)'],
                 ]},
                 { section: 'Utilities', keys: [
                   ['S', 'Sit Out / Sit In'], ['M', 'Toggle Auto-Muck'],
@@ -8080,7 +8080,7 @@ function LivePokerTable({
                     }))
                     .sort((a, b) => b.pnl - a.pnl);
                   if (ranked.length === 0) {
-                    return <div style={{ color: '#65676B', textAlign: 'center', fontSize: 13 }}>No players seated</div>;
+                    return <div style={{ color: '#65676B', textAlign: 'center', fontSize: 13 }}>No Players Seated</div>;
                   }
                   return ranked.map((p, i) => (
                     <div key={i} style={{
@@ -8228,7 +8228,7 @@ function LivePokerTable({
                 BAD BEAT JACKPOT!
               </h2>
               <p style={{ color: '#fff', fontSize: 15, margin: '4px 0' }}>
-                {result.bbj.loserHand} <span style={{ color: '#FA383E' }}>loses to</span> {result.bbj.winnerHand}
+                {result.bbj.loserHand} <span style={{ color: '#FA383E' }}>Loses To</span> {result.bbj.winnerHand}
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 20, margin: '16px 0' }}>
                 <div>
@@ -8379,7 +8379,7 @@ function LivePokerTable({
               <span style={{ fontSize: 24 }}></span>
               <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: '4px 0' }}>Insurance Available</h3>
               <p style={{ color: '#B0B3B8', fontSize: 12, margin: 0 }}>
-                You&apos;re ahead! Protect against {result.insuranceOffer.trailerEquity}% equity ({result.insuranceOffer.estimatedOuts} outs)
+                You&apos;Re Ahead! Protect Against {result.insuranceOffer.trailerEquity}% Equity ({result.insuranceOffer.estimatedOuts} Outs)
               </p>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 10 }}>
@@ -8550,11 +8550,11 @@ function LivePokerTable({
               <span style={{ color: '#4ade80', fontWeight: 700 }}>
                 {(result.sevenDeuceBonus.bonus || 0).toLocaleString()}
               </span>
-              {' '}with 7-2 offsuit!
+              {' '}with 7-2 Offsuit!
             </div>
             {result.sevenDeuceBonus.payers?.length > 0 && (
               <div style={{ color: '#B0B3B8', fontSize: 11, marginTop: 4 }}>
-                {result.sevenDeuceBonus.perPlayer?.toLocaleString()} each from {result.sevenDeuceBonus.payers.length} player{result.sevenDeuceBonus.payers.length > 1 ? 's' : ''}
+                {result.sevenDeuceBonus.perPlayer?.toLocaleString()} Each From {result.sevenDeuceBonus.payers.length} player{result.sevenDeuceBonus.payers.length > 1 ? 's' : ''}
               </div>
             )}
           </motion.div>
@@ -8670,7 +8670,7 @@ function LivePokerTable({
                 Waitlist Position #{waitlistState.position || '?'}
               </div>
               <div style={{ color: '#B0B3B8', fontSize: 11, marginBottom: 8 }}>
-                You will be notified when a seat opens
+                You Will Be Notified When A Seat Opens
               </div>
               <button
                 onClick={handleLeaveWaitlist}
@@ -8800,7 +8800,7 @@ function LivePokerTable({
                   </button>
                 </div>
               ) : (
-                <div style={{ color: '#fff', fontSize: 14 }}>Waiting for proposer to choose...</div>
+                <div style={{ color: '#fff', fontSize: 14 }}>Waiting For Proposer To Choose...</div>
               )
             ) : null}
           </motion.div>
@@ -8861,7 +8861,7 @@ function LivePokerTable({
             fontSize: 16,
           }}
         >
-          Connecting to table...
+          Connecting To Table...
         </div>
       )}
 
@@ -9055,7 +9055,7 @@ function LivePokerTable({
                 boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>Run It Twice — Results</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>Run It Twice - Results</div>
               {/* I7: Auto-dismiss countdown bar */}
               <div style={{ width: '100%', height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' }}>
                 <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: 6, ease: 'linear' }}
@@ -9114,7 +9114,7 @@ function LivePokerTable({
               display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            A seat opened up! Buy in now. {seatCountdown > 0 && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, opacity: 0.8 }}>({seatCountdown}s)</span>}
+            A Seat Opened Up! Buy In Now. {seatCountdown > 0 && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, opacity: 0.8 }}>({seatCountdown}s)</span>}
           </motion.div>
         )}
       </AnimatePresence>

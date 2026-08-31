@@ -170,7 +170,7 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
                 borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)',
                 fontSize: 11, color: '#475569', fontStyle: 'italic',
             }}>
-                Select a spot to see the solver line summary.
+                Select A Spot To See The Solver Line Summary.
             </div>
         );
     }

@@ -33,7 +33,7 @@ export default function BetFoldLineGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Bet/Fold Line Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Bet for value, but have the discipline to fold when raised.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Bet For Value, But Have The Discipline To Fold When Raised.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BET_FOLD_SPOTS.map((s, i) => (
@@ -49,18 +49,18 @@ export default function BetFoldLineGuide() {
       <motion.div key={spotIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, textAlign: 'center', marginBottom: 4 }}>{spot.board}</div>
-        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>{spot.street} | Sizing: {spot.sizing} pot</div>
+        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>{spot.street} | Sizing: {spot.sizing} Pot</div>
         <div style={{ fontSize: 16, fontWeight: 800, color: spot.color, textAlign: 'center', marginBottom: 12 }}>{spot.action}</div>
 
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{spot.reason}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>BET vs</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>BET Vs</div>
             <div style={{ fontSize: 11, color: '#94a3b8' }}>{spot.betVs}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.08)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>FOLD to raise from</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>FOLD To Raise From</div>
             <div style={{ fontSize: 11, color: '#94a3b8' }}>{spot.foldVs}</div>
           </div>
         </div>

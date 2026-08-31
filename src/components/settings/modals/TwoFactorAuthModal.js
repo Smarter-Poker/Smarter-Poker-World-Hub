@@ -142,7 +142,7 @@ export default function TwoFactorAuthModal({
                     setStep('phone');
                     say('error', typeof json.error === 'string' && json.error
                         ? json.error
-                        : 'Add and verify a mobile number first — that is where your codes are texted.');
+                        : 'Add and verify a mobile number first - that is where your codes are texted.');
                     return;
                 }
                 if (res.status === 409) {
@@ -344,7 +344,7 @@ export default function TwoFactorAuthModal({
                     {enabled ? 'Two-Factor Authentication' : 'Turn On Two-Factor Authentication'}
                 </h2>
                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                    We text a short code to your mobile number. One code covers everything for 30 days —
+                    We text a short code to your mobile number. One code covers everything for 30 days -
                     you will not be asked again on a remembered device until then.
                 </p>
 
@@ -415,7 +415,7 @@ export default function TwoFactorAuthModal({
                                     <ol style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, paddingLeft: 20, margin: 0 }}>
                                         <li style={{ marginBottom: 8 }}>We text a code to the mobile number verified on your account.</li>
                                         <li style={{ marginBottom: 8 }}>You type it in here once.</li>
-                                        <li>That is it — no app to install, and no new code for 30 days.</li>
+                                        <li>That is it - no app to install, and no new code for 30 days.</li>
                                     </ol>
                                 </div>
 
@@ -578,7 +578,7 @@ export default function TwoFactorAuthModal({
                             <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA Is Active</h3>
                             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
                                 We text a code to {phoneHint ? <strong style={{ color: '#fff' }}>{phoneHint}</strong> : 'your verified mobile number'} when
-                                something sensitive needs confirming — and not again for 30 days on a remembered device.
+                                something sensitive needs confirming - and not again for 30 days on a remembered device.
                             </p>
                         </div>
 
@@ -610,7 +610,7 @@ export default function TwoFactorAuthModal({
                                 {disableNeedsCode && (
                                     <>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 8 }}>
-                                            Enter the code we texted to {destination} — or one of your backup codes.
+                                            Enter the code we texted to {destination} - or one of your backup codes.
                                         </p>
                                         <input
                                             type="text"

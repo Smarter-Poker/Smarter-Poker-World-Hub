@@ -234,7 +234,7 @@ export default function LiveStatsDashboard({ isOpen, onClose, stats }) {
 
             {/* Position Win Rates */}
             <div>
-              <div style={{ color: '#666', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Win Rate by Position</div>
+              <div style={{ color: '#666', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Win Rate By Position</div>
 
               {/* Phase 27 #4: Mini Table Felt Heatmap */}
               <div style={{

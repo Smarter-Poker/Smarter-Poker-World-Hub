@@ -14,6 +14,6 @@ export default function handler(req, res) {
     return res.status(410).json({
         success: false,
         error: 'Endpoint removed',
-        message: 'This endpoint was retired by Operation Grok-Sweep. No replacement is required — engine-only training does not use Grok-generated session recommendations.',
+        message: 'This endpoint was retired by Operation Grok-Sweep. No replacement is required - engine-only training does not use Grok-generated session recommendations.',
     });
 }

@@ -332,7 +332,7 @@ export async function getBridgedDecision(input) {
         action,
         raiseAmount: amount,
         confidence: 95, // Horse Brain is high-confidence by design (0-100 scale, matching engine convention)
-        reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} — ${horseBrainResult.engineMs || '?'}ms`,
+        reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} - ${horseBrainResult.engineMs || '?'}ms`,
         equity: horseBrainResult.equity ?? null, // Pass through if Horse Brain returns it
         potOdds: potSize > 0 && betToCall > 0 ? Math.round((betToCall / (potSize + betToCall)) * 10000) / 100 : null, // 0-100 percentage scale to match engine convention
         highEquity: null,
@@ -372,7 +372,7 @@ export async function getBridgedDecision(input) {
   // FALLBACK: Local engine (only if Horse Brain API is unreachable)
   // This should rarely be hit — only if auth fails or network is down.
   // ═══════════════════════════════════════════════════════════════════
-  console.warn('[decision-bridge] Using LOCAL fallback engine — Horse Brain API unavailable');
+  console.warn('[decision-bridge] Using LOCAL fallback engine - Horse Brain API unavailable');
   const warnings = [];
   let engineResult;
   try {

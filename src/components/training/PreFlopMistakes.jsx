@@ -42,7 +42,7 @@ export default function PreFlopMistakes() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ✕ Common Preflop Mistakes
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Fix these leaks and instantly improve your winrate.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Fix These Leaks And Instantly Improve Your Winrate.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PF_MISTAKES.map((mk, i) => (

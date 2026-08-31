@@ -85,12 +85,12 @@ export default function ShareToGroupsSheet({ onClose }) {
             }
         >
             <div style={{ padding: 16, color: '#65676B', fontSize: 13, lineHeight: 1.4 }}>
-                Mirror this post into selected home groups. Each will appear as a separate post in that group's feed.
+                Mirror This Post Into Selected Home Groups. Each Will Appear As A Separate Post In That Group's Feed.
             </div>
             {loading && <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>Loading…</div>}
             {!loading && groups.length === 0 && (
                 <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>
-                    You're not in any home groups yet.
+                    You're Not In Any Home Groups Yet.
                 </div>
             )}
             {groups.map(g => {

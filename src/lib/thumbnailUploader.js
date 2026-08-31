@@ -52,7 +52,7 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
 
         // Guard: reject empty blobs — malformed canvas.toDataURL() produces 0-byte output
         if (blob.size < 100) {
-            console.warn('[ThumbnailUploader] Blob too small, likely malformed data URL — skipping');
+            console.warn('[ThumbnailUploader] Blob too small, likely malformed data URL - skipping');
             return null;
         }
 

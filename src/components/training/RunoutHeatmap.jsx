@@ -76,7 +76,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                     animation: 'spin 1s linear infinite',
                     margin: '0 auto',
                 }} />
-                <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Analyzing runouts...</p>
+                <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Analyzing Runouts...</p>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
@@ -104,7 +104,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                     fontSize: 10, color: '#64748b', background: 'rgba(255,255,255,0.04)',
                     padding: '2px 8px', borderRadius: 12,
                 }}>
-                    {Object.values(runoutData || {}).filter(d => d?.has_data).length} / 49 cards
+                    {Object.values(runoutData || {}).filter(d => d?.has_data).length} / 49 Cards
                 </span>
             </div>
 
@@ -115,11 +115,11 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 12, height: 12, borderRadius: 2, background: 'rgb(30, 255, 60)' }} />
-                    <span>Good for Hero</span>
+                    <span>Good For Hero</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 12, height: 12, borderRadius: 2, background: 'rgb(255, 30, 40)' }} />
-                    <span>Bad for Hero</span>
+                    <span>Bad For Hero</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 12, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />

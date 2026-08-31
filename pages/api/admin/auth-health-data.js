@@ -61,7 +61,7 @@ export default async function handler(req, res) {
                 .eq('id', userData.user.id)
                 .maybeSingle();
             if (profile?.is_admin !== true) {
-                return res.status(403).json({ error: 'Forbidden — admin only' });
+                return res.status(403).json({ error: 'Forbidden - admin only' });
             }
         }
 

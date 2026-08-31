@@ -21,7 +21,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!key) throw new Error('[HorseStable] No Supabase key — check Vercel env vars');
+        if (!key) throw new Error('[HorseStable] No Supabase key - check Vercel env vars');
         _supabase = createClient(url, key);
     }
     return _supabase;

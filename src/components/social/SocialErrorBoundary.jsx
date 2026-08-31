@@ -36,7 +36,7 @@ export class SocialErrorBoundary extends React.Component {
                         Something Went Wrong
                     </h3>
                     <p style={{ margin: '0 0 16px', fontSize: 15 }}>
-                        This section encountered an error. Try refreshing the page.
+                        This Section Encountered An Error. Try Refreshing The Page.
                     </p>
                     <button
                         onClick={() => this.setState({ hasError: false, error: null })}

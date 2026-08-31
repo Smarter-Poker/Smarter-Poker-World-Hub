@@ -29,7 +29,7 @@ export default function CutoffStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Cutoff Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The CO is the second-most profitable seat — master it.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The CO Is The Second-Most Profitable Seat - Master It.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {SECTIONS.map((s, i) => (
@@ -59,11 +59,11 @@ export default function CutoffStrategy() {
       </motion.div>
 
       <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 4 }}>CO vs Other Positions</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 4 }}>CO Vs Other Positions</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, fontSize: 11 }}>
-          <div><span style={{ color: '#64748b' }}>vs UTG open</span><br/><span style={{ fontWeight: 700, color: '#ef4444' }}>Tight 3-bet</span></div>
-          <div><span style={{ color: '#64748b' }}>vs HJ open</span><br/><span style={{ fontWeight: 700, color: '#f59e0b' }}>Mixed</span></div>
-          <div><span style={{ color: '#64748b' }}>Steal blinds</span><br/><span style={{ fontWeight: 700, color: '#22c55e' }}>Open wide</span></div>
+          <div><span style={{ color: '#64748b' }}>Vs UTG Open</span><br/><span style={{ fontWeight: 700, color: '#ef4444' }}>Tight 3-Bet</span></div>
+          <div><span style={{ color: '#64748b' }}>Vs HJ Open</span><br/><span style={{ fontWeight: 700, color: '#f59e0b' }}>Mixed</span></div>
+          <div><span style={{ color: '#64748b' }}>Steal Blinds</span><br/><span style={{ fontWeight: 700, color: '#22c55e' }}>Open Wide</span></div>
         </div>
       </div>
     </div>

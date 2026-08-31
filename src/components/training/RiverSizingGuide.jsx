@@ -13,8 +13,8 @@ const SIZES = [
     icon: '',
     when: 'Thin value on dry boards',
     logic: 'Use when your hand is good but not great. Small bets get called by the widest range of worse hands. Ideal for top pair on dry boards, or when villain\'s range is mostly weak.',
-    examples: ['AJ on A♠ 7♦ 3♣ 2♠ K♥ — bet small for value from Ax', 'KQ on K♣ 8♦ 4♣ 2♥ 5♠ — thin value vs middle pairs'],
-    avoid: 'Don\'t use when you have the nuts — you\'re leaving money on the table.',
+    examples: ['AJ on A♠ 7♦ 3♣ 2♠ K♥ - bet small for value from Ax', 'KQ on K♣ 8♦ 4♣ 2♥ 5♠ - thin value vs middle pairs'],
+    avoid: 'Don\'t use when you have the nuts - you\'re leaving money on the table.',
   },
   {
     name: '50-66% Pot',
@@ -24,17 +24,17 @@ const SIZES = [
     when: 'Standard value & bluffs',
     logic: 'The default river bet size. Works for both value and bluffs. Gives decent fold equity for bluffs while extracting reasonable value from strong seconds.',
     examples: ['Sets on semi-wet boards', 'Standard bluffs with decent blockers', 'Two pair trying to get called by top pair'],
-    avoid: 'Don\'t default to this mindlessly — consider if small or large is better.',
+    avoid: 'Don\'t default to this mindlessly - consider if small or large is better.',
   },
   {
     name: '75-100% Pot',
     label: 'Large',
     color: '#f59e0b',
     icon: '',
-    when: 'Polarized — nuts or air',
+    when: 'Polarized - nuts or air',
     logic: 'Large bets are polarized: you either have the nuts or nothing. Use for maximum value from strong hands, or as bluffs when you need fold equity against medium-strength hands.',
     examples: ['Nut flush on completed board', 'Full house after draw-heavy runout', 'Pure bluffs with strong blockers'],
-    avoid: 'Don\'t use with medium-strength hands — you only get called by better.',
+    avoid: 'Don\'t use with medium-strength hands - you only get called by better.',
   },
   {
     name: '125-200% Pot',
@@ -83,7 +83,7 @@ function RiverSizingGuide() {
 
         <div style={{ padding: 14, background: `${s.color}11`, borderRadius: 10, border: `1px solid ${s.color}33`, marginBottom: 12 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: s.color, marginBottom: 2 }}>{s.name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best for: {s.when}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best For: {s.when}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{s.logic}</div>
         </div>
 
@@ -101,7 +101,7 @@ function RiverSizingGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>River Sizing Guide failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>River Sizing Guide Failed: {err.message}</div>;
   }
 }
 

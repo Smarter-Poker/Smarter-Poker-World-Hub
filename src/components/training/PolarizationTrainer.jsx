@@ -26,7 +26,7 @@ const STRATEGIES = [
     valueRange: { pct: 55, hands: 'Top pair+, all Ax, medium pairs (88-QQ)' },
     bluffRange: { pct: 10, hands: 'Backdoor draws, gutshots' },
     checkRange: { pct: 35, hands: 'Small pocket pairs, weak suited connectors, air' },
-    explanation: 'Small c-bet on dry board uses a merged strategy: bet wide with any piece + some air. Not polarized — medium hands are included in the betting range.',
+    explanation: 'Small c-bet on dry board uses a merged strategy: bet wide with any piece + some air. Not polarized - medium hands are included in the betting range.',
     mdf: 75,
     optimalRatio: '5:1 value to bluff at 33% pot',
     tips: ['Small sizing = merged strategy', 'Include medium-strength hands in bet range', 'Villain must defend very wide (75%) vs 33%', 'Dry boards favor small merged c-bets'],
@@ -35,20 +35,20 @@ const STRATEGIES = [
     id: 3, name: 'Linear 3-Bet Range',
     board: 'Preflop',
     position: 'CO vs UTG Open', sizing: '3x',
-    valueRange: { pct: 70, hands: 'QQ+, AKs, AKo, AQs — hands that dominate opener' },
-    bluffRange: { pct: 0, hands: 'None — linear range has no bluffs' },
+    valueRange: { pct: 70, hands: 'QQ+, AKs, AKo, AQs - hands that dominate opener' },
+    bluffRange: { pct: 0, hands: 'None - linear range has no bluffs' },
     checkRange: { pct: 30, hands: 'Flat: JJ, TT, AQo, AJs, KQs, suited connectors' },
     explanation: 'Linear 3-bet range uses only hands that are ahead of villain\'s calling range. No bluffs. Used vs strong openers where bluffs have low EV.',
     mdf: 0,
-    optimalRatio: 'Pure value — no bluffs needed',
+    optimalRatio: 'Pure value - no bluffs needed',
     tips: ['Linear = all value, no bluffs', 'Use vs EP openers with tight ranges', 'Every hand in 3-bet range is ahead of calling range', 'Contrast with polarized 3-bet from BTN'],
   },
   {
     id: 4, name: 'Polarized 3-Bet (BTN vs CO)',
     board: 'Preflop',
     position: 'BTN vs CO Open', sizing: '3x',
-    valueRange: { pct: 40, hands: 'QQ+, AKs, AKo — premium value' },
-    bluffRange: { pct: 25, hands: 'A5s-A2s, K9s, Q9s, 76s, 87s, 98s — blockers + playability' },
+    valueRange: { pct: 40, hands: 'QQ+, AKs, AKo - premium value' },
+    bluffRange: { pct: 25, hands: 'A5s-A2s, K9s, Q9s, 76s, 87s, 98s - blockers + playability' },
     checkRange: { pct: 35, hands: 'Flat: JJ-88, AQs-ATs, KQs-KTs, QJs, JTs, suited connectors' },
     explanation: 'Polarized 3-bet splits range into strong value and playable bluffs. Medium hands flat to keep range balance. Bluffs chosen for blockers and postflop playability.',
     mdf: 0,
@@ -62,10 +62,10 @@ const STRATEGIES = [
     valueRange: { pct: 25, hands: 'AA (trips), AQ (two pair), sets, turned nut straight (if available)' },
     bluffRange: { pct: 15, hands: 'Club flush draws, missed gutshots with ace blocker, KT' },
     checkRange: { pct: 60, hands: 'Qx one pair, medium pairs, weak Ax, draws without equity' },
-    explanation: 'Turn overbet is extremely polarized. Only nut hands bet and only hands with equity + blocker value bluff. 60% of range checks — overbetting isn\'t high frequency.',
+    explanation: 'Turn overbet is extremely polarized. Only nut hands bet and only hands with equity + blocker value bluff. 60% of range checks - overbetting isn\'t high frequency.',
     mdf: 40,
     optimalRatio: '~1.7:1 value to bluff at 150%',
-    tips: ['Overbets are the most polarized strategy', 'Check 60% of range — only bet nuts/air', 'Villain only defends ~40% vs 1.5x pot', 'Bluffs need ace blocker or strong draws'],
+    tips: ['Overbets are the most polarized strategy', 'Check 60% of range - only bet nuts/air', 'Villain only defends ~40% vs 1.5x pot', 'Bluffs need ace blocker or strong draws'],
   },
 ];
 
@@ -170,7 +170,7 @@ function PolarizationTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Polarization Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Polarization Trainer Failed To Load: {err.message}</div>;
   }
 }
 

@@ -167,7 +167,7 @@ export default function CoverPhotoEditor({
                 <polyline points="7,10 12,5 17,10" />
                 <polyline points="7,14 12,19 17,14" />
               </svg>
-              <span>Drag to Reposition</span>
+              <span>Drag To Reposition</span>
             </div>
           )}
 

@@ -104,7 +104,7 @@ export class GameGuard extends Component<GameGuardProps, GameGuardState> {
                         Game Maintenance
                     </div>
                     <div style={{ color: '#888', marginBottom: '24px' }}>
-                        We're experiencing technical difficulties.
+                        We're Experiencing Technical Difficulties.
                     </div>
                     <button
                         onClick={() => window.location.reload()}

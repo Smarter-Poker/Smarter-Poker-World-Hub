@@ -47,7 +47,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                             border: '1px solid rgba(255,255,255,0.1)'
                         }}>
                             <div style={{ fontSize: 32, fontWeight: 800, color: C.gold, textShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>
-                                {hendonData.total_cashes?.toLocaleString() || '—'}
+                                {hendonData.total_cashes?.toLocaleString() || '-'}
                             </div>
                             <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Cashes</div>
                         </div>
@@ -56,7 +56,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                             border: '1px solid rgba(255,255,255,0.1)'
                         }}>
                             <div style={{ fontSize: 32, fontWeight: 800, color: '#00ff88', textShadow: '0 0 10px rgba(0, 255, 136, 0.3)' }}>
-                                ${hendonData.total_earnings?.toLocaleString() || '—'}
+                                ${hendonData.total_earnings?.toLocaleString() || '-'}
                             </div>
                             <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Earnings</div>
                         </div>
@@ -65,7 +65,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                             border: '1px solid rgba(255,255,255,0.1)'
                         }}>
                             <div style={{ fontSize: 32, fontWeight: 800, color: '#00d4ff', textShadow: '0 0 10px rgba(0, 212, 255, 0.3)' }}>
-                                ${hendonData.biggest_cash?.toLocaleString() || hendonData.best_finish || '—'}
+                                ${hendonData.biggest_cash?.toLocaleString() || hendonData.best_finish || '-'}
                             </div>
                             <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>BIGGEST CASH</div>
                         </div>

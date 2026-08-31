@@ -17,7 +17,7 @@ const SQUEEZE_SPOTS = [
     foldRange: 'Weak offsuit, disconnected low cards',
     evGain: '+2.8 bb/100',
     reasoning: 'BTN cold-caller has capped range (would 3-bet premium). CO open wide. BB squeezes profitably with polarized range.',
-    tips: ['BTN caller is capped — exploit this', 'Size larger with more callers', 'A5s-A2s are ideal bluffs (block AA, wheel potential)'],
+    tips: ['BTN caller is capped - exploit this', 'Size larger with more callers', 'A5s-A2s are ideal bluffs (block AA, wheel potential)'],
   },
   {
     id: 2, name: 'SB vs UTG Open + MP Call',
@@ -25,10 +25,10 @@ const SQUEEZE_SPOTS = [
     squeezeFreq: 6, squeezeSize: '4.5x + 1x per caller = 5.5x',
     valueRange: 'KK+, AKs',
     bluffRange: 'A5s, A4s (very selective)',
-    flatRange: 'Very narrow — QQ, JJ, AQs (trap some)',
+    flatRange: 'Very narrow - QQ, JJ, AQs (trap some)',
     foldRange: 'Most of range',
     evGain: '+1.2 bb/100',
-    reasoning: 'UTG range is very strong. MP caller also has decent range. SB should squeeze very tight — only premiums and minimal bluffs.',
+    reasoning: 'UTG range is very strong. MP caller also has decent range. SB should squeeze very tight - only premiums and minimal bluffs.',
     tips: ['Respect EP ranges', 'Only 6% squeeze frequency', 'QQ is often a flat here, not a squeeze'],
   },
   {
@@ -49,7 +49,7 @@ const SQUEEZE_SPOTS = [
     squeezeFreq: 8, squeezeSize: 'All-in (30bb)',
     valueRange: 'QQ+, AKs, AKo',
     bluffRange: 'ATs, A5s, KQs (blockers)',
-    flatRange: 'Never — squeeze or fold at 30bb',
+    flatRange: 'Never - squeeze or fold at 30bb',
     foldRange: 'Everything else',
     evGain: '+3.5 bb/100',
     reasoning: 'At 30bb in MTT, squeeze = shove. No flat calling. ICM pressure makes opponents fold wider. Pure push/fold squeeze.',
@@ -129,7 +129,7 @@ function SqueezeTrainer() {
         {quizMode && !guess && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10, textAlign: 'center' }}>
-              What is the optimal squeeze frequency?
+              What Is The Optimal Squeeze Frequency?
             </div>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
               {freqBrackets.map(b => (
@@ -208,7 +208,7 @@ function SqueezeTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Squeeze Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Squeeze Trainer Failed To Load: {err.message}</div>;
   }
 }
 

@@ -11,9 +11,9 @@ const POSITIONS = [
     name: 'UTG', color: '#ef4444',
     coverage: [
       { board: 'A-high dry', pct: 85, note: 'Many Ax combos, strong on A-high' },
-      { board: 'K-high dry', pct: 78, note: 'KK, AK, KQs — good coverage' },
-      { board: 'Q-high dry', pct: 70, note: 'QQ, AQ, KQs — decent but fewer combos' },
-      { board: 'Low connected', pct: 35, note: 'Few suited connectors — poor coverage' },
+      { board: 'K-high dry', pct: 78, note: 'KK, AK, KQs - good coverage' },
+      { board: 'Q-high dry', pct: 70, note: 'QQ, AQ, KQs - decent but fewer combos' },
+      { board: 'Low connected', pct: 35, note: 'Few suited connectors - poor coverage' },
       { board: 'Monotone', pct: 55, note: 'Has suited broadways but limited suits' },
       { board: 'Paired board', pct: 60, note: 'Pocket pairs help, but narrow range' },
     ],
@@ -22,9 +22,9 @@ const POSITIONS = [
     name: 'BTN', color: '#10b981',
     coverage: [
       { board: 'A-high dry', pct: 75, note: 'Wide Ax range but also weak Ax' },
-      { board: 'K-high dry', pct: 72, note: 'Many Kx hands — good coverage' },
-      { board: 'Q-high dry', pct: 68, note: 'QJ, QT, Q9 — wider Q coverage' },
-      { board: 'Low connected', pct: 80, note: 'Suited connectors, gappers — best position' },
+      { board: 'K-high dry', pct: 72, note: 'Many Kx hands - good coverage' },
+      { board: 'Q-high dry', pct: 68, note: 'QJ, QT, Q9 - wider Q coverage' },
+      { board: 'Low connected', pct: 80, note: 'Suited connectors, gappers - best position' },
       { board: 'Monotone', pct: 75, note: 'More suited combos across all suits' },
       { board: 'Paired board', pct: 70, note: 'Many pocket pairs + wider range' },
     ],
@@ -33,8 +33,8 @@ const POSITIONS = [
     name: 'BB', color: '#3b82f6',
     coverage: [
       { board: 'A-high dry', pct: 60, note: 'Defends with some Ax but weaker combos' },
-      { board: 'K-high dry', pct: 58, note: 'K9, K8, K7 — weaker Kx hands' },
-      { board: 'Q-high dry', pct: 62, note: 'Q9, Q8, QT — wider Q range' },
+      { board: 'K-high dry', pct: 58, note: 'K9, K8, K7 - weaker Kx hands' },
+      { board: 'Q-high dry', pct: 62, note: 'Q9, Q8, QT - wider Q range' },
       { board: 'Low connected', pct: 85, note: 'Defends with all suited connectors + gappers' },
       { board: 'Monotone', pct: 80, note: 'Widest range = most flush possibilities' },
       { board: 'Paired board', pct: 65, note: 'Random pairs hit boards well' },
@@ -110,7 +110,7 @@ function BoardCoverageAnalyzer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Board Coverage failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Board Coverage Failed To Load: {err.message}</div>;
   }
 }
 

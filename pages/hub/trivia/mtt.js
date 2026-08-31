@@ -11,9 +11,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 export default function MTTPage() {
     useTrainingBus('trivia-mtt');
     return (
-        <TriviaErrorBoundary pageName="Trivia — MTT Scenarios">
+        <TriviaErrorBoundary pageName="Trivia - MTT Scenarios">
             <SEOHead
-                title="MTT Trivia — Tournament Scenarios"
+                title="MTT Trivia - Tournament Scenarios"
                 description="Test Your Multi-Table Tournament Knowledge With Real MTT Situations And Decisions On Smarter.Poker."
                 canonical="/hub/trivia/mtt"
                 noindex={true}

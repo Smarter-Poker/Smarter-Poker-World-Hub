@@ -67,7 +67,7 @@ export default function ClaimPage() {
                 setResult(data.data);
             }
         } catch (e) {
-            setError('Network error — try again');
+            setError('Network error - try again');
         }
         setClaiming(false);
     };

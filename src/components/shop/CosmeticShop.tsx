@@ -342,7 +342,7 @@ export function CosmeticShop({
                                 <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> Diamond Exchange
                             </h2>
                             <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
-                                Turn your grind into style
+                                Turn Your Grind Into Style
                             </p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

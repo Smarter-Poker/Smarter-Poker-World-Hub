@@ -41,7 +41,7 @@ function getSupabase() {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     // [EC1 FIX] Warn if falling back to anon key — anon key means RLS applies and rows may be silently filtered.
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.warn('[events-calendar] WARNING: SUPABASE_SERVICE_ROLE_KEY missing — using anon key; RLS will apply and some rows may be silently filtered.');
+      console.warn('[events-calendar] WARNING: SUPABASE_SERVICE_ROLE_KEY missing - using anon key; RLS will apply and some rows may be silently filtered.');
     }
     _supabase = createClient(url, key);
   }

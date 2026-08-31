@@ -187,7 +187,7 @@ export default async function handler(req, res) {
                 });
                 if (markErr) {
                     console.warn(
-                        "[GDPR admin] fn_mark_gdpr_completed RPC error — request",
+                        "[GDPR admin] fn_mark_gdpr_completed RPC error - request",
                         requestId,
                         "stays 'pending' but auth user IS deleted:",
                         markErr?.message || markErr

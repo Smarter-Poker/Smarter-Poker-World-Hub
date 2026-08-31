@@ -184,7 +184,7 @@ export default function GhostOpponent({
             <div className="opponent-info">
                 <span className="opp-name">{opponent.name}</span>
                 {opponentAnswered && isGameActive && !showReaction && (
-                    <span className="opp-answered">answered!</span>
+                    <span className="opp-answered">Answered!</span>
                 )}
                 <AnimatePresence>
                     {showReaction && (
@@ -203,7 +203,7 @@ export default function GhostOpponent({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
-                            thinking...
+                            Thinking...
                         </motion.span>
                     )}
                 </AnimatePresence>

@@ -300,9 +300,9 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                     <path d="M23 21v-2a4 4 0 00-3-3.87" />
                     <path d="M16 3.13a4 4 0 010 7.75" />
                 </svg>
-                <h2>Friends at Venues</h2>
+                <h2>Friends At Venues</h2>
                 {totalFriendsActive > 0 && (
-                    <span className="sl-badge">{totalFriendsActive} active</span>
+                    <span className="sl-badge">{totalFriendsActive} Active</span>
                 )}
                 {userId && friendsList.length > 0 && (
                     <button
@@ -323,14 +323,14 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                     </svg>
-                    <p>Sign in to see your friends at poker venues</p>
+                    <p>Sign In To See Your Friends At Poker Venues</p>
                 </div>
             )}
 
             {userId && loading && (
                 <div className="sl-loading">
                     <div className="sl-spinner" />
-                    <span>Finding friends...</span>
+                    <span>Finding Friends...</span>
                 </div>
             )}
 
@@ -353,7 +353,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                             </svg>
-                            Check In at a Venue
+                            Check In At A Venue
                         </button>
                         <button className="sl-cta-btn sl-cta-invite" onClick={() => { if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'Join me on Smarter.Poker', url: typeof window !== 'undefined' ? window.location.origin : '' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -395,8 +395,8 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                                                 <div className="sl-friend-name">{name}</div>
                                                 <div className="sl-friend-time">
                                                     <span className="sl-online-dot" />
-                                                    Checked in {timeAgo(c.created_at)}
-                                                    {c.message && <span className="sl-friend-msg"> — "{c.message}"</span>}
+                                                    Checked In {timeAgo(c.created_at)}
+                                                    {c.message && <span className="sl-friend-msg"> - "{c.message}"</span>}
                                                 </div>
                                             </div>
                                             <button
@@ -428,11 +428,11 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="sl-modal-header">
-                            <h3>Invite to Table</h3>
+                            <h3>Invite To Table</h3>
                             <button className="sl-modal-close" aria-label="Close" onClick={() => setInviteModal(null)}>×</button>
                         </div>
                         <p className="sl-modal-text">
-                            Share this link to invite someone to join you at <strong>{inviteModal.venueName}</strong>:
+                            Share This Link To Invite Someone To Join You At <strong>{inviteModal.venueName}</strong>:
                         </p>
                         <div className="sl-invite-link-box">
                             <input type="text" value={generateInviteLink(inviteModal.venueId)} readOnly className="sl-invite-link-input" />

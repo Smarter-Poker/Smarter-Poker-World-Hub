@@ -103,7 +103,7 @@ export default function MemoryGamesStats() {
             <Stat icon={Clock3} label="Average time" value={`${Math.round(metrics.averageTime)}s`} detail="per completed drill" />
             <Stat icon={Sigma} label="Total score" value={metrics.totalScore.toLocaleString()} detail="all completed sessions" />
             <Stat icon={Gem} label="Diamonds earned" value={metrics.diamonds.toLocaleString()} detail="recorded training rewards" />
-            <Stat icon={Layers3} label="Highest level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '—'} detail="furthest recorded station" />
+            <Stat icon={Layers3} label="Highest level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="furthest recorded station" />
             <Stat icon={TrendingUp} label="Recent trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="recent half vs prior half" />
           </section>
 

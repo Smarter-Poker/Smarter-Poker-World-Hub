@@ -368,7 +368,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                     Frequency Training
                 </div>
                 <div style={{ fontSize: 10, color: '#475569' }}>
-                    Need at least 3 mixed-strategy hands to analyze frequency adherence.
+                    Need At Least 3 Mixed-Strategy Hands To Analyze Frequency Adherence.
                 </div>
             </div>
         );
@@ -393,7 +393,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                         FREQUENCY ADHERENCE
                     </div>
                     <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>
-                        Are you randomizing like the solver?
+                        Are You Randomizing Like The Solver?
                     </div>
                 </div>
 
@@ -437,7 +437,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                     />
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: '#64748b' }}>
-                            {analysis.totalHands} mixed hands
+                            {analysis.totalHands} Mixed Hands
                         </div>
                         <div style={{ fontSize: 8, color: '#475569' }}>
                             Entropy: {analysis.entropyScore}%
@@ -471,8 +471,8 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                 marginTop: 8, fontSize: 8, color: '#475569', textAlign: 'center',
                 paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.04)',
             }}>
-                GTO mixing = taking each action at solver-specified frequencies over many hands.
-                Dashed line = GTO target. Filled bar = your actual frequency.
+                GTO Mixing = Taking Each Action At Solver-Specified Frequencies Over Many Hands.
+                Dashed Line = GTO Target. Filled Bar = Your Actual Frequency.
             </div>
         </div>
     );

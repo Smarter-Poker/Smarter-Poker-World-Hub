@@ -159,7 +159,7 @@ export default function NotificationPreferences({ onClose }) {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
                 <span style={{ fontSize: 12, color: C.textSec }}>
-                    Preferences are saved automatically
+                    Preferences Are Saved Automatically
                 </span>
                 <button
                     onClick={resetAll}
@@ -167,7 +167,7 @@ export default function NotificationPreferences({ onClose }) {
                         padding: '8px 16px', background: C.bg, border: 'none', borderRadius: 8,
                         fontWeight: 600, fontSize: 13, color: C.textSec, cursor: 'pointer'
                     }}
-                >Reset to Default</button>
+                >Reset To Default</button>
             </div>
 
             <style>{`

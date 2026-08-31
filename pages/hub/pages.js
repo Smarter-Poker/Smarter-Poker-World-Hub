@@ -172,7 +172,7 @@ export default function PokerPagesPage() {
     return (
         <>
             <SEOHead
-                title="Social Pages — Community Pages"
+                title="Social Pages - Community Pages"
                 description="Discover Community Pages On Smarter.Poker. Follow Pages For Poker Content, Strategy, And Community Discussions."
                 canonical="/hub/pages"
             />

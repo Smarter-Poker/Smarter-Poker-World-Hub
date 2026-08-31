@@ -91,7 +91,7 @@ app.use('*', async (c, next) => {
   const res = c.env?.res;
 
   if (!req) {
-    console.warn('[venues] missing Node request in Hono env — cannot authenticate');
+    console.warn('[venues] missing Node request in Hono env - cannot authenticate');
     return c.json({ success: false, error: 'Authorization required' }, 401);
   }
 
@@ -400,7 +400,7 @@ app.post('/reviews', async (c) => {
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
       rewardsToday = count || 0;
     } catch (capErr) {
-      console.warn('[Venue Reviews] Daily cap lookup failed — treating as at cap:', capErr?.message || capErr);
+      console.warn('[Venue Reviews] Daily cap lookup failed - treating as at cap:', capErr?.message || capErr);
       rewardsToday = REVIEW_REWARDS_PER_DAY;
     }
 

@@ -493,19 +493,19 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         if (!dailyCompleted) startMode('daily');
                     }}
                     disabled={dailyCompleted}
-                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia — free, once per day'}
+                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia - free, once per day'}
                 />
                 {currentStreak > 0 && !dailyCompleted && (
                     <div className="daily-streak-chip" title={`${currentStreak} day streak`}>
                         <Flame size={14} aria-hidden />
-                        <span>Day {currentStreak} — keep it alive!</span>
+                        <span>Day {currentStreak} - Keep It Alive!</span>
                     </div>
                 )}
                 {dailyCompleted && (
                     <div className="daily-trivia-banner__completed">
                         <span>
                             COMPLETED
-                            {currentStreak > 0 ? ` — ${currentStreak} DAY STREAK` : ''}
+                            {currentStreak > 0 ? ` - ${currentStreak} DAY STREAK` : ''}
                         </span>
                     </div>
                 )}
@@ -566,7 +566,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 : cost > 0 ? `${cost} DIAMONDS` : 'FREE';
                         const rewardText = typeof mode.diamondReward === 'number'
                             ? `+${mode.diamondReward}${mode.perfectBonus ? ` / +${mode.perfectBonus} PERFECT` : ''}`
-                            : (mode.diamondReward ? String(mode.diamondReward).toUpperCase() : '—');
+                            : (mode.diamondReward ? String(mode.diamondReward).toUpperCase() : '-');
 
                         return (
                             <button
@@ -634,7 +634,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     onPointerEnter={() => prefetchMode('arcade')}
                     onFocus={() => prefetchMode('arcade')}
                     disabled={isRouting}
-                    aria-label={`Quick Stakes — timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
+                    aria-label={`Quick Stakes - timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
                 >
                     <img
                         src="/images/trivia/quick-stakes.webp?v=v6"
@@ -645,7 +645,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         decoding="async"
                     />
                     <span className="quick-stakes-banner__chip" aria-hidden>
-                        {isVip ? 'VIP: free' : <>{getEntryCost('arcade')} <Gem size={11} /> to play</>}
+                        {isVip ? 'VIP: free' : <>{getEntryCost('arcade')} <Gem size={11} /> To Play</>}
                     </span>
                 </button>
             </div>
@@ -1889,10 +1889,10 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="dm-dialog-copy">
-                                <h2 id="trivia-entry-title">Diamond entry</h2>
+                                <h2 id="trivia-entry-title">Diamond Entry</h2>
                                 <p id="trivia-entry-description">
-                                    This game costs {pendingCost} diamonds. Your current balance is {userDiamonds} diamonds.
-                                    The game page verifies and charges the entry when it starts.
+                                    This Game Costs {pendingCost} Diamonds. Your Current Balance Is {userDiamonds} Diamonds.
+                                    The Game Page Verifies And Charges The Entry When It Starts.
                                 </p>
                             </div>
                             <img
@@ -1945,7 +1945,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                             {/* Dynamic Diamond Balance */}
                             <div className="dm-balance">
-                                {userDiamonds} diamonds
+                                {userDiamonds} Diamonds
                             </div>
 
                             {isRouting && (

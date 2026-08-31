@@ -20,10 +20,10 @@ const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUIT_CODES = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
 const BENCHMARK_HANDS = [
-  { value: '9c8d', label: '9♣ 8♦ — Connected Hand' },
-  { value: 'QhJd', label: 'Q♥ J♦ — Broadway Hand' },
-  { value: 'KhKd', label: 'K♥ K♦ — Premium Pair' },
-  { value: 'AhAd', label: 'A♥ A♦ — Pocket Aces' },
+  { value: '9c8d', label: '9♣ 8♦ - Connected Hand' },
+  { value: 'QhJd', label: 'Q♥ J♦ - Broadway Hand' },
+  { value: 'KhKd', label: 'K♥ K♦ - Premium Pair' },
+  { value: 'AhAd', label: 'A♥ A♦ - Pocket Aces' },
 ];
 
 function cardToAscii(card) {
@@ -235,7 +235,7 @@ export default function HandLabV2() {
               >
                 {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
               </select>
-              <div style={{ margin: '-28px 0 28px', color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Equity — Not A Range Estimate</div>
+              <div style={{ margin: '-28px 0 28px', color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Equity - Not A Range Estimate</div>
 
               <motion.button
                 whileHover={{ scale: 1.02 }}

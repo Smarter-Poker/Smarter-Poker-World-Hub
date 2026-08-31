@@ -23,7 +23,7 @@ function getTourStyle(tour) {
 function formatBuyIn(min, max) {
   if (!min && !max) return 'TBA';
   if (min === max || !max) return `$${Number(min || max).toLocaleString()}`;
-  return `$${Number(min).toLocaleString()} – $${Number(max).toLocaleString()}`;
+  return `$${Number(min).toLocaleString()} - $${Number(max).toLocaleString()}`;
 }
 
 function formatDate(start, end) {
@@ -32,7 +32,7 @@ function formatDate(start, end) {
   const s = start ? new Date(start + 'T00:00:00').toLocaleDateString('en-US', opts) : '';
   const e = end   ? new Date(end   + 'T00:00:00').toLocaleDateString('en-US', opts) : '';
   if (!e || s === e) return s;
-  return `${s} – ${e}`;
+  return `${s} - ${e}`;
 }
 
 function cleanName(str) {
@@ -99,7 +99,7 @@ export default function PokerSeriesCard({ series, index = 0 }) {
         <div className="psc-divider" />
         <div className="psc-stat">
           <span className="psc-stat-label">Location</span>
-          <span className="psc-stat-value psc-stat--location">{location || '—'}</span>
+          <span className="psc-stat-value psc-stat--location">{location || '-'}</span>
         </div>
       </div>
 

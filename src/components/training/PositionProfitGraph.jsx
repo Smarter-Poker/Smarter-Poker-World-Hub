@@ -100,7 +100,7 @@ function PositionProfitGraph() {
           </div>
           <div style={{ textAlign: 'center', flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#22d3ee' }}>{((totalProfit / totalHands) * 100).toFixed(1)}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>bb/100 Overall</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>BB/100 Overall</div>
           </div>
         </div>
 
@@ -133,7 +133,7 @@ function PositionProfitGraph() {
         {/* Detail Panel */}
         {detail && (
           <div style={{ padding: 14, background: 'rgba(34,211,238,0.06)', borderRadius: 10, border: '1px solid rgba(34,211,238,0.15)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: POS_COLORS[selectedPos], marginBottom: 10 }}>{selectedPos} — Detailed Stats</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: POS_COLORS[selectedPos], marginBottom: 10 }}>{selectedPos} - Detailed Stats</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
               {[
                 { label: 'Hands', value: detail.hands.toLocaleString() },
@@ -154,7 +154,7 @@ function PositionProfitGraph() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Position Profit Graph failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Position Profit Graph Failed To Load: {err.message}</div>;
   }
 }
 

@@ -356,7 +356,7 @@ export default function MfaChallengePage() {
                             <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
                                 Two-factor is not turned on for this account
                             </strong>
-                            There is no code to send you. Head back and carry on — you can turn on
+                            There is no code to send you. Head back and carry on - you can turn on
                             text-message two-factor any time under Settings → Security.
                             <div style={{ marginTop: 10 }}>
                                 <button
@@ -449,7 +449,7 @@ export default function MfaChallengePage() {
                                     <strong style={{ color: '#e2e8f0' }}>Remember this device for 30 days</strong>
                                     <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
                                         {rememberDevice
-                                            ? 'We will not ask you for another code on this device for 30 days — not at sign-in, and not for admin, cashout or account actions.'
+                                            ? 'We will not ask you for another code on this device for 30 days - not at sign-in, and not for admin, cashout or account actions.'
                                             : 'You will be asked for a new code the next time anything needs confirming.'}
                                     </span>
                                 </span>
@@ -504,7 +504,7 @@ export default function MfaChallengePage() {
                         <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>
                             Contact support
                         </a>
-                        {' '}— account recovery requires identity verification.
+                        {' '}- account recovery requires identity verification.
                     </p>
                 </div>
             </div>

@@ -23,7 +23,7 @@ const TEXTURES = [
     ipCbet: 72, oopCbet: 38,
     ipFreq: { bet33: 55, bet67: 17, check: 28 },
     oopFreq: { bet33: 25, bet67: 13, check: 62 },
-    equityShift: 'IP advantage grows — fewer draws to protect against',
+    equityShift: 'IP advantage grows - fewer draws to protect against',
     strategy: 'High c-bet frequency with small sizing. Range advantage is strong. Bluff with any two overcards.',
     connectedness: 12, flushDraw: 0, straightDraw: 18, paired: false, highCard: 'K',
     rangeHits: { toppair: 22, overpair: 8, draws: 5, air: 65 },
@@ -37,7 +37,7 @@ const TEXTURES = [
     ipCbet: 48, oopCbet: 28,
     ipFreq: { bet33: 20, bet67: 28, check: 52 },
     oopFreq: { bet33: 12, bet67: 16, check: 72 },
-    equityShift: 'Equity runs closer — many draws available for both sides',
+    equityShift: 'Equity runs closer - many draws available for both sides',
     strategy: 'Selective c-betting with polarized sizing. Check more medium-strength hands. Protect strong hands with larger bets.',
     connectedness: 88, flushDraw: 45, straightDraw: 72, paired: false, highCard: 'T',
     rangeHits: { toppair: 18, overpair: 6, draws: 42, air: 34 },
@@ -51,7 +51,7 @@ const TEXTURES = [
     ipCbet: 35, oopCbet: 22,
     ipFreq: { bet33: 25, bet67: 10, check: 65 },
     oopFreq: { bet33: 15, bet67: 7, check: 78 },
-    equityShift: 'Dramatic equity leveling — flush draws dominate ranges',
+    equityShift: 'Dramatic equity leveling - flush draws dominate ranges',
     strategy: 'Very low c-bet frequency. Only bet with made flushes and nut flush draws. Check most of range.',
     connectedness: 25, flushDraw: 100, straightDraw: 22, paired: false, highCard: 'Q',
     rangeHits: { toppair: 15, overpair: 5, draws: 55, air: 25 },
@@ -65,7 +65,7 @@ const TEXTURES = [
     ipCbet: 65, oopCbet: 32,
     ipFreq: { bet33: 50, bet67: 15, check: 35 },
     oopFreq: { bet33: 22, bet67: 10, check: 68 },
-    equityShift: 'IP range advantage — paired board reduces villain\'s strong combos significantly',
+    equityShift: 'IP range advantage - paired board reduces villain\'s strong combos significantly',
     strategy: 'High c-bet frequency with small sizing. Few strong hands in either range. Bluff frequently as trips are rare.',
     connectedness: 8, flushDraw: 0, straightDraw: 12, paired: true, highCard: 'J',
     rangeHits: { toppair: 5, overpair: 8, draws: 8, air: 79 },
@@ -79,7 +79,7 @@ const TEXTURES = [
     ipCbet: 42, oopCbet: 35,
     ipFreq: { bet33: 30, bet67: 12, check: 58 },
     oopFreq: { bet33: 22, bet67: 13, check: 65 },
-    equityShift: 'Equities converge — both ranges hit this board heavily',
+    equityShift: 'Equities converge - both ranges hit this board heavily',
     strategy: 'Moderate c-bet frequency. Both ranges connect strongly. Focus on nut advantage with sets and straights.',
     connectedness: 95, flushDraw: 0, straightDraw: 85, paired: false, highCard: 'A',
     rangeHits: { toppair: 35, overpair: 0, draws: 28, air: 37 },
@@ -93,7 +93,7 @@ const TEXTURES = [
     ipCbet: 38, oopCbet: 30,
     ipFreq: { bet33: 18, bet67: 20, check: 62 },
     oopFreq: { bet33: 18, bet67: 12, check: 70 },
-    equityShift: 'BB range catches up — low connected boards favor defending ranges',
+    equityShift: 'BB range catches up - low connected boards favor defending ranges',
     strategy: 'Lower c-bet frequency from IP. OOP has many two-pair and straight combos. Size up when betting for protection.',
     connectedness: 92, flushDraw: 0, straightDraw: 78, paired: false, highCard: '6',
     rangeHits: { toppair: 12, overpair: 12, draws: 38, air: 38 },
@@ -107,7 +107,7 @@ const TEXTURES = [
     ipCbet: 78, oopCbet: 42,
     ipFreq: { bet33: 62, bet67: 16, check: 22 },
     oopFreq: { bet33: 30, bet67: 12, check: 58 },
-    equityShift: 'Maximum IP range advantage — ace blocks BB\'s strongest hands',
+    equityShift: 'Maximum IP range advantage - ace blocks BB\'s strongest hands',
     strategy: 'Very high c-bet frequency with small sizing. IP has massive range advantage. Bluff almost everything.',
     connectedness: 8, flushDraw: 0, straightDraw: 10, paired: false, highCard: 'A',
     rangeHits: { toppair: 28, overpair: 4, draws: 3, air: 65 },
@@ -121,7 +121,7 @@ const TEXTURES = [
     ipCbet: 55, oopCbet: 30,
     ipFreq: { bet33: 38, bet67: 17, check: 45 },
     oopFreq: { bet33: 18, bet67: 12, check: 70 },
-    equityShift: 'Moderate equity shift — flush draws keep BB in more pots',
+    equityShift: 'Moderate equity shift - flush draws keep BB in more pots',
     strategy: 'Medium c-bet frequency. Use small sizing with overcards, larger with strong hands. Check middle pairs.',
     connectedness: 45, flushDraw: 45, straightDraw: 35, paired: false, highCard: '8',
     rangeHits: { toppair: 15, overpair: 10, draws: 32, air: 43 },
@@ -222,7 +222,7 @@ export default function FlopTextureAnalyzer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Texture Analyzer</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Understand how board texture affects strategy</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Understand How Board Texture Affects Strategy</div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['detail', 'compare'].map(m => (
@@ -291,7 +291,7 @@ export default function FlopTextureAnalyzer() {
 
             {/* Range hits */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution on This Board</div>
+              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution On This Board</div>
               <RangeHitChart hits={selectedTexture.rangeHits} />
               <div style={{ display: 'flex', gap: 10, marginTop: 6, justifyContent: 'center' }}>
                 {[{ label: 'Top Pair+', color: '#22c55e' }, { label: 'Overpair', color: '#3b82f6' }, { label: 'Draws', color: '#f59e0b' }, { label: 'Air', color: '#64748b' }].map(c => (
@@ -353,7 +353,7 @@ export default function FlopTextureAnalyzer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Flop Texture Analyzer</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

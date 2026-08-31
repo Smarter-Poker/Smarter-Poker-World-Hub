@@ -676,7 +676,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                 {matchHistory.slice(-5).reverse().map((match, idx) => (
                                     <div key={idx} style={styles.matchItem}>
                                         <span>{match.result === 'W' ? '✅' : '❌'}</span>
-                                        <span style={{ color: '#fff' }}>vs {match.opponent}</span>
+                                        <span style={{ color: '#fff' }}>Vs {match.opponent}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.5)' }}>{match.score}</span>
                                         <span style={{ color: match.eloChange >= 0 ? '#00ff88' : '#ff4444' }}>
                                             {match.eloChange >= 0 ? '+' : ''}{match.eloChange}
@@ -805,7 +805,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                     transition={{ delay: 1 }}
                                     style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}
                                 >
-                                    Preparing battle...
+                                    Preparing Battle...
                                 </motion.div>
                             </motion.div>
                         )}
@@ -871,7 +871,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 
                 {/* Round Indicator */}
                 <div style={styles.roundIndicator}>
-                    Round {currentRound + 1} of {ROUNDS_PER_MATCH}
+                    Round {currentRound + 1} Of {ROUNDS_PER_MATCH}
                 </div>
 
                 {/* Power-Ups */}
@@ -1042,7 +1042,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             <span style={{ color: '#ff4444' }}>{opponentScore}</span>
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
-                            vs {opponent?.name || 'Opponent'}
+                            Vs {opponent?.name || 'Opponent'}
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>

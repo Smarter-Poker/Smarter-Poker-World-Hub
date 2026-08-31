@@ -739,7 +739,7 @@ export const EnhancedPostCreator = ({
 
             const _imgToken = getAccessToken();
             if (!_imgToken) {
-              throw new Error('Authentication required — please refresh the page and try again.');
+              throw new Error('Authentication required - please refresh the page and try again.');
             }
 
             setUploadProgress((prev) => ({ ...prev, [i]: 50 }));
@@ -827,7 +827,7 @@ export const EnhancedPostCreator = ({
         );
         if (!persistedThumbnailUrl) {
           console.warn(
-            '[EnhancedPostCreator] uploadThumbnail returned null — post will save without thumbnail_url'
+            '[EnhancedPostCreator] uploadThumbnail returned null - post will save without thumbnail_url'
           );
         }
       } else if (rawThumb && typeof rawThumb === 'string' && rawThumb.startsWith('http')) {
@@ -835,7 +835,7 @@ export const EnhancedPostCreator = ({
         persistedThumbnailUrl = rawThumb;
       } else {
         console.warn(
-          '[EnhancedPostCreator] no thumbnail dataUrl after wait — post saving without thumbnail_url'
+          '[EnhancedPostCreator] no thumbnail dataUrl after wait - post saving without thumbnail_url'
         );
       }
 
@@ -1009,7 +1009,7 @@ export const EnhancedPostCreator = ({
         lowerMsg.includes('failed to fetch');
 
       const userFriendlyMessage = isDatabaseError
-        ? 'Unable to post right now. Our team has been notified — please try again shortly.'
+        ? 'Unable to post right now. Our team has been notified - please try again shortly.'
         : isAuthError
           ? 'You do not have permission to post. Please log in.'
           : isNetworkError

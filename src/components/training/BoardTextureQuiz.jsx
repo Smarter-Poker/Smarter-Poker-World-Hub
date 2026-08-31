@@ -113,7 +113,7 @@ function BoardTextureQuiz() {
         <div style={{ textAlign: 'center', padding: 24, background: 'rgba(244,63,94,0.06)', borderRadius: 12, border: '1px solid rgba(244,63,94,0.15)', marginBottom: 20 }}>
           <div style={{ fontSize: 42, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{board.cards}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>
-            Step {phase === 'classify' ? 1 : phase === 'properties' ? 2 : 3} of 3
+            Step {phase === 'classify' ? 1 : phase === 'properties' ? 2 : 3} Of 3
           </div>
         </div>
 
@@ -121,7 +121,7 @@ function BoardTextureQuiz() {
         {phase === 'classify' && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12, textAlign: 'center' }}>
-              What texture is this board?
+              What Texture Is This Board?
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6, marginBottom: 12 }}>
               {TEXTURE_TYPES.map(t => (
@@ -150,7 +150,7 @@ function BoardTextureQuiz() {
         {phase === 'properties' && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12, textAlign: 'center' }}>
-              Select all properties that apply:
+              Select All Properties That Apply:
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 12 }}>
               {Object.keys(board.properties || {}).map(prop => (
@@ -185,7 +185,7 @@ function BoardTextureQuiz() {
         {phase === 'strategy' && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12, textAlign: 'center' }}>
-              Estimate the optimal c-bet frequency (%):
+              Estimate The Optimal C-Bet Frequency (%):
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 12 }}>
               <input type="range" min={10} max={95} step={5} value={selectedFreq || 50} onChange={e => setSelectedFreq(parseInt(e.target.value))} style={{ width: 200, accentColor: '#f43f5e' }} />
@@ -197,7 +197,7 @@ function BoardTextureQuiz() {
               }}>Submit →</button>
             </div>
             <div style={{ padding: 12, background: 'rgba(244,63,94,0.06)', borderRadius: 8, border: '1px solid rgba(244,63,94,0.12)' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f43f5e', marginBottom: 4 }}>Optimal: {board.cbetFreq}% at {board.preferredSize}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#f43f5e', marginBottom: 4 }}>Optimal: {board.cbetFreq}% At {board.preferredSize}</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{board.strategy}</div>
             </div>
           </div>
@@ -205,7 +205,7 @@ function BoardTextureQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Board Texture Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Board Texture Quiz Failed To Load: {err.message}</div>;
   }
 }
 

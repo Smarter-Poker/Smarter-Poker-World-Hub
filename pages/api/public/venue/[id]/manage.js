@@ -259,7 +259,7 @@ async function updateVenueTolerant(venueId, payload) {
 
         delete attempt[col];
         dropped.push(col);
-        console.warn(`[venue-manage] poker_venues has no column "${col}" — dropped from update`);
+        console.warn(`[venue-manage] poker_venues has no column "${col}" - dropped from update`);
 
         if (Object.keys(attempt).filter((k) => k !== 'updated_at').length === 0) {
             return { error: null, venue: null, dropped, nothingLeft: true };

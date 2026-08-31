@@ -129,7 +129,7 @@ function TripleBarrelTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Triple Barrel Trainer failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Triple Barrel Trainer Failed: {err.message}</div>;
   }
 }
 

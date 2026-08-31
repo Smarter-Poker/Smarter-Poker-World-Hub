@@ -175,8 +175,8 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                     </h1>
                     <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
                         {failure === 'server'
-                            ? 'Something went wrong at our end — the link itself may be fine. Try again in a moment.'
-                            : 'Whoever shared it may have revoked the link, or the link may be incomplete. Ask them for a fresh one — then build the spot yourself in the Sandbox in the meantime.'}
+                            ? 'Something went wrong at our end - the link itself may be fine. Try again in a moment.'
+                            : 'Whoever shared it may have revoked the link, or the link may be incomplete. Ask them for a fresh one - then build the spot yourself in the Sandbox in the meantime.'}
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, alignItems: 'stretch' }}>
                         {failure === 'server' && (

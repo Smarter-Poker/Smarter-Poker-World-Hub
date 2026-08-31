@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         // so `Authorization: Bearer undefined` authenticated any caller.
         const adminApiToken = process.env.ADMIN_API_TOKEN;
         if (!adminApiToken) {
-            console.warn('[load-test] ADMIN_API_TOKEN is not configured — rejecting request');
+            console.warn('[load-test] ADMIN_API_TOKEN is not configured - rejecting request');
             return res.status(500).json({ error: 'Server misconfigured' });
         }
         const authHeader = req.headers.authorization;

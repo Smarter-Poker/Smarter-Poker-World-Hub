@@ -742,7 +742,7 @@ export default function StrategyTrivia({ mode }) {
                                 the modal's hero icon — left over from an emoji strip. */}
                             <div style={{ marginBottom: 16, color: '#00D4FF' }}><Gem size={48} aria-hidden /></div>
                             <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {entryCost} diamonds to play. Visit the Diamond Store to get more!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button type="button" onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '12px 20px', minHeight: 44, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
                                 <button type="button" onClick={() => router.push('/hub/diamond-store')} style={{ padding: '12px 20px', minHeight: 44, background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
@@ -781,7 +781,7 @@ export default function StrategyTrivia({ mode }) {
                                 className="lobby-image-wrapper"
                                 onClick={startGame}
                                 disabled={isPreparing || vipInitializing}
-                                aria-label={`${config.title} — start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
+                                aria-label={`${config.title} - start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
                             >
                                 <img
                                     src={LOBBY_IMAGES[mode]}
@@ -862,7 +862,7 @@ export default function StrategyTrivia({ mode }) {
                                 {/* Header */}
                                 <div className="game-header">
                                     <div className="progress" role="status" aria-live="polite">
-                                        Question {currentQuestionIndex + 1} of {questions.length}
+                                        Question {currentQuestionIndex + 1} Of {questions.length}
                                     </div>
                                     <div className="timer-ring-container">
                                         <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden>
@@ -978,7 +978,7 @@ export default function StrategyTrivia({ mode }) {
                                                     <div className="coaching-notes">
                                                         <div className="coaching-notes__head">Coaching Notes</div>
                                                         <div className="coaching-notes__answer">
-                                                            Best line:{' '}
+                                                            Best Line:{' '}
                                                             <strong>
                                                                 {renderTextWithCards(
                                                                     correctText,
@@ -1045,13 +1045,13 @@ export default function StrategyTrivia({ mode }) {
                                                     {revealCorrectIndex != null && index === revealCorrectIndex && (
                                                         <>
                                                             <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Correct answer</span>
+                                                            <span className="sr-only">Correct Answer</span>
                                                         </>
                                                     )}
                                                     {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
                                                         <>
                                                             <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Your answer, incorrect</span>
+                                                            <span className="sr-only">Your Answer, Incorrect</span>
                                                         </>
                                                     )}
                                                 </button>
@@ -1119,7 +1119,7 @@ export default function StrategyTrivia({ mode }) {
 
                                 {resultCapped && (
                                     <div className="results-note">
-                                        Daily reward cap reached for {config.title} — play for the score, come back tomorrow for more diamonds.
+                                        Daily Reward Cap Reached For {config.title} - Play For The Score, Come Back Tomorrow For More Diamonds.
                                     </div>
                                 )}
 
@@ -1136,7 +1136,7 @@ export default function StrategyTrivia({ mode }) {
                                         margin: '12px auto 0',
                                     }} role="alert">
                                         <div>
-                                            The run could not be settled ({resultAwardError}). Your reward has not been paid yet.
+                                            The Run Could Not Be Settled ({resultAwardError}). Your Reward Has Not Been Paid Yet.
                                         </div>
                                         {/* finishGame reopened finishedRef on the failure
                                             and kept the session, so retrying settles and
@@ -1164,7 +1164,7 @@ export default function StrategyTrivia({ mode }) {
                                             : (isVip ? 'Play Again (New Questions)' : `Play Again (${entryCost} Diamonds)`)}
                                     </button>
                                     <button type="button" className="back-btn" onClick={() => router.push('/hub/trivia')}>
-                                        Back to Lobby
+                                        Back To Lobby
                                     </button>
                                 </div>
                             </div>

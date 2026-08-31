@@ -113,7 +113,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
-                message: 'Use 3–20 chars: letters, numbers, _ or .',
+                message: 'Use 3-20 chars: letters, numbers, _ or .',
                 suggestions: [],
             } : null);
             setChecking(false);
@@ -138,7 +138,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             return data;
         } catch (_e) {
             if (myId !== fetchIdRef.current) return null;
-            const fallback = { available: false, message: 'Could not verify — try again.', suggestions: [] };
+            const fallback = { available: false, message: 'Could not verify - try again.', suggestions: [] };
             setAvailability(fallback);
             return fallback;
         } finally {
@@ -153,7 +153,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
-                message: 'Use 3–20 chars: letters, numbers, _ or .',
+                message: 'Use 3-20 chars: letters, numbers, _ or .',
                 suggestions: [],
             } : null);
             setChecking(false);
@@ -229,7 +229,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             }
         } catch (err) {
             console.warn('[social-gate] submit error:', err);
-            setSubmitError('Network error — please try again.');
+            setSubmitError('Network error - please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -242,8 +242,8 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 <div style={s.modal}>
                     <div style={s.header}>
                         <div style={s.iconWrap}>💎</div>
-                        <h2 id="spcg-title" style={s.title}>Finish your profile</h2>
-                        <p style={s.subtitle}>One quick step before you jump into Social — so other players can find you.</p>
+                        <h2 id="spcg-title" style={s.title}>Finish Your Profile</h2>
+                        <p style={s.subtitle}>One Quick Step Before You Jump Into Social - So Other Players Can Find You.</p>
                     </div>
 
                     {/* Step indicator */}
@@ -260,7 +260,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     {/* ── Step 1: Name ── */}
                     {step === 1 && (
                         <div style={s.stepBlock}>
-                            <label style={s.label} htmlFor="spcg-name">Full name</label>
+                            <label style={s.label} htmlFor="spcg-name">Full Name</label>
                             <input
                                 id="spcg-name"
                                 className="spcg-input"
@@ -275,8 +275,8 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                             />
                             <div style={s.helper}>
                                 {nameValid
-                                    ? <span style={{ color: '#4ade80' }}>✓ Looks good</span>
-                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>2–80 characters, real name preferred.</span>}
+                                    ? <span style={{ color: '#4ade80' }}>✓ Looks Good</span>
+                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>2-80 Characters, Real Name Preferred.</span>}
                             </div>
                             <div style={s.actionsRow}>
                                 <span />
@@ -293,7 +293,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     {/* ── Step 2: Username ── */}
                     {step === 2 && (
                         <div style={s.stepBlock}>
-                            <label style={s.label} htmlFor="spcg-username">Choose your @username</label>
+                            <label style={s.label} htmlFor="spcg-username">Choose Your @Username</label>
                             <div style={s.inputGroup}>
                                 <span style={s.inputPrefix}>@</span>
                                 <input
@@ -312,8 +312,8 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                 {checking && <span style={s.spinner} />}
                             </div>
                             <div style={s.helper}>
-                                {!username && <span style={{ color: 'rgba(255,255,255,0.5)' }}>3–20 chars: letters, numbers, _ or .</span>}
-                                {username && availability?.available === true && <span style={{ color: '#4ade80' }}>✓ @{username} is available</span>}
+                                {!username && <span style={{ color: 'rgba(255,255,255,0.5)' }}>3-20 Chars: Letters, Numbers, _ Or .</span>}
+                                {username && availability?.available === true && <span style={{ color: '#4ade80' }}>✓ @{username} Is Available</span>}
                                 {username && availability?.available === false && (
                                     <span style={{ color: '#f87171' }}>{availability.message || `@${username} is taken`}</span>
                                 )}
@@ -347,7 +347,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     {/* ── Step 3: Phone ── */}
                     {step === 3 && (
                         <div style={s.stepBlock}>
-                            <label style={s.label} htmlFor="spcg-phone">Phone number</label>
+                            <label style={s.label} htmlFor="spcg-phone">Phone Number</label>
                             <div style={s.inputGroup}>
                                 <select
                                     style={s.countrySelect}
@@ -377,8 +377,8 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                             </div>
                             <div style={s.helper}>
                                 {phoneValid
-                                    ? <span style={{ color: '#4ade80' }}>✓ Looks good</span>
-                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>We use this for account recovery and friend matching only.</span>}
+                                    ? <span style={{ color: '#4ade80' }}>✓ Looks Good</span>
+                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>We Use This For Account Recovery And Friend Matching Only.</span>}
                             </div>
                             {submitError && <div style={s.errorBox}>{submitError}</div>}
                             <div style={s.actionsRow}>

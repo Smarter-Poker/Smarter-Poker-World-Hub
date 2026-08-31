@@ -174,8 +174,8 @@ export default function RangeHeatGrid({
                     background: T.surface2, border: `1px solid ${T.border}`,
                     borderRadius: R.sm, padding: S.md, marginBottom: S.md,
                 }}>
-                    No villain range is set, so every starting hand is graded. Set a range in the Range
-                    Explorer to grey out the hands this opponent would never hold.
+                    No Villain Range Is Set, So Every Starting Hand Is Graded. Set A Range In The Range
+                    Explorer To Grey Out The Hands This Opponent Would Never Hold.
                 </div>
             )}
 
@@ -198,7 +198,7 @@ export default function RangeHeatGrid({
                 />
                 {pickHigh != null && pickLow != null && pickHigh === pickLow && (
                     <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        Same rank twice selects the pocket pair — the suit toggle does not apply.
+                        Same Rank Twice Selects The Pocket Pair - The Suit Toggle Does Not Apply.
                     </p>
                 )}
             </div>
@@ -226,15 +226,15 @@ export default function RangeHeatGrid({
                             {selectedTier.label} · {selectedCell.strength}
                         </span>
                         <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                            {comboWeight(selectedCell.i, selectedCell.j)} combos
+                            {comboWeight(selectedCell.i, selectedCell.j)} Combos
                         </span>
                         {!selectedCell.inRange && (
-                            <span style={{ fontSize: F.caption, color: T.textDim }}>Outside {villainLabel}&apos;s range</span>
+                            <span style={{ fontSize: F.caption, color: T.textDim }}>Outside {villainLabel}&apos;S Range</span>
                         )}
                     </>
                 ) : (
                     <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                        Pick two ranks above, or tap any cell, for its tier and combo count.
+                        Pick Two Ranks Above, Or Tap Any Cell, For Its Tier And Combo Count.
                     </span>
                 )}
             </div>

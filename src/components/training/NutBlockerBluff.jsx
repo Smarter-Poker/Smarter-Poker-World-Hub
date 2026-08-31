@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const BLOCKER_SPOTS = [
   { hand: 'A♥ on 3-heart board', board: 'K♥ T♥ 7♥ 4♠ 2♣', blocker: 'Nut flush',
     quality: 'EXCELLENT', color: '#22c55e',
-    reason: 'You hold the A♥ so villain CANNOT have the nut flush. This makes your bluff much more credible — you can rep the nut flush.' },
+    reason: 'You hold the A♥ so villain CANNOT have the nut flush. This makes your bluff much more credible - you can rep the nut flush.' },
   { hand: 'K♣Q♣ on 3-club board', board: 'J♣ 9♣ 5♣ 8♦ 2♠', blocker: 'Second nut flush',
     quality: 'GOOD', color: '#3b82f6',
     reason: 'You block the K-high flush and Q-high flush. Villain is less likely to have a flush, making your bluff more effective.' },
@@ -33,7 +33,7 @@ export default function NutBlockerBluff() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Nut Blocker Bluffs
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use card removal to find the most profitable bluffs.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use Card Removal To Find The Most Profitable Bluffs.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLOCKER_SPOTS.map((s, i) => (

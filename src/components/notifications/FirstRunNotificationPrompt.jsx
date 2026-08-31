@@ -253,9 +253,9 @@ export default function FirstRunNotificationPrompt({ userId }) {
             >
                 {state === 'success' ? (
                     <>
-                        <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>You are all set</h3>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>You Are All Set</h3>
                         <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF' }}>
-                            Notifications are on for this device.
+                            Notifications Are On For This Device.
                         </p>
                     </>
                 ) : state === 'blocked' ? (
@@ -278,9 +278,9 @@ export default function FirstRunNotificationPrompt({ userId }) {
                     <>
                         <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Never Miss A Game</h3>
                         <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
-                            Turn on notifications and we will alert you when a seat opens, a friend goes
-                            live, a game fills up, or someone messages you. You can fine-tune exactly
-                            which alerts you get at any time.
+                            Turn On Notifications And We Will Alert You When A Seat Opens, A Friend Goes
+                            Live, A Game Fills Up, Or Someone Messages You. You Can Fine-Tune Exactly
+                            Which Alerts You Get At Any Time.
                         </p>
                         {error && (
                             <p style={{ marginTop: 10, fontSize: 13, color: '#FCA5A5' }}>{error}</p>

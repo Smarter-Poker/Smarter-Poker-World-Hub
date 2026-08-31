@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 
 const SCENARIOS = [
   {
-    id: 1, name: 'River Bluff — Ace Blocker',
+    id: 1, name: 'River Bluff - Ace Blocker',
     board: 'K♥ T♠ 7♦ 3♣ 2♥',
     heroHand: 'A♠ 5♠',
     situation: 'Hero missed flush draw on river. Should hero bluff?',
@@ -23,7 +23,7 @@ const SCENARIOS = [
     tips: ['Blocking villain value range = good bluff', 'A♠ is a premium blocker on K-high board', 'Missed flush draws with ace blockers are ideal bluffs'],
   },
   {
-    id: 2, name: 'River Call — Flush Blocker',
+    id: 2, name: 'River Call - Flush Blocker',
     board: 'Q♣ 9♣ 4♦ 7♣ J♠',
     heroHand: 'Q♥ T♣',
     situation: 'Villain bets river. Hero has top pair + club blocker.',
@@ -38,13 +38,13 @@ const SCENARIOS = [
     tips: ['Blocking villain\'s value range = call more', 'Single club blocker removes significant flush combos', 'Unblocking bluffs (non-club hands) is also favorable'],
   },
   {
-    id: 3, name: 'River Bluff — Bad Blockers',
+    id: 3, name: 'River Bluff - Bad Blockers',
     board: 'A♠ K♦ 8♣ 3♥ 5♠',
     heroHand: '6♠ 4♠',
     situation: 'Hero has busted spade draw. Should hero bluff?',
     blockerEffect: {
-      blocks: ['65s (irrelevant)', 'A6/A5/A4 — blocks some weak Ax villain FOLDS'],
-      unblocks: ['AK, AA, KK (full combos — villain CALLS)', 'A8, K8 (full combos)'],
+      blocks: ['65s (irrelevant)', 'A6/A5/A4 - blocks some weak Ax villain FOLDS'],
+      unblocks: ['AK, AA, KK (full combos - villain CALLS)', 'A8, K8 (full combos)'],
     },
     verdict: 'BAD BLUFF',
     verdictColor: '#ef4444',
@@ -53,13 +53,13 @@ const SCENARIOS = [
     tips: ['Blocking villain fold range = bad bluff', 'Want to block calls, not folds', '64s has worst possible blockers on AK8 board'],
   },
   {
-    id: 4, name: 'River Call — Straight Blocker',
+    id: 4, name: 'River Call - Straight Blocker',
     board: 'J♥ T♥ 4♦ 9♠ 8♣',
     heroHand: 'Q♠ Q♦',
     situation: 'Villain overbets river. Hero has QQ. Four-to-a-straight board.',
     blockerEffect: {
       blocks: ['QJ straight (Q blocks half of Q7 combos)', 'Q8 combos'],
-      unblocks: ['76 (all 16 combos — nutted straight)', 'KQ (all combos — nut straight)', 'J8, T8 (two pair)'],
+      unblocks: ['76 (all 16 combos - nutted straight)', 'KQ (all combos - nut straight)', 'J8, T8 (two pair)'],
     },
     verdict: 'BAD CALL',
     verdictColor: '#ef4444',
@@ -68,7 +68,7 @@ const SCENARIOS = [
     tips: ['Need to block nut straights to call overbet', 'Q doesn\'t effectively block 76 or KQ', 'Overpair without straight blocker = fold on 4-straight boards'],
   },
   {
-    id: 5, name: 'Preflop 4-Bet Bluff — Blockers',
+    id: 5, name: 'Preflop 4-Bet Bluff - Blockers',
     board: 'Preflop',
     heroHand: 'A♣ 5♣',
     situation: 'Villain 3-bets. Should hero 4-bet bluff with A5s?',
@@ -160,7 +160,7 @@ function BlockerAnalysis() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Blocker Analysis failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Blocker Analysis Failed To Load: {err.message}</div>;
   }
 }
 

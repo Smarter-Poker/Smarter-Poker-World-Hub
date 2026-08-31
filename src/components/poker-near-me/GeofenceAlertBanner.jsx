@@ -72,7 +72,7 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 2 }}>
-            You are near a poker venue!
+            You Are Near A Poker Venue!
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {venue.name}

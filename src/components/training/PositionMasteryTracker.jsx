@@ -143,7 +143,7 @@ export default function PositionMasteryTracker() {
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Position Mastery</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track your skill level from every seat</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track Your Skill Level From Every Seat</div>
         </div>
 
         {/* Summary */}
@@ -195,7 +195,7 @@ export default function PositionMasteryTracker() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ color: getMasteryColor(data.mastery), fontSize: 20, fontWeight: 800 }}>{selectedPos}</span>
             <span style={{ color: getMasteryColor(data.mastery), fontSize: 12, fontWeight: 600 }}>{getMasteryLabel(data.mastery)}</span>
-            <span style={{ color: '#64748b', fontSize: 10, marginLeft: 'auto' }}>{data.hands} hands • {data.accuracy}% accuracy</span>
+            <span style={{ color: '#64748b', fontSize: 10, marginLeft: 'auto' }}>{data.hands} Hands • {data.accuracy}% Accuracy</span>
           </div>
 
           {/* Street accuracy */}
@@ -244,7 +244,7 @@ export default function PositionMasteryTracker() {
           {/* EV Loss */}
           <div style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: 'rgba(239,68,68,0.06)', textAlign: 'center' }}>
             <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>
-              EV Loss from {selectedPos}: -{data.evLoss.toFixed(1)}bb/100
+              EV Loss From {selectedPos}: -{data.evLoss.toFixed(1)}bb/100
             </span>
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function PositionMasteryTracker() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Position Mastery</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

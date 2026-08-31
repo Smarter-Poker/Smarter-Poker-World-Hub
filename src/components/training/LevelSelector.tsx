@@ -244,7 +244,7 @@ const LevelCard: React.FC<{
                     <div style={styles.lockedSection}>
                         <span style={styles.lockIcon}>■</span>
                         <span style={styles.lockText}>
-                            Pass Level {level - 1} first
+                            Pass Level {level - 1} First
                         </span>
                     </div>
                 )}

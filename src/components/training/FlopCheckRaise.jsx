@@ -8,9 +8,9 @@ import { motion } from 'framer-motion';
 const XRAISE_SPOTS = [
   { spot: 'Check-Raise for Value (Sets)', board: 'Q♠7♦3♣', hand: '7♠7♥', color: '#22c55e', icon: '●',
     freq: '85-100%',
-    why: 'Bottom set on a dry board. You need to build the pot NOW — if you just call, the pot stays small.',
+    why: 'Bottom set on a dry board. You need to build the pot NOW - if you just call, the pot stays small.',
     sizing: 'Raise to 3x the c-bet. On a dry board, you want to look like a bluff to get called.',
-    followUp: 'Bet turn 66-75% pot. Bet river for value. Don\'t slow down — your hand is disguised.' },
+    followUp: 'Bet turn 66-75% pot. Bet river for value. Don\'t slow down - your hand is disguised.' },
   { spot: 'Check-Raise Semi-Bluff (Draws)', board: 'K♥9♥4♣', hand: 'J♥T♥', color: '#3b82f6', icon: '·',
     freq: '40-60%',
     why: 'Flush draw + gutshot = 12 outs. Check-raising puts maximum pressure while having great equity.',
@@ -24,7 +24,7 @@ const XRAISE_SPOTS = [
   { spot: 'Check-Raise Two Pair', board: 'J♦T♣6♠', hand: 'J♣T♠', color: '#f59e0b', icon: '⌁',
     freq: '70-90%',
     why: 'Two pair on a connected board is vulnerable. Many turn cards kill your hand. Get money in now.',
-    sizing: 'Raise to 3.5x. Larger sizing because the board is wet — you want to deny equity aggressively.',
+    sizing: 'Raise to 3.5x. Larger sizing because the board is wet - you want to deny equity aggressively.',
     followUp: 'Shove turns that don\'t complete straights or bring a flush. Check scary cards.' },
   { spot: 'Check-Raise Top Pair (Occasionally)', board: '9♠6♦2♣', hand: 'A♠9♦', color: '#8b5cf6', icon: '◆',
     freq: '10-20%',
@@ -42,7 +42,7 @@ export default function FlopCheckRaise() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ● Flop Check-Raise
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The most powerful OOP weapon — master the check-raise.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Most Powerful OOP Weapon - Master The Check-Raise.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {XRAISE_SPOTS.map((s, i) => (

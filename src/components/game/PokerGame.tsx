@@ -305,7 +305,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
             {/* HEADER */}
             <div className="flex justify-between items-center px-4 py-2" style={{ backgroundColor: '#0a0e17' }}>
                 <button className="text-white text-xs font-bold px-4 py-2 rounded-full" style={{ backgroundColor: '#0891b2' }}>
-                    ← Back to Training
+                    ← Back To Training
                 </button>
                 <h1 className="text-sm font-bold tracking-wider uppercase" style={{ color: '#22d3ee' }}>{gameTitle}</h1>
                 <div className="flex gap-3 text-xs font-semibold">
@@ -338,7 +338,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
                 {/* QUESTION COUNTER */}
                 <div className="absolute right-4 bottom-4 z-20">
                     <div className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', color: '#f3f4f6' }}>
-                        Question {questionNumber} of {totalQuestions}
+                        Question {questionNumber} Of {totalQuestions}
                     </div>
                 </div>
             </div>

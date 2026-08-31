@@ -42,7 +42,7 @@ export default function WinConditionPlanner() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         · Win Condition Planner
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Plan HOW you'll win each hand before you play it.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Plan HOW You'll Win Each Hand Before You Play It.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {WIN_CONDITIONS.map((w, i) => (

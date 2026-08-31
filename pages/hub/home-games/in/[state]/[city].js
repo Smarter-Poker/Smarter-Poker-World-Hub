@@ -168,7 +168,7 @@ export async function getServerSideProps({ params, res }) {
 
 function formatStakes(g) {
   if (g.default_stakes) return g.default_stakes;
-  if (g.buyin_min && g.buyin_max) return `$${g.buyin_min}–$${g.buyin_max} buy-in`;
+  if (g.buyin_min && g.buyin_max) return `$${g.buyin_min}-$${g.buyin_max} buy-in`;
   if (g.buyin_min) return `$${g.buyin_min}+ buy-in`;
   return null;
 }

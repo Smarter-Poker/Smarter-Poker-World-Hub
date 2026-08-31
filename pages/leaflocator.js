@@ -95,7 +95,7 @@ export default function LeafLocatorPitchDeck() {
     return (
         <div className="ll-pitch-container" style={{ width: '100vw', height: '100vh', background: '#000', overflow: 'hidden', position: 'relative' }}>
             <Head>
-                <title>Leaf Locator — Confidential Investor Pitch</title>
+                <title>Leaf Locator - Confidential Investor Pitch</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
                 <meta name="robots" content="noindex, nofollow" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />

@@ -125,7 +125,7 @@ export default function AlbumPicker({ onClose, onNext }) {
                         fontSize: 24, padding: 8, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
-                >&#x2715;</button>
+                >&#X2715;</button>
                 <div style={{ fontSize: 17, fontWeight: 600 }}>
                     {media.length > 0 ? `${media.length} selected` : 'Select media'}
                 </div>
@@ -137,7 +137,7 @@ export default function AlbumPicker({ onClose, onNext }) {
                         background: 'none', border: 'none', color: '#fff',
                         fontSize: 22, padding: 8, cursor: 'pointer',
                     }}
-                >&#xff0b;</button>
+                >&#Xff0b;</button>
             </div>
 
             {/* ── Scrollable grid area ───────────────────────── */}
@@ -151,10 +151,10 @@ export default function AlbumPicker({ onClose, onNext }) {
                             width: 64, height: 64, borderRadius: 32,
                             background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 28, color: '#fff',
-                        }}>&#x2295;</div>
-                        <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Pick photos or videos</div>
+                        }}>&#X2295;</div>
+                        <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Pick Photos Or Videos</div>
                         <div style={{ fontSize: 14, lineHeight: 1.4, maxWidth: 280 }}>
-                            Tap below to open your library. Select up to 10 items in the order you want them shown.
+                            Tap Below To Open Your Library. Select Up To 10 Items In The Order You Want Them Shown.
                         </div>
                         <button
                             onClick={openPicker}
@@ -164,7 +164,7 @@ export default function AlbumPicker({ onClose, onNext }) {
                                 padding: '12px 24px', borderRadius: 8, fontSize: 15, fontWeight: 600,
                                 cursor: 'pointer',
                             }}
-                        >Open library</button>
+                        >Open Library</button>
                     </div>
                 ) : (
                     <div style={{
@@ -269,7 +269,7 @@ export default function AlbumPicker({ onClose, onNext }) {
                                         cursor: 'pointer', padding: 0,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     }}
-                                >&#x2715;</button>
+                                >&#X2715;</button>
                             </div>
                         ))}
                     </div>

@@ -27,10 +27,10 @@ const ARCHETYPES = {
         stats: { vpip: 22, pfr: 18, threeBet: 8, aggPct: 42, wtsd: 28 },
         description: 'Plays a strong, selected range and bets aggressively with it. The default GTO-style player.',
         adjustments: [
-            'Respect their raises — they usually have it',
+            'Respect their raises - they usually have it',
             'Their check means weakness more often',
             'Can 3-bet light in position since they fold a lot preflop',
-            'Float flop bets in position — they give up the turn often',
+            'Float flop bets in position - they give up the turn often',
         ],
     },
     LAG: {
@@ -39,11 +39,11 @@ const ARCHETYPES = {
         icon: '▲',
         color: '#f59e0b',
         stats: { vpip: 30, pfr: 24, threeBet: 12, aggPct: 48, wtsd: 30 },
-        description: 'Plays many hands and applies constant pressure. Harder to read — can have anything.',
+        description: 'Plays many hands and applies constant pressure. Harder to read - can have anything.',
         adjustments: [
-            'Widen your calling range — they bluff more',
-            'Trap with strong hands — let them hang themselves',
-            'Tighten up your 3-bet bluffs — they call too wide',
+            'Widen your calling range - they bluff more',
+            'Trap with strong hands - let them hang themselves',
+            'Tighten up your 3-bet bluffs - they call too wide',
             'Check-raise more often as a counter-aggression play',
         ],
     },
@@ -55,10 +55,10 @@ const ARCHETYPES = {
         stats: { vpip: 14, pfr: 10, threeBet: 4, aggPct: 28, wtsd: 22 },
         description: 'Only plays premium hands and avoids confrontation. Very predictable and easy to play against.',
         adjustments: [
-            'Steal their blinds relentlessly — they fold too much',
-            'When they raise, respect it — they have a monster',
-            'Never bluff the river — they only call with strong hands',
-            'C-bet 100% of flops — they fold anything below top pair',
+            'Steal their blinds relentlessly - they fold too much',
+            'When they raise, respect it - they have a monster',
+            'Never bluff the river - they only call with strong hands',
+            'C-bet 100% of flops - they fold anything below top pair',
         ],
     },
     FISH: {
@@ -69,9 +69,9 @@ const ARCHETYPES = {
         stats: { vpip: 45, pfr: 10, threeBet: 3, aggPct: 22, wtsd: 40 },
         description: 'Calls too much and rarely raises. Stations who see every flop and call down with weak hands.',
         adjustments: [
-            'Value bet thinner — they call with much weaker hands',
-            'Never bluff — they will call you down',
-            'Size up your value bets — they are inelastic to sizing',
+            'Value bet thinner - they call with much weaker hands',
+            'Never bluff - they will call you down',
+            'Size up your value bets - they are inelastic to sizing',
             'Isolate them preflop with wider range for position',
         ],
     },
@@ -83,9 +83,9 @@ const ARCHETYPES = {
         stats: { vpip: 55, pfr: 40, threeBet: 20, aggPct: 60, wtsd: 35 },
         description: 'Raises and re-raises with a huge range. Creates massive pots with weak holdings. Volatile.',
         adjustments: [
-            'Tighten way up — let them spew into your premiums',
-            'Call down lighter — they have air very often',
-            'Avoid 4-bet bluffing — they will 5-bet shove light',
+            'Tighten way up - let them spew into your premiums',
+            'Call down lighter - they have air very often',
+            'Avoid 4-bet bluffing - they will 5-bet shove light',
             'Let them control the initiative, then snap off bluffs',
         ],
     },
@@ -97,9 +97,9 @@ const ARCHETYPES = {
         stats: { vpip: 25, pfr: 20, threeBet: 9, aggPct: 40, wtsd: 27 },
         description: 'Plays a balanced, unexploitable strategy. Mixed frequencies make them hard to read or exploit.',
         adjustments: [
-            'Play your own GTO strategy — no exploitative adjustments work',
+            'Play your own GTO strategy - no exploitative adjustments work',
             'Focus on execution accuracy rather than reads',
-            'Avoid trying to level or outplay — they are balanced',
+            'Avoid trying to level or outplay - they are balanced',
             'Maximize your own GTO accuracy to minimize their edge',
         ],
     },
@@ -187,7 +187,7 @@ const AdjustmentsPanel = memo(({ archetype }) => {
                 fontSize: 11, fontWeight: 700, color: a.color, marginBottom: 8,
                 textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
-                Exploitative Adjustments vs {a.fullName}
+                Exploitative Adjustments Vs {a.fullName}
             </div>
             {a.adjustments.map((adj, i) => (
                 <div key={i} style={{

@@ -481,7 +481,7 @@ export default async function handler(req, res) {
                           console.warn('[Challenges] Rollback claimed=false failed:', rbErr?.message || rbErr);
                       }
                       console.warn('[Challenges] Diamond RPC failed (rolled back so user can retry):', rpcErr);
-                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
                   }
               }
 

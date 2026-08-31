@@ -50,7 +50,7 @@ class AntiCheatMonitor {
 
   start() {
     if (this._interval) return;
-    console.debug('[AntiCheatMonitor] ✅ Started — scanning every', SCAN_INTERVAL_MS / 1000, 'seconds');
+    console.debug('[AntiCheatMonitor] ✅ Started - scanning every', SCAN_INTERVAL_MS / 1000, 'seconds');
     this._interval = setInterval(() => this.scan(), SCAN_INTERVAL_MS);
     // Run first scan after 10s to let tables initialize
     setTimeout(() => this.scan(), 10_000);
@@ -164,7 +164,7 @@ class AntiCheatMonitor {
     if (lastBoot && Date.now() - lastBoot < BOOT_COOLDOWN_MS) return;
     this._bootLog.set(key, Date.now());
 
-    console.warn(`[AntiCheatMonitor] 🚫 AUTO-BOOT: ${playerId} from table ${tableId} — ${reason}`);
+    console.warn(`[AntiCheatMonitor] 🚫 AUTO-BOOT: ${playerId} from table ${tableId} - ${reason}`);
 
     try {
       // 1. Force stand-up in engine

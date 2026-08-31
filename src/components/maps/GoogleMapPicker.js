@@ -48,7 +48,7 @@ function useGoogleMaps() {
             window.gm_authFailure = () => {
                 setError(
                     'Google Maps could not authorize. Please enter your city and state ' +
-                    'manually below — your home game will save normally.'
+                    'manually below - your home game will save normally.'
                 );
                 setLoaded(false);
             };
@@ -71,7 +71,7 @@ function useGoogleMaps() {
                 if (probe.status === 403) {
                     setError(
                         'Google Maps is not configured to load on this site. ' +
-                        'Please enter your city and state manually below — ' +
+                        'Please enter your city and state manually below - ' +
                         'your home game will save normally.'
                     );
                     return;

@@ -26,7 +26,7 @@ export default function JurisdictionBlocked() {
     return (
         <>
             <Head>
-                <title>Service Unavailable in Your Region — Smarter.Poker</title>
+                <title>Service Unavailable in Your Region - Smarter.Poker</title>
                 <meta name="robots" content="noindex" />
             </Head>
             <main

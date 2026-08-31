@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                 insights.push(`Your accuracy is ${Math.round(correct / total * 100)}%. Focus on fundamentals.`);
             }
             if (total >= 10 && correct / total >= 0.8) {
-                insights.push(`${Math.round(correct / total * 100)}% accuracy — excellent! Try harder spots.`);
+                insights.push(`${Math.round(correct / total * 100)}% accuracy - excellent! Try harder spots.`);
             }
 
             return res.status(200).json({

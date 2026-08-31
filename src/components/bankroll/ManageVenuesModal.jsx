@@ -118,7 +118,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
                                 ) : confirmDeleteId === venue.id ? (
                                     /* Confirm delete */
                                     <div style={s.editRow}>
-                                        <span style={s.confirmText}>Delete "{venue.name}"? Entries will be unlinked, not removed.</span>
+                                        <span style={s.confirmText}>Delete "{venue.name}"? Entries Will Be Unlinked, Not Removed.</span>
                                         <button onClick={() => handleDelete(venue.id)} style={s.deleteBtnConfirm}>Delete</button>
                                         <button onClick={() => setConfirmDeleteId(null)} style={s.cancelBtn}>Cancel</button>
                                     </div>

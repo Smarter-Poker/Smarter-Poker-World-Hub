@@ -23,7 +23,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbk
 function requireAnonKey(): string {
     const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
     if (!key) {
-        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — refusing to create a Supabase server client. Set this environment variable.');
+        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set - refusing to create a Supabase server client. Set this environment variable.');
     }
     return key;
 }

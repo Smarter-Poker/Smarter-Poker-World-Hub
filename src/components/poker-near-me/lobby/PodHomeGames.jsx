@@ -44,7 +44,7 @@ function buildStakesArray(g) {
     const gameLabel = (g.default_game_type || 'NLH').toUpperCase();
     const min = g.typical_buyin_min ? `$${g.typical_buyin_min}` : '';
     const max = g.typical_buyin_max ? `$${g.typical_buyin_max}` : '';
-    const range = min && max ? `${min}–${max} Buy-In` : (min || max ? `${min || max} Buy-In` : '');
+    const range = min && max ? `${min}-${max} Buy-In` : (min || max ? `${min || max} Buy-In` : '');
     rows.push(`${gameLabel}${range ? ' · ' + range : ''}`);
   }
 
@@ -256,7 +256,7 @@ export default function PodHomeGames({
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(22,27,34,0.8)', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)' }}>
             <span style={{ fontSize: 12, color: '#c9d1d9' }}>
-              <span style={{ color: '#d4a853', fontWeight: 800 }}>{displayGames.length}</span> home game{displayGames.length !== 1 ? 's' : ''}
+              <span style={{ color: '#d4a853', fontWeight: 800 }}>{displayGames.length}</span> Home game{displayGames.length !== 1 ? 's' : ''}
             </span>
             <button onClick={() => { setPodHomeGames([]); setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false })); }}
               style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
@@ -281,7 +281,7 @@ export default function PodHomeGames({
           {displayGames.length === 0 && !loading && (
             <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
               <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
-              <p style={{ fontSize: 13 }}>Try a Different Search or State Filter.</p>
+              <p style={{ fontSize: 13 }}>Try A Different Search Or State Filter.</p>
             </div>
           )}
         </div>
@@ -290,8 +290,8 @@ export default function PodHomeGames({
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 14 }}>
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-          <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find or List Home Games</p>
-          <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for Home Games Near You or Filter by State. Use the Search Bar Above to Get Started.</p>
+          <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find Or List Home Games</p>
+          <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search For Home Games Near You Or Filter By State. Use The Search Bar Above To Get Started.</p>
         </div>
       )}
 

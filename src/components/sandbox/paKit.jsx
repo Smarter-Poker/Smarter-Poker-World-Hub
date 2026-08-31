@@ -346,7 +346,7 @@ export function BottomSheet({
 
                         <div className="pa-sheet-telemetry" aria-hidden="true">
                             <span>Smarter.Poker</span>
-                            <span>Jarvis // module active</span>
+                            <span>Jarvis // Module Active</span>
                         </div>
 
                         <div className="pa-sheet-header" style={sheetHeader}>
@@ -459,7 +459,7 @@ export function SignInState({
             icon={<LogIn size={22} strokeWidth={2} />}
             title={title}
             body={body}
-            action={<a className="pa-btn" href={href} style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
+            action={<a className="pa-btn" href={href} style={{ ...btn('primary'), textDecoration: 'none' }}>Sign In</a>}
         />
     );
 }

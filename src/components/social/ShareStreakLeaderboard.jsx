@@ -192,7 +192,7 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                     }}>💎</div>
                     <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Share Streak Leaders</div>
-                        <div style={{ fontSize: 12, color: C.textSec }}>Top daily sharers earning diamonds</div>
+                        <div style={{ fontSize: 12, color: C.textSec }}>Top Daily Sharers Earning Diamonds</div>
                     </div>
                 </div>
                 <div style={{ fontSize: 16, color: C.textSec, userSelect: 'none', transition: 'transform 0.2s', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
@@ -281,10 +281,10 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                     {/* Current user not in top 10 */}
                     {currentUserRank && (
                         <div style={{ margin: '8px 16px 0', padding: '10px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ fontSize: 13, color: C.textSec }}>Your ranking</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Your Ranking</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ fontSize: 14, fontWeight: 700, color: '#818cf8' }}>#{currentUserRank.rank}</span>
-                                <span style={{ fontSize: 13, color: C.textSec }}>· {currentUserRank.streak_days}-day streak</span>
+                                <span style={{ fontSize: 13, color: C.textSec }}>· {currentUserRank.streak_days}-Day Streak</span>
                             </div>
                         </div>
                     )}
@@ -292,7 +292,7 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                     {/* CTA + Tier Legend */}
                     <div style={{ margin: '10px 16px 0' }}>
                         <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5, textAlign: 'center', marginBottom: 10 }}>
-                            Share daily to earn 💎 diamonds and boost your multiplier!
+                            Share Daily To Earn 💎 Diamonds And Boost Your Multiplier!
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
                             {Object.entries(TIER_CONFIG).reverse().map(([key, t]) => key !== 'base' && (

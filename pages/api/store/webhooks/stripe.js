@@ -70,7 +70,7 @@ export default async function handler(req, res) {
           // SECURITY: Signature verification is REQUIRED.
           // If webhook secret is not configured, reject all events.
           if (!endpointSecret) {
-              console.warn('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+              console.warn('STRIPE_WEBHOOK_SECRET not configured - rejecting webhook');
               return res.status(500).json({ error: 'Webhook secret not configured' });
           }
           if (!sig) {
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
               console.warn(`[stripe-webhook] could not claim event ${event.id}, processing anyway:`, claimErr.message);
           } else if (!claim?.claimed) {
               if (claim?.state === 'done') {
-                  console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) — already processed`);
+                  console.info(`[stripe-webhook] duplicate delivery of ${event.id} (${event.type}) - already processed`);
                   return res.status(200).json({ received: true, duplicate: true });
               }
               // Another worker owns a live lease. A retryable response ensures
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
                       .eq('event_id', event.id);
                   if (releaseError) throw releaseError;
               } catch (releaseErr) {
-                  console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} — retries will be skipped:`, releaseErr?.message || releaseErr);
+                  console.error(`[stripe-webhook] FAILED TO RELEASE claim on ${event.id} - retries will be skipped:`, releaseErr?.message || releaseErr);
               }
           }
           return res.status(500).json({ error: 'Webhook handler failed' });
@@ -437,7 +437,7 @@ async function handleCheckoutCompleted(session) {
                     .select('id');
                 if (err_profiles_yhokl) {
                     // Paid VIP grant must not be silently lost — throw so Stripe retries.
-                    console.warn('[stripe-webhook] VIP profile grant failed for user', metadata.user_id, '— Stripe will retry:', err_profiles_yhokl.message);
+                    console.warn('[stripe-webhook] VIP profile grant failed for user', metadata.user_id, '- Stripe will retry:', err_profiles_yhokl.message);
                     throw err_profiles_yhokl;
                 }
                 if (!grantedRows || grantedRows.length === 0) {
@@ -560,7 +560,7 @@ async function handleSubscriptionUpdate(subscription) {
             // Genuinely unresolvable. Throw rather than return so the webhook
             // 500s and Stripe retries -- a subscription event that changes a
             // paying customer's entitlement must not be dropped on the floor.
-            const msg = `[stripe-webhook] no profile for customer ${customer} and Stripe metadata could not resolve one — subscription update DROPPED.`;
+            const msg = `[stripe-webhook] no profile for customer ${customer} and Stripe metadata could not resolve one - subscription update DROPPED.`;
             console.error(msg);
             throw new Error(msg);
         }
@@ -586,7 +586,7 @@ async function handleSubscriptionUpdate(subscription) {
         });
     if (err_vip_subscriptions_1w1zg) {
         // Money-tied state transition — throw so Stripe retries instead of dropping it.
-        console.warn('[stripe-webhook] vip_subscriptions upsert failed for', id, '— Stripe will retry:', err_vip_subscriptions_1w1zg.message);
+        console.warn('[stripe-webhook] vip_subscriptions upsert failed for', id, '- Stripe will retry:', err_vip_subscriptions_1w1zg.message);
         throw err_vip_subscriptions_1w1zg;
     }
 
@@ -632,7 +632,7 @@ async function handleSubscriptionUpdate(subscription) {
             // A renewal that writes nothing leaves vip_expires_at in the past,
             // and /api/vip/check-status reads that as lapsed. The subscriber is
             // paying and gated out. Throw so Stripe retries rather than 200.
-            const msg = `[stripe-webhook] VIP RENEWAL MATCHED ZERO ROWS for profile ${profile.id} — paying subscriber will read as lapsed.`;
+            const msg = `[stripe-webhook] VIP RENEWAL MATCHED ZERO ROWS for profile ${profile.id} - paying subscriber will read as lapsed.`;
             console.error(msg);
             throw new Error(msg);
         }
@@ -678,7 +678,7 @@ async function handleSubscriptionCanceled(subscription) {
         .eq('stripe_subscription_id', id);
 
     if (err_vip_subscriptions_s2gv2) {
-        console.warn('[stripe-webhook] vip_subscriptions cancel update failed for', id, '— Stripe will retry:', err_vip_subscriptions_s2gv2.message);
+        console.warn('[stripe-webhook] vip_subscriptions cancel update failed for', id, '- Stripe will retry:', err_vip_subscriptions_s2gv2.message);
         throw err_vip_subscriptions_s2gv2;
     }
 
@@ -721,12 +721,12 @@ async function handleSubscriptionCanceled(subscription) {
             .eq('stripe_customer_id', customer)
             .select('id');
         if (!err_profiles_odw9b && (!revokedRows || revokedRows.length === 0)) {
-            const msg = `[stripe-webhook] VIP REVOKE MATCHED ZERO ROWS for customer ${customer} — a cancelled subscriber may still hold VIP. Throwing so Stripe retries.`;
+            const msg = `[stripe-webhook] VIP REVOKE MATCHED ZERO ROWS for customer ${customer} - a cancelled subscriber may still hold VIP. Throwing so Stripe retries.`;
             console.error(msg);
             throw new Error(msg);
         }
         if (err_profiles_odw9b) {
-            console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '— Stripe will retry:', err_profiles_odw9b.message);
+            console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '- Stripe will retry:', err_profiles_odw9b.message);
             throw err_profiles_odw9b;
         }
 
@@ -984,7 +984,7 @@ async function handleCommanderSubscriptionUpdate(subscription) {
             throw err_poker_venues_egixx;
         }
         if (!enabledVenue || enabledVenue.length === 0) {
-            const msg = `[stripe-webhook] Commander enable MATCHED ZERO ROWS for venue ${venueId} — the venue is being billed and the feature was never switched on. Throwing so Stripe retries.`;
+            const msg = `[stripe-webhook] Commander enable MATCHED ZERO ROWS for venue ${venueId} - the venue is being billed and the feature was never switched on. Throwing so Stripe retries.`;
             console.error(msg);
             throw new Error(msg);
         }

@@ -216,7 +216,7 @@ export default function LocationMapPicker({ initialLat, initialLng, onConfirm, o
                 <div ref={mapRef} style={styles.mapContainer}>
                     {!mapReady && (
                         <div style={styles.mapLoading}>
-                            Loading map...
+                            Loading Map...
                         </div>
                     )}
                 </div>

@@ -62,7 +62,7 @@ export default function UploadRecoveryBanner() {
                     Previous Upload Interrupted
                 </div>
                 <div style={{ fontSize: 12, color: SOCIAL_COLORS.textSec, marginTop: 2 }}>
-                    {fileName} ({sizeMB}MB) was interrupted {ageMinutes}m ago. Select your video again to re-upload.
+                    {fileName} ({sizeMB}MB) Was Interrupted {ageMinutes}m Ago. Select Your Video Again To Re-Upload.
                 </div>
             </div>
 

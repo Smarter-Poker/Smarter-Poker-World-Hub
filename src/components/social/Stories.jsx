@@ -719,7 +719,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                         color: 'white', fontSize: 14,
                         display: 'flex', alignItems: 'center', gap: 6,
                     }}>
-                        👁 {currentStory.view_count || 0} views
+                        👁 {currentStory.view_count || 0} Views
                     </div>
                 )}
             </div>
@@ -760,7 +760,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         // Validate file size (50MB limit for stories bucket)
         const MAX_STORY_BYTES = 50 * 1024 * 1024;
         if (file.size > MAX_STORY_BYTES) {
-            setError(`File too large — max 50MB for stories (your file: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+            setError(`File too large - max 50MB for stories (your file: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
             return;
         }
 
@@ -820,7 +820,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 body: file,
             });
             if (!putRes.ok) {
-                throw new Error(`Upload failed (HTTP ${putRes.status}) — please try again`);
+                throw new Error(`Upload failed (HTTP ${putRes.status}) - please try again`);
             }
 
             setMediaUrl(meta.publicUrl);
@@ -1078,7 +1078,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                             padding: 40,
                         }}>
                             <h2 style={{ color: 'white', fontSize: 24, fontWeight: 700, margin: 0 }}>
-                                What do you want to share?
+                                What Do You Want To Share?
                             </h2>
 
                             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>

@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     // post-purge endpoint world-callable.
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
-        console.warn('[purge-restricted-videos] CRON_SECRET is not configured — rejecting request');
+        console.warn('[purge-restricted-videos] CRON_SECRET is not configured - rejecting request');
         return res.status(500).json({ error: 'Server misconfigured' });
     }
 

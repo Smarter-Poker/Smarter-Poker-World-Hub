@@ -224,7 +224,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                     icon={<Film size={22} strokeWidth={2} />}
                     title="No hands yet"
                     body="Analyse a spot in the sandbox and it lands here, ready to replay."
-                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back to the table</button>}
+                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back To The Table</button>}
                 />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -249,11 +249,11 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                             icon={<Archive size={22} strokeWidth={2} />}
                             title="Nothing in this filter"
                             body={filter === 'mistakes'
-                                ? 'No coached mistakes in this session — that is a good problem to have.'
+                                ? 'No coached mistakes in this session - that is a good problem to have.'
                                 : 'No archived hands loaded for this account yet.'}
                             action={(
                                 <button type="button" className="pa-btn" onClick={() => setFilter('all')} style={btn('secondary')}>
-                                    Show all hands
+                                    Show All Hands
                                 </button>
                             )}
                         />
@@ -267,7 +267,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                     style={{ ...btn('secondary', { block: true }), fontSize: F.label, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' }}
                                 >
                                     <TrendingDown size={18} strokeWidth={2} />
-                                    Jump to the biggest leak
+                                    Jump To The Biggest Leak
                                 </button>
                             )}
 
@@ -309,18 +309,18 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md, marginBottom: S.md }}>
-                                    <Detail label="Hand" value={entry?.hand || '—'} colour={T.warn} big />
-                                    <Detail label="Position" value={(entry?.position || '—').toUpperCase()} colour={T.accent} />
+                                    <Detail label="Hand" value={entry?.hand || '-'} colour={T.warn} big />
+                                    <Detail label="Position" value={(entry?.position || '-').toUpperCase()} colour={T.accent} />
                                 </div>
 
                                 {graded && (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md, marginBottom: S.md }}>
                                         <Detail
                                             label="Your pick"
-                                            value={entry?.userPick || '—'}
+                                            value={entry?.userPick || '-'}
                                             colour={!entryScored ? T.textMuted : entry.isCorrect ? T.success : T.danger}
                                         />
-                                        <Detail label="GTO action" value={entry?.optimalAction || '—'} colour={T.success} />
+                                        <Detail label="GTO action" value={entry?.optimalAction || '-'} colour={T.success} />
                                     </div>
                                 )}
 
@@ -345,13 +345,13 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 {/* Only claim "no verdict" when the row genuinely has none. */}
                                 {archived && !graded && (
                                     <p style={{ fontSize: F.caption, color: T.textDim, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
-                                        No coach verdict was stored with this archived hand, so there is nothing to grade here —
-                                        load it back into the sandbox to play it again.
+                                        No Coach Verdict Was Stored With This Archived Hand, So There Is Nothing To Grade Here -
+                                        Load It Back Into The Sandbox To Play It Again.
                                     </p>
                                 )}
                                 {!playable && (
                                     <p style={{ fontSize: F.caption, color: T.textDim, margin: `${S.sm}px 0 0`, lineHeight: 1.45 }}>
-                                        This entry has no hole cards saved, so only the board can be restored.
+                                        This Entry Has No Hole Cards Saved, So Only The Board Can Be Restored.
                                     </p>
                                 )}
                             </motion.div>
@@ -395,11 +395,11 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'center', gap: S.lg, fontSize: F.caption, ...numeric }}>
-                                <span style={{ color: T.success }}>{correctCount} correct</span>
-                                <span style={{ color: T.danger }}>{scoredCount - correctCount} missed</span>
-                                <span style={{ color: tone(accuracy) }}>{scoredCount > 0 ? `${accuracy}%` : '—'}</span>
+                                <span style={{ color: T.success }}>{correctCount} Correct</span>
+                                <span style={{ color: T.danger }}>{scoredCount - correctCount} Missed</span>
+                                <span style={{ color: tone(accuracy) }}>{scoredCount > 0 ? `${accuracy}%` : '-'}</span>
                                 {scoredCount < log.length && (
-                                    <span style={{ color: T.textDim }}>{log.length - scoredCount} unscored</span>
+                                    <span style={{ color: T.textDim }}>{log.length - scoredCount} Unscored</span>
                                 )}
                             </div>
                         </>

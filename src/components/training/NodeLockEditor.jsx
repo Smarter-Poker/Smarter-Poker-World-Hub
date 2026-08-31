@@ -188,7 +188,7 @@ export default function NodeLockEditor() {
         {lockCount > 0 && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>
-              {lockCount} node{lockCount !== 1 ? 's' : ''} locked
+              {lockCount} node{lockCount !== 1 ? 's' : ''} Locked
             </span>
             <button onClick={() => setLocks({})} style={{
               padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
@@ -204,7 +204,7 @@ export default function NodeLockEditor() {
         {/* ●●● GAME TREE ●●● */}
         <div style={{ flex: '1 1 400px', maxHeight: 500, overflowY: 'auto' }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>
-            Game Tree — BTN vs BB SRP (K♠ 8♦ 3♣)
+            Game Tree - BTN Vs BB SRP (K♠ 8♦ 3♣)
           </div>
           <TreeNode node={tree} depth={0} selectedNode={selectedNode} onSelect={setSelectedNode}
             locks={locks} onToggleLock={toggleLock} onUpdateFreq={updateLockedFreq} />
@@ -265,7 +265,7 @@ export default function NodeLockEditor() {
                         color: selected.ev >= 0 ? '#22c55e' : '#ef4444',
                         fontSize: 20, fontWeight: 800,
                       }}>
-                        {selected.ev >= 0 ? '+' : ''}{selected.ev.toFixed(2)} bb
+                        {selected.ev >= 0 ? '+' : ''}{selected.ev.toFixed(2)} BB
                       </div>
                     </div>
                   )}
@@ -313,9 +313,9 @@ export default function NodeLockEditor() {
             </div>
           ) : (
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16, textAlign: 'center' }}>
-              <div style={{ color: '#475569', fontSize: 13, marginBottom: 8 }}>Select a node</div>
+              <div style={{ color: '#475569', fontSize: 13, marginBottom: 8 }}>Select A Node</div>
               <div style={{ color: '#334155', fontSize: 11 }}>
-                Click any action in the game tree to view details and lock frequencies.
+                Click Any Action In The Game Tree To View Details And Lock Frequencies.
               </div>
             </div>
           )}
@@ -324,7 +324,7 @@ export default function NodeLockEditor() {
           <div style={{ marginTop: 12, background: 'rgba(0,0,0,0.1)', borderRadius: 6, padding: 8 }}>
             <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>How It Works</div>
             <div style={{ color: '#475569', fontSize: 10, lineHeight: 1.5 }}>
-              Lock a node to force a specific frequency. The solver recalculates downstream strategies to exploit the locked deviation. Use this to study how opponents deviate from GTO.
+              Lock A Node To Force A Specific Frequency. The Solver Recalculates Downstream Strategies To Exploit The Locked Deviation. Use This To Study How Opponents Deviate From GTO.
             </div>
           </div>
         </div>

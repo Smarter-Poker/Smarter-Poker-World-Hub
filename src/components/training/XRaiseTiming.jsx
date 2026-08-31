@@ -35,7 +35,7 @@ export default function XRaiseTiming() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Check-Raise Timing
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know exactly when to spring the trap on every street.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know Exactly When To Spring The Trap On Every Street.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {STREETS.map((s, i) => (

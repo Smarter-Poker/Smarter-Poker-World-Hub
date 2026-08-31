@@ -26,7 +26,7 @@ function getSupabase() {
         if (!key) {
             // This route writes to trivia_questions; with the anon key every
             // insert is silently rejected by RLS. Fail loudly instead.
-            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing — bootstrap cannot write to trivia_questions');
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing - bootstrap cannot write to trivia_questions');
         }
         _supabase = createClient(url, key);
     }

@@ -406,7 +406,7 @@ export default async function handler(req, res) {
             try { reportApiError(rpcError, req); } catch { /* noop */ }
             return res.status(500).json({
                 success: false,
-                error: 'Failed to award diamonds — please try again',
+                error: 'Failed to award diamonds - please try again',
             });
         }
 

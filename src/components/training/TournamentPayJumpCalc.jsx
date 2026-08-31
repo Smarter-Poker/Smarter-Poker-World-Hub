@@ -92,7 +92,7 @@ function TournamentPayJumpCalc() {
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#10b981' }}>${icmEquity.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Your ICM Equity ({heroChips}% chips)</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Your ICM Equity ({heroChips}% Chips)</div>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ function TournamentPayJumpCalc() {
         <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Chip Stack (%)</div>
           <input type="range" min={1} max={60} value={heroChips} onChange={e => setHeroChips(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#fbbf24' }} />
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{heroChips}% of chips in play</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{heroChips}% Of Chips In Play</div>
         </div>
 
         {/* Payout Table */}
@@ -134,7 +134,7 @@ function TournamentPayJumpCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Pay Jump Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Pay Jump Calculator Failed To Load: {err.message}</div>;
   }
 }
 

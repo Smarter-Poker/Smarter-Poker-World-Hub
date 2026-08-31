@@ -105,7 +105,7 @@ export default function ReviewHandModal({ initialData, onSave, onCancel }) {
           
           <button onClick={handleAnalyze} style={{ width: '100%', padding: 12, background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Analyze with Jarvis
+            Analyze With Jarvis
           </button>
         </div>
       </motion.div>

@@ -1123,7 +1123,7 @@ const PostCard = React.memo(
                     display: 'inline-block',
                   }}
                 />
-                Editing as {post.author?.name || 'Club Page'} - club branding preserved
+                Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
               </div>
             )}
             <textarea
@@ -1251,7 +1251,7 @@ const PostCard = React.memo(
                           marginLeft: 4,
                         }}
                       >
-                        See more
+                        See More
                       </span>
                     )}
                   </>
@@ -2191,7 +2191,7 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} is typing</span>
+              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing</span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -2595,7 +2595,7 @@ const PostCard = React.memo(
                   marginTop: 4,
                 }}
               >
-                View more comments
+                View More Comments
               </button>
             )}
 
@@ -2611,7 +2611,7 @@ const PostCard = React.memo(
                 }}
               >
                 <span>
-                  Replying to <strong>{replyingTo.name}</strong>
+                  Replying To <strong>{replyingTo.name}</strong>
                 </span>
                 <span
                   style={{ cursor: 'pointer', fontWeight: 600 }}
@@ -3859,7 +3859,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
               margin: '0 auto 12px',
             }}
           />
-          Loading live games...
+          Loading Live Games...
         </div>
       ) : games.length === 0 ? (
         <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
@@ -3973,7 +3973,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     <div>
                       <div style={{ fontSize: 18, fontWeight: 800 }}>{game.game_name}</div>
                       <div style={{ fontSize: 13, opacity: 0.9 }}>
-                        {game.game_type} · ${game.stakes} · {game.max_seats}-max
+                        {game.game_type} · ${game.stakes} · {game.max_seats}-Max
                         {game.table_number ? ` · ${game.table_number}` : ''}
                       </div>
                     </div>
@@ -3991,10 +3991,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         {game.status === 'running' ? '🟢 RUNNING' : '🔵 INTEREST LIST'}
                       </div>
                       <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                        {occupiedCount}/{game.max_seats} seated
+                        {occupiedCount}/{game.max_seats} Seated
                         {openSeats > 0 && (
                           <span style={{ color: '#86efac', marginLeft: 4 }}>
-                            ({openSeats} open)
+                            ({openSeats} Open)
                           </span>
                         )}
                       </div>

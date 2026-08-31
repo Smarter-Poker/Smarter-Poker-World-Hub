@@ -57,12 +57,12 @@ function GeometricSizingCalc() {
         {/* Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Pot (bb)</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Pot (BB)</div>
             <input type="range" min={2} max={40} step={0.5} value={pot} onChange={e => setPot(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#14b8a6' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{pot}</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Stack Behind (bb)</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Stack Behind (BB)</div>
             <input type="range" min={5} max={200} step={1} value={stack} onChange={e => setStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#14b8a6' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{stack}</div>
           </div>
@@ -83,9 +83,9 @@ function GeometricSizingCalc() {
         {/* Result */}
         <div style={{ textAlign: 'center', padding: 16, background: 'rgba(20,184,166,0.08)', borderRadius: 10, border: '1px solid rgba(20,184,166,0.2)', marginBottom: 16 }}>
           <div style={{ fontSize: 36, fontWeight: 900, color: '#14b8a6' }}>{calc.betPct}%</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#14b8a6' }}>Geometric Bet Size (per street)</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#14b8a6' }}>Geometric Bet Size (Per Street)</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-            Bet {calc.betPct}% of pot each street to {calc.allIn ? 'go all-in by river' : 'commit maximum'}
+            Bet {calc.betPct}% Of Pot Each Street To {calc.allIn ? 'go all-in by river' : 'commit maximum'}
           </div>
         </div>
 
@@ -103,7 +103,7 @@ function GeometricSizingCalc() {
                 <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.min(s.pctPot, 100)}%`, background: colors[i], borderRadius: 4 }} />
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', textAlign: 'right' }}>{s.bet.toFixed(1)} bb</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', textAlign: 'right' }}>{s.bet.toFixed(1)} BB</span>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>Pot: {s.potAfter.toFixed(1)}</span>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>SPR {s.spr}</span>
               </div>
@@ -114,12 +114,12 @@ function GeometricSizingCalc() {
         {/* Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#14b8a6' }}>{calc.totalBet.toFixed(1)} bb</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#14b8a6' }}>{calc.totalBet.toFixed(1)} BB</div>
             <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Total Invested</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: calc.allIn ? '#10b981' : '#f59e0b' }}>{calc.allIn ? 'YES' : 'NO'}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>All-in by River</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>All-In By River</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{Math.round(calc.betFraction * 100)}%</div>
@@ -129,7 +129,7 @@ function GeometricSizingCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Geometric Sizing Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Geometric Sizing Calculator Failed To Load: {err.message}</div>;
   }
 }
 

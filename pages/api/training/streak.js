@@ -322,7 +322,7 @@ export default async function handler(req, res) {
                       console.warn('[Streak] Rollback of milestone claim failed:', rbErr?.message || rbErr);
                   }
                   console.warn('[Streak] award_diamonds_v2 failed (rolled back so user can retry):', rpcErr);
-                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
               }
 
               return res.status(200).json({

@@ -240,10 +240,10 @@ export const PokerFeedCard = ({
                 </div>
                 <div className="engagement-counts">
                     {post.commentCount > 0 && (
-                        <span className="count-item">{post.commentCount} comments</span>
+                        <span className="count-item">{post.commentCount} Comments</span>
                     )}
                     {post.shareCount > 0 && (
-                        <span className="count-item">{post.shareCount} shares</span>
+                        <span className="count-item">{post.shareCount} Shares</span>
                     )}
                 </div>
             </div>

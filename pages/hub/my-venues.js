@@ -52,7 +52,7 @@ function formatDate(iso) {
 }
 
 function formatDateTime(iso) {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const d = new Date(iso);
     return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
 }
@@ -179,7 +179,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                 </button>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-                        {weekStart && weekEnd ? `${formatDate(weekStart)} — ${formatDate(weekEnd)}` : 'This Week'}
+                        {weekStart && weekEnd ? `${formatDate(weekStart)} - ${formatDate(weekEnd)}` : 'This Week'}
                     </div>
                     <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
                         {totalShifts} shifts · {totalHours}h scheduled
@@ -217,7 +217,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                                 {dayShifts.map((s, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: i > 0 ? `1px solid ${C.borderLight}` : 'none' }}>
                                         <span style={{ fontSize: 14, color: C.text }}>
-                                            {formatTime12(s.start_time)} — {formatTime12(s.end_time)}
+                                            {formatTime12(s.start_time)} - {formatTime12(s.end_time)}
                                         </span>
                                         {s.position && (
                                             <span style={{ fontSize: 11, color: C.textMuted, textTransform: 'capitalize' }}>{s.position}</span>
@@ -392,7 +392,7 @@ function TimeClockTab({ staffId, venueId, token }) {
             </div>
             {entries.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 20px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14 }}>
-                    No time clock entries — clock in at the venue kiosk
+                    No time clock entries - clock in at the venue kiosk
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

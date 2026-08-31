@@ -15,13 +15,13 @@
 // Categories match the strings used in the KB entry `category` field.
 export const ROLE_CATEGORY_BOOSTS = {
     // Dealers: care about tip tracking and live game management
-    dealer: ['Toke Tracker', 'Club Commander', 'Club Commander — Tournament'],
+    dealer: ['Toke Tracker', 'Club Commander', 'Club Commander - Tournament'],
 
     // Tournament directors: care about Commander + Club Arena tournament tools
-    tournament_director: ['Club Commander', 'Club Arena — Union', 'Club Arena — Admin'],
+    tournament_director: ['Club Commander', 'Club Arena - Union', 'Club Arena - Admin'],
 
     // Club owners/admins: care about Club Arena admin, union management, agents
-    club_owner: ['Club Arena — Admin', 'Club Arena — Agent', 'Club Arena — Union', 'Club Arena'],
+    club_owner: ['Club Arena - Admin', 'Club Arena - Agent', 'Club Arena - Union', 'Club Arena'],
 
     // VIP/Diamond members: care about premium features, diamond economy, VIP tiers
     vip: ['Diamond Economy', 'World Hub', 'VIP'],
@@ -30,8 +30,8 @@ export const ROLE_CATEGORY_BOOSTS = {
     player: ['Poker Strategy', 'Bankroll Manager', 'Poker Near Me', 'World Hub'],
 
     // Content admins (Horses page users)
-    admin: ['Club Arena — Admin', 'Club Arena — Union'],
-    superadmin: ['Club Arena — Admin', 'Club Arena — Union'],
+    admin: ['Club Arena - Admin', 'Club Arena - Union'],
+    superadmin: ['Club Arena - Admin', 'Club Arena - Union'],
 
     // Default: no boost
     default: [],

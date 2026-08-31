@@ -155,21 +155,21 @@ export default function CommandBar() {
                         onClick={() => handleScopeChange(5)}
                         disabled={mode === 'STRATEGIC'}
                     >
-                        5mi
+                        5Mi
                     </button>
                     <button
                         className={`scope-btn ${filters.radius === 25 ? 'active' : ''}`}
                         onClick={() => handleScopeChange(25)}
                         disabled={mode === 'STRATEGIC'}
                     >
-                        25mi
+                        25Mi
                     </button>
                     <button
                         className={`scope-btn ${filters.radius === 100 ? 'active' : ''}`}
                         onClick={() => handleScopeChange(100)}
                         disabled={mode === 'STRATEGIC'}
                     >
-                        100mi
+                        100Mi
                     </button>
                     <button
                         className={`scope-btn nationwide ${filters.radius === null ? 'active' : ''}`}

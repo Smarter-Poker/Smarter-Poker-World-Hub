@@ -584,7 +584,7 @@ export default function useGTOWScore() {
                 severity: passiveMistakes.length >= 4 ? 'high' : 'medium',
                 count: passiveMistakes.length,
                 pct,
-                tip: `You're playing too passively — ${passiveMistakes.length} times you folded or checked when GTO says to bet or raise. Look for spots to apply more aggression, especially with draws and strong hands.`,
+                tip: `You're playing too passively - ${passiveMistakes.length} times you folded or checked when GTO says to bet or raise. Look for spots to apply more aggression, especially with draws and strong hands.`,
                 icon: '▼',
             });
         }
@@ -604,7 +604,7 @@ export default function useGTOWScore() {
                 severity: aggressiveMistakes.length >= 4 ? 'high' : 'medium',
                 count: aggressiveMistakes.length,
                 pct,
-                tip: `You're over-aggressing — ${aggressiveMistakes.length} times you bet or raised when the solver prefers a passive line. Not every hand needs to be bet; many spots call for pot control or folding.`,
+                tip: `You're over-aggressing - ${aggressiveMistakes.length} times you bet or raised when the solver prefers a passive line. Not every hand needs to be bet; many spots call for pot control or folding.`,
                 icon: '▲',
             });
         }
@@ -633,7 +633,7 @@ export default function useGTOWScore() {
                     severity: overCount >= 3 ? 'high' : 'medium',
                     count: overCount,
                     pct: Math.round((overCount / mistakes.length) * 100),
-                    tip: `You're consistently overbetting — ${overCount} times your sizing was larger than optimal. Smaller sizes often achieve the same goal while losing less when called by better hands.`,
+                    tip: `You're consistently overbetting - ${overCount} times your sizing was larger than optimal. Smaller sizes often achieve the same goal while losing less when called by better hands.`,
                     icon: '↑',
                 });
             }
@@ -643,7 +643,7 @@ export default function useGTOWScore() {
                     severity: underCount >= 3 ? 'high' : 'medium',
                     count: underCount,
                     pct: Math.round((underCount / mistakes.length) * 100),
-                    tip: `You're consistently underbetting — ${underCount} times your sizing was smaller than optimal. Larger sizes build bigger pots with strong hands and generate more fold equity with bluffs.`,
+                    tip: `You're consistently underbetting - ${underCount} times your sizing was smaller than optimal. Larger sizes build bigger pots with strong hands and generate more fold equity with bluffs.`,
                     icon: '↓',
                 });
             }
@@ -684,7 +684,7 @@ export default function useGTOWScore() {
                 count: worstStreet[1],
                 street: worstStreet[0],
                 pct: Math.round((worstStreet[1] / mistakes.length) * 100),
-                tip: `Most of your mistakes (${worstStreet[1]}) happen on the ${streetName}. Work on ${streetName.toLowerCase()} decision-making — consider board texture changes and range narrowing.`,
+                tip: `Most of your mistakes (${worstStreet[1]}) happen on the ${streetName}. Work on ${streetName.toLowerCase()} decision-making - consider board texture changes and range narrowing.`,
                 icon: '→',
             });
         }

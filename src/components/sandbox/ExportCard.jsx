@@ -220,7 +220,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
             const canvas = build();
             if (!canvas) throw new Error('Canvas unavailable');
             const res = await exportCanvas(canvas, `smarter-poker-analysis-${Date.now()}.png`, {
-                title: 'Smarter.Poker — GTO analysis',
+                title: 'Smarter.Poker - GTO analysis',
                 text: `${scenario?.position || ''} ${scenario?.hand || ''}`.trim(),
             });
             try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -228,7 +228,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
             onExport?.(res);
         } catch (e) {
             console.warn('[ExportCard] Export failed:', e);
-            toast.error('Export failed — try a screenshot instead');
+            toast.error('Export failed - try a screenshot instead');
         } finally {
             setBusy(false);
         }
@@ -247,7 +247,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                 style={{ ...btn('secondary', { block: true }), marginBottom: S.sm }}
             >
                 <ImageIcon size={18} strokeWidth={2} />
-                Export as Image
+                Export As Image
             </button>
 
             <BottomSheet
@@ -292,8 +292,8 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                     />
                 )}
                 <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
-                    On iPhone this opens the share sheet (or the image in a new tab) — long-press it to add
-                    the card to Photos.
+                    On IPhone This Opens The Share Sheet (Or The Image In A New Tab) - Long-Press It To Add
+                    The Card To Photos.
                 </p>
             </BottomSheet>
         </>

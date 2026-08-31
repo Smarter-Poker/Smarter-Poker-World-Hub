@@ -135,7 +135,7 @@ export default function FavoritesTabPanel({
     return (
         <>
             <div className="results-bar">
-                <span className="results-count">{favVenues.length} saved venue{favVenues.length !== 1 ? 's' : ''}</span>
+                <span className="results-count">{favVenues.length} Saved venue{favVenues.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="card-grid">
                 {favVenues.map((venue, i) => {

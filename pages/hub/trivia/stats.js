@@ -268,7 +268,7 @@ export default function TriviaStats() {
         <TriviaErrorBoundary pageName="Stats">
         <>
             <SEOHead
-                title="Trivia Stats — Your Performance"
+                title="Trivia Stats - Your Performance"
                 description="View Your Poker Trivia Performance Stats, Accuracy Rates, And Category Breakdowns."
                 canonical="/hub/trivia/stats"
                 noindex={true}
@@ -318,7 +318,7 @@ export default function TriviaStats() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
                                     <StatCard label="Games Played" value={stats.gamesPlayed.toLocaleString()} />
                                     <StatCard label="Total Questions" value={stats.totalQuestions.toLocaleString()} />
-                                    <StatCard label="Accuracy" value={accuracyUnknown ? '—' : `${stats.accuracy}%`} color="#31a24c" />
+                                    <StatCard label="Accuracy" value={accuracyUnknown ? '-' : `${stats.accuracy}%`} color="#31a24c" />
                                     <StatCard label="Current Streak" value={stats.currentStreak} color="#e69500" />
                                     <StatCard label="Best Streak" value={stats.bestStreak} color="#2374e1" />
                                     <StatCard label="Diamonds Earned" value={stats.diamondsEarned.toLocaleString()} color="#2374e1" />
@@ -356,7 +356,7 @@ export default function TriviaStats() {
                                                         <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.games.toLocaleString()}</td>
                                                         <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.best.toLocaleString()}</td>
                                                         <td style={{ color: '#31a24c', textAlign: 'right', padding: '10px 12px', fontWeight: 700 }}>
-                                                            {m.questions > 0 ? `${m.accuracy}%` : '—'}
+                                                            {m.questions > 0 ? `${m.accuracy}%` : '-'}
                                                         </td>
                                                         <td style={{ color: '#2374e1', textAlign: 'right', padding: '10px 0 10px 12px', fontWeight: 700 }}>{m.diamonds.toLocaleString()}</td>
                                                     </tr>

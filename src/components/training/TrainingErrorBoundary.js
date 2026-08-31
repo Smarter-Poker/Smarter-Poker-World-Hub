@@ -94,7 +94,7 @@ class TrainingErrorBoundary extends React.Component {
                             lineHeight: 1.6,
                             margin: '0 0 24px',
                         }}>
-                            Something went wrong. This is usually temporary — try refreshing or come back in a moment.
+                            Something went wrong. This is usually temporary - try refreshing or come back in a moment.
                         </p>
 
                         {/* Action buttons */}

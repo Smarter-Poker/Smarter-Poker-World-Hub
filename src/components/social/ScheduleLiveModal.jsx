@@ -138,14 +138,14 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
                         <div style={{ fontSize: 52, marginBottom: 16 }}>📅</div>
                         <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>Live Scheduled!</div>
                         <div style={{ color: C.textSec, fontSize: 14, marginTop: 8 }}>
-                            Your followers have been notified.
+                            Your Followers Have Been Notified.
                         </div>
                     </div>
                 ) : (
                     <>
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                            <h2 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>Schedule a Live</h2>
+                            <h2 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>Schedule A Live</h2>
                             <button onClick={() => onClose()} style={{ background: 'none', border: 'none', color: C.textSec, fontSize: 22, cursor: 'pointer' }}>✕</button>
                         </div>
 

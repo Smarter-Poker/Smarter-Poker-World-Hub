@@ -358,7 +358,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         <div className="vr-cat-averages-head">
                             <span>Category Ratings</span>
                             {verifiedCount > 0 && (
-                                <span className="vr-verified-count">{verifiedCount} verified player{verifiedCount !== 1 ? 's' : ''}</span>
+                                <span className="vr-verified-count">{verifiedCount} Verified player{verifiedCount !== 1 ? 's' : ''}</span>
                             )}
                         </div>
                         {Object.entries(CATEGORY_AVG_LABELS).map(([key, label]) => {
@@ -384,7 +384,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
-                        Write a Review
+                        Write A Review
                     </button>
                 )}
 
@@ -397,7 +397,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         </div>
 
                         <div className="vr-form-group">
-                            <label>Category Ratings (optional)</label>
+                            <label>Category Ratings (Optional)</label>
                             <div className="vr-category-ratings">
                                 {CATEGORIES.map(cat => (
                                     <div key={cat.key} className="vr-cat-row">
@@ -444,10 +444,10 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
                 {/* Reviews list */}
                 <div className="vr-list">
-                    {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading reviews...</span></div>}
+                    {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading Reviews...</span></div>}
                     {!loading && reviews.length === 0 && (
                         <div className="vr-empty">
-                            <p>No reviews yet. Be the first!</p>
+                            <p>No Reviews Yet. Be The First!</p>
                         </div>
                     )}
                     {reviews.map((r, i) => (
@@ -473,7 +473,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                             best-effort copy written on NEW inserts, so imported
                                             and older rows never showed the badge. */}
                                         {(r.is_verified_player ?? r.metadata?.verified_player) && (
-                                            <span className="vr-verified-badge" title="Verified Player — has played at this venue">
+                                            <span className="vr-verified-badge" title="Verified Player - has played at this venue">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2">
                                                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                                                 </svg>

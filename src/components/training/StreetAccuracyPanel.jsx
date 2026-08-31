@@ -128,7 +128,7 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                             {/* Hand count */}
                             <div style={styles.countCol}>
                                 <span style={styles.handCount}>{street.total}</span>
-                                <span style={styles.handLabel}>hands</span>
+                                <span style={styles.handLabel}>Hands</span>
                             </div>
                         </motion.div>
                     );
@@ -144,7 +144,7 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                     <div style={styles.insight}>
                         <span style={{ color: '#22c55e' }}>Strongest: {strongest.config.label} ({strongest.accuracy}%)</span>
                         {' · '}
-                        <span style={{ color: '#ef4444' }}>Focus on: {weakest.config.label} ({weakest.accuracy}%)</span>
+                        <span style={{ color: '#ef4444' }}>Focus On: {weakest.config.label} ({weakest.accuracy}%)</span>
                     </div>
                 );
             })()}

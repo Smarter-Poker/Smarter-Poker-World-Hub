@@ -422,7 +422,7 @@ export default function OmnichannelSQLConsole() {
 
                         <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: '1rem 0 0 0', lineHeight: 1.6 }}>
                             <strong style={{ color: C.textDim }}>How this runs:</strong> reads execute and return normally.
-                            Anything that changes state — INSERT, UPDATE, DELETE, TRUNCATE, DROP, ALTER, GRANT, CREATE —
+                            Anything that changes state - INSERT, UPDATE, DELETE, TRUNCATE, DROP, ALTER, GRANT, CREATE -
                             runs inside a transaction that is <strong>rolled back</strong>, so you see the row count it
                             would have affected and nothing is written. To commit it, confirm below. Every committed
                             mutation is written to <code>admin_audit_log</code>. Hard 10 second statement timeout.

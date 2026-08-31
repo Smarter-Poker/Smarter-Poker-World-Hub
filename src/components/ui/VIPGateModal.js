@@ -98,7 +98,7 @@ export default function VIPGateModal({ visible, onClose, featureName, featureCon
                             fontSize: 13, fontWeight: 700,
                         }}
                     >
-                        Day Pass — {dayPassCost} Diamonds (24h)
+                        Day Pass - {dayPassCost} Diamonds (24h)
                     </button>
                 )}
 

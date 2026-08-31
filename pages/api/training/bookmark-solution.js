@@ -122,7 +122,7 @@ export default async function handler(req, res) {
                 if (insertErr) {
                     console.warn('[BookmarkSolution] Insert error:', insertErr);
                     // If table doesn't exist, fail gracefully
-                    return res.status(200).json({ success: false, error: 'Bookmark save failed — table may not exist yet', fallback: true });
+                    return res.status(200).json({ success: false, error: 'Bookmark save failed - table may not exist yet', fallback: true });
                 }
 
                 return res.status(200).json({ success: true, action: 'saved', bookmarkId: newBookmark?.id });

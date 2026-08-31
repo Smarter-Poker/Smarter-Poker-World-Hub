@@ -29,7 +29,7 @@ export default function FourBetPotPlay() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         4-Bet Pot Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The biggest pre-flop pots. Low SPR = simplified decisions.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Biggest Pre-Flop Pots. Low SPR = Simplified Decisions.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {SCENARIOS.map((s, i) => (

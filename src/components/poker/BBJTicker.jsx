@@ -183,11 +183,11 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
                 {(winData.totalPayout || 0).toLocaleString()}
               </div>
               <div style={{ fontSize: 13, color: GOLD_DARK }}>
-                {winData.loserName || 'Player'} lost with {winData.loserHand || 'a monster'}
+                {winData.loserName || 'Player'} Lost With {winData.loserHand || 'a monster'}
               </div>
               {winData.winnerName && (
                 <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 4 }}>
-                  {winData.winnerName} won the hand
+                  {winData.winnerName} Won The Hand
                 </div>
               )}
             </motion.div>

@@ -37,12 +37,12 @@ const ClubLeaderboardRow = ({ rank, user, stats }) => (
 
         <div className="stat-cell">
             <span className={`winrate ${stats.bb100 >= 0 ? 'pos' : 'neg'}`}>
-                {stats.bb100} bb/100
+                {stats.bb100} BB/100
             </span>
         </div>
 
         <div className="stat-cell secondary">
-            {stats.hands?.toLocaleString()} hands
+            {stats.hands?.toLocaleString()} Hands
         </div>
 
         <style>{`
@@ -200,7 +200,7 @@ const ClubEventCard = ({ event }) => (
             <span className="event-time">{event.time}</span>
             <span className="event-location">{event.location}</span>
             <div className="event-attendees">
-                {event.attendeesCount} going · {event.interestedCount} interested
+                {event.attendeesCount} Going · {event.interestedCount} Interested
             </div>
         </div>
 
@@ -311,7 +311,7 @@ const ClubHeader = ({ club, isMember = false }) => (
             <div className="club-meta">
                 <span>🔒 Private Group</span>
                 <span>·</span>
-                <span>{club.membersCount?.toLocaleString()} members</span>
+                <span>{club.membersCount?.toLocaleString()} Members</span>
                 <span>·</span>
                 <span className="club-level">{club.level || 'Diamond Club'} 💎</span>
             </div>
@@ -717,7 +717,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                         <div style={{ textAlign: 'center', padding: '32px 16px', background: '#fff', borderRadius: 8, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                             <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.4 }}>🏆</div>
                             <div style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>No Leaderboard Data Yet</div>
-                            <div style={{ fontSize: 13, color: '#65676B', marginTop: 4 }}>Play games to appear on the leaderboard</div>
+                            <div style={{ fontSize: 13, color: '#65676B', marginTop: 4 }}>Play Games To Appear On The Leaderboard</div>
                         </div>
                     )}
 
@@ -754,7 +754,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                         <h3>About</h3>
                         <p>Official Community For Las Vegas $5/$10 NLH Players. Share Hands, Discuss Strategy, And Organize Home Games.</p>
                         <div className="security-check">
-                            <span>🔒</span> Private · Only members can see who's in the group and what they post.
+                            <span>🔒</span> Private · Only Members Can See Who's In The Group And What They Post.
                         </div>
                     </div>
 

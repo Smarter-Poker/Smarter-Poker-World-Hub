@@ -172,11 +172,11 @@ export function calculateICMPressure(heroStack, allStacks, payouts, playersLeft)
     pressure = Math.min(1.0, Math.max(0, pressure));
 
     let description;
-    if (pressure >= 0.8) description = 'Extreme ICM pressure — play very tight, avoid marginal spots';
-    else if (pressure >= 0.6) description = 'High ICM pressure — significant risk premium on all-ins';
-    else if (pressure >= 0.35) description = 'Moderate ICM — some adjustments needed from chip EV';
-    else if (pressure >= 0.15) description = 'Low ICM — play close to chip EV with minor adjustments';
-    else description = 'Minimal ICM — chip EV decisions are fine';
+    if (pressure >= 0.8) description = 'Extreme ICM pressure - play very tight, avoid marginal spots';
+    else if (pressure >= 0.6) description = 'High ICM pressure - significant risk premium on all-ins';
+    else if (pressure >= 0.35) description = 'Moderate ICM - some adjustments needed from chip EV';
+    else if (pressure >= 0.15) description = 'Low ICM - play close to chip EV with minor adjustments';
+    else description = 'Minimal ICM - chip EV decisions are fine';
 
     return { pressure, riskPremium, bubbleFactor, description, onBubble, nearBubble };
 }

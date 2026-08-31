@@ -426,12 +426,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt - actionAmt);
           // Append swap/staking/action details to notes
           const parts = [];
-          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} — $${swapAmt}`);
-          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} — $${stakerAmt}`);
+          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} - $${swapAmt}`);
+          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} - $${stakerAmt}`);
           if (actionAmt > 0) {
             const pct = formData.action_percentage ? `${formData.action_percentage}%` : '';
             const mkup = formData.action_markup ? ` @ ${formData.action_markup}% markup` : '';
-            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} — ${pct}${mkup} — $${actionAmt}`);
+            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} - ${pct}${mkup} - $${actionAmt}`);
           }
           const extra = parts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
@@ -605,7 +605,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           ) : (
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Buy-in ($)</label>
+                <label style={styles.label}>Buy-In ($)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -618,7 +618,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Cash-out ($)</label>
+                <label style={styles.label}>Cash-Out ($)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -783,7 +783,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       if (cur > 0) handleInputChange('reentry_count', (cur - 1).toString());
                     }}
                     style={{ ...styles.input, flex: 'none', width: 40, textAlign: 'center', cursor: 'pointer', padding: '12px 0', borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none', fontSize: 18, fontWeight: 700 }}
-                  >–</button>
+                  >-</button>
                   <input
                     type="number"
                     min="0"
@@ -825,8 +825,8 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 return (
                   <div style={{ padding: '8px 12px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)', borderRadius: 8, fontSize: 13, color: '#ffa500', textAlign: 'center', marginBottom: 8 }}>
                     Total Buy-In: <strong>${totalBuyIn.toLocaleString()}</strong>
-                    {rebuys > 0 && <span> ({1 + rebuys} bullets × ${buyIn.toLocaleString()}{addOn > 0 ? ` + $${addOn.toLocaleString()} add-on` : ''})</span>}
-                    {rebuys === 0 && addOn > 0 && <span> (${buyIn.toLocaleString()} + ${addOn.toLocaleString()} add-on)</span>}
+                    {rebuys > 0 && <span> ({1 + rebuys} Bullets × ${buyIn.toLocaleString()}{addOn > 0 ? ` + $${addOn.toLocaleString()} add-on` : ''})</span>}
+                    {rebuys === 0 && addOn > 0 && <span> (${buyIn.toLocaleString()} + ${addOn.toLocaleString()} Add-On)</span>}
                   </div>
                 );
               }
@@ -1221,7 +1221,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
               <span style={{ fontSize: 14, color: '#10b981', fontWeight: 500 }}>
-                Adding to: <strong>{activeTrip.name}</strong>
+                Adding To: <strong>{activeTrip.name}</strong>
               </span>
             </div>
           )}
@@ -1328,7 +1328,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         {/* Inline Expense — available on all non-expense categories */}
         {!isExpense && (
           <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
-            <label style={{ ...styles.label, fontSize: 14, color: '#b0b3b8', marginBottom: 8 }}>Session Expense (optional)</label>
+            <label style={{ ...styles.label, fontSize: 14, color: '#b0b3b8', marginBottom: 8 }}>Session Expense (Optional)</label>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Type</label>
@@ -1445,7 +1445,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               ))}
             </div>
             <p style={{ fontSize: 14, color: '#65676b', margin: '10px 0 0', fontStyle: 'italic' }}>
-              Manage rules from Bankroll Rules on your dashboard
+              Manage Rules From Bankroll Rules On Your Dashboard
             </p>
           </div>
         )}

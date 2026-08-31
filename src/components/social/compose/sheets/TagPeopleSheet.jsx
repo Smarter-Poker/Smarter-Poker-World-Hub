@@ -78,7 +78,7 @@ export default function TagPeopleSheet({ onClose }) {
                     background: '#f0f2f5', borderRadius: 10,
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                 }}>
-                    <span aria-hidden="true">&#x1F50D;</span>
+                    <span aria-hidden="true">&#X1F50D;</span>
                     <input
                         autoFocus
                         value={query}
@@ -104,7 +104,7 @@ export default function TagPeopleSheet({ onClose }) {
                                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                 display: 'inline-flex', alignItems: 'center', gap: 4,
                             }}
-                        >{a.name} <span aria-hidden="true">&#x2715;</span></span>
+                        >{a.name} <span aria-hidden="true">&#X2715;</span></span>
                     ))}
                 </div>
             )}
@@ -113,7 +113,7 @@ export default function TagPeopleSheet({ onClose }) {
                 {loading && <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>Searching…</div>}
                 {!loading && !query && (
                     <div style={{ padding: 16, color: '#65676B', fontSize: 14 }}>
-                        Tag people you want to credit as co-authors of this post. They'll be invited to share it on their feed too.
+                        Tag People You Want To Credit As CO-Authors Of This Post. They'll Be Invited To Share It On Their Feed Too.
                     </div>
                 )}
                 {results.map(u => {

@@ -301,7 +301,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px' }}>
                     {loading && (
                         <div style={{ color: 'rgba(255,255,255,0.4)', padding: '24px', textAlign: 'center', fontSize: 14 }}>
-                            Loading viewers...
+                            Loading Viewers...
                         </div>
                     )}
                     {!loading && filteredViewers.length === 0 && filteredRecentChats.length === 0 && anonCount === 0 && (
@@ -311,7 +311,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                     )}
                     {filteredViewers.length > 0 && (
                         <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, letterSpacing: 0.5, padding: '4px 8px 6px', textTransform: 'uppercase' }}>
-                            Watching now
+                            Watching Now
                         </div>
                     )}
                     {filteredViewers.map(viewer => (
@@ -336,14 +336,14 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                             color: 'rgba(255,255,255,0.5)', padding: '12px 8px 4px',
                             fontSize: 13, textAlign: 'center', fontStyle: 'italic',
                         }}>
-                            + {anonCount.toLocaleString()} anonymous viewer{anonCount === 1 ? '' : 's'}
+                            + {anonCount.toLocaleString()} Anonymous viewer{anonCount === 1 ? '' : 's'}
                         </div>
                     )}
                     {/* STREAM-BUG-11: recent chats — invite friends to the stream */}
                     {filteredRecentChats.length > 0 && (
                         <>
                             <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, letterSpacing: 0.5, padding: '12px 8px 6px', textTransform: 'uppercase' }}>
-                                Recent chats
+                                Recent Chats
                             </div>
                             {filteredRecentChats.map(p => {
                                 const inviting = invitingIds.has(p.id);

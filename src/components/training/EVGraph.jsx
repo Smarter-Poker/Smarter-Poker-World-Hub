@@ -168,7 +168,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
             <div style={styles.container}>
                 <div style={styles.header}>{title}</div>
                 <div style={styles.emptyState}>
-                    No per-street EV data available yet.
+                    No Per-Street EV Data Available Yet.
                 </div>
             </div>
         );
@@ -179,7 +179,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
             <div style={{ ...styles.header, justifyContent: 'space-between' }}>
                 <span>{title}</span>
                 <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal', textTransform: 'none', letterSpacing: 0 }}>
-                    Session avg: {sessionAvgEV >= 0 ? '+' : ''}{sessionAvgEV.toFixed(2)} EV
+                    Session Avg: {sessionAvgEV >= 0 ? '+' : ''}{sessionAvgEV.toFixed(2)} EV
                 </span>
             </div>
 
@@ -232,7 +232,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
                                                 <span>{data.avgEV >= 0 ? '+' : ''}{data.avgEV.toFixed(2)}</span>
                                                 <TrendArrow current={data.avgEV} previous={data.previousAvgEV} />
                                             </>
-                                        ) : '—'}
+                                        ) : '-'}
                                     </div>
                                 </Tooltip>
 
@@ -275,7 +275,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
                                     <span style={styles.streetText}>{data.label}</span>
                                 </div>
                                 <div style={styles.decisionCount}>
-                                    {data.decisions > 0 ? `${data.decisions} decisions` : '—'}
+                                    {data.decisions > 0 ? `${data.decisions} decisions` : '-'}
                                 </div>
 
                                 {/* Sparkline for historical trend */}

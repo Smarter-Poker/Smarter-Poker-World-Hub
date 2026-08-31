@@ -679,7 +679,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         <div style={S.handNotation}>{currentHand}</div>
                         {streak >= 3 && (
                             <div style={{ fontSize: 11, color: '#f97316' }}>
-                                {streak} streak
+                                {streak} Streak
                             </div>
                         )}
                     </motion.div>
@@ -769,13 +769,13 @@ export default function PreflopRangeTrainer({ onExit }) {
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                             {currentHand} • {activeSpot?.label || position}:{' '}
                             {handActions.raise === 0 && handActions.call === 0
-                                ? 'Not in range — Fold'
+                                ? 'Not in range - Fold'
                                 : (() => {
                                     const parts = [];
                                     if (handActions.raise > 0) parts.push(`Raise ${Math.round(handActions.raise * 100)}%`);
                                     if (handActions.call > 0) parts.push(`Call ${Math.round(handActions.call * 100)}%`);
                                     if (handActions.fold > 0.01) parts.push(`Fold ${Math.round(handActions.fold * 100)}%`);
-                                    return parts.length > 1 ? `Mixed — ${parts.join(' / ')}` : parts[0];
+                                    return parts.length > 1 ? `Mixed - ${parts.join(' / ')}` : parts[0];
                                 })()}
                         </div>
 
@@ -797,7 +797,7 @@ export default function PreflopRangeTrainer({ onExit }) {
             {/* 13x13 RANGE MATRIX */}
             {trainerMode === 'quiz' ? (
                 <div style={S.matrixContainer}>
-                    <div style={S.matrixTitle}>{activeSpot?.label || `${position} Open`} ({rangePercent}% of hands)</div>
+                    <div style={S.matrixTitle}>{activeSpot?.label || `${position} Open`} ({rangePercent}% Of Hands)</div>
                     <div style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isHighlighted = showFeedback && cell.isCurrentHand;
@@ -879,7 +879,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                                 </div>
                             </div>
                             <div style={{ fontSize: 9, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
-                                Precision: {rangeScore.precision}% · Recall: {rangeScore.recall}% · Solver: {rangeScore.total} hands
+                                Precision: {rangeScore.precision}% · Recall: {rangeScore.recall}% · Solver: {rangeScore.total} Hands
                             </div>
                         </motion.div>
                     )}
@@ -901,7 +901,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                                         fontSize: 13, fontWeight: 700, cursor: userRange.size > 0 ? 'pointer' : 'not-allowed',
                                     }}
                                 >
-                                    Check Range ({userRange.size} selected)
+                                    Check Range ({userRange.size} Selected)
                                 </motion.button>
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}

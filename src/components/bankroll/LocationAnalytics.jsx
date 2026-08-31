@@ -74,7 +74,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Venue Data Yet</span>
                     <span style={{ fontSize: 14, color: '#8a8d91' }}>
-                        Add locations to your sessions to see analytics
+                        Add Locations To Your Sessions To See Analytics
                     </span>
                 </div>
             </div>
@@ -127,7 +127,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                         >
                             <div style={styles.barLabel}>
                                 <span style={styles.venueName}>{location.name}</span>
-                                <span style={styles.sessionCount}>{location.sessions} sessions</span>
+                                <span style={styles.sessionCount}>{location.sessions} Sessions</span>
                             </div>
 
                             <div style={styles.barContainer}>
@@ -157,7 +157,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
 
             {locationStats.length > 5 && (
                 <div style={styles.moreIndicator}>
-                    +{locationStats.length - 5} more venues
+                    +{locationStats.length - 5} More Venues
                 </div>
             )}
         </div>
