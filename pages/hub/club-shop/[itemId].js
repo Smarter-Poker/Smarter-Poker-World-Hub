@@ -13,7 +13,7 @@ import {
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 
-const CLUB_DETAIL_LOAD_TIMEOUT_MS = 12000;
+const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000;
 
 const PACKAGE_OPTIONS = [
   { packageId: 'micro', diamonds: 100, price: 1 },
@@ -82,8 +82,10 @@ export default function ClubShopItemDetail() {
         return;
       }
 
-      const query = requestedClubId ? `?clubId=${encodeURIComponent(requestedClubId)}` : '';
-      const response = await fetch(`/api/club-arena/marketplace-items${query}`, {
+      const params = new URLSearchParams();
+      if (requestedClubId) params.set('clubId', requestedClubId);
+      params.set('itemId', itemId);
+      const response = await fetch(`/api/club-arena/marketplace-items?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
         signal: loadController.signal,
       });
