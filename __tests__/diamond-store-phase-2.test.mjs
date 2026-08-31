@@ -29,19 +29,25 @@ test('makes VIP plan selection and checkout native keyboard controls', () => {
   );
   assert.match(
     page,
-    /<button\s+type="button"\s+disabled=\{isProcessing\}[\s\S]*?aria-busy=\{isProcessing\}/
+    /<button\s+type="button"\s+disabled=\{[^}]*isProcessing[^}]*\}[\s\S]{0,200}?aria-busy=\{isProcessing\}/
   );
 });
 
-test('traps and restores focus for both purchase confirmation dialogs', () => {
+test('traps and restores focus for every purchase and operator confirmation dialog', () => {
   assert.match(page, /function useDialogFocus/);
   assert.match(page, /event\.key === 'Escape'/);
   assert.match(page, /dialog\.querySelectorAll/);
   assert.match(page, /returnFocusRef\.current\?\.focus\?\.\(\)/);
-  assert.equal((page.match(/role="dialog"/g) || []).length, 2);
-  assert.equal((page.match(/aria-modal="true"/g) || []).length, 2);
-  assert.match(page, /ref=\{pendingSpendDialogRef\}/);
-  assert.match(page, /ref=\{clubShopDialogRef\}/);
+  for (const dialogRef of [
+    'pendingSpendDialogRef',
+    'clubShopDialogRef',
+    'clubShopDeleteDialogRef',
+  ]) {
+    assert.match(page, new RegExp(`useDialogFocus\\([\\s\\S]{0,120}${dialogRef}`));
+    assert.match(page, new RegExp(`ref=\\{${dialogRef}\\}[\\s\\S]{0,160}role="dialog"`));
+  }
+  assert.equal((page.match(/role="dialog"/g) || []).length, 3);
+  assert.equal((page.match(/aria-modal="true"/g) || []).length, 3);
 });
 
 test('exposes rewards, club filters, fields, and status changes semantically', () => {
@@ -88,5 +94,5 @@ test('adds a scoped metallic mobile shell without touching the global header', (
     /\.responsiveGrid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) !important/s
   );
   assert.match(shell, /min-height:\s*44px/);
-  assert.doesNotMatch(shell, /UniversalHeader|header/);
+  assert.doesNotMatch(shell, /:global\([^)]*header|\.UniversalHeader/);
 });

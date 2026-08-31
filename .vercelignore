@@ -78,6 +78,15 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-7.test.mjs
 !/__tests__/diamond-store-phase-8.test.mjs
 !/__tests__/diamond-store-phase-9.test.mjs
+!/__tests__/store-tab-routes.test.mjs
+!/__tests__/vip-purchase-wiring.test.mjs
+!/__tests__/diamond-store-phase-2.test.mjs
+!/__tests__/diamond-store-phase-3.test.mjs
+!/__tests__/diamond-store-phase-4.test.mjs
+!/__tests__/diamond-store-phase-5.test.mjs
+!/__tests__/diamond-store-phase-6.test.mjs
+!/__tests__/diamond-store-v3.test.mjs
+!/__tests__/club-shop-atomic-commerce.test.mjs
 !/__tests__/diamond-store-phase-10.test.mjs
 !/__tests__/diamond-store-phase-11.test.mjs
 !/__tests__/diamond-store-phase-12.test.mjs

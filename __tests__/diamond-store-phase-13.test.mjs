@@ -39,7 +39,8 @@ test('marketplace carts persist JSON and expose mobile-safe payment controls', (
   assert.match(cart, /aria-checked=\{usingDiamonds\}/);
   assert.match(cart, /handlePaymentChoiceKeyDown/);
   assert.match(cart, /tabIndex=\{usingDiamonds \? 0 : -1\}/);
-  assert.match(cart, /minWidth:\s*['"]44px['"]/);
+  assert.match(cart, /minWidth:\s*['"]45px['"]/);
+  assert.match(cart, /minHeight:\s*['"]45px['"]/);
   assert.match(cart, /cartItemMobile/);
 });
 
