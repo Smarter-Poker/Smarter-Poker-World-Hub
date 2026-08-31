@@ -878,7 +878,7 @@ export default function CommanderLayout({ children, title }) {
           transform: translate(-50%, -50%) !important;
           overflow: hidden;
           box-sizing: border-box;
-          border: 1px solid rgba(0, 0, 0, .94);
+          border: 0.5px solid rgba(0, 0, 0, .94);
           border-radius: 50%;
           background: transparent;
           pointer-events: none;
