@@ -155,3 +155,32 @@ footer now occupies navigation layer 900, below the platform modal layer, and
 the route audit dismisses page-owned onboarding before intentionally testing
 footer links. Exact signed-in cart reload and VIP confirmation flows pass in
 desktop Chromium and mobile Chrome after these final changes.
+
+### Final Re-Certification — 2026-08-31
+
+Phase 1 was reopened from the latest `main` before Phase 2. The audit found a
+release-gate coverage gap: the mandatory Marketplace command included the
+Phase 7–21 suites but omitted the foundational route, VIP, Phase 2–6, legacy
+visual, and atomic Club Shop contracts. Three of those older assertions had
+also become stale as the implementation grew stronger, so running them only by
+hand produced false failures instead of protecting the release.
+
+The foundational suites are now part of `npm run test:marketplace` and the
+Vercel build context. Their assertions recognize the lifetime-VIP disable
+condition, all three focus-trapped confirmation dialogs, and the distinction
+between a harmless header-reservation comment and a selector that could style
+the locked global header. The mandatory Marketplace gate therefore expanded
+from 120 to 189 contracts without weakening the current implementation.
+
+An authenticated production pass then found one real precision defect at the
+320-pixel boundary: a quantity button declared as 44 CSS pixels rendered as
+43.99998 pixels under mobile device scaling. Cart quantity controls now reserve
+45 by 45 CSS pixels, including explicit minimum dimensions, so they remain
+above the 44-pixel accessibility floor after subpixel rounding. The signed-in
+cart, both payment choices, overflow checks, and every decrease, increase, and
+remove target pass in desktop Chromium and mobile Chrome after the fix.
+
+This pass did not change prices, Stripe or Diamond settlement, inventory,
+commissions, entitlements, database objects, or Printful behavior. Automatic
+Printful fulfillment remains deliberately deferred; card and Diamond checkout
+remain enabled.

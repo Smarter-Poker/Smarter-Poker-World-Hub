@@ -1146,9 +1146,12 @@ const styles = {
     padding: '4px',
   },
   quantityButton: {
-    width: '44px',
-    minWidth: '44px',
-    height: '44px',
+    // Keep one physical-pixel safety margin: a nominal 44 CSS px control can
+    // resolve to 43.999px under mobile device scaling and miss the WCAG target.
+    width: '45px',
+    minWidth: '45px',
+    height: '45px',
+    minHeight: '45px',
     background: 'transparent',
     border: 'none',
     color: '#FFFFFF',
