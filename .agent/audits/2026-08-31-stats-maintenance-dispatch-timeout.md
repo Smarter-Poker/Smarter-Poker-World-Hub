@@ -14,7 +14,11 @@ showed why a drain-only budget was insufficient: the 20:30 UTC cycle took
 whole-handler target now stops optional scheduling at 75 seconds and reserves
 the next 15 seconds for post-drain work and the response. A cross-file test
 keeps that 90-second whole-request target at least 30 seconds inside the caller
-deadline.
+deadline. The 21:00 production cycle then proved that wall-clock checks alone
+cannot interrupt an RPC already awaiting a response: it still reached the
+120-second caller timeout. Every maintenance RPC now shares an abort signal
+that fires at the optional-work deadline, and both heartbeat writes have their
+own bounded abort signals.
 
 ## Evidence
 
@@ -25,6 +29,8 @@ Production `journalctl -u openclaw.service` reported:
 - 19:45 UTC: timeout after 120 seconds
 - 20:15 UTC after the first fix: HTTP 200 in 90.6 seconds
 - 20:30 UTC after the first fix: HTTP 200 in 115.5 seconds (insufficient margin)
+- 21:00 UTC after the wall-clock scheduling fix: timeout after 120 seconds
+  (an already-started RPC and response telemetry were still unbounded)
 
 The scheduler remained active with `NRestarts=0` and `ExecMainStatus=0`; the
 failure was the request budget mismatch, not a dead scheduler.
@@ -36,7 +42,10 @@ failure was the request budget mismatch, not a dead scheduler.
 `scripts/openclaw-cron-dispatcher.py` independently set
 `REQUEST_TIMEOUT = 120`. The handler also enforced a 20-second minimum per
 club, which could make aggregate drain time exceed the nominal total when
-enough clubs had backlog.
+enough clubs had backlog. The second production failure exposed another layer:
+checking `Date.now()` before starting work does not cancel a Supabase request
+that is already in flight, and `withCronHealth` awaited an unbounded telemetry
+upsert before flushing the response.
 
 ## Resolution
 
@@ -47,6 +56,11 @@ enough clubs had backlog.
 - Recalculate the per-club allowance before every RPC from the remaining time
   and remaining clubs.
 - Report `budget_exhausted` when resumable work is deferred to the next cycle.
+- Abort every in-flight maintenance RPC when the 75-second optional-work
+  deadline expires; later RPCs then fail immediately instead of extending the
+  request.
+- Cap the route heartbeat at 15 seconds and the response-gating cron-health
+  telemetry write at 8 seconds.
 - Keep at least 30 seconds between the whole-handler budget and the caller
   timeout in a regression test.
 - Verify the deployed endpoint by observing a subsequent Open Claw fire cycle

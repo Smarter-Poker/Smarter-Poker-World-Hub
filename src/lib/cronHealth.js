@@ -11,7 +11,7 @@
  *
  * USAGE — wrap the default export of any pages/api/cron/* handler:
  *
- *     import { withCronHealth } from '../../../src/lib/cronHealth';
+ *     Import withCronHealth from this module in the scheduled route.
  *     async function handler(req, res) { ... }
  *     export default withCronHealth('cleanup-stale-streams', handler);
  *
@@ -28,6 +28,8 @@
  *     poison the freshness signal.
  */
 import { createClient } from '@supabase/supabase-js';
+
+const TELEMETRY_TIMEOUT_MS = 8000;
 
 let _client = null;
 function getServiceClient() {
@@ -85,13 +87,23 @@ export function withCronHealth(cronName, handler) {
               error_message: errorMessage,
             },
             { onConflict: 'cron_name' }
-          );
+          )
+          // Telemetry must be recorded before the response is flushed, but it
+          // must never become an unbounded extension of the cron request. The
+          // dispatcher has a hard request timeout; aborting this fail-open
+          // write preserves the job's real response inside that boundary.
+          .abortSignal(AbortSignal.timeout(TELEMETRY_TIMEOUT_MS));
         if (telemetryErr) {
           console.warn('[cronHealth]', cronName, 'telemetry write failed:', telemetryErr.message);
         }
       } catch (telemetryErr) {
         // Fail-open by design: the job's outcome must never depend on telemetry.
-        console.warn('[cronHealth]', cronName, 'telemetry threw:', telemetryErr?.message || telemetryErr);
+        console.warn(
+          '[cronHealth]',
+          cronName,
+          'telemetry threw:',
+          telemetryErr?.message || telemetryErr
+        );
       }
     };
 
