@@ -112,6 +112,26 @@ test('marker signatures are deterministic and separate geography from live conte
   const changed = { ...a, live_data: { tables_running: 3 } };
   assert.notEqual(createPokerVenueContentSignature([a, b]), createPokerVenueContentSignature([changed, b]));
   assert.equal(createPokerVenueGeographySignature([a, b]), createPokerVenueGeographySignature([changed, b]));
+
+  const structuredHours = { ...a, hours: { monday: { open: '10:00', close: '02:00' } } };
+  const changedHours = { ...a, hours: { monday: { open: '11:00', close: '02:00' } } };
+  assert.notEqual(
+    createPokerVenueContentSignature([structuredHours]),
+    createPokerVenueContentSignature([changedHours]),
+    'nested operating-hour changes must invalidate rendered popup content',
+  );
+
+  const orderedLiveData = { ...a, live_data: { tables_running: 2, games: ['NLH'] } };
+  const reorderedLiveData = { ...a, live_data: { games: ['NLH'], tables_running: 2 } };
+  assert.equal(
+    createPokerVenueContentSignature([orderedLiveData]),
+    createPokerVenueContentSignature([reorderedLiveData]),
+    'equivalent realtime payloads must not rebuild markers because key order changed',
+  );
+
+  const cyclic = { ...a };
+  cyclic.hours = cyclic;
+  assert.doesNotThrow(() => createPokerVenueContentSignature([cyclic]));
 });
 
 test('shared popup delegation rejects non-relative navigation', () => {
@@ -181,5 +201,8 @@ test('all Poker Near Me map consumers use the shared lifecycle and presentation 
     assert.doesNotMatch(consumer, /L\.map\(/);
     assert.doesNotMatch(consumer, /L\.tileLayer\(/);
   }
+  assert.match(primary, /if \(!isVenueMapEligible\(venue\)\) return false;/);
+  assert.match(primary, /userMarkerRef\.current = null;/);
+  assert.match(primary, /radiusCircleRef\.current = null;/);
   assert.match(presentation, /sameOriginPopupNavigation:\s*true/);
 });

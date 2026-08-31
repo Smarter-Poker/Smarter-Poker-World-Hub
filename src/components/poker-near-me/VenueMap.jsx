@@ -518,6 +518,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     function updateCoverage() {
       const bounds = map.getBounds();
       const count = venuesRef.current.filter(function(venue) {
+        if (!isVenueMapEligible(venue)) return false;
         const lat = Number(venue && venue.latitude);
         const lng = Number(venue && venue.longitude);
         return Number.isFinite(lat) && Number.isFinite(lng) && !venue.hideOnMap && bounds.contains([lat, lng]);
@@ -550,6 +551,8 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       clusterGroupRef.current = null;
       circlesGroupRef.current = null;
       tourLayerRef.current = null;
+      userMarkerRef.current = null;
+      radiusCircleRef.current = null;
     };
   }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
