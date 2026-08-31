@@ -16,6 +16,7 @@ const drawerSource = readFileSync(join(ROOT, 'src/components/ui/HamburgerMenu.js
 const headerSource = readFileSync(join(ROOT, 'src/components/ui/UniversalHeader.js'), 'utf8');
 const appSource = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
 const socialSource = readFileSync(join(ROOT, 'pages/hub/social-media/index.js'), 'utf8');
+const pokerNearMeLobbySource = readFileSync(join(ROOT, 'pages/hub/poker-near-me/lobby.js'), 'utf8');
 const auditInventory = JSON.parse(
   readFileSync(join(ROOT, '.agent/audits/2026-08-31-world-hub-menu-route-inventory.json'), 'utf8')
 );
@@ -82,6 +83,9 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(drawerSource, /sp-menu-recents/);
   assert.match(drawerSource, /role="dialog"/);
   assert.match(drawerSource, /aria-modal="true"/);
+  assert.match(drawerSource, /data-world-primary-commands/);
+  assert.match(drawerSource, /prev\?\.isConnected/);
+  assert.match(drawerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(drawerSource, /e\.key === 'Escape'/);
   assert.match(drawerSource, /minHeight: 44/);
 });
@@ -92,15 +96,19 @@ test('the command-grid trigger covers routes without duplicating an approved hea
   assert.match(headerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(headerSource, /data-menu-symbol="command-grid"/);
   assert.match(headerSource, /flex: 0 0 auto;/);
+  assert.match(headerSource, /z-index: 10050;/);
   assert.match(headerSource, /resolvedHeaderWorld\?\.id === 'social-media'/);
   assert.match(headerSource, /onMenuClick && !ownsCanonicalMenu/);
   assert.match(socialSource, /canonical command menu is the only global navigation surface/);
   assert.match(socialSource, /setSidebarOpen\(false\)/);
+  assert.match(socialSource, /commandMenuOpen=\{commandMenuOpen\}/);
   assert.match(dockSource, /data-world-menu-trigger="route-fallback"/);
   assert.match(dockSource, /data-menu-symbol="command-grid"/);
+  assert.match(dockSource, /world\.id === 'social-media'/);
   assert.match(dockSource, /querySelector\('\[data-world-menu-trigger="approved-header"\]'\)/);
   assert.match(dockSource, /min-height: 48px/);
   assert.match(dockSource, /@media \(max-width: 430px\)/);
+  assert.match(pokerNearMeLobbySource, /zIndex: 10050, pointerEvents: 'none'/);
 });
 
 test('horizontal menu-bar artwork cannot return to World Hub source assets', () => {
