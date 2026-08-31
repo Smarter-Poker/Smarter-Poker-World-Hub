@@ -25,6 +25,8 @@ import { supabase } from '../../../lib/supabase';
 import CommanderEffectsProvider from './CommanderEffectsProvider';
 import PushNotificationProvider from './PushNotificationProvider';
 import useBusBridge from '../../../lib/commander/useBusBridge';
+import { getHeaderStats } from '../../../../../../src/lib/headerStats';
+import { resolveActiveVip, resolveHeaderPortrait } from '../../../../../../src/lib/headerPortrait';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/commander/dashboard', icon: Layout },
@@ -63,23 +65,40 @@ export default function CommanderLayout({ children, title }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
   const [profileAvatar, setProfileAvatar] = useState('/default-avatar.png');
+  const [isVip, setIsVip] = useState(false);
+  const [vipShimmerVisible, setVipShimmerVisible] = useState(false);
 
   useEffect(() => {
-    const refreshProfileAvatar = (event) => {
+    let mounted = true;
+
+    const applyHeaderProfile = (profile) => {
+      if (!mounted || !profile) return;
+      const profilePhotoUrl = profile.profilePhotoUrl || profile.avatar_url || profile.avatar || null;
+      const arenaAvatarUrl = profile.arenaAvatarUrl || profile.arena_avatar_url || null;
+      const useAvatarAsProfilePic =
+        profile.useAvatarAsProfilePic === true || profile.use_avatar_as_profile_pic === true;
+      setProfileAvatar(
+        resolveHeaderPortrait(profilePhotoUrl, arenaAvatarUrl, useAvatarAsProfilePic) ||
+          '/default-avatar.png'
+      );
+      setIsVip(resolveActiveVip(!!profile.is_vip, profile.vip_expires_at));
+    };
+
+    const refreshProfileAvatar = async (event) => {
       try {
         const cachedHeader = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
         const cachedAuth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-        const nextAvatar =
-          event?.detail?.avatar_url ||
-          staff?.avatar_url ||
-          staff?.avatar ||
-          cachedHeader?.avatar_url ||
-          cachedHeader?.avatar ||
-          cachedAuth?.user?.user_metadata?.avatar_url ||
-          '/default-avatar.png';
-        setProfileAvatar(nextAvatar);
+        applyHeaderProfile({ ...cachedHeader, ...(event?.detail || {}) });
+
+        const userId = cachedHeader?.userId || cachedAuth?.user?.id;
+        if (!userId) return;
+        const result = await getHeaderStats({
+          userId,
+          force: event?.type === 'profile-updated',
+        });
+        if (result?.success && result.profile) applyHeaderProfile(result.profile);
       } catch (_) {
-        setProfileAvatar('/default-avatar.png');
+        if (mounted) setProfileAvatar('/default-avatar.png');
       }
     };
     const handleStorage = (event) => {
@@ -96,15 +115,46 @@ export default function CommanderLayout({ children, title }) {
       // BroadcastChannel is optional; storage + same-tab events remain active.
     }
 
-    refreshProfileAvatar();
+    void refreshProfileAvatar();
     window.addEventListener('profile-updated', refreshProfileAvatar);
     window.addEventListener('storage', handleStorage);
     return () => {
+      mounted = false;
       window.removeEventListener('profile-updated', refreshProfileAvatar);
       window.removeEventListener('storage', handleStorage);
       try { avatarChannel?.close(); } catch (_) { /* noop */ }
     };
-  }, [staff]);
+  }, []);
+
+  useEffect(() => {
+    if (!isVip) {
+      setVipShimmerVisible(false);
+      return;
+    }
+
+    let pauseTimer;
+    let shimmerTimer;
+    let cancelled = false;
+    const scheduleNextShimmer = () => {
+      const randomDelayMs = 5_000 + Math.floor(Math.random() * 5_001);
+      pauseTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        setVipShimmerVisible(true);
+        shimmerTimer = window.setTimeout(() => {
+          if (cancelled) return;
+          setVipShimmerVisible(false);
+          scheduleNextShimmer();
+        }, 1_250);
+      }, randomDelayMs);
+    };
+
+    scheduleNextShimmer();
+    return () => {
+      cancelled = true;
+      if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
+      if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
+    };
+  }, [isVip]);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
   const [clubPageId, setClubPageId] = useState(null); // Set when venue has an existing club page
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
@@ -823,30 +873,39 @@ export default function CommanderLayout({ children, title }) {
         .cmd-approved-header__back { left: 8%; width: 12%; }
         .cmd-approved-header__hub { left: 19.1%; width: 12.9%; }
         .cmd-approved-header__profile {
-          left: 66.5%;
-          width: 7.5%;
+          top: 13%;
+          left: 66.75%;
+          width: 7.15%;
+          height: 75%;
           position: absolute !important;
           overflow: hidden;
           contain: layout paint;
           isolation: isolate;
+          border-radius: 0;
+          background: #000;
         }
         .cmd-approved-header__wallet { left: 73.2%; width: 7.1%; }
-        .cmd-approved-header__vip { left: 79.9%; width: 6.5%; }
+        .cmd-approved-header__vip {
+          left: 79.9%;
+          width: 6.5%;
+          overflow: hidden;
+          isolation: isolate;
+        }
         .cmd-approved-header__messenger { left: 86%; width: 6.9%; }
         .cmd-approved-header__notifications { left: 92.3%; width: 6.2%; }
         .cmd-approved-header__avatar-slot {
           position: absolute !important;
-          top: 50% !important;
-          left: 50% !important;
+          inset: 0 !important;
           z-index: 1;
           display: block;
-          width: 58%;
-          height: auto;
-          aspect-ratio: .78;
-          transform: translate(-50%, -50%) !important;
+          width: 100%;
+          height: 100%;
+          aspect-ratio: auto;
+          transform: none !important;
           overflow: hidden;
-          border-radius: 50%;
-          background: #020305;
+          border: 0;
+          border-radius: 0;
+          background: #000;
           pointer-events: none;
         }
         .cmd-approved-header__avatar-slot > .cmd-approved-header__avatar {
@@ -858,12 +917,39 @@ export default function CommanderLayout({ children, title }) {
           max-width: none !important;
           aspect-ratio: auto !important;
           transform: none !important;
-          border-radius: inherit !important;
-          background: #020305;
-          object-fit: cover !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: #000;
+          object-fit: contain !important;
           object-position: center !important;
           opacity: 1 !important;
           pointer-events: none;
+        }
+        .cmd-approved-header__vip:not(.cmd-approved-header__vip--active)::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          background: rgba(0, 0, 0, .42);
+          pointer-events: none;
+        }
+        .cmd-approved-header__vip--shimmer::after {
+          content: '';
+          position: absolute;
+          top: -25%;
+          bottom: -25%;
+          left: -55%;
+          z-index: 2;
+          width: 45%;
+          transform: skewX(-18deg);
+          background: linear-gradient(90deg, transparent, rgba(85, 190, 255, .55) 25%, rgba(255, 255, 255, .98) 52%, rgba(255, 211, 88, .7) 74%, transparent);
+          box-shadow: 0 0 20px rgba(61, 171, 255, .8);
+          animation: cmdApprovedGlobalVipShimmer 1.25s cubic-bezier(.2, .65, .35, 1) both;
+          pointer-events: none;
+        }
+        @keyframes cmdApprovedGlobalVipShimmer {
+          from { left: -55%; }
+          to { left: 125%; }
         }
         @media (display-mode: standalone), (display-mode: fullscreen) {
           .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
@@ -890,7 +976,7 @@ export default function CommanderLayout({ children, title }) {
               </span>
             </button>
             <button type="button" className="cmd-approved-header__button cmd-approved-header__wallet" onClick={() => router.push('/hub/diamond-store')} aria-label="Diamond Wallet" />
-            <button type="button" className="cmd-approved-header__button cmd-approved-header__vip" onClick={() => router.push('/hub/vip-membership')} aria-label="VIP" />
+            <button type="button" className={`cmd-approved-header__button cmd-approved-header__vip${isVip ? ' cmd-approved-header__vip--active' : ''}${isVip && vipShimmerVisible ? ' cmd-approved-header__vip--shimmer' : ''}`} onClick={() => router.push('/hub/vip-membership')} aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'} data-vip-active={isVip ? 'true' : 'false'} />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__messenger" onClick={() => router.push('/hub/messenger')} aria-label="Messages" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__notifications" onClick={() => router.push('/hub/notifications')} aria-label="Notifications" />
           </div>
