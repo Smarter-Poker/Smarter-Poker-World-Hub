@@ -89,7 +89,51 @@ async function handler(req, res) {
   }
 
   const started = Date.now();
+  /* Collected from the first step, not declared halfway down, so the expire
+     pass below can report a failure and an early return can still carry it. */
+  const alerts = [];
+  let expired = 0;
+  let expiredChips = 0;
   try {
+    /* ── 0. EXPIRE SPINS THAT NEVER FILLED ────────────────────────────
+     * A Spin is seat-first: you pay when you sit, and the game starts when
+     * the third seat sells. Nothing bounded the wait in between, so a player
+     * whose game never filled had their chips locked with no timeout and no
+     * refund. Worst observed before this shipped: 76,648s - 21 HOURS, with
+     * nine spins over six hours (all horse-seated, so no human had been hurt
+     * yet - which is what kept it invisible, not what made it safe).
+     *
+     * fn_spin_expire_unfilled cancels through atomic_cancel_tournament, the
+     * path trg_tournaments_cancel_must_refund demands and the only one that
+     * actually pays the seated players back. It never touches a full-but-
+     * unstarted game: that one is about to deal. Timeout lives in
+     * spin_fill_policy (0 disables) so it is tunable without a deploy.
+     *
+     * IT RUNS FIRST, AND THAT ORDERING IS THE POINT. Placed after the
+     * unbooked sweep and the health read - both of which `return 500` on
+     * error - an unrelated RPC failure silently skipped the refund pass. The
+     * one step here that gives players their money back must not be gated
+     * behind two unrelated calls succeeding.
+     *
+     * Non-fatal in its own right: a failure becomes an alert and the pass
+     * continues. */
+    try {
+      const { data: exp, error: expErr } = await admin.rpc('fn_spin_expire_unfilled', {
+        p_limit: 50,
+      });
+      if (expErr) {
+        alerts.push('expire_unfilled_failed');
+      } else {
+        expired = Number(exp?.expired || 0);
+        expiredChips = Number(exp?.chips_refunded_estimate || 0);
+        if (Number(exp?.failed || 0) > 0) {
+          alerts.push(`EXPIRE_UNFILLED_PARTIAL:${exp.failed}`);
+        }
+      }
+    } catch {
+      alerts.push('expire_unfilled_failed');
+    }
+
     // ── 1. Sweep ──────────────────────────────────────────────────────
     const { data: sweep, error: sweepErr } = await admin.rpc('fn_spin_sweep_unbooked', {
       p_lookback_mins: LOOKBACK_MINS,
@@ -99,6 +143,10 @@ async function handler(req, res) {
         status: 'failed',
         stage: 'sweep',
         error: sweepErr.message,
+        // The refund pass already ran; report it rather than losing it.
+        expired_unfilled: expired,
+        expired_chips_refunded: expiredChips,
+        alerts,
         duration_ms: Date.now() - started,
       });
     }
@@ -134,6 +182,9 @@ async function handler(req, res) {
         error: healthErr.message,
         settled,
         failed,
+        expired_unfilled: expired,
+        expired_chips_refunded: expiredChips,
+        alerts,
         duration_ms: Date.now() - started,
       });
     }
@@ -174,7 +225,6 @@ async function handler(req, res) {
      */
     const feeCharged = pools.filter((p) => Number(p.fee_violations_24h || 0) > 0);
 
-    const alerts = [];
     if (failed > 0) alerts.push(`sweep_failed:${failed}`);
     if (stillUnbooked.length > 0) {
       alerts.push(`unbooked_remaining:${stillUnbooked.map((p) => p.club_name).join(',')}`);
@@ -260,6 +310,8 @@ async function handler(req, res) {
       status: alerts.length === 0 ? 'ok' : 'attention',
       settled,
       failed,
+      expired_unfilled: expired,
+      expired_chips_refunded: expiredChips,
       lookback_mins: LOOKBACK_MINS,
       pools: pools.length,
       alerts,
@@ -273,7 +325,7 @@ async function handler(req, res) {
       probe_name: 'spin-sweep',
       status: alerts.length === 0 ? 'ok' : 'attention',
       duration_ms: Date.now() - started,
-      details: { settled, failed, alerts },
+      details: { settled, failed, expired, expiredChips, alerts },
     });
     if (heartbeatErr) {
       console.warn('[spin-sweep] heartbeat write failed:', heartbeatErr.message);
