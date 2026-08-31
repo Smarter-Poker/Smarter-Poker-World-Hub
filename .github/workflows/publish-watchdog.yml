@@ -106,17 +106,37 @@ jobs:
       - name: Open Claw cron fleet is alive
         id: cron-fleet
         if: always()
-        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/ci/check-cron-fleet-alive.mjs 2>&1 | tee /tmp/cron-fleet.log
+        run: |
+          # A PIPELINE REPORTS THE LAST COMMAND'S EXIT CODE, NOT THE FIRST.
+          # The first cut of this step was `node ... | tee`, so the step took
+          # TEE's status - always 0 - and reported success while the fleet was
+          # demonstrably down. Caught by running the workflow for real on
+          # 2026-08-31: the detector printed "THE OPEN CLAW FLEET HAS GONE
+          # SILENT", and then the RECOVERY step ran and the alarm step did not.
+          # A watchdog that cannot raise its alarm is not a watchdog, and this
+          # one would additionally have closed a genuine issue every 30 minutes.
+          #
+          # PIPESTATUS[0] is the real code, and it is published as an OUTPUT so
+          # the steps below can tell the three cases apart. `outcome` cannot:
+          # exit 1 (fleet down) and exit 2 (cannot reach Supabase) are both
+          # merely "failure", and those two must do very different things.
+          set +e
+          node scripts/ci/check-cron-fleet-alive.mjs 2>&1 | tee /tmp/cron-fleet.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "cron-fleet-alive exited ${code}"
 
-      # Exit 1 (fleet silent) raises an issue. Exit 2 (cannot tell) does not:
-      # "I could not reach Supabase" is not evidence about the fleet, and an
-      # alarm that fires on its own misconfiguration is one people mute.
+      # EXACTLY exit 1 raises an issue. Exit 2 ("cannot tell") does nothing at
+      # all - it neither raises nor closes, because "I could not reach
+      # Supabase" is not evidence about the fleet in either direction. An
+      # alarm that fires on its own misconfiguration gets muted; one that
+      # CLOSES on it is worse still.
       - name: Raise the alarm if the fleet is silent
-        if: always() && steps.cron-fleet.outcome == 'failure'
+        if: always() && steps.cron-fleet.outputs.code == '1'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -138,7 +158,7 @@ jobs:
 
       # Self-closing: a fleet that recovered should not leave a red issue open.
       - name: Close the alarm when the fleet recovers
-        if: always() && steps.cron-fleet.outcome == 'success'
+        if: always() && steps.cron-fleet.outputs.code == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
