@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import LocationEnableModal from '../../../src/components/ui/LocationEnableModal';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe, Menu } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe, Grid3X3 } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -224,7 +224,7 @@ export default function CommanderHub() {
                   <span className="cmd-rivet" />
                 </div>
                 <button onClick={() => setMenuOpen(true)} className="cmd-icon-box hover:cmd-icon-box-glow transition-all" style={{ width: 40, height: 40 }}>
-                  <Menu className="w-5 h-5 text-white" />
+                  <Grid3X3 className="w-5 h-5 text-white" aria-hidden="true" />
                 </button>
               </div>
             </div>

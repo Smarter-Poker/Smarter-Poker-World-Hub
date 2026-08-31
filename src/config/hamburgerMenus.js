@@ -12,8 +12,13 @@ import {
     Undo2, RotateCcw, Clapperboard, Share2, Zap, Thermometer, Volume2,
     UploadCloud, SlidersHorizontal, FolderOpen, Save, Bookmark, Flag,
     LayoutGrid, RefreshCw, ListChecks, Gauge, Home as HomeIcon, UserPlus,
-    Newspaper, Timer, Trophy as TrophyIcon, MessageSquare, Sparkles,
+    Newspaper, Timer, Trophy as TrophyIcon, MessageSquare, Sparkles, Bell,
+    BookOpen, Club, Coins, Crown, Film, FlaskConical, Gamepad2, Gem, Globe2,
+    GraduationCap, Grid3X3, Heart, History, MapPinned, Medal, Package, Pencil,
+    Percent, Play, Radar, ReceiptText, Route, Rss, ShieldCheck, Shirt,
+    ShoppingCart, Sigma, Swords, Vault, WalletCards,
 } from 'lucide-react';
+import { getWorldMenuByKey, resolveWorldMenu } from './worldMenuNavigation';
 
 // NOTE: sign-out lives in exactly ONE place — HamburgerMenu.handleLogout,
 // which clears the full cache list (sp-social-user, sp-vip-status,
@@ -221,7 +226,39 @@ export const MenuIcons = {
     timer: <Timer size={24} strokeWidth={2} />,
     award: <TrophyIcon size={24} strokeWidth={2} />,
     chat: <MessageSquare size={24} strokeWidth={2} />,
-    sparkles: <Sparkles size={24} strokeWidth={2} />
+    sparkles: <Sparkles size={24} strokeWidth={2} />,
+    bell: <Bell size={24} strokeWidth={2} />,
+    book: <BookOpen size={24} strokeWidth={2} />,
+    club: <Club size={24} strokeWidth={2} />,
+    coins: <Coins size={24} strokeWidth={2} />,
+    crown: <Crown size={24} strokeWidth={2} />,
+    film: <Film size={24} strokeWidth={2} />,
+    flask: <FlaskConical size={24} strokeWidth={2} />,
+    gamepad: <Gamepad2 size={24} strokeWidth={2} />,
+    gem: <Gem size={24} strokeWidth={2} />,
+    globe: <Globe2 size={24} strokeWidth={2} />,
+    graduation: <GraduationCap size={24} strokeWidth={2} />,
+    heart: <Heart size={24} strokeWidth={2} />,
+    history: <History size={24} strokeWidth={2} />,
+    map: <MapPin size={24} strokeWidth={2} />,
+    mapPinned: <MapPinned size={24} strokeWidth={2} />,
+    medal: <Medal size={24} strokeWidth={2} />,
+    package: <Package size={24} strokeWidth={2} />,
+    pencil: <Pencil size={24} strokeWidth={2} />,
+    percent: <Percent size={24} strokeWidth={2} />,
+    play: <Play size={24} strokeWidth={2} />,
+    radar: <Radar size={24} strokeWidth={2} />,
+    receipt: <ReceiptText size={24} strokeWidth={2} />,
+    route: <Route size={24} strokeWidth={2} />,
+    rss: <Rss size={24} strokeWidth={2} />,
+    shield: <ShieldCheck size={24} strokeWidth={2} />,
+    shirt: <Shirt size={24} strokeWidth={2} />,
+    shopping: <ShoppingCart size={24} strokeWidth={2} />,
+    sigma: <Sigma size={24} strokeWidth={2} />,
+    swords: <Swords size={24} strokeWidth={2} />,
+    vault: <Vault size={24} strokeWidth={2} />,
+    walletCards: <WalletCards size={24} strokeWidth={2} />,
+    grid3: <Grid3X3 size={24} strokeWidth={2} />
 };
 
 // Menu configurations for each world
@@ -535,6 +572,52 @@ export const MENU_CONFIGS = {
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help }
         ]
+    }),
+
+    'my-clubs': () => ({
+        menuItems: [
+            createMenuItem.section('Club Workspace'),
+            createMenuItem.navigation('My Clubs', '/hub/my-clubs', MenuIcons.club),
+            createMenuItem.navigation('My Venues', '/hub/my-venues', MenuIcons.mapPin),
+            createMenuItem.navigation('Home Games', '/hub/home-games', MenuIcons.spade),
+            createMenuItem.navigation('Club Social Pages', '/hub/social-pages', MenuIcons.grid),
+            createMenuItem.navigation('Club Arena', '/hub/club-arena', MenuIcons.trophy, null, null, { hardNav: true }),
+        ],
+        bottomLinks: [
+            { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+        ],
+    }),
+
+    'odds-calculator': () => ({
+        menuItems: [
+            createMenuItem.section('Analysis Workspace'),
+            createMenuItem.navigation('Poker Odds Calculator', '/hub/poker-tools', MenuIcons.calculator),
+            createMenuItem.navigation('Equity Calculator', '/hub/training/equity-calculator', MenuIcons.percent),
+            createMenuItem.navigation('ICM Calculator', '/hub/training/icm-calculator', MenuIcons.sigma),
+            createMenuItem.navigation('Preflop Range Lab', '/hub/preflop-charts', MenuIcons.grid),
+            createMenuItem.navigation('Hand Lab', '/hub/training/hand-lab', MenuIcons.flask),
+        ],
+        bottomLinks: [
+            { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
+        ],
+    }),
+
+    'marketplace': () => ({
+        menuItems: [
+            createMenuItem.section('Marketplace'),
+            createMenuItem.navigation('Marketplace Home', '/hub/marketplace', MenuIcons.shopping),
+            createMenuItem.navigation('Diamond Store', '/hub/diamond-store', MenuIcons.gem),
+            createMenuItem.navigation('Merchandise Store', '/hub/merch-store', MenuIcons.shirt),
+            createMenuItem.navigation('Club Marketplace', '/hub/club-shop', MenuIcons.club),
+            createMenuItem.navigation('VIP Membership', '/hub/vip-membership', MenuIcons.crown),
+            createMenuItem.navigation('My Orders', '/hub/diamond-store/orders', MenuIcons.package),
+            createMenuItem.navigation('Smarter Rewards', '/hub/smarter-rewards', MenuIcons.award),
+        ],
+        bottomLinks: [
+            { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+        ],
     }),
 
     'bankroll-manager': (user, state, handlers) => ({
@@ -1295,6 +1378,85 @@ export const MENU_CONFIGS = {
 // the moment a label is reworded or localized.
 const hasItemWithId = (list, id) => (list || []).some((i) => i?.id === id);
 
+const worldPrimaryDeck = (world, existingItems = []) => {
+    if (!world) return [];
+    const existingLinks = new Map();
+    (existingItems || []).forEach((item) => {
+        if (item?.type === 'navigation' && item.href) existingLinks.set(item.href, item);
+        if (item?.type === 'grid') {
+            (item.items || []).forEach((entry) => {
+                if (entry?.href) existingLinks.set(entry.href, entry);
+            });
+        }
+    });
+    return [
+        createMenuItem.section(`${world.label} Command Deck`),
+        createMenuItem.grid(
+            world.primaryItems.map((item) => ({
+                ...item,
+                ...existingLinks.get(item.href),
+                label: item.label,
+                description: item.description,
+                icon: MenuIcons[item.icon] || MenuIcons.grid,
+                hardNav: item.hardNav || existingLinks.get(item.href)?.hardNav,
+            })),
+            2
+        ),
+        createMenuItem.divider(),
+    ];
+};
+
+const removePrimaryDuplicates = (items, world) => {
+    if (!world) return items;
+    const primaryHrefs = new Set(world.primaryItems.map((item) => item.href));
+    return (items || []).flatMap((item) => {
+        if (item?.type === 'navigation' && primaryHrefs.has(item.href)) return [];
+        if (item?.type === 'grid') {
+            const filtered = (item.items || []).filter((entry) => !primaryHrefs.has(entry?.href));
+            return filtered.length ? [{ ...item, items: filtered }] : [];
+        }
+        return [item];
+    });
+};
+
+/**
+ * Add the canonical six-command world deck to an already configured drawer.
+ *
+ * A number of legacy pages still request a broad menu key such as `hub-home`
+ * while supplying valuable page-owned actions and live state. Decorating the
+ * resolved result at render time keeps those contracts intact without allowing
+ * the legacy key to replace the active world's primary navigation.
+ */
+export function applyWorldMenuDeck(config = {}, worldOrPath) {
+    const world = typeof worldOrPath === 'string'
+        ? resolveWorldMenu(worldOrPath)
+        : worldOrPath;
+    if (!world) return config;
+
+    const configuredItems = config.menuItems || [];
+    const deckLabel = `${world.label} Command Deck`;
+    const alreadyDecorated = configuredItems.some(
+        (item) => item?.type === 'section' && item.label === deckLabel
+    );
+    if (alreadyDecorated) {
+        return {
+            ...config,
+            bottomLinks: config.bottomLinks || [],
+            world,
+        };
+    }
+
+    return {
+        ...config,
+        menuItems: [
+            ...worldPrimaryDeck(world, configuredItems),
+            ...removePrimaryDuplicates(configuredItems, world),
+        ],
+        bottomLinks: config.bottomLinks || [],
+        world,
+    };
+}
+
 /**
  * Helper to get menu config for a specific world.
  * An unknown worldKey falls back to the universal hub menu rather than
@@ -1306,7 +1468,9 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
         console.warn(`No menu config found for world: ${worldKey} — falling back to hub-home`);
     }
     const result = config(user, state, handlers) || {};
-    const menuItems = result.menuItems || [];
+    const world = getWorldMenuByKey(worldKey);
+    const decoratedResult = applyWorldMenuDeck(result, world);
+    const menuItems = decoratedResult.menuItems || [];
     let bottomLinks = result.bottomLinks || [];
 
     // Inject "Invite Friends" into bottomLinks for logged-in users, unless the
@@ -1333,5 +1497,11 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
         }
     }
 
-    return { ...result, menuItems, bottomLinks };
+    return { ...decoratedResult, menuItems, bottomLinks, world };
+}
+
+export function getMenuConfigForPath(path, user, state = {}, handlers = {}) {
+    const world = resolveWorldMenu(path);
+    if (!world) return getMenuConfig('hub-home', user, state, handlers);
+    return getMenuConfig(world.menuKey, user, state, handlers);
 }

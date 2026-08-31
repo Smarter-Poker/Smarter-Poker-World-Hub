@@ -14,7 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Grid3X3 } from 'lucide-react';
 import HamburgerMenu from '../ui/HamburgerMenu';
 
 export default function CommanderPageShell({ children }) {
@@ -53,7 +53,7 @@ export default function CommanderPageShell({ children }) {
                     e.currentTarget.style.background = 'rgba(10, 30, 60, 0.85)';
                 }}
             >
-                <Menu size={20} color="#22D3EE" />
+                <Grid3X3 size={20} color="#22D3EE" aria-hidden="true" />
             </button>
 
             {/* Universal HamburgerMenu - contains ReportBugWidget + Geeves AI */}

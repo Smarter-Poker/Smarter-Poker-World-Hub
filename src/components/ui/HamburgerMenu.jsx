@@ -26,6 +26,8 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { getAuthUser } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
+import { resolveWorldMenu } from '../../config/worldMenuNavigation';
+import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 
 const FALLBACK_AVATAR = '/default-avatar.png';
 
@@ -101,15 +103,21 @@ export default function HamburgerMenu({
   direction = 'left',
   theme = 'light',
   user = null,
-  menuItems = [],
+  menuItems: providedMenuItems = [],
   showProfile = true,
   profileExtras = null,
-  bottomLinks = [],
+  bottomLinks: providedBottomLinks = [],
   width = 320,
   shortcuts = null, // External shortcuts array: [{ id, name, avatar_url, href, isArena, page }]
   menuKey = null,   // Optional stable key for persisting collapse/favourite state
 }) {
   const router = useRouter();
+  const activeWorld = useMemo(
+    () => resolveWorldMenu(router?.asPath || router?.pathname || ''),
+    [router?.asPath, router?.pathname],
+  );
+  const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
+  const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [localUser, setLocalUser] = useState(null);
   const {
@@ -141,6 +149,20 @@ export default function HamburgerMenu({
   useEffect(() => { if (isOpen) setEverOpened(true); }, [isOpen]);
 
   const activeUser = user || localUser;
+  const automaticConfig = useMemo(
+    () => getMenuConfigForPath(router?.asPath || router?.pathname || '/', activeUser),
+    [router?.asPath, router?.pathname, activeUser],
+  );
+  const usesAutomaticConfig = providedMenuItems.length === 0;
+  const providedConfig = useMemo(
+    () => applyWorldMenuDeck(
+      { menuItems: providedMenuItems, bottomLinks: providedBottomLinks },
+      activeWorld
+    ),
+    [providedMenuItems, providedBottomLinks, activeWorld]
+  );
+  const menuItems = usesAutomaticConfig ? automaticConfig.menuItems : providedConfig.menuItems;
+  const bottomLinks = usesAutomaticConfig ? automaticConfig.bottomLinks : providedConfig.bottomLinks;
 
   // ── Persisted state ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,10 +301,11 @@ export default function HamburgerMenu({
   // NOTE: the 'light' and 'dark' objects are consumed by other worlds — do not
   // change them. 'pa' is the Neon Slate branch (PA_DESIGN_SPEC v1 §1).
   const colors = useMemo(() => {
-    if (theme === 'light') {
+    if (theme === 'light' || isFacebookMenu) {
       return {
         bg: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1',
-        blue: '#1877F2', blueHover: '#166FE5', cardBg: '#F0F2F5', hoverBg: '#F2F3F5',
+        blue: worldAccent, blueHover: activeWorld?.menuPalette?.accentPressed || '#166FE5',
+        cardBg: '#F0F2F5', hoverBg: '#E7F3FF',
         tileBg: '#FFFFFF', inputBg: '#F0F2F5', danger: '#D93025',
       };
     }
@@ -295,17 +318,17 @@ export default function HamburgerMenu({
       };
     }
     return {
-      bg: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%)', text: '#FFFFFF',
-      textSec: '#94a3b8', border: 'rgba(59, 130, 246, 0.2)', blue: '#3b82f6',
-      blueHover: '#2563eb', cardBg: 'rgba(30, 58, 95, 0.5)',
-      hoverBg: 'rgba(59, 130, 246, 0.1)', tileBg: 'rgba(30, 58, 95, 0.5)',
-      inputBg: 'rgba(255,255,255,0.08)', danger: '#EF4444',
+      bg: '#03070b', text: '#edf4fb',
+      textSec: '#8b9aaa', border: 'rgba(174, 194, 212, 0.24)', blue: worldAccent,
+      blueHover: worldAccent, cardBg: 'rgba(12, 19, 26, 0.96)',
+      hoverBg: `${worldAccent}18`, tileBg: 'linear-gradient(145deg, rgba(25, 34, 43, 0.96), rgba(4, 8, 12, 0.98))',
+      inputBg: 'rgba(2, 6, 10, 0.94)', danger: '#ff697f',
     };
-  }, [theme]);
+  }, [theme, worldAccent, isFacebookMenu, activeWorld?.menuPalette?.accentPressed]);
 
   // ── Derived menu structure ────────────────────────────────────────────────
   const actionableCount = useMemo(() => countActionable(menuItems), [menuItems]);
-  const showSearch = actionableCount > 12;
+  const showSearch = Boolean(activeWorld) || actionableCount > 12;
   const autoCollapse = actionableCount > 20;
   const groups = useMemo(() => buildGroups(menuItems), [menuItems]);
   const linkables = useMemo(() => collectLinkables(menuItems), [menuItems]);
@@ -367,7 +390,7 @@ export default function HamburgerMenu({
     (menuItems || []).forEach((item, index) => {
       if (item?.type === 'grid') {
         (item.items || []).forEach((g, gi) => {
-          if (labelOf(g).toLowerCase().includes(q)) {
+          if (`${labelOf(g)} ${g?.description || ''}`.toLowerCase().includes(q)) {
             out.push({
               item: { type: g.href ? 'navigation' : 'action', label: g.label, href: g.href, icon: g.icon, onClick: g.onClick, hardNav: g.hardNav },
               index: `g-${index}-${gi}`,
@@ -377,7 +400,7 @@ export default function HamburgerMenu({
         return;
       }
       if (!ACTIONABLE.has(item?.type)) return;
-      if (labelOf(item).toLowerCase().includes(q)) out.push({ item, index });
+      if (`${labelOf(item)} ${item?.description || ''}`.toLowerCase().includes(q)) out.push({ item, index });
     });
     return out;
   }, [query, menuItems]);
@@ -435,7 +458,14 @@ export default function HamburgerMenu({
         >
           {item.icon || null}
         </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 500 }}>{item.label}</span>
+        <span className="sp-menu-row-copy" style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{item.label}</span>
+          {item.description ? (
+            <span style={{ display: 'block', marginTop: 3, color: colors.textSec, fontSize: 11, lineHeight: 1.3 }}>
+              {item.description}
+            </span>
+          ) : null}
+        </span>
         {item.badge ? (
           <span
             style={{
@@ -624,8 +654,8 @@ export default function HamburgerMenu({
               const tileStyle = {
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                 justifyContent: 'center', gap: 6,
-                minHeight: 64, padding: '12px 10px', minWidth: 0,
-                background: colors.tileBg, borderRadius: 8, textDecoration: 'none',
+                minHeight: 84, padding: '12px 11px', minWidth: 0,
+                background: colors.tileBg, borderRadius: 3, textDecoration: 'none',
                 border: `1px solid ${colors.border}`, color: colors.text,
                 fontSize: 14, fontWeight: 600, textAlign: 'left', cursor: 'pointer',
                 boxSizing: 'border-box', fontFamily: 'inherit',
@@ -636,8 +666,15 @@ export default function HamburgerMenu({
                 </span>
               ) : null;
               const labelSlot = (
-                <span style={{ fontSize: 14, fontWeight: 600, color: colors.text, lineHeight: 1.2, minWidth: 0, overflowWrap: 'anywhere' }}>
-                  {gridItem.label}
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: colors.text, lineHeight: 1.2, overflowWrap: 'anywhere' }}>
+                    {gridItem.label}
+                  </span>
+                  {gridItem.description ? (
+                    <span style={{ display: 'block', marginTop: 4, color: colors.textSec, fontSize: 10, lineHeight: 1.25 }}>
+                      {gridItem.description}
+                    </span>
+                  ) : null}
                 </span>
               );
 
@@ -767,8 +804,9 @@ export default function HamburgerMenu({
       <div
         onClick={onClose}
         aria-hidden="true"
+        className="sp-command-backdrop"
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)',
+          position: 'fixed', inset: 0, background: 'rgba(0, 2, 5, 0.86)',
           zIndex: 10099,
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
@@ -783,7 +821,9 @@ export default function HamburgerMenu({
         className="sp-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Main menu"
+        aria-label={`${activeWorld?.label || 'Smarter.Poker'} Command Menu`}
+        data-world-command-menu={activeWorld?.id || 'global'}
+        data-menu-symbol="command-grid"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onKeyDown={trapTab}
@@ -797,10 +837,11 @@ export default function HamburgerMenu({
           bottom: 0,
           [direction]: 0,
           width: '100%',
-          maxWidth: `min(${width}px, 88vw)`,
+          maxWidth: `min(${Math.max(width, 400)}px, 100vw)`,
           height: '100dvh',
           maxHeight: '100dvh',
           background: colors.bg,
+          borderRight: `1px solid ${colors.border}`,
           boxShadow:
             direction === 'left' ? '2px 0 10px rgba(0,0,0,0.2)' : '-4px 0 20px rgba(0, 0, 0, 0.5)',
           zIndex: 10100,
@@ -821,10 +862,22 @@ export default function HamburgerMenu({
           // fixed drawer cannot capture wheel events on desktop.
           pointerEvents: isOpen ? 'auto' : 'none',
           visibility: isOpen ? 'visible' : 'hidden',
+          '--world-accent': worldAccent,
         }}
       >
-        {/* Header row: edit favourites + close */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '8px 12px' }}>
+        {/* World command identity and utilities. The symbol is a six-node
+            command grid. Horizontal menu bars are prohibited by design. */}
+        <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
+          <div className="sp-command-brand">
+            <span className="sp-command-grid-mark" aria-hidden="true">
+              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            </span>
+            <span>
+              <span className="sp-command-eyebrow">World Command</span>
+              <strong className="sp-command-title">{activeWorld?.label || 'Smarter.Poker'}</strong>
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <button
             type="button"
             className="sp-icon-btn"
@@ -832,8 +885,8 @@ export default function HamburgerMenu({
             aria-pressed={editFavs}
             aria-label={editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'}
             style={{
-              width: 44, height: 44, borderRadius: '50%', border: 'none', padding: 0,
-              background: editFavs ? colors.blue : (theme === 'light' ? '#f0f0f0' : 'rgba(255,255,255,0.1)'),
+              width: 44, height: 44, borderRadius: 3, border: `1px solid ${colors.border}`, padding: 0,
+              background: editFavs ? colors.blue : ((theme === 'light' || isFacebookMenu) ? '#f0f0f0' : 'rgba(255,255,255,0.1)'),
               color: editFavs ? '#fff' : colors.text,
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
@@ -847,15 +900,24 @@ export default function HamburgerMenu({
             onClick={onClose}
             aria-label="Close menu"
             style={{
-              width: 44, height: 44, borderRadius: '50%', border: 'none', padding: 0,
-              background: theme === 'light' ? '#f0f0f0' : 'rgba(255, 255, 255, 0.1)',
+              width: 72, height: 44, borderRadius: 3, border: `1px solid ${colors.border}`, padding: 0,
+              background: (theme === 'light' || isFacebookMenu) ? '#f0f0f0' : 'rgba(255, 255, 255, 0.1)',
               color: colors.text,
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
           >
-            <X size={20} aria-hidden="true" />
+            <X size={18} aria-hidden="true" />
+            <span className="sp-command-close-label">Close</span>
           </button>
+          </div>
         </div>
+
+        {activeWorld ? (
+          <div className="sp-command-context" style={{ '--world-accent': worldAccent }}>
+            <span className="sp-command-status"><i aria-hidden="true" />{online ? 'Connected' : 'Offline Cache'}</span>
+            <p>{activeWorld.purpose}</p>
+          </div>
+        ) : null}
 
         {/* Offline banner */}
         {!online && (
@@ -874,7 +936,7 @@ export default function HamburgerMenu({
 
         {/* Search */}
         {showSearch && (
-          <div style={{ padding: '0 16px 12px', position: 'sticky', top: 0, zIndex: 2, background: colors.bg }}>
+          <div className="sp-command-search" style={{ padding: '0 14px 12px', position: 'sticky', top: 0, zIndex: 4, background: colors.bg }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} aria-hidden="true" color={colors.textSec} style={{ position: 'absolute', left: 12 }} />
               <input
@@ -1047,7 +1109,7 @@ export default function HamburgerMenu({
               <div
                 style={{
                   margin: '0 12px 16px',
-                  background: theme === 'light' ? colors.bg : colors.cardBg,
+                  background: (theme === 'light' || isFacebookMenu) ? colors.bg : colors.cardBg,
                   borderRadius: 12,
                   boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                   border: `1px solid ${colors.border}`,
@@ -1116,7 +1178,7 @@ export default function HamburgerMenu({
                 {ownedPages.length > 0 && (
                   <div
                     style={{
-                      background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.2)',
+                      background: (theme === 'light' || isFacebookMenu) ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.2)',
                       padding: '8px 0',
                     }}
                   >
@@ -1169,7 +1231,7 @@ export default function HamburgerMenu({
                             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
                             style={{
                               width: 32, height: 32, borderRadius: '50%', objectFit: 'cover',
-                              background: theme === 'light' ? '#eee' : '#333', flexShrink: 0,
+                              background: (theme === 'light' || isFacebookMenu) ? '#eee' : '#333', flexShrink: 0,
                             }}
                           />
                           <span style={{ fontSize: 14, fontWeight: 500, flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -1376,6 +1438,97 @@ export default function HamburgerMenu({
           rule ever needs to lose such a tie, bump the other rule's specificity
           explicitly instead of relying on document order. */}
       <style dangerouslySetInnerHTML={{ __html: `
+        .sp-command-backdrop {
+          backdrop-filter: blur(7px) saturate(.72);
+          -webkit-backdrop-filter: blur(7px) saturate(.72);
+        }
+        .sp-drawer {
+          isolation: isolate;
+          overflow-x: hidden !important;
+          background:
+            linear-gradient(90deg, rgba(255,255,255,.045), transparent 2px),
+            repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0, rgba(255,255,255,.018) 1px, transparent 1px, transparent 5px),
+            linear-gradient(180deg, rgba(5,10,15,.99), rgba(1,4,7,.995)) !important;
+          box-shadow: 14px 0 48px rgba(0,0,0,.82), inset -12px 0 26px rgba(0,0,0,.5) !important;
+          font-family: var(--font-inter), Inter, system-ui, sans-serif;
+        }
+        .sp-drawer::after {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: min(400px, 100vw);
+          height: 2px;
+          pointer-events: none;
+          background: linear-gradient(90deg, transparent, #d6e1ea 18%, var(--world-accent, #2e9bff) 50%, #d6e1ea 82%, transparent);
+          box-shadow: 0 0 14px color-mix(in srgb, var(--world-accent, #2e9bff) 70%, transparent);
+          z-index: 8;
+        }
+        .sp-command-utility-rail {
+          position: sticky;
+          top: 0;
+          z-index: 6;
+          min-height: 64px;
+          background: linear-gradient(180deg, #070b10 74%, rgba(7,11,16,.86));
+          border-bottom: 1px solid rgba(179,198,215,.16);
+        }
+        .sp-command-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sp-command-grid-mark {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 34px;
+          display: grid;
+          grid-template-columns: repeat(2, 8px);
+          grid-template-rows: repeat(3, 8px);
+          place-content: center;
+          gap: 2px;
+          border: 1px solid rgba(198,214,227,.48);
+          border-radius: 3px;
+          background: linear-gradient(145deg, #1a232c, #05080c);
+          box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 12px rgba(46,155,255,.18);
+        }
+        .sp-command-grid-mark i {
+          display: block;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--world-accent, #2e9bff);
+          box-shadow: inset 0 1px rgba(255,255,255,.6), 0 0 6px var(--world-accent, #2e9bff);
+        }
+        .sp-command-eyebrow, .sp-command-title { display: block; line-height: 1; }
+        .sp-command-eyebrow {
+          margin-bottom: 5px;
+          color: #718395;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: .2em;
+          text-transform: uppercase;
+        }
+        .sp-command-title {
+          overflow: hidden;
+          color: #eef5fb;
+          font-family: var(--font-rajdhani), Rajdhani, sans-serif;
+          font-size: 16px;
+          font-weight: 600;
+          letter-spacing: .08em;
+          text-overflow: ellipsis;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+        .sp-command-close-label { margin-left: 5px; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .sp-command-context {
+          --world-accent: #2e9bff;
+          margin: 10px 12px 12px;
+          padding: 10px 12px;
+          border: 1px solid rgba(150,173,194,.28);
+          border-radius: 3px;
+          background: linear-gradient(145deg, rgba(17,27,36,.97), rgba(3,7,11,.99));
+          box-shadow: inset 0 1px rgba(255,255,255,.045);
+        }
+        .sp-command-context p { margin: 7px 0 0; color: #8fa0b2; font-size: 11px; line-height: 1.35; }
+        .sp-command-status { display: flex; align-items: center; gap: 7px; color: #9fb0bf; font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+        .sp-command-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--world-accent); box-shadow: 0 0 9px var(--world-accent); }
+        .sp-command-search input { border-radius: 2px !important; }
         .sp-menu-row,
         .sp-grid-tile,
         .sp-sc-tile,
@@ -1383,6 +1536,65 @@ export default function HamburgerMenu({
           -webkit-tap-highlight-color: transparent;
           touch-action: manipulation;
           transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+        }
+        .sp-menu-row {
+          width: calc(100% - 8px) !important;
+          margin: 0 4px 3px !important;
+          border: 1px solid transparent !important;
+          border-radius: 2px !important;
+          background: linear-gradient(90deg, rgba(18,25,32,.86), rgba(5,9,13,.74)) !important;
+        }
+        .sp-menu-row[aria-current='page'] {
+          border-color: color-mix(in srgb, var(--world-accent, #2e9bff) 52%, transparent) !important;
+          box-shadow: inset 2px 0 var(--world-accent, #2e9bff), 0 0 15px rgba(0,0,0,.28);
+        }
+        .sp-grid-tile {
+          position: relative;
+          overflow: hidden;
+          border-radius: 3px !important;
+          box-shadow: inset 0 1px rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.2);
+        }
+        .sp-grid-tile::after {
+          content: '';
+          position: absolute;
+          right: 10px;
+          bottom: 0;
+          left: 10px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--world-accent, #2e9bff), transparent);
+          opacity: .72;
+        }
+        .sp-drawer[data-world-command-menu='social-media'] {
+          background:
+            linear-gradient(90deg, rgba(24,119,242,.045), transparent 2px),
+            linear-gradient(180deg, #ffffff, #f7f9fc) !important;
+          box-shadow: 14px 0 44px rgba(13, 40, 77, .28), inset -1px 0 #dadde1 !important;
+        }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-utility-rail {
+          background: linear-gradient(180deg, #ffffff 74%, rgba(255,255,255,.92));
+          border-bottom-color: #dadde1;
+        }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-grid-mark {
+          border-color: #b8c7db;
+          background: linear-gradient(145deg, #ffffff, #e7f3ff);
+          box-shadow: inset 0 1px #ffffff, 0 0 12px rgba(24,119,242,.2);
+        }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-eyebrow { color: #65676b; }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-title { color: #050505; }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-context {
+          border-color: #b8d7ff;
+          background: linear-gradient(145deg, #f7fbff, #e7f3ff);
+          box-shadow: inset 0 1px #ffffff;
+        }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-context p,
+        .sp-drawer[data-world-command-menu='social-media'] .sp-command-status { color: #4b4f56; }
+        .sp-drawer[data-world-command-menu='social-media'] .sp-menu-row {
+          background: linear-gradient(90deg, #ffffff, #f0f2f5) !important;
+        }
+        @media (hover: hover) {
+          .sp-drawer[data-world-command-menu='social-media'] .sp-menu-row:hover {
+            background: #e7f3ff !important;
+          }
         }
         .sp-menu-row:active,
         .sp-icon-btn:active { transform: scale(0.985); filter: brightness(1.08); }
@@ -1394,11 +1606,17 @@ export default function HamburgerMenu({
         .sp-icon-btn:focus-visible {
           outline: 2px solid #4599FF;
           outline-offset: -2px;
-          border-radius: 8px;
+          border-radius: 3px;
         }
         @media (hover: hover) {
           .sp-menu-row:hover { background: rgba(127, 148, 190, 0.14) !important; }
           .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
+        }
+        @media (max-width: 420px) {
+          .sp-command-title { max-width: 124px; font-size: 14px; }
+          .sp-command-eyebrow { font-size: 8px; }
+          .sp-command-close-label { display: none; }
+          .sp-command-utility-rail .sp-icon-btn:last-child { width: 44px !important; }
         }
         .sp-drawer input[type='search']::-webkit-search-cancel-button { display: none; }
         @media (prefers-reduced-motion: reduce) {
