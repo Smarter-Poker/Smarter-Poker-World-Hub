@@ -20,7 +20,6 @@
   "/hub/hand-history": {},
   "/hub/help": {},
   "/hub/home-games/[slug]/dashboard": {},
-  "/hub": { "theme": "dark", "noSafeArea": true },
   "/hub/install": {},
   "/hub/leaderboards": {},
   "/hub/memory-games": {},

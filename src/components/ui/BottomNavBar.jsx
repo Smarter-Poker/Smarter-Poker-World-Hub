@@ -72,17 +72,59 @@ import {
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterNavigation';
 
-export const BOTTOM_NAV_Z = 90;
+// Keep the global footer above page-local fixed overlays and decorative shells.
+// Product modals/portals can still use the browser top layer when they must
+// intentionally cover navigation.
+export const BOTTOM_NAV_Z = 2147483000;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
-export const BottomNavSpacer = () => (
-  <div
-    aria-hidden="true"
-    data-bottom-nav-clearance="true"
-    style={{ height: BOTTOM_NAV_CLEARANCE, minHeight: BOTTOM_NAV_CLEARANCE, flexShrink: 0 }}
-  />
-);
+const artworkStageStyle = (artwork) => ({
+  width: `min(100%, ${artwork.width}px)`,
+  maxWidth: '100%',
+  aspectRatio: `${artwork.width} / ${artwork.height}`,
+  flex: '0 0 auto',
+});
+
+export const BottomNavSpacer = ({ config = null, noSafeArea = false }) => {
+  const artwork = config?.artwork;
+  if (!artwork) {
+    return (
+      <div
+        aria-hidden="true"
+        data-bottom-nav-clearance="true"
+        style={{ height: BOTTOM_NAV_CLEARANCE, minHeight: BOTTOM_NAV_CLEARANCE, flexShrink: 0 }}
+      />
+    );
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      data-bottom-nav-clearance="true"
+      data-footer-artwork-clearance={config.id}
+      style={{
+        width: '100%',
+        maxWidth: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <div style={artworkStageStyle(artwork)} />
+      <div
+        style={{
+          width: 1,
+          height: noSafeArea
+            ? 14
+            : 'calc(14px + env(safe-area-inset-bottom, 0px))',
+          flex: '0 0 auto',
+        }}
+      />
+    </div>
+  );
+};
 
 const THEMES = {
   light: {
@@ -188,6 +230,139 @@ const activeDestination = (items, currentLocation) => {
   return winner?.href || items[0]?.href;
 };
 
+function ArtworkBottomNav({ footer, activeHref, noSafeArea, warm }) {
+  const artwork = footer.artwork;
+  const items = footer.items || [];
+  const bounds = artwork.contentBounds || {
+    x: 0,
+    y: 0,
+    width: artwork.width,
+    height: artwork.height,
+  };
+  const segmentWidth = bounds.width / items.length;
+  const topPercent = (bounds.y / artwork.height) * 100;
+  const heightPercent = (bounds.height / artwork.height) * 100;
+
+  return (
+    <nav
+      aria-label={`${footer.label} footer`}
+      className="bn-nav bn-artwork-nav"
+      data-global-bottom-nav="true"
+      data-footer-world={footer.id}
+      data-footer-artwork={artwork.src}
+      data-footer-artwork-sha256={artwork.sha256}
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        maxWidth: '100vw',
+        margin: 0,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        zIndex: BOTTOM_NAV_Z,
+        paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+        transform: 'none',
+        translate: 'none',
+        transition: 'none',
+        animation: 'none',
+      }}
+    >
+      <div
+        className="bn-artwork-stage"
+        data-footer-source-width={artwork.width}
+        data-footer-source-height={artwork.height}
+        style={{
+          ...artworkStageStyle(artwork),
+          position: 'relative',
+          minWidth: 0,
+        }}
+      >
+        <img
+          src={artwork.src}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          decoding="async"
+          className="bn-artwork-image"
+          data-exact-approved-artwork="true"
+          width={artwork.width}
+          height={artwork.height}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {items.map((item, index) => {
+          const leftPercent = ((bounds.x + segmentWidth * index) / artwork.width) * 100;
+          const widthPercent = (segmentWidth / artwork.width) * 100;
+          const active = item.href === activeHref;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              className="bn-artwork-hit-zone"
+              data-footer-control={index + 1}
+              data-footer-destination={item.href}
+              aria-label={item.title || item.label}
+              aria-current={active ? 'page' : undefined}
+              title={item.title || item.label}
+              onTouchStart={() => warm(item.href)}
+              onMouseEnter={() => warm(item.href)}
+              style={{
+                position: 'absolute',
+                left: `${leftPercent}%`,
+                top: `${topPercent}%`,
+                width: `${widthPercent}%`,
+                height: `${heightPercent}%`,
+                minHeight: 44,
+                margin: 0,
+                padding: 0,
+                border: 0,
+                background: 'transparent',
+                boxShadow: 'none',
+                textDecoration: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+              }}
+            />
+          );
+        })}
+      </div>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .bn-artwork-hit-zone:focus { outline: none; }
+            .bn-artwork-hit-zone:focus-visible {
+              outline: 2px solid rgba(255, 255, 255, .92);
+              outline-offset: -4px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .bn-artwork-nav, .bn-artwork-hit-zone { transition: none !important; }
+            }
+          `,
+        }}
+      />
+    </nav>
+  );
+}
+
 function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const router = useRouter();
   const path = router.asPath || router.pathname || '/';
@@ -211,6 +386,17 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   );
 
   const count = Number(notificationCount) || 0;
+
+  if (footer.artwork) {
+    return (
+      <ArtworkBottomNav
+        footer={footer}
+        activeHref={activeHref}
+        noSafeArea={noSafeArea}
+        warm={warm}
+      />
+    );
+  }
 
   return (
     <nav
