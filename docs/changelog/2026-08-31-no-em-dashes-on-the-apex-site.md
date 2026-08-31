@@ -38,16 +38,20 @@ Only text a person reads. Em dashes remaining in code comments and markdown are
 untouched, deliberately: no user ever sees them, and rewriting them would have
 turned a verifiable change into an unreviewable one.
 
-## Six files deliberately left alone
+## Ten files deliberately left alone
 
 `pages/api/admin/cron-health.js`, `pages/auth/mfa.js`,
-`pages/auth/reset-password.js`, `pages/claim/[token].js`, `pages/club/[id].js`
-and `pages/home-game/[code].js` still contain em dashes.
+`pages/auth/reset-password.js`, `pages/claim/[token].js`, `pages/club/[id].js`,
+`pages/home-game/[code].js`, `src/lib/poker-brain/decision-bridge.js`,
+`src/engine/CentralBus.js`, `src/hooks/useMessengerService.js` and
+`src/lib/authUtils.js` still contain em dashes, and are named in the checker's
+`SKIP_FILES` so the gate stays green and the exception stays visible.
 
 The pre-commit hook refuses any staged file containing
-`supabase.auth.getSession()`, and all six carry that call **on `origin/main`
-already** — verified, so it is pre-existing debt, not something this sweep
-introduced. Touching them for a cosmetic reason would have meant either fixing
+`supabase.auth.getSession()`, and all ten carry that call **on `origin/main`
+already** - verified file by file, so it is pre-existing auth-migration debt,
+not something this sweep introduced. Touching them for a cosmetic reason would have meant either fixing
 somebody else's auth migration inside a dash sweep, or bypassing a guard that
 exists for a reason. Neither is a trade worth making, so they are recorded here
-for whoever owns that migration.
+for whoever owns that migration. **Each entry is a debt marker, not a
+permission:** remove the line the moment its file moves off `getSession()`.
