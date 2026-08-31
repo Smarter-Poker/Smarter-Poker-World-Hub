@@ -3,6 +3,7 @@ import { Heart, PackageCheck, ShoppingCart, Store } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import useCartStore from '../../stores/cartStore';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './MarketplaceSubpageShell.module.css';
 
 const DESTINATIONS = [
@@ -44,6 +45,9 @@ export default function MarketplaceSubpageShell({
   children,
 }) {
   const bay = BAY_META[active] || BAY_META.store;
+  const copyEyebrow = marketplaceCopy(eyebrow);
+  const copyTitle = marketplaceCopy(title);
+  const copyDescription = marketplaceCopy(description);
   const routeRailRef = useRef(null);
   const activeRouteRef = useRef(null);
   const itemCount = useCartStore((state) =>
@@ -85,9 +89,9 @@ export default function MarketplaceSubpageShell({
 
       <header className={styles.commandHeader}>
         <div className={styles.headerCopy}>
-          <span className={styles.eyebrow}>{eyebrow}</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
+          <span className={styles.eyebrow}>{copyEyebrow}</span>
+          <h1>{copyTitle}</h1>
+          <p>{copyDescription}</p>
         </div>
         {actions && <div className={styles.headerActions}>{actions}</div>}
         <div

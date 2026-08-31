@@ -1,5 +1,6 @@
 import React from 'react';
 import { Gem, Shirt, Package } from 'lucide-react';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 
 export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
     const totalDiamonds = (pkg.diamonds || 0) + (pkg.bonus || 0);
@@ -56,7 +57,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     )}
                 </div>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>{pkg.name}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>{marketplaceCopy(pkg.name)}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>${(Number(pkg.price) || 0).toFixed(2)}</span>
                 <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>1<Gem size={10} color="#00D4FF" /> = $0.01</span>
@@ -82,7 +83,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
             type="button"
       onClick={() => onSelect(plan.id)}
             aria-pressed={isSelected}
-            aria-label={`Select ${plan.name}, ${plan.isDiamondCost ? `${plan.price} Diamonds` : `$${(Number(plan.price) || 0).toFixed(2)}`} Per ${plan.interval}`}
+            aria-label={`Select ${marketplaceCopy(plan.name)}, ${plan.isDiamondCost ? `${plan.price} Diamonds` : `$${(Number(plan.price) || 0).toFixed(2)}`} Per ${marketplaceCopy(plan.interval)}`}
       style={{
                 position: 'relative', borderRadius: 16, cursor: 'pointer',
         transition: 'all 0.3s ease',
@@ -93,7 +94,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                 padding: 0, color: 'inherit', textAlign: 'left', font: 'inherit',
       }}
         >
-            <img src="/images/vip-card.webp" alt={plan.name} width={1024} height={1024}
+            <img src="/images/vip-card.webp" alt={marketplaceCopy(plan.name)} width={1024} height={1024}
                 style={{ width: '100%', display: 'block', borderRadius: 14 }}
                 draggable={false} loading="lazy" />
             <div style={{
@@ -102,7 +103,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                 padding: '40px 16px 14px', borderRadius: '0 0 14px 14px',
             }}>
                 <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 14, fontWeight: 700, color: '#FFFFFF', marginBottom: 4 }}>
-                    {plan.name}
+                    {marketplaceCopy(plan.name)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                     {plan.isDiamondCost ? (
@@ -136,9 +137,9 @@ export function MerchCard({ item, onSelect }) {
                 {item.category === 'apparel' ? <Shirt size={40} color="#a8b2d1" /> : <Package size={40} color="#a8b2d1" />}
             </div>
             <div style={{ padding: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{item.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{marketplaceCopy(item.name)}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 8, lineHeight: 1.4 }}>
-                    {item.description}
+                    {marketplaceCopy(item.description)}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#00D4FF' }}>${(Number(item.price) || 0).toFixed(2)}</div>
             </div>

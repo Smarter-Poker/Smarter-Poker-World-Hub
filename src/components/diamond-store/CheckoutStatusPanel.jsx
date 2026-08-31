@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AlertTriangle, CheckCircle, Clock3, ReceiptText, X } from 'lucide-react';
 
 import styles from './CheckoutStatusPanel.module.css';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 
 const COPY = {
   verifying: {
@@ -78,13 +79,13 @@ export default function CheckoutStatusPanel({ state, onDismiss }) {
       <div className={styles.copy}>
         <span>{config.eyebrow}</span>
         <h2>{config.title}</h2>
-        <p>{state.message || config.body}</p>
+        <p>{marketplaceCopy(state.message || config.body)}</p>
         {(reference || amount || receipt?.type) && (
           <dl className={styles.receipt}>
             {receipt?.type && (
               <div>
                 <dt>Purchase</dt>
-                <dd>{String(receipt.type).replace(/-/g, ' ')}</dd>
+                <dd>{marketplaceCopy(String(receipt.type).replace(/-/g, ' '))}</dd>
               </div>
             )}
             {amount && (

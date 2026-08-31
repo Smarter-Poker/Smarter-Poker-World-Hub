@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// DIAMOND STORE STYLES — single source of truth.
+// DIAMOND STORE STYLES: single source of truth.
 // Imported by pages/hub/diamond-store.js AND the extracted tab components in
 // this directory (MerchTab, VIPTab, ClubShopTab, RewardsTab). Edit here only.
 // ═══════════════════════════════════════════════════════════════════════════

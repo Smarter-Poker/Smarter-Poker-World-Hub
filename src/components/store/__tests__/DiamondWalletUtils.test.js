@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- *  DIAMOND WALLET — Utility Function Tests (R8-I23)
+ *  DIAMOND WALLET: Utility Function Tests (R8-I23)
  *  Tests for helper functions used in DiamondWalletModal.jsx
  * ═══════════════════════════════════════════════════════════════════════════════
  */

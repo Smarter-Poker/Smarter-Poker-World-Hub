@@ -13,6 +13,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch, useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 export default function OrderHistory() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
@@ -127,7 +128,7 @@ export default function OrderHistory() {
       completed: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Completed' },
       pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
       processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
-      paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid — Review' },
+      paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid: Review' },
       shipped: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Shipped' },
       delivered: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Delivered' },
       active: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Active' },
@@ -157,7 +158,7 @@ export default function OrderHistory() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr || isNaN(Date.parse(dateStr))) return '—';
+    if (!dateStr || isNaN(Date.parse(dateStr))) return 'Not Available';
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -171,7 +172,7 @@ export default function OrderHistory() {
     return `$${((Number(cents) || 0) / 100).toFixed(2)}`;
   };
 
-  // Normalized rows carry their own currency — diamond-paid orders are not dollars
+  // Normalized rows carry their own currency: diamond-paid orders are not dollars
   const formatAmount = (amount, currency) => {
     if (currency === 'diamonds') return `${(Number(amount) || 0).toLocaleString()} Diamonds`;
     if (currency === 'chips') return `${(Number(amount) || 0).toLocaleString()} Legacy Chips`;
@@ -245,7 +246,7 @@ export default function OrderHistory() {
   return (
     <PageTransition>
       <SEOHead
-        title="Order History — Diamond Store"
+        title="Order History: Diamond Store"
         description="View Your Diamond Store Order History And Track Shipments."
         canonical="/hub/diamond-store/orders"
         noindex={true}
@@ -270,7 +271,7 @@ export default function OrderHistory() {
           ) : loadError ? (
             <div role="alert" style={styles.emptyState}>
               <h2 style={styles.emptyTitle}>Could Not Load Orders</h2>
-              <p style={styles.emptyText}>{loadError}</p>
+              <p style={styles.emptyText}>{marketplaceCopy(loadError)}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -293,7 +294,7 @@ export default function OrderHistory() {
             <div style={styles.emptyState}>
               {partialError && (
                 <div role="status" style={{ ...styles.partialNotice, marginBottom: '24px' }}>
-                  {partialError}
+                  {marketplaceCopy(partialError)}
                 </div>
               )}
               <h2 style={styles.emptyTitle}>
@@ -312,7 +313,7 @@ export default function OrderHistory() {
             <div style={styles.ordersList}>
               {partialError && (
                 <div role="status" style={styles.partialNotice}>
-                  {partialError}
+                  {marketplaceCopy(partialError)}
                 </div>
               )}
               <section aria-label="Marketplace Ledger Summary" style={styles.ledgerSummary}>
@@ -398,9 +399,9 @@ export default function OrderHistory() {
                         Order #
                         {String(order.id ?? '')
                           .slice(0, 8)
-                          .toUpperCase() || '—'}
+                          .toUpperCase() || 'Not Available'}
                       </div>
-                      <div style={styles.orderTitle}>{order.title}</div>
+                      <div style={styles.orderTitle}>{marketplaceCopy(order.title)}</div>
                       <div style={styles.orderDate}>{formatDate(order.created_at)}</div>
                     </div>
                     {getStatusBadge(order.status)}
@@ -409,7 +410,7 @@ export default function OrderHistory() {
                   <div style={styles.orderItems}>
                     {(order.items || []).map((item, idx) => (
                       <div key={idx} style={styles.orderItem}>
-                        <span style={styles.itemName}>{item.name}</span>
+                        <span style={styles.itemName}>{marketplaceCopy(item.name)}</span>
                         <span style={styles.itemQty}>x{item.quantity ?? 1}</span>
                         <span style={styles.itemPrice}>
                           {formatAmount(item.amount, item.currency)}
@@ -466,7 +467,7 @@ export default function OrderHistory() {
 
                       {(order.carrier || order.trackingNumber) && (
                         <div style={styles.trackingMeta}>
-                          {order.carrier && <span>Carrier: {order.carrier}</span>}
+                          {order.carrier && <span>Carrier: {marketplaceCopy(order.carrier)}</span>}
                           {order.trackingNumber && <span>Tracking: {order.trackingNumber}</span>}
                         </div>
                       )}

@@ -9,6 +9,7 @@
   --store-copy-muted: #a8b8c2;
   --store-void: #010306;
   --store-gold: #d7aa31;
+  text-transform: capitalize;
 }
 
 /* The storefront header is intentionally client-only because it reads cached

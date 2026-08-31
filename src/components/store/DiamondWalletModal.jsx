@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- *  DIAMOND WALLET MODAL — Transaction History Popup
+ *  DIAMOND WALLET MODAL: Transaction History Popup
  *  Opens when user clicks the diamond balance in the header
  *
  *  ENHANCEMENTS (R3):
@@ -36,7 +36,7 @@
  *  I4. Date range filter (7d, 30d, 90d, All)
  *  I5. Monthly spending/earning summary with trends
  *  I6. Transaction category donut chart (SVG)
- *  I7. Quick-amount buttons — REMOVED (manual amount entry only)
+ *  I7. Quick-amount buttons: REMOVED (manual amount entry only)
  *  I8. VIP badge on transfer recipients
  *  I10. Lucide React icons (replaces emoji icons)
  *  I11. Swipe-to-copy receipt gesture (mobile)
@@ -62,7 +62,7 @@ import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Transaction type config — Lucide icons, labels, colors (R8-I10)
+// Transaction type config: Lucide icons, labels, colors (R8-I10)
 // ─────────────────────────────────────────────────────────────────────────────
 const ICON_SIZE = 16;
 const TX_TYPES = {
@@ -145,7 +145,7 @@ const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
 //
 // The filter and the counter each hardcoded only ['diamond_gift_sent',
 // 'diamond_gift_received'], so a gift that was REFUNDED
-// ('diamond_gift_refund') vanished from the Gifts tab entirely — the user saw
+// ('diamond_gift_refund') vanished from the Gifts tab entirely: the user saw
 // the money leave and never saw it come back, which reads exactly like a lost
 // transfer. 'diamond_received' was missing for the same reason.
 const GIFT_TX_TYPES = [
@@ -164,7 +164,7 @@ const DATE_RANGE_OPTIONS = [
 ];
 
 // ── R8-I7: Quick-amount preset buttons for transfers ──
-// Quick amounts removed — users must type amounts manually
+// Quick amounts removed: users must type amounts manually
 
 // ── R8-I2: Recent recipients localStorage ──
 const RECENT_RECIPIENTS_KEY = 'sp-wallet-recent-recipients';
@@ -602,7 +602,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             // ── BALANCE-AUTHORITY: the server is the only source of truth ──
             // H4: Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance).
             // If the emitter did NOT include an authoritative value we deliberately
-            // leave the current balance alone and let the refetch below supply it —
+            // leave the current balance alone and let the refetch below supply it :
             // re-reading the localStorage header cache can be OLDER than the value
             // we already hold and would visibly roll the balance backwards.
             const fromEvent = e?.detail?.newBalance;
@@ -631,7 +631,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         const handleBusEvent = (event) => {
             // ── BUS-FIX: Skip self-originated events to prevent double-deduction ──
             // The modal only ever self-emits DIAMONDS_SPENT, so only consume the
-            // flag for that type — an external DIAMONDS_EARNED arriving first
+            // flag for that type: an external DIAMONDS_EARNED arriving first
             // must not be swallowed.
             if (skipNextBusRef.current && event?.type === EventType.DIAMONDS_SPENT) {
                 skipNextBusRef.current = false;
@@ -639,7 +639,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             }
             // ── BALANCE-AUTHORITY: prefer a server-computed balance from the
             //    payload; otherwise refetch. We deliberately do NOT do
-            //    `prev ± payload.amount` — VIP/streak multipliers and the
+            //    `prev ± payload.amount`: VIP/streak multipliers and the
             //    server-side clamping in the deduct RPC mean the delta the
             //    emitter reports is not always the delta the ledger applied,
             //    so the arithmetic drifts. We also never fall back to the
@@ -667,7 +667,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     table: 'diamond_transactions',
                     filter: `user_id=eq.${user.id}`
                 }, (payload) => {
-                    // balance_after is written by the ledger itself — authoritative
+                    // balance_after is written by the ledger itself: authoritative
                     if (payload.new && payload.new.balance_after != null) {
                         setBalance(payload.new.balance_after);
                     }
@@ -737,7 +737,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         return [...txns, ...prev.filter(t => !seen.has(t.id))];
                     });
                 } else {
-                    // ENH-3: Append for "Load More" — dedupe by id since the offset
+                    // ENH-3: Append for "Load More": dedupe by id since the offset
                     // drifts when new transactions arrive between page fetches
                     setTransactions(prev => {
                         const seen = new Set(prev.map(t => t.id));
@@ -766,7 +766,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             fetchInFlightRef.current = false;
             setLoading(false);
             setLoadingMore(false);
-            // A balance-changing event arrived while this fetch was in flight —
+            // A balance-changing event arrived while this fetch was in flight :
             // run one more first-page fetch so the newest mutation isn't missed.
             if (pendingRefetchRef.current) {
                 pendingRefetchRef.current = false;
@@ -795,7 +795,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
     }, []);
 
-    // ── ENH-D: Keyboard accessibility — Escape to close ──
+    // ── ENH-D: Keyboard accessibility: Escape to close ──
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e) => {
@@ -859,11 +859,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
     // ── H7: Send diamonds to friend ──
     const handleTransfer = useCallback(async () => {
-        // Double-submit guard — the ref is set synchronously before the POST,
+        // Double-submit guard: the ref is set synchronously before the POST,
         // closing the window where a second click lands before React re-renders
         if (transferLoading || transferInFlightRef.current) return;
         // #5 FIX: When invoked from the Confirm button, send the exact values
-        // shown in the dialog — NOT the live input, which may have been edited
+        // shown in the dialog: NOT the live input, which may have been edited
         // after the dialog opened
         const recipient = confirmTransfer ? confirmTransfer.recipient : transferRecipient;
         if (!recipient || (!confirmTransfer && !transferAmount)) return;
@@ -915,7 +915,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             try {
                 data = await res.json();
             } catch (_) {
-                // Non-JSON error page (e.g. 502 HTML) — show a clean message
+                // Non-JSON error page (e.g. 502 HTML): show a clean message
                 data = { error: `Server error ${res.status}. Please try again.` };
             }
             if (data.success) {
@@ -936,7 +936,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 // NOTE: /api/store/diamond-transfer currently returns only
                 // { success, transferred, newBalance, tier, graduated, recipientName },
                 // so these fields are absent and the progress bar below stays hidden
-                // (by design — no empty panel is rendered). The guards are kept so the
+                // (by design: no empty panel is rendered). The guards are kept so the
                 // panel lights up automatically if the API starts returning them.
                 // `limit > 0` is required because the bar divides by it.
                 const dailySent = Number(data.dailySent);
@@ -953,7 +953,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 skipNextBusRef.current = true;
                 // ── EVENTBUS: Emit diamond-spent through global bus ──
                 busEmit.diamondsSpent(amount, 'diamond-transfer');
-                // Legacy fallback — include newBalance so listeners don't fall back to stale cache
+                // Legacy fallback: include newBalance so listeners don't fall back to stale cache
                 window.dispatchEvent(new CustomEvent('diamond-balance-refresh', {
                     detail: { source: 'diamond-transfer', newBalance: serverBalance }
                 }));
@@ -1057,7 +1057,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             fetchTransactions();
         } else {
             // ── PERF-4: At least show the cached balance while loading ──
-            // BALANCE-AUTHORITY: only as a placeholder when we have nothing —
+            // BALANCE-AUTHORITY: only as a placeholder when we have nothing :
             // never let the header cache clobber a value we already got from
             // the server (or from the initialBalance prop).
             setBalance(prev => (prev === null || prev === undefined ? getCachedBalance() : prev));
@@ -1213,7 +1213,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             spentChange: lastMonthSpent > 0 ? ((thisMonthSpent - lastMonthSpent) / lastMonthSpent * 100) : 0,
         };
 
-        // R8-I6: Donut chart data — category breakdown with colors
+        // R8-I6: Donut chart data: category breakdown with colors
         const categoryColors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#ef4444', '#c4d3da', '#3b82f6', '#06b6d4'];
         const donutData = topSources.map(([name, amount], i) => ({
             label: name,
@@ -1244,7 +1244,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 }}
             />
 
-            {/* Modal — Full Screen */}
+            {/* Modal: Full Screen */}
             <div
                 role="dialog"
                 aria-modal="true"
@@ -1295,7 +1295,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: 600, margin: '0 auto', width: '100%' }}
                 >
                 {/* ═══════════════════════════════════════════════
-                     PREMIUM HEADER — Image-Backed Layout
+                     PREMIUM HEADER : Image-Backed Layout
                 ═══════════════════════════════════════════════ */}
                 <div style={{
                     position: 'relative',
@@ -1577,7 +1577,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
-                {/* H7: Diamond Transfer Panel — Type-to-search UX */}
+                {/* H7: Diamond Transfer Panel: Type-to-search UX */}
                 {showTransfer && (
                     <div style={{
                         padding: '12px 16px',
@@ -1614,7 +1614,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </div>
                             </div>
                         )}
-                        {/* Friend search + Amount — side by side on larger screens, stacked on mobile */}
+                        {/* Friend search + Amount: side by side on larger screens, stacked on mobile */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {/* Friend type-to-search input with autocomplete dropdown */}
                             <div style={{ position: 'relative' }}>
@@ -1653,7 +1653,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 ) : (
                                     /* Search input */
                                     <>
-                                        {/* R8-I2: Recent recipients — one-tap re-send chips */}
+                                        {/* R8-I2: Recent recipients: one-tap re-send chips */}
                                         {recentRecipients.length > 0 && (
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                                                 {recentRecipients.map(r => (
@@ -1709,7 +1709,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 </button>
                                             )}
                                         </div>
-                                        {/* Autocomplete dropdown — shows after 3 chars typed */}
+                                        {/* Autocomplete dropdown: shows after 3 chars typed */}
                                         {friendSearch.trim().length >= 3 && (
                                             <div style={{
                                                 position: 'absolute', left: 0, right: 0, top: '100%',
@@ -1774,7 +1774,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                  )}
                              </div>
 
-                            {/* Amount input — only shown when recipient selected */}
+                            {/* Amount input: only shown when recipient selected */}
                             {transferRecipient && (
                                 <div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.3px' }}>
@@ -1804,7 +1804,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         </div>
                                         <button
                                             onClick={handleTransfer}
-                                            /* Disabled while the confirm dialog is open — otherwise a second
+                                            /* Disabled while the confirm dialog is open: otherwise a second
                                                click on Send executes the transfer (confirmTransfer is truthy
                                                in handleTransfer) without the user ever pressing Confirm */
                                             disabled={transferLoading || !transferAmount || cooldownSeconds > 0 || !!confirmTransfer}
@@ -1941,7 +1941,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </span>
                             </div>
                         ))}
-                        {/* R8-I6: Donut Chart — Category Breakdown */}
+                        {/* R8-I6: Donut Chart: Category Breakdown */}
                         {stats.donutData?.length > 0 && (
                             <div style={{ marginTop: 12, padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category Breakdown</div>
@@ -2219,7 +2219,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             gap: 12,
                                             padding: '12px 16px',
                                         }}>
-                                            {/* Icon — R8-I10: Lucide React */}
+                                            {/* Icon: R8-I10: Lucide React */}
                                             <div style={{
                                                 width: 36, height: 36,
                                                 display: 'flex',
