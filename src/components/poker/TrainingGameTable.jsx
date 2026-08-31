@@ -49,12 +49,28 @@ function Card({ card, className = '' }) {
 }
 
 function CardBackFan({ count = 2 }) {
+  /* CARDS ARE PART OF THE THEME (Dan 2026-08-30). The felt on this table
+     already follows the player's saved Club Arena theme; the villain card
+     backs stayed hardcoded classic red, so a player running Diamond Foil saw
+     their own felt under somebody else's cards. Own subscription rather than
+     a prop: this renders per seat, well below the component holding the theme
+     state, and threading it through every seat for one image src is more edit
+     than the fix is worth. Client-only, never at SSR. */
+  const [arenaTheme, setArenaTheme] = React.useState(null);
+  React.useEffect(() => {
+    setArenaTheme(getClubArenaTheme());
+    return onClubArenaThemeChange(setArenaTheme);
+  }, []);
+  const cardBack = arenaTheme
+    ? arenaTheme.cardBackUrl
+    : '/hub/club-arena/cards/backs/table/classic_red.webp';
+
   return (
     <div className="sp-club-card-fan" aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
         <img
           key={index}
-          src="/hub/club-arena/cards/backs/table/classic_red.webp"
+          src={cardBack}
           alt=""
           style={{
             '--fan-index': index,

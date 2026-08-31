@@ -1536,6 +1536,16 @@ function UniversalDynamicTable({
     getKeyConceptReminders = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
+    /* The player's saved Club Arena theme, for the villain card backs below
+       (Dan 2026-08-30: table, background, buttons, cards locked in
+       everywhere). LoadingSkeleton holds its own copy for the felt it paints
+       while this component mounts; this one is for the live table.
+       Client-only, never at module scope or SSR. */
+    const [arenaTheme, setArenaTheme] = React.useState(null);
+    React.useEffect(() => {
+        setArenaTheme(getClubArenaTheme());
+        return onClubArenaThemeChange(setArenaTheme);
+    }, []);
     // Synchronous double-grade latch. `selectedAnswer` alone cannot guard the
     // submit path: state reads are per-render, and the timer's expiry callback
     // fires out of setTimeout(0) with the PREVIOUS render's nulls -- so an
@@ -4107,7 +4117,10 @@ function UniversalDynamicTable({
                                             {Array.from({ length: Math.max(2, heroCards.length) }, (_, ci) => (
                                                 <motion.img
                                                     key={`vc-${ci}`}
-                                                    src="/hub/club-arena/cards/backs/table/classic_red.webp"
+                                                    // Villain backs follow the player's saved
+                                                    // Club Arena theme, like the felt
+                                                    // (Dan 2026-08-30). Was hardcoded classic red.
+                                                    src={arenaTheme ? arenaTheme.cardBackUrl : '/hub/club-arena/cards/backs/table/classic_red.webp'}
                                                     alt=""
                                                     initial={reduceMotion ? false : { y: -ui(18), rotate: ci ? 14 : -14, opacity: 0 }}
                                                     animate={{
