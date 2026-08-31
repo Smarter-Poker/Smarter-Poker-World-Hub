@@ -12,6 +12,8 @@ const commander = readFileSync(
   'utf8'
 );
 const appRoot = readFileSync(join(root, 'pages/_app.js'), 'utf8');
+const headerStatsApi = readFileSync(join(root, 'pages/api/user/get-header-stats.js'), 'utf8');
+const portraitResolver = readFileSync(join(root, 'src/lib/headerPortrait.js'), 'utf8');
 
 const walk = (dir) => readdirSync(dir).flatMap((name) => {
   const path = join(dir, name);
@@ -94,20 +96,27 @@ test('World Hub header wires all approved controls and replaces the profile icon
     'Go to the Hub',
     'My Profile',
     'Diamond Wallet',
-    'VIP',
     'Messages',
     'Notifications',
   ]) {
     assert.match(header, new RegExp(`aria-label="${label}"`));
   }
+  assert.match(header, /aria-label=\{isVip \? 'VIP Membership active' : 'VIP Membership inactive'\}/);
 });
 
-test('World Hub hard-locks the live avatar as an oval inside the profile frame', () => {
+test('World Hub hard-locks the selected profile photo as a square with a thin black edge', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?width: 58%;[\s\S]*?aspect-ratio: \.78;[\s\S]*?border-radius: 50%;/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 1px solid rgba\(0, 0, 0, \.92\);[\s\S]*?border-radius: 0;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?inset: 1px !important;[\s\S]*?border-radius: 0;/);
   assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
-  assert.match(header, /contextAvatar\?\.imageUrl \|\| user\?\.avatar/);
+  assert.match(header, /object-fit: contain !important/);
+  assert.match(header, /resolveHeaderPortrait\([\s\S]*?user\?\.useAvatarAsProfilePic === true/);
+  assert.doesNotMatch(header, /contextAvatar\?\.imageUrl \|\| user\?\.avatar/);
+  assert.match(portraitResolver, /if \(useAvatarAsProfilePic\) return arenaAvatarUrl \|\| profilePhotoUrl/);
+  assert.match(portraitResolver, /return profilePhotoUrl \|\| null/);
+  assert.match(headerStatsApi, /arena_avatar_url, use_avatar_as_profile_pic/);
+  assert.match(headerStatsApi, /use_avatar_as_profile_pic: profile\.use_avatar_as_profile_pic === true/);
 });
 
 test('Commander consumes the same approved row and live profile image', () => {
@@ -115,7 +124,19 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /cmd-approved-header__avatar-slot/);
   assert.match(commander, /cmd-approved-header__avatar/);
   assert.match(commander, /src=\{profileAvatar\}/);
+  assert.match(commander, /resolveHeaderPortrait\(profilePhotoUrl, arenaAvatarUrl, useAvatarAsProfilePic\)/);
+  assert.match(commander, /object-fit: contain !important/);
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
+});
+
+test('all global header shimmer is removed and active VIP keeps a neon-white outline', () => {
+  for (const source of [header, commander]) {
+    assert.match(source, /data-vip-active=/);
+    assert.match(source, /vip--active/);
+    assert.match(source, /:not\([^)]*vip--active\)::after/);
+    assert.match(source, /inset 0 0 0 1px rgba\(255, 255, 255, \.92\)/);
+    assert.doesNotMatch(source, /shimmer/i);
+  }
 });
 
 test('all 264 Hub page modules own the shared header or inherit the app-root fallback', () => {
