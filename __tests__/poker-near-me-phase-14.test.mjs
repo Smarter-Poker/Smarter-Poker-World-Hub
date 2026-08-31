@@ -149,6 +149,13 @@ test('shared map sessions own tiles, attribution, clustering, and idempotent tea
   assert.equal(session.map.removeCalls, 1);
 });
 
+test('tour API advertises only map artwork that ships in the public build', async () => {
+  const api = await source('pages/api/poker/tours.js');
+  const artworkPaths = [...api.matchAll(/:\s*'(\/images\/tours\/[^']+)'/g)].map((match) => match[1]);
+  assert.ok(artworkPaths.length > 0);
+  await Promise.all(artworkPaths.map((path) => readFile(new URL(`public${path}`, root))));
+});
+
 test('all Poker Near Me map consumers use the shared lifecycle and presentation modules', async () => {
   const [runtime, presentation, primary, panel, planner] = await Promise.all([
     source('src/lib/poker-near-me/mapRuntime.js'),

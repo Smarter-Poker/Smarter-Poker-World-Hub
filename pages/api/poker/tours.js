@@ -45,15 +45,9 @@ const TOUR_LOGOS = {
     PAT: '/images/tours/pat.jpg',
     GCPT: '/images/tours/gcpt.jpg',
     CPPT: '/images/tours/cppt.jpg',
-    // Stationary venue series
-    VENETIAN: '/images/tours/venetian.png',
-    WYNN: '/images/tours/wynn.png',
-    BORGATA: '/images/tours/borgata.png',
-    SEMINOLE: '/images/tours/seminole.png',
-    LODGE: '/images/tours/lodge.png',
-    COMMERCE: '/images/tours/commerce.png',
-    BESTBET: '/images/tours/bestbet.png',
-    BAY_101: '/images/tours/bay101.png',
+    // Stationary venue series intentionally fall back to their compact code mark
+    // until approved local artwork exists. Never advertise a public asset path
+    // that is absent from the build: every map view would otherwise emit a 404.
 };
 
 // Build tours list from registry (authoritative source for rich data)

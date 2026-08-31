@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function expectNoOverflow(page: Page, label: string) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -15,6 +15,42 @@ function collectMapRuntimeErrors(page: Page) {
     if (message.type() === 'error' && /leaflet|map container|already initialized|removeLayer/i.test(text)) errors.push(text);
   });
   return errors;
+}
+
+async function clickTopmostDataMarker(page: Page, map: Locator) {
+  const popup = map.locator('.leaflet-popup').last();
+  const candidateGroups = [map.locator('.tour-logo-marker'), map.locator('.venue-map-marker')];
+
+  // Production venue data expands the featured-room rail above the map shortly
+  // after marker hydration. Re-scroll on every attempt so that layout shift cannot
+  // leave an otherwise valid marker outside the viewport. Tour pins are checked
+  // first because they intentionally sit above colocated venue pins.
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await map.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150);
+
+    for (const candidates of candidateGroups) {
+      const count = await candidates.count();
+      for (let index = 0; index < count; index += 1) {
+        const candidate = candidates.nth(index);
+        const isTopmost = await candidate.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          if (!rect.width || !rect.height) return false;
+          const x = rect.left + rect.width / 2;
+          const y = rect.top + rect.height / 2;
+          if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return false;
+          const hit = document.elementFromPoint(x, y);
+          return Boolean(hit && (hit === element || element.contains(hit)));
+        });
+        if (!isTopmost) continue;
+
+        await candidate.click();
+        if (await popup.isVisible()) return;
+      }
+    }
+  }
+
+  throw new Error('No unobscured venue or tour marker opened a popup');
 }
 
 test.describe('Poker Near Me phase 14 shared map foundation', () => {
@@ -34,11 +70,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
       message: 'expected live venue data to reach the shared marker layer',
     }).toBeGreaterThan(0);
 
-    const marker = map.locator('.venue-map-marker').first();
-    if (await marker.count()) {
-      await marker.click({ force: true });
+    if (await map.locator('.venue-map-marker, .tour-logo-marker').count()) {
+      await clickTopmostDataMarker(page, map);
       const popup = map.locator('.leaflet-popup').last();
-      await expect(popup).toBeVisible();
+      await expect(popup).toBeVisible({ timeout: 10_000 });
       await expect(popup.locator('.fsp-trigger')).toHaveAttribute('data-url', /^\/hub\/(?:venues|tours)\//);
       await expect(popup.locator('.directions-trigger')).toBeVisible();
     }
