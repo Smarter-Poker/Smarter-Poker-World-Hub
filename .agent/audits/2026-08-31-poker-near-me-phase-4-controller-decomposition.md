@@ -60,7 +60,17 @@ The lobby controller shrank from 3,967 to 3,728 lines and the discovery controll
 
 ## Release Closeout
 
-Pending protected PR merge and production verification. This section must be replaced with the merged revision, Vercel deployment, health result, `/commander` redirect proof, and live Phase 14/16 browser counts before the phase is declared complete.
+Phase 4 is published and production-verified:
+
+- Protected PR [#1126](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1126) auto-merged as `638889cce3cebb7020dd87247ba175425190b3c9` after the required repository gates passed.
+- Vercel production deployment `dpl_H6vmPtys6n1NP6k5cCrr9f1Se3GA` reached `READY` and promoted to `smarter.poker`.
+- `/api/health` returned HTTP 200, exact version `638889cc`, and database status `ok`; `/api/health/header` also returned HTTP 200 and `ok`.
+- Lobby, venues, map, road-trip, and series representative routes each returned HTTP 200 from the production alias.
+- `/commander` and `/commander/login` both returned HTTP 200 with zero redirects, proving the former root loop is closed without breaking the nested app.
+- Live Phase 14 and Phase 16 Playwright coverage passed 14/14 across desktop Chromium and 390x844-equivalent mobile Chrome.
+- Live visual inspection covered a 1440x1000 lobby and 390x844 map/discovery surface. The mobile document measured exactly 390 CSS pixels with zero horizontal overflow, and the shared map runtime reported `data-map-ready="true"`.
+
+No Phase 4 implementation, release, or production-verification blocker remains.
 
 ## Next Phase
 
