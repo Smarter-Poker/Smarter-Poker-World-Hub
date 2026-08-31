@@ -34,7 +34,7 @@ const SCENARIOS = [
   {
     street: 'Flop', board: 'A♠ K♦ 5♣', hero: '4♠ 3♠', position: 'BB vs BTN',
     type: 'Bluff', sizing: 'x/r to 3.5x c-bet',
-    reasoning: 'Pure bluff on AK-high board. BB defends wide, so needs bluffs in x/r range. This hand has no showdown value and backdoor straight draw. Perfect bluff candidate — you never win by calling.',
+    reasoning: 'Pure bluff on AK-high board. BB defends wide, so needs bluffs in x/r range. This hand has no showdown value and backdoor straight draw. Perfect bluff candidate - you never win by calling.',
     frequency: '40% x/r, 60% fold',
     color: '#ef4444',
     tips: ['Choose bluffs with no showdown value', 'Backdoor draws add some equity', 'AK-high boards are good for BB x/r'],
@@ -50,7 +50,7 @@ const SCENARIOS = [
   {
     street: 'Turn', board: '9♥ 7♥ 4♣ | J♦', hero: '6♥ 5♥', position: 'BB vs CO',
     type: 'Semi-Bluff', sizing: 'x/r to 2.5x turn bet',
-    reasoning: 'Open-ended straight draw + flush draw on the turn. 15 clean outs. Check-raise as a semi-bluff — massive fold equity + huge equity when called. If villain folds, great. If they call, you hit ~33% of rivers.',
+    reasoning: 'Open-ended straight draw + flush draw on the turn. 15 clean outs. Check-raise as a semi-bluff - massive fold equity + huge equity when called. If villain folds, great. If they call, you hit ~33% of rivers.',
     frequency: '75% x/r, 25% call',
     color: '#f59e0b',
     tips: ['Turn semi-bluffs are very powerful', 'You threaten an all-in river if called', 'Combo draws are the #1 turn x/r bluff'],

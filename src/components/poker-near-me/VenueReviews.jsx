@@ -473,7 +473,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                             best-effort copy written on NEW inserts, so imported
                                             and older rows never showed the badge. */}
                                         {(r.is_verified_player ?? r.metadata?.verified_player) && (
-                                            <span className="vr-verified-badge" title="Verified Player — has played at this venue">
+                                            <span className="vr-verified-badge" title="Verified Player - has played at this venue">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2">
                                                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                                                 </svg>

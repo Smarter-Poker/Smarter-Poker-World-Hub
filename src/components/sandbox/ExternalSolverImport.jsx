@@ -83,7 +83,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                 try {
                     raw = JSON.parse(rawInput);
                 } catch (e) {
-                    throw new Error('That JSON could not be parsed — check for a trailing comma or a missing quote.');
+                    throw new Error('That JSON could not be parsed - check for a trailing comma or a missing quote.');
                 }
             } else {
                 // CSV: Board, Position, Pot, Stack — stack is optional but the
@@ -137,7 +137,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
     const handleConfirm = useCallback(() => {
         if (!preview?.state) return;
         onImport?.(preview.state);
-        toast.success('Scenario loaded — use undo at the table to revert');
+        toast.success('Scenario loaded - use undo at the table to revert');
         onClose?.();
     }, [preview, onImport, onClose]);
 

@@ -62,12 +62,12 @@ function drawReportCanvas(data) {
     ctx.fillText('SMARTER.POKER', W / 2, 62);
     ctx.fillStyle = T.textMuted;
     ctx.font = font(16);
-    ctx.fillText(`Virtual Sandbox — ${scopeLabel}`, W / 2, 90);
+    ctx.fillText(`Virtual Sandbox - ${scopeLabel}`, W / 2, 90);
 
     const boxes = [
         { val: String(totalHands), label: 'HANDS', color: T.accent },
-        { val: scoredHands > 0 ? `${accuracy}%` : '—', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
-        { val: coachStreak > 0 ? String(coachStreak) : '—', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
+        { val: scoredHands > 0 ? `${accuracy}%` : '-', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
+        { val: coachStreak > 0 ? String(coachStreak) : '-', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
     ];
     const boxW = (W - 80 - 2 * 16) / 3;
     boxes.forEach((b, i) => {
@@ -133,11 +133,11 @@ function drawReportCanvas(data) {
         ctx.fillText(!scored ? '·' : entry.isCorrect ? '✓' : '✗', 40, y);
         ctx.fillStyle = T.text;
         ctx.font = font(16, '700');
-        ctx.fillText(String(entry.hand || '—'), 70, y);
+        ctx.fillText(String(entry.hand || '-'), 70, y);
         ctx.fillStyle = T.textMuted;
         ctx.font = font(15);
-        ctx.fillText(String(entry.position || '—'), 200, y);
-        wrapText(ctx, String(entry.optimalAction || '—'), 300, y, W - 340, 20, 1);
+        ctx.fillText(String(entry.position || '-'), 200, y);
+        wrapText(ctx, String(entry.optimalAction || '-'), 300, y, W - 340, 20, 1);
         y += 30;
     });
 
@@ -389,10 +389,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                             { label: 'Hands', value: String(stats.totalHands), colour: T.accent },
                             {
                                 label: 'GTO accuracy',
-                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : '—',
+                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : '-',
                                 colour: stats.scoredHands > 0 ? pctTone(stats.accuracy) : T.textMuted,
                             },
-                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : '—', colour: coachStreak > 0 ? T.warn : T.textMuted },
+                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : '-', colour: coachStreak > 0 ? T.warn : T.textMuted },
                         ].map(box => (
                             <div
                                 key={box.label}
@@ -469,10 +469,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                                             width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                                             background: !isScored ? T.textDim : entry.isCorrect ? T.success : T.danger,
                                         }} />
-                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || '—'}</span>
-                                        <span>{entry?.position || '—'}</span>
+                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || '-'}</span>
+                                        <span>{entry?.position || '-'}</span>
                                         <span style={{ marginLeft: 'auto', color: T.textDim, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {entry?.optimalAction || '—'}
+                                            {entry?.optimalAction || '-'}
                                         </span>
                                     </div>
                                 );

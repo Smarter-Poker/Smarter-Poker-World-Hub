@@ -12,8 +12,8 @@ const PATTERNS = [
     line: 'Villain bets 25-33% pot',
     icon: '·',
     color: '#f59e0b',
-    meaning: 'Often indicates: blocking bet, thin value, or weak hand trying to control pot. Rarely a strong hand — strong hands want to build pot.',
-    exploit: 'Raise frequently as a bluff. Villain is showing weakness. If they call your raise, they likely have a medium-strength hand — barrel turn.',
+    meaning: 'Often indicates: blocking bet, thin value, or weak hand trying to control pot. Rarely a strong hand - strong hands want to build pot.',
+    exploit: 'Raise frequently as a bluff. Villain is showing weakness. If they call your raise, they likely have a medium-strength hand - barrel turn.',
     examples: [
       'River min-bet → Usually blocking with showdown value',
       'Flop 25% c-bet → Wide range, many bluffs',
@@ -25,7 +25,7 @@ const PATTERNS = [
     line: 'Villain bets 125-200% pot',
     icon: '▲',
     color: '#ef4444',
-    meaning: 'Highly polarized — either the nuts or a bluff. Very few medium-strength hands take this line. Recreational players often overbet with the nuts.',
+    meaning: 'Highly polarized - either the nuts or a bluff. Very few medium-strength hands take this line. Recreational players often overbet with the nuts.',
     exploit: 'Defend with your strongest hands and best bluff-catchers. Fold medium hands. Against recs, lean toward calling less (they overbet value). Against regs, call more (they overbet bluff).',
     examples: [
       'River 150% overbet → Nuts or missed draw bluff',
@@ -52,11 +52,11 @@ const PATTERNS = [
     icon: '↻',
     color: '#3b82f6',
     meaning: 'Classic pot control or delayed value line. Checking turn suggests medium strength, then river bet could be thin value or a delayed bluff.',
-    exploit: 'If villain bets river small, call wide — likely thin value. If villain bets river big, lean toward folding — likely gave up on turn and now value-betting or bluffing polarized.',
+    exploit: 'If villain bets river small, call wide - likely thin value. If villain bets river big, lean toward folding - likely gave up on turn and now value-betting or bluffing polarized.',
     examples: [
       'C-bet flop → check turn → small river bet = thin value',
       'C-bet flop → check turn → big river bet = polarized',
-      'This line caps their range — rarely very strong',
+      'This line caps their range - rarely very strong',
     ],
   },
   {
@@ -78,7 +78,7 @@ const PATTERNS = [
     icon: '◆',
     color: '#ec4899',
     meaning: 'Almost always AA or KK. This is one of the most reliable tells in poker. Recreational players limp-raise with premium pairs to trap.',
-    exploit: 'Fold everything except QQ+ and AKs. If you have AA/KK, play for stacks. Dont try to outplay a limp-raiser — they have it.',
+    exploit: 'Fold everything except QQ+ and AKs. If you have AA/KK, play for stacks. Dont try to outplay a limp-raiser - they have it.',
     examples: [
       'Limp UTG → 3-bet over raise → AA/KK 95% of time',
       'Limp from any position → big raise = monster trap',

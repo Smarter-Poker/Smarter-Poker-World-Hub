@@ -29,7 +29,7 @@ const SECTION_COPY = {
   vip: {
     eyebrow: 'VIP Membership',
     title: 'Your Edge, Compounded.',
-    body: 'One Membership Sharpens Every Session—From Training And Table Access To Priority Support.',
+    body: 'One Membership Sharpens Every Session-From Training And Table Access To Priority Support.',
   },
   merch: {
     eyebrow: 'Smarter.Poker Merch',

@@ -65,7 +65,7 @@ export default function NewUserWelcomeModal({ isOpen, onClose, userName }) {
                     {/* The official Welcome To Smarter.Poker image */}
                     <img
                         src="/images/welcome-popup.jpg"
-                        alt="Welcome To Smarter.Poker — 500 Diamonds + 30-Day VIP Card"
+                        alt="Welcome To Smarter.Poker - 500 Diamonds + 30-Day VIP Card"
                         style={s.heroImage}
                         draggable={false}
                     />
@@ -95,7 +95,7 @@ export default function NewUserWelcomeModal({ isOpen, onClose, userName }) {
                         className="welcome-hotspot"
                         onClick={handleLetsGo}
                         style={{ ...s.hotspot, ...s.letsGoHotspot }}
-                        aria-label="Let's Go — Enter The World Hub"
+                        aria-label="Let's Go - Enter The World Hub"
                         title="Enter The World Hub"
                     />
                 </div>

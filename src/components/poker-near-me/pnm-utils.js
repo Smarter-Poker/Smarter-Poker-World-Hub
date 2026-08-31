@@ -309,7 +309,7 @@ export function getOpenStatus(venue) {
     if (!zoned) return unknownOpenStatus();
 
     // Parse "12:00pm - 4:00am" or "12pm-4am" or "10am - 2am" format
-    const timePattern = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*[-–—to]+\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
+    const timePattern = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*[---to]+\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
     const match = hoursStr.match(timePattern);
     if (!match) return null;
     

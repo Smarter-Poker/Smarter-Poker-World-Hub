@@ -304,7 +304,7 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     return (
       <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16 }}>
         <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 12px' }}>
-          Map could not load. Enter your city and state manually below — your home game will save normally.
+          Map could not load. Enter your city and state manually below - your home game will save normally.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <input type="text" placeholder="City" value={value?.city || ''}

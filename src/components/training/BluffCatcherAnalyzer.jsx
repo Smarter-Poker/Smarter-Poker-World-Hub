@@ -34,7 +34,7 @@ const SCENARIOS = [
     evCall: 8.4,
     evFold: 0,
     recommendation: 'CALL',
-    reasoning: 'Villain needs 34+ bluff combos to make folding correct. With only 21 value combos and 13 bluffs, they\'re bluffing 38% — above the 33% threshold. Second pair is a mandatory call.',
+    reasoning: 'Villain needs 34+ bluff combos to make folding correct. With only 21 value combos and 13 bluffs, they\'re bluffing 38% - above the 33% threshold. Second pair is a mandatory call.',
   },
   {
     id: 'river_pot_bet',
@@ -100,7 +100,7 @@ const SCENARIOS = [
     evCall: 15.6,
     evFold: 0,
     recommendation: 'CALL',
-    reasoning: 'Small bet means you need to defend 75% of range. With equal value/bluff combos, villain is bluffing 50% — well above the 25% threshold. Easy call with any pair.',
+    reasoning: 'Small bet means you need to defend 75% of range. With equal value/bluff combos, villain is bluffing 50% - well above the 25% threshold. Easy call with any pair.',
   },
   {
     id: 'tough_spot',
@@ -122,7 +122,7 @@ const SCENARIOS = [
     evCall: -3.1,
     evFold: 0,
     recommendation: 'CLOSE FOLD',
-    reasoning: 'Villain has 19 value vs 12 bluffs (61% value). At this sizing, they need ~41% bluffs to justify a call. With only 39% bluffs, it\'s a marginal fold — but barely.',
+    reasoning: 'Villain has 19 value vs 12 bluffs (61% value). At this sizing, they need ~41% bluffs to justify a call. With only 39% bluffs, it\'s a marginal fold - but barely.',
   },
 ];
 

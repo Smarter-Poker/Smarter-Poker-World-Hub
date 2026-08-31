@@ -44,7 +44,7 @@ function buildStakesArray(g) {
     const gameLabel = (g.default_game_type || 'NLH').toUpperCase();
     const min = g.typical_buyin_min ? `$${g.typical_buyin_min}` : '';
     const max = g.typical_buyin_max ? `$${g.typical_buyin_max}` : '';
-    const range = min && max ? `${min}–${max} Buy-In` : (min || max ? `${min || max} Buy-In` : '');
+    const range = min && max ? `${min}-${max} Buy-In` : (min || max ? `${min || max} Buy-In` : '');
     rows.push(`${gameLabel}${range ? ' · ' + range : ''}`);
   }
 

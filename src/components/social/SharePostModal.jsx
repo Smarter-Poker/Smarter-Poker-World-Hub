@@ -366,7 +366,7 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                     .then(data => {
                         if (data?.streak?.diamonds_awarded > 0) {
                             const streakDay = data.streak.streak_length;
-                            toast.success(`💎 +${data.streak.diamonds_awarded} Diamond${data.streak.diamonds_awarded > 1 ? 's' : ''} — ${streakDay}-Day Share Streak!`);
+                            toast.success(`💎 +${data.streak.diamonds_awarded} Diamond${data.streak.diamonds_awarded > 1 ? 's' : ''} - ${streakDay}-Day Share Streak!`);
                         }
                     })
                     .catch(() => {});

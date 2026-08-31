@@ -29,7 +29,7 @@ export default function CutoffStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Cutoff Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The CO is the second-most profitable seat — master it.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The CO is the second-most profitable seat - master it.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {SECTIONS.map((s, i) => (

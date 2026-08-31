@@ -76,7 +76,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
         };
 
         if (typeof setResults !== 'function') {
-            console.warn('[GodModePanel] setResults handler missing — nothing injected');
+            console.warn('[GodModePanel] setResults handler missing - nothing injected');
             onClose?.();
             return;
         }

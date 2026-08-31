@@ -290,7 +290,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
                         key={hourIndex}
                         className="bttg-hm-cell"
                         style={{ background: intensityColor(cell.intensity) }}
-                        title={`${DAY_SHORT[dayIndex]} ${hourIndex}:00 — ${cell.avg_tables} avg tables`}
+                        title={`${DAY_SHORT[dayIndex]} ${hourIndex}:00 - ${cell.avg_tables} avg tables`}
                       />
                     ))}
                   </div>

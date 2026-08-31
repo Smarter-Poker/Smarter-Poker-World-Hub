@@ -29,10 +29,10 @@ export default function PlayerQuickView({ player, isOpen, onClose, onOpenNotes, 
   if (!isOpen || !player) return null;
 
   const stats = player.stats || {};
-  const vpip = stats.vpip != null ? `${stats.vpip}%` : '—';
-  const pfr = stats.pfr != null ? `${stats.pfr}%` : '—';
+  const vpip = stats.vpip != null ? `${stats.vpip}%` : '-';
+  const pfr = stats.pfr != null ? `${stats.pfr}%` : '-';
   const hands = stats.handsPlayed || stats.hands_played || 0;
-  const winRate = stats.winRate != null ? `${stats.winRate}%` : '—';
+  const winRate = stats.winRate != null ? `${stats.winRate}%` : '-';
   const sessionPnl = stats.sessionPnl || 0;
   const pnlColor = sessionPnl > 0 ? T.green : sessionPnl < 0 ? T.red : T.dim;
   const pnlSign = sessionPnl > 0 ? '+' : '';

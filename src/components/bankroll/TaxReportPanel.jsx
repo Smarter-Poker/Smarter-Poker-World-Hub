@@ -641,7 +641,7 @@ export default function TaxReportPanel({ userId }) {
                                         </span>
                                     </div>
                                     <span style={styles.w2gAmount}>
-                                        {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '—'}
+                                        {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '-'}
                                     </span>
                                 </div>
                             ))}

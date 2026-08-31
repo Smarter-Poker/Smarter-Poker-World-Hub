@@ -31,7 +31,7 @@ function TripReport({ report, onBack }) {
                 <p style={styles.tripMeta}>
                     {trip.location_name && `${trip.location_name} · `}
                     {new Date(trip.start_date).toLocaleDateString()}
-                    {trip.end_date && ` — ${new Date(trip.end_date).toLocaleDateString()}`}
+                    {trip.end_date && ` - ${new Date(trip.end_date).toLocaleDateString()}`}
                     {trip.purpose && ` · ${trip.purpose}`}
                 </p>
             </div>

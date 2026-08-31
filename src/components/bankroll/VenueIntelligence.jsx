@@ -23,9 +23,9 @@ const GAME_TYPE_MAP = {
 
 const BUYIN_BRACKETS = [
     { label: '$1k+', min: 1000, max: Infinity },
-    { label: '$500–$999', min: 500, max: 999.99 },
-    { label: '$250–$499', min: 250, max: 499.99 },
-    { label: '$100–$249', min: 100, max: 249.99 },
+    { label: '$500-$999', min: 500, max: 999.99 },
+    { label: '$250-$499', min: 250, max: 499.99 },
+    { label: '$100-$249', min: 100, max: 249.99 },
     { label: '<$100', min: 0, max: 99.99 },
 ];
 

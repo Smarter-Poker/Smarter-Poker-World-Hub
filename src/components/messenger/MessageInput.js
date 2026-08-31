@@ -579,7 +579,7 @@ export function MessageInput({
                             fontSize: 22,
                             transition: 'transform 0.15s',
                         }}
-                        title="Tap to send 👍 — Hold for emoji picker"
+                        title="Tap to send 👍 - Hold for emoji picker"
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}>
                         👍

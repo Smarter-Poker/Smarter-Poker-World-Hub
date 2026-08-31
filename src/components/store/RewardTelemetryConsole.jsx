@@ -99,7 +99,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
         <div>
           <span className={styles.kicker}><Activity size={15} aria-hidden="true" /> Live Account Signal</span>
           <h2 id="reward-telemetry-title">Verified Reward Telemetry</h2>
-          <p>Your server-owned earning caps, streak, and multiplier—read directly from the diamond ledger.</p>
+          <p>Your server-owned earning caps, streak, and multiplier-read directly from the diamond ledger.</p>
         </div>
         <span className={styles.integrityBadge}><ShieldCheck size={16} aria-hidden="true" /> Ledger Verified</span>
       </div>

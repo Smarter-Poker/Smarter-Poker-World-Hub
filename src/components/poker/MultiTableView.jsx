@@ -591,7 +591,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
           </div>
         </div>
         <p style={{ color: T.textDim, fontSize: 12, margin: '8px 0 0' }}>
-          Total: {Number(bbjData.totalPayout || 0).toLocaleString()} — Click to dismiss
+          Total: {Number(bbjData.totalPayout || 0).toLocaleString()} - Click to dismiss
         </p>
       </div>
     </div>

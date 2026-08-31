@@ -80,7 +80,7 @@ function SourcePanel({ name, data }) {
         <StatusBadge status={data.status} />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <StatCard label="Minutes Ago" value={data.minutes_ago ?? '—'} color={statusCfg.color} />
+        <StatCard label="Minutes Ago" value={data.minutes_ago ?? '-'} color={statusCfg.color} />
         <StatCard label="Venues" value={data.venues ?? 0} />
         <StatCard label="Records" value={data.records ?? 0} />
         <StatCard label="Tables" value={data.tables_running ?? 0} color="#3fb950" />

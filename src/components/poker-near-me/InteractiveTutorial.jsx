@@ -876,15 +876,15 @@ export default function InteractiveTutorial({
  * Lobby Page Tutorial Steps (12 Pods)
  */
 export const LOBBY_TUTORIAL_STEPS = [
-  { targetId: 'pod-nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius — Sorted By Distance When GPS Is Active. Tap To Browse All 700+ Venues Across The US.', tip: 'Enable GPS For Automatic Distance Sorting And Nearby Venue Discovery.' },
+  { targetId: 'pod-nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius - Sorted By Distance When GPS Is Active. Tap To Browse All 700+ Venues Across The US.', tip: 'Enable GPS For Automatic Distance Sorting And Nearby Venue Discovery.' },
   { targetId: 'pod-homegames', title: 'Home Games', desc: 'Search For Home Games Nearby Or List Your Own Private Game For Other Players To Find. Perfect For Building Your Local Poker Network.', tip: 'Home Games Are Verified By The Community For Safety And Fairness.' },
-  { targetId: 'pod-livegames', title: 'Live Games', desc: 'See Which Games Are Likely Running — Table Activity Is Estimated From Each Room\'s Own History, Plus Live Games Reported By Players On The Ground.', tip: 'Counts Marked Estimated Are Modelled, Not Observed. Player Reports Are The Freshest Signal.' },
+  { targetId: 'pod-livegames', title: 'Live Games', desc: 'See Which Games Are Likely Running - Table Activity Is Estimated From Each Room\'s Own History, Plus Live Games Reported By Players On The Ground.', tip: 'Counts Marked Estimated Are Modelled, Not Observed. Player Reports Are The Freshest Signal.' },
   { targetId: 'pod-tours', title: 'Poker Tours', desc: 'Browse Upcoming Stops On Major Tours Like WSOP, WPT, MSPT, RGPS, And More. Never Miss A Tournament Series Near You.', tip: 'Tour Badges Are Color-Coded By Organization For Quick Identification.' },
   { targetId: 'pod-mapview', title: 'Map View', desc: 'Interactive Map Showing All Poker Venues With Filters For Game Type, Stakes, And Operating Hours. Zoom To Discover Hidden Gems.', tip: 'Tap Any Marker To See Venue Details, Live Game Counts, And Directions.' },
   { targetId: 'pod-calendar', title: 'Calendar', desc: 'Monthly View Of Upcoming Tournaments And Series In Your Area. Plan Your Poker Schedule Weeks In Advance.', tip: 'Sync With Your Saved Venues To Highlight Events At Your Favorite Rooms.' },
   { targetId: 'pod-series', title: 'Poker Series', desc: 'Multi-Day Tournament Series With Complete Schedules, Buy-In Ranges, And Guaranteed Prize Pools. Track Event Start Dates And Structures.', tip: 'Filter By Timeframe (30/60/90 Days) To Plan Ahead.' },
-  { targetId: 'pod-roadtrip', title: 'Trip Planner', desc: 'Plan A Poker Road Trip — Find Venues Along Your Route With Smart Stop Recommendations, Drive Times, And Trip Cost Estimates.', tip: 'Enter Your Start And End Cities To See All Poker Rooms Along The Way.' },
-  { targetId: 'pod-daily', title: 'Daily Grind', desc: 'Today\'s Daily Tournaments — Filtered By Day Of Week, Buy-In Range, And Distance. Your Go-To For Finding Action Tonight.', tip: 'Swipe Between Days To Plan Your Week Of Tournament Play.' },
+  { targetId: 'pod-roadtrip', title: 'Trip Planner', desc: 'Plan A Poker Road Trip - Find Venues Along Your Route With Smart Stop Recommendations, Drive Times, And Trip Cost Estimates.', tip: 'Enter Your Start And End Cities To See All Poker Rooms Along The Way.' },
+  { targetId: 'pod-daily', title: 'Daily Grind', desc: 'Today\'s Daily Tournaments - Filtered By Day Of Week, Buy-In Range, And Distance. Your Go-To For Finding Action Tonight.', tip: 'Swipe Between Days To Plan Your Week Of Tournament Play.' },
   { targetId: 'pod-favorites', title: 'Saved Venues', desc: 'Quick Access To Your Bookmarked Venues. Get Alerts When New Games Or Tournaments Appear At Venues You Follow.', tip: 'Tap The Heart Icon On Any Venue Card To Add It Here.' },
   { targetId: 'pod-social', title: 'Friends', desc: 'Connect With Poker Friends And See Who\'s Checked In Nearby. Build Your Poker Community And Coordinate Sessions.', tip: 'Link Your Smarter.Poker Friends List To See Who\'s Playing Near You.' },
   { targetId: 'pod-alerts', title: 'Tournament Alerts', desc: 'Get Notified When New Tournaments Are Posted At Venues You Follow. Never Miss Registration For A Big Event Again.', tip: 'Enable Push Notifications For Real-Time Alerts Even When The App Is Closed.' },
@@ -896,11 +896,11 @@ export const LOBBY_TUTORIAL_STEPS = [
 export const PNM_TAB_TUTORIALS = {
   venues: [
     { targetId: 'pnm-search', title: 'Search Venues', desc: 'Search By City Name, Venue Name, Or Zip Code To Find Poker Rooms. Use GPS For Automatic Nearby Discovery.', tip: 'Try Searching "Las Vegas" Or "Atlantic City" To See Results Instantly.' },
-    { targetId: 'pnm-gps', title: 'GPS Location', desc: 'Tap To Enable GPS — Venues Will Automatically Sort By Distance So You See The Closest Rooms First.', tip: 'Works On Both Mobile And Desktop. Desktop Uses WiFi Positioning.' },
+    { targetId: 'pnm-gps', title: 'GPS Location', desc: 'Tap To Enable GPS - Venues Will Automatically Sort By Distance So You See The Closest Rooms First.', tip: 'Works On Both Mobile And Desktop. Desktop Uses WiFi Positioning.' },
     { targetId: 'tab-venues', title: 'Venues Tab', desc: 'Browse All 700+ Poker Venues Across The United States. Each Card Shows Trust Scores, Game Types, And Distance From You.', tip: 'Tap Any Venue Card For Detailed Info, Reviews, And Live Game Status.' },
   ],
   events: [
-    { targetId: 'tab-events', title: 'Events Hub', desc: 'Your Central Hub For All Poker Events — Tours, Series, Daily Tournaments, And The Seasonal Calendar.', tip: 'Use The Sub-Tabs Below To Switch Between Event Types.' },
+    { targetId: 'tab-events', title: 'Events Hub', desc: 'Your Central Hub For All Poker Events - Tours, Series, Daily Tournaments, And The Seasonal Calendar.', tip: 'Use The Sub-Tabs Below To Switch Between Event Types.' },
     { targetId: 'subtab-tours', title: 'Tours', desc: 'Major Poker Tour Stops Including WSOP, WPT, MSPT, And More. See Upcoming Stops, Dates, And Host Venues.', tip: 'Tour Badges Are Color-Coded: Gold For WSOP, Red For WPT, Blue For MSPT.' },
     { targetId: 'subtab-daily', title: 'Daily Tournaments', desc: 'Filter Daily Tournaments By Day Of Week, Buy-In Range, And Game Type. Perfect For Finding Tonight\'s Action.', tip: 'Select Different Days To Plan Your Entire Tournament Week.' },
   ],
@@ -911,7 +911,7 @@ export const PNM_TAB_TUTORIALS = {
     { targetId: 'tab-map', title: 'Map View', desc: 'Interactive Map Showing All Poker Venues. Zoom, Pan, And Filter To Discover Rooms Near Any Location.', tip: 'Enable GPS To Center The Map On Your Current Location.' },
   ],
   saved: [
-    { targetId: 'tab-saved', title: 'Saved Venues', desc: 'Your Bookmarked Poker Rooms — Quick Access To The Venues You Visit Most. Tap The Heart On Any Venue To Save It Here.', tip: 'Saved Venues Sync Across Devices When You\'re Logged In.' },
+    { targetId: 'tab-saved', title: 'Saved Venues', desc: 'Your Bookmarked Poker Rooms - Quick Access To The Venues You Visit Most. Tap The Heart On Any Venue To Save It Here.', tip: 'Saved Venues Sync Across Devices When You\'re Logged In.' },
   ],
   more: [
     { targetId: 'tab-more', title: 'More Tools', desc: 'Additional Features Including Road Trip Planner, Social Connections, Tournament Alerts, And Venue Comparison Tools.', tip: 'The Road Trip Planner Is Perfect For Finding Poker Rooms Along Your Travel Route.' },

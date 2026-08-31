@@ -574,14 +574,14 @@ export function classifyBoardTexture(board) {
     const isWet = (flushPossible || isMonotone || isTwoTone) && isConnected;
 
     let label, color, textColor, strategy;
-    if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(236,72,153,0.2)'; textColor = '#f472b6'; strategy = 'Very dry — high c-bet frequency, small sizing'; }
-    else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(255,107,122,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board — reduce c-bet freq, check more with non-flush hands'; }
-    else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(255,107,122,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board — size down and check back marginal made hands'; }
-    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(255,198,109,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible — polarize bet sizing, protect strong hands'; }
-    else if (isDry) { label = 'DRY'; color = 'rgba(77,224,165,0.2)'; textColor = '#86efac'; strategy = 'Few draws — high c-bet frequency, use small sizing (25-33%)'; }
-    else if (isPaired) { label = 'PAIRED'; color = 'rgba(139,92,246,0.2)'; textColor = '#c4b5fd'; strategy = 'Paired boards favor preflop raiser — c-bet with high frequency'; }
+    if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(236,72,153,0.2)'; textColor = '#f472b6'; strategy = 'Very dry - high c-bet frequency, small sizing'; }
+    else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(255,107,122,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board - reduce c-bet freq, check more with non-flush hands'; }
+    else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(255,107,122,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board - size down and check back marginal made hands'; }
+    else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(255,198,109,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible - polarize bet sizing, protect strong hands'; }
+    else if (isDry) { label = 'DRY'; color = 'rgba(77,224,165,0.2)'; textColor = '#86efac'; strategy = 'Few draws - high c-bet frequency, use small sizing (25-33%)'; }
+    else if (isPaired) { label = 'PAIRED'; color = 'rgba(139,92,246,0.2)'; textColor = '#c4b5fd'; strategy = 'Paired boards favor preflop raiser - c-bet with high frequency'; }
     else if (isHighBoard) { label = 'HIGH CARDS'; color = 'rgba(59,130,246,0.2)'; textColor = '#93c5fd'; strategy = 'Favors the in-position or preflop aggressor range'; }
-    else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#94a3b8'; strategy = 'Standard texture — play position and range advantage'; }
+    else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#94a3b8'; strategy = 'Standard texture - play position and range advantage'; }
 
     return { label, color, textColor, strategy, isMonotone, isTwoTone, isRainbow, flushPossible, isPaired, isConnected, isDry, isWet };
 }
@@ -695,13 +695,13 @@ export function ActionHistoryBuilder({
                 </div>
             ) : (
                 <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
-                    No Actions Yet — Tap An Action Below To Build The Betting Line.
+                    No Actions Yet - Tap An Action Below To Build The Betting Line.
                 </p>
             )}
 
             {state.terminal ? (
                 <div style={{ ...pill(state.terminal === 'fold' ? 'danger' : 'warn'), width: '100%', justifyContent: 'center', minHeight: 44 }}>
-                    {state.terminal === 'fold' ? 'Hand over — someone folded' : 'All-in — no more actions'}
+                    {state.terminal === 'fold' ? 'Hand over - someone folded' : 'All-in - no more actions'}
                 </div>
             ) : (
                 <>
@@ -711,7 +711,7 @@ export function ActionHistoryBuilder({
                     </div>
                     {outOfTurn && (
                         <p style={{ fontSize: F.caption, color: T.warn, margin: `0 0 ${S.sm}px` }}>
-                            It is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;s turn — adding out of turn.
+                            It is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;s turn - adding out of turn.
                         </p>
                     )}
                     <div
@@ -1144,7 +1144,7 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     const handleNativeShare = async () => {
         try {
             if (navigator.share) {
-                await navigator.share({ title: 'GTO Analysis — Smarter.Poker', text: shareText, url: 'https://smarter.poker/hub/personal-assistant/sandbox' });
+                await navigator.share({ title: 'GTO Analysis - Smarter.Poker', text: shareText, url: 'https://smarter.poker/hub/personal-assistant/sandbox' });
             } else { handleCopy(); }
         } catch (e) { console.debug('Share cancelled'); }
     };
@@ -1324,7 +1324,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
             <div style={sectionHeader}>
                 <p style={sectionTitle}>
-                    {position} range — {rangePercent}%{hasCheck ? ' (checked through)' : ''}
+                    {position} range - {rangePercent}%{hasCheck ? ' (checked through)' : ''}
                 </p>
                 <div style={{ display: 'flex', gap: S.sm }}>
                     {['rfi', '3bet'].map(s => (
@@ -1367,7 +1367,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
             {picked && (
                 <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.sm}px 0 0` }}>
                     Selected <strong style={{ color: T.text }}>{picked}</strong>
-                    {onPickHand ? ' — loaded into the hero hand.' : '.'}
+                    {onPickHand ? ' - loaded into the hero hand.' : '.'}
                 </p>
             )}
         </div>
@@ -1477,7 +1477,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, 
                     {isCorrect ? 'Correct' : 'Incorrect'}
                 </div>
                 <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
-                    You chose <strong style={{ color: T.text }}>{userGuess}</strong> — GTO: <strong style={{ color: T.accent }}>{correctAction}</strong>
+                    You chose <strong style={{ color: T.text }}>{userGuess}</strong> - GTO: <strong style={{ color: T.accent }}>{correctAction}</strong>
                 </div>
                 {score && (
                     <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...NUM }}>
@@ -1819,7 +1819,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                 <EmptyState
                     icon={<Inbox size={24} strokeWidth={2} aria-hidden="true" />}
                     title="No hands yet"
-                    body="Run an analysis and every hand you study lands here — filterable and replayable."
+                    body="Run an analysis and every hand you study lands here - filterable and replayable."
                 />
             ) : ordered.length === 0 ? (
                 <EmptyState
@@ -1847,10 +1847,10 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: F.caption, fontWeight: 700,
                                     color: badgeColor, flexShrink: 0,
                                 }}>
-                                    {(entry.optimalAction || '—').substring(0, 4)}
+                                    {(entry.optimalAction || '-').substring(0, 4)}
                                 </span>
                                 <span style={{ flex: 1, minWidth: 0 }}>
-                                    <span style={{ display: 'block', fontSize: F.bodySm, fontWeight: 700, color: T.text }}>{entry.hand} — {entry.position}</span>
+                                    <span style={{ display: 'block', fontSize: F.bodySm, fontWeight: 700, color: T.text }}>{entry.hand} - {entry.position}</span>
                                     <span style={{ display: 'block', fontSize: F.caption, color: T.textMuted, marginTop: 2, ...NUM }}>
                                         {entry.street} · {entry.board || 'Preflop'}{entry.equity != null ? ` · ${Math.round(entry.equity)}% eq` : ''}
                                     </span>
@@ -1914,7 +1914,7 @@ export function CoachActionPicker({
             labelledBy="pa-coach-title"
             footer={(
                 <button type="button" className="pa-btn" onClick={onSkip} style={btn('ghost', { block: true })}>
-                    Skip — just show the answer
+                    Skip - just show the answer
                 </button>
             )}
         >
@@ -1946,7 +1946,7 @@ export function CoachActionPicker({
                     return (
                         <button key={a.id} type="button" className="pa-btn"
                             disabled={!isLegal}
-                            aria-label={isLegal ? a.label : `${a.label} — not legal in this spot`}
+                            aria-label={isLegal ? a.label : `${a.label} - not legal in this spot`}
                             onClick={() => { try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onPick(a.label); }}
                             style={{ ...btn(a.tone === 'danger' ? 'danger' : a.tone === 'success' ? 'success' : 'secondary', { disabled: !isLegal, block: true }), minHeight: 52, fontSize: F.body }}>
                             {a.label}
@@ -2166,7 +2166,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
             const { exportCanvas } = await import('../../lib/sandbox/exportCanvas');
             const result = await exportCanvas(canvas, `smarter-poker-hand-${Date.now()}.png`, {
                 title: 'GTO Hand Analysis',
-                text: `${heroHand?.card1 || '??'}${heroHand?.card2 || ''} — ${results.optimalAction?.label || 'analysis'}`,
+                text: `${heroHand?.card1 || '??'}${heroHand?.card2 || ''} - ${results.optimalAction?.label || 'analysis'}`,
             });
             if (result?.hint) toast.success(result.hint);
         } catch (e) {
@@ -2188,7 +2188,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
             if (!accessToken) { toast.error('Session expired. Please log in again.'); setIsPosting(false); return; }
             const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2 || ''}` : '??';
             const boardStr = shareBoardStr;
-            const content = `Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
+            const content = `Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} - ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
 
             // Attach the rendered hand image when we can produce/host one
             const imageUrl = await uploadCapture(capturedUrl || await captureCanvas());
@@ -2236,9 +2236,9 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     const handleNativeShare = async () => {
         try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const shareUrl = `${window.location.origin}/hub/personal-assistant/sandbox`;
-        const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox — GTO line: ${results.optimalAction?.label}`;
+        const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox - GTO line: ${results.optimalAction?.label}`;
         try {
-            if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Smarter.Poker', text, url: shareUrl }); }
+            if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis - Smarter.Poker', text, url: shareUrl }); }
             else { navigator.clipboard?.writeText(`${text}\n${shareUrl}`); }
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
@@ -2253,7 +2253,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
         <BottomSheet isOpen={isOpen} onClose={onClose} title="Share hand" subtitle="Image, feed post or a link" labelledBy="pa-share-hand-title">
             <div style={{ ...cardCompact, background: T.surface2, marginBottom: S.lg }}>
                 <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
-                    {heroHand?.card1 || '??'}{heroHand?.card2 || '??'} — {scenario?.position || 'BTN'}
+                    {heroHand?.card1 || '??'}{heroHand?.card2 || '??'} - {scenario?.position || 'BTN'}
                 </div>
                 <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...NUM }}>
                     GTO: <span style={{ color: T.success, fontWeight: 700 }}>{results.optimalAction?.label}</span> ({results.optimalAction?.frequency}%)
@@ -2292,13 +2292,13 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
 
 // ── Wave 3: VillainReadCard (W3-5) ──────────────────────────────────────────
 const ARCHETYPE_EXPLOITS = {
-    nit: ['Steal blinds freely vs this player', 'Fold to raises — they only 3-bet premiums', 'Bet big when they call — value bet relentlessly'],
-    tag: ['Stay balanced — they notice unbalanced lines', 'Mix your frequencies vs TAG ranges', 'Respect their raises on scary boards'],
+    nit: ['Steal blinds freely vs this player', 'Fold to raises - they only 3-bet premiums', 'Bet big when they call - value bet relentlessly'],
+    tag: ['Stay balanced - they notice unbalanced lines', 'Mix your frequencies vs TAG ranges', 'Respect their raises on scary boards'],
     lag: ['Tighten your calling range vs 3-bets', 'Let them barrel into you with top pair+', 'Float light pre-flop only in position'],
-    calling_station: ['Bet very thin for value — they call anything', 'Remove bluffs entirely from your range', 'Overbet the river with strong value hands'],
-    maniac: ['Let them hang themselves — trap with premiums', 'Call down lighter vs maniac — bluff ratio is high', 'Raise for value when they show aggression'],
-    fish: ["Max bet strong hands — they won't notice odds", "Simplify your range — fancy plays won't work", "Don't slow play big hands — they can't fold"],
-    gto_neutral: ['Play balanced GTO frequencies', 'Mixed strategies are optimal here', 'No single exploit — adapt post-flop to tendencies'],
+    calling_station: ['Bet very thin for value - they call anything', 'Remove bluffs entirely from your range', 'Overbet the river with strong value hands'],
+    maniac: ['Let them hang themselves - trap with premiums', 'Call down lighter vs maniac - bluff ratio is high', 'Raise for value when they show aggression'],
+    fish: ["Max bet strong hands - they won't notice odds", "Simplify your range - fancy plays won't work", "Don't slow play big hands - they can't fold"],
+    gto_neutral: ['Play balanced GTO frequencies', 'Mixed strategies are optimal here', 'No single exploit - adapt post-flop to tendencies'],
 };
 
 export function VillainReadCard({ villain }) {
@@ -2317,7 +2317,7 @@ export function VillainReadCard({ villain }) {
                 className="pa-btn" type="button" aria-expanded={open}
                 style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: S.sm, padding: `0 ${S.md}px`, background: 'none', border: 'none', cursor: 'pointer', color: T.purple, fontSize: F.label, fontWeight: 700, textAlign: 'left' }}>
                 <Spade size={14} strokeWidth={2} style={{ color: '#a78bfa', flexShrink: 0 }} aria-hidden="true" />
-                Villain Intel — {villain.archetype.name || archetypeId}
+                Villain Intel - {villain.archetype.name || archetypeId}
                 <span style={{ marginLeft: 'auto', display: 'inline-flex', color: T.textDim }} aria-hidden="true">
                     {open ? <ChevronUp size={18} strokeWidth={2} /> : <ChevronDown size={18} strokeWidth={2} />}
                 </span>

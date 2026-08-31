@@ -83,7 +83,7 @@ export default function DevicesModal({
             /* Use the server's wording — it is careful not to over-promise. */
             say('success', typeof json.message === 'string' && json.message
                 ? json.message
-                : 'Device removed from your list. Its sign-in stays valid until it expires — change your password to force a sign-out everywhere.');
+                : 'Device removed from your list. Its sign-in stays valid until it expires - change your password to force a sign-out everywhere.');
         } catch (err) {
             console.warn('Error revoking session:', err);
             say('error', 'We could not reach the server. Please try again.');
@@ -141,7 +141,7 @@ export default function DevicesModal({
                             No devices recorded yet
                         </p>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                            Sign-ins are only listed here once your browser has reported one. Nothing is hidden —
+                            Sign-ins are only listed here once your browser has reported one. Nothing is hidden -
                             there is simply no session history stored for this account yet.
                         </p>
                     </div>
@@ -196,7 +196,7 @@ export default function DevicesModal({
                             Remove <strong style={{ color: '#fff' }}>{revokeDeviceTarget.device_name || 'this device'}</strong> from your list?
                         </p>
                         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-                            This takes it off the list. It does not sign that device out — its existing sign-in stays
+                            This takes it off the list. It does not sign that device out - its existing sign-in stays
                             valid until it expires. To force a sign-out everywhere, change your password.
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -231,7 +231,7 @@ export default function DevicesModal({
                     </h3>
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, margin: '0 0 8px', lineHeight: 1.55 }}>
                         When you tick <em>Remember this device for 30 days</em> after entering a texted code, that
-                        browser stops asking you for a code for 30 days — at sign-in and on every gated action.
+                        browser stops asking you for a code for 30 days - at sign-in and on every gated action.
                     </p>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, margin: 0, lineHeight: 1.55 }}>
                         We cannot list those devices here: the trust is a signed cookie stored on each device, not a

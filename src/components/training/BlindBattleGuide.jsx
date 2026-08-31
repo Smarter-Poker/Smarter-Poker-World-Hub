@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 
 const SB_STRATS = [
   {
-    title: 'SB Open — Raise or Fold',
+    title: 'SB Open - Raise or Fold',
     color: '#f59e0b',
     desc: 'From the SB, you should either raise or fold. Limping is sometimes used in advanced play but open-raising is the standard GTO approach.',
     range: '~50% of hands',

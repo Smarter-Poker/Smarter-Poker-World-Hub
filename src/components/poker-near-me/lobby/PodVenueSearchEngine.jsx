@@ -339,8 +339,8 @@ const PodVenueSearchEngine = ({
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
             {/* Real counts only — show a neutral placeholder while venues load
                 instead of fabricated "700+" / "47+" figures. */}
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '-'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
           </div>
         </div>
       )}
