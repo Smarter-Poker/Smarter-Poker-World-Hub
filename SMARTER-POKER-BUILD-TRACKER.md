@@ -1531,3 +1531,19 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Preserved economics | Prices, Diamond grants and burns, Stripe and webhook settlement, inventory, entitlements, Club ownership, database schema, and deferred Printful automation are unchanged. |
 
 **Release state:** Complete and published. Pull request 1143 merged as `806f807bb2`; Vercel deployment `dpl_6Hgp4VByt7jiAkCgAms6wUpuoUiD` reached Ready and `smarter.poker` reported the matching healthy version. Verification passed 209/209 canonical Marketplace contracts, 60 applicable compiled-production desktop/mobile browser checks, the exact optimized production build with 403/403 static pages, 27/27 strict production probes, and thirteen representative live pages with zero banned long bars or new-tab targets. The live checkout-status privacy probe returned the required owner-gated 401 and private non-cacheable headers. Full evidence: `.agent/audits/2026-08-31-marketplace-completion-phase-2-purchase-assurance.md`.
+
+---
+
+## PHASE 70 — Personal Assistant Phase 3 Of 8: Unified Leak-To-Training Loop (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Canonical game handoff | Solver leaks resolve hyphen and underscore aliases only against real Training Library identifiers, preventing dead or fabricated arena routes. |
+| Training query wiring | Training Center now consumes the existing `autoLaunch`, `focus`, and `category` contracts used by Leak Finder and Sandbox. |
+| Corrective review entry | Every real leak detail exposes the existing signed, server-graded corrective review without creating a second drill system. |
+| Honest fallback | Missing or retired game identifiers become visible related-library searches instead of claiming an exact match. |
+| Durable completion UX | Done and Drill Again remain disabled during the verified schedule write, and Leak Finder keeps a visible score, interval, verification, and mastery receipt after close. |
+| Evidence boundary | Corrective mastery remains separate from empirical leak resolution; only fresh Club Arena evidence can confirm recovery. |
+| Permanent regression gate | Phase 3 unit contracts and desktop/mobile browser journeys cover canonical alias resolution, exact game launch, corrective review wiring, completion receipts, copy policy, accessibility, and overflow. |
+
+**Verification:** 110/110 Leak Engine contracts, 54/54 focused Phase 3/5/completion contracts, the exact optimized webpack production build with 403 static pages, and the complete Personal Assistant desktop/mobile browser matrix with 23 passes and two expected skips passed before release. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-3-unified-leak-training-loop.md`.

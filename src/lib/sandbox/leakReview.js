@@ -1,9 +1,9 @@
 /**
- * LEAK REVIEW — spaced-repetition scheduling brain for leak drilling
+ * LEAK REVIEW · spaced-repetition scheduling brain for leak drilling
  * ═══════════════════════════════════════════════════════════════════════════
  * PURE. DEPENDENCY-FREE. DETERMINISTIC.
  *
- *   • no React, no fetch, no storage, no `Date.now()` inside the maths —
+ *   • no React, no fetch, no storage, no `Date.now()` inside the maths ·
  *     every function that needs "now" takes it as an explicit argument so the
  *     tests (and the server) can pin the clock.
  *   • no imports at all, so this file can be unit-tested by `node --test`
@@ -13,7 +13,7 @@
  * A leak is not a flashcard:
  *
  *  1. A flashcard is "known" when you recall it. A leak is *re-detected from
- *     real play* — the Leak Finder re-runs over new hands and can tell you the
+ *     real play* · the Leak Finder re-runs over new hands and can tell you the
  *     leak is still bleeding even after a perfect drill. So drilling right once
  *     must NOT push the card weeks away: `MAX_INTERVAL_DAYS` caps every
  *     interval at ~3 weeks, because beyond that reality has moved on and
@@ -22,14 +22,14 @@
  *     due on the same day are not equal: the expensive one goes first.
  *     Ordering therefore is overdue-first, then EV impact (see `dueQueue`).
  *  3. Drill sessions vary in length. A 2-spot session is weak evidence, so
- *     interval growth is weighted by session size (`sessionWeight`) — you
+ *     interval growth is weighted by session size (`sessionWeight`) · you
  *     cannot buy a 3-week interval with two lucky clicks.
  *  4. Failure is cheap to fix and expensive to ignore, so failure resets HARD
  *     (back to 1 day, reps zeroed) rather than SM-2's gentler decay.
  *
  * EVERY function here is hostile-input tolerant: a NaN interval, a null date,
  * a string where a number belongs, a record for a leak that has since vanished
- * — none of it throws, and nothing ever returns Infinity or NaN. Everything is
+ * · none of it throws, and nothing ever returns Infinity or NaN. Everything is
  * clamped. That is deliberate: this data round-trips through localStorage and
  * a Supabase JSON column, both of which can hand back garbage.
  */
@@ -42,10 +42,10 @@
  * Bump this whenever the persisted record shape changes, and teach
  * `migrateRecord()` how to climb from the previous version.
  *
- *   v1 — the unversioned prototype shape (no `v` key) that used SM-2 field
+ *   v1 · the unversioned prototype shape (no `v` key) that used SM-2 field
  *        names: { interval, easiness, due | nextReview, repetitions }.
- *   v2 — explicit *Days / *At suffixes, strongStreak, retired, bounded history.
- *   v3 — reviewId on history entries, making completion retries idempotent.
+ *   v2 · explicit *Days / *At suffixes, strongStreak, retired, bounded history.
+ *   v3 · reviewId on history entries, making completion retries idempotent.
  */
 export const SCHEMA_VERSION = 3;
 
@@ -79,7 +79,7 @@ const DAY_MS = 86400000;
 const MAX_TIME_MS = 8.64e15;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SMALL SAFE HELPERS — every one of these exists because a real record broke
+// SMALL SAFE HELPERS · every one of these exists because a real record broke
 // something. None of them throw.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -100,7 +100,7 @@ function int(value, fallback, lo, hi) {
     return clamp(Number.isFinite(n) ? n : fallback, lo, hi);
 }
 
-/** Round to one decimal — keeps intervals stable across re-serialisation. */
+/** Round to one decimal · keeps intervals stable across re-serialisation. */
 function round1(value) {
     const n = num(value, 0);
     return Math.round(n * 10) / 10;
@@ -175,18 +175,18 @@ function isPlainRecordish(value) {
 // `new URLSearchParams(customParams)` and hits
 // GET /api/sandbox/custom-drill?street=&position=&limit=
 //
-//   street   — 'Any' | 'Preflop' | 'Flop' | 'Turn' | 'River'
+//   street   · 'Any' | 'Preflop' | 'Flop' | 'Turn' | 'River'
 //              (the route does `ilike 'value%'` on metadata->>street and skips
-//              the filter entirely for 'Any', so case does not matter — but we
+//              the filter entirely for 'Any', so case does not matter · but we
 //              emit the same Title-case vocabulary CustomDrillBuilder uses.)
-//   position — 'Any' | 'UTG' | 'MP' | 'CO' | 'BTN' | 'SB' | 'BB'
+//   position · 'Any' | 'UTG' | 'MP' | 'CO' | 'BTN' | 'SB' | 'BB'
 //              (matches sandbox.js POSITIONS / stored metadata->>hero_position;
 //              'EP' and 'HJ' match nothing in the pool, so we never emit them.)
-//   limit    — 1..20 (the route clamps to 20; QuickSpotDrill clamps again).
-//   game     — optional canonical Training Arena game id for solver leaks.
+//   limit    · 1..20 (the route clamps to 20; QuickSpotDrill clamps again).
+//   game     · optional canonical Training Arena game id for solver leaks.
 //
 // Only these keys are emitted. URLSearchParams stringifies undefined as
-// the literal "undefined", which would filter the pool down to nothing — so no
+// the literal "undefined", which would filter the pool down to nothing · so no
 // key is ever emitted with a non-string-safe value.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -212,7 +212,7 @@ const POSITION_ALIASES = [
 
 /**
  * Canonical street for a free-text hint ('flop', 'turn_barrel_too_rare',
- * 'MP vs C-Bet - Single Raised Pots'). Returns null when nothing matches —
+ * 'MP vs C-Bet - Single Raised Pots'). Returns null when nothing matches ·
  * callers must not invent a street.
  */
 export function streetFromHint(hint) {
@@ -238,7 +238,7 @@ export function streetFromHint(hint) {
  * "HERO vs VILLAIN", so the EARLIEST match in the string wins.
  * Returns null (never a guess) when no known position is named. Positions that
  * exist in poker but not in the question pool's vocabulary (HJ, LJ, EP) are
- * deliberately unmapped — emitting them would filter the pool to zero rows.
+ * deliberately unmapped · emitting them would filter the pool to zero rows.
  */
 export function positionFromHint(hint) {
     const raw = str(hint);
@@ -273,7 +273,7 @@ export function positionFromHint(hint) {
     return best;
 }
 
-/** evLossBB × occurrenceCount — the honest price of a leak, in big blinds. */
+/** evLossBB × occurrenceCount · the honest price of a leak, in big blinds. */
 export function evImpact(leak) {
     if (!isPlainRecordish(leak)) return 0;
     const ev = Math.abs(clamp(num(leak.evLossBB, 0), -1000, 1000));
@@ -302,7 +302,7 @@ export function drillLength(leak) {
  *   2. leak.leakCategory      ('preflop' | 'flop' | 'turn' | 'river')
  *   3. leak.leakType          ('turn_barrel_too_rare', 'lack_of_river_bluffs')
  *   4. leak.situationClass    ('BB vs River Bet in Single Raised Pots')
- * Returns null when none of them names a street — a fabricated drill sends the
+ * Returns null when none of them names a street · a fabricated drill sends the
  * user to spots that have nothing to do with their leak, which is worse than
  * no button at all.
  */
@@ -332,10 +332,35 @@ export function leakToDrill(leak) {
     const source = str(leak.sourceSystem || leak.source_system).trim().toLowerCase();
     const game = str(leak.recommendedDrill || leak.recommended_drill).trim().toLowerCase();
     if (['solver_engine', 'training_solver'].includes(source)
-        && /^[a-z0-9][a-z0-9-]{1,64}$/.test(game)) {
+        && /^[a-z0-9][a-z0-9_-]{1,64}$/.test(game)) {
         drill.game = game;
     }
     return drill;
+}
+
+/**
+ * Resolve The Exact Training Library Game Carried By A Solver Leak.
+ *
+ * The Detector Stores Game Identifiers In Both Hyphenated And Underscored
+ * Forms. The Training Library Uses One Canonical Identifier. A Caller Must
+ * Supply The Library Identifiers It Can Actually Launch, So A Historical Or
+ * Malformed Recommendation Can Never Become A Dead Arena Route.
+ */
+export function leakToTrainingGame(leak, availableGameIds = []) {
+    const drill = leakToDrill(leak);
+    if (!drill?.game || !Array.isArray(availableGameIds)) return null;
+
+    const requested = str(drill.game).trim().toLowerCase();
+    if (!requested) return null;
+    const aliases = new Set([requested, requested.replace(/_/g, '-'), requested.replace(/-/g, '_')]);
+    for (const candidate of availableGameIds) {
+        const gameId = str(candidate).trim().toLowerCase();
+        if (!gameId) continue;
+        if (aliases.has(gameId) || aliases.has(gameId.replace(/_/g, '-')) || aliases.has(gameId.replace(/-/g, '_'))) {
+            return gameId;
+        }
+    }
+    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -352,7 +377,7 @@ function blankRecord(leakId, nowMs, leakType) {
         lapses: 0,
         ease: DEFAULT_EASE,
         intervalDays: 0,
-        // A freshly detected leak is due NOW — the whole point of the feature
+        // A freshly detected leak is due NOW · the whole point of the feature
         // is that detection creates work today, not next week.
         dueAt: at,
         createdAt: at,
@@ -383,7 +408,7 @@ function normaliseHistoryEntry(entry) {
 /**
  * Coerce ANY persisted blob into a valid current-version record.
  * Returns null only for things that are not records at all (null, arrays,
- * strings, numbers) — everything else is repaired rather than rejected, so a
+ * strings, numbers) · everything else is repaired rather than rejected, so a
  * single corrupt field can never make a user's whole queue disappear.
  */
 export function migrateRecord(raw) {
@@ -432,7 +457,7 @@ export function migrateRecord(raw) {
             history,
         };
     } catch (e) {
-        // Hostile object (throwing getter, exotic proxy) — drop it rather than
+        // Hostile object (throwing getter, exotic proxy) · drop it rather than
         // taking the caller down with it.
         return null;
     }
@@ -501,13 +526,13 @@ function nextInterval(prevInterval, reps, ease, band, weight) {
         return FIRST_INTERVAL_DAYS;
     }
     if (band === 'shaky') {
-        // Half the interval, floor at one day — partial credit is not progress.
+        // Half the interval, floor at one day · partial credit is not progress.
         return Math.max(MIN_INTERVAL_DAYS, prevInterval / 2);
     }
     if (reps <= 0) return FIRST_INTERVAL_DAYS;
     if (reps === 1) return SECOND_INTERVAL_DAYS;
 
-    // 'pass' grows on a damped ease — 60-84% means "not fixed, just not awful".
+    // 'pass' grows on a damped ease · 60-84% means "not fixed, just not awful".
     const effectiveEase = band === 'strong' ? ease : 1 + (ease - 1) * 0.6;
     const growth = 1 + (effectiveEase - 1) * weight;
     return Math.max(prevInterval, MIN_INTERVAL_DAYS) * growth;
@@ -521,7 +546,7 @@ function nextInterval(prevInterval, reps, ease, band, weight) {
  * @param {object} outcome { correct, total, evDelta? }
  *        evDelta is the change in this leak's measured EV cost (bb) since the
  *        last review: NEGATIVE means the leak is costing less, i.e. real play
- *        agrees the drilling worked. It nudges ease within a tight bound — it
+ *        agrees the drilling worked. It nudges ease within a tight bound · it
  *        is corroborating evidence, never the primary signal (a single session
  *        of hands is far too noisy to drive the schedule on its own).
  * @param {Date|number|string} now
@@ -578,7 +603,7 @@ export function gradeReview(record, outcome, now) {
     // ── retirement ────────────────────────────────────────────────────────
     // Provisional only: RETIRE_AFTER_STRONG strong sessions in a row AND the
     // interval already at the cap. `dueQueue` un-retires a leak the moment
-    // detection sees it again in real hands — reality outranks the scheduler.
+    // detection sees it again in real hands · reality outranks the scheduler.
     const retired = strongStreak >= RETIRE_AFTER_STRONG && intervalDays >= MAX_INTERVAL_DAYS;
 
     const entry = normaliseHistoryEntry({
@@ -616,7 +641,7 @@ export function gradeReview(record, outcome, now) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * A retired card is not due. A card with an UNREADABLE due date IS due —
+ * A retired card is not due. A card with an UNREADABLE due date IS due ·
  * surfacing it lets the next grade repair it, whereas hiding it strands the
  * leak forever. An unreadable `now` returns false (we cannot honestly claim
  * anything is due without a clock).
@@ -663,19 +688,19 @@ function isReviewableLeak(leak) {
  *
  * ORDERING (documented because it is a product decision, not a detail):
  *   1. OVERDUE FIRST, bucketed to whole days. Something you were meant to drill
- *      five days ago outranks today's work. Bucketing to whole days — rather
- *      than raw milliseconds — is what makes rule 2 matter: without it, an
+ *      five days ago outranks today's work. Bucketing to whole days · rather
+ *      than raw milliseconds · is what makes rule 2 matter: without it, an
  *      arbitrary one-second difference in due timestamps would decide every
  *      comparison and EV would never break a tie.
  *   2. Then EV IMPACT (evLossBB × occurrenceCount) descending, so the leak that
  *      is costing the user the most money is the one they see first.
- *   3. Then leak id ascending — purely so the output is deterministic.
+ *   3. Then leak id ascending · purely so the output is deterministic.
  *
  * Also, deliberately:
  *   • a leak with NO record yet is included and treated as due today, so the
  *     day the Leak Finder detects something the user has work waiting;
  *   • a record whose leak has vanished (deleted, filtered out, never loaded) is
- *     silently dropped — we iterate leaks, not records;
+ *     silently dropped · we iterate leaks, not records;
  *   • a RETIRED card whose leak has been re-detected since the last review is
  *     revived (`revived: true`), because detection re-running over real hands
  *     is stronger evidence than the scheduler's optimism.
@@ -742,7 +767,7 @@ export function dueQueueAll(records, leaks, now) {
 }
 
 /**
- * The same queue, capped at MAX_QUEUE — the shape every UI renders.
+ * The same queue, capped at MAX_QUEUE · the shape every UI renders.
  *
  * Callers that need to say how much work exists in total (rather than how much
  * fits in one session) should read `dueQueueAll(...).length` instead of
@@ -759,16 +784,16 @@ export function dueQueue(records, leaks, now) {
 /**
  * Header numbers for the review UI.
  *
- *   dueCount    — non-retired records due at `now` (records only; brand-new
+ *   dueCount    · non-retired records due at `now` (records only; brand-new
  *                 leaks with no record are counted by `dueQueue`, which is the
  *                 surface that knows about leaks).
- *   nextDueAt   — earliest strictly-FUTURE due date, so an empty queue can say
+ *   nextDueAt   · earliest strictly-FUTURE due date, so an empty queue can say
  *                 "next review Thursday". null when nothing is scheduled ahead.
- *   streak      — consecutive UTC days with at least one graded review, counted
+ *   streak      · consecutive UTC days with at least one graded review, counted
  *                 back from today. Reviewing yesterday but not yet today keeps
  *                 the streak alive (it only breaks once a whole day is missed),
  *                 which is the behaviour every streak product uses.
- *   retiredCount — leaks that have gone quiet.
+ *   retiredCount · leaks that have gone quiet.
  */
 export function reviewStats(records, now) {
     const nowMs = toMs(now);
@@ -828,11 +853,11 @@ export function reviewStats(records, now) {
 
 /**
  * How far a leak is from provisional mastery, derived ONLY from graded drill
- * outcomes already in the record — never estimated, never fabricated.
+ * outcomes already in the record · never estimated, never fabricated.
  *
  * The scheduler's actual retirement condition is: interval at MAX_INTERVAL_DAYS
  * AND strongStreak >= RETIRE_AFTER_STRONG. Progress mirrors that condition
- * directly: 75% of the bar is interval growth (the long haul — weeks of spaced
+ * directly: 75% of the bar is interval growth (the long haul · weeks of spaced
  * repetition), 25% is the strong-session streak at the cap (the finishing
  * move). 100% is therefore reachable only via `retired`, exactly like the
  * schedule itself.
@@ -840,7 +865,7 @@ export function reviewStats(records, now) {
  * `trend` compares the latest session's score with the mean of up to three
  * sessions before it: 'improving' | 'steady' | 'slipping', or null when there
  * are fewer than two graded sessions (one data point has no direction). A
- * latest-session fail is always 'slipping' — the interval just hard-reset,
+ * latest-session fail is always 'slipping' · the interval just hard-reset,
  * and a bar that says otherwise would be lying.
  *
  * Pure and deterministic: same record in, same answer out. No clock.
