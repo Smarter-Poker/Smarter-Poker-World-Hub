@@ -184,8 +184,9 @@ test('the recurring sweep exists, is Open Claw scheduled, and fails loudly', () 
     assert.match(SWEEP_ROUTE, /status\(500\)/);
     assert.match(SWEEP_ROUTE, /validateCronAuth/);
 
-    // CLAUDE.md section 11: Open Claw, never vercel.json.
-    assert.match(DISPATCHER, /'\/api\/cron\/waitlist-sweep',\s*dict\(minute='\*\/10'\)\)/);
+    // CLAUDE.md section 11: Open Claw, never vercel.json. The sweep advances
+    // the queue behind a 60-second exclusive hold, so it must run every minute.
+    assert.match(DISPATCHER, /'\/api\/cron\/waitlist-sweep',\s*dict\(minute='\*'\)\)/);
     const vercel = JSON.parse(read('vercel.json'));
     const crons = vercel.crons || [];
     assert.ok(
