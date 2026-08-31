@@ -19,6 +19,7 @@ if (process.env.TRAINING_AUDIT_VERBOSE !== '1') console.debug = () => {};
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const Module = require('module');
 const babel = require('@babel/core');
 const sucrase = require('sucrase');
@@ -81,6 +82,101 @@ const PAGE_SIZE = 250;
 const FALLBACK_QUESTION_COUNT = 4;
 const CACHE_READ_CONCURRENCY = Math.max(1, Number(process.env.TRAINING_AUDIT_DB_CONCURRENCY || 3));
 const CACHE_READ_ATTEMPTS = 4;
+const OUTPUT_PATH = process.env.TRAINING_AUDIT_OUTPUT
+    ? path.resolve(process.env.TRAINING_AUDIT_OUTPUT)
+    : null;
+const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
+const VERIFIED_SOLVER_SOURCES = new Set([
+    'DETERMINISTIC_SOLVER',
+    'local_solver_ranges',
+    'PIO_DATABASE',
+    'PIO',
+    'CHART',
+]);
+
+function fingerprintQuestion(question) {
+    const payload = {
+        id: question?.id || null,
+        question: question?.question || question?.text || null,
+        scenario: question?.scenario || null,
+        heroCards: question?.heroCards || null,
+        boardCards: question?.boardCards || null,
+        options: question?.options || null,
+        correctAnswer: question?.correctAnswer || null,
+        explanation: question?.explanation || null,
+        source: question?.source || null,
+    };
+    return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+function minimumRaiseIsLegal(question) {
+    const scenario = question?.scenario || {};
+    const options = Array.isArray(question?.options) ? question.options : [];
+    const nonAllInRaises = options.filter((option) => (
+        /\braise\b|\b[2-9]-bet\b/i.test(String(option?.text || ''))
+        && !/all[- ]?in|shove|jam/i.test(String(option?.text || ''))
+    ));
+
+    for (const option of nonAllInRaises) {
+        const label = String(option?.text || '');
+        const multiplier = label.match(/\b(?:raise\s+to\s+)?(\d+(?:\.\d+)?)x\b/i);
+        if (multiplier && Number(multiplier[1]) < 2) return false;
+
+        const raiseToBB = label.match(/\b(?:raise|[2-9]-bet)\s+to\s+(\d+(?:\.\d+)?)\s*bb\b/i);
+        const facingBet = Number(scenario.villainBet);
+        if (raiseToBB && Number.isFinite(facingBet) && facingBet > 0) {
+            // With no intervening raise encoded, the minimum legal total is
+            // twice the opponent's bet. More complex preflop sequences are
+            // validated by the response-depth contract instead.
+            if (Number(raiseToBB[1]) + 1e-9 < facingBet * 2) return false;
+        }
+    }
+    return true;
+}
+
+function truthChecks(question, metadata) {
+    const scenario = question?.scenario || {};
+    const prompt = String(question?.question || question?.text || '').trim();
+    const explanation = String(question?.explanation || '').trim();
+    const heroCards = Array.isArray(question?.heroCards) ? question.heroCards : [];
+    const boardCards = Array.isArray(question?.boardCards) ? question.boardCards : [];
+    const allCards = [...heroCards, ...boardCards].map((card) => String(card));
+    const street = String(scenario.street || question?.street || '').toLowerCase();
+    const expectedBoardCards = { preflop: 0, flop: 3, turn: 4, river: 5 }[street];
+    const psychology = scenario.isPsychology === true
+        || String(question?.source || '').toUpperCase() === 'PSYCHOLOGY_BANK'
+        || metadata.sourceOfTruth === 'SCENARIO';
+    const frequencies = question?.gtoFrequencies || question?.frequencies
+        || Object.fromEntries((question?.options || []).map((option) => [option?.id, option?.frequency]));
+    const frequencyValues = Object.values(frequencies || {}).map(Number).filter(Number.isFinite);
+    const solverClaim = /\b(?:according to gto|gto mixes|gto solver|solver picks|nash equilibrium|solver[- ]exact|pure\s+[a-z-]+\s*\(\d+%)/i
+        .test(`${prompt} ${explanation}`);
+    const verifiedSource = VERIFIED_SOLVER_SOURCES.has(String(question?.source || ''))
+        || question?.solverProvenance?.verified === true
+        || String(metadata.engineType || '').toUpperCase() === 'CHART';
+    const numericScenarioValues = [scenario.pot, scenario.potSize, scenario.heroStack, scenario.stackDepth, scenario.effectiveStack]
+        .filter((value) => value !== undefined && value !== null && value !== '')
+        .map(Number);
+
+    return {
+        promptMeaningful: prompt.length >= 12,
+        explanationMeaningful: explanation.length >= 24,
+        cardsValid: psychology || allCards.length === 0 || allCards.every((card) => CARD_RE.test(card)),
+        cardsUnique: psychology || new Set(allCards.map((card) => card.toLowerCase())).size === allCards.length,
+        boardMatchesStreet: psychology || expectedBoardCards === undefined || boardCards.length === expectedBoardCards,
+        numericStatePositive: psychology || numericScenarioValues.every((value) => Number.isFinite(value) && value > 0),
+        positionsDistinct: !scenario.heroPosition || !scenario.villainPosition
+            || String(scenario.heroPosition).toUpperCase() !== String(scenario.villainPosition).toUpperCase(),
+        minimumRaiseLegal: minimumRaiseIsLegal(question),
+        noAmbiguousOpen: !/\b(?:button|btn|small blind|sb|big blind|bb|cutoff|co|hijack|hj|under the gun|utg|middle position|mp)\s+opens\b/i.test(prompt),
+        solverProvenanceHonest: !solverClaim || (
+            verifiedSource
+            && frequencyValues.length > 0
+            && frequencyValues.some((value) => value > 0)
+            && String(question?.dataQuality || '').toUpperCase() !== 'SIMULATED'
+        ),
+    };
+}
 
 const AUDIT_TABLE_COLUMNS = {
     training_question_cache: new Set([
@@ -295,6 +391,7 @@ async function main() {
     } = await import(path.join(ROOT, 'src/lib/training/cacheContract.mjs'));
     const {
         enforceTrainingQuestionContract,
+        getDecisionType,
         validateTrainingQuestion,
     } = await import(path.join(ROOT, 'src/lib/training/questionContract.mjs'));
 
@@ -316,6 +413,8 @@ async function main() {
         }
 
     const failures = [];
+    const cells = [];
+    const questions = [];
     const totals = {
         games: TRAINING_LIBRARY.length,
         levels: 12,
@@ -325,16 +424,50 @@ async function main() {
         cacheRowsChecked: 0,
         generatedQuestionsChecked: 0,
         incompatibleRowsRejected: 0,
+        chronologyRepairs: 0,
+        truthAssertions: 0,
     };
 
-    const validate = (question, label) => {
+    const validate = (question, label, metadata) => {
         const contracted = enforceTrainingQuestionContract(structuredClone(question));
         const result = validateTrainingQuestion(contracted);
+        const checks = truthChecks(contracted, metadata);
+        const failedTruthChecks = Object.entries(checks)
+            .filter(([, passed]) => !passed)
+            .map(([name]) => name);
+        const rawAction = String(question?.scenario?.action || '');
+        const servedAction = String(contracted?.scenario?.action || '');
+        const chronologyRepaired = rawAction !== servedAction;
+        if (chronologyRepaired) totals.chronologyRepairs++;
+        totals.truthAssertions += Object.keys(checks).length;
+
+        // Compact positional rows keep the authoritative per-question ledger
+        // reviewable in git. `questionFields` in the report is the schema.
+        questions.push([
+            metadata.gameId,
+            metadata.level,
+            metadata.origin,
+            metadata.engineType || null,
+            metadata.sourceOfTruth || null,
+            metadata.questionId || question?.id || null,
+            fingerprintQuestion(contracted),
+            contracted?.scenario?.street || contracted?.street || null,
+            getDecisionType(contracted),
+            Array.isArray(contracted?.options) ? contracted.options.length : 0,
+            contracted?.source || null,
+            chronologyRepaired,
+            result.valid && failedTruthChecks.length === 0,
+            [...result.issues, ...failedTruthChecks.map((name) => `Truth check failed: ${name}.`)],
+        ]);
         if (!result.valid) {
             const optionSummary = (contracted?.options || [])
                 .map((option) => `${option?.id || 'missing-id'}=${option?.text || 'missing-text'}`)
                 .join(' ; ');
             failures.push(`${label}: ${result.issues.join(' | ')} [${optionSummary}]`);
+            return false;
+        }
+        if (failedTruthChecks.length > 0) {
+            failures.push(`${label}: truth checks failed: ${failedTruthChecks.join(', ')}`);
             return false;
         }
         return true;
@@ -351,12 +484,33 @@ async function main() {
             const rawRows = grouped.get(key) || [];
             const compatibleRows = filterCachedRowsForGame(rawRows, pioConfig);
             totals.incompatibleRowsRejected += rawRows.length - compatibleRows.length;
+            const cell = {
+                gameId: game.id,
+                title: game.title,
+                category: game.category,
+                level,
+                configuredSourceOfTruth: pioConfig?.sourceOfTruth || gameConfig?.engine || null,
+                rawCacheRows: rawRows.length,
+                compatibleCacheRows: compatibleRows.length,
+                incompatibleRowsRejected: rawRows.length - compatibleRows.length,
+                runtimeSource: compatibleRows.length > 0 ? 'cache' : 'engine',
+                questionsChecked: 0,
+            };
+            cells.push(cell);
 
             if (compatibleRows.length > 0) {
                 totals.cacheBackedCells++;
                 for (const row of compatibleRows) {
                     totals.cacheRowsChecked++;
-                    validate(row.question_data, `${key} cache ${row.question_id || row.id}`);
+                    cell.questionsChecked++;
+                    validate(row.question_data, `${key} cache ${row.question_id || row.id}`, {
+                        gameId: game.id,
+                        level,
+                        origin: 'cache',
+                        engineType: row.engine_type,
+                        sourceOfTruth: pioConfig?.sourceOfTruth || gameConfig?.engine,
+                        questionId: row.question_id || row.id,
+                    });
                 }
                 continue;
             }
@@ -387,17 +541,47 @@ async function main() {
             }
             for (const question of batch) {
                 totals.generatedQuestionsChecked++;
-                validate(question, `${key} generated ${question?.id || 'unknown'}`);
+                cell.questionsChecked++;
+                validate(question, `${key} generated ${question?.id || 'unknown'}`, {
+                    gameId: game.id,
+                    level,
+                    origin: 'generated',
+                    engineType: pioConfig?.sourceOfTruth || gameConfig?.engine,
+                    sourceOfTruth: pioConfig?.sourceOfTruth || gameConfig?.engine,
+                    questionId: question?.id,
+                });
             }
         }
     }
 
-        console.log(JSON.stringify({
+        const report = {
+            schemaVersion: 1,
+            generatedAt: new Date().toISOString(),
             success: failures.length === 0,
             databaseSource: database.source,
             totals,
+            cells,
+            truthCheckNames: Object.keys(truthChecks({}, {})),
+            questionFields: [
+                'gameId', 'level', 'origin', 'engineType', 'sourceOfTruth',
+                'questionId', 'fingerprint', 'street', 'decisionType',
+                'answerCount', 'source', 'chronologyRepaired', 'valid', 'issues',
+            ],
+            questions,
             failures: failures.slice(0, 100),
             omittedFailureCount: Math.max(0, failures.length - 100),
+        };
+        if (OUTPUT_PATH) {
+            fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+            fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+        }
+        console.log(JSON.stringify({
+            success: report.success,
+            databaseSource: report.databaseSource,
+            outputPath: OUTPUT_PATH,
+            totals: report.totals,
+            failures: report.failures,
+            omittedFailureCount: report.omittedFailureCount,
         }, null, 2));
         process.exitCode = failures.length === 0 ? 0 : 1;
     } finally {

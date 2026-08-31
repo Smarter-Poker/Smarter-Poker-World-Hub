@@ -667,25 +667,6 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       contentType: 'application/json',
       body: JSON.stringify({ club_id: clubId }),
     }));
-    await page.route('**/rest/v1/club_shop_items?*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([{
-        id: itemId,
-        club_id: clubId,
-        name: 'Phase 20 Time Bank',
-        description: 'Operator dialog test item',
-        price: 500,
-        image_url: null,
-        category: 'Time Banks',
-        is_active: true,
-      }]),
-    }));
-    await page.route('**/rest/v1/club_shop_purchases?*', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: '[]',
-    }));
     await page.route('**/api/club-arena/marketplace-items?*', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -701,6 +682,53 @@ test.describe('5. Storefront Routes And Design Contract', () => {
           category: 'Time Banks',
         }],
         purchases: [],
+      }),
+    }));
+    await page.route('**/api/club-arena/manage-shop?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        items: [{
+          id: itemId,
+          club_id: clubId,
+          name: 'Phase 20 Time Bank',
+          description: 'Operator dialog test item',
+          price: 500,
+          image_url: null,
+          category: 'Time Banks',
+          is_active: true,
+          purchase_count: 0,
+          refunded_purchase_count: 0,
+          net_purchase_count: 0,
+          gross_revenue: 0,
+          refunded_revenue: 0,
+          revenue: 0,
+          revenue_by_currency: {},
+        }],
+        report: {
+          primaryCurrency: 'diamonds',
+          complete: true,
+          processedRows: 0,
+          totalRows: 0,
+          byCurrency: {},
+          diamondTotals: {
+            sales: 0,
+            refundedSales: 0,
+            netSales: 0,
+            gross: 0,
+            refunded: 0,
+            net: 0,
+          },
+          legacyChipTotals: {
+            sales: 0,
+            refundedSales: 0,
+            netSales: 0,
+            gross: 0,
+            refunded: 0,
+            net: 0,
+          },
+        },
       }),
     }));
 

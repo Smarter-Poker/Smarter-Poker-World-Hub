@@ -83,6 +83,66 @@ await test('refuses to grade a Club Arena hand when private hero cards are unava
   assert.equal(normalizeClubArenaHand({ ...clubRow, summary: JSON.stringify(summary) }, userId), null);
 });
 
+await test('uses only the authenticated hero private fact to recover a folded hand', async () => {
+  const privateOnly = {
+    ...clubRow,
+    summary: null,
+    players: [{ userId, seat: 0 }, { userId: villainId, seat: 1 }],
+    actions: [{ userId, street: 'preflop', action: 'raise', amount: 2.5 }],
+    hole_cards: {},
+    created_at: '2026-08-30T12:00:00.000Z',
+  };
+  const queriedUsers = [];
+  const db = {
+    rpc: async () => ({ data: { success: true, upserted: 1, removed: 0 }, error: null }),
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: () => chain,
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain, order: () => chain, lte: () => chain, or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [privateOnly] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'ca_hand_facts') {
+        const chain = {
+          select: () => chain,
+          eq: (_column, value) => { queriedUsers.push(value); return chain; },
+          in: () => chain,
+          limit: async () => ({ data: [{ hand_id: privateOnly.id, hole_cards: [51, 46] }], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = { eq: () => chain, in: () => chain, limit: async () => ({ data: [], error: null }) };
+        return { select: () => chain };
+      }
+      if (table === 'training_question_cache') {
+        const chain = {
+          select: () => chain, like: () => chain, eq: () => chain,
+          limit: async () => ({ data: [{
+            question_id: 'private-fact-q', game_id: 'cash-rfi', question_data: {
+              source: 'DETERMINISTIC_SOLVER',
+              scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+              options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
+            },
+          }], error: null }),
+        };
+        return chain;
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+  const result = await syncClubArenaHandsForAudit(db, userId);
+  assert.deepEqual(queriedUsers, [userId]);
+  assert.equal(result.privateFactsAvailable, true);
+  assert.equal(result.privateCardsRecovered, 1);
+  assert.equal(result.handsMissingPrivateCards, 0);
+  assert.equal(result.decisionsAnalyzed, 1);
+});
+
 await test('uses the shared training question and persists an exact audit decision', async () => {
   const upserts = [];
   const question = {
@@ -190,6 +250,37 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
   assert.equal(lookups, pairs.length);
   assert.ok(maxActive > 1);
   assert.ok(maxActive <= 3);
+});
+
+await test('batches atomic replacement at the database hand-id ceiling', async () => {
+  const rpcBatches = [];
+  const question = {
+    source: 'DETERMINISTIC_SOLVER',
+    scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
+    options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
+  };
+  const db = {
+    rpc: async (_name, args) => {
+      rpcBatches.push(args.p_hand_ids.length);
+      return { data: { success: true, removed: 0 }, error: null };
+    },
+    from(table) {
+      if (table !== 'training_question_cache') throw new Error(`Unexpected table ${table}`);
+      const chain = {
+        select: () => chain, like: () => chain, eq: () => chain,
+        limit: async () => ({ data: [{ question_id: 'batch-q', game_id: 'cash-rfi', question_data: question }], error: null }),
+      };
+      return chain;
+    },
+  };
+  const hands = Array.from({ length: 101 }, (_, index) => ({
+    ...normalizeClubArenaHand(clubRow, userId),
+    id: `club-arena:atomic-${index}`,
+  }));
+  const result = await auditParsedHands(db, userId, hands, { maxDecisions: 500 });
+  assert.equal(result.persisted, true);
+  assert.equal(result.handsParsed, 101);
+  assert.deepEqual(rpcBatches, [100, 1]);
 });
 
 await test('wires Leak Finder sync before solver evidence aggregation', () => {
@@ -577,6 +668,7 @@ await test('renders an inspectable audit receipt with coverage and retry telemet
   const page = readFileSync(resolve('pages/hub/personal-assistant/leaks.js'), 'utf8');
   assert.ok(page.includes('Deterministic Audit Receipt'));
   assert.ok(page.includes('Retried For Coverage'));
+  assert.ok(page.includes('Private Hands Recovered'));
   assert.ok(page.includes('<AuditReceipt result={detectionResult} />'));
 });
 

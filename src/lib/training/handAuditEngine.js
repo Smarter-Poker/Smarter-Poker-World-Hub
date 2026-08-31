@@ -107,6 +107,7 @@ export function normalizeClubArenaHand(row, userId) {
   // player or summary. Pick the first candidate that actually contains two
   // valid cards; masked `cards: [null, null]` must not hide a valid map entry.
   const heroCards = [
+    row?.hero_private_cards,
     heroRaw.holeCards,
     heroRaw.heroCards,
     heroRaw.cards,
@@ -164,6 +165,46 @@ export function normalizeClubArenaHand(row, userId) {
       river: river ? { card: river, actions: streetActions('river') } : null,
     },
   };
+}
+
+const PRIVATE_FACT_BATCH_SIZE = 200;
+
+/**
+ * Load the signed-in player's own durable Club Arena cards.
+ *
+ * `hand_history.hole_cards` is intentionally reveal-only: folded and mucked
+ * holdings must never become visible to every participant. Club Arena writes
+ * each human player's full private copy to `ca_hand_facts`, protected by
+ * user-scoped RLS. The Leak Finder server already knows the authenticated user,
+ * so it can safely join only that user's fact row back to the public action log.
+ */
+async function fetchPrivateHeroCards(db, userId, handRows) {
+  const handIds = [...new Set(handRows.map(row => String(row?.id || '')).filter(Boolean))];
+  const byHandId = new Map();
+  let available = true;
+  for (let index = 0; index < handIds.length; index += PRIVATE_FACT_BATCH_SIZE) {
+    const batch = handIds.slice(index, index + PRIVATE_FACT_BATCH_SIZE);
+    let result;
+    try {
+      result = await db.from('ca_hand_facts')
+        .select('hand_id, hole_cards')
+        .eq('user_id', userId)
+        .in('hand_id', batch)
+        .limit(batch.length);
+    } catch (_) {
+      available = false;
+      break;
+    }
+    if (result?.error) {
+      available = false;
+      break;
+    }
+    for (const fact of result?.data || []) {
+      const privateCards = cards(fact?.hole_cards);
+      if (privateCards.length >= 2) byHandId.set(String(fact.hand_id), privateCards);
+    }
+  }
+  return { available, byHandId };
 }
 
 function handNotation(value) {
@@ -349,6 +390,7 @@ async function runWithConcurrency(items, limit, worker) {
 
 const MAX_DECISIONS_PER_HAND = 12;
 const EXISTING_AUDIT_BATCH_SIZE = 40;
+const REPLACEMENT_HAND_BATCH_SIZE = 100;
 const DEFAULT_UNPRICED_RETRY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -360,17 +402,27 @@ async function replacePersistedDecisionEvidence(db, userId, handIds, rows) {
   // Replacement is one transaction in PostgreSQL. Per-hand advisory locks in
   // the RPC prevent concurrent manual and Club Arena audits from deleting one
   // another's freshly written decision evidence.
-  const { data, error } = await db.rpc('replace_hand_audit_decisions', {
-    p_user_id: userId,
-    p_hand_ids: handIds,
-    p_rows: rows,
-  });
-  if (error) return { persisted: false, reconciled: false, removed: 0, error };
-  return {
-    persisted: data?.success !== false,
-    reconciled: data?.success !== false,
-    removed: Number(data?.removed) || 0,
-  };
+  let removed = 0;
+  for (let index = 0; index < handIds.length; index += REPLACEMENT_HAND_BATCH_SIZE) {
+    const batchIds = handIds.slice(index, index + REPLACEMENT_HAND_BATCH_SIZE);
+    const batchSet = new Set(batchIds);
+    const batchRows = rows.filter(row => batchSet.has(String(row.hand_external_id)));
+    const { data, error } = await db.rpc('replace_hand_audit_decisions', {
+      p_user_id: userId,
+      p_hand_ids: batchIds,
+      p_rows: batchRows,
+    });
+    if (error || data?.success === false) {
+      return {
+        persisted: false,
+        reconciled: false,
+        removed,
+        error: error || new Error(data?.error || 'atomic_replacement_failed'),
+      };
+    }
+    removed += Number(data?.removed) || 0;
+  }
+  return { persisted: true, reconciled: true, removed };
 }
 
 export async function auditParsedHands(db, userId, hands, {
@@ -629,13 +681,42 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     legacyDone: legacy.complete === true,
   };
   const handRows = [...byId.values()];
-  const normalized = handRows.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
+  const privateFacts = await fetchPrivateHeroCards(db, userId, handRows);
+  let privateCardsRecovered = 0;
+  const rowsWithPrivateCards = handRows.map(row => {
+    const privateCards = privateFacts.byHandId.get(String(row.id));
+    if (!privateCards) return row;
+    const hadPublicCards = cards(row?.hole_cards?.[userId]).length >= 2;
+    if (!hadPublicCards) privateCardsRecovered += 1;
+    return { ...row, hero_private_cards: privateCards };
+  });
+  const normalized = rowsWithPrivateCards.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
+  const handsMissingPrivateCards = Math.max(0, handRows.length - normalized.length);
+  if (!privateFacts.available && handsMissingPrivateCards > 0) {
+    return {
+      available: false,
+      privateFactsAvailable: false,
+      privateCardsRecovered,
+      handsMissingPrivateCards,
+      handsFound: handRows.length,
+      handsEligible: normalized.length,
+      handsAudited: 0,
+      decisionsAnalyzed: 0,
+      solverVerified: 0,
+      persisted: false,
+      continuation: requestedCursor,
+      error: 'Private Club Arena hand facts are temporarily unavailable.',
+    };
+  }
   if (normalized.length === 0) {
     return {
       available: true,
       partial: errors.length > 0,
       handsFound: handRows.length,
       handsEligible: 0,
+      privateFactsAvailable: privateFacts.available,
+      privateCardsRecovered,
+      handsMissingPrivateCards,
       handsAudited: 0,
       handsAlreadyCurrent: 0,
       handsQueuedForRetry: 0,
@@ -715,6 +796,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     partial: errors.length > 0,
     handsFound: handRows.length,
     handsEligible,
+    privateFactsAvailable: privateFacts.available,
+    privateCardsRecovered,
+    handsMissingPrivateCards,
     handsSkippedNoHeroDecisions,
     handsAudited: result.handsParsed,
     handsAlreadyCurrent,

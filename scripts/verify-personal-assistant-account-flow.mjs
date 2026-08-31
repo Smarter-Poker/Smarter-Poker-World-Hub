@@ -76,6 +76,8 @@ async function runDetection(token) {
   let handsScanned = 0;
   let handsAudited = 0;
   let decisionsAnalyzed = 0;
+  let privateCardsRecovered = 0;
+  let handsMissingPrivateCards = 0;
   let retriedRateLimit = false;
   let retriedTransient = false;
 
@@ -107,6 +109,8 @@ async function runDetection(token) {
     handsScanned += Number(sync.handsFound) || 0;
     handsAudited += Number(sync.handsAudited) || 0;
     decisionsAnalyzed += Number(sync.decisionsAnalyzed) || 0;
+    privateCardsRecovered += Number(sync.privateCardsRecovered) || 0;
+    handsMissingPrivateCards += Number(sync.handsMissingPrivateCards) || 0;
     cursor = sync.auditCursor || null;
     if (!cursor) {
       return {
@@ -114,6 +118,8 @@ async function runDetection(token) {
         handsScanned,
         handsAudited,
         decisionsAnalyzed,
+        privateCardsRecovered,
+        handsMissingPrivateCards,
         leaksDetected: Number(result.data?.leaksDetected) || 0,
         persisted: result.data?.persisted === true,
       };
