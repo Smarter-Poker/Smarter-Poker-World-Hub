@@ -771,7 +771,9 @@ body.world-poker-near-me :is(input, select, textarea):focus {
     outline-offset: 1px;
 }
 
-body.world-poker-near-me :is(button, a):focus-visible {
+body.world-poker-near-me :is(button, a):where(:not(
+    .approved-global-header__button, .sp-menu-row, .sp-grid-tile, .sp-icon-btn
+)):focus-visible {
     outline: 2px solid var(--pnm-blue) !important;
     outline-offset: 3px;
 }

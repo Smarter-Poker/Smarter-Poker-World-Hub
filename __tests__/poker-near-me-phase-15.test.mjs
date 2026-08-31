@@ -42,5 +42,5 @@ test('shared command rails and secondary actions keep a 44px interaction floor',
   assert.match(world, /\.pnm-family-nav__link\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(world, /\.pnm-top-tab[\s\S]*?\.section-action-btn[\s\S]*?\.vr-write-btn[\s\S]*?min-height:\s*44px\s*!important/);
   assert.match(world, /\.vc3-fav[\s\S]*?\.vc3-icon-btn[\s\S]*?\.map-pref-trigger[\s\S]*?min-width:\s*44px\s*!important/);
-  assert.match(world, /body\.world-poker-near-me :is\(button, a\):focus-visible/);
+  assert.match(world, /body\.world-poker-near-me :is\(button, a\):where\(:not\([\s\S]*?\)\):focus-visible/);
 });

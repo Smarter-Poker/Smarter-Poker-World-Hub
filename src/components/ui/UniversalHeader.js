@@ -1287,9 +1287,32 @@ export default function UniversalHeader({
                 }
 
                 .approved-global-header__button:focus-visible {
-                    outline: 3px solid #20a9ff;
-                    outline-offset: -3px;
-                    box-shadow: 0 0 0 2px #000;
+                    /* Keep the keyboard ring inside the artwork's clipped frame.
+                       An outside/negative outline left detached corner strokes at
+                       mobile raster scales, most visibly around the menu trigger. */
+                    outline: 0;
+                    box-shadow: none;
+                }
+
+                .approved-global-header__button:focus-visible::before {
+                    content: '';
+                    position: absolute;
+                    z-index: 3;
+                    inset: 2px;
+                    box-sizing: border-box;
+                    border: 2px solid #36baff;
+                    border-radius: inherit;
+                    box-shadow: inset 0 0 0 1px rgba(0, 4, 8, .94);
+                    pointer-events: none;
+                }
+
+                @media (max-width: 584px) {
+                    .approved-global-header__button:focus-visible::before {
+                        /* Global 44px touch targets extend beneath the scaled
+                           artwork below this breakpoint. Pull only the visual
+                           ring upward so every side remains inside the frame. */
+                        bottom: max(2px, calc(44px - 8.87vw));
+                    }
                 }
 
                 .approved-global-header__button:active { opacity: .76; }
