@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo, memo, useDeferredValue } from 'react';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace 11 hand-rolled SVG components
 import {
-    Search, MapPin, Calendar as CalendarLuc, List as ListLuc, Map as MapLuc,
+    Search, MapPin, Calendar as CalendarLuc, Map as MapLuc,
     ChevronLeft as ChevLeft, ChevronRight as ChevRight,
     X as XLuc, Crosshair, Clock, RefreshCw,
 } from 'lucide-react';
@@ -210,7 +210,6 @@ const SOURCE_COLORS = {
 const SearchIcon    = (props) => <Search size={18} aria-hidden {...props} />;
 const MapPinIcon    = ({ size = 14, ...rest }) => <MapPin size={size} aria-hidden {...rest} />;
 const CalendarIcon  = ({ size = 16, ...rest }) => <CalendarLuc size={size} aria-hidden {...rest} />;
-const ListIcon      = (props) => <ListLuc size={16} aria-hidden {...props} />;
 const MapIcon       = (props) => <MapLuc size={16} aria-hidden {...props} />;
 const ChevronLeft   = (props) => <ChevLeft size={18} aria-hidden {...props} />;
 const ChevronRight  = (props) => <ChevRight size={18} aria-hidden {...props} />;

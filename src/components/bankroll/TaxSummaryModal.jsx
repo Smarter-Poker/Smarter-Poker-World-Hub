@@ -6,7 +6,7 @@
  * ══════════════════════════════════════════════════════════
  */
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
 
@@ -44,6 +44,24 @@ function computeGigExpenses(gig) {
 }
 
 export default function TaxSummaryModal({ completedGigs = [], onClose }) {
+    const closeRef = useRef(null);
+
+    useEffect(() => {
+        const returnFocus = document.activeElement;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        closeRef.current?.focus();
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = previousOverflow;
+            returnFocus?.focus?.();
+        };
+    }, [onClose]);
+
     const availableYears = useMemo(() => {
         const years = new Set();
         for (const g of completedGigs) {
@@ -122,14 +140,20 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
             `}</style>
 
             {/* Overlay backdrop */}
-            <div style={s.backdrop} onClick={onClose} />
+            <div style={s.backdrop} onClick={onClose} aria-hidden="true" />
 
             {/* Modal */}
-            <div id="tax-summary-print-root" style={s.modal}>
+            <div
+                id="tax-summary-print-root"
+                style={s.modal}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="tax-summary-title"
+            >
                 {/* Header */}
                 <div style={s.header}>
                     <div>
-                        <div style={s.title}>📄 Annual Tax Summary</div>
+                        <div id="tax-summary-title" style={s.title}>📄 Annual Tax Summary</div>
                         <div style={s.subtitle}>Toke Tracker · Smarter.Poker</div>
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -138,6 +162,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             value={selectedYear}
                             onChange={e => setSelectedYear(parseInt(e.target.value, 10))}
                             className="no-print"
+                            aria-label="Tax Year"
                         >
                             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
@@ -145,8 +170,15 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             style={s.printBtn}
                             onClick={() => window.print()}
                             className="no-print"
+                            aria-label="Print Or Save Tax Summary As PDF"
                         >Print / PDF</button>
-                        <button style={s.closeBtn} onClick={onClose} className="no-print">✕</button>
+                        <button
+                            ref={closeRef}
+                            style={s.closeBtn}
+                            onClick={onClose}
+                            className="no-print"
+                            aria-label="Close Tax Summary"
+                        >✕</button>
                     </div>
                 </div>
 

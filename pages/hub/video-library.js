@@ -2691,9 +2691,11 @@ export default function VideoLibraryPage() {
                                     border: '1.5px solid rgba(255,255,255,0.25)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                        <path d="M4 6h16M4 12h10M4 18h8" />
-                                        <path d="M18 15v6M15 18h6" />
+                                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" aria-hidden="true">
+                                        <rect x="4" y="4" width="11" height="11" rx="2" />
+                                        <path d="m8 7 4 2.5L8 12V7Z" fill="white" stroke="none" />
+                                        <circle cx="17.5" cy="17.5" r="3.5" />
+                                        <path d="M17.5 15.5v4M15.5 17.5h4" />
                                     </svg>
                                 </div>
                                 <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Playlist</span>

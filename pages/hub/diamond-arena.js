@@ -16,10 +16,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getDiamondArenaPreferences, updateDiamondArenaPreferences } from '../../src/services/diamondArenaPreferences';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
 
-export default function DiamondArenaPage() {
-    const bus = useTrainingBus('diamond-arena');
+export default function DiamondArenaPage({ initialArenaAvailable = false }) {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
@@ -28,6 +26,7 @@ export default function DiamondArenaPage() {
     const [mounted, setMounted] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [arenaAvailable, setArenaAvailable] = useState(initialArenaAvailable);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -112,8 +111,8 @@ export default function DiamondArenaPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Diamond Arena - Competitive Poker Games"
-                description="Compete In High-stakes Diamond Arena Poker Games. Earn Diamonds, Climb Rankings, And Prove Your Skills."
+                title="Diamond Arena: Competitive Poker Games"
+                description="Compete In High-Stakes Diamond Arena Poker Games. Earn Diamonds, Climb Rankings, And Prove Your Skills."
                 canonical="/hub/diamond-arena"
             >
                 
@@ -121,7 +120,7 @@ export default function DiamondArenaPage() {
 
             <div className="diamond-arena-page" style={styles.container}>
                 {/* Universal Header */}
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1001 }}>
+                <div style={styles.header}>
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 </div>
 
@@ -137,32 +136,57 @@ export default function DiamondArenaPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* Loading Overlay */}
-                {!iframeLoaded && (
-                    <div style={styles.loadingOverlay}>
-                        <div style={styles.loadingContent}>
-                            <div style={styles.diamondPulse}>Diamonds</div>
-                            <h2 style={styles.loadingTitle}>DIAMOND ARENA</h2>
-                            <p style={styles.loadingSubtitle}>Entering The Arena...</p>
-                            <div style={styles.progressBar}>
-                                <div style={styles.progressFill} />
+                <main style={styles.arenaStage}>
+                    {!arenaAvailable ? (
+                        <section style={styles.unavailablePanel} role="status" aria-live="polite">
+                            <div style={styles.unavailableGem} aria-hidden="true">◆</div>
+                            <p style={styles.unavailableEyebrow}>Arena Status</p>
+                            <h1 style={styles.unavailableTitle}>Diamond Arena Is Temporarily Unavailable</h1>
+                            <p style={styles.unavailableCopy}>
+                                The Live Poker Room Did Not Pass Its Availability Check. Your Hub Session Is Safe, And You Can Retry Without Losing Your Place.
+                            </p>
+                            <div style={styles.unavailableActions}>
+                                <button type="button" style={styles.retryButton} onClick={() => router.reload()}>
+                                    Retry Arena
+                                </button>
+                                <button type="button" style={styles.hubButton} onClick={() => router.push('/hub')}>
+                                    Return To Hub
+                                </button>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        </section>
+                    ) : (
+                        <>
+                            {/* Loading Overlay */}
+                            {!iframeLoaded && (
+                                <div style={styles.loadingOverlay}>
+                                    <div style={styles.loadingContent}>
+                                        <div style={styles.diamondPulse}>◆</div>
+                                        <h2 style={styles.loadingTitle}>Diamond Arena</h2>
+                                        <p style={styles.loadingSubtitle}>Entering The Arena...</p>
+                                        <div style={styles.progressBar}>
+                                            <div style={styles.progressFill} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                {/* Diamond Arena iframe */}
-                <iframe
-                    ref={iframeRef}
-                    src="https://diamond.smarter.poker"
-                    style={{
-                        ...styles.iframe,
-                        opacity: iframeLoaded ? 1 : 0,
-                    }}
-                    onLoad={() => setIframeLoaded(true)}
-                    allow="fullscreen; autoplay; clipboard-write"
-                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-                />
+                            {/* Diamond Arena iframe */}
+                            <iframe
+                                ref={iframeRef}
+                                src="https://diamond.smarter.poker"
+                                title="Diamond Arena Live Poker Room"
+                                style={{
+                                    ...styles.iframe,
+                                    opacity: iframeLoaded ? 1 : 0,
+                                }}
+                                onLoad={() => setIframeLoaded(true)}
+                                onError={() => setArenaAvailable(false)}
+                                allow="fullscreen; autoplay; clipboard-write"
+                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                            />
+                        </>
+                    )}
+                </main>
             </div>
 
             <style>{`
@@ -188,7 +212,23 @@ const styles = {
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
+        bottom: 'var(--active-world-footer-height, 70px)',
+        background: '#050507',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        overflow: 'hidden',
+    },
+    header: {
+        position: 'relative',
+        flex: '0 0 auto',
+        zIndex: 1001,
+    },
+    arenaStage: {
+        position: 'relative',
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflow: 'hidden',
         background: '#050507',
     },
     backButton: {
@@ -227,7 +267,7 @@ const styles = {
         background: '#050507',
     },
     loadingOverlay: {
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
@@ -252,7 +292,7 @@ const styles = {
         fontWeight: 800,
         color: '#FFB800',
         marginBottom: '12px',
-        letterSpacing: '0.15em',
+        letterSpacing: '0.08em',
         textShadow: '0 0 30px rgba(255, 184, 0, 0.4)',
     },
     loadingSubtitle: {
@@ -283,4 +323,99 @@ const styles = {
         marginTop: '16px',
         fontFamily: 'Inter, sans-serif',
     },
+    unavailablePanel: {
+        position: 'absolute',
+        inset: 'clamp(12px, 4vw, 48px)',
+        margin: 'auto',
+        width: 'min(680px, calc(100% - 24px))',
+        height: 'fit-content',
+        boxSizing: 'border-box',
+        padding: 'clamp(24px, 5vw, 52px)',
+        borderRadius: '28px',
+        border: '1px solid rgba(255, 184, 0, 0.5)',
+        background: 'radial-gradient(circle at 50% 0%, rgba(0, 224, 255, 0.16), transparent 48%), linear-gradient(145deg, rgba(18, 20, 28, 0.98), rgba(3, 4, 8, 0.98))',
+        boxShadow: '0 24px 80px rgba(0, 0, 0, 0.65), inset 0 0 30px rgba(255, 184, 0, 0.06)',
+        textAlign: 'center',
+        color: '#f8fafc',
+    },
+    unavailableGem: {
+        color: '#00E0FF',
+        fontSize: 'clamp(42px, 8vw, 72px)',
+        lineHeight: 1,
+        textShadow: '0 0 34px rgba(0, 224, 255, 0.75)',
+    },
+    unavailableEyebrow: {
+        margin: '16px 0 8px',
+        color: '#FFB800',
+        fontSize: '12px',
+        fontWeight: 800,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+    },
+    unavailableTitle: {
+        margin: 0,
+        fontFamily: 'Orbitron, Inter, sans-serif',
+        fontSize: 'clamp(24px, 5vw, 42px)',
+        lineHeight: 1.15,
+    },
+    unavailableCopy: {
+        maxWidth: '560px',
+        margin: '18px auto 0',
+        color: 'rgba(226, 232, 240, 0.78)',
+        fontSize: 'clamp(14px, 2.5vw, 17px)',
+        lineHeight: 1.65,
+    },
+    unavailableActions: {
+        display: 'flex',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginTop: '28px',
+    },
+    retryButton: {
+        minWidth: '152px',
+        minHeight: '48px',
+        padding: '12px 20px',
+        borderRadius: '999px',
+        border: '1px solid rgba(255, 184, 0, 0.9)',
+        background: 'linear-gradient(135deg, #FFB800, #d88100)',
+        color: '#07090d',
+        fontWeight: 900,
+        cursor: 'pointer',
+    },
+    hubButton: {
+        minWidth: '152px',
+        minHeight: '48px',
+        padding: '12px 20px',
+        borderRadius: '999px',
+        border: '1px solid rgba(0, 224, 255, 0.55)',
+        background: 'rgba(0, 224, 255, 0.08)',
+        color: '#dffbff',
+        fontWeight: 800,
+        cursor: 'pointer',
+    },
 };
+
+export async function getServerSideProps({ res }) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    let initialArenaAvailable = false;
+
+    try {
+        const response = await fetch('https://diamond.smarter.poker', {
+            method: 'GET',
+            redirect: 'manual',
+            signal: controller.signal,
+            headers: { Accept: 'text/html' },
+        });
+        initialArenaAvailable = response.status >= 200 && response.status < 400;
+        await response.body?.cancel?.();
+    } catch (_error) {
+        initialArenaAvailable = false;
+    } finally {
+        clearTimeout(timeout);
+    }
+
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    return { props: { initialArenaAvailable } };
+}

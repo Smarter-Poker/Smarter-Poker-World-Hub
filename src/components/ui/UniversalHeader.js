@@ -1343,6 +1343,20 @@ export default function UniversalHeader({
                 .approved-global-header__messenger { left: 86%; width: 6.9%; }
                 .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
 
+                @media (max-width: 430px) {
+                    /* Keep the command-grid target at the WCAG 2.2 minimum on
+                       narrow phones without covering the adjacent Back zone. */
+                    .approved-global-header__menu {
+                        left: .75%;
+                        width: 8%;
+                        min-width: 24px;
+                    }
+                    .approved-global-header__back {
+                        left: 8.75%;
+                        width: 11.5%;
+                    }
+                }
+
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
                     top: 50% !important;
