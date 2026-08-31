@@ -7,6 +7,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { ephemeralResult, persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
+import { gradeAction } from '../../../../src/lib/sandbox/actionGrading';
 
 let _supabase = null;
 function getSupabase() {
@@ -51,7 +52,7 @@ function cleanSessionId(value) {
  * heuristic) rather than writing a bogus correlation or 500ing the insert.
  * Any error — missing table, malformed id, transient failure — returns null.
  */
-async function verifySessionOwnership(supabase, sessionId, userId) {
+async function loadOwnedSessionResult(supabase, sessionId, userId) {
     if (!sessionId || !userId) return null;
     try {
         const { data, error } = await supabase
@@ -64,7 +65,16 @@ async function verifySessionOwnership(supabase, sessionId, userId) {
             if (error.code !== '42P01') console.warn('[coach-result] Session verify failed:', error.code || error.message);
             return null;
         }
-        return data?.id ?? null;
+        if (!data?.id) return null;
+        const { data: result, error: resultError } = await supabase
+            .from('sandbox_results')
+            .select('primary_action, full_analysis, truth_seal')
+            .eq('session_id', data.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (resultError || !result?.primary_action) return null;
+        return { id: data.id, result };
     } catch (e) {
         console.warn('[coach-result] Session verify threw:', e?.message || e);
         return null;
@@ -107,7 +117,7 @@ export default async function handler(req, res) {
           // account (the IDOR this surface has already been bitten by).
           const {
               hand, position, street, board,
-              userPick, gtoAction, isCorrect, evDelta, sessionId,
+              userPick, sessionId,
           } = req.body || {};
 
           if (!hand || !userPick) {
@@ -116,7 +126,7 @@ export default async function handler(req, res) {
           if (typeof hand !== 'string' || typeof userPick !== 'string') {
               return res.status(400).json({ success: false, error: 'hand and userPick must be strings' });
           }
-          for (const [key, val] of Object.entries({ position, street, board, gtoAction })) {
+          for (const [key, val] of Object.entries({ position, street, board })) {
               if (val !== undefined && val !== null && typeof val !== 'string') {
                   return res.status(400).json({ success: false, error: `${key} must be a string` });
               }
@@ -130,23 +140,33 @@ export default async function handler(req, res) {
 
           // Exact verdict↔hand correlation for /api/sandbox/sessions. Unlinked
           // (null) is a fully supported state — never a hard failure.
-          const linkedSessionId = await verifySessionOwnership(
+          const ownedSession = await loadOwnedSessionResult(
               supabase, cleanSessionId(sessionId), userId
           );
+          if (!ownedSession) {
+              return res.status(422).json(ephemeralResult('unverified_session', null, {
+                  stored: false,
+                  error: 'Coach score was not saved because its analysis session could not be verified.',
+              }));
+          }
+          const authoritativeAction = String(ownedSession.result.primary_action).slice(0, 40);
+          const authoritativeCorrect = gradeAction(userPick, authoritativeAction);
 
           const { data, error } = await supabase
               .from('sandbox_coach_results')
               .insert({
                   user_id: userId,
-                  session_id: linkedSessionId,
+                  session_id: ownedSession.id,
                   hero_hand: hand.slice(0, 40),
                   hero_position: clampOptional(position, 40),
                   street: normalizedStreet,
                   board: clampOptional(board, 60),
                   user_pick: userPick.slice(0, 40),
-                  gto_action: clampOptional(gtoAction, 40),
-                  is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
-                  ev_delta: typeof evDelta === 'number' && isFinite(evDelta) ? evDelta : null,
+                  gto_action: authoritativeAction,
+                  is_correct: authoritativeCorrect,
+                  // Per-action EV is not currently stored as an authoritative
+                  // choice delta. Never persist the browser's estimate.
+                  ev_delta: null,
               })
               .select('id')
               .maybeSingle();

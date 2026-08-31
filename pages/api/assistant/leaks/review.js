@@ -513,6 +513,13 @@ async function handlePost(req, res, userId) {
     if (body.answers !== undefined) {
         return res.status(400).json({ success: false, error: 'Final answer arrays are not accepted' });
     }
+    if (typeof body.drillToken !== 'string' || body.drillToken.length === 0) {
+        return res.status(400).json({
+            success: false,
+            reason: 'verified_drill_required',
+            error: 'Durable review progress requires a verified drill session.',
+        });
+    }
     if (typeof body.drillToken === 'string' && body.drillToken.length > 0) {
         let batch;
         try { batch = openDrillBatch(body.drillToken, userId, leakId); }

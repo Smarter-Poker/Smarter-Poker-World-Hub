@@ -661,7 +661,7 @@ await test('keeps healthy solver evidence when either evidence store is degraded
   assert.ok(source.includes('available: trainingAvailable || auditAvailable'));
   assert.ok(source.includes("handAudit: solverEvidence.sources?.handAudit?.available === true"));
   assert.ok(!source.includes('Math.max(currentHands, liveHands + solverDecisions)'));
-  assert.ok(source.includes('Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0)'));
+  assert.ok(source.includes('Math.max(currentHands, auditedHandTotal)'));
 });
 
 await test('renders an inspectable audit receipt with coverage and retry telemetry', () => {

@@ -19,7 +19,7 @@
       "label": "Personal Assistant",
       "theme": "dark",
       "accent": "#4599ff",
-      "artwork": { "src": "/images/footers/world-hub/footer-personal-assistant.png", "width": 2135, "height": 737, "sha256": "af8f8140bc1bacd737d09a70a52a0423ab97716db0470bf7a1687356c13d534a", "contentBounds": { "x": 14, "y": 197, "width": 2109, "height": 306 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-personal-assistant.png", "width": 2135, "height": 737, "sha256": "af8f8140bc1bacd737d09a70a52a0423ab97716db0470bf7a1687356c13d534a", "cropToContentBounds": true, "contentBounds": { "x": 14, "y": 197, "width": 2109, "height": 306 } },
       "routePrefixes": ["/hub/personal-assistant"],
       "items": [
         { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain" },

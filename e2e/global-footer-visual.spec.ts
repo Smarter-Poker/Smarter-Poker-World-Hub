@@ -293,27 +293,48 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 844 });
 
+    // Install the audit listener before any document is created. The app
+    // updater can replace the first production document in WebKit; an init
+    // script is reapplied to that replacement, while an evaluate-installed
+    // listener would be lost midway through this matrix.
+    await page.addInitScript(() => {
+      (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
+      document.addEventListener(
+        'click',
+        (event) => {
+          const target = event.target as Element | null;
+          const link = target?.closest?.('[data-footer-destination]') as HTMLAnchorElement | null;
+          if (!link) return;
+          event.preventDefault();
+          (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.push(
+            link.getAttribute('href') || ''
+          );
+        },
+        { capture: true, once: false }
+      );
+    });
+
     for (const entry of WORLD_ROUTES) {
       const definition = footerRegistry.worlds.find((world) => world.id === entry.id)!;
       await visit(page, entry.route);
       const nav = page.locator(`[data-footer-world="${entry.id}"]`);
       await expect(nav).toHaveCount(1);
 
+      // Poker Near Me can legitimately open its first-run tutorial above the
+      // global footer. Close that modal before auditing the footer itself; a
+      // modal intercepting navigation while open is the correct stack order.
+      const dismissTutorial = page.getByRole('button', { name: "Don't Show Again" });
+      if (entry.id === 'poker-near-me') {
+        await dismissTutorial.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
+      }
+      if (await dismissTutorial.isVisible().catch(() => false)) {
+        await dismissTutorial.click();
+      }
+      const dismissInstall = page.getByRole('button', { name: 'Later' });
+      if (await dismissInstall.isVisible().catch(() => false)) await dismissInstall.click();
+
       await page.evaluate(() => {
         (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
-        document.addEventListener(
-          'click',
-          (event) => {
-            const target = event.target as Element | null;
-            const link = target?.closest?.('[data-footer-destination]') as HTMLAnchorElement | null;
-            if (!link) return;
-            event.preventDefault();
-            (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.push(
-              link.getAttribute('href') || ''
-            );
-          },
-          { capture: true, once: false }
-        );
       });
 
       const links = nav.getByRole('link');

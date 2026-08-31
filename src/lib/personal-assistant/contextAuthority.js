@@ -61,13 +61,15 @@ export async function getUserContextState(supabase, userId) {
     // real columns: an open session is one with no ended_at. (A distinct
     // "paused" state is unrepresentable in the schema, so SESSION_PAUSED is
     // unreachable — reintroduce it only if a pause marker ever ships.)
-    const { data: activeSessions } = await supabase
+    const { data: activeSessions, error: activeSessionsError } = await supabase
       .from('poker_sessions')
       .select('id, started_at, ended_at')
       .eq('user_id', userId)
       .is('ended_at', null)
       .order('started_at', { ascending: false })
       .limit(1);
+
+    if (activeSessionsError) return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
 
     if (activeSessions && activeSessions.length > 0) {
       return CONTEXT_STATES.LIVE_PLAY;
@@ -92,7 +94,7 @@ export async function getUserContextState(supabase, userId) {
 
     // Check for recently ended session (within cooldown period)
     const cooldownMs = 5 * 60 * 1000; // 5 minute cooldown
-    const { data: recentSessions } = await supabase
+    const { data: recentSessions, error: recentSessionsError } = await supabase
       .from('poker_sessions')
       .select('id, ended_at')
       .eq('user_id', userId)
@@ -101,6 +103,8 @@ export async function getUserContextState(supabase, userId) {
       .gte('ended_at', new Date(Date.now() - cooldownMs).toISOString())
       .limit(1);
 
+    if (recentSessionsError) return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
+
     if (recentSessions && recentSessions.length > 0) {
       return CONTEXT_STATES.SESSION_ENDED_VERIFIED;
     }
@@ -108,7 +112,10 @@ export async function getUserContextState(supabase, userId) {
     // No active session, training mode allowed
     return CONTEXT_STATES.TRAINING_MODE;
 
-  } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+  } catch (error) {
+    console.warn('[ContextAuthority] Context lookup failed closed:', error?.message || error);
+    return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
+  }
 }
 
 /**

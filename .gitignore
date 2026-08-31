@@ -64,6 +64,7 @@
 .next/
 .venv
 .vercel
+playwright/.auth/
 .vscode/*
 __pycache__/
 _legacy_club_arena_standalone_pages.dead/
