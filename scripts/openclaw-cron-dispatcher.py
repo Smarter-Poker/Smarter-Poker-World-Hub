@@ -236,16 +236,24 @@ ALL_CRONS = [
     # just collapses toward 2x/3x and players notice before anyone else does.
     # 30-minute lookback deliberately overlaps two runs.
     ('/api/cron/spin-sweep',                dict(minute='*/15')),
-    # ── Waitlist TTL sweep (2026-08-30) ──────────────────────────────────
+    # ── Waitlist TTL sweep (2026-08-30; cadence corrected 2026-08-31) ────
     # fn_offer_open_seat applies both waitlist TTLs already, but only when a
     # seat opens AT THAT TABLE. On a table nobody leaves, nothing runs: the
     # lobby's "Waiting N" counts people who left days ago, and a player whose
-    # three-minute seat offer lapsed is never told — they just stop being in
-    # the line. This reaches those tables, with the same two rules and the
-    # same notification, so a sweep and an offer cannot disagree.
-    # Ten minutes: soon enough to tell somebody their offer went, far cheaper
-    # than every minute for a rule measured in hours.
-    ('/api/cron/waitlist-sweep',            dict(minute='*/10')),
+    # seat offer lapsed is never told — they just stop being in the line. This
+    # reaches those tables, with the same two rules and the same notification,
+    # so a sweep and an offer cannot disagree.
+    #
+    # EVERY MINUTE, not every ten. The offer used to last three minutes and a
+    # ten-minute sweep was the cheap way to announce a lapse. Dan's 2026-08-31
+    # rule makes the offer a SIXTY-SECOND exclusive hold, and the sweep is now
+    # what hands the seat to the next player in line (fn_sweep_stale_waitlists
+    # calls fn_offer_open_seat). At */10 a queue could therefore sit still for
+    # ten minutes behind a sixty-second hold nobody claimed — the seat open,
+    # the next player waiting, and nothing moving. The scan is bounded to 200
+    # tables and touches only rows with a live queue, so a per-minute tick on
+    # an empty waitlist is one cheap RPC.
+    ('/api/cron/waitlist-sweep',            dict(minute='*')),
     # ── Phase 49 (2026-05-05) — two-track trivia refill ───────────────────
     # Track A (deterministic engine, $0 cost): generates strategy-category
     # questions from solved_spots_gold + memory_charts_gold via the same
