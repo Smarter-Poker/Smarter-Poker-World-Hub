@@ -9,9 +9,9 @@ import { getFreshAccessToken } from '../../src/lib/authUtils';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
 function formatDate(value) {
-    if (!value) return '—';
+    if (!value) return '-';
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+    return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
 function Status({ value }) {
@@ -146,9 +146,9 @@ export default function NewsletterOperations() {
                 {error && <div className={styles.error} role="alert"><XCircle size={16} /> {error}</div>}
 
                 <section className={styles.signalGrid} aria-label="Newsletter health">
-                    <article><Users size={17} /><span>Active audience</span><strong>{data?.stats?.active ?? '—'}</strong></article>
-                    <article><Mail size={17} /><span>Opted out</span><strong>{data?.stats?.inactive ?? '—'}</strong></article>
-                    <article><Send size={17} /><span>Recorded campaigns</span><strong>{data?.stats?.campaigns ?? '—'}</strong></article>
+                    <article><Users size={17} /><span>Active audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
+                    <article><Mail size={17} /><span>Opted out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
+                    <article><Send size={17} /><span>Recorded campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
                     <article><Clock3 size={17} /><span>Last dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
                 </section>
 

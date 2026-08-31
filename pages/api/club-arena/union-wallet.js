@@ -424,9 +424,9 @@ export default async function handler(req, res) {
               .select('id')
               .then(({ data: released, error: relErr }) => {
                 if (relErr)
-                  console.error('[union-wallet] CRITICAL: BBJ claim release failed — this payout is now permanently blocked by its own claim row:', relErr.message, 'claimRowId:', claimRowId);
+                  console.error('[union-wallet] CRITICAL: BBJ claim release failed - this payout is now permanently blocked by its own claim row:', relErr.message, 'claimRowId:', claimRowId);
                 else if (!released || released.length === 0)
-                  console.error('[union-wallet] CRITICAL: BBJ claim release matched ZERO rows — retries will be refused as duplicates. claimRowId:', claimRowId);
+                  console.error('[union-wallet] CRITICAL: BBJ claim release matched ZERO rows - retries will be refused as duplicates. claimRowId:', claimRowId);
               });
           }
         };
@@ -481,7 +481,7 @@ export default async function handler(req, res) {
         }
 
         // Ledger: finalize the claim row when we made one; otherwise insert fresh.
-        const finalNote = `BBJ pool payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare}) — pool balance after: ${poolRes?.pool_balance_after ?? 'n/a'}`;
+        const finalNote = `BBJ pool payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare}) - pool balance after: ${poolRes?.pool_balance_after ?? 'n/a'}`;
         if (claimRowId) {
           const { error: bbjTxErr } = await supabaseAdmin
             .from('union_wallet_transactions')

@@ -310,10 +310,10 @@ async function generateTaxPDF(report, user) {
             startY: yPos,
             head: [['Date', 'Type', 'Description', 'Amount']],
             body: report.uploadedW2gForms.map(f => [
-                f.date || '—',
-                f.type || '—',
-                (f.description || '—').substring(0, 30),
-                f.amount ? `$${f.amount.toLocaleString()}` : '—'
+                f.date || '-',
+                f.type || '-',
+                (f.description || '-').substring(0, 30),
+                f.amount ? `$${f.amount.toLocaleString()}` : '-'
             ]),
             theme: 'grid',
             styles: { fontSize: 9 },

@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           let userRecs = ['Try again later or check your connection.'];
 
           if (status === 429) {
-              userMessage = 'AI analysis is temporarily paused — API credits are being refreshed.';
+              userMessage = 'AI analysis is temporarily paused - API credits are being refreshed.';
               userRecs = ['Insights will resume automatically once credits are replenished.', 'Your data is safe and stats are still updating in real time.'];
           } else if (status === 401 || status === 403) {
               userMessage = 'AI service authentication issue.';

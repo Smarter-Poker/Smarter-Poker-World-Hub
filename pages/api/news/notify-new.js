@@ -283,7 +283,7 @@ export default async function handler(req, res) {
               pushConfigured: pushConfig.configured,
               dedupeStoreReady,
               articles: pending.map((a) => ({ id: a.id, title: a.title })),
-              message: 'Dry run — no notification was sent.'
+              message: 'Dry run - no notification was sent.'
           });
       }
 
@@ -297,7 +297,7 @@ export default async function handler(req, res) {
               pushed: 0,
               recipients: 0,
               articles: [],
-              message: 'No users have news push notifications enabled — nothing sent.'
+              message: 'No users have news push notifications enabled - nothing sent.'
           });
       }
 

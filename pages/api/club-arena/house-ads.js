@@ -46,7 +46,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn('[house-ads] SUPABASE_SERVICE_ROLE_KEY missing — writes will be blocked by RLS');
+            console.warn('[house-ads] SUPABASE_SERVICE_ROLE_KEY missing - writes will be blocked by RLS');
         }
         _supabase = createClient(url, key);
     }

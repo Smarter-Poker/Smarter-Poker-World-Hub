@@ -351,7 +351,7 @@ export default async function handler(req, res) {
               .in('id', ids)
               .select('id');
             if (err_rakeback_periods_b5mtd) {
-              console.error('[rakeback] CRITICAL: period rollback FAILED after a refused treasury debit — periods may read as paid for money that never moved:', err_rakeback_periods_b5mtd.message, 'ids:', ids);
+              console.error('[rakeback] CRITICAL: period rollback FAILED after a refused treasury debit - periods may read as paid for money that never moved:', err_rakeback_periods_b5mtd.message, 'ids:', ids);
             } else if ((revertedPeriods?.length || 0) !== ids.length) {
               console.error(`[rakeback] CRITICAL: period rollback reverted ${revertedPeriods?.length || 0} of ${ids.length} periods after a refused treasury debit. The remainder still read as paid for money that never moved.`, ids);
             }

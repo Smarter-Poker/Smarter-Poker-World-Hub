@@ -38,7 +38,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[diamond-transfer] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[diamond-transfer] SUPABASE_SERVICE_ROLE_KEY missing - falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -164,7 +164,7 @@ async function checkVelocity(supabase, userId, clientIp) {
     let flagged = false;
     if (txIn1h >= VELOCITY_TRANSACTIONS_1H) {
         flagged = true;
-        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} gifts in 1h — threshold ${VELOCITY_TRANSACTIONS_1H}`);
+        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} gifts in 1h - threshold ${VELOCITY_TRANSACTIONS_1H}`);
     }
     if (ipTxIn1h >= VELOCITY_TRANSACTIONS_1H) {
         flagged = true;
@@ -189,7 +189,7 @@ async function checkVelocity(supabase, userId, clientIp) {
 
     if (uniqueRecipients24h >= VELOCITY_UNIQUE_RECIPIENTS_24H) {
         flagged = true;
-        console.warn(`[VELOCITY:SPAM] User ${userId} sent to ${uniqueRecipients24h} unique recipients in 24h — threshold ${VELOCITY_UNIQUE_RECIPIENTS_24H}`);
+        console.warn(`[VELOCITY:SPAM] User ${userId} sent to ${uniqueRecipients24h} unique recipients in 24h - threshold ${VELOCITY_UNIQUE_RECIPIENTS_24H}`);
     }
 
     return { flagged, txIn1h, uniqueRecipients24h };
@@ -573,7 +573,7 @@ export default async function handler(req, res) {
             console.warn('Transfer deduct error caught:', deductErr);
             const errCode = deductErr.code;
             const errDetails = deductErr.details;
-            const errMessage = deductErr.message || 'Transfer failed — please try again';
+            const errMessage = deductErr.message || 'Transfer failed - please try again';
             
             if ((errCode === 'P0001' || errCode === '23514') && errDetails) {
                 try {
@@ -619,7 +619,7 @@ export default async function handler(req, res) {
             
             // SECURITY: never echo raw DB/trigger internals to the client — only
             // surface the known, user-facing anti-farming message pattern.
-            let cleanMessage = 'Transfer failed — please try again';
+            let cleanMessage = 'Transfer failed - please try again';
             if (errMessage.includes('Anti-farming:')) {
                 cleanMessage = errMessage.replace('Anti-farming:', '').trim();
             }
@@ -649,7 +649,7 @@ export default async function handler(req, res) {
                     p_user_id: userId,
                     p_amount: amount,
                     p_type: 'diamond_gift_refund',
-                    p_description: `Transfer refund — ${reason}`,
+                    p_description: `Transfer refund - ${reason}`,
                     p_reference_id: `transfer_refund_${transferId}`,
                 });
                 if (error || (data && data.success === false)) {
@@ -685,14 +685,14 @@ export default async function handler(req, res) {
             return res.status(500).json({
                 success: false,
                 error: refunded
-                    ? 'Transfer failed — your diamonds have been restored'
+                    ? 'Transfer failed - your diamonds have been restored'
                     : 'Transfer failed and the refund did not go through. Please contact support.',
                 refunded,
             });
         }
 
         if (creditResult && creditResult.duplicate) {
-            console.info(`[DiamondTransfer] Idempotent retry detected for transfer ${transferId} — skipping refund`);
+            console.info(`[DiamondTransfer] Idempotent retry detected for transfer ${transferId} - skipping refund`);
         }
 
         // The recipient HAS been credited. Disarm the rollback: refundSender was

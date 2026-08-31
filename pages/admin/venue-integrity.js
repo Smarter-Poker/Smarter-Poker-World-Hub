@@ -292,7 +292,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
             <div className={styles.heroCopy}>
               <div>
                 <h1>Venue integrity operations</h1>
-                <p>Quarantined map signals, missing coordinates and duplicate identities—resolved through one auditable control surface.</p>
+                <p>Quarantined map signals, missing coordinates and duplicate identities-resolved through one auditable control surface.</p>
               </div>
               <div className={styles.livePlate} data-queue-health={summary.actionable ? 'attention' : 'clear'}>
                 <span className={styles.liveDot} />
@@ -354,12 +354,12 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
                     <span className={`${styles.issueCode} ${styles[issue.issue_type]}`}>{issueLabel(issue.issue_type)}</span>
                     <span className={styles.issueIdentity}>
                       <strong>{issue.name}</strong>
-                      <small>{issue.city || 'Unknown city'}, {issue.state || '—'} · ID {issue.id}</small>
+                      <small>{issue.city || 'Unknown city'}, {issue.state || '-'} · ID {issue.id}</small>
                       <small>{(issue.issue_types || [issue.issue_type]).map(issueLabel).join(' · ')}{issue.missing_fields?.length ? ` · Missing ${issue.missing_fields.join(', ')}` : ''}</small>
                     </span>
                     <span className={styles.issueSignal}>
-                      <strong>{issue.latitude ?? '—'}</strong>
-                      <small>{issue.longitude ?? '—'}</small>
+                      <strong>{issue.latitude ?? '-'}</strong>
+                      <small>{issue.longitude ?? '-'}</small>
                     </span>
                     <span className={styles.chevron} aria-hidden="true">›</span>
                   </button>
@@ -432,7 +432,7 @@ export default function VenueIntegrityConsole({ previewQueue = null }) {
                       <label><span>Logo URL</span><input value={form.logo_url} onChange={(event) => setForm({ ...form, logo_url: event.target.value })} /></label>
                       <div className={styles.formRow}>
                         <label><span>Evidence URL</span><input required value={form.source_url} onChange={(event) => setForm({ ...form, source_url: event.target.value })} /></label>
-                        <label><span>Confidence (0–1)</span><input required inputMode="decimal" value={form.confidence} onChange={(event) => setForm({ ...form, confidence: event.target.value })} /></label>
+                        <label><span>Confidence (0-1)</span><input required inputMode="decimal" value={form.confidence} onChange={(event) => setForm({ ...form, confidence: event.target.value })} /></label>
                       </div>
                       <label><span>Enrichment audit reason</span><textarea required minLength={12} maxLength={500} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Official source reviewed and fields verified…" /></label>
                       <button className={styles.commit} type="submit" disabled={saving || !form.source_url || form.reason.trim().length < 12}>{saving ? 'Recording evidence…' : 'Apply enrichment with evidence'}</button>

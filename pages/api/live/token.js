@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   if (!apiKey || !apiSecret || !livekitUrl) {
     return res.status(503).json({
       error:
-        'LiveKit not configured — set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, NEXT_PUBLIC_LIVEKIT_URL',
+        'LiveKit not configured - set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, NEXT_PUBLIC_LIVEKIT_URL',
     });
   }
 

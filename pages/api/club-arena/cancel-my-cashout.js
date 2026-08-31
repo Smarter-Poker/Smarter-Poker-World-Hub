@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       if (!cashout) return res.status(404).json({ success: false, error: 'Cashout not found' });
       if (cashout.player_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
       if (cashout.status !== 'pending') {
-        return res.status(400).json({ success: false, error: `Cannot cancel — status is ${cashout.status}` });
+        return res.status(400).json({ success: false, error: `Cannot cancel - status is ${cashout.status}` });
       }
 
       // Atomic cancellation (updates status + credits player chips + logs transaction)
@@ -78,13 +78,13 @@ export default async function handler(req, res) {
       cacheResponse(req, 200, {
         success: true,
         returned: cashout.amount,
-        message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
+        message: `Cashout cancelled - ${cashout.amount.toLocaleString()} chips returned`,
       });
 
       return res.status(200).json({
         success: true,
         returned: cashout.amount,
-        message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
+        message: `Cashout cancelled - ${cashout.amount.toLocaleString()} chips returned`,
       });
     } catch (err) {
       console.warn('[cancel-my-cashout]', err);

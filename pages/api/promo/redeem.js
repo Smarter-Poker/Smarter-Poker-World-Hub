@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                   p_user_id: user.id,
                   p_amount: promo.reward_value,
                   p_type: 'promo_code',
-                  p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus'}`,
+                  p_description: `Promo code: ${promo.code} - ${promo.description || 'Bonus'}`,
                   p_reference_id: `promo_${promo.id}_${user.id}`,
               });
 
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                   // out by the unique constraint.
                   await rollbackRedemption('diamond credit failed');
                   console.warn('[Promo] Diamond RPC failed (rolled back so user can retry):', diamondErr);
-                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
               }
 
               reward.message = `${promo.reward_value} diamonds added to your account!`;
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
               if (vipErr) {
                   await rollbackRedemption('vip_days update failed');
                   console.warn('[Promo] vip_days update failed (rolled back so user can retry):', vipErr);
-                  return res.status(500).json({ success: false, error: 'Failed to activate VIP — please retry' });
+                  return res.status(500).json({ success: false, error: 'Failed to activate VIP - please retry' });
               }
 
               reward.message = `${promo.reward_value} days of VIP access activated!`;
@@ -217,7 +217,7 @@ export default async function handler(req, res) {
               if (trialErr) {
                   await rollbackRedemption('free_trial update failed');
                   console.warn('[Promo] free_trial update failed (rolled back so user can retry):', trialErr);
-                  return res.status(500).json({ success: false, error: 'Failed to activate trial — please retry' });
+                  return res.status(500).json({ success: false, error: 'Failed to activate trial - please retry' });
               }
 
               reward.message = `${promo.reward_value}-day free trial activated!`;

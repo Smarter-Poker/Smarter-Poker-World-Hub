@@ -129,7 +129,7 @@ export default async function handler(req, res) {
                       p_user_id: userId,
                       p_amount: promo.reward_value,
                       p_type: 'promo_code',
-                      p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
+                      p_description: `Promo code: ${promo.code} - ${promo.description || 'Bonus diamonds'}`,
                       p_reference_id: `promo_${promo.id}_${userId}`,
                   });
 
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
                       // user can retry instead of being permanently locked out.
                       await rollbackRedemption('diamond credit failed');
                       console.warn('[redeem-promo] Diamond credit RPC failed (rolled back so user can retry):', diamondErr);
-                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
                   }
 
                   bonusApplied = `${promo.reward_value} diamonds added`;
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
                   if (vipErr) {
                       await rollbackRedemption('vip_trial/vip_days update failed');
                       console.warn('[redeem-promo] vip_days update failed (rolled back so user can retry):', vipErr);
-                      return res.status(500).json({ success: false, error: 'Failed to activate VIP — please retry' });
+                      return res.status(500).json({ success: false, error: 'Failed to activate VIP - please retry' });
                   }
 
                   bonusApplied = `${promo.reward_value}-day VIP trial activated`;
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
                   if (lifeErr) {
                       await rollbackRedemption('lifetime_commander_club_vip update failed');
                       console.warn('[redeem-promo] lifetime VIP update failed (rolled back so user can retry):', lifeErr);
-                      return res.status(500).json({ success: false, error: 'Failed to activate lifetime VIP — please retry' });
+                      return res.status(500).json({ success: false, error: 'Failed to activate lifetime VIP - please retry' });
                   }
 
                   bonusApplied = 'Lifetime VIP Card + Club Commander Club Level activated';

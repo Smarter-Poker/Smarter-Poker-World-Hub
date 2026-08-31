@@ -204,7 +204,7 @@ export default async function handler(req, res) {
                           p_user_id: userId,
                           p_amount: -tournament.entry_fee_diamonds,
                           p_type: 'arcade_entry',
-                          p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}diamonds`,
+                          p_description: `Tournament entry fee - ${tournament.entry_fee_diamonds}diamonds`,
                           p_reference_id: `tourney_entry_${tournamentId}_${userId}`
                       });
 
@@ -241,14 +241,14 @@ export default async function handler(req, res) {
                               p_user_id: userId,
                               p_amount: tournament.entry_fee_diamonds,
                               p_type: 'arcade_entry_refund',
-                              p_description: `Tournament entry refund — registration failed`,
+                              p_description: `Tournament entry refund - registration failed`,
                               p_reference_id: `tourney_entry_refund_${tournamentId}_${userId}`,
                           }).then(({ error }) => { if (error) throw error; }).catch(refundErr => {
                               console.warn('[Tournaments] Refund threw:', refundErr?.message || refundErr);
                               return { error: { message: 'refund_threw' } };
                           });
                           if (refundRpcErr) {
-                              console.warn('[Tournaments] Refund RPC error — user may need manual refund:', refundRpcErr.message);
+                              console.warn('[Tournaments] Refund RPC error - user may need manual refund:', refundRpcErr.message);
                           }
                       }
                       return res.status(500).json({ success: false, error: 'Registration failed' });

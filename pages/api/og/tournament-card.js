@@ -88,7 +88,7 @@ export default async function handler(req) {
                     <div style={{
                         display: 'flex', fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: '24px',
                     }}>
-                        {venue}{date ? ` — ${date}` : ''}
+                        {venue}{date ? ` - ${date}` : ''}
                     </div>
 
                     {/* Stats Row */}

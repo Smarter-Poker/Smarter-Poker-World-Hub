@@ -159,7 +159,7 @@ export default async function handler(req, res) {
               // No action data — try again (skip this spot)
               return res.status(200).json({
                   success: false,
-                  error: 'Spot has no action data — retry',
+                  error: 'Spot has no action data - retry',
                   retry: true,
               });
           }
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
           if (handsWithData.length === 0) {
               return res.status(200).json({
                   success: false,
-                  error: 'No hands with clear actions — retry',
+                  error: 'No hands with clear actions - retry',
                   retry: true,
               });
           }
