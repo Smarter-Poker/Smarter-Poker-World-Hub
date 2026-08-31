@@ -1,0 +1,6840 @@
+{
+  "schemaVersion": 1,
+  "generatedFor": "2026-08-31 World Hub Menu Modernization",
+  "generatedAt": "2026-08-31",
+  "sourceOfTruth": "src/config/world-footer-navigation.json + pages/hub",
+  "worldCount": 14,
+  "routeCount": 203,
+  "beforeSummary": {
+    "pageOwnedDrawers": 30,
+    "headerFallbackDrawers": 57,
+    "previouslyUncoveredRoutes": 116
+  },
+  "afterSummary": {
+    "commandCoveredRoutes": 203,
+    "uncoveredRoutes": 0,
+    "canonicalWorlds": 14,
+    "primaryDestinationsPerWorld": 6
+  },
+  "worlds": [
+    {
+      "id": "personal-assistant",
+      "label": "Personal Assistant",
+      "routePrefixes": [
+        "/hub/personal-assistant"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/personal-assistant",
+          "label": "Coach",
+          "description": "Assistant Home"
+        },
+        {
+          "href": "/hub/personal-assistant/sandbox",
+          "label": "Sandbox",
+          "description": "GTO Sandbox"
+        },
+        {
+          "href": "/hub/personal-assistant/leaks",
+          "label": "Leaks",
+          "description": "Leak Finder"
+        },
+        {
+          "href": "/hub/training",
+          "label": "Train",
+          "description": "Training Games"
+        },
+        {
+          "href": "/hub/preflop-charts",
+          "label": "Charts",
+          "description": "Preflop Charts"
+        },
+        {
+          "href": "/hub/poker-tools",
+          "label": "Odds",
+          "description": "Odds Calculator"
+        }
+      ],
+      "physicalRouteCount": 3
+    },
+    {
+      "id": "training",
+      "label": "Training Games",
+      "routePrefixes": [
+        "/hub/training",
+        "/hub/gto-trainer",
+        "/hub/poker-brain",
+        "/pokerbrain"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/training",
+          "label": "Library",
+          "description": "Training Library"
+        },
+        {
+          "href": "/hub/training/play-mode",
+          "label": "Play",
+          "description": "Play Training Games"
+        },
+        {
+          "href": "/hub/training/daily-challenge",
+          "label": "Daily",
+          "description": "Daily Challenge"
+        },
+        {
+          "href": "/hub/training/progress",
+          "label": "Progress",
+          "description": "My Progress"
+        },
+        {
+          "href": "/hub/training/challenges",
+          "label": "Goals",
+          "description": "Training Challenges"
+        },
+        {
+          "href": "/hub/training/leaderboard",
+          "label": "Ranks",
+          "description": "Training Leaderboard"
+        }
+      ],
+      "physicalRouteCount": 98
+    },
+    {
+      "id": "news",
+      "label": "Poker News",
+      "routePrefixes": [
+        "/hub/news",
+        "/hub/article"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/news",
+          "label": "Latest",
+          "description": "Latest Poker News"
+        },
+        {
+          "href": "/hub/news?tab=videos",
+          "label": "Videos",
+          "description": "News Videos"
+        },
+        {
+          "href": "/hub/news?tab=reels",
+          "label": "Reels",
+          "description": "News Reels"
+        },
+        {
+          "href": "/hub/news?tab=events",
+          "label": "Events",
+          "description": "Poker Events"
+        },
+        {
+          "href": "/hub/news?filter=bookmarks",
+          "label": "Saved",
+          "description": "Saved News"
+        },
+        {
+          "href": "/hub/news/sources",
+          "label": "Sources",
+          "description": "Manage News Sources"
+        }
+      ],
+      "physicalRouteCount": 3
+    },
+    {
+      "id": "trivia",
+      "label": "Poker Trivia",
+      "routePrefixes": [
+        "/hub/trivia"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/trivia",
+          "label": "Lobby",
+          "description": "Trivia Lobby"
+        },
+        {
+          "href": "/hub/trivia/daily",
+          "label": "Daily",
+          "description": "Daily Challenge"
+        },
+        {
+          "href": "/hub/trivia/arcade",
+          "label": "Arcade",
+          "description": "Quick Play Arcade"
+        },
+        {
+          "href": "/hub/trivia/pvp",
+          "label": "PvP",
+          "description": "Player Versus Player"
+        },
+        {
+          "href": "/hub/trivia/stats",
+          "label": "Stats",
+          "description": "Trivia Statistics"
+        },
+        {
+          "href": "/hub/trivia/leaderboard",
+          "label": "Ranks",
+          "description": "Trivia Leaderboard"
+        }
+      ],
+      "physicalRouteCount": 17
+    },
+    {
+      "id": "social-media",
+      "label": "Social Media",
+      "routePrefixes": [
+        "/hub/social-media",
+        "/hub/reels",
+        "/hub/friends",
+        "/hub/messenger",
+        "/hub/social-pages",
+        "/hub/saved-posts",
+        "/hub/post",
+        "/hub/user",
+        "/u"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/social-media",
+          "label": "Feed",
+          "description": "Social Feed"
+        },
+        {
+          "href": "/hub/social-media/compose",
+          "label": "Create",
+          "description": "Create A Post"
+        },
+        {
+          "href": "/hub/friends",
+          "label": "Friends",
+          "description": "Friends"
+        },
+        {
+          "href": "/hub/messenger",
+          "label": "Chat",
+          "description": "Messenger"
+        },
+        {
+          "href": "/hub/reels",
+          "label": "Reels",
+          "description": "Poker Reels"
+        },
+        {
+          "href": "/hub/social-pages",
+          "label": "Pages",
+          "description": "Social Pages"
+        }
+      ],
+      "physicalRouteCount": 18
+    },
+    {
+      "id": "diamond-arena",
+      "label": "Diamond Arena",
+      "routePrefixes": [
+        "/hub/diamond-arena"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/diamond-arena",
+          "label": "Arena",
+          "description": "Diamond Arena"
+        },
+        {
+          "href": "/hub/diamond-arena/schedule",
+          "label": "Schedule",
+          "description": "Tournament Schedule"
+        },
+        {
+          "href": "/hub/diamond-arena/leaderboard",
+          "label": "Ranks",
+          "description": "Arena Leaderboard"
+        },
+        {
+          "href": "/hub/diamond-arena/stats",
+          "label": "Stats",
+          "description": "My Arena Statistics"
+        },
+        {
+          "href": "/hub/diamond-arena/history",
+          "label": "History",
+          "description": "Arena Hand History"
+        },
+        {
+          "href": "/hub/diamond-store?category=diamonds",
+          "label": "Store",
+          "description": "Buy Diamonds"
+        }
+      ],
+      "physicalRouteCount": 6
+    },
+    {
+      "id": "my-clubs",
+      "label": "My Clubs",
+      "routePrefixes": [
+        "/hub/my-clubs",
+        "/hub/my-venues",
+        "/hub/home-games",
+        "/hub/venues"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/my-clubs",
+          "label": "Clubs",
+          "description": "My Clubs"
+        },
+        {
+          "href": "/hub/club-arena",
+          "label": "Arena",
+          "description": "Club Arena Lobby"
+        },
+        {
+          "href": "/hub/social-pages",
+          "label": "Pages",
+          "description": "Club Social Pages"
+        },
+        {
+          "href": "/hub/my-venues",
+          "label": "Venues",
+          "description": "My Venues"
+        },
+        {
+          "href": "/hub/home-games",
+          "label": "Games",
+          "description": "Home Games"
+        },
+        {
+          "href": "/hub",
+          "label": "Hub",
+          "description": "World Hub"
+        }
+      ],
+      "physicalRouteCount": 10
+    },
+    {
+      "id": "video-library",
+      "label": "Video Library",
+      "routePrefixes": [
+        "/hub/video-library"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/video-library",
+          "label": "Videos",
+          "description": "All Videos"
+        },
+        {
+          "href": "/hub/video-library?type=cash",
+          "label": "Cash",
+          "description": "Cash Game Videos"
+        },
+        {
+          "href": "/hub/video-library?type=tournament",
+          "label": "Tourneys",
+          "description": "Tournament Videos"
+        },
+        {
+          "href": "/hub/video-library?filter=favorites",
+          "label": "Saved",
+          "description": "Favorite Videos"
+        },
+        {
+          "href": "/hub/video-library?filter=history",
+          "label": "History",
+          "description": "Watch History"
+        },
+        {
+          "href": "/hub/video-library?filter=watchlater",
+          "label": "Later",
+          "description": "Watch Later"
+        }
+      ],
+      "physicalRouteCount": 1
+    },
+    {
+      "id": "odds-calculator",
+      "label": "Odds Calculator",
+      "routePrefixes": [
+        "/hub/poker-tools"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/poker-tools",
+          "label": "Odds",
+          "description": "Poker Odds Calculator"
+        },
+        {
+          "href": "/hub/training/equity-calculator",
+          "label": "Equity",
+          "description": "Equity Calculator"
+        },
+        {
+          "href": "/hub/training/icm-calculator",
+          "label": "ICM",
+          "description": "ICM Calculator"
+        },
+        {
+          "href": "/hub/preflop-charts",
+          "label": "Preflop",
+          "description": "Preflop Charts"
+        },
+        {
+          "href": "/hub/training/hand-lab",
+          "label": "Hand Lab",
+          "description": "Hand Lab"
+        },
+        {
+          "href": "/hub",
+          "label": "Hub",
+          "description": "World Hub"
+        }
+      ],
+      "physicalRouteCount": 1
+    },
+    {
+      "id": "bankroll-manager",
+      "label": "Bankroll Manager",
+      "routePrefixes": [
+        "/hub/bankroll-manager",
+        "/hub/bankroll"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/bankroll-manager?view=dashboard",
+          "label": "Summary",
+          "description": "Bankroll Dashboard"
+        },
+        {
+          "href": "/hub/bankroll-manager?view=log-session",
+          "label": "Log",
+          "description": "Log A Session"
+        },
+        {
+          "href": "/hub/bankroll-manager?view=trips",
+          "label": "Trips",
+          "description": "Trip Tracker"
+        },
+        {
+          "href": "/hub/bankroll-manager?view=reports",
+          "label": "Reports",
+          "description": "Bankroll Reports"
+        },
+        {
+          "href": "/hub/bankroll-manager?view=rules",
+          "label": "Rules",
+          "description": "Bankroll Rules"
+        },
+        {
+          "href": "/hub/bankroll-manager/export",
+          "label": "Export",
+          "description": "Export Bankroll Data"
+        }
+      ],
+      "physicalRouteCount": 3
+    },
+    {
+      "id": "toke-tracker",
+      "label": "Toke Tracker",
+      "routePrefixes": [
+        "/hub/toke-tracker"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/toke-tracker",
+          "label": "Tokes",
+          "description": "Toke Dashboard"
+        },
+        {
+          "href": "/hub/toke-tracker/shift",
+          "label": "Shift",
+          "description": "Shift Tracker"
+        },
+        {
+          "href": "/hub/toke-tracker/analytics",
+          "label": "Stats",
+          "description": "Toke Analytics"
+        },
+        {
+          "href": "/hub/toke-tracker/vault",
+          "label": "Vault",
+          "description": "Dealer Vault"
+        },
+        {
+          "href": "/hub/toke-tracker/vault?tab=tax",
+          "label": "Taxes",
+          "description": "Tax Summary And Export"
+        },
+        {
+          "href": "/hub/toke-tracker/venues",
+          "label": "Venues",
+          "description": "Venue Intelligence"
+        }
+      ],
+      "physicalRouteCount": 5
+    },
+    {
+      "id": "preflop-charts",
+      "label": "Preflop Charts",
+      "routePrefixes": [
+        "/hub/preflop-charts",
+        "/hub/memory-games"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/preflop-charts",
+          "label": "Charts",
+          "description": "Preflop Range Lab"
+        },
+        {
+          "href": "/hub/preflop-charts?mode=speed-drill",
+          "label": "Speed",
+          "description": "Speed Drill"
+        },
+        {
+          "href": "/hub/preflop-charts/stats",
+          "label": "Stats",
+          "description": "My Preflop Statistics"
+        },
+        {
+          "href": "/hub/preflop-charts/leaderboard",
+          "label": "Ranks",
+          "description": "Preflop Leaderboard"
+        },
+        {
+          "href": "/hub/preflop-charts/achievements",
+          "label": "Awards",
+          "description": "Preflop Achievements"
+        },
+        {
+          "href": "/hub/preflop-charts/tutorial",
+          "label": "Tutorial",
+          "description": "How To Play"
+        }
+      ],
+      "physicalRouteCount": 10
+    },
+    {
+      "id": "poker-near-me",
+      "label": "Poker Near Me",
+      "routePrefixes": [
+        "/hub/poker-near-me",
+        "/hub/events-calendar",
+        "/hub/daily-tournaments",
+        "/hub/poker-tours",
+        "/hub/poker-series",
+        "/hub/series",
+        "/hub/tours"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/poker-near-me/lobby",
+          "label": "Nearby",
+          "description": "Poker Near Me Lobby"
+        },
+        {
+          "href": "/hub/poker-near-me/venues",
+          "label": "Venues",
+          "description": "Poker Venues"
+        },
+        {
+          "href": "/hub/poker-near-me/events",
+          "label": "Events",
+          "description": "Nearby Poker Events"
+        },
+        {
+          "href": "/hub/poker-near-me/live-games",
+          "label": "Games",
+          "description": "Live Games"
+        },
+        {
+          "href": "/hub/poker-near-me/map",
+          "label": "Map",
+          "description": "Map View"
+        },
+        {
+          "href": "/hub/poker-near-me/saved",
+          "label": "Saved",
+          "description": "Saved Places"
+        }
+      ],
+      "physicalRouteCount": 12
+    },
+    {
+      "id": "marketplace",
+      "label": "Marketplace",
+      "routePrefixes": [
+        "/hub/marketplace",
+        "/hub/diamond-store",
+        "/hub/merch-store",
+        "/hub/club-shop",
+        "/hub/vip-membership",
+        "/hub/smarter-rewards"
+      ],
+      "primaryDestinations": [
+        {
+          "href": "/hub/marketplace",
+          "label": "Market",
+          "description": "Marketplace Home"
+        },
+        {
+          "href": "/hub/diamond-store",
+          "label": "Diamonds",
+          "description": "Diamond Store"
+        },
+        {
+          "href": "/hub/merch-store",
+          "label": "Merch",
+          "description": "Merchandise Store"
+        },
+        {
+          "href": "/hub/club-shop",
+          "label": "Clubs",
+          "description": "Club Marketplace"
+        },
+        {
+          "href": "/hub/vip-membership",
+          "label": "VIP",
+          "description": "VIP Membership"
+        },
+        {
+          "href": "/hub/diamond-store/orders",
+          "label": "Orders",
+          "description": "My Orders"
+        }
+      ],
+      "physicalRouteCount": 16
+    }
+  ],
+  "routes": [
+    {
+      "worldId": "bankroll-manager",
+      "worldLabel": "Bankroll Manager",
+      "route": "/hub/bankroll",
+      "source": "pages/hub/bankroll.js",
+      "disposition": "RETAIN_COMPATIBILITY",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "bankroll-manager",
+      "worldLabel": "Bankroll Manager",
+      "route": "/hub/bankroll-manager",
+      "source": "pages/hub/bankroll-manager.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "bankroll-manager"
+      ],
+      "roleAndContextSignals": [
+        "featureKey",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "bankroll_ledger",
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/bankroll/export",
+          "/api/bankroll/export-pdf"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "type",
+        "view"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "bankroll-manager",
+      "worldLabel": "Bankroll Manager",
+      "route": "/hub/bankroll-manager/export",
+      "source": "pages/hub/bankroll-manager/export.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/bankroll/export",
+          "/api/bankroll/export-pdf"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena",
+      "source": "pages/hub/diamond-arena.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "diamond-arena"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena/history",
+      "source": "pages/hub/diamond-arena/history.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena/leaderboard",
+      "source": "pages/hub/diamond-arena/leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena/schedule",
+      "source": "pages/hub/diamond-arena/schedule.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena/stats",
+      "source": "pages/hub/diamond-arena/stats.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "diamond-arena",
+      "worldLabel": "Diamond Arena",
+      "route": "/hub/diamond-arena/table-settings",
+      "source": "pages/hub/diamond-arena/table-settings.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/club-shop",
+      "source": "pages/hub/club-shop.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/club-shop/[itemId]",
+      "source": "pages/hub/club-shop/[itemId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "clubId",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "club_members"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/club-arena/marketplace-purchase",
+          "/api/store/create-checkout-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "canceled",
+        "clubId",
+        "itemId",
+        "session_id",
+        "success"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/diamond-store",
+      "source": "pages/hub/diamond-store.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "clubId",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "club_members",
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/club-arena/marketplace-purchase",
+          "/api/club-arena/shop-items",
+          "/api/store/create-checkout-session",
+          "/api/store/purchase-daily-vip",
+          "/api/store/purchase-vip-with-diamonds"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "canceled",
+        "plan",
+        "session_id",
+        "success",
+        "tab"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/diamond-store/cart",
+      "source": "pages/hub/diamond-store/cart.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "user_preferences"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/store/create-checkout-session",
+          "/api/store/diamond-transactions",
+          "/api/store/purchase-with-diamonds"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/diamond-store/orders",
+      "source": "pages/hub/diamond-store/orders.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/diamond-store/orders/[orderId]",
+      "source": "pages/hub/diamond-store/orders/[orderId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [
+        "orderId",
+        "source"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/diamond-store/wishlist",
+      "source": "pages/hub/diamond-store/wishlist.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/store/merch-catalog"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/marketplace",
+      "source": "pages/hub/marketplace.js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/merch-store",
+      "source": "pages/hub/merch-store.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/merch-store/[productId]",
+      "source": "pages/hub/merch-store/[productId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "merchandise_item_variants",
+          "merchandise_items"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/merch-store/fulfillment",
+      "source": "pages/hub/merch-store/fulfillment.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/store/fulfillment-operations"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/smarter-rewards",
+      "source": "pages/hub/smarter-rewards.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/smarter-rewards/[rewardId]",
+      "source": "pages/hub/smarter-rewards/[rewardId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/vip-membership",
+      "source": "pages/hub/vip-membership.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/vip-membership/compare",
+      "source": "pages/hub/vip-membership/compare.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "marketplace",
+      "worldLabel": "Marketplace",
+      "route": "/hub/vip-membership/manage",
+      "source": "pages/hub/vip-membership/manage.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/store/cancel-vip",
+          "/api/store/switch-vip-plan",
+          "/api/store/vip-membership-status"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games",
+      "source": "pages/hub/home-games.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId",
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/[slug]",
+      "source": "pages/hub/home-games/[slug].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "commander_home_members"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/friends",
+          "/api/messenger/start-conversation",
+          "/api/social/create-post",
+          "/api/social/posts"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "seatEvent"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/[slug]/dashboard",
+      "source": "pages/hub/home-games/[slug]/dashboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "commander_home_members"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/in",
+      "source": "pages/hub/home-games/in/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "commander_home_groups",
+          "social_pages"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/in/[state]",
+      "source": "pages/hub/home-games/in/[state]/index.js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "commander_home_groups",
+          "social_pages"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/in/[state]/[city]",
+      "source": "pages/hub/home-games/in/[state]/[city].js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "commander_home_groups",
+          "social_pages"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/home-games/near-me",
+      "source": "pages/hub/home-games/near-me.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/my-clubs",
+      "source": "pages/hub/my-clubs.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "clubId",
+        "userId",
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "club_members",
+          "home_game_members"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/follow"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/my-venues",
+      "source": "pages/hub/my-venues.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/employee/claim",
+          "/api/employee/link-by-email",
+          "/api/employee/venues"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "my-clubs",
+      "worldLabel": "My Clubs",
+      "route": "/hub/venues/[id]",
+      "source": "pages/hub/venues/[id].js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId",
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "poker_venues",
+          "venue_daily_tournaments"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/commander/waitlist/venue/",
+          "/api/friends",
+          "/api/poker/activity",
+          "/api/poker/checkins",
+          "/api/poker/checkins/activity",
+          "/api/poker/checkins/leaderboard",
+          "/api/poker/checkins/popular-hours",
+          "/api/poker/checkins/whos-here",
+          "/api/poker/claim-page",
+          "/api/poker/daily-tournaments",
+          "/api/poker/follow",
+          "/api/poker/live-games",
+          "/api/poker/live-tables",
+          "/api/poker/promotions",
+          "/api/poker/reviews",
+          "/api/poker/series",
+          "/api/poker/venue-schedules",
+          "/api/poker/venues",
+          "/api/rewards/venue-review",
+          "/api/social/pages",
+          "/api/venues/checkin"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "news",
+      "worldLabel": "Poker News",
+      "route": "/hub/article",
+      "source": "pages/hub/article.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "article"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "article_bookmarks",
+          "poker_news"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/news/articles"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "news",
+      "worldLabel": "Poker News",
+      "route": "/hub/news",
+      "source": "pages/hub/news.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "news"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/news/articles",
+          "/api/news/events",
+          "/api/news/leaderboard",
+          "/api/news/reels",
+          "/api/news/source-boxes",
+          "/api/news/subscribe",
+          "/api/news/videos"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "filter",
+        "sort",
+        "source",
+        "tab"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "news",
+      "worldLabel": "Poker News",
+      "route": "/hub/news/sources",
+      "source": "pages/hub/news/sources.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/news/source-boxes"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "odds-calculator",
+      "worldLabel": "Odds Calculator",
+      "route": "/hub/poker-tools",
+      "source": "pages/hub/poker-tools.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "personal-assistant",
+      "worldLabel": "Personal Assistant",
+      "route": "/hub/personal-assistant",
+      "source": "pages/hub/personal-assistant/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "hub-home"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/hand-of-the-day"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "personal-assistant",
+      "worldLabel": "Personal Assistant",
+      "route": "/hub/personal-assistant/leaks",
+      "source": "pages/hub/personal-assistant/leaks.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "leaks"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/assistant/leaks/review",
+          "/api/sandbox/coach-accuracy"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "personal-assistant",
+      "worldLabel": "Personal Assistant",
+      "route": "/hub/personal-assistant/sandbox",
+      "source": "pages/hub/personal-assistant/sandbox.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "sandbox"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "sandbox_bookmarks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/assistant/sandbox/sandbox-analytics",
+          "/api/assistant/sandbox/sandbox-quiz",
+          "/api/assistant/sandbox/sandbox-templates",
+          "/api/assistant/sandbox/weekly-spot",
+          "/api/sandbox/coach-result",
+          "/api/sandbox/equity-snapshot",
+          "/api/sandbox/sessions",
+          "/api/training/log-request"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "loadShared"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/daily-tournaments",
+      "source": "pages/hub/daily-tournaments.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "tournaments"
+      ],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/events-calendar",
+      "source": "pages/hub/events-calendar.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "events"
+      ],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me",
+      "source": "pages/hub/poker-near-me/index.js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me/[pnmTab]",
+      "source": "pages/hub/poker-near-me/[pnmTab].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "poker-near-me"
+      ],
+      "roleAndContextSignals": [
+        "userId",
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/checkins",
+          "/api/poker/daily-tournaments",
+          "/api/poker/live-tables",
+          "/api/poker/promotions",
+          "/api/poker/reviews",
+          "/api/poker/series",
+          "/api/poker/tours",
+          "/api/poker/venues",
+          "/api/venues/record-geofence"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "filter",
+        "pnmTab",
+        "q",
+        "sub",
+        "tab"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me/in",
+      "source": "pages/hub/poker-near-me/in/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me/in/[state]",
+      "source": "pages/hub/poker-near-me/in/[state]/index.js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me/in/[state]/[city]",
+      "source": "pages/hub/poker-near-me/in/[state]/[city].js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-near-me/lobby",
+      "source": "pages/hub/poker-near-me/lobby.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "poker-near-me"
+      ],
+      "roleAndContextSignals": [
+        "userId",
+        "venueId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/checkins/batch-counts",
+          "/api/poker/daily-tournaments",
+          "/api/poker/follow",
+          "/api/poker/live-tables",
+          "/api/poker/reviews",
+          "/api/poker/series",
+          "/api/poker/tours"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "game",
+        "pod",
+        "q",
+        "radius",
+        "sort",
+        "state"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-series",
+      "source": "pages/hub/poker-series.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "events"
+      ],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "poker_series",
+          "tournament_series"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/series"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [
+        "distance",
+        "q",
+        "range",
+        "sort",
+        "tour"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/poker-tours",
+      "source": "pages/hub/poker-tours.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "events"
+      ],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/notifications/send",
+          "/api/poker/tours"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "buyin",
+        "distance",
+        "q",
+        "range",
+        "region",
+        "type"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/series/[id]",
+      "source": "pages/hub/series/[id].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/activity",
+          "/api/poker/follow",
+          "/api/poker/results",
+          "/api/poker/series"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "poker-near-me",
+      "worldLabel": "Poker Near Me",
+      "route": "/hub/tours/[code]",
+      "source": "pages/hub/tours/[code].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker/activity",
+          "/api/poker/follow",
+          "/api/poker/results",
+          "/api/poker/tours"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/memory-games",
+      "source": "pages/hub/memory-games.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "preflop-charts"
+      ],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/gto/analyze-game",
+          "/api/gto/explain-hand",
+          "/api/gto/generate-adaptive",
+          "/api/gto/generate-scenario",
+          "/api/gto/get-weak-spots",
+          "/api/gto/lobby-suggestions",
+          "/api/gto/render-analysis-card",
+          "/api/jarvis/training-session",
+          "/api/store/create-checkout-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "mode"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/memory-games/achievements",
+      "source": "pages/hub/memory-games/achievements.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [
+          "get_user_achievements"
+        ],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/memory-games/leaderboard",
+      "source": "pages/hub/memory-games/leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "memory_leaderboards"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/memory-games/stats",
+      "source": "pages/hub/memory-games/stats.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "memory_game_sessions"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/memory-games/tutorial",
+      "source": "pages/hub/memory-games/tutorial.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/preflop-charts",
+      "source": "pages/hub/preflop-charts.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/preflop-charts/achievements",
+      "source": "pages/hub/preflop-charts/achievements.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/preflop-charts/leaderboard",
+      "source": "pages/hub/preflop-charts/leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/preflop-charts/stats",
+      "source": "pages/hub/preflop-charts/stats.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "preflop-charts",
+      "worldLabel": "Preflop Charts",
+      "route": "/hub/preflop-charts/tutorial",
+      "source": "pages/hub/preflop-charts/tutorial.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/friends",
+      "source": "pages/hub/friends.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "friends"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "friendships",
+          "notifications",
+          "social_follows"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/friends",
+          "/api/notifications/follow",
+          "/api/notifications/send"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/messenger",
+      "source": "pages/hub/messenger.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "messenger"
+      ],
+      "roleAndContextSignals": [
+        "clubId",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "social_conversation_participants",
+          "social_conversations",
+          "social_messages"
+        ],
+        "supabaseRpcs": [
+          "fn_get_user_conversations",
+          "fn_merge_messenger_preferences"
+        ],
+        "apiRoutes": [
+          "/api/calls/cancel",
+          "/api/calls/create",
+          "/api/friends",
+          "/api/geeves/chat",
+          "/api/messenger/block-user",
+          "/api/messenger/delete-conversation",
+          "/api/messenger/delete-message",
+          "/api/messenger/edit-message",
+          "/api/messenger/get-conversations",
+          "/api/messenger/get-messages",
+          "/api/messenger/global-search",
+          "/api/messenger/insert-missed-call-notification",
+          "/api/messenger/mark-read",
+          "/api/messenger/react-message",
+          "/api/messenger/search-messages",
+          "/api/messenger/send-message",
+          "/api/messenger/start-conversation",
+          "/api/messenger/update-presence",
+          "/api/notifications/send",
+          "/api/social/upload-url",
+          "/api/user/get-header-stats"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "bottomPad",
+        "clubId",
+        "forceIdentity",
+        "hideHeader"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/messenger/blocked",
+      "source": "pages/hub/messenger/blocked.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/messenger/requests",
+      "source": "pages/hub/messenger/requests.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "social_conversation_participants",
+          "social_conversations"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/messenger/request-action"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/post/[id]",
+      "source": "pages/hub/post/[id].js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/reels",
+      "source": "pages/hub/reels.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "reels"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "social_comments",
+          "social_follows",
+          "social_interactions",
+          "social_likes",
+          "social_posts",
+          "social_reels"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/social/share-reel-to-feed",
+          "/api/social/upload-comment-image",
+          "/api/training/log-request"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "feed",
+        "id",
+        "upload"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/reels/my-reels",
+      "source": "pages/hub/reels/my-reels.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "social_reels"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/reels/saved",
+      "source": "pages/hub/reels/saved.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/saved-posts",
+      "source": "pages/hub/saved-posts.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "social_interactions",
+          "social_posts"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-media",
+      "source": "pages/hub/social-media/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "content_authors",
+          "friendships",
+          "mentions",
+          "notifications",
+          "profiles",
+          "social_comment_likes",
+          "social_comments",
+          "social_conversation_participants",
+          "social_follows",
+          "social_interactions",
+          "social_likes",
+          "social_posts",
+          "social_reels"
+        ],
+        "supabaseRpcs": [
+          "decrement_post_count",
+          "fn_create_social_post"
+        ],
+        "apiRoutes": [
+          "/api/live/cleanup-stale",
+          "/api/notifications/mark-read",
+          "/api/posts/delete",
+          "/api/social/pages",
+          "/api/social/pages/follow",
+          "/api/social/pages/posts",
+          "/api/social/upload-comment-image"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "createPage",
+        "post",
+        "ref",
+        "stream",
+        "view",
+        "viewPage"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-media/[slug]",
+      "source": "pages/hub/social-media/[slug].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-media/compose",
+      "source": "pages/hub/social-media/compose.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-pages",
+      "source": "pages/hub/social-pages/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/social/pages/follow"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-pages/[pageId]",
+      "source": "pages/hub/social-pages/[pageId].js",
+      "disposition": "REDIRECT",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "social_pages"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/friends",
+          "/api/social/pages",
+          "/api/social/pages/engage",
+          "/api/social/pages/follow",
+          "/api/social/pages/games",
+          "/api/social/pages/posts",
+          "/api/social/pages/reviews",
+          "/api/social/upload-url"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "tab"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-pages/[pageId]/manage",
+      "source": "pages/hub/social-pages/[pageId]/manage.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/social/pages",
+          "/api/social/pages/follow",
+          "/api/social/pages/posts"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/social-pages/create",
+      "source": "pages/hub/social-pages/create.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "club_members",
+          "clubs"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/social/pages",
+          "/api/social/upload"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/hub/user/[username]",
+      "source": "pages/hub/user/[username].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "profile"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "blocked_users",
+          "content_authors",
+          "friendships",
+          "live_streams",
+          "notifications",
+          "poker_near_me_favorites",
+          "profiles",
+          "social_comments",
+          "social_follows",
+          "social_posts",
+          "social_reels",
+          "user_reports"
+        ],
+        "supabaseRpcs": [
+          "decrement_post_count"
+        ],
+        "apiRoutes": [
+          "/api/live/end-stream",
+          "/api/notifications/follow",
+          "/api/social/interactions",
+          "/api/social/share-count"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "social-media",
+      "worldLabel": "Social Media",
+      "route": "/u/[username]",
+      "source": "pages/u/[username].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "home_game_members"
+        ],
+        "supabaseRpcs": [
+          "get_public_profile_by_username"
+        ],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "toke-tracker",
+      "worldLabel": "Toke Tracker",
+      "route": "/hub/toke-tracker",
+      "source": "pages/hub/toke-tracker/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "toke-tracker"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "toke-tracker",
+      "worldLabel": "Toke Tracker",
+      "route": "/hub/toke-tracker/analytics",
+      "source": "pages/hub/toke-tracker/analytics.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "toke-tracker"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "toke-tracker",
+      "worldLabel": "Toke Tracker",
+      "route": "/hub/toke-tracker/shift",
+      "source": "pages/hub/toke-tracker/shift.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "toke-tracker"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "toke-tracker",
+      "worldLabel": "Toke Tracker",
+      "route": "/hub/toke-tracker/vault",
+      "source": "pages/hub/toke-tracker/vault.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "toke-tracker"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [
+        "tab"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "toke-tracker",
+      "worldLabel": "Toke Tracker",
+      "route": "/hub/toke-tracker/venues",
+      "source": "pages/hub/toke-tracker/venues.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "toke-tracker"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/gto-trainer",
+      "source": "pages/hub/gto-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/poker-brain",
+      "source": "pages/hub/poker-brain.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training",
+      "source": "pages/hub/training.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/analytics",
+          "/api/training/get-sessions",
+          "/api/training/recommendations",
+          "/api/training/weekly-stats"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/achievements",
+      "source": "pages/hub/training/achievements.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/achievements",
+          "/api/training/share"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/aggregate",
+      "source": "pages/hub/training/aggregate.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/analyzer",
+      "source": "pages/hub/training/analyzer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/arena/[gameId]",
+      "source": "pages/hub/training/arena/[gameId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/autopilot",
+      "source": "pages/hub/training/autopilot.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/share"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/bankroll-coach",
+      "source": "pages/hub/training/bankroll-coach.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/blind-defense",
+      "source": "pages/hub/training/blind-defense.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/bluff-catcher",
+      "source": "pages/hub/training/bluff-catcher.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/bounty-trainer",
+      "source": "pages/hub/training/bounty-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/category/[categoryId]",
+      "source": "pages/hub/training/category/[categoryId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [
+        "categoryId"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/challenges",
+      "source": "pages/hub/training/challenges.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/challenges"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/clinic/[clinicId]",
+      "source": "pages/hub/training/clinic/[clinicId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [
+        "clinicId"
+      ],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/coach-mode",
+      "source": "pages/hub/training/coach-mode.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/community-leaderboard",
+      "source": "pages/hub/training/community-leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/leaderboard"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/custom-rake",
+      "source": "pages/hub/training/custom-rake.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/custom-solve",
+      "source": "pages/hub/training/custom-solve.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/solver-api"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/daily-challenge",
+      "source": "pages/hub/training/daily-challenge.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/hand-of-the-day",
+          "/api/training/share"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/daily-goals",
+      "source": "pages/hub/training/daily-goals.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/daily-bonus"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/drill-builder",
+      "source": "pages/hub/training/drill-builder.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "training_custom_drills"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/equity-calculator",
+      "source": "pages/hub/training/equity-calculator.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/equity"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/ev-heatmap",
+      "source": "pages/hub/training/ev-heatmap.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/ev-trainer",
+      "source": "pages/hub/training/ev-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/famous-finals",
+      "source": "pages/hub/training/famous-finals.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/final-table-sim",
+      "source": "pages/hub/training/final-table-sim.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/icm-calc"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/flashcards",
+      "source": "pages/hub/training/flashcards.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/focus-timer",
+      "source": "pages/hub/training/focus-timer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/frequency-locking",
+      "source": "pages/hub/training/frequency-locking.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/glossary",
+      "source": "pages/hub/training/glossary.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/gto-news",
+      "source": "pages/hub/training/gto-news.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/news/articles"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/gto-preloader",
+      "source": "pages/hub/training/gto-preloader.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/gto-reports",
+      "source": "pages/hub/training/gto-reports.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/get-sessions"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/gto-scorecard",
+      "source": "pages/hub/training/gto-scorecard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/gto-vs-exploitative",
+      "source": "pages/hub/training/gto-vs-exploitative.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/hand-comparison",
+      "source": "pages/hub/training/hand-comparison.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/hand-history-upload",
+      "source": "pages/hub/training/hand-history-upload.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/audit-hand-history",
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/hand-lab",
+      "source": "pages/hub/training/hand-lab.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/equity"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/icm-calculator",
+      "source": "pages/hub/training/icm-calculator.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/icm-calc"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/icm-final-table",
+      "source": "pages/hub/training/icm-final-table.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/icm-simulator",
+      "source": "pages/hub/training/icm-simulator.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/icm-calc"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/jarvis",
+      "source": "pages/hub/training/jarvis.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/leaderboard",
+      "source": "pages/hub/training/leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/friends",
+          "/api/training/leaderboard"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/live-hud-sync",
+      "source": "pages/hub/training/live-hud-sync.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/mental-journal",
+      "source": "pages/hub/training/mental-journal.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/tool-records"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/milestones",
+      "source": "pages/hub/training/milestones.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/mixed-strategy-lab",
+      "source": "pages/hub/training/mixed-strategy-lab.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/multi-table",
+      "source": "pages/hub/training/multi-table.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "difficulty",
+        "handSelection",
+        "timer"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/multiway-postflop",
+      "source": "pages/hub/training/multiway-postflop.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/multiway-preflop",
+      "source": "pages/hub/training/multiway-preflop.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/my-playbook",
+      "source": "pages/hub/training/my-playbook.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/tool-records"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/nodelocking",
+      "source": "pages/hub/training/nodelocking.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/performance-heatmap",
+      "source": "pages/hub/training/performance-heatmap.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/play-mode",
+      "source": "pages/hub/training/play-mode.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/play/[gameId]",
+      "source": "pages/hub/training/play/[gameId].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/player-profiles",
+      "source": "pages/hub/training/player-profiles.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/position-mastery",
+      "source": "pages/hub/training/position-mastery.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/get-progress"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/pot-geometry",
+      "source": "pages/hub/training/pot-geometry.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/preflop-advisor",
+      "source": "pages/hub/training/preflop-advisor.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/preflop-charts",
+      "source": "pages/hub/training/preflop-charts.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/progress",
+      "source": "pages/hub/training/progress.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "jarvis_training_sessions",
+          "training_streaks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/pvp-lobby",
+      "source": "pages/hub/training/pvp-lobby.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/qre-explorer",
+      "source": "pages/hub/training/qre-explorer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/quick-warmup",
+      "source": "pages/hub/training/quick-warmup.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/quiz-builder",
+      "source": "pages/hub/training/quiz-builder.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/quiz-gauntlet",
+      "source": "pages/hub/training/quiz-gauntlet.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/rake-solutions",
+      "source": "pages/hub/training/rake-solutions.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/range-advisor",
+      "source": "pages/hub/training/range-advisor.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/range-builder",
+      "source": "pages/hub/training/range-builder.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/grade-range",
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/range-explorer",
+      "source": "pages/hub/training/range-explorer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/replay-theater",
+      "source": "pages/hub/training/replay-theater.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/reports",
+      "source": "pages/hub/training/reports.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/risk-analyzer",
+      "source": "pages/hub/training/risk-analyzer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/scenario-demo",
+      "source": "pages/hub/training/scenario-demo.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/session-dashboard",
+      "source": "pages/hub/training/session-dashboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/coaching-summary",
+          "/api/training/get-sessions"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/session-notes",
+      "source": "pages/hub/training/session-notes.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/get-sessions"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/session-warmup",
+      "source": "pages/hub/training/session-warmup.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/short-deck-trainer",
+      "source": "pages/hub/training/short-deck-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/equity",
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/skill-tree",
+      "source": "pages/hub/training/skill-tree.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/solutions",
+      "source": "pages/hub/training/solutions.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/bookmark-solution"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/spot-trainer",
+      "source": "pages/hub/training/spot-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/save-session"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/spr-trainer",
+      "source": "pages/hub/training/spr-trainer.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/streaks",
+      "source": "pages/hub/training/streaks.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "jarvis_training_sessions"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/share",
+          "/api/training/streak"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/study-group",
+      "source": "pages/hub/training/study-group.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/study-group-finder",
+      "source": "pages/hub/training/study-group-finder.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/study-groups"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "join"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/study-plan",
+      "source": "pages/hub/training/study-plan.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/table-wizard",
+      "source": "pages/hub/training/table-wizard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/three-way-postflop",
+      "source": "pages/hub/training/three-way-postflop.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/tilt-guard",
+      "source": "pages/hub/training/tilt-guard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/tournament-prep",
+      "source": "pages/hub/training/tournament-prep.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/tool-records"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/tournament/[id]",
+      "source": "pages/hub/training/tournament/[id].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/tournaments"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/tournaments",
+      "source": "pages/hub/training/tournaments.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/tournaments"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/training-calendar",
+      "source": "pages/hub/training/training-calendar.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/get-sessions"
+        ],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/training-feed",
+      "source": "pages/hub/training/training-feed.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/villain-range",
+      "source": "pages/hub/training/villain-range.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/hub/training/weakness-scanner",
+      "source": "pages/hub/training/weakness-scanner.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "training",
+      "worldLabel": "Training Games",
+      "route": "/pokerbrain",
+      "source": "pages/pokerbrain.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/poker-brain/calibration",
+          "/api/poker-brain/migrate-equities",
+          "/api/poker-brain/sessions"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia",
+      "source": "pages/hub/trivia/index.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "trivia"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "daily_trivia_plays",
+          "profiles",
+          "trivia_streaks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/[mode]",
+      "source": "pages/hub/trivia/[mode].js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "daily_trivia_plays",
+          "profiles",
+          "trivia_questions",
+          "trivia_scores",
+          "trivia_streaks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/trivia/prize-wheel-spin"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/achievements",
+      "source": "pages/hub/trivia/achievements.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "trivia_scores",
+          "trivia_streaks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/cash",
+      "source": "pages/hub/trivia/cash.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/endless",
+      "source": "pages/hub/trivia/endless.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "endless_high_scores",
+          "profiles"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/gto",
+      "source": "pages/hub/trivia/gto.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/icm",
+      "source": "pages/hub/trivia/icm.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/leaderboard",
+      "source": "pages/hub/trivia/leaderboard.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [
+          "trivia_scores"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/mixed",
+      "source": "pages/hub/trivia/mixed.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "trivia_category_mastery"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/mtt",
+      "source": "pages/hub/trivia/mtt.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": false
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/pvp",
+      "source": "pages/hub/trivia/pvp.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "trivia_pvp_matches",
+          "trivia_pvp_stats"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/trivia/pvp-settle-match"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/settings",
+      "source": "pages/hub/trivia/settings.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/stats",
+      "source": "pages/hub/trivia/stats.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "trivia_category_mastery",
+          "trivia_scores",
+          "trivia_streaks"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/survival",
+      "source": "pages/hub/trivia/survival.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "GLOBAL_WORLD_COMMAND_DOCK",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": false,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": false,
+        "permission": false,
+        "offlineOrStale": false,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/survival-game",
+      "source": "pages/hub/trivia/survival-game.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "survival_progress"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/time-attack",
+      "source": "pages/hub/trivia/time-attack.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "featureKey",
+        "isVIP",
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "trivia_scores"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [],
+        "realtime": true,
+        "mutations": false
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "trivia",
+      "worldLabel": "Poker Trivia",
+      "route": "/hub/trivia/tournaments",
+      "source": "pages/hub/trivia/tournaments.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "ROUTE_AWARE_HEADER_DRAWER",
+      "directMenuKeys": [],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [
+          "profiles",
+          "trivia_pvp_stats",
+          "trivia_tournament_entries",
+          "trivia_tournament_notifications",
+          "trivia_tournament_rounds",
+          "trivia_tournaments_public"
+        ],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/trivia/tournament-enter",
+          "/api/trivia/tournament-submit-round"
+        ],
+        "realtime": true,
+        "mutations": true
+      },
+      "addressableStates": [],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": false,
+        "error": true,
+        "permission": true,
+        "offlineOrStale": true,
+        "partial": false,
+        "success": true
+      }
+    },
+    {
+      "worldId": "video-library",
+      "worldLabel": "Video Library",
+      "route": "/hub/video-library",
+      "source": "pages/hub/video-library.js",
+      "disposition": "RETAIN_REDESIGNED_NAVIGATION",
+      "navigationCoverage": "PAGE_OWNED_COMMAND_DRAWER",
+      "directMenuKeys": [
+        "video-library"
+      ],
+      "roleAndContextSignals": [
+        "userId"
+      ],
+      "dataContracts": {
+        "supabaseTables": [],
+        "supabaseRpcs": [],
+        "apiRoutes": [
+          "/api/training/log-request",
+          "/api/video-library/client-error"
+        ],
+        "realtime": false,
+        "mutations": true
+      },
+      "addressableStates": [
+        "filter",
+        "q",
+        "sort",
+        "source",
+        "type",
+        "v"
+      ],
+      "uiStateContracts": {
+        "loading": true,
+        "empty": true,
+        "error": true,
+        "permission": false,
+        "offlineOrStale": true,
+        "partial": true,
+        "success": true
+      }
+    }
+  ]
+}

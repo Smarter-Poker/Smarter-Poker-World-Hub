@@ -43,6 +43,7 @@ import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
 import { getHeaderStats } from '../../lib/headerStats';
+import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 
 // Dark theme colors matching hub
 const C = {
@@ -76,15 +77,6 @@ const OVERLAY_TITLES = {
   'diamond-store': 'Diamond Store',
 };
 
-const DEFAULT_HEADER_MENU_ITEMS = [
-  { type: 'navigation', label: 'Hub', href: '/hub' },
-  { type: 'navigation', label: 'Profile', href: '/hub/profile' },
-  { type: 'navigation', label: 'Diamond Store', href: '/hub/diamond-store' },
-  { type: 'navigation', label: 'Messenger', href: '/hub/messenger' },
-  { type: 'navigation', label: 'Notifications', href: '/hub/notifications' },
-  { type: 'navigation', label: 'Settings', href: '/hub/settings' },
-];
-
 // useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
 // server. On the client this flushes BEFORE the browser paints, which means the
 // isMounted gate below never shows the un-hydrated (avatar-less) frame to the user.
@@ -96,6 +88,14 @@ export default function UniversalHeader({
 }) {
   const router = useRouter();
   const [fallbackMenuOpen, setFallbackMenuOpen] = useState(false);
+  const resolvedHeaderWorld = useMemo(
+    () => resolveWorldMenu(router?.asPath || router?.pathname || ''),
+    [router?.asPath, router?.pathname]
+  );
+  // Social still carries a legacy feed sidebar, so its approved header owns
+  // the canonical drawer directly. Other worlds keep their page-owned
+  // handlers so contextual actions such as search and tutorials stay wired.
+  const ownsCanonicalMenu = resolvedHeaderWorld?.id === 'social-media';
 
   // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
   // Parses localStorage once and returns the cached header object (or null if expired/missing).
@@ -1201,6 +1201,7 @@ export default function UniversalHeader({
                     position: sticky;
                     top: 0;
                     z-index: 100;
+                    flex: 0 0 auto;
                     width: 100%;
                     box-sizing: border-box;
                     padding-top: env(safe-area-inset-top, 0px);
@@ -1327,15 +1328,16 @@ export default function UniversalHeader({
         }}
       />
 
-      {!onMenuClick && (
+      {(!onMenuClick || ownsCanonicalMenu) && (
         <HamburgerMenu
           isOpen={fallbackMenuOpen}
           onClose={() => setFallbackMenuOpen(false)}
           direction="left"
           theme="dark"
           user={user}
-          menuItems={DEFAULT_HEADER_MENU_ITEMS}
-          menuKey="global-header-default"
+          menuItems={[]}
+          bottomLinks={[]}
+          menuKey={router.asPath || 'global-header-default'}
         />
       )}
 
@@ -1354,7 +1356,13 @@ export default function UniversalHeader({
           <button
             type="button"
             className="approved-global-header__button approved-global-header__menu"
-            onClick={() => (onMenuClick ? onMenuClick() : setFallbackMenuOpen(true))}
+            data-world-menu-trigger="approved-header"
+            data-menu-symbol="command-grid"
+            onClick={() => (
+              onMenuClick && !ownsCanonicalMenu
+                ? onMenuClick()
+                : setFallbackMenuOpen(true)
+            )}
             aria-label="Open Menu"
           />
           <button

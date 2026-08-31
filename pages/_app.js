@@ -117,6 +117,11 @@ import {
   scrollLockCount,
 } from '../src/lib/scrollLock';
 
+const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommandDock'), {
+  ssr: false,
+  loading: () => null,
+});
+
 const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training',
   '/hub/training/achievements',
@@ -1010,6 +1015,7 @@ export default function App({ Component, pageProps }) {
                                   </>
                                 )}
                               </PageErrorBoundary>
+                              {!isClubArenaRoute && <WorldCommandDock />}
                               {showBottomNav && (
                                 <BottomNavSpacer
                                   config={bottomNavConfig}

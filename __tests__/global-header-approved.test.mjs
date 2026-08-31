@@ -58,14 +58,18 @@ const moduleOwnsHeader = (entryFile, seen = new Set()) => {
   });
 };
 
-test('approved source and lossless desktop crop are present', () => {
+test('approved command-grid source and desktop crop are present', () => {
   const source = join(root, 'public/images/global-header/global-header-approved-source.png');
   const crop = join(root, 'public/images/global-header/global-header-desktop.png');
   assert.ok(existsSync(source));
   assert.ok(existsSync(crop));
   assert.equal(
     createHash('sha256').update(readFileSync(source)).digest('hex'),
-    '37f2dd1cf6bf264c20402a1a928fa053bcdde4866b231e6d9c5f7d158d01df2a'
+    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f'
+  );
+  assert.equal(
+    createHash('sha256').update(readFileSync(crop)).digest('hex'),
+    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771'
   );
 });
 
@@ -110,7 +114,7 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
-test('all 263 Hub page modules own the shared header or inherit the app-root fallback', () => {
+test('all 264 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
   const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
   const fallbackBlock = appRoot.match(
@@ -134,7 +138,7 @@ test('all 263 Hub page modules own the shared header or inherit the app-root fal
     .filter((route) => moduleOwnsHeader(filesByRoute.get(route)))
     .sort();
 
-  assert.equal(files.length, 263);
+  assert.equal(files.length, 264);
   assert.deepEqual(uncovered, []);
   assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);

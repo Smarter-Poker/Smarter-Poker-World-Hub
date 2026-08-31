@@ -3501,6 +3501,12 @@ function SocialMediaPage() {
   // Zustand Global State (replaces UI-related useState)
   const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
   const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);
+  // Migration safety: older sessions can retain the pre-command-drawer
+  // sidebar flag in the shared store. Clear it on entry so the Facebook-style
+  // canonical command menu is the only global navigation surface.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [setSidebarOpen]);
   const showNotifications = useSocialStore((s) => s.showNotifications);
   const setShowNotifications = useSocialStore((s) => s.setShowNotifications);
   const showGlobalSearch = useSocialStore((s) => s.showGlobalSearch);
@@ -5945,6 +5951,7 @@ function SocialMediaPage() {
       )}
 
       {/* Slide-out Sidebar Panel */}
+      {sidebarOpen && (
       <div
         style={{
           position: 'fixed',
@@ -6666,6 +6673,7 @@ function SocialMediaPage() {
           </button>
         </div>
       </div>
+      )}
 
       <div
         style={{

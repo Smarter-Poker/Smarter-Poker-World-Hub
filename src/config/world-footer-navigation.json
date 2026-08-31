@@ -73,7 +73,7 @@
         { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help" },
         { "href": "/hub/trivia/daily", "label": "Daily", "title": "Daily Challenge", "icon": "calendar" },
         { "href": "/hub/trivia/arcade", "label": "Arcade", "title": "Quick Play Arcade", "icon": "gamepad" },
-        { "href": "/hub/trivia/pvp", "label": "PvP", "title": "Player versus Player", "icon": "swords" },
+        { "href": "/hub/trivia/pvp", "label": "PvP", "title": "Player Versus Player", "icon": "swords" },
         { "href": "/hub/trivia/stats", "label": "Stats", "title": "Trivia Statistics", "icon": "chart" },
         { "href": "/hub/trivia/leaderboard", "label": "Ranks", "title": "Trivia Leaderboard", "icon": "trophy" }
       ]
@@ -87,7 +87,7 @@
       "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
       "items": [
         { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home" },
-        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create a Post", "icon": "compose" },
+        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create A Post", "icon": "compose" },
         { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
         { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message" },
         { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film" },
@@ -167,7 +167,7 @@
       "routePrefixes": ["/hub/bankroll-manager", "/hub/bankroll"],
       "items": [
         { "href": "/hub/bankroll-manager?view=dashboard", "label": "Summary", "title": "Bankroll Dashboard", "icon": "wallet" },
-        { "href": "/hub/bankroll-manager?view=log-session", "label": "Log", "title": "Log a Session", "icon": "plus" },
+        { "href": "/hub/bankroll-manager?view=log-session", "label": "Log", "title": "Log A Session", "icon": "plus" },
         { "href": "/hub/bankroll-manager?view=trips", "label": "Trips", "title": "Trip Tracker", "icon": "route" },
         { "href": "/hub/bankroll-manager?view=reports", "label": "Reports", "title": "Bankroll Reports", "icon": "chart" },
         { "href": "/hub/bankroll-manager?view=rules", "label": "Rules", "title": "Bankroll Rules", "icon": "shield" },
@@ -186,7 +186,7 @@
         { "href": "/hub/toke-tracker/shift", "label": "Shift", "title": "Shift Tracker", "icon": "timer" },
         { "href": "/hub/toke-tracker/analytics", "label": "Stats", "title": "Toke Analytics", "icon": "chart" },
         { "href": "/hub/toke-tracker/vault", "label": "Vault", "title": "Dealer Vault", "icon": "vault" },
-        { "href": "/hub/toke-tracker/vault?tab=tax", "label": "Taxes", "title": "Tax Summary and Export", "icon": "receipt" },
+        { "href": "/hub/toke-tracker/vault?tab=tax", "label": "Taxes", "title": "Tax Summary And Export", "icon": "receipt" },
         { "href": "/hub/toke-tracker/venues", "label": "Venues", "title": "Venue Intelligence", "icon": "map" }
       ]
     },
@@ -203,7 +203,7 @@
         { "href": "/hub/preflop-charts/stats", "label": "Stats", "title": "My Preflop Statistics", "icon": "chart" },
         { "href": "/hub/preflop-charts/leaderboard", "label": "Ranks", "title": "Preflop Leaderboard", "icon": "trophy" },
         { "href": "/hub/preflop-charts/achievements", "label": "Awards", "title": "Preflop Achievements", "icon": "medal" },
-        { "href": "/hub/preflop-charts/tutorial", "label": "Tutorial", "title": "How to Play", "icon": "book" }
+        { "href": "/hub/preflop-charts/tutorial", "label": "Tutorial", "title": "How To Play", "icon": "book" }
       ]
     },
     {
