@@ -1208,10 +1208,12 @@ export default function DiamondStorePage({ initialTab }) {
       clubShopLoadingRef.current = true;
       if (!silent) setClubShopLoading(true);
       if (!silent) setClubShopError(null);
+      const loadController = new AbortController();
       const loadTimer = setTimeout(() => {
         if (requestId !== clubShopLoadRequestRef.current) return;
         clubShopLoadRequestRef.current += 1;
         clubShopLoadingRef.current = false;
+        loadController.abort();
         if (!silent) {
           setClubShopLoading(false);
           setClubShopLoaded(true);
@@ -1227,43 +1229,21 @@ export default function DiamondStorePage({ initialTab }) {
           setClubShopLoaded(true);
           return;
         }
-        const authUser = getAuthUser();
-        if (!authUser?.id) {
-          clubShopLoadingRef.current = false;
-          setClubShopLoading(false);
-          setClubShopLoaded(true);
-          return;
-        }
-
-        // Find user's club
-        let targetClub = clubShopClubId;
-        if (!targetClub) {
-          const { data: mem, error: membershipError } = await supabase
-            .from('club_members')
-            .select('club_id')
-            .eq('user_id', authUser.id)
-            .limit(1)
-            .maybeSingle();
-          if (requestId !== clubShopLoadRequestRef.current) return;
-          if (membershipError) throw membershipError;
-          targetClub = mem?.club_id || null;
-          if (targetClub) setClubShopClubId(targetClub);
-        }
-        if (!targetClub) {
-          clubShopLoadingRef.current = false;
-          setClubShopLoading(false);
-          setClubShopLoaded(true);
-          return;
-        }
-
-        const response = await fetch(`/api/club-arena/marketplace-items?clubId=${targetClub}`, {
+        // Resolve membership on the server. Direct browser-to-Supabase membership
+        // reads can be delayed or blocked independently of the authenticated API,
+        // which previously left the storefront unusable even while Orders worked.
+        const query = clubShopClubId ? `?clubId=${encodeURIComponent(clubShopClubId)}` : '';
+        const response = await fetch(`/api/club-arena/marketplace-items${query}`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: loadController.signal,
         });
         if (requestId !== clubShopLoadRequestRef.current) return;
         if (!response.ok) throw new Error(`Failed to load club shop (${response.status})`);
         const data = await response.json();
         if (requestId !== clubShopLoadRequestRef.current) return;
         if (!data?.success) throw new Error(data?.error || 'Failed to load club shop');
+        const targetClub = data.clubId || null;
+        if (targetClub) setClubShopClubId(targetClub);
 
         setClubShopError(null);
         setClubShopItems(
