@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { filterCachedRowsForGame } from '../src/lib/training/cacheContract.mjs';
 import { isCustomTrainerConfig } from '../src/lib/training/trainerConfigMode.mjs';
 import { buildQuestionConfusion } from '../src/lib/training/questionAnalytics.mjs';
+import { isVerifiedSolverQuestion } from '../src/lib/training/solverDecisionEvidence.js';
+import { handNotationToRepresentativeCards } from '../src/lib/training/representativeCards.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -71,6 +73,159 @@ test('psychology games reject poker-solver cache rows', () => {
     filterCachedRowsForGame(rows, { sourceOfTruth: 'SCENARIO' }).map((row) => row.id),
     ['mental']
   );
+});
+
+test('PIO games reject a cached solver row from the wrong family or stack', () => {
+  const rows = [
+    { id: 'wrong-family', engine_type: 'PIO', question_data: { scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 } } },
+    { id: 'wrong-stack', engine_type: 'PIO', question_data: { scenario: { street: 'flop', gameType: 'postflop_complete', stackDepth: 40 } } },
+    { id: 'right', engine_type: 'PIO', question_data: { source: 'POSTFLOP_ENGINE', scenario: { street: 'flop', gameType: 'postflop_complete', stackDepth: 100 } } },
+  ];
+  assert.deepEqual(
+    filterCachedRowsForGame(rows, {
+      sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100,
+    }).map((row) => row.id),
+    ['right'],
+  );
+});
+
+test('unsealed warehouse cache rows cannot bypass live matrix and EV validation', () => {
+  const rows = [
+    { id: 'missing-source', engine_type: 'PIO', question_data: { scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 } } },
+    { id: 'legacy-label', engine_type: 'PIO', question_data: { source: 'DETERMINISTIC_SOLVER', gtoFrequencies: { x: 70, b50: 30 }, scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 } } },
+  ];
+  assert.deepEqual(
+    filterCachedRowsForGame(rows, {
+      sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100,
+    }),
+    [],
+  );
+});
+
+test('legacy questions are canonicalized only for server grading and remain ineligible for cache serving', () => {
+  const record = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
+  const reseeder = fs.readFileSync('scripts/reseed-deterministic-cache.js', 'utf8');
+  assert.match(record, /is_correct: canonicalGrade \? canonicalGrade\.isCorrect : !!isCorrect/);
+  assert.match(record, /solver_verified: verified/);
+  assert.match(record, /allowSanitizedLegacyArchive: true/);
+  assert.match(record, /TRAINING_QUESTION_REFRESH_REQUIRED/);
+  assert.match(record, /const persistedEVLoss = verified && canonicalGrade\.evLossMeasured[\s\S]*:\s*0;/);
+  assert.doesNotMatch(record, /typeof evLoss === 'number'/);
+  assert.match(reseeder, /q\.dataQuality !== 'LEGACY_UNVERIFIED'/);
+});
+
+test('only a fully contracted sanitized legacy envelope is grade-eligible', () => {
+  const config = {
+    sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100,
+  };
+  const base = {
+    engine_type: 'PIO',
+    question_data: {
+      source: 'LEGACY_STRATEGY_ARCHIVE',
+      dataQuality: 'LEGACY_UNVERIFIED',
+      scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 },
+      solverProvenance: { verified: false, source: 'solved_spots_gold_legacy' },
+      evidenceDisclosure: 'Legacy strategy archive; writer provenance is unavailable.',
+      questionContract: { version: 1, valid: true },
+    },
+  };
+  assert.deepEqual(filterCachedRowsForGame([base], config), []);
+  assert.equal(filterCachedRowsForGame(
+    [base], config, { allowSanitizedLegacyArchive: true },
+  ).length, 1);
+  const incomplete = structuredClone(base);
+  delete incomplete.question_data.evidenceDisclosure;
+  assert.deepEqual(filterCachedRowsForGame(
+    [incomplete], config, { allowSanitizedLegacyArchive: true },
+  ), []);
+});
+
+test('declared preflop PIO games accept only the audited local-range cache', () => {
+  const rows = [
+    { id: 'wrong', engine_type: 'PIO', question_data: { source: 'DETERMINISTIC_SOLVER', scenario: { street: 'flop', gameType: 'hu_cash', stackDepth: 100 } } },
+    { id: 'right', engine_type: 'PIO', question_data: { source: 'local_solver_ranges', scenario: { street: 'preflop', stackDepth: 100 } } },
+  ];
+  assert.deepEqual(
+    filterCachedRowsForGame(rows, {
+      sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop',
+    }).map((row) => row.id),
+    ['right'],
+  );
+});
+
+test('both cache readers select engine_type and apply the exact cache contract', () => {
+  const single = fs.readFileSync(path.join(ROOT, 'pages/api/training/get-question.js'), 'utf8');
+  const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
+  assert.match(single, /select\('question_data, question_id, engine_type'\)/);
+  assert.match(single, /filterCachedRowsForGame/);
+  assert.match(batch, /select\('id, question_data, engine_type'\)/);
+  assert.match(batch, /filterCachedRowsForGame/);
+  assert.doesNotMatch(single, /\.not\('question_id', 'in'/);
+  assert.match(single, /filter\(\(row\) => !seenQuestionIds\.includes\(row\.question_id\)\)/);
+});
+
+test('single-question canonicalization preserves mastery levels eleven and twelve', () => {
+  const source = fs.readFileSync('pages/api/training/get-question.js', 'utf8');
+  assert.match(source, /Math\.min\(12, Math\.max\(1, parseInt\(level, 10\) \|\| 1\)\)/);
+  assert.doesNotMatch(source, /level: Math\.min\(10,/);
+});
+
+test('warehouse source labels are unverified without the complete export seal', () => {
+  const legacy = {
+    source: 'DETERMINISTIC_SOLVER',
+    gtoFrequencies: { x: 40, b50: 60 },
+  };
+  assert.equal(isVerifiedSolverQuestion(legacy), false);
+  assert.equal(isVerifiedSolverQuestion({
+    ...legacy,
+    dataQuality: 'SOLVER_EXACT',
+    solverProvenance: { verified: true },
+  }), false);
+  assert.equal(isVerifiedSolverQuestion({
+    ...legacy,
+    dataQuality: 'SOLVER_EXACT',
+    solverProvenance: {
+      verified: true,
+      scenarioHash: 'hu_cash_BTN_100bb_AsKd2c',
+      solverVersion: 'PioSOLVER-edge',
+      solverBinaryChecksum: 'd'.repeat(64),
+      machineId: 'M1',
+      pipelineCommit: 'a'.repeat(40),
+      manifestVersion: '4',
+      manifestChecksum: 'b'.repeat(64),
+      sourceArtifactChecksum: 'c'.repeat(64),
+      qualityStatus: 'validated',
+      auditedAt: '2026-08-31T17:00:00Z',
+    },
+  }), true);
+});
+
+test('both question endpoints reject solver-card fabrication and share subject routing', () => {
+  const single = fs.readFileSync(path.join(ROOT, 'pages/api/training/get-question.js'), 'utf8');
+  const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
+  assert.match(single, /getGameScenarioConfig/);
+  assert.match(single, /generated = await deterministicEngine\.generateBatch/);
+  assert.match(single, /if \(cards\.length < 3 && isWarehouseSolver\) return null/);
+  assert.match(single, /if \(isWarehouseSolver\) return null;[\s\S]*gtoFrequencies/);
+  assert.match(batch, /if \(cards\.length < 3 && isWarehouseSolver\) return null/);
+  assert.match(single, /'LEGACY_STRATEGY_ARCHIVE'\]\.includes\(sourceName\)/);
+  assert.match(batch, /'LEGACY_STRATEGY_ARCHIVE'\]/);
+  assert.match(batch, /No source distribution means there is no honest bar to/);
+  assert.doesNotMatch(batch, /const dominance = 55/);
+  assert.match(batch, /LEGACY_UNVERIFIED/);
+  assert.doesNotMatch(batch, /String\(q\.engine_type \|\| ''\)\.toUpperCase\(\) === 'PIO'[\s\S]{0,120}isWarehouseSolver/);
+});
+
+test('chart hand classes render a matching legal representative combo', () => {
+  assert.deepEqual(handNotationToRepresentativeCards('AKs'), ['As', 'Ks']);
+  assert.deepEqual(handNotationToRepresentativeCards('AKo'), ['As', 'Kh']);
+  assert.deepEqual(handNotationToRepresentativeCards('QQ'), ['Qs', 'Qh']);
+  assert.deepEqual(
+    handNotationToRepresentativeCards('AKs', ['As', 'Kh']),
+    ['Ad', 'Kd'],
+  );
+  assert.equal(handNotationToRepresentativeCards('AhAh'), null);
+  assert.equal(handNotationToRepresentativeCards('not-a-hand'), null);
 });
 
 test('runtime uses canonical auth and fails closed on progress API errors', () => {

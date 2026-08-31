@@ -8,15 +8,30 @@
  * BB loss unless the exact question contains per-action EVs.
  */
 
-const VERIFIED_SOURCES = new Set([
-  'DETERMINISTIC_SOLVER',
-  'local_solver_ranges',
-  'PIO_DATABASE',
-  'PIO',
-  'CHART',
-]);
+const LOCALLY_AUDITED_SOURCES = new Set(['local_solver_ranges', 'CHART']);
+const WAREHOUSE_SOURCES = new Set(['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO']);
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
+
+/**
+ * Historical memory-chart cache rows stored the audited push/fold percentage
+ * on each option but omitted the duplicate `gtoFrequencies` map. Reconstruct
+ * only that lossless map; never synthesize a percentage from the answer key.
+ */
+export function normalizeAuditedChartQuestion(question) {
+  if (!question || String(question.type || '').toUpperCase() !== 'CHART') return question;
+  const options = Array.isArray(question.options) ? question.options : [];
+  const entries = options.map((option) => [String(option?.id || ''), Number(option?.frequency)]);
+  const valid = entries.length === 2
+    && entries.every(([id, frequency]) => id && Number.isFinite(frequency) && frequency >= 0 && frequency <= 100);
+  const sum = entries.reduce((total, [, frequency]) => total + frequency, 0);
+  if (!valid || Math.abs(sum - 100) > 1) return question;
+  question.source = 'CHART';
+  question.dataQuality = 'CHART_EXACT';
+  question.gtoFrequencies = Object.fromEntries(entries);
+  question.evidenceDisclosure = 'Audited local push/fold chart corpus.';
+  return question;
+}
 
 export function verifiedSolverSource(question) {
   const source = String(question?.source || question?.solverProvenance?.source || '').trim();
@@ -27,6 +42,23 @@ export function verifiedSolverSource(question) {
 function finiteNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function hasCompleteWarehouseProvenance(question) {
+  const p = question?.solverProvenance;
+  return Boolean(
+    p?.verified === true
+    && p?.scenarioHash
+    && p?.solverVersion
+    && /^[0-9a-f]{64}$/i.test(String(p?.solverBinaryChecksum || ''))
+    && ['M1', 'M2'].includes(String(p?.machineId || ''))
+    && /^[0-9a-f]{40}$/i.test(String(p?.pipelineCommit || ''))
+    && p?.manifestVersion
+    && /^[0-9a-f]{64}$/i.test(String(p?.manifestChecksum || ''))
+    && /^[0-9a-f]{64}$/i.test(String(p?.sourceArtifactChecksum || ''))
+    && p?.qualityStatus === 'validated'
+    && p?.auditedAt
+  );
 }
 
 function readFrequency(frequencies, actionId) {
@@ -65,11 +97,63 @@ export function isVerifiedSolverQuestion(question) {
   if (String(question.dataQuality || '').toUpperCase() === 'SIMULATED') return false;
 
   const source = String(question.source || '');
-  if (VERIFIED_SOURCES.has(source)) return true;
+  if (LOCALLY_AUDITED_SOURCES.has(source)) return true;
+  // Warehouse source labels were historically assigned by cache writers that
+  // did not record the solver, machine, manifest, artifact, or audit seal.
+  // They are not proof. Only the complete writer-provenance contract can turn
+  // a PIO distribution into verified solver evidence.
+  if (WAREHOUSE_SOURCES.has(source)) return hasCompleteWarehouseProvenance(question);
   // An explicit provenance object is the only source-less compatibility path.
   // `dataQuality=SOLVER_EXACT` alone is insufficient because legacy enrichment
   // initialized that label before it knew whether frequencies were fabricated.
-  return question?.solverProvenance?.verified === true;
+  return hasCompleteWarehouseProvenance(question);
+}
+
+const SOLVER_CLAIM_RE = /\b(?:according to gto|gto mixes|gto solver|solver picks|nash equilibrium|solver[- ]exact|pure\s+[a-z-]+\s*\(\d+%|what is the gto play)\b/i;
+
+/**
+ * Preserve usable legacy strategy rows without laundering them into
+ * solver-exact evidence. Historical cache writers attached strong GTO copy to
+ * rows that had no machine, manifest, artifact, or audit seal. Those rows may
+ * still power an explicitly disclosed archive drill after structural
+ * sanitization, but the player must never be told that the answer is a
+ * provenance-verified solve.
+ */
+export function enforceSolverClaimHonesty(question) {
+  if (!question || typeof question !== 'object' || isVerifiedSolverQuestion(question)) return question;
+  const source = String(question.source || '');
+  const legacyWarehouse = WAREHOUSE_SOURCES.has(source)
+    || String(question.dataQuality || '').toUpperCase() === 'LEGACY_UNVERIFIED'
+    || String(question?.solverProvenance?.source || '').includes('solved_spots_gold_legacy');
+  if (!legacyWarehouse) return question;
+
+  const scenario = question.scenario || {};
+  const street = String(scenario.street || question.street || 'recorded').toLowerCase();
+  const hand = question.heroHand || scenario.heroHand
+    || (Array.isArray(question.heroCards) ? question.heroCards.join('') : 'this hand');
+  const board = Array.isArray(question.boardCards) && question.boardCards.length > 0
+    ? ` on ${question.boardCards.join(' ')}`
+    : '';
+  const options = Array.isArray(question.options) ? question.options : [];
+  const correct = options.find((option) => String(option?.id) === String(question.correctAnswer));
+  const action = String(correct?.text || question.correctAnswerText || question.correctAnswer || 'the recorded action');
+  const frequency = Number(question?.gtoFrequencies?.[question.correctAnswer]);
+  const frequencyText = Number.isFinite(frequency) ? ` at ${Math.round(frequency)}%` : '';
+
+  if (SOLVER_CLAIM_RE.test(String(question.question || question.text || ''))) {
+    question.question = `At this archived ${street} decision with ${hand}${board}, which action has the highest recorded frequency?`;
+    if (Object.prototype.hasOwnProperty.call(question, 'text')) question.text = question.question;
+  }
+  question.explanation = `This is structurally validated legacy strategy data, not a fully provenance-sealed result. In the archived frequency table, ${action} is the highest recorded action${frequencyText} for this decision.`;
+  question.source = 'LEGACY_STRATEGY_ARCHIVE';
+  question.dataQuality = 'LEGACY_UNVERIFIED';
+  question.solverProvenance = {
+    ...(question.solverProvenance || {}),
+    verified: false,
+    source: question?.solverProvenance?.source || 'solved_spots_gold_legacy',
+  };
+  question.evidenceDisclosure = 'Legacy strategy archive; writer provenance is unavailable.';
+  return question;
 }
 
 export function classifyFrequencyDecision(frequencies = {}, selectedAnswer, declaredCorrect) {
@@ -290,4 +374,4 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     .sort((a, b) => b.current_frequency - a.current_frequency || b._sample_count - a._sample_count);
 }
 
-export default { isVerifiedSolverQuestion, classifyFrequencyDecision, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };
+export default { isVerifiedSolverQuestion, enforceSolverClaimHonesty, classifyFrequencyDecision, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };

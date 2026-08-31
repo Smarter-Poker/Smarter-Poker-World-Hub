@@ -19,6 +19,8 @@ import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
+import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
@@ -112,7 +114,7 @@ export default async function handler(req, res) {
           // Fetch questions from cache (over-fetch so seen-filtering has room)
           const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
-              .select('id, question_data')
+              .select('id, question_data, engine_type')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
               .limit(Math.max(100, questionCount * 3));
@@ -263,8 +265,24 @@ export default async function handler(req, res) {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
 
-              // Track whether we had to fabricate any data
-              let dataQuality = 'SOLVER_EXACT';
+              if (String(q.engine_type || '').toUpperCase() === 'CHART'
+                  && String(qData.type || '').toUpperCase() === 'CHART') {
+                  normalizeAuditedChartQuestion(qData);
+              }
+
+              // Live engine rows are wrapped without a cache `engine_type`, so
+              // the source label itself must activate the no-fabrication gate.
+              // Requiring q.engine_type === PIO here let a freshly sanitized
+              // legacy warehouse row be reclassified as CURATED and receive
+              // invented cards/boards/EV on the batch path.
+              const isWarehouseSolver = ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LEGACY_STRATEGY_ARCHIVE']
+                  .includes(String(qData.source || '').toUpperCase());
+              // Historical rows are usable only as explicitly unverified
+              // legacy evidence until the warehouse writer supplies the full
+              // machine/manifest/artifact provenance seal.
+              let dataQuality = isVerifiedSolverQuestion(qData)
+                  ? 'SOLVER_EXACT'
+                  : (isWarehouseSolver ? 'LEGACY_UNVERIFIED' : 'CURATED');
 
               // 2026-07-19 AUDIT FIX: reconcile answer key with solver
               // frequencies BEFORE any enrichment.
@@ -273,7 +291,6 @@ export default async function handler(req, res) {
               const scenario = (qData.scenario && typeof qData.scenario === 'object') ? qData.scenario : {};
               if (typeof qData.scenario === 'string') qData.scenarioText = qData.scenario;
               const options = qData.options || [];
-              const correctAnswer = qData.correctAnswer;
 
               // Psychology questions get no poker-context fabrication
               const isPsych = String(gameId).startsWith('psy-') || scenario.isPsychology === true;
@@ -281,8 +298,17 @@ export default async function handler(req, res) {
               // 1. Ensure heroCards
               if (!isPsych && (!qData.heroCards || !Array.isArray(qData.heroCards) || qData.heroCards.length < 2)) {
                   const heroHand = scenario.heroHand || qData.heroHand || '';
-                  if (heroHand && heroHand.length >= 4) {
-                      qData.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
+                  const represented = handNotationToRepresentativeCards(
+                      heroHand,
+                      qData.boardCards || scenario.board || [],
+                  );
+                  if (represented) {
+                      qData.heroCards = represented;
+                  } else if (isWarehouseSolver) {
+                      // Inventing cards changes the exact decision the solver
+                      // evaluated. Reject the row instead of rendering a
+                      // different hand with the original answer key.
+                      return null;
                   } else {
                       const seed = hashSeed(q.id || q.game_id || `q${qData.id || Math.random()}`);
                       qData.heroCards = _getDeterministicCards(seed, 2);
@@ -313,8 +339,13 @@ export default async function handler(req, res) {
                           if (i + 1 < boardStr.length) cards.push(boardStr.substring(i, i + 2));
                       }
                       const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
+                      if (cards.length < 3 && isWarehouseSolver) return null;
                       qData.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, qData.heroCards);
                       if (cards.length < 3) dataQuality = 'SIMULATED';
+                  } else if (isWarehouseSolver) {
+                      // A postflop solver answer cannot be transplanted onto a
+                      // fabricated board.
+                      return null;
                   } else {
                       const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
                       qData.boardCards = _getDeterministicCards(seed, 3, qData.heroCards);
@@ -382,62 +413,23 @@ export default async function handler(req, res) {
                   }
                   // If still empty, generate deterministic defaults based on action type
                   if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies || {}).length === 0) {
-                      qData.gtoFrequencies = {};
-                      let remaining = 100;
-
-                      // Map normalized options to their ids (options are normalized above,
-                      // so ids here match the opt_N ids the client receives)
-                      const mappedOptions = qData.options.map((opt, idx) => ({
-                          id: opt.id || `opt_${idx}`,
-                          isCorrect: (opt.id || `opt_${idx}`) === correctAnswer
-                      }));
-
-                      // 1. Target the correct answer
-                      const correctOpt = mappedOptions.find(o => o.isCorrect);
-                      if (correctOpt) {
-                          const dominance = 55 + (hashSeed(correctOpt.id + (q.id || '')) % 25);
-                          qData.gtoFrequencies[correctOpt.id] = dominance;
-                          remaining -= dominance;
-                      }
-
-                      // 2. Diffuse the remaining percentages across incorrect targets
-                      const incorrectOpts = mappedOptions.filter(o => !o.isCorrect);
-                      incorrectOpts.forEach((opt, idx) => {
-                          const isLast = idx === incorrectOpts.length - 1;
-                          if (isLast) {
-                              qData.gtoFrequencies[opt.id] = Math.max(0, remaining);
-                          } else {
-                              const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(opt.id) % 5) - 2;
-                              const clampedShare = Math.max(0, Math.min(share, remaining));
-                              qData.gtoFrequencies[opt.id] = clampedShare;
-                              remaining -= clampedShare;
-                          }
-                      });
-
-                      // 3. Absolute Checksum enforcement over the real target string
-                      const sum = Object.values(qData.gtoFrequencies || {}).reduce((s, v) => s + v, 0);
-                      if (sum !== 100 && correctAnswer) {
-                          qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
-                      }
-                      dataQuality = 'SIMULATED';
+                      if (isWarehouseSolver) return null;
+                      // No source distribution means there is no honest bar to
+                      // render. The answer key remains gradeable, but neither
+                      // frequencies nor EV may be inferred from it.
                   }
               }
 
-              // 4. Ensure evData — deterministic estimates based on position + pot
-              if (!isPsych && !qData.evData) {
-                  const pot = scenario.pot || 10;
-                  const positionBonus = { 'BTN': 0.65, 'CO': 0.58, 'MP': 0.50, 'UTG': 0.45, 'SB': 0.42, 'BB': 0.48 };
-                  const posMult = positionBonus[scenario.heroPosition] || 0.52;
-                  qData.evData = {
-                      heroHandEV: +(pot * posMult).toFixed(2),
-                      optimalEV: +(pot * (posMult + 0.15)).toFixed(2),
-                      handEVs: {},
-                      heroHand: qData.heroCards?.join('') || 'AhKs',
-                  };
-              }
-
-              // 5. Fill scenario gaps (skip for psychology — no poker context to fabricate)
+              // 4. Fill scenario gaps (skip for psychology — no poker context to fabricate)
               if (!isPsych) {
+                  if (isWarehouseSolver && (
+                      !scenario.heroPosition
+                      || !scenario.villainPosition
+                      || !scenario.street
+                      || !Number.isFinite(Number(scenario.pot))
+                      || !Number.isFinite(Number(scenario.heroStack))
+                      || !Number.isFinite(Number(scenario.villainStack))
+                  )) return null;
                   if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
                   if (!scenario.villainPosition) scenario.villainPosition = 'BB';
                   // roadmap #16 — resolve the street BEFORE the pot default,
@@ -466,7 +458,7 @@ export default async function handler(req, res) {
               // IMP-5: Tag data quality for frontend confidence indicators
               qData.dataQuality = dataQuality;
 
-              return enforceTrainingQuestionContract(qData);
+              return enforceTrainingQuestionContract(enforceSolverClaimHonesty(qData));
           }).filter((question) => question && isTrainingQuestionValid(question));
 
           if (enrichedBatch.length === 0) {

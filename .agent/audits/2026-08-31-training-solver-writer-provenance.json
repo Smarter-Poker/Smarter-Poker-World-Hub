@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-31T19:52:47.920Z",
+  "readOnly": true,
+  "table": "public.solved_spots_gold",
+  "columns": [
+    {
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "scenario_hash",
+      "data_type": "text"
+    },
+    {
+      "column_name": "game_type",
+      "data_type": "text"
+    },
+    {
+      "column_name": "stack_depth",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "street",
+      "data_type": "text"
+    },
+    {
+      "column_name": "strategy_matrix",
+      "data_type": "jsonb"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "strategy_matrix_v2",
+      "data_type": "jsonb"
+    },
+    {
+      "column_name": "solved_v2_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "missingProvenanceColumns": [
+    "solver_version",
+    "solver_binary_checksum",
+    "machine_id",
+    "pipeline_commit",
+    "manifest_version",
+    "manifest_checksum",
+    "source_artifact_checksum",
+    "quality_status",
+    "audited_at"
+  ],
+  "triggers": [
+    {
+      "tgname": "sp_pending_family_del",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_del AFTER DELETE ON public.solved_spots_gold REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "sp_pending_family_ins",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_ins AFTER INSERT ON public.solved_spots_gold REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "sp_pending_family_upd",
+      "trigger_definition": "CREATE TRIGGER sp_pending_family_upd AFTER UPDATE ON public.solved_spots_gold REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION sp_pending_family_tg()",
+      "function_name": "sp_pending_family_tg"
+    },
+    {
+      "tgname": "trg_sp_sync_matrix",
+      "trigger_definition": "CREATE TRIGGER trg_sp_sync_matrix BEFORE INSERT OR UPDATE ON public.solved_spots_gold FOR EACH ROW EXECUTE FUNCTION sp_sync_matrix()",
+      "function_name": "sp_sync_matrix"
+    }
+  ],
+  "matchingCronJobs": [],
+  "tableStats": {
+    "n_tup_ins": "2257",
+    "n_tup_upd": "0",
+    "n_tup_del": "0",
+    "n_live_tup": "2257",
+    "last_vacuum": null,
+    "last_autovacuum": null,
+    "last_analyze": null,
+    "last_autoanalyze": null
+  },
+  "statementStatsResetAt": "2026-08-31T17:58:57.066Z",
+  "historicalWriterStatements": [
+    {
+      "rolname": "service_role",
+      "calls": 2257,
+      "rows": 2257,
+      "total_exec_time": 390000.152594001,
+      "mean_exec_time": 172.795814175455,
+      "statement_kind": "postgrest_insert",
+      "writes_strategy_matrix_v2": false,
+      "writes_solved_v2_at": false
+    }
+  ],
+  "conclusion": "Historical legacy PostgREST writes cannot be attributed to M1 or M2 without machine and artifact provenance columns."
+}

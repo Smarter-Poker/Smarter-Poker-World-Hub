@@ -21,6 +21,8 @@
 // ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
 require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -37,6 +39,8 @@ const IS_VERIFY = args.includes('--verify');
 const SINGLE_GAME = args.find(a => a.startsWith('--game='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose');
 let enforceTrainingQuestionContract;
+let enforceSolverClaimHonesty;
+let v2ToAppMatrix;
 
 if (!IS_DRY_RUN && !IS_LIVE && !IS_VERIFY) {
     console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--live|--verify] [--game=cash-001]');
@@ -119,14 +123,24 @@ const VILLAIN_MAP = {
     'MP': 'BB', 'CO': 'BTN', 'HJ': 'CO', 'UTG+1': 'BB', 'MP+1': 'BB',
 };
 
-const POT_BY_STREET = { 'preflop': 2.5, 'flop': 6, 'turn': 14, 'river': 30 };
-
-function getActionLabel(code, pot = 6) {
-    if (ACTION_LABELS[code]) return ACTION_LABELS[code];
+function getActionLabel(code, pot = 6, solverChipUnits = false) {
     const bm = code.match(/^b(\d+)$/);
-    if (bm) return `Bet ${bm[1]}% pot`;
+    if (bm) {
+        const amount = Number(bm[1]);
+        const pct = solverChipUnits ? Math.round((amount / pot) * 100) : amount;
+        if (pct === 100) return 'Bet Pot';
+        return pct > 100 ? `Overbet ${pct}%` : `Bet ${pct}%`;
+    }
     const rm = code.match(/^r(\d+)$/);
-    if (rm) return `Raise ${rm[1]}%`;
+    if (rm) {
+        const amount = Number(rm[1]);
+        if (solverChipUnits) {
+            const bb = amount / 100;
+            return `Raise To ${Number.isInteger(bb) ? bb : bb.toFixed(1)} BB`;
+        }
+        return `Raise ${amount}%`;
+    }
+    if (ACTION_LABELS[code]) return ACTION_LABELS[code];
     return code.toUpperCase();
 }
 
@@ -310,18 +324,90 @@ function getEngineType(gameId, config) {
 }
 
 /**
+ * Fail-closed copy of the live runtime's legacy sanitizer. A hand survives
+ * only when all observed values are in range and form either a normalized or
+ * genuinely pure distribution. The fetched database object is cloned before
+ * mutation so repeated question generation is deterministic.
+ */
+function sanitizeLegacyMatrix(matrix) {
+    if (!matrix || typeof matrix !== 'object') return null;
+    const actions = Array.isArray(matrix.actions) ? matrix.actions : [];
+    const frequencies = matrix.frequencies;
+    if (actions.length < 2 || !frequencies || typeof frequencies !== 'object') return null;
+    const hands = new Set();
+    actions.forEach(action => {
+        const values = frequencies[action];
+        if (values && typeof values === 'object' && !Array.isArray(values)) {
+            Object.keys(values).forEach(hand => hands.add(hand));
+        }
+    });
+    hands.forEach(hand => {
+        const values = {};
+        let sum = 0;
+        let corrupted = false;
+        actions.forEach(action => {
+            const value = frequencies[action]?.[hand];
+            if (typeof value === 'number' && value >= 0) {
+                if (value <= 1.02) {
+                    values[action] = Math.min(1, value);
+                    sum += values[action];
+                } else {
+                    corrupted = true;
+                }
+            }
+        });
+        const kept = Object.values(values);
+        const maximum = kept.length ? Math.max(...kept) : 0;
+        const normalized = !corrupted && kept.length > 0 && Math.abs(sum - 1) <= 0.05;
+        const pure = !corrupted && maximum >= 0.98 && (sum - maximum) <= 0.02;
+        actions.forEach(action => {
+            if (normalized || pure) {
+                if (values[action] !== undefined) frequencies[action][hand] = values[action] / sum;
+                else if (frequencies[action]?.[hand] !== undefined) delete frequencies[action][hand];
+            } else if (frequencies[action]?.[hand] !== undefined) {
+                delete frequencies[action][hand];
+            }
+        });
+    });
+    return matrix;
+}
+
+function toTrainingMatrix(scenario) {
+    // Never fall back to v1 when an authoritative v2 export exists but fails
+    // validation. That would conceal a damaged rebuilt solve during reseeding.
+    if (scenario?.strategy_matrix_v2) return v2ToAppMatrix(scenario.strategy_matrix_v2);
+    if (!scenario?.strategy_matrix) return null;
+    return sanitizeLegacyMatrix(structuredClone(scenario.strategy_matrix));
+}
+
+/**
  * Build a training question from a solved_spots_gold row.
  * This is the core deterministic logic — mirrors DeterministicGTOEngine.buildQuestionFromScenario
  */
 function buildQuestionFromScenario(scenario, config, level, questionIndex) {
     // The Windows farm writes the accuracy-gated v2 payload. Legacy rows are
     // still readable, but never prefer them over a verified v2 export.
-    const sm = scenario.strategy_matrix_v2 || scenario.strategy_matrix || {};
+    const sm = toTrainingMatrix(scenario) || {};
     const actions = sm.actions || [];
     const frequencies = sm.frequencies || {};
     const handEVs = sm.hand_evs || {};
 
     if (actions.length === 0) return null;
+    // Keep cache generation identical to the live engine: frequency-only
+    // legacy rows are incomplete solver artifacts and must not receive
+    // fabricated zero EVs.
+    if (!handEVs || typeof handEVs !== 'object' || Object.keys(handEVs).length === 0) return null;
+    const solverPotChips = Number(sm.pot);
+    const displayPotBb = Number(sm.pot_bb);
+    const heroSeat = String(sm.hero || '').toUpperCase();
+    if (heroSeat !== 'OOP' && heroSeat !== 'IP') return null;
+    const expectedActor = heroSeat === 'OOP' ? 0 : 1;
+    if (
+        sm.node_state_exact !== true
+        || sm.node_actor !== expectedActor
+        || !Number.isFinite(solverPotChips) || solverPotChips <= 0
+        || !Number.isFinite(displayPotBb) || displayPotBb <= 0
+    ) return null;
 
     // Pick a hero hand from the frequency matrix that has at least one non-zero frequency
     const sampleAction = actions.find(a => frequencies[a]) || actions[0];
@@ -331,6 +417,7 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
     // and will have 0% frequency for ALL actions — skip those hands entirely
     let allHands = Object.keys(handFreqs).filter(h => {
         if (!h || h.length < 2) return false;
+        if (!Number.isFinite(handEVs[h])) return false;
         // Check that this hand has a non-zero frequency in at least one action
         const hasNonZero = actions.some(a => {
             const freq = frequencies[a]?.[h];
@@ -378,22 +465,18 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
     }
 
     // EV data
-    const heroHandEV = handEVs[heroHand] || 0;
-    const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
-    const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
-    const actionEVs = {};
-    validActions.forEach(a => { actionEVs[a] = heroHandEV * (handActions[a] || 0); });
-
+    const heroHandEV = handEVs[heroHand];
     // Board and position
     const board = parseBoardFromHash(scenario.scenario_hash);
-    const heroPosition = extractPositionFromHash(scenario.scenario_hash);
-    const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
-    const estimatedPot = POT_BY_STREET[scenario.street] || 6;
+    const heroPosition = sm.position || extractPositionFromHash(scenario.scenario_hash);
+    const villainPosition = heroPosition === sm.oop_player
+        ? sm.ip_player
+        : heroPosition === sm.ip_player ? sm.oop_player : VILLAIN_MAP[heroPosition] || 'BB';
 
     // Build up to 4 options from valid actions
     const options = validActions.slice(0, 4).map(action => ({
         id: action,
-        text: getActionLabel(action, estimatedPot),
+        text: getActionLabel(action, solverPotChips, true),
         frequency: gtoFrequencies[action],
     }));
 
@@ -413,20 +496,48 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
     const freqPct = (maxFreq * 100).toFixed(0);
     let explanation;
     if (maxFreq >= 0.95) {
-        explanation = `GTO solver: Pure ${getActionLabel(optimalAction)} (${freqPct}%). ${heroHand} has a clear optimal line on ${scenario.street}.`;
+        explanation = `GTO solver: Pure ${getActionLabel(optimalAction, solverPotChips, true)} (${freqPct}%). ${heroHand} has a clear optimal line on ${scenario.street}.`;
     } else {
         const mixedParts = validActions
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a])
-            .map(a => `${getActionLabel(a)} ${(handActions[a] * 100).toFixed(0)}%`)
+            .map(a => `${getActionLabel(a, solverPotChips, true)} ${(handActions[a] * 100).toFixed(0)}%`)
             .join(', ');
-        explanation = `GTO solver mixes: ${mixedParts}. Primary line is ${getActionLabel(optimalAction)} at ${freqPct}%.${maxFreq < 0.6 ? ' This is a close GTO spot.' : ''}`;
+        explanation = `GTO solver mixes: ${mixedParts}. Primary line is ${getActionLabel(optimalAction, solverPotChips, true)} at ${freqPct}%.${maxFreq < 0.6 ? ' This is a close GTO spot.' : ''}`;
     }
+
+    const provenanceVerified = Boolean(
+        scenario.strategy_matrix_v2
+        && scenario.quality_status === 'validated'
+        && scenario.solver_version
+        && /^[0-9a-f]{64}$/i.test(String(scenario.solver_binary_checksum || ''))
+        && ['M1', 'M2'].includes(String(scenario.machine_id || ''))
+        && /^[0-9a-f]{40}$/i.test(String(scenario.pipeline_commit || ''))
+        && scenario.manifest_version
+        && /^[0-9a-f]{64}$/i.test(String(scenario.manifest_checksum || ''))
+        && /^[0-9a-f]{64}$/i.test(String(scenario.source_artifact_checksum || ''))
+        && scenario.audited_at
+    );
 
     return {
         id: `pio_${scenario.id}_${heroHand}_${questionIndex}`,
         type: 'PIO',
         source: 'DETERMINISTIC_SOLVER',
+        dataQuality: provenanceVerified ? 'SOLVER_EXACT' : 'LEGACY_UNVERIFIED',
+        solverProvenance: {
+            verified: provenanceVerified,
+            source: provenanceVerified ? 'PioSOLVER' : 'solved_spots_gold_legacy',
+            scenarioHash: scenario.scenario_hash || null,
+            solverVersion: scenario.solver_version || null,
+            solverBinaryChecksum: scenario.solver_binary_checksum || null,
+            machineId: scenario.machine_id || null,
+            pipelineCommit: scenario.pipeline_commit || null,
+            manifestVersion: scenario.manifest_version || null,
+            manifestChecksum: scenario.manifest_checksum || null,
+            sourceArtifactChecksum: scenario.source_artifact_checksum || null,
+            qualityStatus: scenario.quality_status || null,
+            auditedAt: scenario.audited_at || null,
+        },
         scenario: {
             board: board.join(' '),
             street: scenario.street,
@@ -436,10 +547,12 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
             heroHand,
             heroPosition,
             heroStack: scenario.stack_depth || 100,
-            pot: estimatedPot,
+            pot: displayPotBb,
             villainPosition,
             villainStack: scenario.stack_depth || 100,
-            action: scenario.street !== 'preflop' ? 'Villain checks' : '',
+            action: Number(sm.facing_bet_bb) > 0
+                ? `${villainPosition} bets ${Number(sm.facing_bet_bb)} BB`
+                : sm.node_actor === 0 ? 'You are first to act' : `${villainPosition} checks to you`,
             isMixedStrategy,
         },
         heroCards: parseHandToCards(heroHand),
@@ -447,16 +560,15 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
         question: `You hold ${heroHand} on the ${scenario.street}. Board: ${board.join(' ')}. What is the GTO play?`,
         options,
         correctAnswer: optimalAction,
-        correctAnswerText: getActionLabel(optimalAction, estimatedPot),
+        correctAnswerText: getActionLabel(optimalAction, solverPotChips, true),
         frequencies: handActions,
         gtoFrequencies,
         rawFrequencies: frequencies,
         evData: {
             heroHandEV,
-            optimalEV: maxHandEV,
             handEVs,
             heroHand,
-            actionEVs,
+            quality: 'SOLVER_NODE_HAND_EV_ONLY',
         },
         explanation,
         difficulty: level,
@@ -474,9 +586,19 @@ async function generatePIOBatch(gameId, config, level, count = 25) {
     const poolSize = Math.min(count * 4, 100);
     let scenarios;
     try {
-        scenarios = await supabaseQuery('solved_spots_gold',
-            `?game_type=eq.${config.pioGameType}&stack_depth=eq.${config.pioStackDepth}&street=eq.${street}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2&limit=${poolSize}`
-        );
+        const base = `?game_type=eq.${config.pioGameType}&stack_depth=eq.${config.pioStackDepth}&street=eq.${street}`;
+        try {
+            scenarios = await supabaseQuery('solved_spots_gold',
+                `${base}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2,solver_version,solver_binary_checksum,machine_id,pipeline_commit,manifest_version,manifest_checksum,source_artifact_checksum,quality_status,audited_at&limit=${poolSize}`
+            );
+        } catch (provenanceError) {
+            if (!/column|schema cache|PGRST204|42703/i.test(provenanceError.message || '')) throw provenanceError;
+            // Additive migration has not landed yet: rows may be inspected as
+            // legacy/unverified, never promoted to solver-exact.
+            scenarios = await supabaseQuery('solved_spots_gold',
+                `${base}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2&limit=${poolSize}`
+            );
+        }
     } catch (error) {
         return { questions: [], error: error.message };
     }
@@ -490,8 +612,11 @@ async function generatePIOBatch(gameId, config, level, count = 25) {
 
     for (let i = 0; i < count && i < scenarios.length * 6; i++) {
         const scenario = scenarios[i % scenarios.length];
-        const q = buildQuestionFromScenario(scenario, config, level, i);
-        if (q && !usedIds.has(q.id)) {
+        const q = enforceSolverClaimHonesty(buildQuestionFromScenario(scenario, config, level, i));
+        // Unsealed legacy rows remain available through the live sanitizer,
+        // but caching them would let a later request bypass that validation.
+        // Only provenance-sealed warehouse output is eligible for reseeding.
+        if (q && q.dataQuality !== 'LEGACY_UNVERIFIED' && !usedIds.has(q.id)) {
             questions.push(q);
             usedIds.add(q.id);
         }
@@ -556,7 +681,7 @@ async function generateChartBatch(gameId, config, level, count = 25) {
         questions.push({
             id: `chart_${chart.chart_id || chart.id}_${heroHand}_${i}`,
             type: 'CHART',
-            source: 'DETERMINISTIC_SOLVER',
+            source: 'CHART',
             scenario: {
                 stackDepth,
                 heroPosition: heroPos,
@@ -605,7 +730,7 @@ function validateQuestion(q, gameId, level) {
     if (!q || typeof q !== 'object') return ['Question is null/invalid'];
     if (!q.id) errors.push('Missing id');
     if (!q.source) errors.push('Missing source');
-    if (q.source !== 'DETERMINISTIC_SOLVER') errors.push(`Wrong source: ${q.source}`);
+    if (!['DETERMINISTIC_SOLVER', 'CHART'].includes(q.source)) errors.push(`Wrong source: ${q.source}`);
     if (!Array.isArray(q.options) || q.options.length < 2) errors.push(`Not enough options: ${q.options?.length}`);
     if (!q.correctAnswer) errors.push('Missing correctAnswer');
 
@@ -763,7 +888,7 @@ async function verifyGame(gameId) {
             `?game_id=eq.${gameId}&level=eq.${level}&limit=1`
         );
         const src = sample[0]?.question_data?.source || '?';
-        const marker = src === 'DETERMINISTIC_SOLVER' ? '✅' : '⚠️';
+        const marker = ['DETERMINISTIC_SOLVER', 'CHART'].includes(src) ? '✅' : '⚠️';
         console.log(`  L${level}: ${count} questions | source: ${marker} ${src}`);
     }
 }
@@ -771,8 +896,12 @@ async function verifyGame(gameId) {
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────
 
 async function main() {
+    ({ v2ToAppMatrix } = await import(pathToFileURL(
+        path.join(__dirname, '../src/utils/v2Matrix.js'),
+    ).href));
     const startTime = Date.now();
     ({ enforceTrainingQuestionContract } = await import('../src/lib/training/questionContract.mjs'));
+    ({ enforceSolverClaimHonesty } = await import('../src/lib/training/solverDecisionEvidence.js'));
 
     console.log('\n═══════════════════════════════════════════════════════════════');
     console.log(`🎯 DETERMINISTIC CACHE RE-SEEDER`);

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-31T19:52:55.214Z",
+  "readOnly": true,
+  "scope": "Every solved_spots_gold row matching the 25 family/stack contracts used by the 107-game Training catalog on flop, turn, and river.",
+  "definitions": {
+    "matrixValidatedRows": "Rows whose board and strategy payload passed the exhaustive matrix/EV audit. This does not prove the row describes the exact runtime decision.",
+    "runtimeServeableRows": "Rows that also have exact subject, stack, street, node path, current pot, facing amount, actor, positions, and a validated machine/artifact provenance seal."
+  },
+  "sourceEvidence": [
+    {
+      "file": ".agent/audits/2026-08-31-training-solved-spots-flop-evidence.json",
+      "sha256": "dd2f6e91df497b33c32e9b4c8350398f0622275835fa25006b500627c39d4ab4"
+    },
+    {
+      "file": ".agent/audits/2026-08-31-training-solved-spots-turn-evidence.json",
+      "sha256": "7ce4ff2ade9467b424f57befb59aec88871d8aebd5288807ec1e3c6043ec58ba"
+    },
+    {
+      "file": ".agent/audits/2026-08-31-training-solved-spots-river-evidence.json",
+      "sha256": "aae02466e7b99388f3ef27a629efc73da249f1cce1e621cef22fcbab38d103ed"
+    },
+    {
+      "file": ".agent/audits/2026-08-31-training-cache-provenance.json",
+      "sha256": "e309b201c1701271bb033b388eb0d2848179d647292dd71b493fb0ef62238f1d"
+    },
+    {
+      "file": ".agent/audits/2026-08-31-training-solver-writer-provenance.json",
+      "sha256": "6339798dc5f7656be565591478555983cade101f78fff6599378d82bf37c3dbd"
+    },
+    {
+      "file": ".agent/audits/2026-08-31-training-solver-replacement-manifest.json",
+      "sha256": "3bd169f76eaa5b5dbb1e9b87a01e2e3050c837dbf43cc92d8ffeda518e1bb3db"
+    }
+  ],
+  "totals": {
+    "auditedRows": 516973,
+    "matrixValidatedRows": 409307,
+    "matrixReplacementRequiredRows": 107666,
+    "exactReplacementScenarioHashes": 106431,
+    "duplicateDefectiveRows": 1235,
+    "runtimeServeableAtSnapshot": 0,
+    "provenanceCompleteV2CacheRowsAtSnapshot": 0,
+    "unknownLegacyWriterInsertsSinceStatsReset": 2257
+  },
+  "byStreet": {
+    "flop": {
+      "auditedRows": 7900,
+      "matrixValidatedRows": 6124,
+      "matrixReplacementRequiredRows": 1776,
+      "runtimeServeableAtSnapshot": 0,
+      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+    },
+    "turn": {
+      "auditedRows": 319394,
+      "matrixValidatedRows": 233782,
+      "matrixReplacementRequiredRows": 85612,
+      "runtimeServeableAtSnapshot": 0,
+      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+    },
+    "river": {
+      "auditedRows": 189679,
+      "matrixValidatedRows": 169401,
+      "matrixReplacementRequiredRows": 20278,
+      "runtimeServeableAtSnapshot": 0,
+      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+    }
+  },
+  "riverReuseVerdict": {
+    "existingTrainingContractRows": 189679,
+    "matrixValidatedRows": 169401,
+    "matrixReplacementRequiredRows": 20278,
+    "runtimeServeableAtSnapshot": 0,
+    "conclusion": "The existing river corpus is real and mostly matrix-salvageable, but none of it may be advertised as an exact Training decision until exact state and provenance are sealed. New river solves must target only the missing/defective canonical decisions after reusable rows are reconstructed and certified."
+  },
+  "runtimeGate": {
+    "exactStateFields": [
+      "family",
+      "stack",
+      "street",
+      "subject",
+      "node",
+      "node_current_pot",
+      "facing_amount",
+      "actor",
+      "hero_position",
+      "oop_player",
+      "ip_player"
+    ],
+    "provenanceFields": [
+      "solver_version",
+      "solver_binary_checksum",
+      "machine_id",
+      "pipeline_commit",
+      "manifest_version",
+      "manifest_checksum",
+      "source_artifact_checksum",
+      "quality_status",
+      "audited_at"
+    ],
+    "legacyFrequencyOnlyFallbackAllowed": false,
+    "crossFamilyStackStreetFallbackAllowed": false,
+    "migrationAddsFailClosedWriterGate": true,
+    "historicalRowsRemainUnverified": true
+  },
+  "releaseGate": {
+    "solverHostsReady": false,
+    "trainingRuntimeFailClosed": true,
+    "reasons": [
+      "M1 is scanning an exhausted manifest and M2 is in a revoked-credential retry loop.",
+      "The exact replacement ledger still contains missing cells and defective scenario hashes.",
+      "Existing rows lack the provenance seal required to attribute and certify their solver artifacts.",
+      "Canonical ranges, pot/stack/rake/position inputs, and ICM payout state remain required before controlled retargeting."
+    ]
+  }
+}

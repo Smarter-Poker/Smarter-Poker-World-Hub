@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Query params:
  * - gameId: Game identifier
  * - userId: User ID (for no-repeat tracking)
- * - level: Current level (1-10)
+ * - level: Current level (1-12)
  * - engineType: PIO | CHART | SCENARIO
  */
 
@@ -16,16 +16,18 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 // 2026-07-19 engine-audit runtime patches (see that module's header)
 applyDeterministicEnginePatches(deterministicEngine);
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey, selectServedOptions } from '../../../src/utils/trainingApiUtils';
-import { heroActsFirstPostflop } from '../../../src/engines/positionOrder';
+import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-import { filterRowsToDeclaredStreet } from '../../../src/lib/training/declaredStreet';
+import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
+import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
+import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -34,21 +36,6 @@ function hashSeed(str) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
   }
   return Math.abs(h);
-}
-
-// ── Hand notation → concrete cards (e.g. 'AKs' → ['As','Ks']) ──
-function heroHandToCards(heroHand) {
-  if (!heroHand || heroHand.length < 2) return ['As', 'Ks'];
-  // Already exact cards like 'AhKs'
-  if (heroHand.length >= 4 && /^[2-9TJQKAtjqka][shdc]/.test(heroHand)) {
-    return [heroHand.substring(0, 2), heroHand.substring(2, 4)];
-  }
-  const r1 = heroHand[0].toUpperCase();
-  const r2 = heroHand[1].toUpperCase();
-  if (r1 === r2) return [`${r1}s`, `${r2}h`]; // Pair: 'AA' → ['As','Ah']
-  const suited = heroHand[2] === 's' || heroHand[2] === 'S';
-  if (suited) return [`${r1}s`, `${r2}s`]; // Suited: 'AKs' → ['As','Ks']
-  return [`${r1}s`, `${r2}h`]; // Offsuit/unspecified: 'AKo'/'AK' → ['As','Kh']
 }
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
@@ -138,19 +125,18 @@ export default async function handler(req, res) {
       {
         const { data: cachedQuestions } = await getSupabase()
           .from('training_question_cache')
-          .select('question_data, question_id')
+          .select('question_data, question_id, engine_type')
           .eq('game_id', gameId)
           .eq('level', level)
-          .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
-          .limit(10);
+          .limit(50);
 
         // roadmap #16 -- same declared-street rule the batch route applies. The
         // cache is the primary source here too (Phase 92 reorder), so a game
         // that declares a street must not be handed a cached row of another
         // one; when the filter empties the pool the engine path below runs,
         // which is the correct source for a declaration the cache predates.
-        const eligibleCached = filterRowsToDeclaredStreet(
-          cachedQuestions,
+        const eligibleCached = filterCachedRowsForGame(
+          (cachedQuestions || []).filter((row) => !seenQuestionIds.includes(row.question_id)),
           pioQueryService.getGameConfig(gameId),
         );
 
@@ -183,17 +169,24 @@ export default async function handler(req, res) {
       // STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)
       // ═══════════════════════════════════════════════════════════════════
       const pioConfig = pioQueryService.getGameConfig(gameId);
+      const scenarioConfig = getGameScenarioConfig(gameId);
 
-      if (!question && pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+      if (!question && pioConfig) {
         // Inject service-role client so engine bypasses RLS
         deterministicEngine.setSupabaseClient(getSupabase());
         try {
-          question = await deterministicEngine.generateQuestion({
+          const generated = await deterministicEngine.generateBatch({
             gameId,
             level: parseInt(level, 10),
+            count: 1,
             seenIds: seenQuestionIds,
             gameConfig: pioConfig,
+            targetPositions: scenarioConfig?.positions || undefined,
+            scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
+            spotTypes: scenarioConfig?.spotTypes || undefined,
+            stackDepths: scenarioConfig?.stackDepths || undefined,
           });
+          question = generated?.[0] || null;
           if (question) {
             console.debug(
               `[Training] Deterministic engine served (cache miss): ${question.source}`
@@ -204,29 +197,13 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════════
-      // STEP 5: LEGACY PIO ENGINE — FINAL FALLBACK
-      // ═══════════════════════════════════════════════════════════════════
-      if (!question) {
-        if (preferredEngine === 'SCENARIO') {
-          // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
-          console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
-        } else {
-          // PIO ENGINE: GTO Solver Data (last resort)
-          try {
-            const pioScenarios = await pioQueryService.queryScenarios(
-              gameId,
-              parseInt(level, 10),
-              userId
-            );
-
-            if (pioScenarios && pioScenarios.length > 0) {
-              question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
-            }
-          } catch (pioError) {
-            console.warn('[Training] ▲ PIO query failed:', pioError.message);
-          }
-        }
+      // There is deliberately no second, permissive legacy PIO fallback here.
+      // The deterministic engine is the sole solver reader because it applies
+      // the strict v2 bridge, legacy sanitizer, board/hand checks, and EV gate.
+      // If that reader rejects the warehouse row, return an honest unavailable
+      // response instead of grading from corrupt data or inventing an action.
+      if (!question && preferredEngine === 'SCENARIO') {
+        console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
       }
 
       // ═══════════════════════════════════════════════════════════════════
@@ -277,7 +254,7 @@ export default async function handler(req, res) {
                 : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
               game_type: String(gameId).startsWith('mtt-') ? 'tournament'
                 : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-              level: Math.min(10, Math.max(1, parseInt(level, 10) || 1)),
+              level: Math.min(12, Math.max(1, parseInt(level, 10) || 1)),
               question_data: question,
               times_used: 1,
             });
@@ -307,241 +284,6 @@ export default async function handler(req, res) {
     console.warn('[API Error]', err);
     if (!res.headersSent)
       return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-}
-
-/**
- * Generate question from PIO solver data
- * Transforms raw PIO scenarios into training questions
- *
- * Strategy Matrix Format (ACTUAL):
- * {
- *   "actions": ["b16", "c", "b45", "f"],   // bet 16%, check, bet 45%, fold
- *   "frequencies": {
- *     "c": { "AA": 1.0, "KK": 0.83, ... },  // check frequencies per hand
- *     "b16": { "AA": 0, "KK": 0.17, ... },  // bet 16% frequencies
- *     ...
- *   },
- *   "hand_evs": { "AA": 1.5, ... }          // EV per hand
- * }
- */
-async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
-  try {
-    // Pick a random scenario from the available ones
-    const scenario = pioScenarios[Math.floor(Math.random() * pioScenarios.length)];
-
-    // Extract strategy matrix
-    const strategyMatrix = scenario.strategies || {};
-    const actions = strategyMatrix.actions || [];
-    const frequencies = strategyMatrix.frequencies || {};
-
-    if (actions.length === 0) {
-      return null;
-    }
-
-    // Select a random hero hand from the frequency data
-    const sampleAction = actions[0];
-    const handFreqs = frequencies[sampleAction] || {};
-    const allHands = Object.keys(handFreqs || {});
-
-    if (allHands.length === 0) {
-      return null;
-    }
-
-    // Pick a random hand for the question
-    const heroHand = allHands[Math.floor(Math.random() * allHands.length)];
-
-    // Find the optimal action for this hand (highest frequency)
-    // Filter out invalid frequencies (some actions like 'f' may have bogus values > 1)
-    let optimalAction = null;
-    let maxFreq = -1;
-    const handActions = {};
-    let validActions = [];
-
-    actions.forEach((action) => {
-      const freq = frequencies[action]?.[heroHand] || 0;
-      // Only consider valid frequencies in 0-1 range
-      if (freq >= 0 && freq <= 1) {
-        handActions[action] = freq;
-        validActions.push(action);
-        if (freq > maxFreq) {
-          maxFreq = freq;
-          optimalAction = action;
-        }
-      } else {
-        // Skip invalid frequency values (likely data import errors)
-      }
-    });
-
-    // ═══ FREQUENCY CLAMPING PROTOCOL (Ghost Hand Bug Fix) ═══
-    const clampedActions = validActions.filter((action) => handActions[action] >= 0.01);
-    if (clampedActions.length > 0) {
-      validActions = clampedActions;
-      // Re-evaluate optimal action among clamped
-      maxFreq = -1;
-      validActions.forEach((action) => {
-        const freq = handActions[action];
-        if (freq > maxFreq) {
-          maxFreq = freq;
-          optimalAction = action;
-        }
-      });
-    }
-
-    // Fallback if no valid actions found
-    if (!optimalAction || validActions.length === 0) {
-      optimalAction = actions[0];
-      maxFreq = 0.5;
-      handActions[optimalAction] = maxFreq;
-      validActions.push(optimalAction);
-    }
-
-    // Map action codes to readable names
-    const actionNameMap = {
-      c: 'Check',
-      f: 'Fold',
-      x: 'Check',
-      b: 'Bet',
-      b16: 'Bet Small (16%)',
-      b25: 'Bet 25%',
-      b33: 'Bet 33%',
-      b45: 'Bet Medium (45%)',
-      b50: 'Bet Half Pot',
-      b66: 'Bet 2/3 Pot',
-      b75: 'Bet 75%',
-      b100: 'Bet Pot',
-      b150: 'Overbet 150%',
-      allin: 'All-In',
-      r: 'Raise',
-    };
-
-    const readableActions = validActions.map((a) => ({
-      id: a,
-      text: actionNameMap[a] || a.toUpperCase(),
-      frequency: handActions[a],
-    }));
-
-    // Format hero hand for display (e.g., "AKs" → "A♠K♠")
-    const formatHand = (hand) => {
-      if (!hand) return 'Unknown';
-      const suitMap = { s: '♠', h: '♥', d: '♦', c: '♣', o: '' };
-      if (hand.length === 2) return hand; // Pair like "AA"
-      if (hand.length === 3) {
-        const [r1, r2, suit] = [hand[0], hand[1], hand[2]];
-        if (suit === 's') return `${r1}♠${r2}♠`;
-        if (suit === 'o') return `${r1}♠${r2}♥`;
-      }
-      return hand;
-    };
-
-    // Build question with actual GTO data
-    // EXTRACT heroPosition from scenario_hash (e.g., "hu_cash_BTN_100bb_3h7c7s" → "BTN")
-    const scenarioParts = scenario.scenarioHash?.split('_') || [];
-    const extractedPosition =
-      scenarioParts.find((p) =>
-        ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ'].includes(p.toUpperCase())
-      ) || 'BTN';
-
-    // Calculate realistic pot size based on street
-    const potByStreet = {
-      preflop: 2.5,
-      flop: 6,
-      turn: 15,
-      river: 30,
-    };
-    const estimatedPot = potByStreet[scenario.street] || 6;
-
-    // Determine villain position based on hero position
-    const villainPositionMap = {
-      BTN: 'BB',
-      SB: 'BB',
-      BB: 'BTN',
-      UTG: 'BB',
-      MP: 'BB',
-      CO: 'BTN',
-      HJ: 'BB',
-    };
-
-    // Serve the highest-frequency actions as the answer options, and build the
-    // frequency bars over exactly those. `readableActions.slice(0, 4)` kept the
-    // solver's action order, so on a five-plus-action node the argmax could sit
-    // outside the four buttons: the correct answer was unpickable and the bars
-    // referenced ids with no button.
-    const { options: servedOptions, gtoFrequencies } =
-      selectServedOptions(readableActions, optimalAction, 4);
-
-    // Extract hand EVs from strategy matrix for real EV loss computation
-    const handEVs = strategyMatrix.hand_evs || scenario.handEVs || {};
-    const heroHandEV = handEVs[heroHand] || 0;
-    const maxHandEV =
-      Object.keys(handEVs || {}).length > 0
-        ? Math.max(...Object.values(handEVs || {}).filter((v) => typeof v === 'number'))
-        : heroHandEV;
-
-    const question = {
-      id: `pio_${scenario.id}_${Date.now()}`,
-      type: 'PIO',
-      source: 'PIO_DATABASE',
-      scenario: {
-        board: scenario.board.join(' ') || 'Unknown Board',
-        street: scenario.street,
-        stackDepth: scenario.stackDepth,
-        gameType: scenario.gameType,
-        scenarioHash: scenario.scenarioHash,
-        heroHand: heroHand,
-        // DYNAMIC TABLE DATA - Added for UniversalDynamicTable
-        heroPosition: extractedPosition.toUpperCase(),
-        heroStack: scenario.stackDepth || 100,
-        pot: estimatedPot,
-        villainPosition: villainPositionMap[extractedPosition.toUpperCase()] || 'BB',
-        villainStack: scenario.stackDepth || 100, // Effective stacks
-        // "Villain checks" was hard-coded for every postflop question. When
-        // hero is BB and villain is BTN, hero acts FIRST postflop — the button
-        // cannot have checked to the big blind. The prompt told the player the
-        // opposite of the action order the same question was grading them on.
-        action: scenario.street === 'preflop'
-          ? ''
-          : (heroActsFirstPostflop(
-              extractedPosition.toUpperCase(),
-              villainPositionMap[extractedPosition.toUpperCase()] || 'BB'
-            )
-            ? 'Action is on you'
-            : 'Villain checks'),
-      },
-      // Add heroCards in the format expected by UniversalDynamicTable
-      // (heroHand here is notation like 'AKs' — convert, don't substring-split)
-      heroCards: heroHandToCards(heroHand),
-      question: `You hold ${formatHand(heroHand)} on the ${scenario.street} with board ${scenario.board.join(' ')}. Stack: ${scenario.stackDepth}BB. What is the GTO play?`,
-      options: servedOptions,
-      correctAnswer: optimalAction,
-      correctAnswerText: actionNameMap[optimalAction] || optimalAction,
-      frequencies: handActions, // Raw 0.0-1.0 per action (legacy compatibility)
-      // ═══ REAL PIO DATA FOR GTO WIZARD UI ═══
-      gtoFrequencies, // Percentage frequencies (0-100%) per action ID for UI
-      rawFrequencies: frequencies, // Full per-hand frequency matrix from PIO
-      evData: {
-        heroHandEV,
-        optimalEV: maxHandEV,
-        handEVs,
-        heroHand,
-      },
-      explanation:
-        maxFreq >= 0.95
-          ? `According to GTO, this is a pure ${actionNameMap[optimalAction] || optimalAction} (${(maxFreq * 100).toFixed(0)}% frequency).`
-          : `GTO mixes here: ${Object.entries(handActions || {})
-              .filter(([, f]) => f > 0.01)
-              .map(([a, f]) => `${actionNameMap[a] || a} ${(f * 100).toFixed(0)}%`)
-              .join(
-                ', '
-              )}. The highest frequency play is ${actionNameMap[optimalAction] || optimalAction}.`,
-      difficulty: level,
-      heroHand: heroHand,
-    };
-
-    return question;
-  } catch (error) {
-    console.warn('[Training] ✕ Error generating PIO question:', error);
-    return null;
   }
 }
 
@@ -579,6 +321,10 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
  */
 function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   if (!q) return q;
+  if (String(q.type || '').toUpperCase() === 'CHART') normalizeAuditedChartQuestion(q);
+  const sourceName = String(q.source || '').toUpperCase();
+  const isWarehouseSolver = String(q.type || '').toUpperCase() === 'PIO'
+    && ['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO', 'LEGACY_STRATEGY_ARCHIVE'].includes(sourceName);
 
   // ═══ 2026-07-19 AUDIT FIX: reconcile answer key with solver frequencies
   // BEFORE enrichment. ~7% of cached rows had correctAnswer /
@@ -587,14 +333,17 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   reconcileAnswerKey(q);
 
   const scenario = q.scenario || {};
-  const options = q.options || [];
-  const correctAnswer = q.correctAnswer;
-
   // 1. Ensure heroCards array exists
   if (!q.heroCards || !Array.isArray(q.heroCards) || q.heroCards.length < 2) {
     const heroHand = scenario.heroHand || q.heroHand || '';
-    if (heroHand && heroHand.length >= 4) {
-      q.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
+    const represented = handNotationToRepresentativeCards(
+      heroHand,
+      q.boardCards || scenario.board || [],
+    );
+    if (represented) {
+      q.heroCards = represented;
+    } else if (isWarehouseSolver) {
+      return null;
     } else {
       // Deterministic fallback cards based on question id hash
       const seed = hashSeed(q.id || q.questionId || 'fallback');
@@ -603,7 +352,9 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   }
 
   // 2. Ensure boardCards array exists
-  if (!q.boardCards || !Array.isArray(q.boardCards) || q.boardCards.length === 0) {
+  const declaredStreet = String(scenario.street || q.street || '').toLowerCase();
+  if (declaredStreet === 'preflop') q.boardCards = [];
+  if (declaredStreet !== 'preflop' && (!q.boardCards || !Array.isArray(q.boardCards) || q.boardCards.length === 0)) {
     const boardStr = scenario.board || '';
     if (boardStr && boardStr.length >= 6) {
       // Parse board string like "Jh7s2d" or "Jh 7s 2d"
@@ -613,7 +364,10 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
         if (i + 1 < clean.length) cards.push(clean.substring(i, i + 2));
       }
       const seed = hashSeed(q.id || 'board_fallback');
+      if (cards.length < 3 && isWarehouseSolver) return null;
       q.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, q.heroCards);
+    } else if (isWarehouseSolver) {
+      return null;
     } else {
       const seed = hashSeed(q.id || 'board_fallback');
       q.boardCards = _getDeterministicCards(seed, 3, q.heroCards);
@@ -633,6 +387,7 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   });
 
   if (collision) {
+    if (isWarehouseSolver) return null;
     // Phase 93: collision-avoid by regenerating heroCards from a fresh seed
     // that excludes the boardCards. Do NOT clobber scenario.heroHand or
     // q.explanation — those are the canonical truth from the cached row,
@@ -648,58 +403,24 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
 
   // 3. Ensure gtoFrequencies exist (map option ids to 0-100 percentages)
   if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies || {}).length === 0) {
-    q.gtoFrequencies = {};
-    let remaining = 100;
-
-    // Map options safely
-    const mappedOptions = options.map((opt, idx) => ({
-      id: opt.id || String.fromCharCode(97 + idx),
-      isCorrect: (opt.id || String.fromCharCode(97 + idx)) === correctAnswer,
-    }));
-
-    const correctOpt = mappedOptions.find((o) => o.isCorrect);
-    if (correctOpt) {
-      const dominance =
-        Math.max(35, 80 - level * 4) + (hashSeed(correctOpt.id + (q.id || '')) % 10);
-      q.gtoFrequencies[correctOpt.id] = Math.min(dominance, remaining);
-      remaining -= q.gtoFrequencies[correctOpt.id];
-    }
-
-    // Distribute remaining evenly/deterministically among incorrect options
-    const incorrectOpts = mappedOptions.filter((o) => !o.isCorrect);
-    incorrectOpts.forEach((opt, idx) => {
-      const isLast = idx === incorrectOpts.length - 1;
-      if (isLast) {
-        q.gtoFrequencies[opt.id] = Math.max(0, remaining);
-      } else {
-        const share =
-          Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(opt.id) % 5) - 2;
-        const clampedShare = Math.max(0, Math.min(share, remaining));
-        q.gtoFrequencies[opt.id] = clampedShare;
-        remaining -= clampedShare;
-      }
-    });
-
-    const sum = Object.values(q.gtoFrequencies || {}).reduce((s, v) => s + v, 0);
-    if (sum !== 100 && correctAnswer) {
-      q.gtoFrequencies[correctAnswer] = (q.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
+    if (isWarehouseSolver) return null;
+    if (q.frequencies && typeof q.frequencies === 'object') {
+      const measured = Object.fromEntries(Object.entries(q.frequencies)
+        .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1)
+        .map(([action, value]) => [action, Math.round(Number(value) * 100)]));
+      if (Object.keys(measured).length > 0) q.gtoFrequencies = measured;
     }
   }
 
-  // 4. Ensure evData exists — deterministic position-aware estimates
-  if (!q.evData) {
-    const pot = scenario.pot || 10;
-    const positionBonus = { BTN: 0.65, CO: 0.58, MP: 0.5, UTG: 0.45, SB: 0.42, BB: 0.48 };
-    const posMult = positionBonus[scenario.heroPosition] || 0.52;
-    q.evData = {
-      heroHandEV: +(pot * posMult).toFixed(2),
-      optimalEV: +(pot * (posMult + 0.15)).toFixed(2),
-      handEVs: {},
-      heroHand: q.heroCards ? q.heroCards.join('') : 'AhKs',
-    };
-  }
-
-  // 5. Ensure scenario has all required fields + SANITIZE values
+  // 4. Ensure scenario has all required fields + SANITIZE values
+  if (isWarehouseSolver && (
+    !scenario.heroPosition
+    || !scenario.villainPosition
+    || !scenario.street
+    || !Number.isFinite(Number(scenario.pot))
+    || !Number.isFinite(Number(scenario.heroStack))
+    || !Number.isFinite(Number(scenario.villainStack))
+  )) return null;
   if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
   if (!scenario.villainPosition) scenario.villainPosition = 'BB';
   if (!scenario.pot) scenario.pot = gameType === 'tournament' ? 8 : 12;
@@ -721,8 +442,11 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   // Older rows already in the cache may still have q.source === 'GROK_GTO',
   // which is fine — we don't overwrite an existing tag.
   if (!q.source) q.source = 'CACHED_LEGACY';
+  q.dataQuality = isVerifiedSolverQuestion(q)
+    ? 'SOLVER_EXACT'
+    : (isWarehouseSolver ? 'LEGACY_UNVERIFIED' : (q.dataQuality || 'CURATED'));
 
-  return q;
+  return enforceSolverClaimHonesty(q);
 }
 
 /** Generate deterministic cards, preventing collisions */

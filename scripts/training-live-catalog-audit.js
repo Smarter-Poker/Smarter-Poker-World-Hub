@@ -73,6 +73,11 @@ const {
 const {
     applyDeterministicEnginePatches,
 } = require(path.join(ROOT, 'src/engines/deterministicEnginePatches.js'));
+const {
+    enforceSolverClaimHonesty,
+    isVerifiedSolverQuestion,
+    normalizeAuditedChartQuestion,
+} = require(path.join(ROOT, 'src/lib/training/solverDecisionEvidence.js'));
 
 // `question_data` can carry solver matrices, making 1,000-row responses exceed
 // the production gateway's practical payload ceiling. Smaller pages keep this
@@ -86,14 +91,6 @@ const OUTPUT_PATH = process.env.TRAINING_AUDIT_OUTPUT
     ? path.resolve(process.env.TRAINING_AUDIT_OUTPUT)
     : null;
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
-const VERIFIED_SOLVER_SOURCES = new Set([
-    'DETERMINISTIC_SOLVER',
-    'local_solver_ranges',
-    'PIO_DATABASE',
-    'PIO',
-    'CHART',
-]);
-
 function fingerprintQuestion(question) {
     const payload = {
         id: question?.id || null,
@@ -151,9 +148,11 @@ function truthChecks(question, metadata) {
     const frequencyValues = Object.values(frequencies || {}).map(Number).filter(Number.isFinite);
     const solverClaim = /\b(?:according to gto|gto mixes|gto solver|solver picks|nash equilibrium|solver[- ]exact|pure\s+[a-z-]+\s*\(\d+%)/i
         .test(`${prompt} ${explanation}`);
-    const verifiedSource = VERIFIED_SOLVER_SOURCES.has(String(question?.source || ''))
-        || question?.solverProvenance?.verified === true
-        || String(metadata.engineType || '').toUpperCase() === 'CHART';
+    // A historical source label or engine type is not provenance. This must
+    // use the exact same proof contract as grading and Leak Finder so the
+    // exhaustive ledger cannot certify an unsealed warehouse row merely
+    // because an old cache writer called it `DETERMINISTIC_SOLVER`.
+    const verifiedSource = isVerifiedSolverQuestion(question);
     const numericScenarioValues = [scenario.pot, scenario.potSize, scenario.heroStack, scenario.stackDepth, scenario.effectiveStack]
         .filter((value) => value !== undefined && value !== null && value !== '')
         .map(Number);
@@ -184,7 +183,10 @@ const AUDIT_TABLE_COLUMNS = {
     ]),
     solved_spots_gold: new Set([
         'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
-        'strategy_matrix', 'strategy_matrix_v2',
+        'strategy_matrix', 'strategy_matrix_v2', 'solver_version',
+        'solver_binary_checksum', 'machine_id', 'pipeline_commit',
+        'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
+        'quality_status', 'audited_at',
     ]),
     memory_charts_gold: new Set(['stack_depth']),
 };
@@ -429,7 +431,12 @@ async function main() {
     };
 
     const validate = (question, label, metadata) => {
-        const contracted = enforceTrainingQuestionContract(structuredClone(question));
+        const candidate = structuredClone(question);
+        if (String(metadata.engineType || '').toUpperCase() === 'CHART'
+            && String(candidate?.type || '').toUpperCase() === 'CHART') {
+            normalizeAuditedChartQuestion(candidate);
+        }
+        const contracted = enforceTrainingQuestionContract(enforceSolverClaimHonesty(candidate));
         const result = validateTrainingQuestion(contracted);
         const checks = truthChecks(contracted, metadata);
         const failedTruthChecks = Object.entries(checks)

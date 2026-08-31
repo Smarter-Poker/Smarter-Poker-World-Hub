@@ -68,4 +68,11 @@ test('runtime chronology and concrete-card repairs are part of the serving path'
   assert.match(liveAudit, /minimumRaiseLegal/);
   assert.match(liveAudit, /questionFields/);
   assert.match(liveAudit, /fingerprintQuestion/);
+  for (const provenanceColumn of [
+    'solver_version', 'solver_binary_checksum', 'machine_id', 'pipeline_commit',
+    'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
+    'quality_status', 'audited_at',
+  ]) {
+    assert.match(liveAudit, new RegExp(`'${provenanceColumn}'`));
+  }
 });

@@ -34,12 +34,13 @@
  *    substring board matching. Now: hand normalized to its 169-class and
  *    FORCED through question building (clean null when the hand has no
  *    credible data), true child preferred via suffix match, approximate
- *    boards flagged isApproximateBoard.
+ *    boards rejected rather than transplanting a strategy from a different
+ *    runout.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { parseBoardFromHash } from '../utils/trainingApiUtils';
 import { v2ToAppMatrix } from '../utils/v2Matrix';
+import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
 
 // ●● Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ●●●●
 export function toHandClass(h) {
@@ -57,14 +58,72 @@ export function toHandClass(h) {
 }
 
 const isAggressiveAction = (a) => /^b|^r|allin|jam|push/i.test(String(a || ''));
+// Never trust a JSON field such as `__sanitized` as proof that warehouse data
+// passed this process's validator. A legacy artifact can contain arbitrary
+// keys. WeakSet membership can only be granted by the live validator/bridge.
+const SANITIZED_MATRICES = new WeakSet();
 
 /** Prefer strategy_matrix_v2 (rebuilt PioSOLVER data) when present. Mutates row. */
 function preferV2(row) {
     if (row && row.strategy_matrix_v2) {
         const m = v2ToAppMatrix(row.strategy_matrix_v2);
-        if (m) row.strategy_matrix = m;
+        // A present v2 payload is the rebuilt pipeline's authoritative
+        // export. If it fails the strict bridge, reject the row outright;
+        // falling back to v1 would conceal a damaged v2 solve.
+        row.strategy_matrix = m;
+        if (m) SANITIZED_MATRICES.add(m);
+        else row.__invalidV2 = true;
     }
     return row;
+}
+
+function provenanceIsComplete(row) {
+    return Boolean(
+        row?.strategy_matrix_v2
+        && row?.quality_status === 'validated'
+        && row?.solver_version
+        && /^[0-9a-f]{64}$/i.test(String(row?.solver_binary_checksum || ''))
+        && ['M1', 'M2'].includes(String(row?.machine_id || ''))
+        && /^[0-9a-f]{40}$/i.test(String(row?.pipeline_commit || ''))
+        && row?.manifest_version
+        && /^[0-9a-f]{64}$/i.test(String(row?.manifest_checksum || ''))
+        && /^[0-9a-f]{64}$/i.test(String(row?.source_artifact_checksum || ''))
+        && row?.audited_at
+    );
+}
+
+function stampSolverProvenance(question, row) {
+    if (!question || !row) return question;
+    const verified = provenanceIsComplete(row);
+    question.dataQuality = verified ? 'SOLVER_EXACT' : 'LEGACY_UNVERIFIED';
+    question.solverProvenance = {
+        verified,
+        source: verified ? 'PioSOLVER' : 'solved_spots_gold_legacy',
+        scenarioHash: row.scenario_hash || null,
+        solverVersion: row.solver_version || null,
+        solverBinaryChecksum: row.solver_binary_checksum || null,
+        machineId: row.machine_id || null,
+        pipelineCommit: row.pipeline_commit || null,
+        manifestVersion: row.manifest_version || null,
+        manifestChecksum: row.manifest_checksum || null,
+        sourceArtifactChecksum: row.source_artifact_checksum || null,
+        qualityStatus: row.quality_status || null,
+        auditedAt: row.audited_at || null,
+    };
+    if (verified) {
+        const mix = (question.options || [])
+            .map((option) => {
+                const frequency = Number(question?.gtoFrequencies?.[option?.id]);
+                return Number.isFinite(frequency)
+                    ? `${option.text} ${Math.round(frequency)}%`
+                    : null;
+            })
+            .filter(Boolean)
+            .join(', ');
+        question.explanation = `Verified ${row.solver_version} export for ${row.scenario_hash}. Recorded action frequencies: ${mix}.`;
+        question.evidenceDisclosure = 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.';
+    }
+    return enforceSolverClaimHonesty(question);
 }
 
 /**
@@ -73,10 +132,10 @@ function preferV2(row) {
  * probability distribution; renormalize; delete non-credible hands entirely.
  */
 export function sanitizeStrategyMatrix(matrix) {
-    if (!matrix || matrix.__sanitized) return matrix;
+    if (!matrix || SANITIZED_MATRICES.has(matrix)) return matrix;
     const actions = matrix.actions || [];
     const frequencies = matrix.frequencies || {};
-    if (actions.length === 0) { matrix.__sanitized = true; return matrix; }
+    if (actions.length === 0) { SANITIZED_MATRICES.add(matrix); return matrix; }
 
     // Union of hands across all action maps
     const hands = new Set();
@@ -103,7 +162,11 @@ export function sanitizeStrategyMatrix(matrix) {
         const kept = Object.keys(vals);
         const maxVal = kept.length ? Math.max(...Object.values(vals)) : 0;
         const isNormalized = !corrupted && kept.length > 0 && Math.abs(sum - 1) <= 0.05;
-        const isPure = maxVal >= 0.98 && (sum - maxVal) <= 0.02;
+        // A near-100% action is only credible when the same hand has no
+        // scale-corrupted value on another action. Otherwise dropping the
+        // corrupt entry would manufacture a pure strategy that the solver
+        // never exported.
+        const isPure = !corrupted && maxVal >= 0.98 && (sum - maxVal) <= 0.02;
 
         if ((isNormalized || isPure) && sum > 0) {
             // Write back the renormalized distribution; remove corrupt entries
@@ -124,7 +187,7 @@ export function sanitizeStrategyMatrix(matrix) {
         }
     });
 
-    matrix.__sanitized = true;
+    SANITIZED_MATRICES.add(matrix);
     return matrix;
 }
 
@@ -149,7 +212,6 @@ function pruneScenarioToHand(scenario, hand) {
         strategy_matrix: {
             ...matrix,
             frequencies: pruned,
-            __sanitized: true, // already sanitized upstream
         },
     };
 }
@@ -175,13 +237,31 @@ export function applyDeterministicEnginePatches(engine) {
 
             let allData = [];
             for (const depth of effectiveStackDepths) {
-                let q = this.db
-                    .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
-                    .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', depth);
-                if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
-                const { data, error } = await q.limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
+                const run = (projection) => {
+                    let q = this.db
+                        .from('solved_spots_gold')
+                        .select(projection)
+                        .eq('game_type', gameConfig.pioGameType)
+                        .eq('stack_depth', depth);
+                    if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
+                    return q.limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
+                };
+                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
+                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
+                const initialProjection = this.__solverProvenanceColumnsAvailable === false
+                    ? legacyProjection
+                    : fullProjection;
+                let { data, error } = await run(initialProjection);
+                // Rolling deploy compatibility: before the additive migration
+                // lands, legacy rows may still be read, but stamp as unverified.
+                // Never fabricate a provenance seal from the source label.
+                if (initialProjection === fullProjection
+                    && error && (error.code === '42703' || error.code === 'PGRST204')) {
+                    this.__solverProvenanceColumnsAvailable = false;
+                    ({ data, error } = await run(legacyProjection));
+                } else if (initialProjection === fullProjection && !error) {
+                    this.__solverProvenanceColumnsAvailable = true;
+                }
                 if (!error && data && data.length > 0) allData = allData.concat(data);
             }
 
@@ -210,7 +290,11 @@ export function applyDeterministicEnginePatches(engine) {
                     const filtered = allData.filter(row =>
                         patterns.some(p => p.test((row.scenario_hash || '').toLowerCase()))
                     );
-                    if (filtered.length > 0) allData = filtered;
+                    // A requested subject is a content contract, not a ranking
+                    // hint. Falling through to the full pool taught unrelated
+                    // spots under the requested game's title.
+                    if (filtered.length === 0) return null;
+                    allData = filtered;
                 }
             }
 
@@ -248,7 +332,10 @@ export function applyDeterministicEnginePatches(engine) {
                 const handClass = toHandClass(forcedHand);
                 if (!handClass || !matrixHasHand(scenario?.strategy_matrix, handClass)) return null;
                 const prunedScenario = pruneScenarioToHand(scenario, handClass);
-                return originalBuild(prunedScenario, gameConfig, level, questionIndex);
+                return stampSolverProvenance(
+                    originalBuild(prunedScenario, gameConfig, level, questionIndex),
+                    scenario,
+                );
             }
 
             // Alternate the preferred answer class across questionIndex so no
@@ -260,9 +347,11 @@ export function applyDeterministicEnginePatches(engine) {
                 const q = originalBuild(scenario, gameConfig, level, questionIndex + offset);
                 if (!q) continue;
                 if (!first) first = q;
-                if (isAggressiveAction(q.correctAnswer) === preferAggressive) return q;
+                if (isAggressiveAction(q.correctAnswer) === preferAggressive) {
+                    return stampSolverProvenance(q, scenario);
+                }
             }
-            return first;
+            return stampSolverProvenance(first, scenario);
         } catch (err) {
             console.warn('[EnginePatches] buildQuestionFromScenario error:', err.message);
             return null;
@@ -277,16 +366,33 @@ export function applyDeterministicEnginePatches(engine) {
         const heroHand = toHandClass(rawHeroHand);
         try {
             const boardStr = boardCards.map(c => c.toLowerCase()).join('');
+            const queryMatches = async (pattern, limit) => {
+                const run = (projection) => this.db
+                    .from('solved_spots_gold')
+                    .select(projection)
+                    .eq('game_type', gameConfig.pioGameType)
+                    .eq('stack_depth', gameConfig.pioStackDepth)
+                    .eq('street', street)
+                    .ilike('scenario_hash', pattern)
+                    .limit(limit);
+                const fullProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2, solver_version, solver_binary_checksum, machine_id, pipeline_commit, manifest_version, manifest_checksum, source_artifact_checksum, quality_status, audited_at';
+                const legacyProjection = 'id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2';
+                const initialProjection = this.__solverProvenanceColumnsAvailable === false
+                    ? legacyProjection
+                    : fullProjection;
+                let result = await run(initialProjection);
+                if (initialProjection === fullProjection
+                    && result.error && (result.error.code === '42703' || result.error.code === 'PGRST204')) {
+                    this.__solverProvenanceColumnsAvailable = false;
+                    result = await run(legacyProjection);
+                } else if (initialProjection === fullProjection && !result.error) {
+                    this.__solverProvenanceColumnsAvailable = true;
+                }
+                return result.data || [];
+            };
 
             // True child node: hash ENDS WITH the full board
-            const { data: exactMatches } = await this.db
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .ilike('scenario_hash', `%${boardStr}`)
-                .limit(5);
+            const exactMatches = await queryMatches(`%${boardStr}`, 5);
 
             for (const scenario of exactMatches || []) {
                 preferV2(scenario);
@@ -294,59 +400,11 @@ export function applyDeterministicEnginePatches(engine) {
                 if (question) return question;
             }
 
-            // Nearest-texture fallback on the flop prefix
-            const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
-            const { data: partialMatches } = await this.db
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .ilike('scenario_hash', `%${flopStr}%`)
-                .limit(50);
-
-            if (partialMatches && partialMatches.length > 0) {
-                const rankToVal = r => "23456789TJQKA".indexOf(r.toUpperCase()) + 2;
-                const getTexture = (cards) => {
-                    const ranks = cards.map(c => c[0].toUpperCase());
-                    const suits = cards.map(c => c[1].toLowerCase());
-                    const hasPair = new Set(ranks).size < cards.length;
-                    const maxSuitFreq = Math.max(...Object.values(suits.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {})));
-                    return { hasPair, hasFlushDraw: maxSuitFreq >= 3 };
-                };
-                const reqTexture = getTexture(boardCards);
-
-                const scored = partialMatches.map(scenario => {
-                    const scenarioBoard = parseBoardFromHash(scenario.scenario_hash);
-                    let dist = 0;
-                    for (let i = 3; i < boardCards.length; i++) {
-                        if (!scenarioBoard[i]) continue;
-                        const rankDiff = Math.abs(rankToVal(boardCards[i][0]) - rankToVal(scenarioBoard[i][0]));
-                        const suitDiff = boardCards[i][1].toLowerCase() === scenarioBoard[i][1].toLowerCase() ? 0 : 6;
-                        dist += (rankDiff * 2) + suitDiff;
-                    }
-                    const dbTexture = getTexture(scenarioBoard);
-                    if (reqTexture.hasPair !== dbTexture.hasPair) dist += 25;
-                    if (reqTexture.hasFlushDraw !== dbTexture.hasFlushDraw) dist += 15;
-                    return { scenario, dist };
-                }).sort((a, b) => a.dist - b.dist);
-
-                // Walk candidates nearest-first until one has credible data for
-                // the user's hand
-                for (const { scenario, dist } of scored.slice(0, 10)) {
-                    preferV2(scenario);
-                    const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
-                    if (question) {
-                        question.scenario.board = boardCards.join(' ');
-                        question.boardCards = boardCards;
-                        question.isApproximateBoard = true; // similar, not identical, runout
-                        console.debug(`[EnginePatches] Multi-street semantic match (dist ${dist})`);
-                        return question;
-                    }
-                }
-            }
-
-            return null; // no credible continuation — client ends the hand cleanly
+            // A similar texture is not the same decision. Transplanting
+            // frequencies onto another turn or river changes card removal,
+            // available draws, nut advantage, and legal range composition.
+            // End the hand cleanly unless the exact full-board suffix exists.
+            return null;
         } catch (err) {
             console.warn('[EnginePatches] queryNextStreet error:', err.message);
             return null;

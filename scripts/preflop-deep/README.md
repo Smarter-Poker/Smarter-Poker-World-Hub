@@ -13,15 +13,36 @@ position/stack/format — mathematically valid but the wrong range, so it does n
 match its scenario labels. Fix: every solve must start from the range that
 actually matches its (format, position, stack, action) label.
 
+## Phase 4 certification hold
+
+Neither Windows host may generate or export Training solves from this directory
+until `phases.json.release_gate.solver_ready` is true in a protected commit, the
+operator supplies that exact manifest checksum, and every range artifact passes
+its per-phase SHA-256 check. The current gate is intentionally closed.
+
+PioSOLVER's postflop objective is chip EV. A family name containing `icm` does
+not make the output ICM-aware, so the worker rejects ICM-labelled phases until
+an approved objective engine with explicit payout and stack inputs exists.
+
+The supervised launcher also requires `APPROVED_PIO_BINARY_CHECKSUM` and
+hashes the executable before it starts. Every accepted export records that
+checksum, the protected pipeline commit, manifest version/checksum, source
+artifact checksum, canonical machine ID, solver version, and audit timestamp.
+The harvester writes the phase's actual pot, effective stack, rake, street,
+family, and stack; no 100 BB/flop constants may leak into another contract.
+Flop, turn, and river target paths are supported, while the closed manifest
+prevents their use until the exact approved inputs exist.
+
 ## Division of labor
 - **Short-stack (<=25bb, all-in preflop):** fully solved in-house by the Nash
   push/fold engine (`scripts/nash-pushfold/`) — no postflop tree needed. Already
   live in `memory_charts_gold` (240 rows).
-- **Deep-stack (100bb etc.):** preflop ranges are **solved by PioSOLVER** on the
-  machines (true GTO, consistent with the postflop solves), NOT hand-approximated
-  — an approximation would get baked permanently into the "real GTO" river data.
-  This module supplies the verified combo map + `set_range` conversion + the
-  validation harness for those ranges.
+- **Deep-stack (100bb etc.):** PioSOLVER consumes an approved preflop range; it
+  does not derive that range from the postflop tree. Every range must therefore
+  come from an independently reviewed preflop solve/export, carry its exact
+  1326-combo checksum, and match the phase's format, positions, stack, action,
+  rake, and objective. The Windows hosts may not substitute a hand-authored
+  approximation or infer a missing range from legacy postflop output.
 
 ## Files
 - `combomap.py` — SINGLE source of truth for card/combo indexing shared with the
@@ -35,6 +56,9 @@ actually matches its (format, position, stack, action) label.
   Monte Carlo (`pip install eval7 --break-system-packages`; ~4 min). Outputs
   `eq169.npy`, `w169.npy` (gitignored — binary, regenerable).
 - `classes.json` — the 169 canonical hand classes in solver order.
+- `make_ranges.py` — legacy research-only approximation generator. The
+  certified worker neither fetches nor executes it, and its output cannot
+  authorize a Training solve.
 
 ## Regenerating the equity matrix
 ```
