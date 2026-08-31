@@ -62,6 +62,44 @@ async function decodeSupabaseJWT(token) {
  * Sync - returns a SupabaseClient synchronously. The internal
  * patched auth.getUser is async (always was - no behavior change for callers).
  */
+/**
+ * Pre-execution-503 retry (2026-08-31 PGRST002 outage; mirrors club-arena's
+ * src/lib/pgrstRetryFetch.ts). PostgREST returns 503 with code
+ * PGRST001/PGRST002/PGRST003 BEFORE the statement executes (no DB connection /
+ * schema cache loading / pool acquisition timed out), so replaying those is
+ * safe for any method, POSTs included - the statement never ran. During a
+ * schema-cache reload (~28s on this 970-relation schema) these storms
+ * otherwise fail every API route at once: 47k 503s in one hour on 2026-08-31.
+ * Any other 503, a non-JSON 503, or a network throw is NOT retried here.
+ */
+const PGRST_RETRYABLE = new Set(['PGRST001', 'PGRST002', 'PGRST003']);
+const PGRST_RETRY_DELAYS_MS = [300, 1200];
+
+function withPgrstRetry(baseFetch) {
+  const doFetch = baseFetch || ((input, init) => fetch(input, init));
+  return async function pgrstRetryFetch(input, init) {
+    let attempt = 0;
+    for (;;) {
+      // A Request object's body stream is consumed by fetch - clone per
+      // attempt so a retry never replays a consumed stream.
+      const attemptInput =
+        typeof Request !== 'undefined' && input instanceof Request ? input.clone() : input;
+      const resp = await doFetch(attemptInput, init);
+      if (resp.status !== 503 || attempt >= PGRST_RETRY_DELAYS_MS.length) return resp;
+      let code;
+      try {
+        const body = await resp.clone().json();
+        code = body && body.code;
+      } catch (_e) {
+        return resp; // non-JSON 503 (gateway/maintenance) - do not retry
+      }
+      if (typeof code !== 'string' || !PGRST_RETRYABLE.has(code)) return resp;
+      await new Promise((r) => setTimeout(r, PGRST_RETRY_DELAYS_MS[attempt] + Math.random() * 200));
+      attempt++;
+    }
+  };
+}
+
 export function createClient(url, key, options) {
   const resolvedUrl = url || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
   const resolvedKey = key || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -70,7 +108,14 @@ export function createClient(url, key, options) {
     console.warn('[FATAL] No Supabase key available - check SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 
-  const client = originalCreateClient(resolvedUrl, resolvedKey || 'missing-key', options);
+  // Thread the pre-execution-503 retry under every client built here (~all
+  // API routes). If a caller supplied its own global.fetch, wrap it rather
+  // than replace it.
+  const mergedOptions = { ...(options || {}) };
+  mergedOptions.global = { ...(mergedOptions.global || {}) };
+  mergedOptions.global.fetch = withPgrstRetry(mergedOptions.global.fetch);
+
+  const client = originalCreateClient(resolvedUrl, resolvedKey || 'missing-key', mergedOptions);
 
   // Reference original getUser
   const originalGetUser = client.auth.getUser.bind(client.auth);

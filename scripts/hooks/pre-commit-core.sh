@@ -120,7 +120,13 @@ fi
 echo "🔍 Scanning for dangerous Supabase auth patterns..."
 
 # Re-filter to just JS/TS files (excluding allowlisted utility files)
-AUTH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
+# commander-shared/src/lib/supabaseServerClient.js added to the allowlist
+# 2026-08-31: it IS the sanctioned server-side wrapper this check points
+# people toward (its patched getUser is the safe alternative), and a comment
+# inside it naming supabase.auth.getUser(token) made ANY edit to it
+# uncommittable — the exact --no-verify-inducing shape the 2026-08-05 and
+# 2026-08-25 notes below warn about.
+AUTH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin' | grep -v 'commander-shared/src/lib/supabaseServerClient')
 
 if [ -z "$AUTH_FILES" ]; then
     echo "✅ No relevant files to check"
