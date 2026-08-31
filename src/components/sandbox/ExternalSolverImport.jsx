@@ -1,5 +1,5 @@
 /**
- * SCENARIO IMPORT — JSON / CSV (W7-1)
+ * SCENARIO IMPORT · JSON / CSV (W7-1)
  * ═══════════════════════════════════════════════════════════════════════════
  * Honest retitle: this parser accepts the sandbox's own scenario JSON or a
  * four-field CSV line. It does NOT read native PioSolver or GTO+ exports, and
@@ -83,10 +83,10 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                 try {
                     raw = JSON.parse(rawInput);
                 } catch (e) {
-                    throw new Error('That JSON could not be parsed - check for a trailing comma or a missing quote.');
+                    throw new Error('That JSON could not be parsed · check for a trailing comma or a missing quote.');
                 }
             } else {
-                // CSV: Board, Position, Pot, Stack — stack is optional but the
+                // CSV: Board, Position, Pot, Stack · stack is optional but the
                 // old code read parts[3] after only requiring three fields and
                 // silently substituted 100bb.
                 const parts = rawInput.split(',').map(s => s.trim()).filter(Boolean);
@@ -137,7 +137,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
     const handleConfirm = useCallback(() => {
         if (!preview?.state) return;
         onImport?.(preview.state);
-        toast.success('Scenario loaded - use undo at the table to revert');
+        toast.success('Scenario loaded · use undo at the table to revert');
         onClose?.();
     }, [preview, onImport, onClose]);
 
@@ -159,12 +159,12 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         Back
                     </button>
                     <button type="button" className="pa-btn" onClick={handleConfirm} style={{ ...btn('primary'), flex: 1 }}>
-                        <Check size={18} strokeWidth={2} /> Load Scenario
+                        <Check size={18} strokeWidth={2} /> Load scenario
                     </button>
                 </>
             ) : (
                 <button type="button" className="pa-btn" onClick={handleParse} style={{ ...btn('primary', { block: true }) }}>
-                    Check Scenario
+                    Check scenario
                 </button>
             )}
         >
@@ -172,7 +172,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
             {preview ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                    <span style={pill('success')}><Check size={12} strokeWidth={3} /> Ready To Load</span>
+                    <span style={pill('success')}><Check size={12} strokeWidth={3} /> Ready to load</span>
                     <div style={{
                         background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
                         padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
@@ -197,7 +197,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                             borderRadius: R.sm, padding: S.md,
                         }}>
                             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn, marginBottom: S.xs }}>
-                                Defaults Applied
+                                Defaults applied
                             </div>
                             <ul style={{ margin: 0, paddingLeft: 18, color: T.textMuted, fontSize: F.caption, lineHeight: 1.5 }}>
                                 {preview.defaults.map(d => <li key={d}>{d}</li>)}
@@ -206,8 +206,8 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                     )}
 
                     <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                        Loading Replaces The Board, Hero Position, Pot, Stack And Every Villain Seat. The Sandbox
-                        Keeps An Undo Step.
+                        Loading replaces the board, hero position, pot, stack and every villain seat. The sandbox
+                        keeps an undo step.
                     </p>
                 </div>
             ) : (
@@ -230,7 +230,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
                     }}>
                         <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>
-                            Accepted Formats
+                            Accepted formats
                         </div>
                         <pre style={{
                             margin: 0, fontSize: F.caption, color: T.purple, lineHeight: 1.5,
@@ -246,7 +246,7 @@ CSV   Board, Position, Pot, Stack
                         </pre>
                     </div>
 
-                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON Or CSV</label>
+                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON or CSV</label>
                     <textarea
                         id="esi-input"
                         value={rawInput}
@@ -267,7 +267,7 @@ CSV   Board, Position, Pot, Stack
                         onClick={() => { setRawInput(EXAMPLE); setError(null); }}
                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px', alignSelf: 'flex-start' }}
                     >
-                        Load Example
+                        Load example
                     </button>
                 </div>
             )}

@@ -1,5 +1,5 @@
 /**
- * SandboxPokerTable — Vertical Mobile-First Table Visual (v3.0)
+ * SandboxPokerTable · Vertical Mobile-First Table Visual (v3.0)
  * ═══════════════════════════════════════════════════════════════════════════
  * PA_DESIGN_SPEC v1 "Neon Slate".
  *
@@ -25,7 +25,7 @@ import { T, F, R, Z, usePrefersReducedMotion } from './paTokens';
 import { getClubArenaTheme, onClubArenaThemeChange } from '../../lib/clubArenaTheme';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   LONG PRESS — with movement cancellation + pending feedback
+   LONG PRESS · with movement cancellation + pending feedback
    ═══════════════════════════════════════════════════════════════════════ */
 const MOVE_TOLERANCE = 10;
 
@@ -167,11 +167,11 @@ export function TableCard({ card, style = {} }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VERTICAL SEAT POSITIONS — Recalculated for portrait layout
+// VERTICAL SEAT POSITIONS · Recalculated for portrait layout
 // ═══════════════════════════════════════════════════════════════════════════
 
 function computeVerticalSeatPositions(maxSeats) {
-    // Vertical oval — taller than wide, matching poker-table-black-gold.png
+    // Vertical oval · taller than wide, matching poker-table-black-gold.png
     const cx = 50, cy = 50;
     const rx = 28;  // Narrower horizontal radius
     const ry = 36;  // Taller vertical radius
@@ -283,7 +283,7 @@ function HeroCardItem({ card, i, onRemove, onTap, w, h, editMode, reduce }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STATIC TABLE ASSETS (module scope — never rebuilt per render)
+// STATIC TABLE ASSETS (module scope · never rebuilt per render)
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Deterministic avatar assignment for sandbox seats (max table = hero + 5)
@@ -300,7 +300,7 @@ const BASE_WIDTH = 300;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN TABLE — Vertical portrait orientation
+// MAIN TABLE · Vertical portrait orientation
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function SandboxPokerTable({
@@ -462,7 +462,7 @@ export default function SandboxPokerTable({
                 }
             `}</style>
 
-            {/* Poker table — official Smarter.Poker brand table.
+            {/* Poker table · official Smarter.Poker brand table.
                 This is the LCP element on a cold mobile load, so it is eager. */}
             <img
                 src="/images/poker-table-black-gold-nobg.png"
@@ -477,7 +477,7 @@ export default function SandboxPokerTable({
                 decoding="async"
             />
 
-            {/* Reset — 44x44, lucide glyph, excluded from the swipe surface */}
+            {/* Reset · 44x44, lucide glyph, excluded from the swipe surface */}
             {onReset && (
                 <button
                     type="button"
@@ -490,7 +490,7 @@ export default function SandboxPokerTable({
                 </button>
             )}
 
-            {/* Edit mode — replaces the undiscoverable long-press with an
+            {/* Edit mode · replaces the undiscoverable long-press with an
                 explicit toggle that puts a delete badge on every card. */}
             {hasAnyCard && (onRemoveHeroCard || onRemoveBoardCard) && (
                 <button
@@ -511,7 +511,7 @@ export default function SandboxPokerTable({
                 </button>
             )}
 
-            {/* Board texture badge — opt-in only; the page renders it as a chip
+            {/* Board texture badge · opt-in only; the page renders it as a chip
                 above the table where it has room to be legible. */}
             {showTextureBadge && boardTexture && (
                 <div style={{
@@ -526,7 +526,7 @@ export default function SandboxPokerTable({
                 </div>
             )}
 
-            {/* Community Cards — 34% leaves vertical breathing room under the
+            {/* Community Cards · 34% leaves vertical breathing room under the
                 villain seat and above the pot readout. */}
             {communityCards.length > 0 ? (
                 <div
@@ -575,7 +575,7 @@ export default function SandboxPokerTable({
                 </button>
             ) : null}
 
-            {/* Center info — moved from 62% to 55% so it clears the hero cards */}
+            {/* Center info · moved from 62% to 55% so it clears the hero cards */}
             <div style={{
                 position: 'absolute', top: '55%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
@@ -622,7 +622,7 @@ export default function SandboxPokerTable({
                 )}
             </div>
 
-            {/* Swipe affordance — the gesture is otherwise invisible */}
+            {/* Swipe affordance · the gesture is otherwise invisible */}
             {showDealHint && (
                 <div style={{
                     position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
@@ -719,7 +719,7 @@ export default function SandboxPokerTable({
                 );
             })}
 
-            {/* Hero Cards — offset expressed as a PERCENTAGE of table height so
+            {/* Hero Cards · offset expressed as a PERCENTAGE of table height so
                 they scale with the felt instead of colliding with the pot block. */}
             {heroCards.length > 0 && seatPositions.length > 0 ? (
                 <div

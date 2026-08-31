@@ -1,5 +1,5 @@
 /**
- * paKit — shared UI primitives for the Personal Assistant sandbox surfaces.
+ * paKit · shared UI primitives for the Personal Assistant sandbox surfaces.
  * ═══════════════════════════════════════════════════════════════════════════
  * Everything here implements PA_DESIGN_SPEC v2 so the 20+ sandbox feature
  * components stop hand-rolling their own modals, skeletons and empty states.
@@ -30,7 +30,7 @@ import {
 export { usePrefersReducedMotion };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   safeStorage — localStorage throws in Safari private mode / iframes.
+   safeStorage · localStorage throws in Safari private mode / iframes.
    ═══════════════════════════════════════════════════════════════════════ */
 export const safeStorage = {
     get(key, fallback = null) {
@@ -65,7 +65,7 @@ export const safeStorage = {
     },
 };
 
-/** Deterministic 32-bit hash — lets "pick one of N" stay stable for a spot. */
+/** Deterministic 32-bit hash · lets "pick one of N" stay stable for a spot. */
 export function hashString(str) {
     let h = 2166136261;
     const s = String(str ?? '');
@@ -84,7 +84,7 @@ export function hashString(str) {
    deploys (maintainer fix 17409efc08). Never reintroduce styled-jsx here.
 
    The CSS is emitted verbatim and unscoped, exactly as `<style jsx global>`
-   emitted it — but not in the same PLACE. styled-jsx hoists global styles into
+   emitted it · but not in the same PLACE. styled-jsx hoists global styles into
    <head>; this tag renders inline in the body, wherever the host component
    mounts. These rules therefore sit later in the cascade than every <head>
    stylesheet, so at equal specificity they now win ties they previously lost.
@@ -210,14 +210,14 @@ export function PAStyles() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BottomSheet — the ONLY modal pattern.
+   BottomSheet · the ONLY modal pattern.
    ═══════════════════════════════════════════════════════════════════════ */
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /**
  * Stack of currently-open sheets, outermost first.
  *
- * Escape must close exactly ONE sheet — the topmost. A capture-phase listener
+ * Escape must close exactly ONE sheet · the topmost. A capture-phase listener
  * on `document` calling `stopPropagation()` does NOT stop sibling listeners
  * bound to the same node, so with a sheet open inside another sheet both
  * instances handled the same keypress and the page's own global window
@@ -238,7 +238,7 @@ export function BottomSheet({
     ariaLabel,
     /** When false the backdrop tap and drag do NOT close (Esc + ✕ still do). */
     dismissOnBackdrop = true,
-    /** Fully hides the close button — only ever for blocking flows. Avoid. */
+    /** Fully hides the close button · only ever for blocking flows. Avoid. */
     hideClose = false,
     closeLabel = 'Close',
     bodyStyle = null,
@@ -264,7 +264,7 @@ export function BottomSheet({
         openSheets.push(token);
 
         const onKey = (e) => {
-            // Only the topmost sheet reacts — and it swallows the event outright
+            // Only the topmost sheet reacts · and it swallows the event outright
             // so no sibling sheet listener and no page-level shortcut sees it.
             if (openSheets[openSheets.length - 1] !== token) return;
             if (e.key === 'Escape') {
@@ -465,7 +465,7 @@ export function SignInState({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Segmented control — chips that respect the 44px / 8px touch rules.
+   Segmented control · chips that respect the 44px / 8px touch rules.
    ═══════════════════════════════════════════════════════════════════════ */
 export function Segmented({ options, value, onChange, label, tone = 'accent', columns = null, idPrefix = 'seg' }) {
     const active = {
@@ -515,7 +515,7 @@ export function Segmented({ options, value, onChange, label, tone = 'accent', co
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   useThrottledRefresh — replaces the focus + visibilitychange double-fetch.
+   useThrottledRefresh · replaces the focus + visibilitychange double-fetch.
    Both events fire on the same mobile tab switch; this listens to one and
    dedupes anything inside `minIntervalMs`.
    ═══════════════════════════════════════════════════════════════════════ */

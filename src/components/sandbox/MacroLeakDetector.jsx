@@ -4,7 +4,7 @@
  *
  * The API returns prose insights plus the raw aggregates (streetErrors,
  * biggestStreet, biggestPos, totalEvLost). We derive RANKED, ACTIONABLE cards
- * from the aggregates — each with a "Practice this" deep link — and fall back
+ * from the aggregates · each with a "Practice this" deep link · and fall back
  * to the prose list when only that is available.
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -53,7 +53,7 @@ function deriveLeaks(data) {
             share,
             evLost: evLost * share,
             title: `${street.charAt(0).toUpperCase()}${street.slice(1)} decisions`,
-            text: `${errs} mistake${errs === 1 ? '' : 's'} on the ${street} - ${Math.round(share * 100)}% of everything you got wrong.`,
+            text: `${errs} mistake${errs === 1 ? '' : 's'} on the ${street} · ${Math.round(share * 100)}% of everything you got wrong.`,
         });
     });
 
@@ -140,10 +140,10 @@ export default function MacroLeakDetector() {
             </div>
             {data && !data.insufficientData && (
                 <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...numeric }}>
-                    {Number(data.totalHands) || 0} Hands
+                    {Number(data.totalHands) || 0} hands
                     {' · '}
                     <span style={{ color: T.danger, fontWeight: 700 }}>
-                        {(Number(data.totalEvLost) || 0).toFixed(2)} EV Lost
+                        {(Number(data.totalEvLost) || 0).toFixed(2)} EV lost
                     </span>
                 </div>
             )}
@@ -156,7 +156,7 @@ export default function MacroLeakDetector() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }} aria-busy="true">
                 <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, fontSize: F.bodySm, color: T.textMuted }}>
                     <Loader2 className="pa-spin" size={18} strokeWidth={2} />
-                    Running Systemic Leak Aggregation…
+                    Running systemic leak aggregation…
                 </div>
                 <Skeleton h={72} />
                 <Skeleton h={72} />
@@ -180,8 +180,8 @@ export default function MacroLeakDetector() {
                 <PAStyles />
                 {header}
                 <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                    Systemic Leaks Need A Real Sample. Play At Least {MIN_SAMPLE} Coach-Mode Hands And This
-                    Unlocks Automatically.
+                    Systemic leaks need a real sample. Play at least {MIN_SAMPLE} coach-mode hands and this
+                    unlocks automatically.
                 </p>
                 <div style={{
                     height: 8, background: T.surface2, borderRadius: R.pill, marginTop: S.md, overflow: 'hidden',
@@ -192,7 +192,7 @@ export default function MacroLeakDetector() {
                     }} />
                 </div>
                 <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.sm, ...numeric }}>
-                    {total} / {MIN_SAMPLE} Hands
+                    {total} / {MIN_SAMPLE} hands
                 </div>
                 <button
                     type="button"
@@ -201,15 +201,15 @@ export default function MacroLeakDetector() {
                     onClick={() => router.push(buildPracticeHref({}))}
                 >
                     <Play size={18} strokeWidth={2} />
-                    Play Coach Hands
+                    Play coach hands
                 </button>
             </div>
         );
     } else if (leaks.length === 0 && proseInsights.length === 0) {
         body = (
             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                No Systemic Leak Stands Out Across Your Sample - Your Errors Are Spread Evenly. Keep
-                Logging Hands And Check Back.
+                No systemic leak stands out across your sample · your errors are spread evenly. Keep
+                logging hands and check back.
             </p>
         );
     } else {
@@ -230,7 +230,7 @@ export default function MacroLeakDetector() {
                                     ? <Layers size={18} strokeWidth={2} color={tone} />
                                     : <MapPin size={18} strokeWidth={2} color={tone} />}
                                 <span style={{ fontSize: F.body, fontWeight: 700, color: T.text, minWidth: 0 }}>{leak.title}</span>
-                                {idx === 0 && <span style={pill('danger')}>Biggest Leak</span>}
+                                {idx === 0 && <span style={pill('danger')}>Biggest leak</span>}
                             </div>
                             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: `${S.sm}px 0 0`, lineHeight: 1.45 }}>
                                 {leak.text}
@@ -255,7 +255,7 @@ export default function MacroLeakDetector() {
                                     }))}
                                 >
                                     <Play size={18} strokeWidth={2} />
-                                    Practice This
+                                    Practice this
                                 </button>
                             </div>
                         </div>
@@ -264,7 +264,7 @@ export default function MacroLeakDetector() {
 
                 {proseInsights.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Full Read-Out</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Full read-out</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
                             {proseInsights.map((insight, i) => (
                                 <p key={i} style={{

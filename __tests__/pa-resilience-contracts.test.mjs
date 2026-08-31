@@ -50,11 +50,7 @@ test('God Mode provenance survives the page adapter and cannot score quizzes', (
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.match(sandbox, /forcedMode: mock\.forcedMode === true/);
   assert.match(sandbox, /if \(displayed\?\.forcedMode\)/);
-  // MOVED, NOT WEAKENED 2026-08-31: em dashes are banned from player-facing
-  // copy and check-ui-text now enforces it repo-wide, so this toast is written
-  // with a hyphen. The contract being pinned - a forced result says so and is
-  // not scored - is unchanged.
-  assert.match(sandbox, /Forced result - drill score not recorded/);
+  assert.match(sandbox, /Forced result · drill score not recorded/);
 });
 
 test('assistant data waits for the canonical auth identity before loading', () => {
@@ -130,7 +126,7 @@ test('secondary surfaces share the Smarter.Poker command-deck visual system', ()
   const kit = read('src/components/sandbox/paKit.jsx');
   const components = read('src/components/sandbox/SandboxComponents.jsx');
 
-  assert.match(tokens, /PA_DESIGN_SPEC v2 — "Jarvis Command Deck"/);
+  assert.match(tokens, /PA_DESIGN_SPEC v2 · "Jarvis Command Deck"/);
   assert.match(tokens, /accent: '#63E7FF'/);
   assert.match(tokens, /DISPLAY_FONT/);
   assert.match(tokens, /DATA_FONT/);

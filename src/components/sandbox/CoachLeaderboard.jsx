@@ -138,10 +138,10 @@ export default function CoachLeaderboard({ userId }) {
                 compact
                 icon={<Medal size={22} strokeWidth={2} />}
                 title="No one has qualified this week yet"
-                body={`Play ${MIN_HANDS} coach-mode hands between Monday and Sunday to enter the board - be the first.`}
+                body={`Play ${MIN_HANDS} coach-mode hands between Monday and Sunday to enter the board · be the first.`}
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => router.push(buildPracticeHref({}))}>
-                        Play Coach Hands
+                        Play coach hands
                     </button>
                 }
             />
@@ -194,13 +194,13 @@ export default function CoachLeaderboard({ userId }) {
                         textAlign: 'center', margin: `${S.md}px 0 0`, paddingTop: S.md,
                         borderTop: `1px solid ${T.border}`, fontSize: F.caption, color: T.textMuted, ...numeric,
                     }}>
-                        Your Rank This Week: #{myRank}
+                        Your rank this week: #{myRank}
                     </p>
                 )}
 
                 {!myRank && (
                     <p style={{ margin: `${S.md}px 0 0`, fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                        You Are Not Ranked Yet - {MIN_HANDS} Coach Hands This Week Qualifies You.
+                        You are not ranked yet · {MIN_HANDS} coach hands this week qualifies you.
                     </p>
                 )}
 
@@ -210,7 +210,7 @@ export default function CoachLeaderboard({ userId }) {
                     style={{ ...btn('secondary', { block: true }), marginTop: S.md }}
                     onClick={() => router.push(buildPracticeHref({}))}
                 >
-                    Play Coach Hands
+                    Play coach hands
                 </button>
             </div>
         );

@@ -1,5 +1,5 @@
 /**
- * TrustSeal — Shows provenance and source information
+ * TrustSeal · Shows provenance and source information
  * Per Masterplan Section VII: Truth Seal & Reproducibility
  */
 

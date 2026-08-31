@@ -2,7 +2,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * POST /api/assistant/sandbox/analyze
  * ═══════════════════════════════════════════════════════════════════════
- * GTO Sandbox Analysis Engine — Powered by Real PIO Solver Data
+ * GTO Sandbox Analysis Engine · Powered by Real PIO Solver Data
  *
  * Data Pipeline:
  *   Tier 1: Exact board match in solved_spots_gold (scenario_hash ILIKE)
@@ -40,15 +40,16 @@ import { reportApiError } from '../../../../src/lib/sentryWrap';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Sandbox analysis service configuration is unavailable');
         _supabase = createClient(url, key);
     }
     return _supabase;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ACTION LABELS — Matches DeterministicGTOEngine standard
+// ACTION LABELS · Matches DeterministicGTOEngine standard
 // ═══════════════════════════════════════════════════════════════════════
 
 const ACTION_LABELS = {
@@ -107,7 +108,7 @@ function getCacheKey(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// SOLVER DATA QUERY ENGINE — Mirrors DeterministicGTOEngine patterns
+// SOLVER DATA QUERY ENGINE · Mirrors DeterministicGTOEngine patterns
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
@@ -144,7 +145,7 @@ function normalizeStack(stack) {
 }
 
 /**
- * Neighbouring solver buckets (±1, ±2 positions in the bucket list) —
+ * Neighbouring solver buckets (±1, ±2 positions in the bucket list) ·
  * arithmetic ±20/±40 produces depths that are not buckets at all.
  */
 function nearbyStackBuckets(stackDepth) {
@@ -156,7 +157,7 @@ function nearbyStackBuckets(stackDepth) {
 }
 
 /**
- * Deterministic pick from a result set — the same inputs must always produce
+ * Deterministic pick from a result set · the same inputs must always produce
  * the same answer (Math.random() made identical spots return different lines).
  */
 function pickDeterministic(rows) {
@@ -181,7 +182,7 @@ const RANK_ORDER = 'AKQJT98765432';
 const SUIT_ORDER = 'shdc';
 
 /**
- * Canonical card ordering (rank descending, then suit) — scenario_hash values
+ * Canonical card ordering (rank descending, then suit) · scenario_hash values
  * are stored canonically, while the UI hands us cards in click order.
  */
 function canonicalCards(cards) {
@@ -198,7 +199,7 @@ function canonicalCards(cards) {
 }
 
 /**
- * Board strings to try against scenario_hash — canonical order first, then the
+ * Board strings to try against scenario_hash · canonical order first, then the
  * raw click order (some legacy rows were hashed in dealt order).
  */
 function boardStrVariants(cards) {
@@ -315,10 +316,10 @@ async function querySolverData(params) {
       });
       if (match) {
         const source = match.contextVerified
-          ? 'Training Solver - Exact Decision Context'
+          ? 'Training Solver · Exact Decision Context'
           : match.matchTier === 1
-          ? 'Training Solver - Hand And Board Approximation'
-          : 'Training Solver - Flop-Matched Hand';
+          ? 'Training Solver · Hand And Board Approximation'
+          : 'Training Solver · Flop-Matched Hand';
         return {
           trainingQuestion: match.question,
           cacheRow: match.row,
@@ -357,9 +358,9 @@ async function querySolverData(params) {
       if (!error && exactMatches && exactMatches.length > 0) {
         const scenario = pickDeterministic(exactMatches);
         if (scenario?.strategy_matrix) {
-          // Position / pot / action line are NOT verified by this match —
+          // Position / pot / action line are NOT verified by this match ·
           // only board + stack + street + game type. Label accordingly.
-          return { scenario, matchTier: 1, source: 'PIO Solver - Board Match' };
+          return { scenario, matchTier: 1, source: 'PIO Solver · Board Match' };
         }
       }
     } catch (e) { console.warn('[Sandbox] Tier 1 query error:', e.message); }
@@ -381,7 +382,7 @@ async function querySolverData(params) {
         if (partialMatches && partialMatches.length > 0) {
           const scenario = pickDeterministic(partialMatches);
           if (scenario?.strategy_matrix) {
-            return { scenario, matchTier: 2, source: 'PIO Solver - Board Approximated' };
+            return { scenario, matchTier: 2, source: 'PIO Solver · Board Approximated' };
           }
         }
       } catch (e) { console.warn('[Sandbox] Tier 2 query error:', e.message); }
@@ -401,7 +402,7 @@ async function querySolverData(params) {
     if (anyMatches && anyMatches.length > 0) {
       const scenario = pickDeterministic(anyMatches);
       if (scenario?.strategy_matrix) {
-        return { scenario, matchTier: 3, source: 'PIO Solver - Similar Spot' };
+        return { scenario, matchTier: 3, source: 'PIO Solver · Similar Spot' };
       }
     }
   } catch (e) { console.warn('[Sandbox] Tier 3 query error:', e.message); }
@@ -421,13 +422,13 @@ async function querySolverData(params) {
       if (nearbyMatches && nearbyMatches.length > 0) {
         const scenario = pickDeterministic(nearbyMatches);
         if (scenario?.strategy_matrix) {
-          return { scenario, matchTier: 3, source: `PIO Solver - ${scenario.stack_depth}bb Approximated` };
+          return { scenario, matchTier: 3, source: `PIO Solver · ${scenario.stack_depth}bb Approximated` };
         }
       }
     } catch (e) { console.warn('[Sandbox] Tier 3b query error:', e.message); }
   }
 
-  return null; // No solver data — will fall back to Grok
+  return null; // No solver data · will fall back to Grok
 }
 
 /**
@@ -438,7 +439,7 @@ async function queryPreflopData(params) {
   const stackDepth = normalizeStack(heroStack);
 
   // memory_charts_gold holds PUSH/FOLD Nash charts. Those are only valid for
-  // short-stack shove spots in tournament-style games — never for 100bb cash.
+  // short-stack shove spots in tournament-style games · never for 100bb cash.
   const isShoveFormat = gameType === 'tournament' || gameType === 'mtt' || gameType === 'spin' || gameType === 'sng';
   if (!isShoveFormat || stackDepth > 25) return null; // → Grok handles the spot
 
@@ -456,7 +457,7 @@ async function queryPreflopData(params) {
         c.hero_position?.toUpperCase() === heroPosition?.toUpperCase()
       );
       const chart = posMatch || charts[0];
-      return { chart, matchTier: 1, source: 'Nash Chart - Preflop', isPreflop: true };
+      return { chart, matchTier: 1, source: 'Nash Chart · Preflop', isPreflop: true };
     }
   } catch (e) { console.warn('[Sandbox] Preflop query error:', e.message); }
 
@@ -464,11 +465,11 @@ async function queryPreflopData(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// STRATEGY MATRIX PARSER — Extracts per-hand GTO frequencies & EVs
+// STRATEGY MATRIX PARSER · Extracts per-hand GTO frequencies & EVs
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * PER-ACTION EV — HONESTY CONTRACT
+ * PER-ACTION EV · HONESTY CONTRACT
  * ───────────────────────────────────────────────────────────────────────
  * The sandbox Coach computes its EV delta as (picked action EV − ev.hero)
  * and only trusts it when `typeof action.ev === 'number'`; otherwise it
@@ -478,14 +479,14 @@ async function queryPreflopData(params) {
  * the same units as `ev.hero` (big blinds, 3dp). Consequences:
  *   • Emit `ev` only when the solver payload actually carries a per-action
  *     EV for this exact hand.
- *   • When it does not, OMIT the key. Never default to 0 — 0 is a perfectly
+ *   • When it does not, OMIT the key. Never default to 0 · 0 is a perfectly
  *     legitimate EV, so a defaulted 0 would silently launder a guess into a
  *     measured value and turn off the "estimated" warning in the UI.
  *   • The Grok and rule-based paths therefore carry no `ev` at all: a
  *     language model's guess at a spot's EV is not a measurement.
  */
 
-/** Finite number or null — strings are accepted because some dumps quote them. */
+/** Finite number or null · strings are accepted because some dumps quote them. */
 function toFiniteNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string' && value.trim() !== '') {
@@ -501,7 +502,7 @@ function isPlainObject(value) {
 
 /**
  * Solver exports disagree on where per-action EVs live. Two nesting orders are
- * seen in the wild — map[action][hand] and map[hand][action] — under several
+ * seen in the wild · map[action][hand] and map[hand][action] · under several
  * key names. Probe both, under each key, and return only the actions for which
  * a real finite number was found.
  *
@@ -587,7 +588,7 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingB
 
   // The hero hand is absent from every frequency map (all freqs defaulted to 0).
   // Returning the first action as "optimal at 0%" would present garbage under a
-  // solver badge — bail out so the caller falls through to the Grok fallback.
+  // solver badge · bail out so the caller falls through to the Grok fallback.
   if (maxFreq <= 0) return null;
 
   // Per-action EVs for THIS hand, when the solver row exposes them.
@@ -605,7 +606,7 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingB
         color: getActionColor(label),
         isOptimal: action === optimalAction,
       };
-      // Only attach `ev` when a real number exists — see the honesty contract
+      // Only attach `ev` when a real number exists · see the honesty contract
       // above. An action the solver did not price simply has no `ev` key.
       const actionEV = perActionEV ? perActionEV[action] : undefined;
       if (typeof actionEV === 'number') entry.ev = parseFloat(actionEV.toFixed(3));
@@ -622,14 +623,14 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingB
 
   // No flat hand EV, but the row does price individual actions: the hand's EV
   // under the solver's own strategy is the frequency-weighted mixture of them.
-  // That is a derivation from measured numbers, not an estimate — and without
+  // That is a derivation from measured numbers, not an estimate · and without
   // it ev.hero stays 0, which makes the client discard every per-action EV
   // (its delta requires gtoEV !== 0).
   //
   // Only valid when EVERY action carrying frequency is priced. Renormalising
   // over a priced subset would quietly assume the unpriced actions are worth
   // the same as the priced ones, which is a guess wearing a measurement's
-  // clothes — in that case ev.hero stays unset and the client keeps flagging
+  // clothes · in that case ev.hero stays unset and the client keeps flagging
   // its delta as estimated.
   if (heroEV === null && perActionEV) {
     let weighted = 0;
@@ -681,7 +682,7 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingB
 }
 
 /**
- * Build range heatmap data — per-hand frequencies for ALL hands in the matrix
+ * Build range heatmap data · per-hand frequencies for ALL hands in the matrix
  * Used for the 13x13 range grid visualization
  */
 function buildRangeHeatmap(strategyMatrix, facingBet = false) {
@@ -730,7 +731,7 @@ function buildRangeHeatmap(strategyMatrix, facingBet = false) {
 /**
  * Per-action EV from a Nash push/fold chart entry, when the chart carries one.
  * Nash solvers usually publish the shove EV alongside the frequency, but the
- * key name varies by import. Returns null when the chart priced nothing — the
+ * key name varies by import. Returns null when the chart priced nothing · the
  * caller then omits `ev` rather than inventing a 0.
  */
 function chartActionEV(handData, action) {
@@ -753,7 +754,7 @@ function parsePreflopChart(chart, heroHandNotation) {
   const handMatrix = chart.hand_matrix || {};
   const handData = handMatrix[heroHandNotation] || handMatrix[heroHandNotation?.toUpperCase()];
 
-  // Hand not present in this chart — do NOT fabricate a "Fold 100%" verdict at
+  // Hand not present in this chart · do NOT fabricate a "Fold 100%" verdict at
   // High confidence. Returning null lets the caller fall through to Grok.
   if (!handData) return null;
 
@@ -770,14 +771,14 @@ function parsePreflopChart(chart, heroHandNotation) {
   ];
   // Attach only what the chart actually priced. A push/fold chart that stores
   // frequencies alone leaves both actions without an `ev` key, and the client
-  // keeps flagging its delta as estimated — which is the truth.
+  // keeps flagging its delta as estimated · which is the truth.
   if (pushEV !== null) actions[0].ev = parseFloat(pushEV.toFixed(3));
   if (foldEV !== null) actions[1].ev = parseFloat(foldEV.toFixed(3));
 
   // Hero EV: an explicit scalar if the chart has one, else the frequency-
-  // weighted mixture — but only when every action that actually carries
+  // weighted mixture · but only when every action that actually carries
   // frequency is priced, for the same reason as the postflop path. When
-  // neither exists we keep the "no EV available" block ('—' renders as a dash,
+  // neither exists we keep the explicit "Not Available" EV block,
   // and the client's gtoEV !== 0 guard keeps the delta flagged as estimated).
   let heroEV = toFiniteNumber(handData.ev);
   if (heroEV === null) heroEV = toFiniteNumber(handData.hero_ev);
@@ -798,7 +799,7 @@ function parsePreflopChart(chart, heroHandNotation) {
 
   const pricedEVs = [pushEV, foldEV].filter(v => v !== null);
   const ev = heroEV === null
-    ? { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 }
+    ? { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 }
     : (() => {
       const pool = pricedEVs.length > 0 ? pricedEVs : [heroEV];
       const maxEV = Math.max(...pool);
@@ -885,13 +886,13 @@ async function analyzeWithGrok(params) {
         maniac: 'Villain bets and raises too aggressively. Widen value range, reduce bluff frequency, let them hang themselves.',
         fish: 'Villain makes fundamental mistakes. Bet bigger with strong hands, simplify decisions, avoid fancy plays.',
       };
-      exploitContext = `\n\nEXPLOIT MODE ACTIVE - Villain Archetype: ${villainArchetype}\n${archetypeTendencies[villainArchetype] || 'Adjust based on villain tendencies.'}`;
+      exploitContext = `\n\nEXPLOIT MODE ACTIVE · Villain Archetype: ${villainArchetype}\n${archetypeTendencies[villainArchetype] || 'Adjust based on villain tendencies.'}`;
     }
 
     // ICM bubble factor context
     let icmContext = '';
     if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0) {
-      icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure - survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure - chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
+      icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure · survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure · chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
     }
 
     // Villain range context (from archetype preflop opening range)
@@ -900,7 +901,7 @@ async function analyzeWithGrok(params) {
       villainRangeContext = `\n- Villain Opening Range: ${villainRange.substring(0, 80)}${villainRange.length > 80 ? '...' : ''}`;
     }
 
-    // Socratic coach mode context — show what the user picked
+    // Socratic coach mode context · show what the user picked
     let socraticContext = '';
     if (socratic?.userPick) {
       socraticContext = `\n\nPLAYER SUBMITTED ACTION: ${socratic.userPick}\nPlease evaluate if this is GTO or exploitative, and what the EV difference is.`;
@@ -934,11 +935,11 @@ RULES:
 - Frequencies MUST sum to 100
 - Provide 2-4 actions
 - Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
-- Hero Is Facing A Wager: ${facingBet ? 'Yes - c means Call and bXX means Raise XX%' : 'No - c means Check and bXX means Bet XX%'}
+- Hero Is Facing A Wager: ${facingBet ? 'Yes · c means Call and bXX means Raise XX%' : 'No · c means Check and bXX means Bet XX%'}
 - Be precise about GTO frequencies
 - Consider stack depth, position, and board texture`;
 
-    // Hard timeout — a hung Grok request must not pin the lambda open.
+    // Hard timeout · a hung Grok request must not pin the lambda open.
     let timeoutHandle = null;
     const response = await Promise.race([
       grok.chat.completions.create({
@@ -958,10 +959,10 @@ RULES:
 
     const parsed = JSON.parse(jsonMatch[0]);
     // Grok is NOT guaranteed to return actions sorted by frequency, nor to make
-    // them sum to 100 — normalize both before trusting the ordering.
+    // them sum to 100 · normalize both before trusting the ordering.
     //
     // Fields are copied EXPLICITLY rather than spread. A spread would forward
-    // anything the model volunteered — including an `ev` — and the client reads
+    // anything the model volunteered · including an `ev` · and the client reads
     // `typeof action.ev === 'number'` as "this EV was measured", which would
     // switch off its `evDeltaEstimated` warning for a number the model made up.
     // No per-action EV is derivable on this path, so none is emitted.
@@ -1010,7 +1011,7 @@ RULES:
       actions: grokActions,
       optimalAction: grokActions[0] || { id: 'c', label: 'Check', frequency: 100, color: '#6b7280' },
       isMixed: grokActions.filter(action => action.frequency >= 5).length > 1,
-      ev: { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 },
+      ev: { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 },
       explanation: String(parsed.explanation || 'Analysis based on GTO principles.')
         .replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 1200),
       confidence: 'Low',
@@ -1022,7 +1023,7 @@ RULES:
 }
 
 /**
- * Hard fallback when Grok also fails — basic rule-based.
+ * Hard fallback when Grok also fails · basic rule-based.
  *
  * These frequencies are positional heuristics, so no action carries an `ev`
  * key: there is nothing measured to report, and a 0 would be read by the
@@ -1065,7 +1066,7 @@ function ruleBasedFallback(params) {
     actions,
     optimalAction: actions[0],
     isMixed: true,
-    ev: { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 },
+    ev: { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 },
     explanation: 'Estimated frequencies based on positional heuristics. Run analysis on a supported board for solver-verified results.',
     confidence: 'Low',
   };
@@ -1098,14 +1099,14 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
     explanation += ' Note: This uses solver data from a similar spot, not an exact board match.';
   }
 
-  // Exploit mode — append archetype-specific coaching tips
+  // Exploit mode · append archetype-specific coaching tips
   if (exploitMode === 'exploit' && villainArchetype) {
     const exploitTips = {
       calling_station: 'Exploit Tip: Bet thinner for value against this calling station. Skip marginal bluffs.',
-      nit: 'Exploit Tip: Steal more pots against this nit. Respect their raises - they usually have it.',
+      nit: 'Exploit Tip: Steal more pots against this nit. Respect their raises · they usually have it.',
       lag: 'Exploit Tip: Tighten up against this LAG. Trap with premium hands and let them bluff into you.',
       tag: 'Exploit Tip: Stay balanced against this TAG. Mix your frequencies and avoid predictable lines.',
-      maniac: 'Exploit Tip: Widen your value range against this maniac. Reduce bluff frequency - let them hang themselves.',
+      maniac: 'Exploit Tip: Widen your value range against this maniac. Reduce bluff frequency · let them hang themselves.',
       fish: 'Exploit Tip: Bet bigger with strong hands against this fish. Simplify your decisions.',
     };
     const tip = exploitTips[villainArchetype];
@@ -1115,11 +1116,11 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
   // ICM bubble factor context
   if (bubbleFactor && bubbleFactor !== 1.0) {
     if (bubbleFactor > 1.2) {
-      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x - survival premium is high. Tighten calling ranges and avoid marginal spots.`;
+      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x · survival premium is high. Tighten calling ranges and avoid marginal spots.`;
     } else if (bubbleFactor < 0.8) {
-      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x - chip accumulation mode. You can take more risks here.`;
+      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x · chip accumulation mode. You can take more risks here.`;
     } else {
-      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x - moderate pressure.`;
+      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x · moderate pressure.`;
     }
   }
 
@@ -1145,7 +1146,7 @@ async function persistSandboxAnalysis({
   responseData,
   explanation,
 }) {
-  if (!userId) return null;
+  if (!userId) return { sessionId: null, persisted: true, partial: false };
   try {
     const { data: session, error: sessionError } = await getSupabase()
       .from('sandbox_sessions')
@@ -1169,7 +1170,7 @@ async function persistSandboxAnalysis({
 
     if (sessionError || !session?.id) {
       console.warn('[Sandbox] Session persistence failed:', sessionError?.message || 'No session id returned');
-      return null;
+      return { sessionId: null, persisted: false, partial: true };
     }
 
     const { error: resultsError } = await getSupabase().from('sandbox_results').insert({
@@ -1208,10 +1209,14 @@ async function persistSandboxAnalysis({
     }, { onConflict: 'user_id' });
     if (statsError) console.warn('[Sandbox] Stats recency sync failed:', statsError.message);
 
-    return String(session.id);
+    return {
+      sessionId: String(session.id),
+      persisted: !resultsError && !statsError,
+      partial: Boolean(resultsError || statsError),
+    };
   } catch (error) {
     console.warn('[Sandbox] Session persistence failed:', error.message);
-    return null;
+    return { sessionId: null, persisted: false, partial: true };
   }
 }
 
@@ -1225,12 +1230,12 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // Rate limit FIRST — 30/min.
+    // Rate limit FIRST · 30/min.
     //
     // This used to sit ~40 lines below, after JWT validation and the context
     // authority check. Both hit the database, so every request in a flood
     // bought one or two DB round-trips BEFORE the limiter that exists to stop
-    // it — on the single most expensive endpoint of this surface (solver
+    // it · on the single most expensive endpoint of this surface (solver
     // queries plus a Grok fallback). A limiter has to run before the work it
     // protects, so it runs here, ahead of everything.
     const rl = rateLimit(req, LIMITS.write);
@@ -1291,7 +1296,7 @@ export default async function handler(req, res) {
 
       // (Rate limiting happens at the top of the handler, before any DB work.)
 
-      // Derived inputs must be computed BEFORE the cache lookup — they are part
+      // Derived inputs must be computed BEFORE the cache lookup · they are part
       // of the cache identity.
       const street = getStreet(board);
       const heroNotation = heroHandToNotation(heroHand);
@@ -1302,7 +1307,7 @@ export default async function handler(req, res) {
       const cacheKey = getCacheKey(decisionContext);
       const cached = analysisCache.get(cacheKey);
       if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-        const savedSessionId = await persistSandboxAnalysis({
+        const persistence = await persistSandboxAnalysis({
           userId, heroHand, heroPosition, heroStack, gameType, villains, board,
           betSizing, calculatedPot, actionHistory,
           responseData: cached.data,
@@ -1312,7 +1317,9 @@ export default async function handler(req, res) {
           success: true,
           cached: true,
           ...cached.data,
-          sessionId: savedSessionId,
+          sessionId: persistence.sessionId,
+          persisted: persistence.persisted,
+          partial: persistence.partial,
         });
       }
 
@@ -1415,7 +1422,7 @@ export default async function handler(req, res) {
         rangeHeatmap,
 
         // Context
-        context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition}`,
+        context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} · ${heroStack} BB · ${heroPosition}`,
       };
 
       const nodeLocks = activeNodeLocks(villains);
@@ -1442,7 +1449,7 @@ export default async function handler(req, res) {
         keysToDelete.forEach(k => analysisCache.delete(k));
       }
 
-      const savedSessionId = await persistSandboxAnalysis({
+      const persistence = await persistSandboxAnalysis({
         userId, heroHand, heroPosition, heroStack, gameType, villains, board,
         betSizing, calculatedPot, actionHistory, responseData, explanation,
       });
@@ -1455,7 +1462,9 @@ export default async function handler(req, res) {
         success: true,
         rateLimit: { remaining: rl.remaining },
         ...responseData,
-        sessionId: savedSessionId,
+        sessionId: persistence.sessionId,
+        persisted: persistence.persisted,
+        partial: persistence.partial,
       });
 
     } catch (error) {

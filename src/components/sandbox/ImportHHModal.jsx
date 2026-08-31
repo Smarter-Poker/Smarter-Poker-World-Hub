@@ -4,7 +4,7 @@
  * Paste a raw hand history and hydrate the sandbox from it.
  *
  * Changes that matter on a phone:
- *   • bottom sheet with a sticky action row — the old centred dialog put the
+ *   • bottom sheet with a sticky action row · the old centred dialog put the
  *     textarea and the button under the on-screen keyboard
  *   • 16px textarea (anything smaller triggers the iOS zoom that never undoes)
  *   • the parse result is previewed and applied on an explicit tap, replacing
@@ -89,7 +89,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
 
     const pasteFromClipboard = useCallback(async () => {
         if (typeof navigator?.clipboard?.readText !== 'function') {
-            setStatus({ type: 'error', msg: 'This browser will not let a page read the clipboard - paste with a long-press instead.' });
+            setStatus({ type: 'error', msg: 'This browser will not let a page read the clipboard · paste with a long-press instead.' });
             return;
         }
         try {
@@ -102,7 +102,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
             reset();
         } catch (e) {
             console.warn('[ImportHHModal] clipboard read blocked:', e?.message || e);
-            setStatus({ type: 'error', msg: 'Clipboard access was denied - paste with a long-press instead.' });
+            setStatus({ type: 'error', msg: 'Clipboard access was denied · paste with a long-press instead.' });
         }
     }, [reset]);
 
@@ -128,12 +128,12 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                         Back
                     </button>
                     <button type="button" className="pa-btn" onClick={handleApply} style={{ ...btn('primary'), flex: 1 }}>
-                        <Check size={18} strokeWidth={2} /> Load Into Sandbox
+                        <Check size={18} strokeWidth={2} /> Load into sandbox
                     </button>
                 </>
             ) : (
                 <button type="button" className="pa-btn" onClick={handleParse} style={{ ...btn('primary', { block: true }) }}>
-                    Check Hand History
+                    Check hand history
                 </button>
             )}
         >
@@ -152,7 +152,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
                         }}>
                             {[
-                                ['Hero hand', parsed.heroHand ? `${parsed.heroHand.card1 || ''} ${parsed.heroHand.card2 || ''}`.trim() : '-'],
+                                ['Hero hand', parsed.heroHand ? `${parsed.heroHand.card1 || ''} ${parsed.heroHand.card2 || ''}`.trim() : 'Not Available'],
                                 ['Position', parsed.heroPosition || 'not detected'],
                                 ['Stack', parsed.heroStack != null ? `${parsed.heroStack} BB` : 'defaulting to 100 BB'],
                                 ['Board', boardPreview || 'preflop'],
@@ -166,7 +166,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             ))}
                         </div>
                         <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                            Loading Replaces The Current Table Setup. The Sandbox Keeps An Undo Step, So You Can Back Out.
+                            Loading replaces the current table setup. The sandbox keeps an undo step, so you can back out.
                         </p>
                     </>
                 ) : (
@@ -187,11 +187,11 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 onClick={() => { setHHText(SAMPLE); reset(); }}
                                 style={{ ...btn('ghost'), fontSize: F.label, padding: '0 12px', color: T.accent }}
                             >
-                                <FileText size={18} strokeWidth={2} /> Load Sample
+                                <FileText size={18} strokeWidth={2} /> Load sample
                             </button>
                         </div>
 
-                        <label htmlFor="hh-text" className="pa-vh">Hand History Text</label>
+                        <label htmlFor="hh-text" className="pa-vh">Hand history text</label>
                         <textarea
                             id="hh-text"
                             value={hhText}
@@ -207,7 +207,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
 
                         {detected && (
                             <div style={{ fontSize: F.caption, color: T.textMuted }}>
-                                Detected Format: <strong style={{ color: T.text }}>{detected}</strong>
+                                Detected format: <strong style={{ color: T.text }}>{detected}</strong>
                             </div>
                         )}
 
@@ -224,8 +224,8 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 <div style={{ minWidth: 0 }}>
                                     <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>{status.msg}</div>
                                     <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, lineHeight: 1.45 }}>
-                                        Include The Header Line, The “Dealt To” Line With Your Hole Cards, And Any Board
-                                        Rows. Summary-Only Exports Do Not Carry Enough To Rebuild The Spot.
+                                        Include the header line, the “Dealt to” line with your hole cards, and any board
+                                        rows. Summary-only exports do not carry enough to rebuild the spot.
                                     </div>
                                 </div>
                             </div>

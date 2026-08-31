@@ -36,7 +36,7 @@ function toWeekly(data) {
         const total = chunk.reduce((sum, d) => sum + (Number(d.total) || 0), 0);
         const correct = chunk.reduce((sum, d) => sum + ((Number(d.pct) || 0) * (Number(d.total) || 0)) / 100, 0);
         out.unshift({
-            date: chunk.length > 1 ? `${chunk[0]?.date} - ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
+            date: chunk.length > 1 ? `${chunk[0]?.date} – ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
             total,
             pct: total > 0 ? Math.round((100 * correct) / total) : 0,
         });
@@ -45,13 +45,13 @@ function toWeekly(data) {
 }
 
 /**
- * Accuracy trend — bar HEIGHT is accuracy (the thing the label promises);
+ * Accuracy trend · bar HEIGHT is accuracy (the thing the label promises);
  * sample size is carried by opacity and revealed on tap. Tapping a bar pins a
  * readout row underneath, so nothing is hover-only.
  *
  * MOBILE: bars are full 44px tap targets in a deliberate horizontal snap
- * carousel — they used to be 14px wide with a 3px gap, effectively unhittable
- * on a phone — and a Weekly view collapses 30 days into ~5 on-screen bars.
+ * carousel · they used to be 14px wide with a 3px gap, effectively unhittable
+ * on a phone · and a Weekly view collapses 30 days into ~5 on-screen bars.
  */
 function AccuracyTrend({ data, avg }) {
     const [activeIdx, setActiveIdx] = useState(null);
@@ -166,12 +166,12 @@ function AccuracyTrend({ data, avg }) {
             }}>
                 {active ? (
                     <span style={{ color: T.text, fontWeight: 700 }}>
-                        {active.date} - {active.pct}% Over {active.total} hand{active.total === 1 ? '' : 's'}
+                        {active.date} · {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
                     </span>
                 ) : (
                     <>
                         <span>{points[0]?.date}</span>
-                        <span style={{ color: T.textDim, fontWeight: 700 }}>Tap A Bar</span>
+                        <span style={{ color: T.textDim, fontWeight: 700 }}>Tap a bar</span>
                         <span>{points[points.length - 1]?.date}</span>
                     </>
                 )}
@@ -209,7 +209,7 @@ export default function SessionAnalytics({ userId }) {
         return () => { mountedRef.current = false; };
     }, []);
 
-    // A null userId is the signed-out case (leaks.js resolves it async) — it
+    // A null userId is the signed-out case (leaks.js resolves it async) · it
     // must resolve the loading state, not leave a skeleton up forever.
     useEffect(() => { if (!userId) setLoading(false); }, [userId]);
 
@@ -312,10 +312,10 @@ export default function SessionAnalytics({ userId }) {
                 compact
                 icon={<Target size={22} strokeWidth={2} />}
                 title="No coached hands yet"
-                body="Turn on Coach Mode in the Sandbox and play a few spots - your accuracy, positions and streets show up here."
+                body="Turn on Coach Mode in the Sandbox and play a few spots · your accuracy, positions and streets show up here."
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => practice({})}>
-                        Open The Sandbox
+                        Open the Sandbox
                     </button>
                 }
             />
@@ -326,12 +326,12 @@ export default function SessionAnalytics({ userId }) {
                 <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                     <StatBox value={stats.totalHands} label="Total hands" color={T.accent} />
                     <StatBox
-                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : '-'}
+                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : 'Not Available'}
                         label="GTO accuracy"
                         color={pctColor(stats.accuracyPct)}
                     />
                     <StatBox
-                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : '-'}
+                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : 'Not Available'}
                         label="Avg leak EV"
                         color={stats.avgLeakEv != null && Number(stats.avgLeakEv) < 0 ? T.danger : T.textMuted}
                     />
@@ -343,7 +343,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.positionStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position Accuracy - Tap To Drill</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy · tap to drill</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.positionStats.map(p => {
                                 const isWeak = p.position === stats.weakPosition;
@@ -378,7 +378,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.streetStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Street Accuracy</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Street accuracy</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.streetStats.map(st => {
                                 const weakest = st.street === stats.weakestStreet;
@@ -416,7 +416,7 @@ export default function SessionAnalytics({ userId }) {
                         onClick={() => practice({ position: stats.weakPosition, label: `Position leak: ${stats.weakPosition}` })}
                     >
                         <TrendingUp size={18} strokeWidth={2} />
-                        Drill Your Weakest Position ({stats.weakPosition})
+                        Drill your weakest position ({stats.weakPosition})
                     </button>
                 )}
             </div>

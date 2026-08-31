@@ -1,5 +1,5 @@
 /**
- * RangeHeatGrid — 13x13 opponent-range heat map
+ * RangeHeatGrid · 13x13 opponent-range heat map
  * ═══════════════════════════════════════════════════════════════════════════
  * Grades every starting hand against the current board and, when the villain's
  * range is supplied, dims everything outside it so the map answers the question
@@ -56,7 +56,7 @@ export default function RangeHeatGrid({
     boardCards = [],
     isOpen,
     onClose,
-    /** Optional villain range string — cells outside it are dimmed. */
+    /** Optional villain range string · cells outside it are dimmed. */
     villainRange = '',
     villainLabel = 'Villain',
 }) {
@@ -174,12 +174,12 @@ export default function RangeHeatGrid({
                     background: T.surface2, border: `1px solid ${T.border}`,
                     borderRadius: R.sm, padding: S.md, marginBottom: S.md,
                 }}>
-                    No Villain Range Is Set, So Every Starting Hand Is Graded. Set A Range In The Range
-                    Explorer To Grey Out The Hands This Opponent Would Never Hold.
+                    No villain range is set, so every starting hand is graded. Set a range in the Range
+                    Explorer to grey out the hands this opponent would never hold.
                 </div>
             )}
 
-            {/* Precision-free hand picker — every cell is reachable with 44px targets */}
+            {/* Precision-free hand picker · every cell is reachable with 44px targets */}
             <div style={{
                 display: 'flex', flexDirection: 'column', gap: S.sm, marginBottom: S.md,
                 background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
@@ -198,12 +198,12 @@ export default function RangeHeatGrid({
                 />
                 {pickHigh != null && pickLow != null && pickHigh === pickLow && (
                     <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        Same Rank Twice Selects The Pocket Pair - The Suit Toggle Does Not Apply.
+                        Same rank twice selects the pocket pair · the suit toggle does not apply.
                     </p>
                 )}
             </div>
 
-            {/* Persistent detail row — tap-to-select, never hover-only */}
+            {/* Persistent detail row · tap-to-select, never hover-only */}
             <div
                 aria-live="polite"
                 style={{
@@ -226,15 +226,15 @@ export default function RangeHeatGrid({
                             {selectedTier.label} · {selectedCell.strength}
                         </span>
                         <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                            {comboWeight(selectedCell.i, selectedCell.j)} Combos
+                            {comboWeight(selectedCell.i, selectedCell.j)} combos
                         </span>
                         {!selectedCell.inRange && (
-                            <span style={{ fontSize: F.caption, color: T.textDim }}>Outside {villainLabel}&apos;S Range</span>
+                            <span style={{ fontSize: F.caption, color: T.textDim }}>Outside {villainLabel}&apos;s range</span>
                         )}
                     </>
                 ) : (
                     <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                        Pick Two Ranks Above, Or Tap Any Cell, For Its Tier And Combo Count.
+                        Pick two ranks above, or tap any cell, for its tier and combo count.
                     </span>
                 )}
             </div>
@@ -273,7 +273,7 @@ export default function RangeHeatGrid({
                 })}
             </div>
 
-            {/* Legend — text tier labels, never colour alone */}
+            {/* Legend · text tier labels, never colour alone */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                 {TIERS.map(t => (
                     <span key={t.label} style={{ display: 'inline-flex', alignItems: 'center', gap: S.xs }}>

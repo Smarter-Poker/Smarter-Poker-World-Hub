@@ -1,15 +1,15 @@
 /**
- * RANGE EXPLORER — Interactive 13x13 range editor
+ * RANGE EXPLORER · Interactive 13x13 range editor
  * ═══════════════════════════════════════════════════════════════════════════
  * Mobile-first rebuild (PA_DESIGN_SPEC v1):
  *   • drag-to-paint (add / remove captured from the first cell touched)
  *   • tappable rank row / column headers for bulk select
  *   • "top N%" strength slider driven by a combo-weighted ordering
- *   • per-seat targeting — Apply writes to the chosen villain seat
+ *   • per-seat targeting · Apply writes to the chosen villain seat
  *   • parseRange understands '+' and '-' notation and '10x' as 'Tx'
  *
  * NOTE ON TOUCH TARGETS: a 13x13 matrix cannot give every cell 44px at 375px
- * (that needs 572px of width). The spec's escape hatch is used instead — bulk
+ * (that needs 572px of width). The spec's escape hatch is used instead · bulk
  * selection (headers, presets, strength slider, paint dragging) means precision
  * tapping is never the only path, and a persistent detail row reports what the
  * last tap did rather than relying on hover.
@@ -66,7 +66,7 @@ function applyCombo(cells, token, on = true) {
     if (i === j) { setCell(cells, i, j, on); return; }
     if (suffix === 's') { setCell(cells, Math.min(i, j), Math.max(i, j), on); return; }
     if (suffix === 'o') { setCell(cells, Math.max(i, j), Math.min(i, j), on); return; }
-    // No suffix — the token covers both halves of the matrix.
+    // No suffix · the token covers both halves of the matrix.
     setCell(cells, Math.min(i, j), Math.max(i, j), on);
     setCell(cells, Math.max(i, j), Math.min(i, j), on);
 }
@@ -170,7 +170,7 @@ export function countCombos(cells) {
 /**
  * Approximate strength ordering used by the "top N%" slider. Pairs rank by
  * rank, non-pairs by high card, gap and suitedness. It is a heuristic, not a
- * solver ordering — the slider is a starting point the user then edits.
+ * solver ordering · the slider is a starting point the user then edits.
  */
 function handScore(i, j) {
     if (i === j) return 1000 - i * 40;
@@ -220,9 +220,9 @@ export default function RangeExplorer({
     onSelectRange,
     onClose,
     initialRange = '',
-    /** Optional — enables the seat selector and per-seat range loading. */
+    /** Optional · enables the seat selector and per-seat range loading. */
     villains = [],
-    /** Optional — seat pre-selected when the sheet opens. */
+    /** Optional · seat pre-selected when the sheet opens. */
     initialVillainIdx = 0,
 }) {
     const seats = Array.isArray(villains) ? villains : [];
@@ -446,7 +446,7 @@ export default function RangeExplorer({
             {/* Presets */}
             <div style={{ marginBottom: S.lg }}>
                 <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.sm }}>
-                    Positional Opens
+                    Positional opens
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                     {POSITION_PRESETS.map(p => (
@@ -457,7 +457,7 @@ export default function RangeExplorer({
                             onClick={() => loadPreset(p)}
                             style={{ ...btn('secondary'), padding: '0 14px', fontSize: F.label }}
                         >
-                            {p} Open
+                            {p} open
                         </button>
                     ))}
                     <button
@@ -481,7 +481,7 @@ export default function RangeExplorer({
                         fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs,
                     }}
                 >
-                    <span>Fill Top % By Strength</span>
+                    <span>Fill top % by strength</span>
                     <span style={{ ...numeric, color: T.accent }}>{topPct}%</span>
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
@@ -517,7 +517,7 @@ export default function RangeExplorer({
                     {paintMode ? 'Drag to paint' : 'Tap only'}
                 </button>
                 <span style={{ fontSize: F.caption, color: T.textDim, flex: 1, minWidth: 0 }}>
-                    {paintMode ? 'Drag across cells to add or remove.' : 'Painting off - the grid scrolls normally.'}
+                    {paintMode ? 'Drag across cells to add or remove.' : 'Painting off · the grid scrolls normally.'}
                 </span>
             </div>
 
@@ -600,7 +600,7 @@ export default function RangeExplorer({
                 ))}
             </div>
 
-            {/* Persistent detail row — replaces hover-only feedback */}
+            {/* Persistent detail row · replaces hover-only feedback */}
             <div
                 aria-live="polite"
                 style={{
@@ -614,12 +614,12 @@ export default function RangeExplorer({
                         <span style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, ...numeric }}>{detail.label}</span>
                         <span style={pill(detail.on ? 'success' : 'neutral')}>{detail.on ? 'In range' : 'Removed'}</span>
                         {detail.combos > 0 && (
-                            <span style={{ fontSize: F.caption, color: T.textMuted }}>{detail.combos} Combos</span>
+                            <span style={{ fontSize: F.caption, color: T.textMuted }}>{detail.combos} combos</span>
                         )}
                     </>
                 ) : (
                     <span style={{ fontSize: F.caption, color: T.textMuted }}>
-                        Tap Or Drag A Cell To Edit The Range.
+                        Tap or drag a cell to edit the range.
                     </span>
                 )}
             </div>

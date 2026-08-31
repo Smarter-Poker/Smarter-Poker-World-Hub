@@ -4,10 +4,10 @@
  * Browses saved sandbox scenarios and reloads them into the table.
  *
  * Rebuilt for mobile:
- *   • single column bottom sheet — folders become a snap carousel, hand cards
+ *   • single column bottom sheet · folders become a snap carousel, hand cards
  *     stack (the old side-by-side row overflowed 375px)
  *   • three distinct failure states: sign-in (401), retry (network/5xx) and a
- *     genuine empty archive — the old code showed "Empty Archive" for all three
+ *     genuine empty archive · the old code showed "Empty Archive" for all three
  *   • delete is two-step and undoable (re-POSTs the hand for 6 seconds)
  *   • search + tag filter + 20-per-page paging, with state_json parsed once per
  *     hand id instead of on every render
@@ -172,13 +172,13 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
             });
             const result = await readPersistenceResponse(res);
             if (result.success && result.persisted) {
-                // The active folder can vanish with its last hand — the effect
+                // The active folder can vanish with its last hand · the effect
                 // below re-points it once `folders` recomputes.
                 setHands(prev => prev.filter(h => h.id !== id));
                 window.dispatchEvent(new CustomEvent('sandbox-hand-deleted', { detail: { id } }));
                 toast((t) => (
                     <span style={{ display: 'flex', alignItems: 'center', gap: S.sm, fontSize: F.bodySm }}>
-                        Scenario Deleted
+                        Scenario deleted
                         <button
                             type="button"
                             className="pa-btn"
@@ -279,7 +279,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     icon={<FolderOpen size={22} strokeWidth={2} />}
                     title="Empty archive"
                     body='Use "Save to folder" in the sandbox menu to start building a drilling library.'
-                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back To The Table</button>}
+                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back to the table</button>}
                 />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -322,7 +322,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     {/* Search */}
                     <label style={{ display: 'flex', alignItems: 'center', gap: S.sm, background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: `0 ${S.md}px`, minHeight: 44 }}>
                         <Search size={18} strokeWidth={2} color={T.textDim} />
-                        <span className="pa-vh">Search Saved Scenarios</span>
+                        <span className="pa-vh">Search saved scenarios</span>
                         <input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -361,7 +361,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     )}
 
                     <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} In {activeFolder || '-'}
+                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} in {activeFolder || 'Not Available'}
                     </div>
 
                     {filtered.length === 0 ? (
@@ -377,7 +377,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                     onClick={() => { setQuery(''); setActiveTag(null); }}
                                     style={btn('secondary')}
                                 >
-                                    Clear Filters
+                                    Clear filters
                                 </button>
                             )}
                         />
@@ -469,7 +469,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                     onClick={() => setPage(p => p + 1)}
                                     style={{ ...btn('secondary', { block: true }) }}
                                 >
-                                    Load {Math.min(PAGE_SIZE, filtered.length - visible.length)} More
+                                    Load {Math.min(PAGE_SIZE, filtered.length - visible.length)} more
                                 </button>
                             )}
                         </>

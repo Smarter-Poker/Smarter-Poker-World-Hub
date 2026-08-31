@@ -25,7 +25,7 @@ export default function PersonalAssistantCopyPolicy() {
       childList: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['aria-label', 'aria-description', 'placeholder', 'title', 'data-tooltip'],
+      attributeFilter: ['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'],
     });
 
     return () => {

@@ -3,7 +3,7 @@
  * 6-position grid coloured by coach mode accuracy at each position.
  * Data fetched from /api/sandbox/session-stats (positionStats).
  *
- * The grid ALWAYS renders — skeleton, sign-in, error+retry, no-data and data
+ * The grid ALWAYS renders · skeleton, sign-in, error+retry, no-data and data
  * are five distinct states, never a silent `return null`. Every cell is a
  * button that deep-links into the sandbox pre-set to that position.
  */
@@ -139,7 +139,7 @@ export default function LeakHeatmap({ userId }) {
                                 }}
                             >
                                 <span style={{ fontSize: F.h2, fontWeight: 800, color: empty ? T.textMuted : t.color, ...numeric }}>
-                                    {empty ? '-' : `${p.pct}%`}
+                                    {empty ? 'Not Available' : `${p.pct}%`}
                                 </span>
                                 <span style={{ fontSize: F.caption, fontWeight: 800, color: T.textMuted, letterSpacing: 0.5 }}>
                                     {p.position}
@@ -157,7 +157,7 @@ export default function LeakHeatmap({ userId }) {
                 <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
                     {hasData
                         ? 'Tap a seat to open the Sandbox with that position pre-set. Hatched cells have fewer than 3 hands, so treat them as provisional.'
-                        : 'No coach hands recorded yet - tap any seat to start playing that position in the Sandbox.'}
+                        : 'No coach hands recorded yet · tap any seat to start playing that position in the Sandbox.'}
                 </p>
             </>
         );
@@ -167,7 +167,7 @@ export default function LeakHeatmap({ userId }) {
         <div className="pa-chart-panel" style={{ ...card, marginBottom: S.md }}>
             <PAStyles />
             {header}
-            <div style={{ ...sectionTitle, marginBottom: S.sm }}>Coach Accuracy By Seat</div>
+            <div style={{ ...sectionTitle, marginBottom: S.sm }}>Coach accuracy by seat</div>
             {body}
         </div>
     );

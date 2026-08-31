@@ -4,7 +4,7 @@
  *
  * The tip is DETERMINISTIC for a given spot (hashed, never Math.random) so the
  * coach cannot appear to change its mind about the same hand, and it is fed
- * real context — board texture, EV actually lost, the villain archetype — so it
+ * real context · board texture, EV actually lost, the villain archetype · so it
  * stops reading like five interchangeable strings.
  */
 import { useState, useMemo } from 'react';
@@ -15,13 +15,13 @@ import { PAStyles, hashString } from './paKit';
 // ── Coaching tip templates ─────────────────────────────────────────────────
 const CORRECT_TIPS = [
     ({ hand, position, action, textureClause }) =>
-        `Great read - ${action} with ${hand} from ${position}${textureClause} matches solver frequency.`,
+        `Great read · ${action} with ${hand} from ${position}${textureClause} matches solver frequency.`,
     ({ hand, position, textureClause }) =>
         `Spot on. The solver takes this line from ${position} with ${hand}${textureClause}. Keep trusting the read.`,
     ({ action, position, villainClause }) =>
         `Correct: ${action} is the equilibrium play from ${position}${villainClause}.`,
     ({ hand, action, textureClause }) =>
-        `Nailed it. ${action} with ${hand}${textureClause} is solver-approved - your board reading is sharp.`,
+        `Nailed it. ${action} with ${hand}${textureClause} is solver-approved · your board reading is sharp.`,
     ({ position, villainClause }) =>
         `Perfect. You are playing ${position} at equilibrium${villainClause}. This spot is well calibrated in your game.`,
 ];
@@ -40,9 +40,9 @@ const INCORRECT_TIPS = [
 ];
 
 const FREQUENCY_INSIGHTS = {
-    high: 'High-frequency play (65%+) - the solver takes this action nearly every time it reaches this node.',
-    medium: 'Mixed-frequency spot (35-65%) - both actions are defensible; exploitative reads break the tie.',
-    low: 'Low-frequency play (under 35%) - the solver only takes this line with specific combos.',
+    high: 'High-frequency play (65%+) · the solver takes this action nearly every time it reaches this node.',
+    medium: 'Mixed-frequency spot (35–65%) · both actions are defensible; exploitative reads break the tie.',
+    low: 'Low-frequency play (under 35%) · the solver only takes this line with specific combos.',
 };
 
 function boardToCards(board) {
@@ -76,11 +76,11 @@ export default function CoachFeedback({
     heroPosition,
     coachUserPick,
     isCorrect,
-    /** Optional — the sandbox board ({flop,turn,river} or array). */
+    /** Optional · the sandbox board ({flop,turn,river} or array). */
     board = null,
-    /** Optional — villains[0], used for the archetype clause. */
+    /** Optional · villains[0], used for the archetype clause. */
     villain = null,
-    /** Optional — when provided a "drill this spot" CTA is shown. */
+    /** Optional · when provided a "drill this spot" CTA is shown. */
     onDrill = null,
 }) {
     const [expanded, setExpanded] = useState(false);
@@ -103,7 +103,7 @@ export default function CoachFeedback({
         const evLossRaw = Number(results?.ev?.evLoss);
         const evLoss = Number.isFinite(evLossRaw) ? Math.abs(evLossRaw) : null;
         const evClause = (!isCorrect && evLoss != null && evLoss > 0.005)
-            ? ` - about ${evLoss.toFixed(2)} BB of EV`
+            ? ` · about ${evLoss.toFixed(2)} BB of EV`
             : '';
 
         const data = { hand, position, gtoAction, userAction, action: gtoAction, textureClause, villainClause, evClause };
@@ -113,7 +113,7 @@ export default function CoachFeedback({
         const idx = hashString(`${hand}|${position}|${gtoAction}|${userAction}|${isCorrect ? 1 : 0}`) % tips.length;
         const tip = tips[idx](data);
 
-        // Frequency breakdown — prefer the STRUCTURED value; the label-keyed map
+        // Frequency breakdown · prefer the STRUCTURED value; the label-keyed map
         // misses whenever the optimal label carries a size suffix.
         const breakdown = results.actionBreakdown
             || results.optimalAction?.breakdown
@@ -179,7 +179,7 @@ export default function CoachFeedback({
                 />
             </button>
 
-            {/* Tip text is always visible — the collapse only hides the detail. */}
+            {/* Tip text is always visible · the collapse only hides the detail. */}
             <div style={{ padding: `0 ${S.md}px ${S.md}px` }}>
                 <p style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.5, margin: 0 }}>
                     {feedback.tip}
@@ -204,7 +204,7 @@ export default function CoachFeedback({
                             {FREQUENCY_INSIGHTS[feedback.freqLevel]}
                             {feedback.optimalFreq > 0 && (
                                 <span style={{ color: T.purple, fontWeight: 700, ...numeric }}>
-                                    {' '}({Math.round(feedback.optimalFreq)}% Here)
+                                    {' '}({Math.round(feedback.optimalFreq)}% here)
                                 </span>
                             )}
                         </div>
@@ -216,7 +216,7 @@ export default function CoachFeedback({
                                 fontSize: F.caption, color: T.textMuted, textTransform: 'uppercase',
                                 letterSpacing: 0.6, fontWeight: 700, marginBottom: S.sm,
                             }}>
-                                Action Frequencies
+                                Action frequencies
                             </div>
                             <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                                 {Object.entries(feedback.breakdown)
@@ -249,7 +249,7 @@ export default function CoachFeedback({
                             onClick={() => onDrill({ position: feedback.position, street: results?.street || null })}
                         >
                             <Target size={18} strokeWidth={2} />
-                            Drill More Spots From {feedback.position}
+                            Drill more spots from {feedback.position}
                         </button>
                     )}
                 </div>

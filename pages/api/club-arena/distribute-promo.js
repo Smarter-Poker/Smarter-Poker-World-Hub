@@ -84,10 +84,10 @@ export default async function handler(req, res) {
           }
 
           const { targetUserId, amount, note } = params;
-          const amt = parseFloat(amount);
+          const amt = Math.floor(Number(amount));
 
           if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
-          if (!amt || amt <= 0) return res.status(400).json({ error: 'Positive amount required' });
+          if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: 'Positive amount required' });
 
           // ── RULE 1: Self-send block (enforced both API + DB level) ──
           if (targetUserId === user.id) {

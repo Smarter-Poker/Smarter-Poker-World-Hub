@@ -4,7 +4,7 @@
  * Admin utility for forcing a solver outcome and inspecting raw sandbox state.
  *
  * Gating: an explicit `isAdmin` prop (server-verified upstream) always wins.
- * The localStorage flag is a DEV convenience only — it is ignored in production
+ * The localStorage flag is a DEV convenience only · it is ignored in production
  * builds now, because a client-writable key must never unlock a path that
  * injects fabricated solver output into the coach tables.
  *
@@ -26,7 +26,7 @@ const ACTIONS = ['Fold', 'Check', 'Call', 'Bet', 'Raise'];
 export function hasGodModeAccess(isAdmin) {
     if (isAdmin === true) return true;
     if (isAdmin === false) return false;
-    // In production only a server-verified isAdmin prop opens this panel — the
+    // In production only a server-verified isAdmin prop opens this panel · the
     // old localStorage key was client-writable, so anyone could forge access.
     if (process.env.NODE_ENV === 'production') return false;
     // Non-production builds stay open for local testing.
@@ -76,7 +76,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
         };
 
         if (typeof setResults !== 'function') {
-            console.warn('[GodModePanel] setResults handler missing - nothing injected');
+            console.warn('[GodModePanel] setResults handler missing · nothing injected');
             onClose?.();
             return;
         }
@@ -95,7 +95,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
             headerRight={<span style={pill('purple')}>ADMIN</span>}
             footer={allowed ? (
                 <button type="button" className="pa-btn" onClick={applyForceOverride} style={{ ...btn('primary', { block: true }) }}>
-                    <Sparkles size={18} strokeWidth={2} /> Inject Forced Result
+                    <Sparkles size={18} strokeWidth={2} /> Inject forced result
                 </button>
             ) : null}
         >
@@ -115,7 +115,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                         borderRadius: R.md, padding: S.md,
                     }}>
                         <h4 style={{ fontSize: F.bodySm, fontWeight: 800, color: T.purple, margin: `0 0 ${S.md}px` }}>
-                            Force Solver Result
+                            Force solver result
                         </h4>
 
                         <div
@@ -154,7 +154,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                                 margin: `${S.lg}px 0 ${S.xs}px`,
                             }}
                         >
-                            <span>Forced EV Delta</span>
+                            <span>Forced EV delta</span>
                             <span style={{ ...numeric, color: T.purple }}>{Number(overrideEv).toFixed(2)} BB</span>
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
@@ -174,7 +174,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm }}>
                             <h4 style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, margin: 0 }}>
-                                Raw Sandbox State
+                                Raw sandbox state
                             </h4>
                             <button
                                 type="button"
@@ -198,8 +198,8 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
                     </div>
 
                     <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                        Injected Results Are Tagged ForcedMode And Must Never Be Persisted As Coach Results Or
-                        Counted In Accuracy Stats.
+                        Injected results are tagged forcedMode and must never be persisted as coach results or
+                        counted in accuracy stats.
                     </p>
                 </div>
             )}

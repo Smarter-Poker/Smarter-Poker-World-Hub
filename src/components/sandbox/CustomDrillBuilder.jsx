@@ -16,9 +16,9 @@ import { BottomSheet, PAStyles, Segmented, Skeleton } from './paKit';
 
 const STREETS = ['Any', 'Preflop', 'Flop', 'Turn', 'River'];
 // Canonical position vocabulary (matches sandbox.js POSITIONS, LeakHeatmap and
-// the stored metadata->>hero_position values — 'EP' matches nothing).
+// the stored metadata->>hero_position values · 'EP' matches nothing).
 const POSITIONS = ['Any', 'UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
-// The custom-drill route clamps limit to 20 — offering 50 silently delivered 20.
+// The custom-drill route clamps limit to 20 · offering 50 silently delivered 20.
 const HAND_COUNTS = [5, 10, 20];
 const PROBE_LIMIT = 20;
 
@@ -124,7 +124,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                     options={HAND_COUNTS.map(c => ({ value: c, label: String(c) }))}
                 />
 
-                {/* Live match count — loading / ok / empty / error, never silent */}
+                {/* Live match count · loading / ok / empty / error, never silent */}
                 <div
                     aria-live="polite"
                     style={{
@@ -154,12 +154,12 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
                                 <AlertTriangle size={18} strokeWidth={2} color={T.warn} />
                                 <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn }}>
-                                    No Spots Match Yet
+                                    No spots match yet
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                Nothing In The Question Pool Covers {street === 'Any' ? 'any street' : street.toLowerCase()}
-                                {position === 'Any' ? '' : ` from ${position}`}. Widen A Filter To Continue.
+                                Nothing in the question pool covers {street === 'Any' ? 'any street' : street.toLowerCase()}
+                                {position === 'Any' ? '' : ` from ${position}`}. Widen a filter to continue.
                             </p>
                             <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                                 {position !== 'Any' && (
@@ -169,7 +169,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                         onClick={() => setPosition('Any')}
                                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
                                     >
-                                        Any Position
+                                        Any position
                                     </button>
                                 )}
                                 {street !== 'Any' && (
@@ -179,7 +179,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                         onClick={() => setStreet('Any')}
                                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
                                     >
-                                        Any Street
+                                        Any street
                                     </button>
                                 )}
                             </div>
@@ -191,11 +191,11 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
                                 <AlertTriangle size={18} strokeWidth={2} color={T.danger} />
                                 <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
-                                    Could Not Check The Pool
+                                    Could not check the pool
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                You Can Still Launch - The Drill Will Tell You If Nothing Matches.
+                                You can still launch · the drill will tell you if nothing matches.
                             </p>
                             <button
                                 type="button"

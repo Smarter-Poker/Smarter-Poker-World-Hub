@@ -1,9 +1,9 @@
 /**
- * ExportCard — branded analysis card for image export.
+ * ExportCard · branded analysis card for image export.
  * ═══════════════════════════════════════════════════════════════
  * Rendered onto a <canvas> at export time (html2canvas is not a dependency),
  * scaled by devicePixelRatio, previewed in a bottom sheet BEFORE saving, and
- * exported through the shared `exportCanvas` helper — `<a download>` + a data:
+ * exported through the shared `exportCanvas` helper · `<a download>` + a data:
  * URL is a silent no-op on iOS Safari, which is most of this audience.
  */
 import { useCallback, useEffect, useState } from 'react';
@@ -220,7 +220,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
             const canvas = build();
             if (!canvas) throw new Error('Canvas unavailable');
             const res = await exportCanvas(canvas, `smarter-poker-analysis-${Date.now()}.png`, {
-                title: 'Smarter.Poker - GTO analysis',
+                title: 'Smarter.Poker · GTO analysis',
                 text: `${scenario?.position || ''} ${scenario?.hand || ''}`.trim(),
             });
             try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -228,7 +228,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
             onExport?.(res);
         } catch (e) {
             console.warn('[ExportCard] Export failed:', e);
-            toast.error('Export failed - try a screenshot instead');
+            toast.error('Export failed · try a screenshot instead');
         } finally {
             setBusy(false);
         }
@@ -247,7 +247,7 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                 style={{ ...btn('secondary', { block: true }), marginBottom: S.sm }}
             >
                 <ImageIcon size={18} strokeWidth={2} />
-                Export As Image
+                Export as Image
             </button>
 
             <BottomSheet
@@ -292,8 +292,8 @@ export function ExportCard({ results, scenario, equity = null, villainRange = nu
                     />
                 )}
                 <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
-                    On IPhone This Opens The Share Sheet (Or The Image In A New Tab) - Long-Press It To Add
-                    The Card To Photos.
+                    On iPhone this opens the share sheet (or the image in a new tab) · long-press it to add
+                    the card to Photos.
                 </p>
             </BottomSheet>
         </>
