@@ -5,6 +5,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Fetches available active marketplace items for a club and the user's purchase history.
  * 
  * Query: ?clubId=xxx (optional; defaults to the user's first club membership)
+ *        &itemId=xxx (optional; scopes the response to one active item)
  * Auth: Bearer token (any club member)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -40,6 +41,10 @@ export default async function handler(req, res) {
       if (requestedClubId && !isUUID(requestedClubId)) {
           return res.status(400).json({ error: 'Invalid clubId format' });
       }
+      const requestedItemId = Array.isArray(req.query.itemId) ? req.query.itemId[0] : req.query.itemId;
+      if (requestedItemId && !isUUID(requestedItemId)) {
+          return res.status(400).json({ error: 'Invalid itemId format' });
+      }
 
       try {
           // Verify membership (role gates the Manage tab). The spendable
@@ -73,23 +78,61 @@ export default async function handler(req, res) {
 
           const clubId = membership.club_id;
 
-          // These reads are independent. Keeping them concurrent prevents a cold
-          // storefront from paying one full database round trip per panel.
-          const [profileResult, itemsResult] = await Promise.all([
-              getSupabase()
-                  .from('profiles')
-                  .select('diamonds')
-                  .eq('id', user.id)
-                  .maybeSingle(),
-              // BUG-10 FIX: sort by created_at desc (not price asc) for 'Newest First'
-              getSupabase()
-                  .from('club_shop_items')
-                  .select('id, name, description, price, category, image_url, item_type, grant_spec, stock, stackable, per_user_limit, sale_price, available_from, available_until, sort_order')
-                  .eq('club_id', clubId)
-                  .eq('is_active', true)
-                  .order('sort_order', { ascending: true })
-                  .order('created_at', { ascending: false }),
-          ]);
+          const profilePromise = getSupabase()
+              .from('profiles')
+              .select('diamonds')
+              .eq('id', user.id)
+              .maybeSingle();
+          // BUG-10 FIX: sort by created_at desc (not price asc) for 'Newest First'
+          let itemsPromise = getSupabase()
+              .from('club_shop_items')
+              .select('id, name, description, price, category, image_url, item_type, grant_spec, stock, stackable, per_user_limit, sale_price, available_from, available_until, sort_order')
+              .eq('club_id', clubId)
+              .eq('is_active', true)
+              .order('sort_order', { ascending: true })
+              .order('created_at', { ascending: false });
+          if (requestedItemId) itemsPromise = itemsPromise.eq('id', requestedItemId).limit(1);
+
+          let profileResult;
+          let itemsResult;
+          let countResult;
+          let mineResult;
+          let purchaseResult;
+
+          if (requestedItemId) {
+              // Item details need only one catalog row. Run every independent
+              // post-membership read in one round so a cold serverless request
+              // does not pay separate catalog and purchase-history latencies.
+              [profileResult, itemsResult, countResult, mineResult, purchaseResult] = await Promise.all([
+                  profilePromise,
+                  itemsPromise,
+                  getSupabase()
+                      .from('club_shop_purchases')
+                      .select('item_id')
+                      .eq('club_id', clubId)
+                      .eq('item_id', requestedItemId)
+                      .limit(10000),
+                  getSupabase()
+                      .from('club_shop_purchases')
+                      .select('item_id')
+                      .eq('club_id', clubId)
+                      .eq('buyer_id', user.id)
+                      .eq('item_id', requestedItemId)
+                      .is('refunded_at', null)
+                      .limit(10000),
+                  getSupabase()
+                      .from('club_shop_purchases')
+                      .select('id, item_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)')
+                      .eq('club_id', clubId)
+                      .eq('buyer_id', user.id)
+                      .eq('item_id', requestedItemId)
+                      .order('created_at', { ascending: false }),
+              ]);
+          } else {
+              // The storefront needs the full active catalog before it can
+              // safely scope aggregate reads to every visible item.
+              [profileResult, itemsResult] = await Promise.all([profilePromise, itemsPromise]);
+          }
           if (profileResult.error) throw profileResult.error;
           if (itemsResult.error) throw itemsResult.error;
           const profileRow = profileResult.data;
@@ -97,39 +140,41 @@ export default async function handler(req, res) {
 
           // BUG-11 FIX: Compute purchase_count per item so 'Most Popular' sort and 'X sold' display work
           const itemIds = items.map(i => i.id);
-          const countPromise = itemIds.length
-              ? getSupabase()
+          if (!requestedItemId) {
+              const countPromise = itemIds.length
+                  ? getSupabase()
+                      .from('club_shop_purchases')
+                      .select('item_id')
+                      .eq('club_id', clubId)
+                      .in('item_id', itemIds)
+                      .limit(10000)
+                  : Promise.resolve({ data: [], error: null });
+              // The caller's OWN non-refunded purchases, so the client can show
+              // remaining allowance against per_user_limit. purchase_count is
+              // club-wide and cannot answer that.
+              const minePromise = itemIds.length
+                  ? getSupabase()
+                      .from('club_shop_purchases')
+                      .select('item_id')
+                      .eq('club_id', clubId)
+                      .eq('buyer_id', user.id)
+                      .is('refunded_at', null)
+                      .in('item_id', itemIds)
+                      .limit(10000)
+                  : Promise.resolve({ data: [], error: null });
+              const purchasesPromise = getSupabase()
                   .from('club_shop_purchases')
-                  .select('item_id')
-                  .eq('club_id', clubId)
-                  .in('item_id', itemIds)
-                  .limit(10000)
-              : Promise.resolve({ data: [], error: null });
-          // The caller's OWN non-refunded purchases, so the client can show
-          // remaining allowance against per_user_limit. purchase_count is
-          // club-wide and cannot answer that.
-          const minePromise = itemIds.length
-              ? getSupabase()
-                  .from('club_shop_purchases')
-                  .select('item_id')
+                  .select('id, item_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)')
                   .eq('club_id', clubId)
                   .eq('buyer_id', user.id)
-                  .is('refunded_at', null)
-                  .in('item_id', itemIds)
-                  .limit(10000)
-              : Promise.resolve({ data: [], error: null });
-          const purchasesPromise = getSupabase()
-              .from('club_shop_purchases')
-              .select('id, item_id, price_paid, currency, created_at, refunded_at, club_shop_items(name, category)')
-              .eq('club_id', clubId)
-              .eq('buyer_id', user.id)
-              .order('created_at', { ascending: false });
+                  .order('created_at', { ascending: false });
 
-          const [countResult, mineResult, purchaseResult] = await Promise.all([
-              countPromise,
-              minePromise,
-              purchasesPromise,
-          ]);
+              [countResult, mineResult, purchaseResult] = await Promise.all([
+                  countPromise,
+                  minePromise,
+                  purchasesPromise,
+              ]);
+          }
           if (countResult.error) throw countResult.error;
           if (mineResult.error) throw mineResult.error;
 
@@ -170,11 +215,13 @@ export default async function handler(req, res) {
           } catch (_joinErr) {
               console.warn('[marketplace-items] FK join failed, falling back:', _joinErr?.message || _joinErr);
               // Fallback: basic query without FK join
-              const { data: purchases, error: purErr } = await getSupabase()
+              let fallbackQuery = getSupabase()
                   .from('club_shop_purchases')
                   .select('id, item_id, price_paid, currency, created_at, refunded_at')
                   .eq('club_id', clubId)
-                  .eq('buyer_id', user.id)
+                  .eq('buyer_id', user.id);
+              if (requestedItemId) fallbackQuery = fallbackQuery.eq('item_id', requestedItemId);
+              const { data: purchases, error: purErr } = await fallbackQuery
                   .order('created_at', { ascending: false });
               if (purErr) throw purErr;
               flatPurchases = (purchases || []).map(p => ({

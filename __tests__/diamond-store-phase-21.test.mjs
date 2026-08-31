@@ -155,13 +155,33 @@ test('Club Shop detail resolves server-owned membership and terminates stalled i
   assert.doesNotMatch(detail, /ensureAuthReady/);
   assert.doesNotMatch(detail, /src\/lib\/supabase/);
   assert.doesNotMatch(loader, /\.from\('club_members'\)/);
-  assert.match(detail, /const CLUB_DETAIL_LOAD_TIMEOUT_MS = 12000/);
+  assert.match(detail, /const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000/);
+  assert.match(loader, /params\.set\('itemId', itemId\)/);
   assert.match(loader, /const loadController = new AbortController\(\)/);
   assert.match(loader, /signal: loadController\.signal/);
   assert.match(loader, /Club inventory timed out\. Retry the verified inventory request\./);
   assert.match(loader, /const targetClub = body\.clubId \|\| null/);
   assert.match(loader, /window\.clearTimeout\(loadTimer\)/);
   assert.match(detail, /loadAbortRef\.current\?\.abort\(\)/);
+});
+
+test('Club Shop detail API scopes and parallelizes cold authenticated item reads', async () => {
+  const api = await read('pages/api/club-arena/marketplace-items.js');
+
+  assert.match(api, /if \(requestedItemId && !isUUID\(requestedItemId\)\)/);
+  assert.match(api, /itemsPromise = itemsPromise\.eq\('id', requestedItemId\)\.limit\(1\)/);
+  assert.match(api, /if \(requestedItemId\) \{[\s\S]*?Promise\.all\(\[/);
+  assert.match(api, /\.eq\('item_id', requestedItemId\)/);
+  assert.match(api, /if \(!requestedItemId\) \{/);
+  assert.match(api, /if \(requestedItemId\) fallbackQuery = fallbackQuery\.eq\('item_id', requestedItemId\)/);
+});
+
+test('direct Vercel uploads retain the complete migration evidence tree', async () => {
+  const ignore = await read('.vercelignore');
+
+  assert.doesNotMatch(ignore, /^\/supabase\/\*$/m);
+  assert.doesNotMatch(ignore, /^\/supabase\/migrations\/\*$/m);
+  assert.match(ignore, /!\/supabase\/migrations\/20260829130000_club_shop_atomic_purchase\.sql/);
 });
 
 test('public merchandise catalog retries cold reads without serial variant latency', async () => {
