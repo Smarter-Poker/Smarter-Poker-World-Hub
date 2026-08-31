@@ -23,7 +23,6 @@ test('sitemap route projection deduplicates records and rejects private route fa
     { path: '/hub/venues/bad%2Fstate', priority: '0.7', changefreq: 'daily' },
   ]);
 });
-
 test('checked directory snapshot produces a complete duplicate-free sitemap projection', () => {
   const directory = buildSnapshotVenueDirectory({
     params: { limit: 1000 },
@@ -54,4 +53,3 @@ test('sitemap uses the resilient public directory and a bounded freshness window
   assert.doesNotMatch(venueBuilder, /\.from\(['"]poker_venues['"]\)/);
   assert.match(source, /s-maxage=300, stale-while-revalidate=1800/);
 });
-

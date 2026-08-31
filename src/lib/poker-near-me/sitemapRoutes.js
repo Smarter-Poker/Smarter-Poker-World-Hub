@@ -57,4 +57,3 @@ export function buildPokerVenueSitemapUrls(venues = []) {
 
   return urls;
 }
-
