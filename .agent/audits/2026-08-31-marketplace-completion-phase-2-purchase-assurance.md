@@ -72,6 +72,8 @@ Printful connection remains deliberately deferred.
 - `git diff --check`, JSX-aware parsing, title-case and banned-bar contracts,
   same-surface navigation contracts, accessibility checks, and palette checks
   passed.
+- The exact integrated `npm run build` gate passed all repository prebuild
+  policies, optimized Next.js webpack compilation, and 403 of 403 static pages.
 
 ## Published Verification
 
