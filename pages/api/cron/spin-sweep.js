@@ -57,257 +57,234 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
    return already_settled and cost nothing), so a wide window is free. */
 const LOOKBACK_MINS = 14 * 24 * 60;
 
+/**
+ * The double-dealing forensic scan gets its own, much shorter window. See the
+ * note at its call site: it is a self-join over hand_history, not an
+ * idempotent settle, so the sweep's 14-day window made it time out every run.
+ * Two hours across a 15-minute cadence means eight overlapping passes.
+ */
+const DOUBLE_DEAL_LOOKBACK_MINS = 120;
+
 let _admin = null;
 function getAdmin() {
-    if (_admin) return _admin;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return null;
-    _admin = createClient(url, key, { auth: { persistSession: false } });
-    return _admin;
+  if (_admin) return _admin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  _admin = createClient(url, key, { auth: { persistSession: false } });
+  return _admin;
 }
 
 export const config = { maxDuration: 60 };
 
 async function handler(req, res) {
-    if (!validateCronAuth(req)) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    res.setHeader('Cache-Control', 'no-store');
+  if (!validateCronAuth(req)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  res.setHeader('Cache-Control', 'no-store');
 
-    const admin = getAdmin();
-    if (!admin) {
-        return res.status(500).json({ status: 'unconfigured', error: 'Missing SUPABASE env vars' });
+  const admin = getAdmin();
+  if (!admin) {
+    return res.status(500).json({ status: 'unconfigured', error: 'Missing SUPABASE env vars' });
+  }
+
+  const started = Date.now();
+  try {
+    // ── 1. Sweep ──────────────────────────────────────────────────────
+    const { data: sweep, error: sweepErr } = await admin.rpc('fn_spin_sweep_unbooked', {
+      p_lookback_mins: LOOKBACK_MINS,
+    });
+    if (sweepErr) {
+      return res.status(500).json({
+        status: 'failed',
+        stage: 'sweep',
+        error: sweepErr.message,
+        duration_ms: Date.now() - started,
+      });
     }
 
-    const started = Date.now();
+    const settled = Number(sweep?.settled || 0);
+    const failed = Number(sweep?.failed || 0);
+
+    // ── 2. Health ─────────────────────────────────────────────────────
+    // Read AFTER the sweep, so unbooked_24h reflects what is still
+    // outstanding rather than what was outstanding a moment ago.
+    // The 500x tier was retired on 2026-08-21 (migration 20260821g). Its
+    // three columns — top_jackpot, need_for_500x, can_draw_500x — survive
+    // on this view only because THIS select was the last thing reading
+    // one, and a column cannot be dropped while a deployed client asks
+    // for it: PostgREST answers the whole request 42703 and the operator
+    // dashboard goes dark on a pool it was meant to be watching. That is
+    // the 2026-08-21 dark-badge incident verbatim. The reader goes first,
+    // this deploy publishes, and only then do the columns go.
+    //
+    // can_draw_500x was never READ here either — it rode in the select
+    // and out again through `health: pools`, describing a tier no spin
+    // can draw. Everything still listed below is either consumed by an
+    // alert or shown to the operator.
+    const { data: health, error: healthErr } = await admin
+      .from('v_spin_reserve_health')
+      .select(
+        'club_id, club_name, balance, highest_stake, can_draw_100x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h, fee_violations_24h'
+      );
+    if (healthErr) {
+      return res.status(500).json({
+        status: 'failed',
+        stage: 'health',
+        error: healthErr.message,
+        settled,
+        failed,
+        duration_ms: Date.now() - started,
+      });
+    }
+
+    const pools = health || [];
+    const thin = pools.filter((p) => p.is_thin);
+    const short = pools.filter((p) => Number(p.shortfall_events || 0) > 0);
+    const stillUnbooked = pools.filter((p) => Number(p.unbooked_24h || 0) > 0);
+    // A Spin that reached the felt with no multiplier means the draw never
+    // happened for a game that actually ran. Three did on 2026-08-21
+    // (dea62e98, a374cdd3, 78181713) and nothing noticed: the sweep
+    // required spin_multiplier > 0 so it skipped them, and unbooked_24h
+    // aged them out after a day. fn_spin_repair_missing_multiplier now
+    // runs inside the sweep and reconstructs what it can; this alert is
+    // for whatever it could not, and for the fact that it happened at all.
+    const noDraw = pools.filter((p) => Number(p.null_multiplier_24h || 0) > 0);
+    /**
+     * A Spin that charged a fee.
+     *
+     * spinSpec.ts states the rule in capitals - the buy-in is the whole
+     * charge, because the rake is engineered into the multiplier
+     * distribution - and a fee on top makes the true edge 14.7% instead of
+     * the advertised 7.87%. That much is a pricing bug.
+     *
+     * The reason it belongs HERE, in the reserve alarm, is worse than
+     * pricing. Both `unbooked_24h` above and fn_spin_sweep_unbooked filter
+     * on `buy_in_fee = 0`, so a fee-bearing Spin is skipped by the backstop
+     * AND uncounted by the thing that exists to notice skipped games. The
+     * one shape of broken game nothing could fix was the one shape nothing
+     * could see: 2,116 of them accumulated before 2026-08-20 and not a
+     * single alert fired.
+     *
+     * The exclusions stay - settling a game against economics it does not
+     * match would be worse than leaving it alone. What changes is that the
+     * exclusion is now loud. A NOT VALID check constraint on `tournaments`
+     * should make this counter permanently zero; if it ever is not, either
+     * the constraint was dropped or something is writing around it.
+     */
+    const feeCharged = pools.filter((p) => Number(p.fee_violations_24h || 0) > 0);
+
+    const alerts = [];
+    if (failed > 0) alerts.push(`sweep_failed:${failed}`);
+    if (stillUnbooked.length > 0) {
+      alerts.push(`unbooked_remaining:${stillUnbooked.map((p) => p.club_name).join(',')}`);
+    }
+    if (thin.length > 0) alerts.push(`reserve_thin:${thin.map((p) => p.club_name).join(',')}`);
+    if (short.length > 0) {
+      alerts.push(`shortfall_recorded:${short.map((p) => p.club_name).join(',')}`);
+    }
+    if (noDraw.length > 0) {
+      alerts.push(`spin_ran_with_no_draw:${noDraw.map((p) => p.club_name).join(',')}`);
+    }
+    if (feeCharged.length > 0) {
+      alerts.push(
+        `spin_charged_a_fee:${feeCharged
+          .map((p) => `${p.club_name}(${Number(p.fee_violations_24h || 0)})`)
+          .join(',')}`
+      );
+    }
+
+    // ── 3. Split-brain tripwires (2026-08-21) ─────────────────────────
+    // On 2026-08-20 23:48Z two engine instances dealt one table at once
+    // and a HUMAN found it before any system did. Lease enforcement is
+    // now on by default in the engine; these two checks make sure that
+    // stays true and CATCH it if it ever fails anyway:
+    //
+    //  a) The engine's own lease diagnostics — the authoritative signal.
+    //     enforced must be true, conflicts must be zero. Fetched with a
+    //     cache-buster + no-store because engine /health has been served
+    //     stale by CDN caching before (CA CLAUDE.md, hard-won traps).
+    //  b) fn_detect_double_dealing — the forensic fingerprint in
+    //     hand_history (two persisted hands on one table with genuinely
+    //     overlapping play windows). The lease log is primary; this is
+    //     the backstop that works even if the engine's own telemetry is
+    //     the thing that broke.
     try {
-        // ── 1. Sweep ──────────────────────────────────────────────────────
-        const { data: sweep, error: sweepErr } = await admin.rpc('fn_spin_sweep_unbooked', {
-            p_lookback_mins: LOOKBACK_MINS,
-        });
-        if (sweepErr) {
-            return res.status(500).json({
-                status: 'failed',
-                stage: 'sweep',
-                error: sweepErr.message,
-                duration_ms: Date.now() - started,
-            });
+      const hres = await fetch(`https://engine.smarter.poker/health?cb=${Date.now()}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      });
+      const engineHealth = hres.ok ? await hres.json() : null;
+      const lease = engineHealth?.lease;
+      if (!lease) {
+        alerts.push('lease_diagnostics_missing');
+      } else {
+        if (lease.enforced !== true) alerts.push('lease_enforcement_off');
+        if (Number(lease.conflictCount) > 0) {
+          alerts.push(`lease_conflicts:${lease.conflictCount}`);
         }
-
-        const settled = Number(sweep?.settled || 0);
-        const failed = Number(sweep?.failed || 0);
-
-        // ── 2. Health ─────────────────────────────────────────────────────
-        // Read AFTER the sweep, so unbooked_24h reflects what is still
-        // outstanding rather than what was outstanding a moment ago.
-        // The 500x tier was retired on 2026-08-21 (migration 20260821g). Its
-        // three columns — top_jackpot, need_for_500x, can_draw_500x — survive
-        // on this view only because THIS select was the last thing reading
-        // one, and a column cannot be dropped while a deployed client asks
-        // for it: PostgREST answers the whole request 42703 and the operator
-        // dashboard goes dark on a pool it was meant to be watching. That is
-        // the 2026-08-21 dark-badge incident verbatim. The reader goes first,
-        // this deploy publishes, and only then do the columns go.
-        //
-        // can_draw_500x was never READ here either — it rode in the select
-        // and out again through `health: pools`, describing a tier no spin
-        // can draw. Everything still listed below is either consumed by an
-        // alert or shown to the operator.
-        const { data: health, error: healthErr } = await admin
-            .from('v_spin_reserve_health')
-            .select(
-                'club_id, club_name, balance, highest_stake, can_draw_100x, is_thin, shortfall_events, unbooked_24h, null_multiplier_24h, fee_violations_24h'
-            );
-        if (healthErr) {
-            return res.status(500).json({
-                status: 'failed',
-                stage: 'health',
-                error: healthErr.message,
-                settled,
-                failed,
-                duration_ms: Date.now() - started,
-            });
-        }
-
-        const pools = health || [];
-        const thin = pools.filter((p) => p.is_thin);
-        const short = pools.filter((p) => Number(p.shortfall_events || 0) > 0);
-        const stillUnbooked = pools.filter((p) => Number(p.unbooked_24h || 0) > 0);
-        // A Spin that reached the felt with no multiplier means the draw never
-        // happened for a game that actually ran. Three did on 2026-08-21
-        // (dea62e98, a374cdd3, 78181713) and nothing noticed: the sweep
-        // required spin_multiplier > 0 so it skipped them, and unbooked_24h
-        // aged them out after a day. fn_spin_repair_missing_multiplier now
-        // runs inside the sweep and reconstructs what it can; this alert is
-        // for whatever it could not, and for the fact that it happened at all.
-        const noDraw = pools.filter((p) => Number(p.null_multiplier_24h || 0) > 0);
-        /**
-         * A Spin that charged a fee.
-         *
-         * spinSpec.ts states the rule in capitals - the buy-in is the whole
-         * charge, because the rake is engineered into the multiplier
-         * distribution - and a fee on top makes the true edge 14.7% instead of
-         * the advertised 7.87%. That much is a pricing bug.
-         *
-         * The reason it belongs HERE, in the reserve alarm, is worse than
-         * pricing. Both `unbooked_24h` above and fn_spin_sweep_unbooked filter
-         * on `buy_in_fee = 0`, so a fee-bearing Spin is skipped by the backstop
-         * AND uncounted by the thing that exists to notice skipped games. The
-         * one shape of broken game nothing could fix was the one shape nothing
-         * could see: 2,116 of them accumulated before 2026-08-20 and not a
-         * single alert fired.
-         *
-         * The exclusions stay - settling a game against economics it does not
-         * match would be worse than leaving it alone. What changes is that the
-         * exclusion is now loud. A NOT VALID check constraint on `tournaments`
-         * should make this counter permanently zero; if it ever is not, either
-         * the constraint was dropped or something is writing around it.
-         */
-        const feeCharged = pools.filter((p) => Number(p.fee_violations_24h || 0) > 0);
-
-        const alerts = [];
-
-        /* ── EXPIRE SPINS THAT NEVER FILLED (2026-08-31 audit) ─────────────
-         * A Spin is seat-first: you pay when you sit, and the game starts
-         * when the third seat sells. NOTHING bounded the wait in between, so
-         * a player whose game never filled had their chips locked with no
-         * timeout and no refund. Measured over the 7 days to 2026-08-31:
-         * median fill 180s, p90 407s - and a worst case of 76,648s (21
-         * HOURS), nine spins over six hours. Every one was horse-seated, so
-         * no human had been harmed yet; the fleet fills tiers fast enough
-         * that it stayed invisible. It is latent, not theoretical.
-         *
-         * fn_spin_expire_unfilled cancels through atomic_cancel_tournament -
-         * the sanctioned refunding path - and never touches a full-but-
-         * unstarted game, which is one about to deal. The timeout lives in
-         * spin_fill_policy so it can be tuned or disabled (0) without a
-         * deploy. Horse-inclusive by law (CLAUDE.md 10.5).
-         *
-         * IT RIDES THIS EXISTING JOB ON PURPOSE: CLAUDE.md section 11 forbids
-         * new scheduled triggers outside Open Claw, and this handler is
-         * already on that dispatcher. The sweep gains an RPC; the platform
-         * does not gain a schedule.
-         *
-         * Non-fatal: a failure here must not stop the unbooked sweep above
-         * from reporting, so it becomes an alert and the pass continues. */
-        let expired = 0;
-        let expiredChips = 0;
-        try {
-            const { data: exp, error: expErr } = await admin.rpc('fn_spin_expire_unfilled', {
-                p_limit: 50,
-            });
-            if (expErr) {
-                alerts.push('expire_unfilled_failed');
-            } else {
-                expired = Number(exp?.expired || 0);
-                expiredChips = Number(exp?.chips_refunded_estimate || 0);
-                if (Number(exp?.failed || 0) > 0) {
-                    alerts.push(`EXPIRE_UNFILLED_PARTIAL:${exp.failed}`);
-                }
-            }
-        } catch {
-            alerts.push('expire_unfilled_failed');
-        }
-        if (failed > 0) alerts.push(`sweep_failed:${failed}`);
-        if (stillUnbooked.length > 0) {
-            alerts.push(`unbooked_remaining:${stillUnbooked.map((p) => p.club_name).join(',')}`);
-        }
-        if (thin.length > 0) alerts.push(`reserve_thin:${thin.map((p) => p.club_name).join(',')}`);
-        if (short.length > 0) {
-            alerts.push(`shortfall_recorded:${short.map((p) => p.club_name).join(',')}`);
-        }
-        if (noDraw.length > 0) {
-            alerts.push(`spin_ran_with_no_draw:${noDraw.map((p) => p.club_name).join(',')}`);
-        }
-        if (feeCharged.length > 0) {
-            alerts.push(
-                `spin_charged_a_fee:${feeCharged
-                    .map((p) => `${p.club_name}(${Number(p.fee_violations_24h || 0)})`)
-                    .join(',')}`
-            );
-        }
-
-        // ── 3. Split-brain tripwires (2026-08-21) ─────────────────────────
-        // On 2026-08-20 23:48Z two engine instances dealt one table at once
-        // and a HUMAN found it before any system did. Lease enforcement is
-        // now on by default in the engine; these two checks make sure that
-        // stays true and CATCH it if it ever fails anyway:
-        //
-        //  a) The engine's own lease diagnostics — the authoritative signal.
-        //     enforced must be true, conflicts must be zero. Fetched with a
-        //     cache-buster + no-store because engine /health has been served
-        //     stale by CDN caching before (CA CLAUDE.md, hard-won traps).
-        //  b) fn_detect_double_dealing — the forensic fingerprint in
-        //     hand_history (two persisted hands on one table with genuinely
-        //     overlapping play windows). The lease log is primary; this is
-        //     the backstop that works even if the engine's own telemetry is
-        //     the thing that broke.
-        try {
-            const hres = await fetch(
-                `https://engine.smarter.poker/health?cb=${Date.now()}`,
-                { cache: 'no-store', signal: AbortSignal.timeout(8000) }
-            );
-            const engineHealth = hres.ok ? await hres.json() : null;
-            const lease = engineHealth?.lease;
-            if (!lease) {
-                alerts.push('lease_diagnostics_missing');
-            } else {
-                if (lease.enforced !== true) alerts.push('lease_enforcement_off');
-                if (Number(lease.conflictCount) > 0) {
-                    alerts.push(`lease_conflicts:${lease.conflictCount}`);
-                }
-            }
-        } catch (err) {
-            // Unreachable engine is its own page-worthy fact.
-            alerts.push('engine_health_unreachable');
-        }
-
-        try {
-            const { data: doubles, error: ddErr } = await admin.rpc('fn_detect_double_dealing', {
-                p_lookback_mins: LOOKBACK_MINS,
-            });
-            if (ddErr) {
-                alerts.push('double_deal_check_failed');
-            } else if (Array.isArray(doubles) && doubles.length > 0) {
-                const tables = [...new Set(doubles.map((d) => d.table_id))];
-                alerts.push(`DOUBLE_DEALING:${tables.join(',')}`);
-            }
-        } catch {
-            alerts.push('double_deal_check_failed');
-        }
-
-        const payload = {
-            status: alerts.length === 0 ? 'ok' : 'attention',
-            settled,
-            failed,
-            expired_unfilled: expired,
-            expired_chips_refunded: expiredChips,
-            lookback_mins: LOOKBACK_MINS,
-            pools: pools.length,
-            alerts,
-            health: pools,
-            duration_ms: Date.now() - started,
-        };
-
-        // Heartbeat. The PostgREST builder is a thenable without .catch(), so
-        // the returned { error } is read rather than a promise chain attached.
-        const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
-            probe_name: 'spin-sweep',
-            status: alerts.length === 0 ? 'ok' : 'attention',
-            duration_ms: Date.now() - started,
-            details: { settled, failed, expired, expiredChips, alerts },
-        });
-        if (heartbeatErr) {
-            console.warn('[spin-sweep] heartbeat write failed:', heartbeatErr.message);
-        }
-
-        // See the header: a condition needing a human is a red light, because
-        // this dashboard is the only place anyone would see it.
-        return res.status(alerts.length === 0 ? 200 : 500).json(payload);
+      }
     } catch (err) {
-        return res.status(500).json({ status: 'error', error: err?.message });
+      // Unreachable engine is its own page-worthy fact.
+      alerts.push('engine_health_unreachable');
     }
+
+    try {
+      // NOT LOOKBACK_MINS (2026-08-31). The sweep's window was widened to 14
+      // days because settlement is idempotent and a wide sweep costs nothing.
+      // This scan is not free: fn_detect_double_dealing self-joins
+      // hand_history on overlapping play windows, and at 14 days that is
+      // millions of rows — it hits the statement timeout on every run, the
+      // catch below files `double_deal_check_failed`, and the platform's only
+      // forensic check for two engines dealing one table has been reporting
+      // nothing but its own failure since the widening. Verified against
+      // production: 20160 minutes times out, 60 minutes answers in under a
+      // second. The job runs every 15 minutes, so this window still overlaps
+      // eight consecutive runs.
+      const { data: doubles, error: ddErr } = await admin.rpc('fn_detect_double_dealing', {
+        p_lookback_mins: DOUBLE_DEAL_LOOKBACK_MINS,
+      });
+      if (ddErr) {
+        // Name the failure. A bare flag is why a timeout read as "the check
+        // ran and found nothing wrong" for as long as it did.
+        alerts.push(`double_deal_check_failed:${ddErr.code || ddErr.message || 'unknown'}`);
+      } else if (Array.isArray(doubles) && doubles.length > 0) {
+        const tables = [...new Set(doubles.map((d) => d.table_id))];
+        alerts.push(`DOUBLE_DEALING:${tables.join(',')}`);
+      }
+    } catch {
+      alerts.push('double_deal_check_failed');
+    }
+
+    const payload = {
+      status: alerts.length === 0 ? 'ok' : 'attention',
+      settled,
+      failed,
+      lookback_mins: LOOKBACK_MINS,
+      pools: pools.length,
+      alerts,
+      health: pools,
+      duration_ms: Date.now() - started,
+    };
+
+    // Heartbeat. The PostgREST builder is a thenable without .catch(), so
+    // the returned { error } is read rather than a promise chain attached.
+    const { error: heartbeatErr } = await admin.from('probe_heartbeats').insert({
+      probe_name: 'spin-sweep',
+      status: alerts.length === 0 ? 'ok' : 'attention',
+      duration_ms: Date.now() - started,
+      details: { settled, failed, alerts },
+    });
+    if (heartbeatErr) {
+      console.warn('[spin-sweep] heartbeat write failed:', heartbeatErr.message);
+    }
+
+    // See the header: a condition needing a human is a red light, because
+    // this dashboard is the only place anyone would see it.
+    return res.status(alerts.length === 0 ? 200 : 500).json(payload);
+  } catch (err) {
+    return res.status(500).json({ status: 'error', error: err?.message });
+  }
 }
 
 export default withCronHealth('spin-sweep', handler);
