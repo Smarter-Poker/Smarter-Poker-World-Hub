@@ -164,6 +164,20 @@ test('Club Shop detail resolves server-owned membership and terminates stalled i
   assert.match(detail, /loadAbortRef\.current\?\.abort\(\)/);
 });
 
+test('public merchandise catalog retries cold reads without serial variant latency', async () => {
+  const [catalog, readiness] = await Promise.all([
+    read('pages/api/store/merch-catalog.js'),
+    read('src/lib/store/marketplaceReadiness.js'),
+  ]);
+
+  assert.match(catalog, /withTransientRetry/);
+  assert.match(catalog, /const MAX_VARIANTS = 1_000/);
+  assert.match(catalog, /const \[itemResult, variantResult\] = await Promise\.all/);
+  assert.match(catalog, /\.limit\(MAX_VARIANTS\)/);
+  assert.doesNotMatch(catalog, /\.in\('item_id'/);
+  assert.match(readiness, /const DEFAULT_MAX_ATTEMPTS = 2/);
+});
+
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {
   const analytics = await read('pages/api/club-arena/shop-analytics.js');
   assert.match(analytics, /price_paid, currency/);
