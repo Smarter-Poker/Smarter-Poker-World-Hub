@@ -40,7 +40,11 @@ export async function fetchPokerVenueLocation({ state, city }) {
   const promise = (async () => {
     const payload = await fetchVenueDirectoryResilient({
       supabase: createClient(),
-      params: { limit: 1000, state, city },
+      // City slugs intentionally remove punctuation ("St. Augustine" becomes
+      // "st-augustine"). Fetch the bounded state projection, then apply the
+      // same slug normalizer below; an exact database city filter would turn
+      // those canonical public URLs into false 404s.
+      params: { limit: 1000, state },
       fallbackVenues: directorySnapshotData.venues || [],
       fallbackMetadata: directorySnapshotData.metadata || {},
       onFallback: (error) => {

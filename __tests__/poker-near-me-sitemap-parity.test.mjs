@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { buildSnapshotVenueDirectory } from '../src/lib/poker-near-me/venueDirectoryServer.js';
 import { buildPokerVenueSitemapUrls } from '../src/lib/poker-near-me/sitemapRoutes.js';
+import { citySlugToTitle, cityTitleToSlug } from '../src/lib/home-games/locationUtils.js';
 import directorySnapshotData from '../data/poker-venue-directory-snapshot.json' with { type: 'json' };
 
 test('sitemap route projection deduplicates records and rejects private route families', () => {
@@ -52,4 +53,16 @@ test('sitemap uses the resilient public directory and a bounded freshness window
   assert.match(venueBuilder, /buildPokerVenueSitemapUrls/);
   assert.doesNotMatch(venueBuilder, /\.from\(['"]poker_venues['"]\)/);
   assert.match(source, /s-maxage=300, stale-while-revalidate=1800/);
+});
+
+test('city routes compare canonical slugs after a bounded state-level fetch', () => {
+  for (const city of ['Port St. Lucie', 'St. Augustine', 'St. Petersburg']) {
+    const slug = cityTitleToSlug(city);
+    assert.equal(cityTitleToSlug(citySlugToTitle(slug)), slug);
+  }
+
+  const source = fs.readFileSync(new URL('../src/lib/poker-near-me/locationPages.js', import.meta.url), 'utf8');
+  assert.match(source, /params: \{ limit: 1000, state \}/);
+  assert.match(source, /cityTitleToSlug\(venue\.city\) === cityTitleToSlug\(city\)/);
+  assert.doesNotMatch(source, /params: \{ limit: 1000, state, city \}/);
 });
