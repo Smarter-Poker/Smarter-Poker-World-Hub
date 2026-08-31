@@ -171,6 +171,7 @@ test('every Personal Assistant route installs the dynamic title-case and separat
         'pages/hub/personal-assistant/index.js',
         'pages/hub/personal-assistant/sandbox.js',
         'pages/hub/personal-assistant/leaks.js',
+        'pages/sandbox/[id].js',
     ]) {
         const route = fs.readFileSync(path.join(ROOT, rel), 'utf8');
         assert.match(route, /import PersonalAssistantCopyPolicy/);
@@ -180,6 +181,6 @@ test('every Personal Assistant route installs the dynamic title-case and separat
     const policy = fs.readFileSync(path.join(ROOT, 'src/components/personal-assistant/PersonalAssistantCopyPolicy.js'), 'utf8');
     assert.match(policy, /MutationObserver/);
     assert.match(policy, /characterData: true/);
-    assert.match(policy, /attributeFilter: \['aria-label', 'aria-description', 'placeholder', 'title', 'data-tooltip'\]/);
+    assert.match(policy, /attributeFilter: \['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'\]/);
     assert.match(policy, /text-transform: capitalize !important/);
 });

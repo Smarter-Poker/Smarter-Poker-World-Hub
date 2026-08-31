@@ -24,7 +24,7 @@ const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 // not database ownership or worker-control fields.
 const PRIVATE_JOB_KEYS = new Set([
   'user_id', 'audit_cursor', 'worker_token', 'lease_expires_at',
-  'userId', 'auditCursor', 'workerToken', 'leaseExpiresAt',
+  'userId', 'auditCursor', 'workerToken', 'leaseExpiresAt', 'cursorFingerprint',
 ]);
 
 function publicAuditValue(value) {

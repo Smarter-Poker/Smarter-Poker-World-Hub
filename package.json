@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "scripts": {
-    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs __tests__/leak-record-compatibility.test.mjs tests/personal-assistant-phase-three.test.mjs tests/personal-assistant-phase-four.test.mjs tests/personal-assistant-phase-five.test.mjs tests/personal-assistant-leak-audit-runner.test.mjs tests/personal-assistant-durable-audit.test.mjs",
+    "test:leak-engine": "node --test __tests__/solver-leak-engine.test.mjs __tests__/leak-engine-wiring.test.mjs __tests__/leak-record-compatibility.test.mjs __tests__/push-receipt-dedup.test.mjs tests/personal-assistant-copy-policy.test.mjs tests/personal-assistant-phase-three.test.mjs tests/personal-assistant-phase-four.test.mjs tests/personal-assistant-phase-five.test.mjs tests/personal-assistant-leak-audit-runner.test.mjs tests/personal-assistant-durable-audit.test.mjs",
     "verify:pa-account-flow": "node scripts/verify-personal-assistant-account-flow.mjs",
     "test:store-phase-7": "node --test __tests__/diamond-store-phase-7.test.mjs",
     "test:store-phase-8": "node --test __tests__/diamond-store-phase-8.test.mjs",
