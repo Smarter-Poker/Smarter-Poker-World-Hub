@@ -170,7 +170,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             return;
         }
         if (file.size > 20 * 1024 * 1024) {
-            toast.error('File too large — max 20MB');
+            toast.error('File too large - max 20MB');
             return;
         }
 
@@ -374,7 +374,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                         <div style={s.alertBox}>
                             {thresholdAlerts.map(({ venue, total }) => (
                                 <div key={venue} style={s.alertRow}>
-                                    You've earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> at <strong>{venue}</strong> this year — you may receive a 1099-NEC
+                                    You've earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> at <strong>{venue}</strong> this year - you may receive a 1099-NEC
                                 </div>
                             ))}
                         </div>

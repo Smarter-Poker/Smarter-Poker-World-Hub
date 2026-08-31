@@ -1094,7 +1094,7 @@ export default function NewsHub() {
                 setSubscribeError(body.error || body.message || `Subscription failed (${res.status})`);
             }
         } catch (e) {
-            setSubscribeError('Network error — please try again');
+            setSubscribeError('Network error - please try again');
         } finally {
             setSubscribing(false);
         }
@@ -1344,7 +1344,7 @@ export default function NewsHub() {
             <PageTransition>
                 
                 <SEOHead
-                    title="Poker News — Latest Headlines & Updates"
+                    title="Poker News - Latest Headlines & Updates"
                     description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
                     canonical="/hub/news"
                 />
@@ -1914,7 +1914,7 @@ export default function NewsHub() {
                                             </div>
                                         ) : (
                                             <div className="reels-empty-state">
-                                                <span>No reels yet — check back soon.</span>
+                                                <span>No reels yet - check back soon.</span>
                                             </div>
                                         )}
                                     </section>

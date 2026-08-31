@@ -87,7 +87,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 jobId: null,
-                message: 'Transcode queuing skipped — table not configured yet',
+                message: 'Transcode queuing skipped - table not configured yet',
             });
         }
 

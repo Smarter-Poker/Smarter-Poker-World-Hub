@@ -70,7 +70,7 @@ export default function ShiftTrackerPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Shift Tracker — Log Tokes & Downs"
+                title="Shift Tracker - Log Tokes & Downs"
                 description="Clock in, track downs with 35-min timer, log tokes and expenses for each shift."
                 canonical="/hub/toke-tracker/shift"
             />

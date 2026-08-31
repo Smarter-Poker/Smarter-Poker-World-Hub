@@ -59,10 +59,10 @@ function buildDeck() {
 }
 
 const BENCHMARK_HANDS = [
-  { value: '9c8d', label: '9♣ 8♦ — Connected Benchmark' },
-  { value: 'QhJd', label: 'Q♥ J♦ — Broadway Benchmark' },
-  { value: 'KhKd', label: 'K♥ K♦ — Premium Pair' },
-  { value: 'AhAd', label: 'A♥ A♦ — Top Pair Benchmark' },
+  { value: '9c8d', label: '9♣ 8♦ - Connected Benchmark' },
+  { value: 'QhJd', label: 'Q♥ J♦ - Broadway Benchmark' },
+  { value: 'KhKd', label: 'K♥ K♦ - Premium Pair' },
+  { value: 'AhAd', label: 'A♥ A♦ - Top Pair Benchmark' },
 ];
 
 function unicodeHandToAscii(cards) {
@@ -477,7 +477,7 @@ export default function ShortDeckTrainerPage() {
                 >
                   {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
                 </select>
-                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Calculation — Not A Range Estimate</div>
+                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Calculation - Not A Range Estimate</div>
               </div>
 
               {/* Run Button */}

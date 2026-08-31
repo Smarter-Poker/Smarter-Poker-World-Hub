@@ -110,7 +110,7 @@ export default async function handler(req, res) {
           if (error && isMissingVipExpiryColumns(error)) {
               expiryColumnsMissing = true;
               console.error(
-                  `🚨 [${MIGRATION_MISSING}] profiles.vip_tier / profiles.vip_expires_at do not exist — ` +
+                  `🚨 [${MIGRATION_MISSING}] profiles.vip_tier / profiles.vip_expires_at do not exist - ` +
                   `VIP expiry cannot be enforced. Apply the migration: ${MIGRATION_FILE}. ` +
                   `Falling back to legacy is_vip-only VIP status.`
               );

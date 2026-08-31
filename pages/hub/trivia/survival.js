@@ -37,7 +37,7 @@ export default function SurvivalModeRedirectPage() {
     return (
         <>
             <SEOHead
-                title="Survival Trivia — One Life Challenge"
+                title="Survival Trivia - One Life Challenge"
                 description="One Wrong Answer And You Are Out. Test Your Poker Knowledge In Survival Mode."
                 canonical={LIVE_SURVIVAL_ROUTE}
                 noindex={true}

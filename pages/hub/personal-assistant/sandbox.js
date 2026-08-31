@@ -342,11 +342,11 @@ function localSolve({ heroHand, heroPosition, board, handState, texture, equityP
     optimalAction: actions[0] ? { ...actions[0] } : null,
     isMixed: (actions[0]?.frequency || 0) < 70,
     // heroDisplay '—' suppresses the EV grid rather than printing a fake 0.00
-    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    ev: { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 },
     matchTier: 5,
     source: 'Offline estimate',
     offline: true,
-    explanation: `${explanation} Offline estimate — reconnect for solver data.`,
+    explanation: `${explanation} Offline estimate - reconnect for solver data.`,
   };
 }
 
@@ -403,7 +403,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
       <span style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
         <button
           type="button" className="pa-btn" onClick={onTap}
-          aria-label={`${card} — tap to change`}
+          aria-label={`${card} - tap to change`}
           style={{ background: 'none', border: 'none', padding: 0, display: 'block', cursor: 'pointer', touchAction: 'manipulation' }}
         >
           <TableCard card={card} style={{ width: w, height: h }} />
@@ -530,7 +530,7 @@ function CardPickerSheet({ isOpen, onClose, onSelect, usedCards = [], mode, pick
                     key={s.code} type="button" className="pa-btn"
                     disabled={isUsed}
                     onClick={() => pick(cardStr)}
-                    aria-label={`${rank} of ${s.label}${isUsed ? ' — already used' : ''}`}
+                    aria-label={`${rank} of ${s.label}${isUsed ? ' - already used' : ''}`}
                     style={{
                       ...btn('secondary', { disabled: isUsed }),
                       minHeight: 64, gap: S.sm, fontSize: 22, fontWeight: 800, color: s.color,
@@ -794,7 +794,7 @@ function SetupSheet({
                   )}
                   {v.customRange && (
                     <p style={{ fontSize: F.caption, color: T.purple, margin: `6px 0 0`, fontWeight: 700 }}>
-                      Custom range applied — simulation still uses the {v.archetype?.name || 'selected'} tendencies.
+                      Custom range applied - simulation still uses the {v.archetype?.name || 'selected'} tendencies.
                     </p>
                   )}
                 </div>
@@ -968,7 +968,7 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboar
                 {s.title || 'Saved spot'}
               </span>
               <span style={{ display: 'block', color: T.textMuted, fontSize: F.caption, marginTop: 2 }}>
-                {s.type === 'bookmark' ? `Saved · ${s.stack}` : `${s.stack} · ${s.result || '—'}`}
+                {s.type === 'bookmark' ? `Saved · ${s.stack}` : `${s.stack} · ${s.result || '-'}`}
               </span>
             </span>
             <ChevronRight size={18} strokeWidth={2} style={{ color: T.textDim, flexShrink: 0 }} aria-hidden="true" />
@@ -1188,10 +1188,10 @@ function DueSheet({ isOpen, onClose, due, onReview, onDismiss }) {
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
-              {item.hand} — {item.position}
+              {item.hand} - {item.position}
             </div>
             <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2 }}>
-              {item.street} · {item.board || 'Preflop'} · GTO {item.gtoAction || '—'}
+              {item.street} · {item.board || 'Preflop'} · GTO {item.gtoAction || '-'}
             </div>
           </div>
           <button type="button" className="pa-btn" onClick={() => onReview(item)} style={{ ...btn('primary'), padding: '0 14px', fontSize: F.caption }}>
@@ -1740,7 +1740,7 @@ export default function VirtualSandbox() {
         const cards = String(q.b).includes(',') ? String(q.b).split(',').filter(Boolean) : (String(q.b).match(/.{1,2}/g) || []);
         setBoard({ flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null });
       }
-      if (q.partial === '1') toast('Partial scenario restored — opponents and betting line were not in the link', { duration: 4000 });
+      if (q.partial === '1') toast('Partial scenario restored - opponents and betting line were not in the link', { duration: 4000 });
     }
 
     if (typeof window !== 'undefined' && (q.h || q.b || q.s || q.leak || q.leakType || q.drill)) {
@@ -1785,7 +1785,7 @@ export default function VirtualSandbox() {
     setQuizMode(true);
     setQuizRevealed(false);
     setUserGuess(null);
-    toast('Weekly spot loaded — tap Analyze to start the quiz');
+    toast('Weekly spot loaded - tap Analyze to start the quiz');
   }, [restoreScenario]);
 
   // ═══════════════════════════════════════════════════════════
@@ -1880,7 +1880,7 @@ export default function VirtualSandbox() {
         }),
       });
       // The API really does return 409/413 — the old code toasted success blindly.
-      if (r.status === 409) { toast.error('Template limit reached (30) — delete one first'); return; }
+      if (r.status === 409) { toast.error('Template limit reached (30) - delete one first'); return; }
       if (r.status === 413) { toast.error('Scenario too large to save as a template'); return; }
       const result = await readPersistenceResponse(r);
       if (!result.success || !result.persisted) {
@@ -2061,7 +2061,7 @@ export default function VirtualSandbox() {
    * pre-deal memo, so the villain modelled the wrong texture every time.
    */
   const dealAndAnalyze = useCallback(() => {
-    if (handOver) { toast('The hand is over — start the next one'); return null; }
+    if (handOver) { toast('The hand is over - start the next one'); return null; }
     if (results || resultsOverride) {
       const archived = {
         street: currentStreet,
@@ -2229,7 +2229,7 @@ export default function VirtualSandbox() {
   const runAnalysis = useCallback(async (skipCoach = false, pickedAction = null, boardOverride = null) => {
     if (!guardAction(() => { })) return;
     if (!heroHand.card1 || !heroHand.card2) { toast('Pick your two hole cards first'); return; }
-    if (handOver) { toast('This hand is complete — deal the next one'); return; }
+    if (handOver) { toast('This hand is complete - deal the next one'); return; }
 
     if (coachMode && !skipCoach && !coachUserPick && !pickedAction) {
       try { navigator.vibrate?.(20); } catch (e) { /* unsupported */ }
@@ -2258,7 +2258,7 @@ export default function VirtualSandbox() {
         equityPct: equity?.heroEquity, preflopScenario,
       });
       setResultsOverride(fallback);
-      toast('Offline estimate — reconnect for solver data', { duration: 3200 });
+      toast('Offline estimate - reconnect for solver data', { duration: 3200 });
     }
 
     setShowResults(true);
@@ -2542,7 +2542,7 @@ export default function VirtualSandbox() {
     // previewed, but it must never alter quiz totals, SRS review queues, or the
     // persisted leaderboard/accuracy history.
     if (displayed?.forcedMode) {
-      toast('Forced result — drill score not recorded');
+      toast('Forced result - drill score not recorded');
       return;
     }
     setQuizScore(prev => ({
@@ -2594,7 +2594,7 @@ export default function VirtualSandbox() {
     setComparePosition(pos);
     setResultsOverride(null);
     const data = await analyzeWithoutCoach(buildAnalyzePayload(pos));
-    if (!data?.success && !data?.superseded) toast.error('Could not compare that position — try again');
+    if (!data?.success && !data?.superseded) toast.error('Could not compare that position - try again');
   }, [comparePosition, resultsOverride, results, analyzeWithoutCoach, buildAnalyzePayload]);
 
   const restorePrimaryResults = useCallback(async () => {
@@ -3061,10 +3061,10 @@ export default function VirtualSandbox() {
               <div style={{ ...sectionTitle, color: T.warn }}>Practising a leak</div>
               <div style={{ fontSize: F.bodySm, color: T.text, fontWeight: 700, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {String(practiceFocus.leakType || 'Leak drill')}
-                {practiceFocus.drill ? ` — ${String(practiceFocus.drill)}` : ''}
+                {practiceFocus.drill ? ` - ${String(practiceFocus.drill)}` : ''}
               </div>
               <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2, lineHeight: 1.45 }}>
-                Coach mode is on — pick your action before each analysis.
+                Coach mode is on - pick your action before each analysis.
               </div>
               <button type="button" className="pa-btn" onClick={startLeakDrill} style={{ ...btn('secondary'), marginTop: S.sm, color: T.warn }}>
                 <Zap size={18} strokeWidth={2} aria-hidden="true" />Start drill
@@ -3541,7 +3541,7 @@ export default function VirtualSandbox() {
           });
           setCoachMode(true);
           setShowDue(false);
-          toast('Review spot loaded — tap Analyze');
+          toast('Review spot loaded - tap Analyze');
         }}
         onDismiss={(item) => setSrs(prev => {
           const next = prev.filter(e => e.key !== item.key);
@@ -3721,7 +3721,7 @@ export default function VirtualSandbox() {
         isOpen={!!displayResults && showResults}
         onClose={() => setShowResults(false)}
         title={`Analysis${comparePosition ? ` (${comparePosition})` : ''}`}
-        subtitle={isHistoricView ? `${streetHistory[activeStreet]?.street || 'Past street'} — archived` : `${currentStreet} · ${potSize.toFixed(1)} BB pot`}
+        subtitle={isHistoricView ? `${streetHistory[activeStreet]?.street || 'Past street'} - archived` : `${currentStreet} · ${potSize.toFixed(1)} BB pot`}
         labelledBy="pa-results-title"
         maxWidth={640}
         footer={canDeal ? (
@@ -3846,7 +3846,7 @@ export default function VirtualSandbox() {
                   </p>
                 )}
 
-                {displayResults.ev?.heroDisplay && displayResults.ev.heroDisplay !== '—' && (
+                {displayResults.ev?.heroDisplay && displayResults.ev.heroDisplay !== '-' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: S.sm }}>
                     {[
                       { l: 'Hand EV', v: displayResults.ev.heroDisplay, c: displayResults.ev.hero >= 0 ? T.success : T.danger },
@@ -4010,7 +4010,7 @@ export default function VirtualSandbox() {
                     {showVillainRange && (
                       <div style={{ ...cardCompact, marginTop: S.sm, background: T.bg }}>
                         <div style={{ ...sectionTitle, marginBottom: S.xs }}>
-                          VPIP {villains[0].vpip ?? '—'}% · opening range
+                          VPIP {villains[0].vpip ?? '-'}% · opening range
                         </div>
                         <p style={{ fontSize: F.caption, color: T.textMuted, fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all', margin: 0, textTransform: 'none' }}>
                           {villains[0].range}
@@ -4080,7 +4080,7 @@ export default function VirtualSandbox() {
                     ].filter(Boolean);
                     const ctx = {
                       ref: 'sandbox', vid: hand || 'sandbox',
-                      title: `${heroPosition || 'Hero'} vs ${boardStr || 'Preflop'} — ${gameType || 'NLH'}`.slice(0, 80),
+                      title: `${heroPosition || 'Hero'} vs ${boardStr || 'Preflop'} - ${gameType || 'NLH'}`.slice(0, 80),
                       source: 'Sandbox', tags,
                     };
                     let games = [];

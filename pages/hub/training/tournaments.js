@@ -262,7 +262,7 @@ export default function TournamentsPage() {
     <>
     <PageTransition>
       <SEOHead
-        title="Training Tournaments — Compete & Learn"
+        title="Training Tournaments - Compete & Learn"
         description="Enter GTO Training Tournaments. Compete Against Other Students In Scenario-based Challenges."
         canonical="/hub/training/tournaments"
       />

@@ -322,7 +322,7 @@ export default function RakeSolutionsPage() {
             }}
           >
             <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-              {selectedPosition} — {activeRake.label}
+              {selectedPosition} - {activeRake.label}
             </div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
               Optimal frequencies adjusted for rake pressure
@@ -388,7 +388,7 @@ export default function RakeSolutionsPage() {
               marginBottom: 12,
             }}
           >
-            All Positions — RFI Adjustment
+            All Positions - RFI Adjustment
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {POSITIONS.map((pos) => {

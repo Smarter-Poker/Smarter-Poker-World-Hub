@@ -985,11 +985,11 @@ export default function ReelsPage() {
       // readyState >= 2 means HAVE_CURRENT_DATA or better — we have at
       // least one frame, so it's playable.
       if (v && v.readyState < 2) {
-        console.warn('[Reels] video stall watchdog tripped — auto-skipping', {
+        console.warn('[Reels] video stall watchdog tripped - auto-skipping', {
           src: url,
           readyState: v.readyState,
           networkState: v.networkState,
-          reason: 'No metadata after 6s — likely HEVC/corrupt/dead URL',
+          reason: 'No metadata after 6s - likely HEVC/corrupt/dead URL',
         });
         if (typeof window !== 'undefined') {
           window.__reelStallSkip = (window.__reelStallSkip || 0) + 1;
@@ -1605,7 +1605,7 @@ export default function ReelsPage() {
     } catch (err) {
       console.error('[CommentInsert] Failed:', err?.message, err?.details, err?.hint);
       setComments((prev) => prev.filter((c) => c.id !== tempId));
-      showErrorToast('Comment failed — ' + (err?.message || 'try again'));
+      showErrorToast('Comment failed - ' + (err?.message || 'try again'));
     }
     setSubmittingComment(false);
   };
@@ -1764,7 +1764,7 @@ export default function ReelsPage() {
       // navigator.share() throws AbortError on user-cancel (not an error) and
       // other errors on share failures. Only show the copy toast for actual copy failures.
       if (platform === 'copy') {
-        showErrorToast('Copy failed — try again');
+        showErrorToast('Copy failed - try again');
       }
       // For native/social platform failures: window.open already fired or user cancelled;
       // no toast needed — the user saw the native OS dialog.
@@ -1822,7 +1822,7 @@ export default function ReelsPage() {
       }, 3000);
     } catch (err) {
       console.error('[ShareToFeed] Failed:', err?.message || err);
-      showErrorToast('Share failed — ' + (err?.message || 'try again'));
+      showErrorToast('Share failed - ' + (err?.message || 'try again'));
     }
     setSharingToFeed(false);
     setShareDescription('');
@@ -2913,7 +2913,7 @@ export default function ReelsPage() {
                     code: err?.code,
                     message: err?.message,
                     src: url,
-                    suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264',
+                    suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
                   });
                   if (typeof window !== 'undefined') {
                     window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
@@ -4628,7 +4628,7 @@ export default function ReelsPage() {
                   fontWeight: 500,
                 }}
               >
-                Skip Description — Share Now
+                Skip Description - Share Now
               </button>
             </div>
           </div>

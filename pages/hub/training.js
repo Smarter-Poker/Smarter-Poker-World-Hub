@@ -249,7 +249,7 @@ export default function TrainingPage() {
   return (
     <PageTransition>
       <SEOHead
-        title="Training — Smarter.Poker"
+        title="Training - Smarter.Poker"
         description="One-tap GTO training. Personalised daily plan, leak detection, and 100+ scenario-based games coached by Jarvis."
         canonical="/hub/training"
       />
@@ -310,7 +310,7 @@ export default function TrainingPage() {
                     : jarvisPick
                       ? (jarvisPick.reason
                           ? `Jarvis: ${jarvisPick.reason}`
-                          : `Jarvis picked one drill for you — ${jarvisPick.name}.`)
+                          : `Jarvis picked one drill for you - ${jarvisPick.name}.`)
                       : 'Browse The Library Below To Start Your First Drill.'}
                 </p>
 
@@ -469,7 +469,7 @@ export default function TrainingPage() {
                 </div>
               ) : (
                 <div className="sp-empty" role="status">
-                  <p>No Drills Match — Try A Different Search.</p>
+                  <p>No Drills Match - Try A Different Search.</p>
                   <button
                     type="button"
                     className="sp-cta sp-cta-secondary sp-empty-reset"
@@ -538,7 +538,7 @@ function GradeCard({ stats, loading }) {
     );
   }
 
-  const grade    = stats?.current_grade || '—';
+  const grade    = stats?.current_grade || '-';
   const next     = stats?.next_grade;
   const accuracy = stats?.rolling_accuracy_pct ?? 0;
   const hands    = stats?.rolling_total ?? 0;
@@ -743,7 +743,7 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
       <div className="sp-progress sp-progress-blank">
         <span className="sp-progress-note">
           {signedIn
-            ? 'No sessions yet — finish a drill and your score trend, position accuracy and history will build here.'
+            ? 'No sessions yet - finish a drill and your score trend, position accuracy and history will build here.'
             : 'Sign in and finish a drill to start building your progress history.'}
         </span>
       </div>
@@ -805,12 +805,12 @@ function ProgressBlock({ sessions, positionAccuracy, loading, signedIn }) {
       <ul className="sp-plist">
         {rows.slice(0, 6).map((r, i) => (
           <li key={r.id || i} className="sp-plist-row">
-            <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</span>
+            <span className="sp-plist-date">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</span>
             <span className="sp-plist-game">{r.game_name || r.game_id || 'Training'}</span>
             <span className="sp-plist-score sp-num" style={{ color: signedScore(r) >= 50 ? 'var(--sp-good)' : signedScore(r) >= 0 ? 'var(--sp-warn)' : 'var(--sp-bad)' }}>
               {fmtScore(signedScore(r))}
             </span>
-            <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '—'}</span>
+            <span className="sp-plist-acc sp-num">{r.accuracy != null ? `${Math.round(r.accuracy)}%` : '-'}</span>
             <span className="sp-plist-ev sp-num">-{Number(r.total_ev_loss || 0).toFixed(1)}</span>
           </li>
         ))}

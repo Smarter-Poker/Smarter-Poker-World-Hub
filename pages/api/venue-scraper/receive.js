@@ -128,7 +128,7 @@ export default async function handler(req, res) {
         }
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn('[Venue Receive] SUPABASE_SERVICE_ROLE_KEY missing — refusing to write as anon');
+            console.warn('[Venue Receive] SUPABASE_SERVICE_ROLE_KEY missing - refusing to write as anon');
             return res.status(500).json({ error: 'Server misconfigured: service role key unavailable' });
         }
 
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
                 }
 
                 if (status === 'failed') {
-                    console.debug(`[Venue Receive] Venue ${vid} scrape failed — skipping`);
+                    console.debug(`[Venue Receive] Venue ${vid} scrape failed - skipping`);
                     continue;
                 }
 

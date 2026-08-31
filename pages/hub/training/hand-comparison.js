@@ -314,7 +314,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                 textTransform: 'uppercase',
               }}
             >
-              {pendingRank ? `${pendingRank} — Pick Suit` : 'Pick Rank'}
+              {pendingRank ? `${pendingRank} - Pick Suit` : 'Pick Rank'}
             </div>
             {!pendingRank && (
               <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>

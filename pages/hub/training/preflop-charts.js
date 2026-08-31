@@ -215,7 +215,7 @@ export default function PreflopCharts() {
             <p style={{ marginTop: 0 }}>
               Each chart shows the solver-correct mix for a given position,
               opening size, and stack depth. Highlighted cells are the
-              hands you should open, raise, 3-bet, call, or fold — colored
+              hands you should open, raise, 3-bet, call, or fold - colored
               by frequency for mixed strategies.
             </p>
             <p>
@@ -592,7 +592,7 @@ export default function PreflopCharts() {
                   border: '1px solid rgba(0,212,255,0.2)',
                 }}
               >
-                {scenario === 'bb_defense' ? `BB vs ${position}` : position} — {stackDepth}BB
+                {scenario === 'bb_defense' ? `BB vs ${position}` : position} - {stackDepth}BB
               </div>
 
               {loading ? (
@@ -667,7 +667,7 @@ export default function PreflopCharts() {
                       border: '1px solid rgba(168,85,247,0.2)',
                     }}
                   >
-                    {scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition} —{' '}
+                    {scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition} -{' '}
                     {stackDepth}BB
                   </div>
 
@@ -746,13 +746,13 @@ export default function PreflopCharts() {
                 <>
                   Open-raising range (RFI) shows which hands to raise with when folded to you in
                   this position. Pure raise (100%) hands are always opened. Mixed frequency hands
-                  are sometimes raised, sometimes folded — use a randomizer to stay GTO.
+                  are sometimes raised, sometimes folded - use a randomizer to stay GTO.
                 </>
               )}
               {scenario === 'vs3bet' && (
                 <>
                   Shows how to react when you open-raise and face a 3-bet. High-equity hands 4-bet,
-                  medium-equity hands flat call, and the rest fold. Mixed frequencies are common —
+                  medium-equity hands flat call, and the rest fold. Mixed frequencies are common -
                   exact GTO play requires randomization.
                 </>
               )}

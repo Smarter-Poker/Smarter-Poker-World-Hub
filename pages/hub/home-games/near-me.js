@@ -65,7 +65,7 @@ const US_STATES = [
 
 function formatStakes(minBuyin, maxBuyin, stakes) {
   if (stakes) return stakes;
-  if (minBuyin != null && maxBuyin != null) return `$${minBuyin}–$${maxBuyin}`;
+  if (minBuyin != null && maxBuyin != null) return `$${minBuyin}-$${maxBuyin}`;
   if (minBuyin != null) return `$${minBuyin}+`;
   return 'Stakes TBD';
 }

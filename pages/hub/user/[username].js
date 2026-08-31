@@ -812,7 +812,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
             }}
           >
             <div style={{ fontSize: 24, fontWeight: 800, color: C.gold }}>
-              {hendonData.hendon_total_cashes?.toLocaleString() || '—'}
+              {hendonData.hendon_total_cashes?.toLocaleString() || '-'}
             </div>
             <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>Cashes</div>
           </div>
@@ -826,7 +826,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
             }}
           >
             <div style={{ fontSize: 24, fontWeight: 800, color: '#00ff88' }}>
-              ${hendonData.hendon_total_earnings?.toLocaleString() || '—'}
+              ${hendonData.hendon_total_earnings?.toLocaleString() || '-'}
             </div>
             <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>Earnings</div>
           </div>
@@ -843,7 +843,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
               $
               {hendonData.hendon_biggest_cash?.toLocaleString() ||
                 hendonData.hendon_best_finish ||
-                '—'}
+                '-'}
             </div>
             <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>
               BIGGEST CASH
@@ -3700,7 +3700,7 @@ export default function UserProfilePage() {
   return (
     <PageTransition>
       <SEOHead
-        title={`${displayName} — Player Profile`}
+        title={`${displayName} - Player Profile`}
         description={`View ${displayName}'s poker profile, stats, and achievements on Smarter.Poker.`}
         ogImage={profile.avatar_url || profile.cover_photo_url || undefined}
         canonical={`/hub/user/${profile.username}`}
@@ -6144,7 +6144,7 @@ export default function UserProfilePage() {
                         <circle cx="12" cy="10" r="3" />
                       </svg>
                       {pokerCheckins.length} check-in{pokerCheckins.length !== 1 ? 's' : ''} across{' '}
-                      {checkinStats?.uniqueVenues || '—'} venues
+                      {checkinStats?.uniqueVenues || '-'} venues
                     </div>
                   </div>
                 </div>

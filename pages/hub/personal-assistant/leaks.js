@@ -115,9 +115,9 @@ function cardText(card) {
 }
 
 function fmtCards(cards) {
-  if (Array.isArray(cards)) return cards.map(cardText).filter(Boolean).join(' ') || '—';
+  if (Array.isArray(cards)) return cards.map(cardText).filter(Boolean).join(' ') || '-';
   if (typeof cards === 'string' && cards.trim()) return cards.trim();
-  return '—';
+  return '-';
 }
 
 function num(v, fallback = 0) {
@@ -178,7 +178,7 @@ function shortPointLabel(raw) {
     return MONTHS[idx] || s;
   }
   if (s.length > 7) return s.slice(0, 7);
-  return s || '—';
+  return s || '-';
 }
 
 /**
@@ -206,14 +206,14 @@ function friendlyDetectionError(err) {
   if (!msg) return 'Leak detection failed. Please try again.';
   if (/unexpected token|<!doctype|json|syntaxerror/i.test(msg)) return 'The server is busy right now. Please try again in a moment.';
   if (/429|too many|rate.?limit/i.test(msg)) return 'You have run detection too many times. Try again in a few minutes.';
-  if (/not logged in|unauthor|401|expired|invalid token/i.test(msg)) return 'Your session expired — sign in again to run detection.';
+  if (/not logged in|unauthor|401|expired|invalid token/i.test(msg)) return 'Your session expired - sign in again to run detection.';
   if (/failed to fetch|network|offline/i.test(msg)) return 'You appear to be offline. Reconnect and try again.';
   return msg;
 }
 
 function friendlyLoadError(err) {
   const msg = String(err || '').trim();
-  if (/401|unauthor|expired|invalid token/i.test(msg)) return 'Your session expired — sign in again to see your leaks.';
+  if (/401|unauthor|expired|invalid token/i.test(msg)) return 'Your session expired - sign in again to see your leaks.';
   if (/failed to fetch|network|offline/i.test(msg)) return 'No connection. Check your network and retry.';
   return msg || 'Unknown error';
 }
@@ -452,7 +452,7 @@ function ReviewQueueCard({
   const errorNote = error ? (
     <div style={styles.reviewErrorRow} role="status">
       <span style={{ flex: 1, minWidth: 0 }}>
-        Your saved schedule could not be loaded — showing what is on this device.
+        Your saved schedule could not be loaded - showing what is on this device.
       </span>
       {onRetry && (
         <button type="button" className="pa-btn" style={{ ...btn('ghost'), color: T.accent, padding: '0 10px' }} onClick={onRetry}>
@@ -472,7 +472,7 @@ function ReviewQueueCard({
             below, and two identical buttons a thumb apart reads as a bug. */}
         <p style={{ ...styles.reviewBody, marginBottom: 0 }}>
           {isDetecting
-            ? 'Detection is running — anything it finds will be waiting here as a scheduled review.'
+            ? 'Detection is running - anything it finds will be waiting here as a scheduled review.'
             : isDemo
               ? 'Reviews start on your own hands. Run leak detection below and each leak found becomes a scheduled, repeating drill.'
               : 'No review queue yet. Run leak detection below and each leak found becomes a scheduled, repeating drill.'}
@@ -497,7 +497,7 @@ function ReviewQueueCard({
         </p>
         <p style={styles.reviewBody}>
           {nextLabel
-            ? `Your next review is ${nextLabel}. Drilling early is fine — tap any leak below.`
+            ? `Your next review is ${nextLabel}. Drilling early is fine - tap any leak below.`
             : 'Practise any leak below and it will start a spaced-repetition schedule.'}
         </p>
         {errorNote}
@@ -558,7 +558,7 @@ function ReviewQueueCard({
         {startable
           ? (total > 1
             ? `A timed drill on this leak. ${total - 1} more waiting after it.`
-            : 'A timed drill on this leak — your score sets the next review date.')
+            : 'A timed drill on this leak - your score sets the next review date.')
           : 'This leak has no matching drill street, so this opens the sandbox instead.'}
       </p>
 
@@ -627,11 +627,11 @@ function TrendStatTiles({ current, optimal, color }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: S.sm }}>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>You</span>
-        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : '—'}</span>
+        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : '-'}</span>
       </div>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>Optimal</span>
-        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : '—'}</span>
+        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : '-'}</span>
       </div>
     </div>
   );
@@ -665,7 +665,7 @@ function TrendChart({ data, optimal, current, status }) {
         {header}
         <div style={styles.trendEmpty}>
           <p style={styles.trendEmptyText}>
-            Not enough history yet — this leak needs at least two detection runs to plot a trend.
+            Not enough history yet - this leak needs at least two detection runs to plot a trend.
           </p>
           <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} />
         </div>
@@ -747,7 +747,7 @@ function TrendChart({ data, optimal, current, status }) {
       {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
       <div style={styles.trendScaleRow}>
         <span style={styles.trendScaleText}>
-          Range {minVal.toFixed(0)}%–{maxVal.toFixed(0)}%
+          Range {minVal.toFixed(0)}%-{maxVal.toFixed(0)}%
         </span>
         {optimalVal !== null && (
           <span style={styles.trendScaleText}>
@@ -782,7 +782,7 @@ function TrendChart({ data, optimal, current, status }) {
         {active
           ? `${active.date}: you played this spot at ${active.value.toFixed(1)}%${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(0)}%)` : ''}.`
           : points.length < 2
-            ? 'Only one detection run so far — run detection again to see a trend line.'
+            ? 'Only one detection run so far - run detection again to see a trend line.'
             : 'Tap a point to read that period.'}
       </p>
     </div>
@@ -874,7 +874,7 @@ function AuditReceipt({ result }) {
     ['Unpriced Decisions', num(progress.unpriced ?? coverage.unpricedThisRun).toLocaleString()],
     ['Leaks Found', num(result.leaksDetected).toLocaleString()],
     ['Batches Saved', num(progress.batchesCompleted).toLocaleString()],
-    ['Server Processing', progress.totalProcessingMs ? `${(num(progress.totalProcessingMs) / 1000).toFixed(1)}s` : '—'],
+    ['Server Processing', progress.totalProcessingMs ? `${(num(progress.totalProcessingMs) / 1000).toFixed(1)}s` : '-'],
   ];
 
   return (
@@ -1037,7 +1037,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         {lowConfidence && (
           <span style={styles.leakCardHint}>
             <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" />
-            Small sample — needs more hands before this is conclusive.
+            Small sample - needs more hands before this is conclusive.
           </span>
         )}
       </button>
@@ -1102,9 +1102,9 @@ const BAND_COLOR = {
 
 const STAGE_COPY = {
   'not-started': 'No drills yet. Your first review sets the baseline.',
-  early: 'Early days — each passed drill pushes the next review further out.',
+  early: 'Early days - each passed drill pushes the next review further out.',
   'on-track': 'On track. Keep passing reviews and the gap between them keeps growing.',
-  'nearly-there': 'Nearly there — a few more strong sessions at the long interval retires this leak.',
+  'nearly-there': 'Nearly there - a few more strong sessions at the long interval retires this leak.',
   mastered: 'Mastered. This leak stays quiet unless detection sees it again in your real hands.',
 };
 
@@ -1308,7 +1308,7 @@ function LeakDetail({
         </h3>
         <p style={styles.detailBody}>
           {leak.suggestedFix
-            || 'No personalised fix has been generated for this leak yet. Run detection again — the engine writes tailored fixes for your highest-impact leaks.'}
+            || 'No personalised fix has been generated for this leak yet. Run detection again - the engine writes tailored fixes for your highest-impact leaks.'}
         </p>
       </section>
 
@@ -1356,7 +1356,7 @@ function LeakDetail({
                     <span style={styles.exampleLine1}>
                       <span style={styles.exampleCards}>{fmtCards(snap.hero_cards)}</span>
                       <span style={styles.exampleEv}>
-                        {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : '—'}
+                        {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : '-'}
                       </span>
                     </span>
                     <span style={styles.exampleLine2}>
@@ -1425,7 +1425,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be changed — run detection on your own hands first.
+                Sample leaks cannot be changed - run detection on your own hands first.
               </p>
             )}
           </>
@@ -1444,7 +1444,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be resolved — run detection on your own hands first.
+                Sample leaks cannot be resolved - run detection on your own hands first.
               </p>
             )}
           </>
@@ -2230,7 +2230,7 @@ export default function LeakFinderPage() {
                 </p>
                 <span style={styles.integrityBadge}>
                   <Lock size={12} strokeWidth={2} aria-hidden="true" />
-                  Not Live Play — Post-Session Review Only
+                  Not Live Play - Post-Session Review Only
                 </span>
               </div>
               <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
@@ -2245,13 +2245,13 @@ export default function LeakFinderPage() {
                   <strong className={toolStyles.telemetryValue}>
                     {detectionResult || detectionProgress
                       ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
-                      : '—'}
+                      : '-'}
                   </strong>
                 </span>
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
                   <strong className={toolStyles.telemetryValue} data-tone="gold">
-                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : '—'}
+                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : '-'}
                   </strong>
                 </span>
               </div>
@@ -2274,20 +2274,20 @@ export default function LeakFinderPage() {
           <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
             <StatCell
               label="Sessions reviewed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? '—' : String(stats.sessionsReviewed))}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? '-' : String(stats.sessionsReviewed))}
             />
             <StatCell
               label="Hands analysed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? '—' : stats.handsAnalyzed.toLocaleString())}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? '-' : stats.handsAnalyzed.toLocaleString())}
             />
             <StatCell
               label="Active leaks"
-              value={leaksLoading ? null : (leaksAreDemo ? '—' : String(stats.leaksFound))}
+              value={leaksLoading ? null : (leaksAreDemo ? '-' : String(stats.leaksFound))}
             />
             <StatCell
               label="Avg EV loss"
               tone={T.danger}
-              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '—')}
+              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '-')}
             />
             <StatCell
               label="GTO accuracy"
@@ -2295,8 +2295,8 @@ export default function LeakFinderPage() {
               value={coachLoading
                 ? null
                 : coachError
-                  ? '—'
-                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? '—'}%` : '—')}
+                  ? '-'
+                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? '-'}%` : '-')}
               tone={coachAccuracy && num(coachAccuracy.accuracy_pct) >= 70
                 ? T.success
                 : coachAccuracy && num(coachAccuracy.accuracy_pct) >= 50 ? T.warn : T.text}
@@ -2305,7 +2305,7 @@ export default function LeakFinderPage() {
             />
             {statsAreDemo && (
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Sample stats — not your own data</span>
+                <span style={pill('warn')}>Sample stats - not your own data</span>
               </div>
             )}
             {statsError && !statsLoading && (
@@ -2436,7 +2436,7 @@ export default function LeakFinderPage() {
               )}
               {!leaksError && leaksPartial && !leaksLoading && (
                 <div role="status" style={{ marginBottom: S.md, display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
-                  <span style={pill('warn')}>Leak history is partially loaded — retry to verify every source</span>
+                  <span style={pill('warn')}>Leak history is partially loaded - retry to verify every source</span>
                   <button type="button" className="pa-btn" style={btn('secondary')} onClick={() => refetchLeaks()}>
                     Retry
                   </button>

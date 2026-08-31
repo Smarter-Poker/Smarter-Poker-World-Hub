@@ -102,7 +102,7 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
         stat: 'Open Raise Range',
         adj: `${openAdj > 0 ? '+' : ''}${(Number.isFinite(Number(openAdj)) ? Number(openAdj) : 0).toFixed(1)}%`,
         color: openAdj < 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-        note: openAdj < 0 ? 'Tighten up — marginal opens become -EV' : 'Slightly wider',
+        note: openAdj < 0 ? 'Tighten up - marginal opens become -EV' : 'Slightly wider',
       },
       {
         stat: '3-Bet Frequency',
@@ -114,7 +114,7 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
         stat: 'Cold Call Range',
         adj: `${callAdj > 0 ? '+' : ''}${(Number.isFinite(Number(callAdj)) ? Number(callAdj) : 0).toFixed(1)}%`,
         color: 'var(--sp-accent-red)',
-        note: 'Cold calling is worse with rake — prefer 3-bet or fold',
+        note: 'Cold calling is worse with rake - prefer 3-bet or fold',
       },
       {
         stat: 'C-Bet Frequency',
@@ -126,7 +126,7 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
         stat: 'Suited Connectors',
         adj: `${suitedAdj > 0 ? '+' : ''}${(Number.isFinite(Number(suitedAdj)) ? Number(suitedAdj) : 0).toFixed(1)}%`,
         color: 'var(--sp-accent-red)',
-        note: 'Implied odds reduced by rake — speculative hands suffer most',
+        note: 'Implied odds reduced by rake - speculative hands suffer most',
       },
     ],
   };
@@ -165,7 +165,7 @@ export default function CustomRakePage() {
         <title>Custom Rake Solver | Smarter.Poker</title>
         <meta
           name="description"
-          content="See how rake affects GTO strategy — input your casino's rake structure"
+          content="See how rake affects GTO strategy - input your casino's rake structure"
         />
       </Head>
 
@@ -444,10 +444,10 @@ export default function CustomRakePage() {
               At {rakePct}% rake with ${rakeCap} cap, you&apos;re paying approximately{' '}
               {impact.rakePerHourBB}BB/hour in rake.
               {parseFloat(impact.rakePerHourBB) > 5
-                ? ' This is HIGH — tighten preflop, 3-bet more instead of calling, and avoid speculative hands.'
+                ? ' This is HIGH - tighten preflop, 3-bet more instead of calling, and avoid speculative hands.'
                 : parseFloat(impact.rakePerHourBB) > 2
-                  ? ' This is MODERATE — slight tightening recommended, especially for cold calls.'
-                  : ' This is LOW — rake has minimal impact on optimal strategy.'}
+                  ? ' This is MODERATE - slight tightening recommended, especially for cold calls.'
+                  : ' This is LOW - rake has minimal impact on optimal strategy.'}
             </div>
           </div>
         </div>

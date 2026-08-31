@@ -76,7 +76,7 @@ export default function DiamondArenaSchedule() {
         <>
             <SEOHead
                 title="Diamond Arena Schedule"
-                description="Smarter.Poker — The Future Of The Game."
+                description="Smarter.Poker - The Future Of The Game."
                 canonical="/hub/diamond-arena/schedule"
             />
 

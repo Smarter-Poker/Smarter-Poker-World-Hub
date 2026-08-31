@@ -387,7 +387,7 @@ export default function SocialPagesHub() {
     return (
         <>
             <SEOHead
-                title="Social Pages — Community"
+                title="Social Pages - Community"
                 description="Discover And Follow Community Pages On Smarter.Poker."
                 canonical="/hub/social-pages"
             />

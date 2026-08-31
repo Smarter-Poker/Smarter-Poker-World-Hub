@@ -330,7 +330,7 @@ export default function TimeAttackPage() {
     return (
         <TriviaErrorBoundary pageName="Time Attack">
             <SEOHead
-                title="Time Attack Trivia — Beat The Clock"
+                title="Time Attack Trivia - Beat The Clock"
                 description="Race Against The Clock In Time Attack Poker Trivia. Answer As Many Questions As Possible Before Time Runs Out."
                 canonical="/hub/trivia/time-attack"
             />

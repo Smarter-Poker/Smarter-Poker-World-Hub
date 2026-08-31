@@ -112,7 +112,7 @@ export default function VenueIntelPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Venue Intelligence — Performance Analytics"
+                title="Venue Intelligence - Performance Analytics"
                 description="Analyze your performance across different venues with earning comparisons and shift calendar."
                 canonical="/hub/toke-tracker/venues"
             />

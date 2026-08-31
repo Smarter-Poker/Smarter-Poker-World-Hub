@@ -199,7 +199,7 @@ export default function ChallengesPage() {
     <>
     <PageTransition>
       <Head>
-        <title>Goals — Smarter.Poker</title>
+        <title>Goals - Smarter.Poker</title>
       </Head>
 
       <div style={styles.container}>
