@@ -266,7 +266,7 @@ export default function TrainingProgress() {
   if (loading) {
     return (
       <>
-        <SEOHead title="Training Progress — Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
+        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
         <div style={styles.loadingContainer}>
           <div style={styles.spinner}></div>
           <p style={styles.loadingText}>Loading Your Progress...</p>
@@ -278,7 +278,7 @@ export default function TrainingProgress() {
   if (!user) {
     return (
       <PageTransition>
-        <SEOHead title="Training Progress — Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
+        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
           <TrainerEmptyState
@@ -295,7 +295,7 @@ export default function TrainingProgress() {
   return (
     <PageTransition>
       <SEOHead
-        title="Training Progress — Your Journey"
+        title="Training Progress - Your Journey"
         description="Track Your GTO Training Progress Across All 100 Games And Categories."
         canonical="/hub/training/progress"
         noindex={true}

@@ -458,7 +458,7 @@ export default function MultiTablePage() {
                     >
                       {saveStatus === 'saving' && 'Saving session...'}
                       {saveStatus === 'saved' && 'Saved to profile'}
-                      {saveStatus === 'error' && 'Save failed — results still shown'}
+                      {saveStatus === 'error' && 'Save failed - results still shown'}
                     </div>
 
                     <div

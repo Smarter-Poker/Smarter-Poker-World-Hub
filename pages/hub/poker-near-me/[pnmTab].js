@@ -151,13 +151,13 @@ const ROUTE_META = {
   venues: {
     heading: 'POKER NEAR ME',
     breadcrumb: 'Venues',
-    title: 'Poker Near Me — Find Live Poker Rooms & Casinos',
+    title: 'Poker Near Me - Find Live Poker Rooms & Casinos',
     description: 'Discover live poker rooms, casinos, and card rooms near you with current schedules, map discovery, and venue details across the United States.',
   },
   map: {
     heading: 'POKER ROOM MAP',
     breadcrumb: 'Map',
-    title: 'Poker Room Map — Casinos & Card Rooms Near You',
+    title: 'Poker Room Map - Casinos & Card Rooms Near You',
     description: 'Explore poker rooms, casinos, card rooms, and live-game locations on an interactive map with location-aware discovery.',
   },
   saved: {
@@ -169,19 +169,19 @@ const ROUTE_META = {
   'live-games': {
     heading: 'CASH GAMES NEAR ME',
     breadcrumb: 'Live Games',
-    title: 'Live Cash Games — Find Poker Rooms & Casinos Near You',
+    title: 'Live Cash Games - Find Poker Rooms & Casinos Near You',
     description: 'Discover live cash games, poker rooms, casinos, and card rooms near you with observed and modeled table availability clearly identified.',
   },
   tours: {
     heading: 'POKER TOURS',
     breadcrumb: 'Tours',
-    title: 'Poker Tours — Circuits & Tour Stops Near You',
+    title: 'Poker Tours - Circuits & Tour Stops Near You',
     description: 'Explore poker tours, traveling circuits, upcoming stops, schedules, and host venues across the live poker network.',
   },
   series: {
     heading: 'POKER SERIES',
     breadcrumb: 'Series',
-    title: 'Poker Series — Tournament Series Near You',
+    title: 'Poker Series - Tournament Series Near You',
     description: 'Find current and upcoming poker series, festival schedules, host venues, buy-ins, and guarantees.',
   },
   'daily-tournaments': {
@@ -193,25 +193,25 @@ const ROUTE_META = {
   'events-calendar': {
     heading: 'EVENTS CALENDAR',
     breadcrumb: 'Events Calendar',
-    title: 'Poker Events Calendar — Tournaments Near You',
+    title: 'Poker Events Calendar - Tournaments Near You',
     description: 'Browse poker tournaments and live events in a location-aware calendar with clear schedules and venue details.',
   },
   more: {
     heading: 'DISCOVERY TOOLS',
     breadcrumb: 'Tools',
-    title: 'Poker Discovery Tools — Trends, Alerts & Trip Planning',
+    title: 'Poker Discovery Tools - Trends, Alerts & Trip Planning',
     description: 'Plan poker trips, compare venues, review game trends, configure alerts, and use community discovery tools.',
   },
   roadtrip: {
     heading: 'POKER ROAD TRIP',
     breadcrumb: 'Road Trip Planner',
-    title: 'Poker Road Trip Planner — Rooms Along Your Route',
+    title: 'Poker Road Trip Planner - Rooms Along Your Route',
     description: 'Plan a poker road trip and find casinos, card rooms, tournaments, and poker stops along your route.',
   },
   alerts: {
     heading: 'TOURNAMENT ALERTS',
     breadcrumb: 'Alerts',
-    title: 'Poker Tournament Alerts — Games Near You',
+    title: 'Poker Tournament Alerts - Games Near You',
     description: 'Configure location-aware poker tournament and live-game alerts by distance, schedule, and game type.',
   },
 };
@@ -295,7 +295,7 @@ function safeSetItem(key, value) {
           }
         }
       }
-      if (!wrote) console.warn('[PNM] localStorage quota exhausted — could not write:', key);
+      if (!wrote) console.warn('[PNM] localStorage quota exhausted - could not write:', key);
     }
   }
 }
@@ -1984,7 +1984,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       const { getFreshAccessToken } = await import('../../../src/lib/authUtils');
       const token = await getFreshAccessToken();
       if (!token) {
-        console.warn('[PNM] Geofence ping skipped — no signed-in session');
+        console.warn('[PNM] Geofence ping skipped - no signed-in session');
         return;
       }
       const res = await fetch('/api/venues/record-geofence', {
@@ -4119,13 +4119,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               'Loading Live Data...'
             ) : (
               <>
-                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
+                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Venues &nbsp;&bull;&nbsp;
                 {/* UX FIX: 'mixed' means the published total is real observations
                     PLUS simulator output, so it must carry the approximate label
                     too. Pending and offline feeds cannot prove a zero count, so
                     they render an em dash instead of a misleading zero. */}
                 {liveDataMode == null || liveDataMode === 'none'
-                  ? '—'
+                  ? '-'
                   : liveTableCount.toLocaleString()}{' '}
                 {liveDataMode === 'estimated' || liveDataMode === 'mixed'
                   ? 'Tables (Approx.)'
@@ -4168,7 +4168,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
               <span>
                 {directorySource === 'supabase'
-                  ? `Loading live venue registry — ${directoryProgress.loaded} rooms ready.`
+                  ? `Loading live venue registry - ${directoryProgress.loaded} rooms ready.`
                   : directorySource === 'unavailable'
                   ? 'The venue registry is temporarily unavailable.'
                   : directorySource === 'partial_live'

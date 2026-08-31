@@ -120,9 +120,9 @@ function formatSeriesDateRange(start, end) {
         const e = new Date(end + 'T23:59:59');
         const days = Math.round((e - s) / (1000 * 60 * 60 * 24));
         if (days <= 0) return startFmt; // same-day fallback
-        if (days > 180) return `${startFmt} — Season Series`;
-        if (days > 45) return `${startFmt} – ${formatDateShort(end)} · ${days}-Day Series`;
-        return `${startFmt} – ${formatDate(end)}`;
+        if (days > 180) return `${startFmt} - Season Series`;
+        if (days > 45) return `${startFmt} - ${formatDateShort(end)} · ${days}-Day Series`;
+        return `${startFmt} - ${formatDate(end)}`;
     } catch {
         return startFmt;
     }
@@ -665,7 +665,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                 series_start: series.start_date,
                 series_end: series.end_date,
                 dates: series.start_date && series.end_date
-                    ? `${formatDateShort(series.start_date)} – ${formatDateShort(series.end_date)}`
+                    ? `${formatDateShort(series.start_date)} - ${formatDateShort(series.end_date)}`
                     : '',
                 is_running: live,
             });
@@ -720,7 +720,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
     return (
         <>
             <Head>
-                <title>Poker Series — Live Tournament Series Directory | Smarter.Poker</title>
+                <title>Poker Series - Live Tournament Series Directory | Smarter.Poker</title>
                 <meta name="description" content="Browse all live and upcoming poker tournament series. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
                 <link rel="canonical" href="https://smarter.poker/hub/poker-series" />
                 <meta property="og:title" content="Poker Series Directory | Smarter.Poker" />
@@ -2089,7 +2089,7 @@ function withBuildTimeout(promise, label) {
     let timer;
     const timeout = new Promise((resolve) => {
         timer = setTimeout(() => {
-            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms — continuing without it; ISR will populate on first request.`);
+            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms - continuing without it; ISR will populate on first request.`);
             resolve(null);
         }, BUILD_FETCH_TIMEOUT_MS);
     });

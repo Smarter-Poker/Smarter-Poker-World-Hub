@@ -1150,7 +1150,7 @@ export default function TriviaModePage() {
     }
 
     return (
-        <TriviaErrorBoundary pageName={`Trivia — ${modeConfig?.name || mode}`}>
+        <TriviaErrorBoundary pageName={`Trivia - ${modeConfig?.name || mode}`}>
             <SEOHead
                 title="Poker Trivia Game"
                 description="Play Poker Trivia On Smarter.Poker. Test Your Knowledge Across Multiple Game Modes."
@@ -1253,7 +1253,7 @@ export default function TriviaModePage() {
                                 className="lobby-image-wrapper"
                                 onClick={startGame}
                                 disabled={isStarting}
-                                aria-label={`${modeConfig.name} — start challenge${modeConfig.diamondCost > 0 ? `, entry ${modeConfig.diamondCost} diamonds` : ''}`}
+                                aria-label={`${modeConfig.name} - start challenge${modeConfig.diamondCost > 0 ? `, entry ${modeConfig.diamondCost} diamonds` : ''}`}
                                 style={{ borderRadius: 0 }}
                             >
                                 <img
@@ -1364,12 +1364,12 @@ export default function TriviaModePage() {
                             )}
                             {result.capReached && (
                                 <div className="cap-callout">
-                                    Daily earning cap reached for this mode — {result.diamondsEarned} of {result.rawDiamonds} diamonds awarded. Come back tomorrow for full rewards!
+                                    Daily earning cap reached for this mode - {result.diamondsEarned} of {result.rawDiamonds} diamonds awarded. Come back tomorrow for full rewards!
                                 </div>
                             )}
                             {result.skippedCount > 0 && (
                                 <div className="cap-callout">
-                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} skipped and scored neutral — they are not counted in your accuracy.
+                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} skipped and scored neutral - they are not counted in your accuracy.
                                 </div>
                             )}
                             {wheelError && (

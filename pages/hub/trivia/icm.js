@@ -11,9 +11,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 export default function ICMPage() {
     useTrainingBus('trivia-icm');
     return (
-        <TriviaErrorBoundary pageName="Trivia — ICM & Chip EV">
+        <TriviaErrorBoundary pageName="Trivia - ICM & Chip EV">
             <SEOHead
-                title="ICM Trivia — Tournament Equity & Chip EV"
+                title="ICM Trivia - Tournament Equity & Chip EV"
                 description="Test Your ICM Knowledge With Tournament Equity And Chip EV Decisions On Smarter.Poker."
                 canonical="/hub/trivia/icm"
                 noindex={true}

@@ -468,7 +468,7 @@ export default function RangeBuilder() {
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              {isDiffMode ? 'RESULTS — GTO DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
+              {isDiffMode ? 'RESULTS - GTO DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
             </div>
             <div
               style={{
@@ -613,10 +613,10 @@ export default function RangeBuilder() {
                   >
                     LEGEND
                   </div>
-                  <LegendItem color="#22c55e" label="Correct — You included, GTO includes" />
-                  <LegendItem color="#fbbf24" label="Missed — GTO includes, you didn't" />
-                  <LegendItem color="#ef4444" label="Wrong — You included, GTO doesn't" />
-                  <LegendItem color="#f97316" label="Partial — Mixed frequency hand" />
+                  <LegendItem color="#22c55e" label="Correct - You included, GTO includes" />
+                  <LegendItem color="#fbbf24" label="Missed - GTO includes, you didn't" />
+                  <LegendItem color="#ef4444" label="Wrong - You included, GTO doesn't" />
+                  <LegendItem color="#f97316" label="Partial - Mixed frequency hand" />
 
                   <button
                     onClick={() => {

@@ -59,7 +59,7 @@ export default function ClinicPlayPage() {
 
   return (
     <>
-      <SEOHead title="Training Clinic — Smarter.Poker" description="Verified remediation training." noindex />
+      <SEOHead title="Training Clinic - Smarter.Poker" description="Verified remediation training." noindex />
       <UniversalHeader pageDepth={2} />
       <main style={{ minHeight: 'calc(100vh - 70px)', padding: 'clamp(26px, 7vw, 80px) 18px', background: 'radial-gradient(circle at 50% 20%, #11324b 0, #050910 48%, #020407 100%)', color: '#fff' }}>
         <section style={{ position: 'relative', maxWidth: 720, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px)', border: '1px solid rgba(145,229,255,.45)', background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)' }}>

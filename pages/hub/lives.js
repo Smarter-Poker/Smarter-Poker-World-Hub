@@ -275,7 +275,7 @@ export default function LivesPage() {
         } catch (err) {
             console.warn('Delete draft error:', err);
             // Surface the failure so the user knows the draft is still present
-            setPublishToast('Could not delete draft — please try again');
+            setPublishToast('Could not delete draft - please try again');
             if (publishToastTimerRef.current) clearTimeout(publishToastTimerRef.current);
             publishToastTimerRef.current = setTimeout(() => {
                 publishToastTimerRef.current = null;
@@ -525,7 +525,7 @@ export default function LivesPage() {
     return (
         <>
             <SEOHead
-                title="Live Streams — Watch Poker Live"
+                title="Live Streams - Watch Poker Live"
                 description="Watch Live Poker Streams And Events. Follow Your Favorite Players And Catch The Action In Real Time."
                 canonical="/hub/lives"
             />

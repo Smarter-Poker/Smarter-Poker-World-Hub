@@ -715,7 +715,7 @@ export default function EndlessModePage() {
     return (
         <TriviaErrorBoundary pageName="Endless Mode">
             <SEOHead
-                title="Endless Trivia — Keep The Streak Alive"
+                title="Endless Trivia - Keep The Streak Alive"
                 description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
                 canonical="/hub/trivia/endless"
             />
@@ -1265,7 +1265,7 @@ export default function EndlessModePage() {
                                             </div>
                                             {awardedDiamonds != null && awardedDiamonds < diamondsEarned && (
                                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: 6 }}>
-                                                    Daily cap reached — {awardedDiamonds} of {diamondsEarned} credited
+                                                    Daily cap reached - {awardedDiamonds} of {diamondsEarned} credited
                                                 </div>
                                             )}
                                         </div>

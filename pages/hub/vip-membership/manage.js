@@ -209,7 +209,7 @@ export default function VipManagePage() {
         <div className={styles.console}>
           <section className={`${styles.panel} ${styles.panelGold}`} aria-labelledby="entitlement-signal-title">
             <h2 id="entitlement-signal-title"><Crown size={22} aria-hidden="true" /> Entitlement Signal</h2>
-            <p>The server—not this browser—decides whether your VIP access is active.</p>
+            <p>The server-not this browser-decides whether your VIP access is active.</p>
             <div className={styles.statusLine}>
               <div><span>Access State</span><strong>{membership.isVip ? 'Active' : 'Inactive'}</strong></div>
               <div><span>Settlement Source</span><strong>{sourceLabel(membership.source)}</strong></div>

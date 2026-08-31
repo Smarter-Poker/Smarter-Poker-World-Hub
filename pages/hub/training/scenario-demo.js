@@ -43,7 +43,7 @@ const TUTORIAL_STEPS = [
   },
   {
     title: 'Reading the Board',
-    body: 'Every training question shows you a poker scenario: the board cards, your hero hand, pot size, and street. Pay attention to board texture — is it wet (many draws possible) or dry (few draws)?',
+    body: 'Every training question shows you a poker scenario: the board cards, your hero hand, pot size, and street. Pay attention to board texture - is it wet (many draws possible) or dry (few draws)?',
     example: { board: ['K♠', '7♦', '2♣'], hero: ['A♠', 'K♦'], pot: '8.5 BB', street: 'Flop' },
     icon: '◇',
   },
@@ -103,8 +103,8 @@ const QUIZ_QUESTIONS = [
   },
   {
     q: 'An 85% GTO accuracy score is considered:',
-    options: ['Weak — needs improvement', 'Strong — near-optimal', 'Average — room to grow', 'Unusable — restart the session'],
-    correct: 'Strong — near-optimal',
+    options: ['Weak - needs improvement', 'Strong - near-optimal', 'Average - room to grow', 'Unusable - restart the session'],
+    correct: 'Strong - near-optimal',
   },
 ];
 

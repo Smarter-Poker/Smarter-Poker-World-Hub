@@ -351,7 +351,7 @@ export default function DailyGoalsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  Daily bonus claimed — +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} diamonds
+                  Daily bonus claimed - +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} diamonds
                 </div>
               )}
 

@@ -268,7 +268,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
             <h2 className="text-xl font-semibold text-white">About home games on Smarter.Poker</h2>
             <p className="text-[#94A3B8]">
               Smarter.Poker is the largest directory of poker home games in the United States. Every home game listed
-              here is hosted by a real player who uses Club Commander to manage their game — invite codes, RSVPs,
+              here is hosted by a real player who uses Club Commander to manage their game - invite codes, RSVPs,
               seat assignments, and waitlist. When you follow a home game, you get notified of every upcoming session
               in your area.
             </p>

@@ -915,7 +915,7 @@ export default function PvPPage() {
     return (
         <TriviaErrorBoundary pageName="PvP Battle">
             <SEOHead
-                title="PvP Trivia — Player vs Player"
+                title="PvP Trivia - Player vs Player"
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
                 canonical="/hub/trivia/pvp"
             >
@@ -1170,7 +1170,7 @@ export default function PvPPage() {
                                         <div className="spinner" />
                                         <span>
                                             Waiting For Opponent To Finish
-                                            {waitingSecondsLeft > 0 && ` — ${Math.floor(waitingSecondsLeft / 60)}:${String(waitingSecondsLeft % 60).padStart(2, '0')}`}
+                                            {waitingSecondsLeft > 0 && ` - ${Math.floor(waitingSecondsLeft / 60)}:${String(waitingSecondsLeft % 60).padStart(2, '0')}`}
                                         </span>
                                     </div>
                                 ) : (

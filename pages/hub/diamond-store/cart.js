@@ -612,7 +612,7 @@ export default function ShoppingCart() {
     return (
       <>
         <SEOHead
-          title="Shopping Cart — Diamond Store"
+          title="Shopping Cart - Diamond Store"
           description="View And Manage Items In Your Diamond Store Shopping Cart."
           canonical="/hub/diamond-store/cart"
           noindex={true}
@@ -633,7 +633,7 @@ export default function ShoppingCart() {
   return (
     <PageTransition>
       <SEOHead
-        title="Shopping Cart — Diamond Store"
+        title="Shopping Cart - Diamond Store"
         description="View And Manage Items In Your Diamond Store Shopping Cart."
         canonical="/hub/diamond-store/cart"
         noindex={true}

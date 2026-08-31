@@ -291,7 +291,7 @@ export default function ClubShopItemDetail() {
               if (body.data?.redemptionStatus === 'needs_review') {
                 setState({
                   kind: 'error',
-                  message: 'Your card payment and Diamonds are recorded, but this item was not purchased. Your Diamonds remain available—use Buy With Diamonds to finish without another card payment.',
+                  message: 'Your card payment and Diamonds are recorded, but this item was not purchased. Your Diamonds remain available-use Buy With Diamonds to finish without another card payment.',
                 });
                 await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
                 return;
@@ -395,7 +395,7 @@ export default function ClubShopItemDetail() {
           </button>
           <button type="button" onClick={purchaseWithCard} disabled={state.kind === 'processing'}>
             <CreditCard size={16} aria-hidden="true" />
-            {cardCharge == null ? 'Buy With Card' : `Buy With Card — $${cardCharge.toFixed(2)}`}
+            {cardCharge == null ? 'Buy With Card' : `Buy With Card - $${cardCharge.toFixed(2)}`}
           </button>
         </>
       ) : (

@@ -255,7 +255,7 @@ export default function CreateSocialPage() {
                             Create a Page
                         </h1>
                         <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 8px' }}>
-                            Step {step} of 2 — {step === 1 ? 'Choose type' : 'Page details'}
+                            Step {step} of 2 - {step === 1 ? 'Choose type' : 'Page details'}
                         </p>
                         {/* Visual Progress Bar */}
                         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>

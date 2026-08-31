@@ -37,7 +37,7 @@ const CARDS = [
     id: 2,
     cat: 'Preflop',
     q: 'What does "RFI" stand for?',
-    a: 'Raise First In — you are the first player to voluntarily enter the pot with a raise.',
+    a: 'Raise First In - you are the first player to voluntarily enter the pot with a raise.',
   },
   {
     id: 3,
@@ -103,13 +103,13 @@ const CARDS = [
     id: 13,
     cat: 'Theory',
     q: 'What is a balanced strategy?',
-    a: 'A strategy that is unexploitable — opponent cannot gain EV by adjusting their strategy against it.',
+    a: 'A strategy that is unexploitable - opponent cannot gain EV by adjusting their strategy against it.',
   },
   {
     id: 14,
     cat: 'Theory',
     q: 'What does GTO stand for?',
-    a: 'Game Theory Optimal — a strategy based on Nash Equilibrium that cannot be exploited.',
+    a: 'Game Theory Optimal - a strategy based on Nash Equilibrium that cannot be exploited.',
   },
   {
     id: 15,
@@ -145,7 +145,7 @@ const CARDS = [
     id: 20,
     cat: 'Theory',
     q: 'What is ICM?',
-    a: 'Independent Chip Model — converts tournament chips to real-money equity based on payout structure.',
+    a: 'Independent Chip Model - converts tournament chips to real-money equity based on payout structure.',
   },
   {
     id: 21,
@@ -187,7 +187,7 @@ const CARDS = [
     id: 27,
     cat: 'Preflop',
     q: 'What is the BTN opening range in 6-max?',
-    a: 'Approximately 45-50% of hands — the widest opening range at the table.',
+    a: 'Approximately 45-50% of hands - the widest opening range at the table.',
   },
   {
     id: 28,

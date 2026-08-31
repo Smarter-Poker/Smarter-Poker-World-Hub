@@ -128,7 +128,7 @@ export default function LandingPage() {
   return (
     <>
       <SEOHead
-        title="Smarter.Poker — The Future Of The Game"
+        title="Smarter.Poker - The Future Of The Game"
         description="Train Smarter, Connect Globally, Manage Everything. The Ultimate Poker Platform For GTO Training, Live Venue Discovery, Bankroll Tracking, Trivia, And Community."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
@@ -156,7 +156,7 @@ export default function LandingPage() {
         <div style={styles.imageWrapper}>
           <img
             src="/images/landing-hero.jpg"
-            alt="Smarter.Poker — The Future Of The Game"
+            alt="Smarter.Poker - The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
             loading="lazy"
@@ -232,7 +232,7 @@ export default function LandingPage() {
 
         {/* ── FOOTER ──────────────────────────────────────────── */}
         <footer style={styles.footer}>
-          <span style={styles.footerText}>© 2025 Smarter.Poker — The Future Of The Game</span>
+          <span style={styles.footerText}>© 2025 Smarter.Poker - The Future Of The Game</span>
         </footer>
       </div>
 
