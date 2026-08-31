@@ -744,7 +744,8 @@ jobs:
             __tests__/cashier-push-types.test.mjs \
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
-            __tests__/vercel-build-queue.test.mjs
+            __tests__/vercel-build-queue.test.mjs \
+            __tests__/arena-theme-assets-exist.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
