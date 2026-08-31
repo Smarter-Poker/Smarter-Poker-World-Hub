@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/training-hub-media-audit.mjs",
+  "canonicalGames": 107,
+  "responsiveVariantFiles": 642,
+  "uniqueCanonicalArtworks": 107,
+  "sourceContracts": {
+    "hubUsesResponsiveArt": true,
+    "hubDoesNotImportDirectImage": true,
+    "responsiveAvif": true,
+    "responsiveWebp": true,
+    "responsiveSizes": true,
+    "modernHero": true,
+    "modernHud": true,
+    "noScanline": true
+  },
+  "aggregateBytes": {
+    "rootWebp": 13007834,
+    "avif640": 2775721,
+    "webp640": 2877870,
+    "avif960": 4578448,
+    "webp960": 4997994,
+    "avif1440": 7696132
+  },
+  "estimatedCardArtSavingsPct": {
+    "avif640VsRootWebp": 78.7,
+    "avif960VsRootWebp": 64.8
+  },
+  "supportingAssets": {
+    "training-orb-hero": {
+      "png": 2125296,
+      "webp": 210404,
+      "avif": 121603
+    },
+    "training-card-hud-overlay": {
+      "png": 1037362,
+      "webp": 46314,
+      "avif": 27221
+    }
+  },
+  "missingVariants": []
+}
