@@ -1,8 +1,9 @@
 # Training Phase 3 Hub Media, Performance, And Browse Audit
 
 Date: 2026-08-31
-Status: In Progress
+Status: Complete
 Baseline production build: `deda94df`
+Certified production build: `94d31ab2f2d081b508b7de6acb7aaa35221d0afa`
 
 ## Scope And Visual Direction
 
@@ -47,22 +48,53 @@ by `scripts/training-hub-media-audit.mjs`. It fails on a missing responsive
 variant, duplicated canonical artwork, stale report, direct non-responsive Hub
 image use, missing modern hero/HUD delivery, or scanline regression.
 
-## Verification To Date
+## Browser Defects Closed
 
-- Eight focused media, casino-art, scanline, Club Arena, and inventory contracts
-  pass.
-- TypeScript compilation and whitespace validation pass.
+The first production inspection found two real browse defects. At 390 pixels,
+the library title was ellipsized, hiding part of the destination name. A
+zero-result query also rendered advice without a usable recovery action. The
+mobile heading now wraps within its complete rectangular metal frame, and the
+empty state exposes a 44-pixel `Reset Browse Filters` control that clears the
+query, restores `All`, and immediately returns all 107 games.
+
+## Final Verification
+
+- The full production build passed after 519 prebuild tests and 70 Training
+  build tests, producing all 402 routes.
+- Seventeen focused media, casino-art, browse-recovery, accessibility,
+  scanline, and inventory contracts pass; the closeout evidence contract also
+  passes.
+- TypeScript compilation, whitespace validation, and the local pre-push safety
+  gate pass.
 - The Phase 2 authoritative inventory remains fresh: 107 games, 765 CTAs, zero
   CTA wiring gaps, and zero unassigned route-state gaps.
+- Desktop `1440x1000` and mobile `390x844` screenshots were inspected on exact
+  production build `94d31ab2`. Both have zero horizontal overflow, zero layout
+  shift entries, zero broken images, zero scanline elements, and no browser
+  warnings or errors. The Hub stays below the 7,500-node runtime budget at
+  5,690 nodes while retaining all 107 cards and 107 shared HUD overlays.
+- All six category states return exact counts on desktop and mobile. Four
+  representative desktop searches, the mobile zero-result state, and reset
+  recovery pass after the authored 120-millisecond debounce.
+- Every canonical card was opened and closed on both viewports: 214/214 launch
+  jobs passed. Every setup title matched its card, all 214 setup images selected
+  AVIF, and none were broken.
+- The scoped TODO/FIXME/stub/mock/fallback search has zero unclassified matches.
+- The approved global header has zero matching changed files across Phase 3.
 
-## Remaining Phase 3 Work
+Machine-checkable runtime evidence is stored in
+`.agent/audits/2026-08-31-training-phase-3-browser-evidence.json` and locked by
+`__tests__/training-phase-3-closeout.test.mjs`.
 
-- Complete a production build and inspect desktop/mobile Hub screenshots.
-- Measure actual browser transfer selection, layout shift, DOM/card density, and
-  search/filter responsiveness.
-- Exercise every category, representative queries, zero-result recovery, and all
-  107 card launches.
-- Correct any browse, responsive, visual, accessibility, or performance defect
-  discovered by those runs.
-- Publish through a protected PR and certify the exact production build before
-  marking Phase 3 complete or beginning Phase 4.
+## Protected Publication
+
+- PR #1058 merged as `2e6182e47fd4ef1abe456b641abfb6ef622c18c1`.
+- PR #1059 merged as `94d31ab2f2d081b508b7de6acb7aaa35221d0afa`.
+- Required protected checks passed normally, and production health reports exact
+  healthy version `94d31ab2` with database status `ok`.
+
+## Next Phase
+
+Phase 4 is Poker Truth And Question Contract For All 107 Games: legal action
+chronology, positions, streets, stacks, pots, raise legality, card uniqueness,
+solver provenance, explanations, meaningful answers, and the four-option rule.

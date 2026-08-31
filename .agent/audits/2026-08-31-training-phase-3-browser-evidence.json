@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "phase": 3,
+  "status": "complete",
+  "production": {
+    "url": "https://smarter.poker/hub/training",
+    "buildSha": "94d31ab2f2d081b508b7de6acb7aaa35221d0afa",
+    "healthVersion": "94d31ab2",
+    "healthStatus": "ok",
+    "databaseStatus": "ok"
+  },
+  "protectedReleases": [
+    {
+      "pullRequest": 1058,
+      "mergeSha": "2e6182e47fd4ef1abe456b641abfb6ef622c18c1",
+      "purpose": "responsive media and shared modern-format HUD delivery"
+    },
+    {
+      "pullRequest": 1059,
+      "mergeSha": "94d31ab2f2d081b508b7de6acb7aaa35221d0afa",
+      "purpose": "mobile library legibility and zero-result recovery"
+    }
+  ],
+  "media": {
+    "canonicalGames": 107,
+    "responsiveVariantFiles": 642,
+    "uniqueCanonicalArtworks": 107,
+    "avif640SavingsPctVsRootWebp": 78.7,
+    "avif960SavingsPctVsRootWebp": 64.8,
+    "heroPngBytes": 2125296,
+    "heroAvifBytes": 121603,
+    "hudPngBytes": 1037362,
+    "hudAvifBytes": 27221
+  },
+  "browser": {
+    "viewports": {
+      "desktop": {
+        "width": 1440,
+        "height": 1000,
+        "domNodes": 5690,
+        "overflowPx": 0,
+        "layoutShiftTotal": 0,
+        "brokenImages": 0,
+        "scanlineElements": 0,
+        "consoleWarningsOrErrors": 0
+      },
+      "mobile": {
+        "width": 390,
+        "height": 844,
+        "domNodes": 5690,
+        "overflowPx": 0,
+        "layoutShiftTotal": 0,
+        "brokenImages": 0,
+        "scanlineElements": 0,
+        "consoleWarningsOrErrors": 0,
+        "libraryHeadingFullyVisible": true
+      }
+    },
+    "cards": {
+      "renderedPerViewport": 107,
+      "hudOverlaysPerViewport": 107,
+      "desktopLaunchesPassed": 107,
+      "mobileLaunchesPassed": 107,
+      "totalLaunchesPassed": 214,
+      "launchFailures": 0,
+      "setupTitlesMatched": 214,
+      "setupArtSelectedAvif": 214,
+      "setupBrokenImages": 0
+    },
+    "categories": {
+      "expectedCounts": {
+        "all": 107,
+        "tournaments": 27,
+        "cashGames": 25,
+        "spinsAndSngs": 10,
+        "mentalGame": 20,
+        "advanced": 25
+      },
+      "desktopChecksPassed": 6,
+      "mobileChecksPassed": 6,
+      "failures": 0
+    },
+    "search": {
+      "debounceMs": 120,
+      "desktopQueriesPassed": 4,
+      "mobileZeroResultPassed": true,
+      "zeroResultRecoveryVisible": true,
+      "resetRestoredAll107": true,
+      "resetClearedQuery": true
+    }
+  },
+  "defectsClosed": [
+    "Primary Hub and recommended drill bypassed responsive source sets",
+    "Training Orb hero and shared HUD had PNG-only delivery",
+    "Mobile Training Library heading was visually truncated",
+    "Zero-result search had no explicit recovery control"
+  ],
+  "markerAudit": {
+    "scopedTodoFixmeStubMockMatches": 0,
+    "unclassifiedFallbacks": 0
+  },
+  "globalHeader": {
+    "touched": false,
+    "matchingChangedFiles": 0
+  }
+}
