@@ -737,8 +737,14 @@ WORKERS_PREFERRED = {
     # them to the workers VM via WORKERS_BASE_URL instead of Vercel.
     '/api/cron/bbj-detect':                    '/cron/bbj-detect',
     '/api/cron/tournament-bounty-detect':      '/cron/tournament-bounty-detect',
-    '/api/cron/player-stats-refresh':          '/cron/player-stats-refresh',
-    '/api/cron/rakeback-period-settle':        '/cron/rakeback-period-settle',
+    # player-stats-refresh and rakeback-period-settle were REMOVED from this
+    # map on 2026-08-31: both now have real handlers in this repo
+    # (pages/api/cron/), so routing them to the workers VM sends them to a
+    # service that was never built. Verified live that day — Open Claw fired
+    # player-stats-refresh at 11:15 UTC and the Vercel handler never saw it,
+    # while every Vercel-native cron in the same minute ran normally. A path
+    # belongs in this map only while its ONLY implementation is on the
+    # workers VM.
     '/api/cron/anti-cheat-multi-account':      '/cron/anti-cheat-multi-account',
     '/api/cron/anti-cheat-bot-timing':         '/cron/anti-cheat-bot-timing',
     '/api/cron/anti-cheat-chip-dump':          '/cron/anti-cheat-chip-dump',
