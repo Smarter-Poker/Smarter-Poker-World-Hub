@@ -85,11 +85,12 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 #     every 5 min; SMS-alerts after 2 consecutive failures (~10 min outage).
 #   * Internal _heartbeat cron logs ALIVE every 15 min so journalctl shows
 #     liveness; external scrape of the journal would catch a dead dispatcher.
-# Twilio creds come from env (synced to /opt/openclaw/.env via 2B.2(d) batch).
+# Twilio credentials come from the systemd EnvironmentFile and are required for
+# paging. Missing credentials leave alerts pending so the next run retries.
 TWILIO_SID    = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
 TWILIO_TOKEN  = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
 TWILIO_FROM   = os.environ.get('TWILIO_PHONE_NUMBER', '').strip()
-ADMIN_PHONE   = os.environ.get('ADMIN_PHONE', '+17086775221').strip()
+ADMIN_PHONE   = os.environ.get('ADMIN_PHONE', '').strip()
 WORKERS_HEALTH_URL = (os.environ.get('WORKERS_BASE_URL', '').strip() or 'http://10.0.0.3:8081') + '/health'
 
 # In-memory consecutive-failure counter for the workers healthcheck.
@@ -109,11 +110,27 @@ _pnm_directory_health_state = {
     'alert_sent': False,
     'latencies_ms': deque(maxlen=96),
 }
-PNM_DIRECTORY_WARN_MS = int(os.environ.get('PNM_DIRECTORY_WARN_MS', '3000'))
-PNM_SNAPSHOT_WARN_DAYS = int(os.environ.get('PNM_SNAPSHOT_WARN_DAYS', '21'))
-PNM_SNAPSHOT_MAX_DAYS = int(os.environ.get('PNM_SNAPSHOT_MAX_DAYS', '30'))
-PNM_MAX_DRIFT_COUNT = int(os.environ.get('PNM_MAX_DIRECTORY_DRIFT_COUNT', '5'))
-PNM_MAX_DRIFT_PERCENT = float(os.environ.get('PNM_MAX_DIRECTORY_DRIFT_PERCENT', '2'))
+_CONFIG_WARNINGS = []
+
+def _env_number(name, default, caster, minimum, maximum):
+    raw = os.environ.get(name, str(default)).strip()
+    try:
+        value = caster(raw)
+        if value < minimum or value > maximum:
+            raise ValueError('out of range')
+        return value
+    except (TypeError, ValueError):
+        _CONFIG_WARNINGS.append(f'{name}={raw!r} is invalid; using {default}')
+        return default
+
+PNM_DIRECTORY_WARN_MS = _env_number('PNM_DIRECTORY_WARN_MS', 3000, int, 100, 120000)
+PNM_SNAPSHOT_WARN_DAYS = _env_number('PNM_SNAPSHOT_WARN_DAYS', 21, int, 1, 365)
+PNM_SNAPSHOT_MAX_DAYS = _env_number('PNM_SNAPSHOT_MAX_DAYS', 30, int, 2, 730)
+PNM_MAX_DRIFT_COUNT = _env_number('PNM_MAX_DIRECTORY_DRIFT_COUNT', 5, int, 0, 10000)
+PNM_MAX_DRIFT_PERCENT = _env_number('PNM_MAX_DIRECTORY_DRIFT_PERCENT', 2.0, float, 0.0, 100.0)
+if PNM_SNAPSHOT_WARN_DAYS >= PNM_SNAPSHOT_MAX_DAYS:
+    _CONFIG_WARNINGS.append('PNM snapshot warning age must be below the failure age; using 21/30 days')
+    PNM_SNAPSHOT_WARN_DAYS, PNM_SNAPSHOT_MAX_DAYS = 21, 30
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -151,6 +168,8 @@ logging.basicConfig(
     ]
 )
 log = logging.getLogger('openclaw-cron')
+for _config_warning in _CONFIG_WARNINGS:
+    log.warning(f'[config] {_config_warning}')
 
 
 # ─── All jobs: (path, trigger_kwargs) ─────────────────────────────────────────
@@ -824,12 +843,11 @@ def _workers_healthcheck_job():
     state['consec_fail'] += 1
     log.warning(f'[healthcheck] workers DOWN (consec={state["consec_fail"]})')
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        _send_sms(
+        state['alert_sent'] = _send_sms(
             f'🚨 SMARTER.POKER WORKERS DOWN ~10min — {WORKERS_HEALTH_URL} not responding. '
             f'Affects {len(WORKERS_PREFERRED)} cron routes. Check '
             f'`docker ps` on workers VM (Hetzner id 127930016, IP from Keychain).'
         )
-        state['alert_sent'] = True
 
 
 def _auth_drift_watchdog_job():
@@ -938,10 +956,11 @@ def _auth_drift_watchdog_job():
     # Two strikes before paging. A single failure can be a transient network
     # blip, and a false alert at 3am trains people to ignore the real one.
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        _send_sms('SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
-                  '. A rotation likely did not reach this host; cron jobs and/or '
-                  'workers are silently 401ing.')
-        state['alert_sent'] = True
+        state['alert_sent'] = _send_sms(
+            'SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
+            '. A rotation likely did not reach this host; cron jobs and/or '
+            'workers are silently 401ing.'
+        )
 
 
 def _percentile(values, percentile):
@@ -951,6 +970,73 @@ def _percentile(values, percentile):
         return None
     index = max(0, min(len(ordered) - 1, int((percentile / 100) * len(ordered) + 0.9999) - 1))
     return ordered[index]
+
+
+_PNM_VOLATILE_FIELDS = {
+    'last_checked_at', 'last_scraped', 'last_scraped_at',
+    'last_successful_scrape', 'last_verified_at', 'next_check_at',
+    'scrape_status', 'updated_at',
+}
+
+def _pnm_canonical_material(value):
+    if isinstance(value, list):
+        return [_pnm_canonical_material(entry) for entry in value]
+    if not isinstance(value, dict):
+        return value
+    return {
+        key: _pnm_canonical_material(value[key])
+        for key in sorted(value)
+        if key not in _PNM_VOLATILE_FIELDS
+    }
+
+
+def _pnm_json_hash(value, sort_keys=False):
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, separators=(',', ':'), sort_keys=sort_keys
+    ).encode()).hexdigest()
+
+
+def _fetch_complete_pnm_directory():
+    """Collect every candidate page and reject generation changes or duplicates."""
+    page_size = 1000
+    offset = 0
+    candidate_count = None
+    revision = ''
+    rows = []
+    for _page in range(10000):
+        url = f'{BASE_URL}/api/poker/venues?view=directory&limit={page_size}&offset={offset}'
+        response = requests.get(url, headers={'Accept': 'application/json'}, timeout=30)
+        if response.status_code != 200:
+            raise RuntimeError(f'directory HTTP {response.status_code}')
+        payload = response.json()
+        page_rows = payload.get('data') if isinstance(payload, dict) else None
+        if not payload.get('success') or not isinstance(page_rows, list):
+            raise RuntimeError('live directory projection is invalid')
+        if payload.get('degraded') is True or payload.get('data_source') == 'static_snapshot':
+            raise RuntimeError('live directory is serving degraded snapshot data')
+        page_revision = str(payload.get('data_revision') or response.headers.get('X-PNM-Data-Revision') or '')
+        if revision and page_revision and revision != page_revision:
+            raise RuntimeError('directory revision changed during pagination')
+        revision = revision or page_revision
+        reported_total = payload.get('total')
+        try:
+            reported_total = int(reported_total)
+        except (TypeError, ValueError):
+            reported_total = None
+        if reported_total is not None:
+            if candidate_count is not None and candidate_count != reported_total:
+                raise RuntimeError('directory candidate count changed during pagination')
+            candidate_count = reported_total
+        rows.extend(page_rows)
+        offset += page_size
+        if (candidate_count is not None and offset >= candidate_count) or (candidate_count is None and len(page_rows) < page_size):
+            break
+    else:
+        raise RuntimeError('directory pagination exceeded the safety limit')
+    ids = [str(row.get('id')) for row in rows if row.get('id') is not None]
+    if not rows or len(ids) != len(rows) or len(set(ids)) != len(ids):
+        raise RuntimeError('directory pagination returned empty, missing, or duplicate identities')
+    return rows, candidate_count or len(rows), revision
 
 
 def _pnm_directory_health_job():
@@ -964,40 +1050,38 @@ def _pnm_directory_health_job():
     state = _pnm_directory_health_state
     failures = []
     warnings = []
-    live_url = f'{BASE_URL}/api/poker/venues?view=directory&limit=1000&offset=0'
     snapshot_url = f'{BASE_URL}/data/poker-venue-directory-snapshot.json'
     started = time.monotonic()
 
     try:
-        live_response = requests.get(live_url, headers={'Accept': 'application/json'}, timeout=30)
+        live_rows, candidate_count, data_revision = _fetch_complete_pnm_directory()
         latency_ms = round((time.monotonic() - started) * 1000)
         state['latencies_ms'].append(latency_ms)
-        if live_response.status_code != 200:
-            raise RuntimeError(f'directory HTTP {live_response.status_code}')
-        live = live_response.json()
 
         snapshot_response = requests.get(snapshot_url, headers={'Accept': 'application/json'}, timeout=30)
         if snapshot_response.status_code != 200:
             raise RuntimeError(f'snapshot HTTP {snapshot_response.status_code}')
         snapshot = snapshot_response.json()
 
-        live_rows = live.get('data') if isinstance(live, dict) else None
         snapshot_rows = snapshot.get('venues') if isinstance(snapshot, dict) else None
         metadata = snapshot.get('metadata') if isinstance(snapshot, dict) else None
-        if not live.get('success') or not isinstance(live_rows, list) or not live_rows:
-            failures.append('live directory projection is empty or invalid')
-        if live.get('degraded') is True or live.get('data_source') == 'static_snapshot':
-            failures.append('live directory is serving degraded snapshot data')
         if not isinstance(snapshot_rows, list) or not snapshot_rows or not isinstance(metadata, dict):
             failures.append('published snapshot is empty or invalid')
 
         live_ids = {str(row.get('id')) for row in (live_rows or []) if row.get('id') is not None}
         snapshot_ids = {str(row.get('id')) for row in (snapshot_rows or []) if row.get('id') is not None}
-        live_projection_hash = hashlib.sha256(json.dumps(
-            live_rows or [], ensure_ascii=False, separators=(',', ':')
-        ).encode()).hexdigest()
+        live_projection_hash = _pnm_json_hash(live_rows or [])
+        snapshot_payload_hash = _pnm_json_hash(snapshot_rows or [])
         snapshot_projection_hash = str((metadata or {}).get('projected_sha256') or '')
+        if not snapshot_projection_hash or snapshot_payload_hash != snapshot_projection_hash:
+            failures.append('snapshot payload hash does not match its manifest')
         projection_changed = bool(snapshot_projection_hash and live_projection_hash != snapshot_projection_hash)
+        live_material_hash = _pnm_json_hash(_pnm_canonical_material(live_rows or []), sort_keys=True)
+        snapshot_material_hash = _pnm_json_hash(_pnm_canonical_material(snapshot_rows or []), sort_keys=True)
+        manifest_material_hash = str((metadata or {}).get('material_sha256') or '')
+        if not manifest_material_hash or snapshot_material_hash != manifest_material_hash:
+            failures.append('snapshot material hash does not match its manifest')
+        material_changed = live_material_hash != snapshot_material_hash
         drift_count = len(live_ids.symmetric_difference(snapshot_ids))
         denominator = max(len(live_ids), len(snapshot_ids), 1)
         drift_percent = round((drift_count / denominator) * 100, 2)
@@ -1015,21 +1099,27 @@ def _pnm_directory_health_job():
             snapshot_age_days = None
             failures.append('published snapshot has no valid generated_at timestamp')
 
-        if snapshot_age_days is not None and snapshot_age_days > PNM_SNAPSHOT_MAX_DAYS:
+        if snapshot_age_days is not None and snapshot_age_days < -(10 / 1440):
+            failures.append('published snapshot generated_at is implausibly future-dated')
+        elif snapshot_age_days is not None and snapshot_age_days > PNM_SNAPSHOT_MAX_DAYS:
             failures.append(f'published snapshot is {snapshot_age_days} days old')
         elif snapshot_age_days is not None and snapshot_age_days >= PNM_SNAPSHOT_WARN_DAYS:
             warnings.append(f'published snapshot is {snapshot_age_days} days old')
 
         manifest_count = int((metadata or {}).get('public_count') or 0)
-        if manifest_count != len(snapshot_ids):
-            failures.append(f'snapshot manifest count {manifest_count} does not match {len(snapshot_ids)} IDs')
+        if len(snapshot_ids) != len(snapshot_rows or []):
+            failures.append('published snapshot contains duplicate or missing venue IDs')
+        if manifest_count != len(snapshot_rows or []):
+            failures.append(f'snapshot manifest count {manifest_count} does not match {len(snapshot_rows or [])} rows')
+        if not failures and material_changed:
+            warnings.append('live material venue content differs from the published snapshot')
         if latency_ms > PNM_DIRECTORY_WARN_MS:
             warnings.append(f'directory latency {latency_ms}ms exceeds {PNM_DIRECTORY_WARN_MS}ms target')
 
         samples = list(state['latencies_ms'])
         report = {
-            'candidate_count': int(live.get('total') or len(live_ids)),
-            'data_revision': str(live.get('data_revision') or live_response.headers.get('X-PNM-Data-Revision') or '')[:120],
+            'candidate_count': candidate_count,
+            'data_revision': data_revision[:120],
             'drift_count': drift_count,
             'drift_percent': drift_percent,
             'failures': failures,
@@ -1038,10 +1128,12 @@ def _pnm_directory_health_job():
             'latency_p95_ms': _percentile(samples, 95),
             'public_count': len(live_ids),
             'projection_changed': projection_changed,
+            'material_changed': material_changed,
             'sample_count': len(samples),
             'snapshot_age_days': snapshot_age_days,
             'snapshot_count': len(snapshot_ids),
             'snapshot_projection_hash': snapshot_projection_hash[:12],
+            'snapshot_material_hash': snapshot_material_hash[:12],
             'status': 'fail' if failures else ('warning' if warnings else 'ok'),
             'warnings': warnings,
         }
@@ -1068,8 +1160,9 @@ def _pnm_directory_health_job():
 
     state['consec_fail'] += 1
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        _send_sms('Poker Near Me directory health failed twice: ' + '; '.join(failures)[:1200])
-        state['alert_sent'] = True
+        state['alert_sent'] = _send_sms(
+            'Poker Near Me directory health failed twice: ' + '; '.join(failures)[:1200]
+        )
 
 
 def _heartbeat_job():

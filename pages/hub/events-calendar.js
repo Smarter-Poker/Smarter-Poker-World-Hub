@@ -16,7 +16,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
+import { useState, useEffect, useRef, useMemo, memo, useDeferredValue } from 'react';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace 11 hand-rolled SVG components
 import {
     Search, MapPin, Calendar as CalendarLuc, List as ListLuc, Map as MapLuc,
@@ -1020,7 +1020,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                 userLocation={userLocation}
                 fullHeight={true}
                 hideLegend={false}
-                uniformColor={true}
+                        uniformColor="#ffffff"
               />
             </div>
           )}

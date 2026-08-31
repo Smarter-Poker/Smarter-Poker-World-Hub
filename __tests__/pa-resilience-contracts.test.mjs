@@ -33,6 +33,19 @@ test('the hub does not duplicate the hook-owned pa-data-updated refresh', () => 
   assert.doesNotMatch(hub, /addEventListener\(['"]pa-data-updated['"]/);
 });
 
+test('stats and leak refreshes cancel superseded network work', () => {
+  const hooks = read('src/hooks/useAssistant.js');
+  const stats = hooks.slice(hooks.indexOf('export function useAssistantStats'), hooks.indexOf('export function useLeaks'));
+  const leaks = hooks.slice(hooks.indexOf('export function useLeaks'), hooks.indexOf('function formatLeak'));
+
+  for (const source of [stats, leaks]) {
+    assert.match(source, /activeAbortRef\.current\?\.abort\(\)/);
+    assert.match(source, /signal: controller\.signal/);
+    assert.match(source, /err\?\.name === 'AbortError'/);
+    assert.match(source, /requestId !== requestIdRef\.current/);
+  }
+});
+
 test('God Mode provenance survives the page adapter and cannot score quizzes', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.match(sandbox, /forcedMode: mock\.forcedMode === true/);

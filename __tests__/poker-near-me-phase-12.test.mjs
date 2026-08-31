@@ -101,16 +101,18 @@ test('four distinct regional WebP visuals are wired with non-deceptive artwork l
 });
 
 test('snapshot refresh and parity checks fail closed on degraded or drifting sources', async () => {
-  const [refresh, check, resilientFetch, policyGrantCheck, manifest] = await Promise.all([
+  const [refresh, snapshotRuntime, check, resilientFetch, policyGrantCheck, manifest] = await Promise.all([
     source('scripts/refresh-pnm-directory-snapshot.mjs'),
+    source('scripts/lib/pnm-directory-snapshot.mjs'),
     source('scripts/check-pnm-directory-snapshot.mjs'),
     source('scripts/ci/lib/resilient-fetch.mjs'),
     source('scripts/ci/check-policy-function-grants.mjs'),
     json('data/poker-venue-directory-snapshot.json'),
   ]);
-  assert.match(refresh, /refusing to refresh the canonical snapshot/);
+  assert.match(snapshotRuntime, /refusing to use snapshot-backed data/);
   assert.match(refresh, /location-integrity metadata/);
-  assert.match(check, /Live parity target is itself serving snapshot data/);
+  assert.match(snapshotRuntime, /json\.data_source === 'static_snapshot'/);
+  assert.match(check, /fetchCompleteDirectory/);
   assert.match(check, /drift exceeds budget/);
   assert.match(resilientFetch, /PGRST303/);
   assert.match(resilientFetch, /jwt issued at future/);

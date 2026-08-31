@@ -23,8 +23,9 @@ function ensureStylesheet({ id, href }) {
   if (typeof document === 'undefined') return;
   if (document.querySelector(`link[data-pnm-map-style="${id}"]`)) return;
 
+  const targetHref = new URL(href, document.baseURI).href.toLowerCase();
   const existing = [...document.querySelectorAll('link[rel="stylesheet"]')]
-    .find((link) => String(link.href || '').toLowerCase() === href.toLowerCase());
+    .find((link) => String(link.href || '').toLowerCase() === targetHref);
   if (existing) {
     existing.dataset.pnmMapStyle = id;
     return;
@@ -35,6 +36,10 @@ function ensureStylesheet({ id, href }) {
   link.href = href;
   link.dataset.pnmMapStyle = id;
   document.head.appendChild(link);
+}
+
+export function resetPokerMapRuntime() {
+  runtimePromise = null;
 }
 
 /**

@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-05-12
+**Last Updated:** 2026-08-31 — Phase 63 (Poker Near Me Phase 1 adversarial closeout and release repair)
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1412,3 +1412,18 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Analytics reconciliation | Primary day/item/buyer/total counts are Diamond-only, legacy currencies stay separate, refunds reconcile to net values, and requested day windows are exact. |
 
 **Verification:** The original 4/4 Phase 21 contracts and 118/118 marketplace contracts remain covered. The 2026-08-31 closure audit expanded Phase 21 to 6/6 contracts and the complete marketplace suite to 120/120, passed Babel parsing, `git diff --check`, the full optimized Next.js webpack build (402 static pages), and the compiled-production recovery/delete journey in desktop Chromium and mobile Chrome. Full evidence: `.agent/audits/2026-08-30-marketplace-completion-phase-1-operator-reporting.md`.
+
+---
+
+## PHASE 63 — Poker Near Me Phase 1 Adversarial Closeout (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Road Trip correctness | Exact route-corridor and route-series filtering, ordered complete date ranges, waypoint/date share restoration, reload-safe drafts, and mobile map reflow are wired. |
+| Shared map recovery | Every Poker Near Me map uses one scoped local control skin, accessible 44-pixel controls, truthful failed/loading states, and retryable runtime startup. |
+| Snapshot integrity | Complete stable-generation pagination, payload hash recomputation, future-date rejection, material-content drift, whole-run locking, fsync staging, rollback, and interrupted recovery replace partial best-effort refreshes. |
+| Open Claw delivery | Bounded fail-safe config, retryable SMS delivery, environment-only administrator contact, complete directory monitoring, unprivileged service ownership, and exact live file verification are deployed by the canonical workflow. |
+| Release evidence | Focused PNM contracts, full prebuild, TypeScript, Python/YAML checks, production webpack build, and desktop/mobile browser closeout are permanent release gates. |
+| CI artifact budget | Failure artifacts retain compact diagnostics and screenshots without duplicating videos/traces into multi-gigabyte archives. |
+
+**Verification:** 66/66 Poker Near Me contracts, 524/524 full prebuild contracts, TypeScript, Python compile/config loading, workflow parsing, 19/19 representative production journeys, compiled desktop/mobile Phase 13 closeout, and the exact webpack build (402 static pages) passed before release. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-1-closeout.md`.
