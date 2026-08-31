@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Contract: { success: true, stats: { sessionsReviewed, handsAnalyzed, leaksFound,
  *            resolvedLeaks, sandboxSessions, avgEvLoss }, isDemo: boolean }
  * isDemo is true whenever the numbers are NOT the caller's real data (no auth,
- * no data yet, or a query failure) — consumers must surface it.
+ * no data yet, or a query failure) · consumers must surface it.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
 
-    // Per-user training stats — private cache only, 60s browser TTL
+    // Per-user training stats · private cache only, 60s browser TTL
     res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
 
     // JWT Authentication
@@ -148,7 +148,7 @@ async function getLeakStats(userId) {
 }
 
 function getDefaultStats() {
-  // No-auth / error path: all zeros. Never fabricate non-zero stats —
+  // No-auth / error path: all zeros. Never fabricate non-zero stats ·
   // consumers read isDemo:true alongside this and show a sign-in state.
   return {
     sessionsReviewed: 0,

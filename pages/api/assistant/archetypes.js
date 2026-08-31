@@ -13,7 +13,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
 
-// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// NOTE: Removed edge runtime · this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 let _supabase = null;
@@ -29,7 +29,7 @@ function getSupabase() {
 // Curated presentation order (GTO Neutral first, then tight -> loose).
 const CANONICAL_ORDER = ['gto_neutral', 'nit', 'tag', 'lag', 'fish', 'calling_station', 'maniac'];
 
-// Bluff tendency per archetype — display metadata not carried in ARCHETYPE_CONFIG.
+// Bluff tendency per archetype · display metadata not carried in ARCHETYPE_CONFIG.
 const BLUFF_FREQUENCY = {
   gto_neutral: 'balanced',
   nit: 'very_low',
@@ -65,10 +65,10 @@ export default async function handler(req, res) {
 
     // Rate limit before the DB read. The edge cache below is not a substitute:
     // a unique query string per request bypasses the CDN and reaches this
-    // handler — and this endpoint needs no auth at all.
+    // handler · and this endpoint needs no auth at all.
     if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
 
-    // Villain archetypes are static reference data — safe to cache 1 hour at edge
+    // Villain archetypes are static reference data · safe to cache 1 hour at edge
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
 
     try {

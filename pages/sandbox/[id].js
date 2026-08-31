@@ -4,10 +4,10 @@
  *
  * Resolves state_json from Supabase and hands it to the Sandbox page.
  * Three transports, tried in order, so a scenario is never silently degraded:
- *   1. sessionStorage  — biggest payloads, same-origin, instant
- *   2. ?s=<lz-string>  — FULL fidelity (villains + action history + stacks)
+ *   1. sessionStorage  · biggest payloads, same-origin, instant
+ *   2. ?s=<lz-string>  · FULL fidelity (villains + action history + stacks)
  *                        in the URL; survives Safari private mode
- *   3. legacy ?h/?p/?b — last-resort partial restore (hand + board only)
+ *   3. legacy ?h/?p/?b · last-resort partial restore (hand + board only)
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '../../src/lib/supabaseServerClient';
@@ -15,6 +15,7 @@ import Head from 'next/head';
 import LZString from 'lz-string';
 import { AlertTriangle, ExternalLink, RefreshCw, Link2 as LinkIcon } from 'lucide-react';
 import { T, F, S, R, FONT, btn } from '../../src/components/sandbox/paTokens';
+import PersonalAssistantCopyPolicy from '../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 // Share ids are short alphanumeric slugs (create-share generates 6 chars)
 const SHARE_ID_RE = /^[A-Za-z0-9]{4,16}$/;
@@ -39,7 +40,7 @@ function getSupabase() {
  * Build the URL the sandbox page hydrates from.
  *
  * `s` carries the WHOLE snapshot (villains, action history, stacks, pot)
- * compressed with lz-string — the plain query params below can only express
+ * compressed with lz-string · the plain query params below can only express
  * hand/position/stack/board and silently dropped everything else.
  */
 export function buildQueryFallback(state) {
@@ -80,7 +81,7 @@ export function buildQueryFallback(state) {
  * getServerSideProps has exactly two failure props: `error: 'Server error'`
  * when the lookup threw or the query itself errored (a transient DB failure is
  * NOT a revoked link), and `error: 'Not found'` for a bad id, a missing row
- * (the revoked case — DELETE removes the row outright) or a row with no
+ * (the revoked case · DELETE removes the row outright) or a row with no
  * state_json. Everything in that second group is indistinguishable from the
  * outside and must read the same way: the link does not resolve any more.
  */
@@ -93,7 +94,7 @@ export function classifyFailure(error, stateJson) {
 export default function SharedSandboxRedirect({ error, stateJson }) {
     const [failure, setFailure] = useState(() => classifyFailure(error, stateJson));
     const [slow, setSlow] = useState(false);
-    // The payload is in hand but the browser refused the automatic redirect —
+    // The payload is in hand but the browser refused the automatic redirect ·
     // that is not a missing hand, so it gets its own copy and a manual link.
     const [redirectBlocked, setRedirectBlocked] = useState(false);
     const slowTimerRef = useRef(null);
@@ -115,7 +116,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                 sessionStorage.setItem('shared-sandbox-state', payload);
                 window.location.replace(`${SANDBOX_PATH}?loadShared=true`);
             } else {
-                // Too big for sessionStorage — go straight to the URL transport
+                // Too big for sessionStorage · go straight to the URL transport
                 window.location.replace(fallbackHref);
             }
         } catch (e) {
@@ -124,7 +125,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                 window.location.replace(fallbackHref);
             } catch (redirectErr) {
                 console.warn('[shared-sandbox] redirect failed:', redirectErr?.message || redirectErr);
-                // The hand is fine — do not claim it is missing. Show the
+                // The hand is fine · do not claim it is missing. Show the
                 // manual link instead of spinning until the slow timer fires.
                 if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
                 setRedirectBlocked(true);
@@ -146,7 +147,8 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
     };
 
     return (
-        <div style={page} className="shared-sandbox-page">
+        <main style={page} className="shared-sandbox-page">
+            <PersonalAssistantCopyPolicy />
             <Head>
                 <title>Shared Poker Scenario | Smarter.Poker</title>
                 {/* Ephemeral share pages must never enter the index */}
@@ -175,8 +177,8 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                     </h1>
                     <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
                         {failure === 'server'
-                            ? 'Something went wrong at our end — the link itself may be fine. Try again in a moment.'
-                            : 'Whoever shared it may have revoked the link, or the link may be incomplete. Ask them for a fresh one — then build the spot yourself in the Sandbox in the meantime.'}
+                            ? 'Something went wrong at our end · the link itself may be fine. Try again in a moment.'
+                            : 'Whoever shared it may have revoked the link, or the link may be incomplete. Ask them for a fresh one · then build the spot yourself in the Sandbox in the meantime.'}
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, alignItems: 'stretch' }}>
                         {failure === 'server' && (
@@ -258,14 +260,14 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                     }
                 }
             ` }} />
-        </div>
+        </main>
     );
 }
 
 export async function getServerSideProps(context) {
     const { id } = context.params;
 
-    // Validate before touching the DB — blocks id enumeration with junk keys
+    // Validate before touching the DB · blocks id enumeration with junk keys
     if (typeof id !== 'string' || !SHARE_ID_RE.test(id)) {
         return { props: { error: 'Not found' } };
     }
@@ -287,8 +289,8 @@ export async function getServerSideProps(context) {
             .maybeSingle();
 
         // A lookup that FAILED is not the same as a link that is GONE. Collapsing
-        // the two told viewers "the sharer may have revoked this link" — with no
-        // retry offered — during a transient DB blip or a missing table. Real
+        // the two told viewers "the sharer may have revoked this link" · with no
+        // retry offered · during a transient DB blip or a missing table. Real
         // errors surface as 'Server error' (neutral copy + Try again); only a
         // genuinely absent or empty row is 'Not found'. PGRST116 means "no rows",
         // which is a real miss, not a failure.
@@ -301,7 +303,7 @@ export async function getServerSideProps(context) {
             return { props: { error: 'Not found' } };
         }
 
-        // View metric — awaited (serverless can freeze the lambda once props
+        // View metric · awaited (serverless can freeze the lambda once props
         // return) but never fatal: the RPC/column may not exist yet.
         try {
             const { error: rpcError } = await supabase.rpc('increment_share_view', { share_id: id });

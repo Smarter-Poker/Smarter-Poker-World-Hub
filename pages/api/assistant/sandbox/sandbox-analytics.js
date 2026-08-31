@@ -1,6 +1,6 @@
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
- * Sandbox Analytics API — Personal Leak Tracker
+ * Sandbox Analytics API · Personal Leak Tracker
  * POST: Log analyzed spot (position, street, action, outcome)
  * GET:  Return aggregate stats and study patterns
  */
@@ -23,7 +23,7 @@ const POSITIONS = ['UTG', 'UTG1', 'UTG2', 'MP', 'MP1', 'MP2', 'LJ', 'HJ', 'CO', 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  // [Phase 6.1.15] Rate limit writes · prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
             // Find most/least studied positions
             const posEntries = Object.entries(posCounts).sort((a, b) => b[1] - a[1]);
             const mostStudied = posEntries[0]?.[0] || null;
-            // With a single position studied, most === least — not an insight.
+            // With a single position studied, most === least · not an insight.
             const leastStudied = posEntries.length >= 2 ? posEntries[posEntries.length - 1][0] : null;
 
             // Generate insights
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                 insights.push(`Your accuracy is ${Math.round(correct / total * 100)}%. Focus on fundamentals.`);
             }
             if (total >= 10 && correct / total >= 0.8) {
-                insights.push(`${Math.round(correct / total * 100)}% accuracy — excellent! Try harder spots.`);
+                insights.push(`${Math.round(correct / total * 100)}% accuracy · excellent! Try harder spots.`);
             }
 
             return res.status(200).json({
