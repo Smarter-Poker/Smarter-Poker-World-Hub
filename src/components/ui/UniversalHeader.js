@@ -10,8 +10,8 @@
  * - Dark background with neon blue accents
  * - "Smarter.Poker" in white text
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
- * - Profile picture (REAL avatar from profiles.avatar_url)
- * - Neon orb icons for profile, messages, notifications, settings
+ * - Profile picture (uploaded photo by default; Arena avatar only by opt-in)
+ * - VIP card entitlement state with a randomized member shimmer
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
@@ -43,6 +43,7 @@ import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
 import { getHeaderStats } from '../../lib/headerStats';
+import { resolveActiveVip, resolveHeaderPortrait } from '../../lib/headerPortrait';
 
 // Dark theme colors matching hub
 const C = {
@@ -128,6 +129,10 @@ export default function UniversalHeader({
       // TTL check: discard cache older than 24 hours, OR if it belongs to a different user
       if (data?._ts && Date.now() - data._ts > 24 * 60 * 60 * 1000) return null;
       if (data?.userId && data.userId !== currentUserId) return null;
+      // Older cache entries stored a single ambiguous `avatar` value. They can
+      // point at the Club Arena character even when "Use Avatar" is off, so
+      // they are not safe to paint on a global surface.
+      if (data?.portraitPolicyVersion !== 2) return null;
 
       return data;
     } catch (_) {
@@ -150,7 +155,7 @@ export default function UniversalHeader({
 
   // ── FULL-SCREEN OVERLAY STATES ──
   const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
-  const [, setIsVip] = useState(() => {
+  const [isVip, setIsVip] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
       return localStorage.getItem('sp-profile-vip') === 'true';
@@ -158,6 +163,7 @@ export default function UniversalHeader({
       return false;
     }
   });
+  const [vipShimmerVisible, setVipShimmerVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -250,14 +256,48 @@ export default function UniversalHeader({
   // the FIRST post-mount render (when isMounted flips true) already has
   // cached data — so there is zero visual flash despite the gate.
 
-  // Override with Club Identity if active
-  const activeAvatarUrl =
-    isClubMode && clubPage
-      ? clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar
-      : contextAvatar?.imageUrl || user?.avatar;
-  const displayAvatar = isMounted ? activeAvatarUrl || '/default-avatar.png' : null;
+  const profilePhotoUrl = user?.profilePhotoUrl || user?.avatar || null;
+  const arenaAvatarUrl = user?.arenaAvatarUrl || contextAvatar?.imageUrl || null;
+  const resolvedPortrait = resolveHeaderPortrait(
+    profilePhotoUrl,
+    arenaAvatarUrl,
+    user?.useAvatarAsProfilePic === true
+  );
+  const displayAvatar = isMounted ? resolvedPortrait || '/default-avatar.png' : null;
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? notificationCount : 0;
+
+  // VIP members get one clearly visible pass after a newly selected random
+  // five-to-ten-second pause. Non-members never schedule the animation.
+  useEffect(() => {
+    if (!isVip) {
+      setVipShimmerVisible(false);
+      return;
+    }
+
+    let pauseTimer;
+    let shimmerTimer;
+    let cancelled = false;
+    const scheduleNextShimmer = () => {
+      const randomDelayMs = 5_000 + Math.floor(Math.random() * 5_001);
+      pauseTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        setVipShimmerVisible(true);
+        shimmerTimer = window.setTimeout(() => {
+          if (cancelled) return;
+          setVipShimmerVisible(false);
+          scheduleNextShimmer();
+        }, 1_250);
+      }, randomDelayMs);
+    };
+
+    scheduleNextShimmer();
+    return () => {
+      cancelled = true;
+      if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
+      if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
+    };
+  }, [isVip]);
 
   // Live Help state
   const liveHelp = useLiveHelp();
@@ -393,16 +433,26 @@ export default function UniversalHeader({
               console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
               if (result?.success && result.profile && mounted) {
-                const { diamonds, full_name, username, avatar_url, is_vip, is_admin } =
-                  result.profile;
+                const {
+                  diamonds,
+                  full_name,
+                  username,
+                  avatar_url,
+                  arena_avatar_url,
+                  use_avatar_as_profile_pic,
+                  is_vip,
+                  vip_expires_at,
+                  is_admin,
+                } = result.profile;
+                const vipActive = resolveActiveVip(!!is_vip, vip_expires_at);
                 setDiamondBalance(diamonds ?? 0);
-                setIsVip(!!is_vip);
+                setIsVip(vipActive);
                 setIsAdmin(!!is_admin);
                 try {
                   localStorage.setItem('sp-profile-diamonds', String(diamonds ?? 0));
                 } catch (_) {}
                 try {
-                  localStorage.setItem('sp-profile-vip', String(!!is_vip));
+                  localStorage.setItem('sp-profile-vip', String(vipActive));
                 } catch (_) {}
                 try {
                   localStorage.setItem('sp-profile-admin', String(!!is_admin));
@@ -410,9 +460,11 @@ export default function UniversalHeader({
                 setUser((prev) => ({
                   ...prev,
                   avatar: avatar_url,
+                  profilePhotoUrl: avatar_url,
+                  arenaAvatarUrl: arena_avatar_url,
+                  useAvatarAsProfilePic: use_avatar_as_profile_pic === true,
                   name: username || full_name,
                 }));
-                setIsVip(!!is_vip);
                 if (typeof result.notificationCount === 'number') {
                   setNotificationCount(result.notificationCount);
                 }
@@ -427,10 +479,14 @@ export default function UniversalHeader({
                       userId: authUser.id,
                       id: authUser.id,
                       avatar: avatar_url,
+                      profilePhotoUrl: avatar_url,
+                      arenaAvatarUrl: arena_avatar_url,
+                      useAvatarAsProfilePic: use_avatar_as_profile_pic === true,
+                      portraitPolicyVersion: 2,
                       name: normalizedUsername || full_name,
                       username: normalizedUsername,
                       diamonds: diamonds ?? 0,
-                      is_vip: !!is_vip,
+                      is_vip: vipActive,
                       _ts: Date.now(),
                     })
                   );
@@ -504,7 +560,7 @@ export default function UniversalHeader({
               }
 
               const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip,is_admin`,
+                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,arena_avatar_url,use_avatar_as_profile_pic,diamonds,is_vip,vip_expires_at,is_admin`,
                 {
                   headers: {
                     apikey: SUPABASE_ANON_KEY,
@@ -517,12 +573,16 @@ export default function UniversalHeader({
               const profile = profiles?.[0];
 
               if (profile && mounted) {
+                const vipActive = resolveActiveVip(!!profile.is_vip, profile.vip_expires_at);
                 setDiamondBalance(profile.diamonds ?? 0);
-                setIsVip(!!profile.is_vip);
+                setIsVip(vipActive);
                 setIsAdmin(!!profile.is_admin);
                 setUser((prev) => ({
                   ...prev,
                   avatar: profile.avatar_url,
+                  profilePhotoUrl: profile.avatar_url,
+                  arenaAvatarUrl: profile.arena_avatar_url,
+                  useAvatarAsProfilePic: profile.use_avatar_as_profile_pic === true,
                   name: profile.username || profile.full_name,
                 }));
                 // Cache the REST fallback data too — lowercase username
@@ -536,10 +596,14 @@ export default function UniversalHeader({
                       userId: authUser.id,
                       id: authUser.id,
                       avatar: profile.avatar_url,
+                      profilePhotoUrl: profile.avatar_url,
+                      arenaAvatarUrl: profile.arena_avatar_url,
+                      useAvatarAsProfilePic: profile.use_avatar_as_profile_pic === true,
+                      portraitPolicyVersion: 2,
                       name: normalizedFallbackUsername || profile.full_name,
                       username: normalizedFallbackUsername,
                       diamonds: profile.diamonds ?? 0,
-                      is_vip: !!profile.is_vip,
+                      is_vip: vipActive,
                       _ts: Date.now(),
                     })
                   );
@@ -690,12 +754,19 @@ export default function UniversalHeader({
         });
         const result = await response.json();
         if (result.success && result.profile) {
+          const vipActive = resolveActiveVip(
+            !!result.profile.is_vip,
+            result.profile.vip_expires_at
+          );
           setDiamondBalance(result.profile.diamonds ?? 0);
-          setIsVip(!!result.profile.is_vip);
+          setIsVip(vipActive);
           setIsAdmin(!!result.profile.is_admin);
           setUser((prev) => ({
             ...prev,
             avatar: result.profile.avatar_url || prev?.avatar,
+            profilePhotoUrl: result.profile.avatar_url || null,
+            arenaAvatarUrl: result.profile.arena_avatar_url || null,
+            useAvatarAsProfilePic: result.profile.use_avatar_as_profile_pic === true,
             name: result.profile.username || result.profile.full_name || prev?.name,
           }));
           // Update localStorage cache with fresh profile data — lowercase username
@@ -709,10 +780,14 @@ export default function UniversalHeader({
                 userId: user.id,
                 id: user.id,
                 avatar: result.profile.avatar_url,
+                profilePhotoUrl: result.profile.avatar_url,
+                arenaAvatarUrl: result.profile.arena_avatar_url,
+                useAvatarAsProfilePic: result.profile.use_avatar_as_profile_pic === true,
+                portraitPolicyVersion: 2,
                 name: refreshedUsername || result.profile.full_name,
                 username: refreshedUsername,
                 diamonds: result.profile.diamonds ?? 0,
-                is_vip: !!result.profile.is_vip,
+                is_vip: vipActive,
                 _ts: Date.now(),
               })
             );
@@ -1256,31 +1331,40 @@ export default function UniversalHeader({
                 .approved-global-header__back { left: 8%; width: 12%; }
                 .approved-global-header__hub { left: 19.1%; width: 12.9%; }
                 .approved-global-header__profile {
-                    left: 66.5%;
-                    width: 7.5%;
+                    top: 13%;
+                    left: 66.75%;
+                    width: 7.15%;
+                    height: 75%;
                     position: absolute !important;
                     overflow: hidden;
+                    border-radius: 0;
+                    background: #000;
                     contain: layout paint;
                     isolation: isolate;
                 }
                 .approved-global-header__wallet { left: 73.2%; width: 7.1%; }
-                .approved-global-header__vip { left: 79.9%; width: 6.5%; }
+                .approved-global-header__vip {
+                    left: 79.9%;
+                    width: 6.5%;
+                    overflow: hidden;
+                    isolation: isolate;
+                }
                 .approved-global-header__messenger { left: 86%; width: 6.9%; }
                 .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
 
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
+                    inset: 0 !important;
                     z-index: 1;
                     display: block;
-                    width: 58%;
-                    height: auto;
-                    aspect-ratio: .78;
-                    transform: translate(-50%, -50%) !important;
+                    width: 100%;
+                    height: 100%;
+                    aspect-ratio: auto;
+                    transform: none !important;
                     overflow: hidden;
-                    border-radius: 50%;
-                    background: #020305;
+                    border: 0;
+                    border-radius: 0;
+                    background: #000;
                     pointer-events: none;
                 }
 
@@ -1293,12 +1377,49 @@ export default function UniversalHeader({
                     max-width: none !important;
                     aspect-ratio: auto !important;
                     transform: none !important;
-                    border-radius: inherit !important;
-                    background: #020305;
-                    object-fit: cover !important;
+                    border: 0 !important;
+                    border-radius: 0 !important;
+                    background: #000;
+                    object-fit: contain !important;
                     object-position: center !important;
                     opacity: 1 !important;
                     pointer-events: none;
+                }
+
+                .approved-global-header__vip:not(.approved-global-header__vip--active)::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: 1;
+                    background: rgba(0, 0, 0, .42);
+                    pointer-events: none;
+                }
+
+                .approved-global-header__vip--shimmer::after {
+                    content: '';
+                    position: absolute;
+                    top: -25%;
+                    bottom: -25%;
+                    left: -55%;
+                    z-index: 2;
+                    width: 45%;
+                    transform: skewX(-18deg);
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(85, 190, 255, .55) 25%,
+                        rgba(255, 255, 255, .98) 52%,
+                        rgba(255, 211, 88, .7) 74%,
+                        transparent
+                    );
+                    box-shadow: 0 0 20px rgba(61, 171, 255, .8);
+                    animation: approvedGlobalVipShimmer 1.25s cubic-bezier(.2, .65, .35, 1) both;
+                    pointer-events: none;
+                }
+
+                @keyframes approvedGlobalVipShimmer {
+                    from { left: -55%; }
+                    to { left: 125%; }
                 }
 
                 .approved-global-header__badge {
@@ -1394,9 +1515,12 @@ export default function UniversalHeader({
           />
           <button
             type="button"
-            className="approved-global-header__button approved-global-header__vip"
+            className={`approved-global-header__button approved-global-header__vip${
+              isVip ? ' approved-global-header__vip--active' : ''
+            }${vipShimmerVisible ? ' approved-global-header__vip--shimmer' : ''}`}
             onClick={() => router.push('/hub/vip-membership')}
-            aria-label="VIP"
+            aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'}
+            data-vip-active={isVip ? 'true' : 'false'}
           />
           <button
             type="button"
