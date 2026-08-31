@@ -9,6 +9,7 @@
   padding: 92px 0 110px;
   color: #e9f4f8;
   font-family: 'Inter', sans-serif;
+  text-transform: capitalize;
 }
 
 .routeRail {

@@ -44,7 +44,8 @@ test('reward detail readouts describe earnings rather than purchase settlement',
     read('src/components/transitions/PageTransition.js'),
   ]);
   assert.match(detail, /diamondLabel = 'Diamond Settlement'/);
-  assert.match(detail, /<small>\{diamondLabel\}<\/small>/);
+  assert.match(detail, /const copyDiamondLabel = marketplaceCopy\(diamondLabel\)/);
+  assert.match(detail, /<small>\{copyDiamondLabel\}<\/small>/);
   assert.match(detail, /securityCopy = 'Card checkout is handled by Stripe/);
   assert.match(detail, /fetchPriority="high"/);
   assert.match(reward, /diamondLabel="Reward Value"/);

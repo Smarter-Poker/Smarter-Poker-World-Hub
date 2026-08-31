@@ -12,6 +12,7 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 const CLUB_DETAIL_LOAD_TIMEOUT_MS = 20000;
 
@@ -104,7 +105,13 @@ export default function ClubShopItemDetail() {
       }
       setClubId(targetClub);
       setBalance(Number(body.balance) || 0);
-      setItem({ ...match, price: Number(match.price) || 0 });
+      setItem({
+        ...match,
+        name: marketplaceCopy(match.name),
+        description: marketplaceCopy(match.description),
+        category: marketplaceCopy(match.category),
+        price: Number(match.price) || 0,
+      });
       setState(completionMessage
         ? { kind: 'complete', message: completionMessage }
         : {
@@ -291,7 +298,7 @@ export default function ClubShopItemDetail() {
               if (body.data?.redemptionStatus === 'needs_review') {
                 setState({
                   kind: 'error',
-                  message: 'Your card payment and Diamonds are recorded, but this item was not purchased. Your Diamonds remain available—use Buy With Diamonds to finish without another card payment.',
+                  message: 'Your Card Payment And Diamonds Are Recorded, But This Item Was Not Purchased. Your Diamonds Remain Available: Use Buy With Diamonds To Finish Without Another Card Payment.',
                 });
                 await router.replace(`${canonical}?clubId=${encodeURIComponent(clubId)}`, undefined, { shallow: true });
                 return;
@@ -395,7 +402,7 @@ export default function ClubShopItemDetail() {
           </button>
           <button type="button" onClick={purchaseWithCard} disabled={state.kind === 'processing'}>
             <CreditCard size={16} aria-hidden="true" />
-            {cardCharge == null ? 'Buy With Card' : `Buy With Card — $${cardCharge.toFixed(2)}`}
+            {cardCharge == null ? 'Buy With Card' : `Buy With Card: $${cardCharge.toFixed(2)}`}
           </button>
         </>
       ) : (
@@ -418,7 +425,7 @@ export default function ClubShopItemDetail() {
     >
       <div role="status" aria-live="polite" className={detailStyles.detailCard}>
         <h2>Live Purchase Console</h2>
-        <p>{state.message}</p>
+        <p>{marketplaceCopy(state.message)}</p>
         {balance != null && <p>Verified wallet balance: <strong>{balance.toLocaleString()} Diamonds</strong>.</p>}
         {cardTopUp && (
           <p>
@@ -435,7 +442,7 @@ export default function ClubShopItemDetail() {
             Confirm Diamond Purchase
           </h2>
           <p>
-            Spend <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> on {item.name}?
+            Spend <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> On {marketplaceCopy(item.name)}?
             The server will recheck availability, limits, price, and your wallet before deducting anything.
           </p>
           <div className={detailStyles.actions}>

@@ -57,7 +57,7 @@ test('marketplace JSON-LD cannot terminate its script element', () => {
   assert.match(detailShell, /\\u003c/);
   assert.match(detailShell, /\\u003e/);
   assert.match(detailShell, /\\u0026/);
-  assert.match(detailShell, /serializeStructuredData\(structuredData\)/);
+  assert.match(detailShell, /serializeStructuredData\(marketplaceStructuredData\(structuredData\)\)/);
 });
 
 test('club item detail closes double-submit windows and persists card intent server-side', () => {

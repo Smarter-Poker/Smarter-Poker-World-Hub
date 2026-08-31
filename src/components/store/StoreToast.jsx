@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- *  STORE TOAST — Premium notification system for Diamond Store
+ *  STORE TOAST: Premium notification system for Diamond Store
  *  ═══════════════════════════════════════════════════════════════════════════════
  *  Replaces all native alert() calls with animated, auto-dismiss toasts.
  *  4 types: success (cyan), error (red), info (cyan), warning (amber)
