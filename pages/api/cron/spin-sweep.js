@@ -50,7 +50,12 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 /** Overlaps two 15-minute cycles, so a skipped run loses nothing. */
-const LOOKBACK_MINS = 30;
+/* 2026-08-30 spins audit: 30 minutes meant any spin left unbooked across a
+   longer outage was stranded forever - migration
+   20260823060000_settle_the_three_aged_out_spins is the proof it has
+   happened. fn_spin_sweep_unbooked is idempotent (already-settled games
+   return already_settled and cost nothing), so a wide window is free. */
+const LOOKBACK_MINS = 14 * 24 * 60;
 
 let _admin = null;
 function getAdmin() {
