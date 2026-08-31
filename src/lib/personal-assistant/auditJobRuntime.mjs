@@ -18,6 +18,23 @@ const METRIC_MAP = {
 
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 
+// Job results contain detector rows assembled under service-role access. Keep
+// ownership and continuation metadata server-side even when a nested detector
+// payload accidentally includes it; the authenticated client needs evidence,
+// not database ownership or worker-control fields.
+const PRIVATE_JOB_KEYS = new Set([
+  'user_id', 'audit_cursor', 'worker_token', 'lease_expires_at',
+  'userId', 'auditCursor', 'workerToken', 'leaseExpiresAt',
+]);
+
+function publicAuditValue(value) {
+  if (Array.isArray(value)) return value.map(publicAuditValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !PRIVATE_JOB_KEYS.has(key))
+    .map(([key, child]) => [key, publicAuditValue(child)]));
+}
+
 export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0) {
   const prior = previous && typeof previous === 'object' ? previous : {};
   const sync = detection?.clubArenaSync || {};
@@ -51,9 +68,9 @@ export function publicAuditJob(row) {
     id: row.id,
     status: row.status,
     stage: row.stage,
-    progress: row.progress || {},
-    result: row.result || null,
-    reconciliation: row.reconciliation || null,
+    progress: publicAuditValue(row.progress || {}),
+    result: publicAuditValue(row.result || null),
+    reconciliation: publicAuditValue(row.reconciliation || null),
     engineVersion: row.engine_version,
     attemptCount: number(row.attempt_count),
     resumable: Boolean(row.audit_cursor) && ['queued', 'running', 'failed'].includes(row.status),
