@@ -40,9 +40,12 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
   await expect.poll(() => page.evaluate(() => document.body.classList.contains('pa-copy-policy'))).toBe(true);
   const audit = await page.evaluate(() => {
     const mark = String.fromCharCode(0x2014);
-    const attributes = ['aria-label', 'aria-description', 'placeholder', 'title', 'data-tooltip'];
+    const attributes = ['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'];
     const attributeViolations = [...document.querySelectorAll('*')].filter(element =>
       attributes.some(name => element.getAttribute(name)?.includes(mark))
+    ).length;
+    const sentenceCaseAttributes = [...document.querySelectorAll('*')].filter(element =>
+      attributes.some(name => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(element.getAttribute(name) || ''))
     ).length;
     const transformViolations = [...document.querySelectorAll('main *')].filter(element => {
       const directText = [...element.childNodes]
@@ -55,10 +58,11 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
       titleViolations: document.title.includes(mark) ? 1 : 0,
       textViolations: (document.body.innerText.match(new RegExp(mark, 'g')) || []).length,
       attributeViolations,
+      sentenceCaseAttributes,
       transformViolations,
     };
   });
-  expect(audit).toEqual({ bodyTransform: 'capitalize', titleViolations: 0, textViolations: 0, attributeViolations: 0, transformViolations: 0 });
+  expect(audit).toEqual({ bodyTransform: 'capitalize', titleViolations: 0, textViolations: 0, attributeViolations: 0, sentenceCaseAttributes: 0, transformViolations: 0 });
 }
 
 test.describe('Personal Assistant primary and secondary surfaces', () => {
@@ -90,6 +94,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       '/hub/personal-assistant',
       '/hub/personal-assistant/sandbox',
       '/hub/personal-assistant/leaks',
+      '/sandbox/zzzz',
     ]) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('main')).toBeVisible();

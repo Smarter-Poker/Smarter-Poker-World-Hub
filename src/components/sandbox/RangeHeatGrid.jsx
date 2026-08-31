@@ -1,5 +1,5 @@
 /**
- * RangeHeatGrid — 13x13 opponent-range heat map
+ * RangeHeatGrid · 13x13 opponent-range heat map
  * ═══════════════════════════════════════════════════════════════════════════
  * Grades every starting hand against the current board and, when the villain's
  * range is supplied, dims everything outside it so the map answers the question
@@ -56,7 +56,7 @@ export default function RangeHeatGrid({
     boardCards = [],
     isOpen,
     onClose,
-    /** Optional villain range string — cells outside it are dimmed. */
+    /** Optional villain range string · cells outside it are dimmed. */
     villainRange = '',
     villainLabel = 'Villain',
 }) {
@@ -179,7 +179,7 @@ export default function RangeHeatGrid({
                 </div>
             )}
 
-            {/* Precision-free hand picker — every cell is reachable with 44px targets */}
+            {/* Precision-free hand picker · every cell is reachable with 44px targets */}
             <div style={{
                 display: 'flex', flexDirection: 'column', gap: S.sm, marginBottom: S.md,
                 background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
@@ -198,12 +198,12 @@ export default function RangeHeatGrid({
                 />
                 {pickHigh != null && pickLow != null && pickHigh === pickLow && (
                     <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        Same rank twice selects the pocket pair - the suit toggle does not apply.
+                        Same rank twice selects the pocket pair · the suit toggle does not apply.
                     </p>
                 )}
             </div>
 
-            {/* Persistent detail row — tap-to-select, never hover-only */}
+            {/* Persistent detail row · tap-to-select, never hover-only */}
             <div
                 aria-live="polite"
                 style={{
@@ -273,7 +273,7 @@ export default function RangeHeatGrid({
                 })}
             </div>
 
-            {/* Legend — text tier labels, never colour alone */}
+            {/* Legend · text tier labels, never colour alone */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                 {TIERS.map(t => (
                     <span key={t.label} style={{ display: 'inline-flex', alignItems: 'center', gap: S.xs }}>

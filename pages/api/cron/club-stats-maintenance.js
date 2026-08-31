@@ -60,9 +60,12 @@ function getAdmin() {
 
 export const config = { maxDuration: 300 };
 
-// Total seconds of drain work per run, split across clubs that still have a
-// backlog. Kept comfortably inside maxDuration so the rollup step always runs.
-const DRAIN_BUDGET_SECONDS = 150;
+// Total wall-clock seconds of drain work per run. Open Claw is the caller and
+// stops waiting after 120 seconds, so the handler must finish comfortably
+// inside that deadline as well as Vercel's 300-second maxDuration. The rebuild
+// is resumable and runs every 15 minutes; a smaller successful slice advances
+// the backlog more reliably than a larger slice whose response is discarded.
+const DRAIN_BUDGET_SECONDS = 60;
 
 async function handler(req, res) {
   if (!validateCronAuth(req)) {
@@ -263,8 +266,12 @@ async function handler(req, res) {
 
     const clubs = (pending || []).map((r) => r.club_id).filter(Boolean);
     if (clubs.length > 0) {
-      const perClub = Math.max(20, Math.floor(DRAIN_BUDGET_SECONDS / clubs.length));
-      for (const clubId of clubs) {
+      const drainDeadline = Date.now() + DRAIN_BUDGET_SECONDS * 1000;
+      for (const [index, clubId] of clubs.entries()) {
+        const remainingSeconds = Math.floor((drainDeadline - Date.now()) / 1000);
+        if (remainingSeconds < 1) break;
+        const clubsRemaining = clubs.length - index;
+        const perClub = Math.max(1, Math.floor(remainingSeconds / clubsRemaining));
         const { data, error } = await admin.rpc('ca_drain_club_rebuild', {
           p_club_id: clubId,
           p_max_seconds: perClub,

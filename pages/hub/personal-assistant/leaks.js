@@ -1,5 +1,5 @@
 /**
- * LEAK FINDER — Post-Session Analysis
+ * LEAK FINDER · Post-Session Analysis
  * /hub/personal-assistant/leaks
  *
  * Identifies statistical leaks over time, NOT single-hand mistakes.
@@ -54,7 +54,7 @@ import {
 } from '../../../src/lib/sandbox/leakReview';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CODE-SPLIT ANALYTICS (Insights tab only — keeps them off the critical path)
+// CODE-SPLIT ANALYTICS (Insights tab only · keeps them off the critical path)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SessionAnalytics = dynamic(
@@ -66,7 +66,7 @@ const SessionAnalytics = dynamic(
 // strand the Insights tab on skeletons for several seconds. They are small,
 // and their own data requests still run only after the Insights tab mounts.
 
-// The review drill is the existing sandbox drill loop — never a second drill UI.
+// The review drill is the existing sandbox drill loop · never a second drill UI.
 // It is only ever mounted after a tap, so it stays off the first paint.
 const QuickSpotDrill = dynamic(
   () => import('../../../src/components/sandbox/QuickSpotDrill'),
@@ -87,7 +87,7 @@ function isDemoLeakId(id) {
 /**
  * 2026-08-16: this used to be `cards.filter(Boolean).join(' ')`, which renders
  * "[object Object] [object Object]" the moment an entry is a `{rank, suit}`
- * pair — exactly the shape the engine stores hole cards in — and "6spades
+ * pair · exactly the shape the engine stores hole cards in · and "6spades
  * Ahearts" when the entry is a long-suit board string.
  *
  * Writes are normalised at the source now (see toCardCode() in
@@ -108,16 +108,16 @@ function cardText(card) {
   const raw = card.trim();
   if (!raw) return null;
   const m = /^([2-9TJQKA]|10)(clubs|diamonds|hearts|spades|[cdhs])$/i.exec(raw);
-  if (!m) return raw; // Unknown but non-empty — show it rather than hide it.
+  if (!m) return raw; // Unknown but non-empty · show it rather than hide it.
   const rank = m[1].toUpperCase() === '10' ? 'T' : m[1].toUpperCase();
   const suitRaw = m[2].toLowerCase();
   return `${rank}${CARD_SUIT_LETTER[suitRaw] || suitRaw}`;
 }
 
 function fmtCards(cards) {
-  if (Array.isArray(cards)) return cards.map(cardText).filter(Boolean).join(' ') || '-';
+  if (Array.isArray(cards)) return cards.map(cardText).filter(Boolean).join(' ') || 'Not Available';
   if (typeof cards === 'string' && cards.trim()) return cards.trim();
-  return '-';
+  return 'Not Available';
 }
 
 function num(v, fallback = 0) {
@@ -178,7 +178,7 @@ function shortPointLabel(raw) {
     return MONTHS[idx] || s;
   }
   if (s.length > 7) return s.slice(0, 7);
-  return s || '-';
+  return s || 'Not Available';
 }
 
 /**
@@ -206,14 +206,14 @@ function friendlyDetectionError(err) {
   if (!msg) return 'Leak detection failed. Please try again.';
   if (/unexpected token|<!doctype|json|syntaxerror/i.test(msg)) return 'The server is busy right now. Please try again in a moment.';
   if (/429|too many|rate.?limit/i.test(msg)) return 'You have run detection too many times. Try again in a few minutes.';
-  if (/not logged in|unauthor|401|expired|invalid token/i.test(msg)) return 'Your session expired - sign in again to run detection.';
+  if (/not logged in|unauthor|401|expired|invalid token/i.test(msg)) return 'Your session expired · sign in again to run detection.';
   if (/failed to fetch|network|offline/i.test(msg)) return 'You appear to be offline. Reconnect and try again.';
   return msg;
 }
 
 function friendlyLoadError(err) {
   const msg = String(err || '').trim();
-  if (/401|unauthor|expired|invalid token/i.test(msg)) return 'Your session expired - sign in again to see your leaks.';
+  if (/401|unauthor|expired|invalid token/i.test(msg)) return 'Your session expired · sign in again to see your leaks.';
   if (/failed to fetch|network|offline/i.test(msg)) return 'No connection. Check your network and retry.';
   return msg || 'Unknown error';
 }
@@ -240,7 +240,7 @@ function confidenceMeta(confidence) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ERROR BOUNDARY — a recoverable panel instead of a blank route
+// ERROR BOUNDARY · a recoverable panel instead of a blank route
 // ═══════════════════════════════════════════════════════════════════════════
 
 class LeakErrorBoundary extends React.Component {
@@ -318,7 +318,7 @@ function DrillSheetSkeleton() {
 // REVIEW QUEUE (spaced repetition)
 // ═══════════════════════════════════════════════════════════════════════════
 // The schedule lives in two places and both can be absent:
-//   • the server (GET/POST /api/assistant/leaks/review) — authoritative, but
+//   • the server (GET/POST /api/assistant/leaks/review) · authoritative, but
 //     answers persisted:false until the leak_review_state table is migrated;
 //   • localStorage, written by QuickSpotDrill after a review run.
 // Read-through merges the two with the SERVER WINNING, so a device copy can
@@ -357,7 +357,7 @@ function readLocalReviewRecords() {
 /**
  * Copy of `obj` without undefined/null values, so spreading a server row over a
  * local record cannot blank a field the row never mentioned.
- * (`{ ...a, ...{ x: undefined } }` sets x to undefined — silently losing a.x.)
+ * (`{ ...a, ...{ x: undefined } }` sets x to undefined · silently losing a.x.)
  */
 function definedOnly(obj) {
   const out = {};
@@ -385,7 +385,7 @@ function fromServerReviewRecord(row) {
   };
 }
 
-/** 'in 3 days' / 'tomorrow' / 'on 12 Sep' — never a countdown that lies. */
+/** 'in 3 days' / 'tomorrow' / 'on 12 Sep' · never a countdown that lies. */
 function dueInLabel(iso, nowMs) {
   const t = new Date(iso || '').getTime();
   if (!Number.isFinite(t) || !Number.isFinite(nowMs) || nowMs <= 0) return null;
@@ -400,7 +400,7 @@ function dueInLabel(iso, nowMs) {
   }
 }
 
-/** Why this leak is at the top of the queue — stated plainly, never inflated. */
+/** Why this leak is at the top of the queue · stated plainly, never inflated. */
 function queueReason(entry) {
   if (!entry) return '';
   if (entry.isNew) return 'Not drilled yet';
@@ -423,7 +423,7 @@ function ReviewSkeletonCard() {
 }
 
 /**
- * "Due for review" — the top of the Leaks tab.
+ * "Due for review" · the top of the Leaks tab.
  * Every state here is real: a count only appears when something is genuinely
  * due, and an empty queue says when the next one lands instead of inventing a
  * badge to drag the user back.
@@ -452,7 +452,7 @@ function ReviewQueueCard({
   const errorNote = error ? (
     <div style={styles.reviewErrorRow} role="status">
       <span style={{ flex: 1, minWidth: 0 }}>
-        Your saved schedule could not be loaded - showing what is on this device.
+        Your saved schedule could not be loaded · showing what is on this device.
       </span>
       {onRetry && (
         <button type="button" className="pa-btn" style={{ ...btn('ghost'), color: T.accent, padding: '0 10px' }} onClick={onRetry}>
@@ -472,7 +472,7 @@ function ReviewQueueCard({
             below, and two identical buttons a thumb apart reads as a bug. */}
         <p style={{ ...styles.reviewBody, marginBottom: 0 }}>
           {isDetecting
-            ? 'Detection is running - anything it finds will be waiting here as a scheduled review.'
+            ? 'Detection is running · anything it finds will be waiting here as a scheduled review.'
             : isDemo
               ? 'Reviews start on your own hands. Run leak detection below and each leak found becomes a scheduled, repeating drill.'
               : 'No review queue yet. Run leak detection below and each leak found becomes a scheduled, repeating drill.'}
@@ -497,7 +497,7 @@ function ReviewQueueCard({
         </p>
         <p style={styles.reviewBody}>
           {nextLabel
-            ? `Your next review is ${nextLabel}. Drilling early is fine - tap any leak below.`
+            ? `Your next review is ${nextLabel}. Drilling early is fine · tap any leak below.`
             : 'Practise any leak below and it will start a spaced-repetition schedule.'}
         </p>
         {errorNote}
@@ -516,7 +516,7 @@ function ReviewQueueCard({
       {heading}
 
       {/* `queue` is capped at MAX_QUEUE for the session, but the count states
-          the REAL total — exactly ten due leaks must not read as "10+". */}
+          the REAL total · exactly ten due leaks must not read as "10+". */}
       <p style={styles.reviewCount}>
         <span style={{ ...numeric, color: T.accent, fontWeight: 800 }}>{total}</span>
         {' '}leak{total === 1 ? '' : 's'} ready to drill
@@ -558,7 +558,7 @@ function ReviewQueueCard({
         {startable
           ? (total > 1
             ? `A timed drill on this leak. ${total - 1} more waiting after it.`
-            : 'A timed drill on this leak - your score sets the next review date.')
+            : 'A timed drill on this leak · your score sets the next review date.')
           : 'This leak has no matching drill street, so this opens the sandbox instead.'}
       </p>
 
@@ -619,7 +619,7 @@ function SourceBadge({ source }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TREND CHART — responsive SVG, no fixed pixel width, tap-to-read points
+// TREND CHART · responsive SVG, no fixed pixel width, tap-to-read points
 // ═══════════════════════════════════════════════════════════════════════════
 
 function TrendStatTiles({ current, optimal, color }) {
@@ -627,11 +627,11 @@ function TrendStatTiles({ current, optimal, color }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: S.sm }}>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>You</span>
-        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : '-'}</span>
+        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : 'Not Available'}</span>
       </div>
       <div style={styles.miniTile}>
         <span style={styles.miniTileLabel}>Optimal</span>
-        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : '-'}</span>
+        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : 'Not Available'}</span>
       </div>
     </div>
   );
@@ -665,7 +665,7 @@ function TrendChart({ data, optimal, current, status }) {
         {header}
         <div style={styles.trendEmpty}>
           <p style={styles.trendEmptyText}>
-            Not enough history yet - this leak needs at least two detection runs to plot a trend.
+            Not enough history yet · this leak needs at least two detection runs to plot a trend.
           </p>
           <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} />
         </div>
@@ -782,7 +782,7 @@ function TrendChart({ data, optimal, current, status }) {
         {active
           ? `${active.date}: you played this spot at ${active.value.toFixed(1)}%${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(0)}%)` : ''}.`
           : points.length < 2
-            ? 'Only one detection run so far - run detection again to see a trend line.'
+            ? 'Only one detection run so far · run detection again to see a trend line.'
             : 'Tap a point to read that period.'}
       </p>
     </div>
@@ -790,7 +790,7 @@ function TrendChart({ data, optimal, current, status }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BLEED SUMMARY — EV-ranked headline + stacked attribution bar
+// BLEED SUMMARY · EV-ranked headline + stacked attribution bar
 // ═══════════════════════════════════════════════════════════════════════════
 
 function BleedSummary({ leaks, isDemo }) {
@@ -874,7 +874,7 @@ function AuditReceipt({ result }) {
     ['Unpriced Decisions', num(progress.unpriced ?? coverage.unpricedThisRun).toLocaleString()],
     ['Leaks Found', num(result.leaksDetected).toLocaleString()],
     ['Batches Saved', num(progress.batchesCompleted).toLocaleString()],
-    ['Server Processing', progress.totalProcessingMs ? `${(num(progress.totalProcessingMs) / 1000).toFixed(1)}s` : '-'],
+    ['Server Processing', progress.totalProcessingMs ? `${(num(progress.totalProcessingMs) / 1000).toFixed(1)}s` : 'Not Available'],
   ];
 
   return (
@@ -943,7 +943,7 @@ function AuditReceipt({ result }) {
 
 /**
  * Compact fix-progress row shared by the card list. Derived entirely from
- * graded drill sessions (resolutionProgress) — renders nothing until the leak
+ * graded drill sessions (resolutionProgress) · renders nothing until the leak
  * has actually been drilled, so a bar can never claim progress that was not
  * earned.
  */
@@ -1037,7 +1037,7 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
         {lowConfidence && (
           <span style={styles.leakCardHint}>
             <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" />
-            Small sample - needs more hands before this is conclusive.
+            Small sample · needs more hands before this is conclusive.
           </span>
         )}
       </button>
@@ -1102,14 +1102,14 @@ const BAND_COLOR = {
 
 const STAGE_COPY = {
   'not-started': 'No drills yet. Your first review sets the baseline.',
-  early: 'Early days - each passed drill pushes the next review further out.',
+  early: 'Early days · each passed drill pushes the next review further out.',
   'on-track': 'On track. Keep passing reviews and the gap between them keeps growing.',
-  'nearly-there': 'Nearly there - a few more strong sessions at the long interval retires this leak.',
+  'nearly-there': 'Nearly there · a few more strong sessions at the long interval retires this leak.',
   mastered: 'Mastered. This leak stays quiet unless detection sees it again in your real hands.',
 };
 
 /**
- * "Progress to resolution" — the leak visibly closing as it gets drilled.
+ * "Progress to resolution" · the leak visibly closing as it gets drilled.
  * Everything shown is read from the graded review record (session history,
  * interval, strong streak); nothing is estimated.
  */
@@ -1277,7 +1277,7 @@ function LeakDetail({
         <StatTile label="Total BB lost" value={priced ? `~${(ev * occ).toFixed(1)}` : 'Unpriced'} tone={priced ? T.danger : T.textMuted} />
       </div>
 
-      {/* Progress to resolution — real leaks only; a demo leak has no record */}
+      {/* Progress to resolution · real leaks only; a demo leak has no record */}
       {!isDemoLeak && leak.status !== 'resolved' && (
         <LeakErrorBoundary label="The progress tracker">
           <ResolutionProgressSection record={reviewRecord} />
@@ -1300,7 +1300,7 @@ function LeakDetail({
         )}
       </section>
 
-      {/* How to fix it — the Grok-generated suggestion detect.js persists */}
+      {/* How to fix it · the Grok-generated suggestion detect.js persists */}
       <section style={styles.detailSection} aria-label="How to fix it">
         <h3 style={styles.detailSectionTitle}>
           <Sparkles size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.purple, marginRight: 6, verticalAlign: '-2px' }} />
@@ -1308,7 +1308,7 @@ function LeakDetail({
         </h3>
         <p style={styles.detailBody}>
           {leak.suggestedFix
-            || 'No personalised fix has been generated for this leak yet. Run detection again - the engine writes tailored fixes for your highest-impact leaks.'}
+            || 'No personalised fix has been generated for this leak yet. Run detection again · the engine writes tailored fixes for your highest-impact leaks.'}
         </p>
       </section>
 
@@ -1321,7 +1321,7 @@ function LeakDetail({
         )}
       </section>
 
-      {/* Example hands — one tap into the exact spot */}
+      {/* Example hands · one tap into the exact spot */}
       {!isDemoLeak && (
         <section style={styles.detailSection} aria-label="Recent example hands">
           <h3 style={styles.detailSectionTitle}>Recent Example Hands</h3>
@@ -1356,7 +1356,7 @@ function LeakDetail({
                     <span style={styles.exampleLine1}>
                       <span style={styles.exampleCards}>{fmtCards(snap.hero_cards)}</span>
                       <span style={styles.exampleEv}>
-                        {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : '-'}
+                        {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : 'Not Available'}
                       </span>
                     </span>
                     <span style={styles.exampleLine2}>
@@ -1425,7 +1425,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be changed - run detection on your own hands first.
+                Sample leaks cannot be changed · run detection on your own hands first.
               </p>
             )}
           </>
@@ -1444,7 +1444,7 @@ function LeakDetail({
             </button>
             {isDemoLeak && (
               <p id="leak-resolve-help" style={styles.helperText}>
-                Sample leaks cannot be resolved - run detection on your own hands first.
+                Sample leaks cannot be resolved · run detection on your own hands first.
               </p>
             )}
           </>
@@ -1461,7 +1461,7 @@ function LeakDetail({
 // suggested_fix, resolved_at, last_detected_at, frequency_is_estimated) now
 // come straight out of formatLeak() in useAssistant.js. This page used to issue
 // a SECOND GET /api/assistant/leaks on mount and again on every
-// `pa-data-updated` event just to recover them — the same request useLeaks()
+// `pa-data-updated` event just to recover them · the same request useLeaks()
 // already makes and already re-issues on that same event.
 //
 // This only fills the derived defaults the UI needs; a column missing from the
@@ -1731,7 +1731,7 @@ export default function LeakFinderPage() {
   // ─── First-visit auto-detection ──────────────────────────────────────────
   //
   // WHY THIS EXISTS: detection only ever ran on a manual tap, so `user_leaks`
-  // was empty for effectively everyone — 1,132 accounts hold 100+ hands and
+  // was empty for effectively everyone · 1,132 accounts hold 100+ hands and
   // qualify, while the table carried 3 rows, all from the retired clinic
   // system. The Leak Finder was architecturally complete and permanently
   // empty, because nothing told a player to press a button they could not see
@@ -1744,14 +1744,14 @@ export default function LeakFinderPage() {
   //
   // Guard rails, because detection is not free (it queries hand history and
   // asks Grok for fix suggestions on the top 3 leaks):
-  //   • signed in AND already entitled — `hasAccess`, never `guardAction`, so
+  //   • signed in AND already entitled · `hasAccess`, never `guardAction`, so
   //     a background action can never pop the upgrade modal at someone;
   //   • only when the leak list has loaded and is genuinely empty (sample
   //     leaks do not count as content);
   //   • once per browser per COOLDOWN_MS, so a clean player who legitimately
   //     has zero leaks does not re-run it on every visit;
   //   • once per mount, and never while a manual run is in flight;
-  //   • silent on failure — a background action the user did not ask for must
+  //   • silent on failure · a background action the user did not ask for must
   //     not raise an error banner. The manual button remains the loud path.
   const autoDetectRef = useRef(false);
   const [autoDetecting, setAutoDetecting] = useState(false);
@@ -1790,7 +1790,7 @@ export default function LeakFinderPage() {
       const confetti = mod?.default || mod;
       confetti({ particleCount: 60, spread: 65, startVelocity: 32, origin: { y: 0.75 }, disableForReducedMotion: true });
     } catch (e) {
-      /* confetti is decorative — never fatal */
+      /* confetti is decorative · never fatal */
     }
   }, [reduceMotion]);
 
@@ -1923,12 +1923,12 @@ export default function LeakFinderPage() {
   // ─── Spaced-repetition review queue ──────────────────────────────────────
   // Sources: the server schedule (authoritative) merged over the localStorage
   // fallback QuickSpotDrill writes when the API cannot persist. The queue and
-  // the ordering come from src/lib/sandbox/leakReview — this page only renders.
+  // the ordering come from src/lib/sandbox/leakReview · this page only renders.
   const [reviewNowMs, setReviewNowMs] = useState(0);
   const [reviewServerRecords, setReviewServerRecords] = useState([]);
   const [reviewLocalRecords, setReviewLocalRecords] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(true);
-  // First load only — a background refresh after a drill must not flash the
+  // First load only · a background refresh after a drill must not flash the
   // whole card back to a skeleton.
   const [reviewLoaded, setReviewLoaded] = useState(false);
   const [reviewError, setReviewError] = useState(null);
@@ -2025,7 +2025,7 @@ export default function LeakFinderPage() {
   }, [reviewLocalRecords, reviewServerRecords]);
 
   // Per-leak lookup for the progress-to-resolution surfaces (cards + detail).
-  // Keyed by String(leakId) — the same normalisation the queue uses.
+  // Keyed by String(leakId) · the same normalisation the queue uses.
   const reviewRecordById = useMemo(() => {
     const map = new Map();
     for (const rec of reviewRecords) {
@@ -2127,7 +2127,7 @@ export default function LeakFinderPage() {
 
   // ═══ HAMBURGER MENU ═══
   // Single-page surface, so the menu's "Views" rows switch tab and scroll to a
-  // section. Every handler below has a real implementation — the config omits
+  // section. Every handler below has a real implementation · the config omits
   // any row whose handler is absent, so no dead rows can render.
   // The drawer closes on activation and locks body scroll while open, so the
   // scroll has to run after React has committed the close AND the tab switch.
@@ -2151,7 +2151,7 @@ export default function LeakFinderPage() {
       if (!worst) { setTab('leaks'); jumpTo('leak-list'); return; }
       handlePracticeSandbox(worst);
     },
-    // Toggles keep the drawer open, so this only changes state — no scroll.
+    // Toggles keep the drawer open, so this only changes state · no scroll.
     onToggleResolved: (next) => { setTab('leaks'); setPastOpen(!!next); },
   }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handlePracticeSandbox]);
 
@@ -2230,7 +2230,7 @@ export default function LeakFinderPage() {
                 </p>
                 <span style={styles.integrityBadge}>
                   <Lock size={12} strokeWidth={2} aria-hidden="true" />
-                  Not Live Play - Post-Session Review Only
+                  Not Live Play · Post-Session Review Only
                 </span>
               </div>
               <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
@@ -2245,13 +2245,13 @@ export default function LeakFinderPage() {
                   <strong className={toolStyles.telemetryValue}>
                     {detectionResult || detectionProgress
                       ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
-                      : '-'}
+                      : 'Not Available'}
                   </strong>
                 </span>
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
                   <strong className={toolStyles.telemetryValue} data-tone="gold">
-                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : '-'}
+                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : 'Not Available'}
                   </strong>
                 </span>
               </div>
@@ -2274,20 +2274,20 @@ export default function LeakFinderPage() {
           <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
             <StatCell
               label="Sessions reviewed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? '-' : String(stats.sessionsReviewed))}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? 'Not Available' : String(stats.sessionsReviewed))}
             />
             <StatCell
               label="Hands analysed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? '-' : stats.handsAnalyzed.toLocaleString())}
+              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? 'Not Available' : stats.handsAnalyzed.toLocaleString())}
             />
             <StatCell
               label="Active leaks"
-              value={leaksLoading ? null : (leaksAreDemo ? '-' : String(stats.leaksFound))}
+              value={leaksLoading ? null : (leaksAreDemo ? 'Not Available' : String(stats.leaksFound))}
             />
             <StatCell
               label="Avg EV loss"
               tone={T.danger}
-              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '-')}
+              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : 'Not Available')}
             />
             <StatCell
               label="GTO accuracy"
@@ -2295,8 +2295,8 @@ export default function LeakFinderPage() {
               value={coachLoading
                 ? null
                 : coachError
-                  ? '-'
-                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? '-'}%` : '-')}
+                  ? 'Not Available'
+                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? 'Not Available'}%` : 'Not Available')}
               tone={coachAccuracy && num(coachAccuracy.accuracy_pct) >= 70
                 ? T.success
                 : coachAccuracy && num(coachAccuracy.accuracy_pct) >= 50 ? T.warn : T.text}
@@ -2305,7 +2305,7 @@ export default function LeakFinderPage() {
             />
             {statsAreDemo && (
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Sample stats - not your own data</span>
+                <span style={pill('warn')}>Sample stats · not your own data</span>
               </div>
             )}
             {statsError && !statsLoading && (
@@ -2346,7 +2346,7 @@ export default function LeakFinderPage() {
 
           {tab === 'leaks' ? (
             <section id="leak-list" aria-label="Your leaks">
-              {/* Due for review — the spaced-repetition entry point */}
+              {/* Due for review · the spaced-repetition entry point */}
               <LeakErrorBoundary label="The review queue">
                 <ReviewQueueCard
                   loading={leaksLoading || !reviewNowMs || (reviewLoading && !reviewLoaded)}
@@ -2436,7 +2436,7 @@ export default function LeakFinderPage() {
               )}
               {!leaksError && leaksPartial && !leaksLoading && (
                 <div role="status" style={{ marginBottom: S.md, display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
-                  <span style={pill('warn')}>Leak history is partially loaded - retry to verify every source</span>
+                  <span style={pill('warn')}>Leak history is partially loaded · retry to verify every source</span>
                   <button type="button" className="pa-btn" style={btn('secondary')} onClick={() => refetchLeaks()}>
                     Retry
                   </button>
@@ -2451,7 +2451,7 @@ export default function LeakFinderPage() {
                 </div>
               ) : activeLeaks.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                  {/* A scan the user did not start still has to be visible —
+                  {/* A scan the user did not start still has to be visible ·
                       showing "no leaks detected" while one is running would be
                       telling them something we do not yet know. */}
                   <EmptyState
@@ -2585,7 +2585,7 @@ export default function LeakFinderPage() {
                     </>
                   )}
 
-                  {/* Past leaks — collapsed by default */}
+                  {/* Past leaks · collapsed by default */}
                   {pastLeaks.length > 0 && (
                     <div style={{ marginTop: S.lg }}>
                       <button
@@ -2824,7 +2824,7 @@ export default function LeakFinderPage() {
             }
           }
           /* The shell carries its padding as an inline style, which a plain
-             rule cannot override — hence !important on this one declaration. */
+             rule cannot override · hence !important on this one declaration. */
           @media (min-width: 769px) {
             .leaks-shell {
               padding-left: max(24px, env(safe-area-inset-left, 0px)) !important;
