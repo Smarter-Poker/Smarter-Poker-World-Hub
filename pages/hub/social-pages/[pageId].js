@@ -429,7 +429,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             {/* Check-in venue badge (feature parity with social-media) */}
             {post.content && /^Checked in at /i.test(post.content) && (() => {
                 const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–]\s*(.+))?$/i);
-                const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('—')[0].trim();
+                const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('-')[0].trim();
                 const locationText = match?.[2]?.trim() || '';
                 return (
                     <div style={{
@@ -1548,7 +1548,7 @@ export default function SocialPageDetail() {
             }
         } catch (e) {
             console.warn("[[pageId].js]", e);
-            toast.error('Post failed — try again');
+            toast.error('Post failed - try again');
         }
         setPosting(false);
         return false;

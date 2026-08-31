@@ -544,7 +544,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                                     {sd ? (
                                         <>
                                             <div style={{ fontSize: 11, fontWeight: 700, color: isOk ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
-                                                {sd.action || '—'}
+                                                {sd.action || '-'}
                                             </div>
                                             {sd.evLoss > 0 && (
                                                 <div style={{ fontSize: 9, color: '#ef4444', fontWeight: 600 }}>
@@ -553,7 +553,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                                             )}
                                         </>
                                     ) : (
-                                        <div style={{ fontSize: 9, color: '#334155', marginTop: 2 }}>—</div>
+                                        <div style={{ fontSize: 9, color: '#334155', marginTop: 2 }}>-</div>
                                     )}
                                 </div>
                             );

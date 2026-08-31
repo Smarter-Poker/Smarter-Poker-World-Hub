@@ -315,10 +315,10 @@ async function querySolverData(params) {
       });
       if (match) {
         const source = match.contextVerified
-          ? 'Training Solver — Exact Decision Context'
+          ? 'Training Solver - Exact Decision Context'
           : match.matchTier === 1
-          ? 'Training Solver — Hand And Board Approximation'
-          : 'Training Solver — Flop-Matched Hand';
+          ? 'Training Solver - Hand And Board Approximation'
+          : 'Training Solver - Flop-Matched Hand';
         return {
           trainingQuestion: match.question,
           cacheRow: match.row,
@@ -359,7 +359,7 @@ async function querySolverData(params) {
         if (scenario?.strategy_matrix) {
           // Position / pot / action line are NOT verified by this match —
           // only board + stack + street + game type. Label accordingly.
-          return { scenario, matchTier: 1, source: 'PIO Solver — Board Match' };
+          return { scenario, matchTier: 1, source: 'PIO Solver - Board Match' };
         }
       }
     } catch (e) { console.warn('[Sandbox] Tier 1 query error:', e.message); }
@@ -381,7 +381,7 @@ async function querySolverData(params) {
         if (partialMatches && partialMatches.length > 0) {
           const scenario = pickDeterministic(partialMatches);
           if (scenario?.strategy_matrix) {
-            return { scenario, matchTier: 2, source: 'PIO Solver — Board Approximated' };
+            return { scenario, matchTier: 2, source: 'PIO Solver - Board Approximated' };
           }
         }
       } catch (e) { console.warn('[Sandbox] Tier 2 query error:', e.message); }
@@ -401,7 +401,7 @@ async function querySolverData(params) {
     if (anyMatches && anyMatches.length > 0) {
       const scenario = pickDeterministic(anyMatches);
       if (scenario?.strategy_matrix) {
-        return { scenario, matchTier: 3, source: 'PIO Solver — Similar Spot' };
+        return { scenario, matchTier: 3, source: 'PIO Solver - Similar Spot' };
       }
     }
   } catch (e) { console.warn('[Sandbox] Tier 3 query error:', e.message); }
@@ -421,7 +421,7 @@ async function querySolverData(params) {
       if (nearbyMatches && nearbyMatches.length > 0) {
         const scenario = pickDeterministic(nearbyMatches);
         if (scenario?.strategy_matrix) {
-          return { scenario, matchTier: 3, source: `PIO Solver — ${scenario.stack_depth}bb Approximated` };
+          return { scenario, matchTier: 3, source: `PIO Solver - ${scenario.stack_depth}bb Approximated` };
         }
       }
     } catch (e) { console.warn('[Sandbox] Tier 3b query error:', e.message); }
@@ -456,7 +456,7 @@ async function queryPreflopData(params) {
         c.hero_position?.toUpperCase() === heroPosition?.toUpperCase()
       );
       const chart = posMatch || charts[0];
-      return { chart, matchTier: 1, source: 'Nash Chart — Preflop', isPreflop: true };
+      return { chart, matchTier: 1, source: 'Nash Chart - Preflop', isPreflop: true };
     }
   } catch (e) { console.warn('[Sandbox] Preflop query error:', e.message); }
 
@@ -798,7 +798,7 @@ function parsePreflopChart(chart, heroHandNotation) {
 
   const pricedEVs = [pushEV, foldEV].filter(v => v !== null);
   const ev = heroEV === null
-    ? { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 }
+    ? { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 }
     : (() => {
       const pool = pricedEVs.length > 0 ? pricedEVs : [heroEV];
       const maxEV = Math.max(...pool);
@@ -885,13 +885,13 @@ async function analyzeWithGrok(params) {
         maniac: 'Villain bets and raises too aggressively. Widen value range, reduce bluff frequency, let them hang themselves.',
         fish: 'Villain makes fundamental mistakes. Bet bigger with strong hands, simplify decisions, avoid fancy plays.',
       };
-      exploitContext = `\n\nEXPLOIT MODE ACTIVE — Villain Archetype: ${villainArchetype}\n${archetypeTendencies[villainArchetype] || 'Adjust based on villain tendencies.'}`;
+      exploitContext = `\n\nEXPLOIT MODE ACTIVE - Villain Archetype: ${villainArchetype}\n${archetypeTendencies[villainArchetype] || 'Adjust based on villain tendencies.'}`;
     }
 
     // ICM bubble factor context
     let icmContext = '';
     if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0) {
-      icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure — survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure — chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
+      icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure - survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure - chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
     }
 
     // Villain range context (from archetype preflop opening range)
@@ -934,7 +934,7 @@ RULES:
 - Frequencies MUST sum to 100
 - Provide 2-4 actions
 - Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
-- Hero Is Facing A Wager: ${facingBet ? 'Yes — c means Call and bXX means Raise XX%' : 'No — c means Check and bXX means Bet XX%'}
+- Hero Is Facing A Wager: ${facingBet ? 'Yes - c means Call and bXX means Raise XX%' : 'No - c means Check and bXX means Bet XX%'}
 - Be precise about GTO frequencies
 - Consider stack depth, position, and board texture`;
 
@@ -1010,7 +1010,7 @@ RULES:
       actions: grokActions,
       optimalAction: grokActions[0] || { id: 'c', label: 'Check', frequency: 100, color: '#6b7280' },
       isMixed: grokActions.filter(action => action.frequency >= 5).length > 1,
-      ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+      ev: { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 },
       explanation: String(parsed.explanation || 'Analysis based on GTO principles.')
         .replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 1200),
       confidence: 'Low',
@@ -1065,7 +1065,7 @@ function ruleBasedFallback(params) {
     actions,
     optimalAction: actions[0],
     isMixed: true,
-    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    ev: { hero: 0, heroDisplay: '-', max: 0, min: 0, avg: 0, evLoss: 0 },
     explanation: 'Estimated frequencies based on positional heuristics. Run analysis on a supported board for solver-verified results.',
     confidence: 'Low',
   };
@@ -1102,10 +1102,10 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
   if (exploitMode === 'exploit' && villainArchetype) {
     const exploitTips = {
       calling_station: 'Exploit Tip: Bet thinner for value against this calling station. Skip marginal bluffs.',
-      nit: 'Exploit Tip: Steal more pots against this nit. Respect their raises — they usually have it.',
+      nit: 'Exploit Tip: Steal more pots against this nit. Respect their raises - they usually have it.',
       lag: 'Exploit Tip: Tighten up against this LAG. Trap with premium hands and let them bluff into you.',
       tag: 'Exploit Tip: Stay balanced against this TAG. Mix your frequencies and avoid predictable lines.',
-      maniac: 'Exploit Tip: Widen your value range against this maniac. Reduce bluff frequency — let them hang themselves.',
+      maniac: 'Exploit Tip: Widen your value range against this maniac. Reduce bluff frequency - let them hang themselves.',
       fish: 'Exploit Tip: Bet bigger with strong hands against this fish. Simplify your decisions.',
     };
     const tip = exploitTips[villainArchetype];
@@ -1115,11 +1115,11 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
   // ICM bubble factor context
   if (bubbleFactor && bubbleFactor !== 1.0) {
     if (bubbleFactor > 1.2) {
-      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x — survival premium is high. Tighten calling ranges and avoid marginal spots.`;
+      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x - survival premium is high. Tighten calling ranges and avoid marginal spots.`;
     } else if (bubbleFactor < 0.8) {
-      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x — chip accumulation mode. You can take more risks here.`;
+      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x - chip accumulation mode. You can take more risks here.`;
     } else {
-      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x — moderate pressure.`;
+      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x - moderate pressure.`;
     }
   }
 
@@ -1415,7 +1415,7 @@ export default async function handler(req, res) {
         rangeHeatmap,
 
         // Context
-        context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition}`,
+        context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition}`,
       };
 
       const nodeLocks = activeNodeLocks(villains);

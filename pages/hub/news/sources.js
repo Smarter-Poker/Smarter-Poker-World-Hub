@@ -140,7 +140,7 @@ export default function NewsSources() {
     return (
         <>
             <SEOHead
-                title="News Sources — Poker Media Outlets"
+                title="News Sources - Poker Media Outlets"
                 description="Browse Poker News Sources And Media Outlets Aggregated On Smarter.Poker."
                 canonical="/hub/news/sources"
             />
@@ -260,7 +260,7 @@ export default function NewsSources() {
                                                         }}
                                                     >
                                                         Latest: {source.latestTitle}
-                                                        {latestDate ? ` — ${latestDate}` : ''}
+                                                        {latestDate ? ` - ${latestDate}` : ''}
                                                     </div>
                                                 ) : (
                                                     <div style={{ color: '#6b7280', fontSize: '14px' }}>

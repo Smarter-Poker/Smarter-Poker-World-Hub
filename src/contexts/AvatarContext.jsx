@@ -135,7 +135,7 @@ export function AvatarProvider({ children }) {
                     // Fallback: try getSession() if no session was passed
                     const _lsToken2 = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
                     if (!_lsToken2) {
-                        console.warn('[AvatarContext] ensureUserProfile skipped — no auth token available yet');
+                        console.warn('[AvatarContext] ensureUserProfile skipped - no auth token available yet');
                         return; // Skip silently — will be called again on next auth event
                     }
                     token = _lsToken2;

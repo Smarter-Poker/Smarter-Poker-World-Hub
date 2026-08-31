@@ -1275,7 +1275,7 @@ const PostCard = React.memo(
               match?.[1] ||
               post.content
                 .replace(/^Checked in at /i, '')
-                .split('—')[0]
+                .split('-')[0]
                 .trim();
             const locationText = match?.[2]?.trim() || '';
             return (
@@ -4095,7 +4095,7 @@ function SocialMediaPage() {
       // Self-tab suppression + support both string and object payloads
       if (msg?.tabId === BROADCAST_TAB_ID) return;
       if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
-        console.log('[Social] Friends changed in other tab — refreshing feed');
+        console.log('[Social] Friends changed in other tab - refreshing feed');
       // BUG-10 FIX: reset graph cache so the next loadFeed re-fetches with the new friend included
       // Without this, a new friend's posts would never get the +100 priority score until page reload
       socialGraphLoadedRef.current = false;
@@ -4294,14 +4294,14 @@ function SocialMediaPage() {
               console.warn(
                 '[Social] Profile fetch returned error',
                 error.message,
-                '— falling back to auth data'
+                '- falling back to auth data'
               );
             }
           } catch (profileErr) {
             console.warn(
               '[Social] Profile fetch failed:',
               profileErr.message,
-              '— using auth session data'
+              '- using auth session data'
             );
           }
 
@@ -5589,7 +5589,7 @@ function SocialMediaPage() {
     // Real Undo (2026-08-15 audit): the dialog promised an undo that never
     // existed. Tapping the toast cancels the pending delete and restores.
     toast.action(
-      'Post deleted — tap to undo',
+      'Post deleted - tap to undo',
       () => {
         if (undoDeleteRef.current) {
           clearTimeout(undoDeleteRef.current);
@@ -6082,19 +6082,19 @@ function SocialMediaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>
-                    {user.hendon.cashes || '—'}
+                    {user.hendon.cashes || '-'}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>
-                    ${user.hendon.earnings?.toLocaleString() || '—'}
+                    ${user.hendon.earnings?.toLocaleString() || '-'}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>
-                    {user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '—'}
+                    {user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '-'}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
                 </div>

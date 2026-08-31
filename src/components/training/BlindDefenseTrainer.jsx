@@ -13,7 +13,7 @@ const DEFENSE_DATA = [
     bbCall: { pct: 12, hands: 'JJ-22, AQs-A9s, KQs-KTs, QJs-Q9s, JTs-J9s, T9s-87s, 76s-54s' },
     bbFold: { pct: 83, hands: 'Weak offsuit, disconnected, low cards' },
     sb3bet: { pct: 4, hands: 'QQ+, AKs, AKo' },
-    sbFold: { pct: 96, hands: 'Almost everything — worst position vs tightest range' },
+    sbFold: { pct: 96, hands: 'Almost everything - worst position vs tightest range' },
     notes: 'Under The Gun Raises First-In With A Tight Range. Defend Selectively And 3-Bet Premiums Plus Selected Blocker Hands.',
   },
   {
@@ -31,7 +31,7 @@ const DEFENSE_DATA = [
     bbCall: { pct: 22, hands: '99-22, A9s-A2s, K9s+, Q9s+, J9s+, T8s+, suited connectors, ATo, KJo+' },
     bbFold: { pct: 69, hands: 'Worst hands only' },
     sb3bet: { pct: 8, hands: 'JJ+, AKs-AQs, AKo, A5s-A3s, KQs, 76s' },
-    sbFold: { pct: 92, hands: 'Most hands — still OOP' },
+    sbFold: { pct: 92, hands: 'Most hands - still OOP' },
     notes: 'The Cutoff Raises First-In With A Wider Range. The Big Blind Can 3-Bet A Polarized Range And Call More Hands Because Of The Blind Discount.',
   },
   {
@@ -40,16 +40,16 @@ const DEFENSE_DATA = [
     bbCall: { pct: 30, hands: '77-22, A8s-A2s, K8s+, Q8s+, J8s+, T7s+, any suited connector, KTo+, QTo+, JTo' },
     bbFold: { pct: 58, hands: 'Only worst offsuit combos' },
     sb3bet: { pct: 11, hands: '99+, ATs+, AJo+, KQs, A5s-A2s, suited connectors, KJs' },
-    sbFold: { pct: 89, hands: 'Weak hands — complete OOP vs wide range' },
+    sbFold: { pct: 89, hands: 'Weak hands - complete OOP vs wide range' },
     notes: 'The Button Raises First-In With A Very Wide Range. The Big Blind Must Defend Enough Through Calls And Polarized 3-Bets To Avoid Over-Folding.',
   },
   {
     opener: 'SB (open)', openPct: 50, openSize: '2.5x',
     bb3bet: { pct: 16, hands: '77+, A2s+, ATo+, KTs+, KJo+, QTs+, JTs, T9s, suited connectors, broadways' },
     bbCall: { pct: 25, hands: '66-22, suited gappers, weak suited, K8s-K2s, Q8s-Q2s, J7s+' },
-    bbFold: { pct: 59, hands: 'Worst offsuit only — you close the action + have position discount' },
-    sb3bet: { pct: 0, hands: '—' },
-    sbFold: { pct: 0, hands: '—' },
+    bbFold: { pct: 59, hands: 'Worst offsuit only - you close the action + have position discount' },
+    sb3bet: { pct: 0, hands: '-' },
+    sbFold: { pct: 0, hands: '-' },
     notes: 'The Small Blind Raises First-In With A Wide Range. The Big Blind Has Position, Closes The Action, And Can Respond Aggressively.',
   },
 ];
@@ -141,7 +141,7 @@ function BlindDefenseTrainer() {
               </>
             ) : (
               <div style={{ padding: 16, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                SB is the opener in this scenario — switch to BB view
+                SB is the opener in this scenario - switch to BB view
               </div>
             )}
           </>

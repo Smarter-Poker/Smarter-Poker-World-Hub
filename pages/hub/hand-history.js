@@ -223,7 +223,7 @@ export default function HandHistoryPage() {
   }, [hands]);
 
   const formatDate = (d) => {
-    if (!d) return '—';
+    if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
@@ -358,7 +358,7 @@ export default function HandHistoryPage() {
                         {heroWon ? <Check size={12} aria-hidden /> : <X size={12} aria-hidden />}
                         {heroWon ? 'Won' : 'Lost'}
                       </span>
-                      <span style={{ color: T.textDim, fontSize: 9 }}>Hand #{h.hand_number || '—'}</span>
+                      <span style={{ color: T.textDim, fontSize: 9 }}>Hand #{h.hand_number || '-'}</span>
                     </div>
                     <div style={{ color: T.textDim, fontSize: 9, marginTop: 2 }}>
                       {formatDate(h.completed_at || h.created_at)} • {h.small_blind}/{h.big_blind} {h.variant || 'NLH'}
@@ -428,7 +428,7 @@ export default function HandHistoryPage() {
                           <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Winners</div>
                           {winners.map((w, i) => (
                             <div key={i} style={{ fontSize: 10, color: T.green, fontWeight: 600 }}>
-                              {w.hand || 'Winner'} — {(w.amount || 0).toLocaleString()} chips
+                              {w.hand || 'Winner'} - {(w.amount || 0).toLocaleString()} chips
                             </div>
                           ))}
                         </div>

@@ -738,7 +738,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             {routeResult.series.map((s, i) => (
                                 <div key={i} className="rtp-series-card">
                                     <div className="rtp-series-name">{s.name}</div>
-                                    <div className="rtp-series-dates">{s.start_date} — {s.end_date || 'TBD'}</div>
+                                    <div className="rtp-series-dates">{s.start_date} - {s.end_date || 'TBD'}</div>
                                     {s.venue_name && <div className="rtp-series-venue">{s.venue_name}</div>}
                                 </div>
                             ))}

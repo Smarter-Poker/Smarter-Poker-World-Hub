@@ -6,12 +6,12 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const BLUFFCATCH_SPOTS = [
-  { spot: 'Missed Draw Board — Villain Bets Big', color: '#22c55e', icon: '✓',
+  { spot: 'Missed Draw Board - Villain Bets Big', color: '#22c55e', icon: '✓',
     board: 'K♥9♥4♣ 2♦ → 6♠', betSize: '80% pot',
     decision: 'CALL', confidence: 'High',
     reason: 'Flush draw bricked. Many combos of A♥x, Q♥x missed. Villain has plenty of bluffs here.',
     checklist: 'Does villain bluff missed draws? Is the bet sizing consistent with bluffs? Do I block value hands?' },
-  { spot: 'Static Board — Small River Bet', color: '#ef4444', icon: '✕',
+  { spot: 'Static Board - Small River Bet', color: '#ef4444', icon: '✕',
     board: 'A♠K♦8♣ 3♠ → 2♦', betSize: '33% pot',
     decision: 'FOLD', confidence: 'Medium',
     reason: 'Small river bets on static boards are almost always thin value. Villain wants a call with Ax.',
@@ -19,7 +19,7 @@ const BLUFFCATCH_SPOTS = [
   { spot: 'Overbet on Scary River', color: '#f59e0b', icon: '▲',
     board: 'Q♠J♦T♣ 5♥ → 9♠', betSize: '150% pot',
     decision: 'DEPENDS', confidence: 'Low',
-    reason: 'Four-to-a-straight on board. Overbets are polarized — either the nuts or air. MDF says call ~40%.',
+    reason: 'Four-to-a-straight on board. Overbets are polarized - either the nuts or air. MDF says call ~40%.',
     checklist: 'Is villain capable of overbetting as a bluff? Do I have a blocker to the straight (K, 8)?' },
   { spot: 'Check-Raise on River', color: '#ef4444', icon: '',
     board: 'J♠8♦4♣ 2♥ → 7♠', betSize: 'X/R to 3x',

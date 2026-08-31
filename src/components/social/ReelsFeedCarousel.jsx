@@ -1460,7 +1460,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Roll back the optimistic submitted state and show an error
       setReportSubmitted(false);
       console.warn('[ReelsFeedCarousel] Report submission failed:', err?.message || err);
-      showErrorToast('Report failed — please try again');
+      showErrorToast('Report failed - please try again');
     }
   };
 
@@ -1595,11 +1595,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
       videoStallTimerRef.current = null;
       const v = videoRef.current;
       if (v && v.readyState < 2) {
-        console.warn('[ReelsFeedCarousel] video stall watchdog tripped — auto-skipping', {
+        console.warn('[ReelsFeedCarousel] video stall watchdog tripped - auto-skipping', {
           src: url,
           readyState: v.readyState,
           networkState: v.networkState,
-          reason: 'No metadata after 6s — likely HEVC/corrupt/dead URL',
+          reason: 'No metadata after 6s - likely HEVC/corrupt/dead URL',
         });
         if (typeof window !== 'undefined') {
           window.__reelStallSkip = (window.__reelStallSkip || 0) + 1;
@@ -2160,7 +2160,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
               code: err?.code,
               message: err?.message,
               src: url,
-              suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264',
+              suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
             });
             if (typeof window !== 'undefined') {
               window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;

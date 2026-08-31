@@ -96,7 +96,7 @@ async function runTests() {
   assert(info.playerCount === 3, '3 players seated');
 
   // ═══════════════════════════════════════════════════════
-  section('3. Hand 1 — Play to Showdown');
+  section('3. Hand 1 - Play to Showdown');
   // ═══════════════════════════════════════════════════════
 
   entry.table.startNextHand();
@@ -131,7 +131,7 @@ async function runTests() {
   assert(totalStacks === 600, `Total chips conserved: ${totalStacks} = 600`);
 
   // ═══════════════════════════════════════════════════════
-  section('4. Hand 2 — Fold Preflop');
+  section('4. Hand 2 - Fold Preflop');
   // ═══════════════════════════════════════════════════════
 
   entry.table.startNextHand();
@@ -156,7 +156,7 @@ async function runTests() {
   assert(totalH2 === 600, `Chips conserved after fold hand: ${totalH2}`);
 
   // ═══════════════════════════════════════════════════════
-  section('5. Hand 3 — All-in Preflop');
+  section('5. Hand 3 - All-in Preflop');
   // ═══════════════════════════════════════════════════════
 
   entry.table.startNextHand();
@@ -324,7 +324,7 @@ async function runTests() {
   }
 
   // ═══════════════════════════════════════════════════════
-  section('12. Multiple Hands — Button Rotation');
+  section('12. Multiple Hands - Button Rotation');
   // ═══════════════════════════════════════════════════════
 
   const buttons = [];

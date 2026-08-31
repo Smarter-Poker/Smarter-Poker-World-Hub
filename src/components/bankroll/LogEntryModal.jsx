@@ -426,12 +426,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt - actionAmt);
           // Append swap/staking/action details to notes
           const parts = [];
-          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} — $${swapAmt}`);
-          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} — $${stakerAmt}`);
+          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} - $${swapAmt}`);
+          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} - $${stakerAmt}`);
           if (actionAmt > 0) {
             const pct = formData.action_percentage ? `${formData.action_percentage}%` : '';
             const mkup = formData.action_markup ? ` @ ${formData.action_markup}% markup` : '';
-            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} — ${pct}${mkup} — $${actionAmt}`);
+            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} - ${pct}${mkup} - $${actionAmt}`);
           }
           const extra = parts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
@@ -783,7 +783,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       if (cur > 0) handleInputChange('reentry_count', (cur - 1).toString());
                     }}
                     style={{ ...styles.input, flex: 'none', width: 40, textAlign: 'center', cursor: 'pointer', padding: '12px 0', borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none', fontSize: 18, fontWeight: 700 }}
-                  >–</button>
+                  >-</button>
                   <input
                     type="number"
                     min="0"

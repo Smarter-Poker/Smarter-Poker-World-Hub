@@ -97,7 +97,7 @@ class RealtimeSync {
   async initialize() {
     // Skip channel creation if no Supabase client (memory-only mode)
     if (!this.supabase) {
-      console.debug(`[RealtimeSync] No Supabase client — running without realtime for table ${this.tableId}`);
+      console.debug(`[RealtimeSync] No Supabase client - running without realtime for table ${this.tableId}`);
       this._wireTableEvents();
       this._wireTimerEvents();
       return;

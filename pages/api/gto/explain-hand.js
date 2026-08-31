@@ -103,13 +103,13 @@ const HAND_STRENGTH = (hand) => {
 };
 
 const POSITION_CONTEXT = {
-    UTG: 'Under-the-Gun ranges are tightest — every hand played has to fight through the entire field acting after.',
+    UTG: 'Under-the-Gun ranges are tightest - every hand played has to fight through the entire field acting after.',
     MP: 'Middle position is still relatively early; ranges remain disciplined with most fold-equity coming from late-position folds.',
-    HJ: 'The Hijack opens up significantly — fold equity from CO/BTN/blinds rewards a wider range.',
+    HJ: 'The Hijack opens up significantly - fold equity from CO/BTN/blinds rewards a wider range.',
     CO: 'Cutoff is the second-widest opening position; you steal the blinds frequently with positional advantage post-flop.',
-    BTN: 'Button is the widest opener with permanent positional advantage — wider ranges, more bluffs, more thin value.',
-    SB: 'Small blind plays a polar strategy — you raise wide and limp some hands rather than 3-betting against BB defense.',
-    BB: 'Big blind already invested — you defend wide because of pot odds, but most defense is calls, not 3-bets.',
+    BTN: 'Button is the widest opener with permanent positional advantage - wider ranges, more bluffs, more thin value.',
+    SB: 'Small blind plays a polar strategy - you raise wide and limp some hands rather than 3-betting against BB defense.',
+    BB: 'Big blind already invested - you defend wide because of pot odds, but most defense is calls, not 3-bets.',
 };
 
 const ACTION_VERB_PRESENT = {
@@ -171,11 +171,11 @@ function buildDeterministicExplanation({ hand, position, stackDepth, correctActi
         const freqStr = formatFreq(freq);
         if (freq >= 0.95) {
             sentences.push(
-                `${hand} is a pure ${actionVerb(solverAction)} in this spot — solver picks it ${freqStr} of the time at ${sd}bb effective.`
+                `${hand} is a pure ${actionVerb(solverAction)} in this spot - solver picks it ${freqStr} of the time at ${sd}bb effective.`
             );
         } else {
             sentences.push(
-                `${hand} ${actionVerb(solverAction)} ${freqStr} from ${heroPos} at ${sd}bb effective — this is a mixed-strategy spot.`
+                `${hand} ${actionVerb(solverAction)} ${freqStr} from ${heroPos} at ${sd}bb effective - this is a mixed-strategy spot.`
             );
         }
     } else {
@@ -192,24 +192,24 @@ function buildDeterministicExplanation({ hand, position, stackDepth, correctActi
     if (userAction && userAction.toLowerCase() !== String(correctAction).toLowerCase()) {
         const userVerb = actionVerb(userAction);
         sentences.push(
-            `${userVerb.charAt(0).toUpperCase() + userVerb.slice(1)} here gives up EV — the solver almost never ${userVerb} ${hand} at this depth.`
+            `${userVerb.charAt(0).toUpperCase() + userVerb.slice(1)} here gives up EV - the solver almost never ${userVerb} ${hand} at this depth.`
         );
     }
 
     // Sentence 4: key takeaway (action-specific)
     const correctLow = String(correctAction).toLowerCase();
     if (correctLow.startsWith('raise') || correctLow === 'open') {
-        sentences.push(`Key takeaway: ${hand} clears the open-raise threshold for ${heroPos} — recognize the spot and execute.`);
+        sentences.push(`Key takeaway: ${hand} clears the open-raise threshold for ${heroPos} - recognize the spot and execute.`);
     } else if (correctLow.startsWith('call')) {
         sentences.push(`Key takeaway: ${hand} flats here to keep the opener's range wide and realize equity post-flop with position.`);
     } else if (correctLow.startsWith('3bet')) {
-        sentences.push(`Key takeaway: ${hand} is in the 3-bet range from ${heroPos} for value and balance — don't over-flat with hands that 3-bet for value.`);
+        sentences.push(`Key takeaway: ${hand} is in the 3-bet range from ${heroPos} for value and balance - don't over-flat with hands that 3-bet for value.`);
     } else if (correctLow.startsWith('4bet')) {
-        sentences.push(`Key takeaway: ${hand} is a value 4-bet from ${heroPos} — calling lets villain realize too much equity with their wider 3-bet range.`);
+        sentences.push(`Key takeaway: ${hand} is a value 4-bet from ${heroPos} - calling lets villain realize too much equity with their wider 3-bet range.`);
     } else if (correctLow === 'fold') {
-        sentences.push(`Key takeaway: ${hand} doesn't have enough equity from ${heroPos} at ${sd}bb — folding is +EV vs continuing.`);
+        sentences.push(`Key takeaway: ${hand} doesn't have enough equity from ${heroPos} at ${sd}bb - folding is +EV vs continuing.`);
     } else if (correctLow === 'allin' || correctLow === 'jam' || correctLow === 'shove') {
-        sentences.push(`Key takeaway: at ${sd}bb, ${hand} from ${heroPos} is a clear shove — stack-depth and fold-equity drive the decision more than hand strength.`);
+        sentences.push(`Key takeaway: at ${sd}bb, ${hand} from ${heroPos} is a clear shove - stack-depth and fold-equity drive the decision more than hand strength.`);
     } else {
         sentences.push(`Key takeaway: ${heroPos} ${correctVerb} ${hand} is solver-aligned at ${sd}bb effective.`);
     }
@@ -304,7 +304,7 @@ export default async function handler(req, res) {
                 userAction: ua,
                 explanation: ca
                     ? `${h || 'This hand'} should ${actionVerb(ca)} in this spot based on standard solver ranges. Position and stack depth drive the decision.`
-                    : 'Unable to generate analysis — please retry.',
+                    : 'Unable to generate analysis - please retry.',
                 source: 'DETERMINISTIC_FALLBACK',
                 generatedAt: new Date().toISOString(),
             });

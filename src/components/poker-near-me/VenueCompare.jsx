@@ -35,7 +35,7 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
     case 'name': return venue.name || 'Unknown';
     case 'city_state': return `${venue.city || ''}${venue.state ? `, ${venue.state}` : ''}`;
     case 'distance':
-      if (!userLocation || !venue.latitude || !venue.longitude) return '—';
+      if (!userLocation || !venue.latitude || !venue.longitude) return '-';
       const d = haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
       return d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`;
     case 'live_games': {
@@ -43,39 +43,39 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
       // UX FIX: while the live-tables fetch is in flight this used to render the same
       // em-dash as "this venue has no live data".
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
+      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
       const active = live.reduce((sum, g) => sum + (parseInt(g.tables_running) || 0), 0);
       return active > 0 ? <span style={{ color: '#3fb950', fontWeight: 700 }}>{active} Running</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
     case 'waiting_list': {
       const live = findLive(venue);
       if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
+      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
       const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
       return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
     // BUG FIX: trust_score is recalculate_venue_trust_score()'s AVG(rating) on the
     // 1-5 review scale (LiveGamesFeed/VenueCard both render it as "/5"). Rendering
     // it as "/100" made a top venue read "4.8/100".
-    case 'trust_score': return venue.trust_score ? `${Number(venue.trust_score).toFixed(1)}/5` : '—';
+    case 'trust_score': return venue.trust_score ? `${Number(venue.trust_score).toFixed(1)}/5` : '-';
     // SCHEMA FIX: neither `tables_count` nor `total_tables` exists on poker_venues — the
     // column is `poker_tables` — so the "Total Tables" row was always an em-dash.
-    case 'tables_count': return venue.poker_tables ?? venue.tables_count ?? venue.total_tables ?? '—';
+    case 'tables_count': return venue.poker_tables ?? venue.tables_count ?? venue.total_tables ?? '-';
     case 'venue_type': return (venue.venue_type || 'casino').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     case 'games_offered':
-      return (venue.games_offered || []).join(', ') || '—';
+      return (venue.games_offered || []).join(', ') || '-';
     // BUG FIX: hours_of_operation is not a column any migration or the venues API
     // select defines — the row was always '—'. The real fields are hours_weekday /
     // hours_weekend (see pages/api/poker/venues.js select list).
     case 'hours': {
       const weekday = venue.hours_weekday || venue.hours || venue.hours_of_operation;
       const weekend = venue.hours_weekend;
-      if (!weekday && !weekend) return '—';
+      if (!weekday && !weekend) return '-';
       if (weekday && weekend && weekday !== weekend) return `Wkdy ${weekday} / Wknd ${weekend}`;
       return weekday || weekend;
     }
-    case 'phone': return venue.phone || '—';
-    default: return '—';
+    case 'phone': return venue.phone || '-';
+    default: return '-';
   }
 }
 

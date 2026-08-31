@@ -640,9 +640,9 @@ function MerchProductCard({
                     disabled={!v.inStock || !v.fulfillmentReady}
                     title={
                       !v.inStock
-                        ? `${v.label} — Sold Out`
+                        ? `${v.label} - Sold Out`
                         : !v.fulfillmentReady
-                          ? `${v.label} — Fulfillment Setup Required`
+                          ? `${v.label} - Fulfillment Setup Required`
                           : v.label
                     }
                     aria-pressed={active}
@@ -862,7 +862,7 @@ function MerchProductCard({
             }}
           >
             <Gem size={15} />
-            {thisBusy ? 'Processing…' : `Pay With Diamonds — ${fmt(diamondCost)}`}
+            {thisBusy ? 'Processing…' : `Pay With Diamonds - ${fmt(diamondCost)}`}
           </button>
 
           {/* Honest, specific reason instead of a silently dead button */}
@@ -1137,7 +1137,7 @@ export default function MerchStore({
       // guessing would either mischarge the customer or ship them the
       // wrong size — so this field is required, not decorative.
       if (variant.id) item.variantId = variant.id;
-      item.description = `${product.description ? `${product.description} — ` : ''}Option: ${variant.label}`;
+      item.description = `${product.description ? `${product.description} - ` : ''}Option: ${variant.label}`;
     } else if (product.description) {
       item.description = product.description;
     }
@@ -1160,7 +1160,7 @@ export default function MerchStore({
         id: `${catalogId}::${variantToken}`,
         catalogId,
         name: product.name,
-        type: variant?.label ? `Merchandise — ${variant.label}` : 'Merchandise',
+        type: variant?.label ? `Merchandise - ${variant.label}` : 'Merchandise',
         price: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
         diamonds:
           firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
@@ -1337,7 +1337,7 @@ export default function MerchStore({
       if (Number(balance || 0) < cost) {
         showStoreToast(
           'error',
-          `Not Enough Diamonds — ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
+          `Not Enough Diamonds - ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
         );
         return;
       }
@@ -1409,7 +1409,7 @@ export default function MerchStore({
           const details = data?.details;
           if (details && details.required != null && details.current != null) {
             throw new Error(
-              `Not enough diamonds — ${fmt(details.required)} needed, you have ${fmt(details.current)}` +
+              `Not enough diamonds - ${fmt(details.required)} needed, you have ${fmt(details.current)}` +
                 (details.shortfall != null ? ` (${fmt(details.shortfall)} short).` : '.')
             );
           }
@@ -1428,7 +1428,7 @@ export default function MerchStore({
         showStoreToast(
           'success',
           replayed
-            ? 'Order Already Placed — No Additional Diamonds Were Deducted.'
+            ? 'Order Already Placed - No Additional Diamonds Were Deducted.'
             : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
         );
         try {
@@ -1677,7 +1677,7 @@ export default function MerchStore({
         >
           <AlertTriangle size={14} />
           <span style={{ flex: 1 }}>
-            {loadError} — Showing The Standard Lineup. Live Fulfillment Options Are Required Before
+            {loadError} - Showing The Standard Lineup. Live Fulfillment Options Are Required Before
             Checkout.
           </span>
           <button
@@ -1736,7 +1736,7 @@ export default function MerchStore({
           <div style={{ marginTop: 10, fontWeight: 700, color: TEXT }}>
             No Merch Available Right Now
           </div>
-          <div style={{ marginTop: 6 }}>New Gear Drops Regularly — Check Back Soon.</div>
+          <div style={{ marginTop: 6 }}>New Gear Drops Regularly - Check Back Soon.</div>
         </div>
       )}
 

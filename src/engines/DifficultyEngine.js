@@ -73,7 +73,7 @@ export function toEngineDifficulty(uiDifficulty) {
 export const DIFFICULTY_CONFIG = {
     [DIFFICULTY.SIMPLE]: {
         label: 'Simple',
-        description: 'Bet/Check/Fold — Focus on action direction',
+        description: 'Bet/Check/Fold - Focus on action direction',
         timer: 30,
         scoreMultiplier: 0.8,  // Easier mode, slightly lower reward
         maxOptions: 3,
@@ -83,7 +83,7 @@ export const DIFFICULTY_CONFIG = {
     },
     [DIFFICULTY.GROUPED]: {
         label: 'Grouped',
-        description: 'Action type only — Bet, Raise, Check, Call, Fold',
+        description: 'Action type only - Bet, Raise, Check, Call, Fold',
         timer: 20,
         scoreMultiplier: 1.0,
         maxOptions: 5,
@@ -93,7 +93,7 @@ export const DIFFICULTY_CONFIG = {
     },
     [DIFFICULTY.STANDARD]: {
         label: 'Standard',
-        description: 'Exact solver sizings — Match the GTO solution precisely',
+        description: 'Exact solver sizings - Match the GTO solution precisely',
         timer: 15,
         scoreMultiplier: 1.5,  // Harder mode, higher reward
         maxOptions: 8,

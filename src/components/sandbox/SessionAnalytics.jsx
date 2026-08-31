@@ -36,7 +36,7 @@ function toWeekly(data) {
         const total = chunk.reduce((sum, d) => sum + (Number(d.total) || 0), 0);
         const correct = chunk.reduce((sum, d) => sum + ((Number(d.pct) || 0) * (Number(d.total) || 0)) / 100, 0);
         out.unshift({
-            date: chunk.length > 1 ? `${chunk[0]?.date} – ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
+            date: chunk.length > 1 ? `${chunk[0]?.date} - ${chunk[chunk.length - 1]?.date}` : chunk[0]?.date,
             total,
             pct: total > 0 ? Math.round((100 * correct) / total) : 0,
         });
@@ -166,7 +166,7 @@ function AccuracyTrend({ data, avg }) {
             }}>
                 {active ? (
                     <span style={{ color: T.text, fontWeight: 700 }}>
-                        {active.date} — {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
+                        {active.date} - {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
                     </span>
                 ) : (
                     <>
@@ -312,7 +312,7 @@ export default function SessionAnalytics({ userId }) {
                 compact
                 icon={<Target size={22} strokeWidth={2} />}
                 title="No coached hands yet"
-                body="Turn on Coach Mode in the Sandbox and play a few spots — your accuracy, positions and streets show up here."
+                body="Turn on Coach Mode in the Sandbox and play a few spots - your accuracy, positions and streets show up here."
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => practice({})}>
                         Open the Sandbox
@@ -326,12 +326,12 @@ export default function SessionAnalytics({ userId }) {
                 <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                     <StatBox value={stats.totalHands} label="Total hands" color={T.accent} />
                     <StatBox
-                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : '—'}
+                        value={stats.accuracyPct != null ? `${stats.accuracyPct}%` : '-'}
                         label="GTO accuracy"
                         color={pctColor(stats.accuracyPct)}
                     />
                     <StatBox
-                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : '—'}
+                        value={stats.avgLeakEv != null ? `${Number(stats.avgLeakEv).toFixed(1)}bb` : '-'}
                         label="Avg leak EV"
                         color={stats.avgLeakEv != null && Number(stats.avgLeakEv) < 0 ? T.danger : T.textMuted}
                     />
@@ -343,7 +343,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.positionStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy — tap to drill</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy - tap to drill</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.positionStats.map(p => {
                                 const isWeak = p.position === stats.weakPosition;

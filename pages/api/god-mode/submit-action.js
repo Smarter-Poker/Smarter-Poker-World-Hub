@@ -244,7 +244,7 @@ function calculateDamage(userAction, userSizing, solverNode, potSize) {
 
     if (isCorrect) {
         if (isIndifferent && userActionKey !== maxEvAction) {
-            feedback = `✓ Mixed strategy — ${(userFreq * 100).toFixed(0)}% frequency is acceptable.`;
+            feedback = `✓ Mixed strategy - ${(userFreq * 100).toFixed(0)}% frequency is acceptable.`;
         } else {
             feedback = '✓ Perfect GTO play!';
         }

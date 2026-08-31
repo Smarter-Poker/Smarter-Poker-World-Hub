@@ -14,8 +14,8 @@ const SPOTS = [
     bluffs: 'A5s-A2s, K9s, Q9s, J9s, T8s, 97s',
     sizing: '4x open + 1x per caller = ~12-13bb',
     foldEquity: '65-70%',
-    reasoning: 'BTNs cold-call caps their range (no AA/KK). CO opened but faces a 3-bet behind — often folds medium hands. High fold equity makes squeezing very profitable.',
-    tips: ['Target flat-callers specifically', 'Size larger when OOP', 'BTN is capped — they cant have premiums'],
+    reasoning: 'BTNs cold-call caps their range (no AA/KK). CO opened but faces a 3-bet behind - often folds medium hands. High fold equity makes squeezing very profitable.',
+    tips: ['Target flat-callers specifically', 'Size larger when OOP', 'BTN is capped - they cant have premiums'],
   },
   {
     position: 'SB vs UTG open + MP call', color: '#f59e0b',

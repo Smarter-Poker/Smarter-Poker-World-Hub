@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, error: 'Table not found in this club' });
       }
       if (['closed', 'deleted'].includes(tableInfo.status)) {
-        return res.status(400).json({ success: false, error: `Cannot lock chips — table is ${tableInfo.status}` });
+        return res.status(400).json({ success: false, error: `Cannot lock chips - table is ${tableInfo.status}` });
       }
       if (tableInfo.max_buy_in && amount > tableInfo.max_buy_in) {
         return res.status(400).json({ success: false, error: `Amount ${amount} exceeds table max buy-in of ${tableInfo.max_buy_in}` });

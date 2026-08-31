@@ -121,7 +121,7 @@ export default async function handler(req, res) {
                             .from('venues')
                             .select('id, name, city, state')
                             .in('id', venueIds.map(String));
-                        (venues || []).forEach(v => { venueNames[String(v.id)] = `${v.name}${v.city ? ` — ${v.city}` : ''}${v.state ? `, ${v.state}` : ''}`; });
+                        (venues || []).forEach(v => { venueNames[String(v.id)] = `${v.name}${v.city ? ` - ${v.city}` : ''}${v.state ? `, ${v.state}` : ''}`; });
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
             }

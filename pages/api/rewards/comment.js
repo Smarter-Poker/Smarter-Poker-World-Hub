@@ -38,11 +38,11 @@ function chicagoDate(d = new Date()) {
 const REASON_MESSAGE = {
     ok: 'Diamonds awarded',
     duplicate: 'Already claimed',
-    daily_cap: 'Daily diamond cap reached — come back tomorrow',
+    daily_cap: 'Daily diamond cap reached - come back tomorrow',
     monthly_cap: 'Monthly diamond cap reached',
     action_limit: 'Daily limit reached for this reward',
     velocity: 'Slow down a moment before earning again',
-    budget_exhausted: 'Rewards are paused right now — please try again later',
+    budget_exhausted: 'Rewards are paused right now - please try again later',
     unknown_action: 'Unknown reward action',
     not_eligible: 'Not eligible for this reward'
 };
@@ -56,7 +56,7 @@ const REASON_MESSAGE = {
  */
 async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targetId = null, metadata = {} }) {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
+        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing - award_diamonds_v2 is service_role only');
         return { ok: false, transportError: { message: 'Service role key not configured' } };
     }
     // safeAward never throws. If migration 20260726120000 has not been applied,
@@ -111,7 +111,7 @@ function sendAwardResult(res, award, label, extra = {}) {
                 message: 'Rewards are temporarily unavailable.'
             });
         }
-        return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+        return res.status(500).json({ success: false, error: 'Failed to credit diamonds - please retry' });
     }
     const base = {
         ...extra,

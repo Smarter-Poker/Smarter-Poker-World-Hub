@@ -172,7 +172,7 @@ export const REWARDS = {
     key: 'daily_trivia_challenge',
     label: 'Daily Trivia Challenge',
     description:
-      "Finish today's poker trivia challenge. Any score counts — showing up is the reward.",
+      "Finish today's poker trivia challenge. Any score counts - showing up is the reward.",
     diamonds: 15,
     maxPerDay: 1,
     category: 'daily',
@@ -230,7 +230,7 @@ export const REWARDS = {
     gate: 'free',
     oncePerTarget: true,
     verifyNote:
-      'p_target_id is the level id. One payout per level id per user, forever — replaying a cleared level pays nothing.',
+      'p_target_id is the level id. One payout per level id per user, forever - replaying a cleared level pays nothing.',
   },
 
   gto_chart_study: {
@@ -373,7 +373,7 @@ export const REWARDS = {
     key: 'venue_review',
     label: 'Venue Review',
     description:
-      'Review a poker room you actually played. One payout per venue, ever — 25 ◆ for real, useful intel.',
+      'Review a poker room you actually played. One payout per venue, ever - 25 ◆ for real, useful intel.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'engagement',
@@ -383,13 +383,13 @@ export const REWARDS = {
     gate: 'free',
     oncePerTarget: true,
     verifyNote:
-      'p_target_id is the venue id. NEVER geofence against client-supplied lat/long (v1 bug) — use a server-side check-in or trusted geo-IP.',
+      'p_target_id is the venue id. NEVER geofence against client-supplied lat/long (v1 bug) - use a server-side check-in or trusted geo-IP.',
   },
 
   birthday: {
     key: 'birthday',
     label: 'Birthday Bonus',
-    description: 'Happy birthday from Smarter.Poker — 100 ◆, once a year.',
+    description: 'Happy birthday from Smarter.Poker - 100 ◆, once a year.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'engagement',
@@ -478,13 +478,13 @@ export const REWARDS = {
     gate: 'free',
     serverOnly: true,
     verifyNote:
-      'Awarded by the OTP verify flow AFTER the code is checked, using the JWT identity — not a body-supplied userId (v1 bug).',
+      'Awarded by the OTP verify flow AFTER the code is checked, using the JWT identity - not a body-supplied userId (v1 bug).',
   },
 
   first_purchase: {
     key: 'first_purchase',
     label: 'First Purchase',
-    description: 'Thanks for your first purchase — here is 25 ◆ back. Paid once, ever.',
+    description: 'Thanks for your first purchase - here is 25 ◆ back. Paid once, ever.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'profile',
@@ -522,7 +522,7 @@ export const REWARDS = {
   referral_referee: {
     key: 'referral_referee',
     label: 'Welcome Bonus',
-    description: 'You joined with a friend’s invite code — here is 100 ◆ to start.',
+    description: 'You joined with a friend’s invite code - here is 100 ◆ to start.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'referral',
@@ -599,7 +599,7 @@ export const REWARDS = {
     key: 'streak_reward',
     label: 'Training Streak Milestone',
     description:
-      'Milestone reward for maintaining a consecutive training streak — up to 10,000 ◆ for a 365-day run.',
+      'Milestone reward for maintaining a consecutive training streak - up to 10,000 ◆ for a 365-day run.',
     diamonds: 0,                // variable; server passes amount in metadata.streak_diamonds
     maxDiamonds: 10000,
     monthlyDiamondCap: 1000,   // $10/user/month ceiling; 10k milestone defers whole if over budget
@@ -618,7 +618,7 @@ export const REWARDS = {
     key: 'daily_bonus',
     label: 'Daily Training Bonus',
     description:
-      'Daily login training bonus — base plus consecutive-streak multiplier, up to 125 ◆/day.',
+      'Daily login training bonus - base plus consecutive-streak multiplier, up to 125 ◆/day.',
     diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
     maxDiamonds: 125,
     monthlyDiamondCap: 3750,   // 125/day × 30; own budget, not the 110 daily cap
@@ -716,7 +716,7 @@ export const REWARDS = {
     key: 'easter_egg',
     label: 'Hidden Achievement',
     description:
-      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map — 5 to 500 ◆ by rarity, drawing on a separate 1000 ◆ monthly egg budget that sits outside your daily cap.',
+      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map - 5 to 500 ◆ by rarity, drawing on a separate 1000 ◆ monthly egg budget that sits outside your daily cap.',
     diamonds: 0,
     maxDiamonds: 500,
     amountFrom: 'EASTER_EGGS',

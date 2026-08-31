@@ -313,7 +313,7 @@ export default function ThreeBetTrainer() {
                 <div>
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>SIZING</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
-                        {currentData.sizing || '—'}
+                        {currentData.sizing || '-'}
                     </div>
                 </div>
                 <div style={{ flex: 1, textAlign: 'right' }}>

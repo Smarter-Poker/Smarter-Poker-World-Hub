@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           // settlement for every club on the platform.
           const envAdminSecret = process.env.ADMIN_ROUTE_SECRET;
           if (!envAdminSecret) {
-              console.warn('[settlement-history] ADMIN_ROUTE_SECRET is not configured — rejecting auto_close');
+              console.warn('[settlement-history] ADMIN_ROUTE_SECRET is not configured - rejecting auto_close');
               return res.status(500).json({ error: 'Server misconfigured' });
           }
           const secret = req.headers['x-admin-secret'] || req.body.secret;

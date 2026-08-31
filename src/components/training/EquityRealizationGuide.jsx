@@ -18,10 +18,10 @@ const FACTORS = [
   {
     factor: 'Hand Type', color: '#10b981',
     scenarios: [
-      { label: 'Suited Connectors IP', eqr: 95, raw: 42, realized: 40, note: 'Great equity realization — make strong hands (straights, flushes) and can bluff effectively with draws.' },
-      { label: 'Offsuit Broadway OOP', eqr: 60, raw: 45, realized: 27, note: 'Poor EQR — makes top pair which is hard to play OOP. Gets dominated by better Ax/Kx.' },
-      { label: 'Small Pairs IP', eqr: 85, raw: 44, realized: 37, note: 'Good EQR when IP — set mine profitably. When you hit, you stack opponents. When you miss, fold cheaply.' },
-      { label: 'Small Pairs OOP', eqr: 55, raw: 44, realized: 24, note: 'Bad EQR OOP — same set mining but harder to extract. Check-raise looks obvious. Fold too often without set.' },
+      { label: 'Suited Connectors IP', eqr: 95, raw: 42, realized: 40, note: 'Great equity realization - make strong hands (straights, flushes) and can bluff effectively with draws.' },
+      { label: 'Offsuit Broadway OOP', eqr: 60, raw: 45, realized: 27, note: 'Poor EQR - makes top pair which is hard to play OOP. Gets dominated by better Ax/Kx.' },
+      { label: 'Small Pairs IP', eqr: 85, raw: 44, realized: 37, note: 'Good EQR when IP - set mine profitably. When you hit, you stack opponents. When you miss, fold cheaply.' },
+      { label: 'Small Pairs OOP', eqr: 55, raw: 44, realized: 24, note: 'Bad EQR OOP - same set mining but harder to extract. Check-raise looks obvious. Fold too often without set.' },
     ],
   },
   {

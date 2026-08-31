@@ -25,7 +25,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!key) {
-            console.warn('[cashier-info] SUPABASE_SERVICE_ROLE_KEY not set — refusing anon key fallback');
+            console.warn('[cashier-info] SUPABASE_SERVICE_ROLE_KEY not set - refusing anon key fallback');
             throw new Error('Server misconfiguration: missing service role key');
         }
         _supabase = createClient(url, key);
@@ -207,7 +207,7 @@ export default async function handler(req, res) {
                   .filter(a => a !== null);
 
               if (validAmounts.length === 0) {
-                  return res.status(400).json({ error: 'No valid amounts provided (must be integers 100–10,000,000)' });
+                  return res.status(400).json({ error: 'No valid amounts provided (must be integers 100-10,000,000)' });
               }
 
               const currentSettings = club?.settings || {};

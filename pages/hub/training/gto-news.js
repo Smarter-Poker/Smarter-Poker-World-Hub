@@ -28,7 +28,7 @@ const ARTICLES = [
     id: 1,
     cat: 'Preflop',
     title: 'Why 2.5x Is the Standard Open Size',
-    body: 'Using a consistent 2.5x open raise prevents opponents from exploiting sizing tells. Larger opens from EP are outdated — they risk more for the same result. A 2.5x open gives you better pot odds on steals and keeps your range disguised.',
+    body: 'Using a consistent 2.5x open raise prevents opponents from exploiting sizing tells. Larger opens from EP are outdated - they risk more for the same result. A 2.5x open gives you better pot odds on steals and keeps your range disguised.',
     date: '2026-03-09',
     readTime: 2,
   },
@@ -52,7 +52,7 @@ const ARTICLES = [
     id: 4,
     cat: 'Mental',
     title: 'The 3-Second Rule for Tilt Prevention',
-    body: 'After a bad beat, pause for 3 seconds before acting on the next hand. This microreset prevents impulsive plays driven by frustration. Professional players use breathing pauses between every decision — not just after losses.',
+    body: 'After a bad beat, pause for 3 seconds before acting on the next hand. This microreset prevents impulsive plays driven by frustration. Professional players use breathing pauses between every decision - not just after losses.',
     date: '2026-03-06',
     readTime: 2,
   },
@@ -100,7 +100,7 @@ const ARTICLES = [
     id: 10,
     cat: 'Preflop',
     title: 'BTN vs Blinds: The Most Common Spot',
-    body: 'The BTN should open ~45% of hands. SB should 3-bet ~12% and fold the rest (no flatting in many strategies). BB should defend wide — calling ~35% and 3-betting ~10%. This is the most fought-over pot in poker.',
+    body: 'The BTN should open ~45% of hands. SB should 3-bet ~12% and fold the rest (no flatting in many strategies). BB should defend wide - calling ~35% and 3-betting ~10%. This is the most fought-over pot in poker.',
     date: '2026-02-28',
     readTime: 3,
   },
@@ -140,7 +140,7 @@ const ARTICLES = [
     id: 15,
     cat: 'Math',
     title: 'SPR Guide: Stack-to-Pot Ratio',
-    body: 'SPR < 3: Commit with top pair+. SPR 3-7: Top pair is a call, not a raise. SPR > 10: Deep stack play — sets and draws become premium, top pair is a thin value hand. Always calculate SPR after the flop to guide your commitment decisions.',
+    body: 'SPR < 3: Commit with top pair+. SPR 3-7: Top pair is a call, not a raise. SPR > 10: Deep stack play - sets and draws become premium, top pair is a thin value hand. Always calculate SPR after the flop to guide your commitment decisions.',
     date: '2026-02-23',
     readTime: 3,
   },
@@ -180,7 +180,7 @@ const ARTICLES = [
     id: 20,
     cat: 'Preflop',
     title: 'Cold 4-Betting: The Nuclear Option',
-    body: 'Cold 4-betting (4-betting without being the original 3-bettor) requires an ultra-premium range: AA, KK, and sometimes QQ/AKs. This move represents enormous strength and should be used sparingly — villain will fold everything except their strongest hands.',
+    body: 'Cold 4-betting (4-betting without being the original 3-bettor) requires an ultra-premium range: AA, KK, and sometimes QQ/AKs. This move represents enormous strength and should be used sparingly - villain will fold everything except their strongest hands.',
     date: '2026-02-18',
     readTime: 2,
   },
@@ -522,7 +522,7 @@ export default function GtoNewsPage() {
                 {feedError
                   ? 'Live strategy articles could not be loaded right now.'
                   : 'No live strategy articles are available right now.'}{' '}
-                The tips below are fixed examples for reference — not current news.
+                The tips below are fixed examples for reference - not current news.
               </div>
             </div>
           )}

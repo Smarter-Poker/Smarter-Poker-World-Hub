@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       // sending `Authorization: Bearer undefined` authenticated successfully.
       const cronSecret = process.env.CRON_SECRET;
       if (!cronSecret) {
-          console.warn('[initialize-horse-sources] CRON_SECRET is not configured — rejecting request');
+          console.warn('[initialize-horse-sources] CRON_SECRET is not configured - rejecting request');
           return res.status(500).json({ success: false, error: 'Server misconfigured' });
       }
 

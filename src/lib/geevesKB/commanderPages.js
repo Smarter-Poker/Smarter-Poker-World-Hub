@@ -13,7 +13,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-1', category: 'Club Commander',
         keywords: ['check in', 'player check in', 'check-in kiosk', 'player arrival', 'seat assignment'],
         patterns: ['how does check in work', 'how do i check players in', 'what is the check in system', 'player check in commander'],
-        answer: '**Player Check-In** is the Commander system for registering player arrivals at a live venue.\n\n**Access:** Commander > Venue > Check-In (or the Check-In Kiosk QR code)\n\n**How it works for staff:**\n1. Open the Check-In page for a venue\n2. Search for a player by name or player ID\n3. Tap Check In — the player moves from waitlist to seated status\n4. Their information (stack, table, seat) is logged instantly\n\n**How it works for players:**\n- If your venue has a kiosk, players scan the QR code and self-check-in\n- Players see their position in the waitlist and estimated wait time\n\n**Real-time:** Seating status updates instantly across all Commander screens.',
+        answer: '**Player Check-In** is the Commander system for registering player arrivals at a live venue.\n\n**Access:** Commander > Venue > Check-In (or the Check-In Kiosk QR code)\n\n**How it works for staff:**\n1. Open the Check-In page for a venue\n2. Search for a player by name or player ID\n3. Tap Check In - the player moves from waitlist to seated status\n4. Their information (stack, table, seat) is logged instantly\n\n**How it works for players:**\n- If your venue has a kiosk, players scan the QR code and self-check-in\n- Players see their position in the waitlist and estimated wait time\n\n**Real-time:** Seating status updates instantly across all Commander screens.',
         followUps: ['How does the waitlist work?', 'How do I set up the kiosk?', 'What is the player card?'],
     },
 
@@ -40,7 +40,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-4', category: 'Club Commander',
         keywords: ['commander notifications', 'venue notifications', 'tournament alerts', 'notify players'],
         patterns: ['how do notifications work in commander', 'how do i notify players', 'what notifications does commander send'],
-        answer: '**Commander Notifications** sends automated alerts to players and staff.\n\n**Notification types:**\n- **Tournament starting** — Alert registered players 30 min and 5 min before start\n- **Waitlist status** — Notify players when their seat becomes available\n- **Floor calls** — Send table/seat alerts to staff\n- **Blind level changes** — Announce new blind levels during tournaments\n- **High hand results** — Notify winner and table\n\n**Access:** Commander > Notifications > Settings\n\nNotifications are sent via the Smarter.Poker app (push notifications) and optionally via SMS.',
+        answer: '**Commander Notifications** sends automated alerts to players and staff.\n\n**Notification types:**\n- **Tournament starting** - Alert registered players 30 min and 5 min before start\n- **Waitlist status** - Notify players when their seat becomes available\n- **Floor calls** - Send table/seat alerts to staff\n- **Blind level changes** - Announce new blind levels during tournaments\n- **High hand results** - Notify winner and table\n\n**Access:** Commander > Notifications > Settings\n\nNotifications are sent via the Smarter.Poker app (push notifications) and optionally via SMS.',
         followUps: ['How do I set up push notifications?', 'How do waitlist notifications work?'],
     },
 
@@ -49,7 +49,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-5', category: 'Club Commander',
         keywords: ['commander profile', 'player profile commander', 'edit profile commander', 'commander profile settings'],
         patterns: ['how do i edit my commander profile', 'what is the commander profile page', 'commander profile features'],
-        answer: '**Commander Profile** is your player identity within the Club Commander ecosystem.\n\n**Access:** Commander > Profile\n\n**Sub-pages:**\n- **Profile** — Display name, bio, avatar, hometown\n- **Edit** — Update username, bio, photo\n- **Achievements** — Your earned badges from Commander tournaments and sessions\n- **Settings** — Notification preferences, privacy settings, connected accounts\n\n**Why it matters:** Your Commander profile is linked to your player stats, league history, and tournament results at every venue using Commander.',
+        answer: '**Commander Profile** is your player identity within the Club Commander ecosystem.\n\n**Access:** Commander > Profile\n\n**Sub-pages:**\n- **Profile** - Display name, bio, avatar, hometown\n- **Edit** - Update username, bio, photo\n- **Achievements** - Your earned badges from Commander tournaments and sessions\n- **Settings** - Notification preferences, privacy settings, connected accounts\n\n**Why it matters:** Your Commander profile is linked to your player stats, league history, and tournament results at every venue using Commander.',
         followUps: ['Where are my tournament results?', 'How do I earn achievements?'],
     },
 
@@ -58,7 +58,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-6', category: 'Club Commander',
         keywords: ['responsible gaming', 'responsible gambling', 'gaming limits', 'self exclusion commander', 'spending limits'],
         patterns: ['what is responsible gaming', 'how do I set gaming limits', 'how do I self-exclude', 'responsible gambling commander'],
-        answer: '**Responsible Gaming** provides tools to help players maintain healthy gaming habits.\n\n**Access:** Commander > Responsible Gaming\n\n**Available tools:**\n- **Session time limits** — Set a maximum session length (app will remind you when time is up)\n- **Buy-in limits** — Cap how much you can spend in a session or week\n- **Self-exclusion** — Temporarily or permanently block yourself from a venue\'s player database\n- **Cooling-off periods** — Take a break for a set number of days\n- **Reality checks** — Enable timed pop-up reminders during long sessions\n\n**Important:** These tools are here to support you. Smarter.Poker is committed to promoting responsible, enjoyable gaming for everyone.',
+        answer: '**Responsible Gaming** provides tools to help players maintain healthy gaming habits.\n\n**Access:** Commander > Responsible Gaming\n\n**Available tools:**\n- **Session time limits** - Set a maximum session length (app will remind you when time is up)\n- **Buy-in limits** - Cap how much you can spend in a session or week\n- **Self-exclusion** - Temporarily or permanently block yourself from a venue\'s player database\n- **Cooling-off periods** - Take a break for a set number of days\n- **Reality checks** - Enable timed pop-up reminders during long sessions\n\n**Important:** These tools are here to support you. Smarter.Poker is committed to promoting responsible, enjoyable gaming for everyone.',
         followUps: ['How do I set a session time limit?', 'How do I take a break from gaming?'],
     },
 
@@ -76,7 +76,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-8', category: 'Club Commander',
         keywords: ['commander services', 'venue services', 'order services', 'food drink order poker'],
         patterns: ['what are commander services', 'how do I order food at a venue', 'what services can I request through commander'],
-        answer: '**Commander Services** lets players request venue services directly through the app.\n\n**Access:** Commander > Services\n\n**Available services (configured per venue):**\n- **Food & beverage orders** — Order from your seat without flagging down staff\n- **Chip runner request** — Request chips be brought to your table\n- **Floor call** — Alert a floor person for a ruling\n- **Table service requests** — Custom services the venue has configured\n\nStaff see incoming requests on their device and fulfill them from the Commander dashboard.',
+        answer: '**Commander Services** lets players request venue services directly through the app.\n\n**Access:** Commander > Services\n\n**Available services (configured per venue):**\n- **Food & beverage orders** - Order from your seat without flagging down staff\n- **Chip runner request** - Request chips be brought to your table\n- **Floor call** - Alert a floor person for a ruling\n- **Table service requests** - Custom services the venue has configured\n\nStaff see incoming requests on their device and fulfill them from the Commander dashboard.',
         followUps: ['How do floor calls work?', 'How do I request a chip runner?'],
     },
 
@@ -157,7 +157,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-17', category: 'Club Commander',
         keywords: ['tournament registration', 'register tournament commander', 'tournament sign up', 'player registration tournament'],
         patterns: ['how do I register players for a commander tournament', 'how does tournament registration work', 'how does player sign up work for a tournament'],
-        answer: '**Tournament Registration (Commander)** manages player sign-ups for your events.\n\n**Staff workflow:**\n1. Open Commander > Tournament > [ID] > Register\n2. Search for a player by name or ID\n3. Select buy-in amount (late reg, rebuy)\n4. Confirm registration — player is added to the field\n\n**Player self-registration:**\n- If enabled, players can register through the Commander app or Smarter.Poker platform\n- Waitlist-to-seat transitions happen automatically when registration opens\n\n**Tracking:**\n- Real-time entry count vs. max capacity\n- List of registered players\n- Re-entry tracking (how many times each player has re-entered)',
+        answer: '**Tournament Registration (Commander)** manages player sign-ups for your events.\n\n**Staff workflow:**\n1. Open Commander > Tournament > [ID] > Register\n2. Search for a player by name or ID\n3. Select buy-in amount (late reg, rebuy)\n4. Confirm registration - player is added to the field\n\n**Player self-registration:**\n- If enabled, players can register through the Commander app or Smarter.Poker platform\n- Waitlist-to-seat transitions happen automatically when registration opens\n\n**Tracking:**\n- Real-time entry count vs. max capacity\n- List of registered players\n- Re-entry tracking (how many times each player has re-entered)',
         followUps: ['How do I set up re-entries?', 'How does late registration work?', 'How do I run the tournament once everyone is registered?'],
     },
 ];

@@ -65,7 +65,7 @@ export default function ShareableHandCard({ hand, onClose }) {
             try {
                 await navigator.share({
                     title: `${hand?.result || 'Hand'} at ${hand?.venue || 'Poker'}`,
-                    text: `Check out my ${hand?.handName || 'hand'} — ${hand?.amount || ''} at ${hand?.stakes || 'cash game'}!`,
+                    text: `Check out my ${hand?.handName || 'hand'} - ${hand?.amount || ''} at ${hand?.stakes || 'cash game'}!`,
                     url: shareUrl,
                 });
             } catch (e) { console.warn('[App] Handled exception:', e); }
@@ -162,7 +162,7 @@ export default function ShareableHandCard({ hand, onClose }) {
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                     <button
                         onClick={() => {
-                            const text = encodeURIComponent(`${hand.result || 'Played'} ${hand.amount || ''} at ${hand.stakes || 'poker'} — ${hand.handName || 'Check out my hand!'}`);
+                            const text = encodeURIComponent(`${hand.result || 'Played'} ${hand.amount || ''} at ${hand.stakes || 'poker'} - ${hand.handName || 'Check out my hand!'}`);
                             const url = encodeURIComponent(shareUrl);
                             window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=550,height=420');
                         }}

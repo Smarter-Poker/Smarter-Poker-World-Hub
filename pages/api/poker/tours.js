@@ -604,7 +604,7 @@ export default async function handler(req, res) {
               success: true,
               data: tours,
               total: tours.length,
-              error: 'Tours query error — showing cached data',
+              error: 'Tours query error - showing cached data',
           });
       }
 

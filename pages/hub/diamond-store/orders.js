@@ -127,7 +127,7 @@ export default function OrderHistory() {
       completed: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Completed' },
       pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
       processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
-      paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid — Review' },
+      paid: { bg: 'rgba(59, 130, 246, 0.15)', color: '#77c9ff', label: 'Paid - Review' },
       shipped: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', label: 'Shipped' },
       delivered: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Delivered' },
       active: { bg: 'rgba(0, 168, 232, 0.15)', color: '#74dcff', label: 'Active' },
@@ -157,7 +157,7 @@ export default function OrderHistory() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr || isNaN(Date.parse(dateStr))) return '—';
+    if (!dateStr || isNaN(Date.parse(dateStr))) return '-';
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -245,7 +245,7 @@ export default function OrderHistory() {
   return (
     <PageTransition>
       <SEOHead
-        title="Order History — Diamond Store"
+        title="Order History - Diamond Store"
         description="View Your Diamond Store Order History And Track Shipments."
         canonical="/hub/diamond-store/orders"
         noindex={true}
@@ -398,7 +398,7 @@ export default function OrderHistory() {
                         Order #
                         {String(order.id ?? '')
                           .slice(0, 8)
-                          .toUpperCase() || '—'}
+                          .toUpperCase() || '-'}
                       </div>
                       <div style={styles.orderTitle}>{order.title}</div>
                       <div style={styles.orderDate}>{formatDate(order.created_at)}</div>

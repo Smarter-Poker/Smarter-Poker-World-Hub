@@ -47,7 +47,7 @@ export default function CancelVipModal({
                         }}>
                             <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: 0 }}>
                                 {cancelStep === 'reason' && 'Cancel VIP Membership'}
-                                {cancelStep === 'offer' && 'Wait — Special Offer!'}
+                                {cancelStep === 'offer' && 'Wait - Special Offer!'}
                                 {cancelStep === 'confirmed' && 'Membership Cancelled'}
                                 {cancelStep === 'retained' && 'Welcome Back!'}
                             </h3>

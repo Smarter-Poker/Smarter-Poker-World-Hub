@@ -527,7 +527,7 @@ export default function ReportGameModal({
                     {[activeVenue.city, activeVenue.state].filter(Boolean).join(', ')}
                     {userLocation && distanceMiles < 9999 && (
                         <span style={{ marginLeft: 8, color: distanceMiles <= GEO_RADIUS_MILES ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                            · {distanceMiles.toFixed(2)} mi {distanceMiles <= GEO_RADIUS_MILES ? '✓' : '— Too Far'}
+                            · {distanceMiles.toFixed(2)} mi {distanceMiles <= GEO_RADIUS_MILES ? '✓' : '- Too Far'}
                         </span>
                     )}
                 </div>

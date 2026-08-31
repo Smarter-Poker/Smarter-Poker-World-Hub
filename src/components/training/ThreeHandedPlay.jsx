@@ -18,7 +18,7 @@ const THREE_HANDED = [
     bbRange: 'BB must defend wide vs SB opens since SB has position on them too.' },
   { concept: 'Blind-on-Blind Wars', icon: '»', color: '#ef4444',
     detail: '3-handed means BTN folds a lot, creating frequent SB vs BB battles.',
-    btnRange: 'N/A — you folded this hand.',
+    btnRange: 'N/A - you folded this hand.',
     sbRange: 'As SB: raise 60-70% or fold. Never limp. You have position postflop.',
     bbRange: 'As BB: 3-bet ~20-25% for value+bluffs. Flat ~30-40%. Fold ~35-40%.' },
   { concept: 'ICM at 3-Handed Final Table', icon: '●', color: '#f59e0b',

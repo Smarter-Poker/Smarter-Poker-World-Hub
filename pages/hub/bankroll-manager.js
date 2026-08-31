@@ -124,7 +124,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) 
     <div style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer' } : {}) }} onClick={onClick}>
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
-        <div style={styles.statLoading}>—</div>
+        <div style={styles.statLoading}>-</div>
       ) : (
         <div style={styles.statValue}>
           <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
@@ -747,7 +747,7 @@ export default function BankrollManagerPage() {
     <PageTransition>
       
       <SEOHead
-        title="Bankroll Manager — Track Your Poker Profits"
+        title="Bankroll Manager - Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
       >
@@ -1010,7 +1010,7 @@ export default function BankrollManagerPage() {
                     <div className="bankroll-stats-grid" style={styles.statsGrid}>
                       <StatCard
                         title="Bankroll Balance"
-                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
+                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '-'}
                         isLoading={isLoading}
                         onClick={() => setShowAdjustModal(true)}
                       />
@@ -1019,7 +1019,7 @@ export default function BankrollManagerPage() {
                         value={
                           stats
                             ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                            : '—'
+                            : '-'
                         }
                         isLoading={isLoading}
                       />
@@ -1194,7 +1194,7 @@ export default function BankrollManagerPage() {
                         gap: 12,
                       }}>
                         <div style={{ fontSize: 32 }}>👑</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only — Advanced Analytics</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only - Advanced Analytics</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
                           onClick={() => router.push('/hub/diamond-store')}

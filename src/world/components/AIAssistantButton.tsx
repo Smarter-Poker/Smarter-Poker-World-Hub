@@ -100,7 +100,7 @@ export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
                     `,
                     position: 'relative',
                 }}
-                title="Live Help — Get Expert Assistance"
+                title="Live Help - Get Expert Assistance"
             >
                 {/* Brain/Chat Icon */}
                 <svg

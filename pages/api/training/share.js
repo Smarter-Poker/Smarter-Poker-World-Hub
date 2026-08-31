@@ -62,7 +62,7 @@ const SHARE_TEMPLATES = {
     },
     'gto-score': {
         generateContent: (data) =>
-            `■ My GTO Proximity Score: ${data.score}/100 (${data.tier}) — based on ${(data.hands || 0).toLocaleString()} hands analyzed!`,
+            `■ My GTO Proximity Score: ${data.score}/100 (${data.tier}) - based on ${(data.hands || 0).toLocaleString()} hands analyzed!`,
         postType: 'milestone'
     }
 };

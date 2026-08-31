@@ -17,7 +17,7 @@ const SPOTS = [
   { hand: 'Q♠ J♠', board: 'K♠ T♣ 3♠', outs: 17, equity: 54, verdict: 'SEMI-BLUFF',
     sizing: '75-100% pot', reason: 'Flush draw + OESD = 17 outs! You\'re actually a FAVORITE. Bet large or even check-raise for max pressure.' },
   { hand: '6♦ 5♦', board: 'K♣ Q♥ 8♠', outs: 0, equity: 5, verdict: 'GIVE UP',
-    sizing: 'N/A', reason: 'No draw, no equity, no fold equity vs this board. Pure air — save your chips.' },
+    sizing: 'N/A', reason: 'No draw, no equity, no fold equity vs this board. Pure air - save your chips.' },
 ];
 
 export default function SemiBluffTrainer() {

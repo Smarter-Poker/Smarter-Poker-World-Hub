@@ -381,7 +381,7 @@ export class PokerBrainStorage {
             if (typeof args.p_session_id === 'string' && args.p_session_id.startsWith('local_')) {
               const real = idMap.get(args.p_session_id);
               if (!real) {
-                console.warn('[storage] log_hand with unresolved temp session id — skipping', args.p_session_id);
+                console.warn('[storage] log_hand with unresolved temp session id - skipping', args.p_session_id);
                 await queueDelete(item.id);
                 continue;
               }
@@ -395,7 +395,7 @@ export class PokerBrainStorage {
             if (typeof args.p_session_id === 'string' && args.p_session_id.startsWith('local_')) {
               const real = idMap.get(args.p_session_id);
               if (!real) {
-                console.warn('[storage] end_session with unresolved temp session id — skipping', args.p_session_id);
+                console.warn('[storage] end_session with unresolved temp session id - skipping', args.p_session_id);
                 await queueDelete(item.id);
                 continue;
               }

@@ -183,7 +183,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
           success: true,
           leaveRequestId: leaveRow?.id || null,
-          message: 'Leave request submitted — the union lead will review it.',
+          message: 'Leave request submitted - the union lead will review it.',
         });
       }
 
@@ -318,7 +318,7 @@ export default async function handler(req, res) {
             return res.status(403).json({
               success: false,
               error:
-                'Club owner has not consented — an approved union application is required before adding this club',
+                'Club owner has not consented - an approved union application is required before adding this club',
             });
           }
         }
@@ -350,7 +350,7 @@ export default async function handler(req, res) {
           return res.status(500).json({
             success: false,
             error: `${club.name} was added to union_clubs but its club record could not be `
-              + `updated: ${err_clubs_anag7.message}. The club is half-joined — re-run add_club.`,
+              + `updated: ${err_clubs_anag7.message}. The club is half-joined - re-run add_club.`,
             halfJoined: true,
           });
         }
@@ -648,7 +648,7 @@ export default async function handler(req, res) {
               success: false,
               error: `The leave request was approved but the club could not be removed from `
                 + `union_clubs: ${err_union_clubs_3g8br.message}. The club is still a union `
-                + `member — re-run approve_leave.`,
+                + `member - re-run approve_leave.`,
               leaveApproved: true,
             });
           }
@@ -657,7 +657,7 @@ export default async function handler(req, res) {
             return res.status(500).json({
               success: false,
               error: `The club was removed from union_clubs but its club record still points at `
-                + `the union: ${err_clubs_kcht8.message}. Half-removed — re-run approve_leave.`,
+                + `the union: ${err_clubs_kcht8.message}. Half-removed - re-run approve_leave.`,
               halfRemoved: true,
             });
           }

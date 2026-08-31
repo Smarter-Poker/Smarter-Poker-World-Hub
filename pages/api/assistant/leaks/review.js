@@ -474,7 +474,7 @@ async function handleGet(req, res, userId) {
 
         if (error) {
             if (isMissingSchema(error)) {
-                console.warn(`[leaks/review] ${TABLE} not deployed — serving empty review state`);
+                console.warn(`[leaks/review] ${TABLE} not deployed - serving empty review state`);
                 return res.status(200).json({ success: true, records: [], persisted: false, reason: 'storage_unavailable', tableMissing: true });
             }
             console.warn('[leaks/review] GET failed:', error.message);
@@ -704,7 +704,7 @@ async function handlePost(req, res, userId) {
     }
 
     if (!tableAvailable) {
-        console.warn(`[leaks/review] ${TABLE} not deployed — returning computed state unpersisted`);
+        console.warn(`[leaks/review] ${TABLE} not deployed - returning computed state unpersisted`);
         return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
     }
 
@@ -761,7 +761,7 @@ async function handlePost(req, res, userId) {
 
         if (error) {
             if (isMissingSchema(error)) {
-                console.warn('[leaks/review] atomic review RPC not deployed — returning computed state unpersisted');
+                console.warn('[leaks/review] atomic review RPC not deployed - returning computed state unpersisted');
                 return res.status(200).json({ success: true, persisted: false, reason: 'storage_unavailable', tableMissing: true, state: responseState });
             }
             console.warn('[leaks/review] persist failed:', error.message);

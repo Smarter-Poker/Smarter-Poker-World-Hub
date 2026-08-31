@@ -43,7 +43,7 @@ const TILT_STATES = {
     recovery: {
         Icon: CheckCircle2,
         title: 'Recovery detected',
-        message: 'Back on track — two correct in a row after a losing streak.',
+        message: 'Back on track - two correct in a row after a losing streak.',
         color: T.success,
         bg: T.successSoft,
         borderColor: 'rgba(77,224,165,0.4)',

@@ -504,7 +504,7 @@ export default function SeriesDetailPage() {
       <>
         <SEOHead
           title="Poker Series Details"
-          description="Smarter.Poker — The Future Of The Game."
+          description="Smarter.Poker - The Future Of The Game."
           noindex={true}
         />
         <UniversalHeader 

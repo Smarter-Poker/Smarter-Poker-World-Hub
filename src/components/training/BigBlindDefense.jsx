@@ -37,7 +37,7 @@ export default function BigBlindDefense() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ■ Big Blind Defense
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Defend your BB correctly — it's the #1 skill gap in poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Defend your BB correctly - it's the #1 skill gap in poker.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {DEFENSE_SCENARIOS.map((s, i) => (

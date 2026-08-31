@@ -140,7 +140,7 @@ export default function PotOddsCalculator() {
             </div>
           </div>
           <div style={{ color: '#94a3b8', fontSize: 9, marginTop: 4, textAlign: 'center' }}>
-            Bet is {calculations.betPctOfPot}% of pot — you need {calculations.breakEven.toFixed(1)}% equity to call
+            Bet is {calculations.betPctOfPot}% of pot - you need {calculations.breakEven.toFixed(1)}% equity to call
           </div>
         </div>
 
@@ -158,7 +158,7 @@ export default function PotOddsCalculator() {
 
         {/* Common draws table */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Common Draws — Equity vs Required {calculations.breakEven.toFixed(1)}%</div>
+          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Common Draws - Equity vs Required {calculations.breakEven.toFixed(1)}%</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {DRAWS.map(draw => {
               const equity = street === 'flop' ? draw.flop : draw.turn;

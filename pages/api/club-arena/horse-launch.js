@@ -163,32 +163,32 @@ function getTodaysTournaments() {
   const today = new Date().getDay(); // 0=Sun … 6=Sat
   const ALL_TOURNAMENTS = [
     // Monday
-    { name: 'FREEROLL — Monday Kickoff (NLH)', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 100, chips: 3000, max: 100, horsesTarget: 30, blinds: BLIND_TURBO, day: 1, hour: 19 },
-    { name: 'FREEROLL — PLO4 Welcome', variant: 'freezeout', game: 'PLO4', buyIn: 0, fee: 0, gtd: 50, chips: 3000, max: 50, horsesTarget: 20, blinds: BLIND_TURBO, day: 1, hour: 21 },
+    { name: 'FREEROLL - Monday Kickoff (NLH)', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 100, chips: 3000, max: 100, horsesTarget: 30, blinds: BLIND_TURBO, day: 1, hour: 19 },
+    { name: 'FREEROLL - PLO4 Welcome', variant: 'freezeout', game: 'PLO4', buyIn: 0, fee: 0, gtd: 50, chips: 3000, max: 50, horsesTarget: 20, blinds: BLIND_TURBO, day: 1, hour: 21 },
     // Tuesday
-    { name: '5 Chip Freezeout — NLH Deep Stack', variant: 'freezeout', game: 'NLH', buyIn: 5, fee: 0.5, gtd: 200, chips: 5000, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: 2, hour: 19 },
-    { name: '10 Chip Freezeout — PLO5 Action', variant: 'freezeout', game: 'PLO5', buyIn: 10, fee: 1, gtd: 300, chips: 5000, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 2, hour: 21 },
+    { name: '5 Chip Freezeout - NLH Deep Stack', variant: 'freezeout', game: 'NLH', buyIn: 5, fee: 0.5, gtd: 200, chips: 5000, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: 2, hour: 19 },
+    { name: '10 Chip Freezeout - PLO5 Action', variant: 'freezeout', game: 'PLO5', buyIn: 10, fee: 1, gtd: 300, chips: 5000, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 2, hour: 21 },
     // Wednesday
-    { name: '10 Chip Bounty Hunter — NLH', variant: 'bounty', game: 'NLH', buyIn: 10, fee: 1, gtd: 500, chips: 5000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 3, hour: 19 },
-    { name: '25 Chip Bounty Hunter — PLO4', variant: 'bounty', game: 'PLO4', buyIn: 25, fee: 2.5, gtd: 1000, chips: 10000, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 3, hour: 21 },
+    { name: '10 Chip Bounty Hunter - NLH', variant: 'bounty', game: 'NLH', buyIn: 10, fee: 1, gtd: 500, chips: 5000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 3, hour: 19 },
+    { name: '25 Chip Bounty Hunter - PLO4', variant: 'bounty', game: 'PLO4', buyIn: 25, fee: 2.5, gtd: 1000, chips: 10000, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 3, hour: 21 },
     // Thursday
-    { name: '15 Chip PKO — NLH Progressive', variant: 'progressive_bounty', game: 'NLH', buyIn: 15, fee: 1.5, gtd: 750, chips: 7500, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: 4, hour: 19 },
-    { name: '20 Chip PKO — PLO8 Hi-Lo', variant: 'progressive_bounty', game: 'PLO8', buyIn: 20, fee: 2, gtd: 500, chips: 7500, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 4, hour: 21 },
+    { name: '15 Chip PKO - NLH Progressive', variant: 'progressive_bounty', game: 'NLH', buyIn: 15, fee: 1.5, gtd: 750, chips: 7500, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: 4, hour: 19 },
+    { name: '20 Chip PKO - PLO8 Hi-Lo', variant: 'progressive_bounty', game: 'PLO8', buyIn: 20, fee: 2, gtd: 500, chips: 7500, max: 50, horsesTarget: 20, blinds: BLIND_STANDARD, day: 4, hour: 21 },
     // Friday
-    { name: '25 Chip Mystery Bounty — NLH', variant: 'mystery_bounty', game: 'NLH', buyIn: 25, fee: 2.5, gtd: 1500, chips: 10000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 5, hour: 20 },
-    { name: '10 Chip Mystery Bounty — Pineapple', variant: 'mystery_bounty', game: 'OFC_PINEAPPLE', buyIn: 10, fee: 1, gtd: 250, chips: 5000, max: 30, horsesTarget: 15, blinds: BLIND_TURBO, day: 5, hour: 22 },
+    { name: '25 Chip Mystery Bounty - NLH', variant: 'mystery_bounty', game: 'NLH', buyIn: 25, fee: 2.5, gtd: 1500, chips: 10000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 5, hour: 20 },
+    { name: '10 Chip Mystery Bounty - Pineapple', variant: 'mystery_bounty', game: 'OFC_PINEAPPLE', buyIn: 10, fee: 1, gtd: 250, chips: 5000, max: 30, horsesTarget: 15, blinds: BLIND_TURBO, day: 5, hour: 22 },
     // Saturday
-    { name: '50 Chip Saturday Major — 5K GTD', variant: 'freezeout', game: 'NLH', buyIn: 50, fee: 5, gtd: 5000, chips: 15000, max: 200, horsesTarget: 40, blinds: BLIND_STANDARD, day: 6, hour: 18 },
-    { name: '5 Chip Turbo Bounty — NLH', variant: 'bounty', game: 'NLH', buyIn: 5, fee: 0.5, gtd: 150, chips: 3000, max: 50, horsesTarget: 25, blinds: BLIND_TURBO, day: 6, hour: 20 },
-    { name: '10 Chip Turbo PLO4 — Saturday Night', variant: 'freezeout', game: 'PLO4', buyIn: 10, fee: 1, gtd: 300, chips: 5000, max: 50, horsesTarget: 20, blinds: BLIND_TURBO, day: 6, hour: 22 },
+    { name: '50 Chip Saturday Major - 5K GTD', variant: 'freezeout', game: 'NLH', buyIn: 50, fee: 5, gtd: 5000, chips: 15000, max: 200, horsesTarget: 40, blinds: BLIND_STANDARD, day: 6, hour: 18 },
+    { name: '5 Chip Turbo Bounty - NLH', variant: 'bounty', game: 'NLH', buyIn: 5, fee: 0.5, gtd: 150, chips: 3000, max: 50, horsesTarget: 25, blinds: BLIND_TURBO, day: 6, hour: 20 },
+    { name: '10 Chip Turbo PLO4 - Saturday Night', variant: 'freezeout', game: 'PLO4', buyIn: 10, fee: 1, gtd: 300, chips: 5000, max: 50, horsesTarget: 20, blinds: BLIND_TURBO, day: 6, hour: 22 },
     // Sunday
-    { name: '100 Chip Sunday Championship — 10K GTD', variant: 'freezeout', game: 'NLH', buyIn: 100, fee: 10, gtd: 10000, chips: 20000, max: 200, horsesTarget: 50, blinds: BLIND_STANDARD, day: 0, hour: 17 },
-    { name: '50 Chip Sunday PLO4 Championship — 3K GTD', variant: 'freezeout', game: 'PLO4', buyIn: 50, fee: 5, gtd: 3000, chips: 15000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 0, hour: 19 },
-    { name: '25 Chip PKO — Sunday Night Showdown', variant: 'progressive_bounty', game: 'NLH', buyIn: 25, fee: 2.5, gtd: 1500, chips: 10000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 0, hour: 21 },
-    { name: 'FREEROLL — Sunday Night Freebie', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 200, chips: 3000, max: 100, horsesTarget: 30, blinds: BLIND_HYPER, day: 0, hour: 23 },
+    { name: '100 Chip Sunday Championship - 10K GTD', variant: 'freezeout', game: 'NLH', buyIn: 100, fee: 10, gtd: 10000, chips: 20000, max: 200, horsesTarget: 50, blinds: BLIND_STANDARD, day: 0, hour: 17 },
+    { name: '50 Chip Sunday PLO4 Championship - 3K GTD', variant: 'freezeout', game: 'PLO4', buyIn: 50, fee: 5, gtd: 3000, chips: 15000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 0, hour: 19 },
+    { name: '25 Chip PKO - Sunday Night Showdown', variant: 'progressive_bounty', game: 'NLH', buyIn: 25, fee: 2.5, gtd: 1500, chips: 10000, max: 100, horsesTarget: 30, blinds: BLIND_STANDARD, day: 0, hour: 21 },
+    { name: 'FREEROLL - Sunday Night Freebie', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 200, chips: 3000, max: 100, horsesTarget: 30, blinds: BLIND_HYPER, day: 0, hour: 23 },
     // Daily (every day)
-    { name: 'Daily Freeroll — NLH', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 50, chips: 2000, max: 100, horsesTarget: 20, blinds: BLIND_HYPER, day: -1, hour: 12 },
-    { name: '10 Chip Daily Grinder — 250 GTD', variant: 'freezeout', game: 'NLH', buyIn: 10, fee: 1, gtd: 250, chips: 5000, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: -1, hour: 20 },
+    { name: 'Daily Freeroll - NLH', variant: 'freezeout', game: 'NLH', buyIn: 0, fee: 0, gtd: 50, chips: 2000, max: 100, horsesTarget: 20, blinds: BLIND_HYPER, day: -1, hour: 12 },
+    { name: '10 Chip Daily Grinder - 250 GTD', variant: 'freezeout', game: 'NLH', buyIn: 10, fee: 1, gtd: 250, chips: 5000, max: 100, horsesTarget: 25, blinds: BLIND_STANDARD, day: -1, hour: 20 },
   ];
   return ALL_TOURNAMENTS.filter(t => t.day === today || t.day === -1);
 }
@@ -591,7 +591,7 @@ export default async function handler(req, res) {
       // 4.5. Pre-fund all horses to 500,000 chips so they don't bounce off atomic wallet deductions
       const { error: massFundErr } = await getSupabase().rpc('mass_fund_horses', { p_amount: 500000 });
       if (massFundErr) {
-        log.push(`[WARN] mass_fund_horses RPC failed: ${massFundErr.message} — horses may lack chips for buy-ins`);
+        log.push(`[WARN] mass_fund_horses RPC failed: ${massFundErr.message} - horses may lack chips for buy-ins`);
         console.warn('[horse-launch] mass_fund_horses failed:', massFundErr.message);
       } else {
         log.push(`[OK] Granted core bankroll to all horses for atomic cash game buy-ins`);

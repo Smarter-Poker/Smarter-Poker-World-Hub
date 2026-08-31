@@ -86,7 +86,7 @@ export default function PotOddsTrainer() {
                 {userGuess === analysis.profitable ? '✓ Correct!' : '✕ Wrong!'}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: analysis.profitable ? '#22c55e' : '#ef4444' }}>
-                {analysis.profitable ? 'CALL — +EV' : 'FOLD — -EV'}
+                {analysis.profitable ? 'CALL - +EV' : 'FOLD - -EV'}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

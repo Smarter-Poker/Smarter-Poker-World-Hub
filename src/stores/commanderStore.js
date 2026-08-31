@@ -11,11 +11,11 @@
  * audit pass — it is safe to remove entirely.
  */
 export function useCommanderStore() {
-  throw new Error('commanderStore is deprecated — call /api/commander/* endpoints directly.');
+  throw new Error('commanderStore is deprecated - call /api/commander/* endpoints directly.');
 }
 
 export function usePlayerCommanderStore() {
-  throw new Error('commanderStore is deprecated — call /api/commander/* endpoints directly.');
+  throw new Error('commanderStore is deprecated - call /api/commander/* endpoints directly.');
 }
 
 export default null;

@@ -33,7 +33,7 @@ const EP_RANGES = {
 const MISTAKES = [
   { mistake: 'Opening too wide', fix: 'EP ranges should be TIGHT. You have 5+ players behind you in 9-max. Every hand you add has reverse implied odds.', severity: 'Critical' },
   { mistake: 'Limping', fix: 'Never limp from EP. Open-raise or fold. Limping invites multiway pots where your positional disadvantage is magnified.', severity: 'Critical' },
-  { mistake: 'Not 4-betting enough', fix: 'When you 3-bet from EP, your range is strong. But don\'t just flat 3-bets with KK/QQ — 4-bet for value.', severity: 'Major' },
+  { mistake: 'Not 4-betting enough', fix: 'When you 3-bet from EP, your range is strong. But don\'t just flat 3-bets with KK/QQ - 4-bet for value.', severity: 'Major' },
   { mistake: 'C-betting too wide OOP', fix: 'In EP, you\'re OOP postflop. C-bet selectively on favorable boards. Check strong hands sometimes for protection.', severity: 'Major' },
   { mistake: 'Playing passively postflop', fix: 'EP range is premium-heavy. When you connect, bet for value. Don\'t slow-play in multiway pots.', severity: 'Minor' },
 ];

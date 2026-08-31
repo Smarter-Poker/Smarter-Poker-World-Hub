@@ -58,7 +58,7 @@ export async function getDailyDiamondsEarned(supabase, userId, mode) {
         // blocked legitimate award self-heals on the next submit; minted
         // diamonds cannot be un-minted. (MAX_SAFE_INTEGER rather than
         // Infinity so any caller arithmetic on the value stays finite.)
-        console.warn('[diamondCap] cap query failed — failing CLOSED (treating cap as reached):', error.message);
+        console.warn('[diamondCap] cap query failed - failing CLOSED (treating cap as reached):', error.message);
         return Number.MAX_SAFE_INTEGER;
     }
     if (!data) return 0;

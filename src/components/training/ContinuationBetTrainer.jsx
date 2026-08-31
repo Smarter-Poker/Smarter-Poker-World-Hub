@@ -18,7 +18,7 @@ const SCENARIOS = [
     id: 2, name: 'Wet Two-Tone', board: 'J♥ T♥ 6♠', position: 'CO vs BB', spr: 5.1,
     optimalCbet: 52, optimalSize: '67%', rangeAdvantage: 'Slight IP',
     cbetBreakdown: { bet33: 15, bet67: 37, check: 48 },
-    reasoning: 'Connected two-tone board reduces range advantage. BB has more suited connectors. Use larger sizing with polarized range — strong hands and draws.',
+    reasoning: 'Connected two-tone board reduces range advantage. BB has more suited connectors. Use larger sizing with polarized range - strong hands and draws.',
     keyHands: { valueBet: 'Two pair+, strong draws', bluff: 'Combo draws, Qx gutshots', check: 'Weak one-pair, air' },
   },
   {

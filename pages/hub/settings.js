@@ -882,7 +882,7 @@ export default function SettingsPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Settings — Account & Preferences"
+                title="Settings - Account & Preferences"
                 description="Manage Your Smarter.Poker Account Settings, Preferences, Notifications, And Privacy Options."
                 canonical="/hub/settings"
                 noindex={true}
@@ -1308,7 +1308,7 @@ export default function SettingsPage() {
                                         aria-haspopup="dialog"
                                     >
                                         {twoFactorEnabled
-                                            ? 'Two-Factor Authentication — On'
+                                            ? 'Two-Factor Authentication - On'
                                             : 'Turn On Two-Factor Authentication'}
                                     </button>
                                     <div style={{ margin: '-4px 0 12px', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
@@ -1467,7 +1467,7 @@ export default function SettingsPage() {
                                         value={settings.display_name_preference || 'full_name'}
                                         onChange={(v) => updateSetting('display_name_preference', v)}
                                         options={[
-                                            { value: 'full_name', label: 'Full Name (e.g., Dan Bekavac) — Default' },
+                                            { value: 'full_name', label: 'Full Name (e.g., Dan Bekavac) - Default' },
                                             { value: 'username', label: 'Poker Alias (e.g., KingFish)' },
                                         ]}
                                     />
@@ -1777,7 +1777,7 @@ export default function SettingsPage() {
                                                             background: '#4e4f50',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             fontSize: 22, color: '#65676b',
-                                                        }}>—</div>
+                                                        }}>-</div>
                                                         <div style={{ flex: 1 }}>
                                                             <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb' }}>No Active Membership</div>
                                                             <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>

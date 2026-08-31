@@ -26,7 +26,7 @@ const DELAYED_SPOTS = [
 const WHEN_TO_DELAY = [
   { when: 'Wet flop + you have showdown value', desc: 'Check flop for pot control, then bet a brick turn' },
   { when: 'You want to disguise hand strength', desc: 'Checking a strong hand on flop, then betting turn looks like delayed bluff' },
-  { when: 'Flop was too dangerous to c-bet', desc: 'Connected/suited flops where villain calls wide — delay and reassess' },
+  { when: 'Flop was too dangerous to c-bet', desc: 'Connected/suited flops where villain calls wide - delay and reassess' },
   { when: 'You want to induce a float', desc: 'Some opponents auto-float flop bets. Check, let them bluff turn, then raise' },
 ];
 
@@ -40,7 +40,7 @@ export default function DelayedCBetGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ⏱ Delayed C-Bet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Check flop, attack turn — the sneaky delayed continuation bet.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Check flop, attack turn - the sneaky delayed continuation bet.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {DELAYED_SPOTS.map((s, i) => (

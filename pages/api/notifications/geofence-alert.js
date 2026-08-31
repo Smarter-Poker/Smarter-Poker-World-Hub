@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       const rateLimitKey = `${userId}:${venueId}`;
       const lastSent = rateLimitMap.get(rateLimitKey);
       if (lastSent && Date.now() - lastSent < RATE_LIMIT_MS) {
-          return res.status(429).json({ success: false, error: 'Rate limited — already notified for this venue recently' });
+          return res.status(429).json({ success: false, error: 'Rate limited - already notified for this venue recently' });
       }
 
       try {

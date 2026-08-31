@@ -53,7 +53,7 @@ export const ARCHETYPE_CONFIG = {
         color: '#60a5fa',
         vpip: { UTG: 4, MP: 4, CO: 7, BTN: 8, SB: 6, BB: 6 },
         description: 'Plays only premium hands. Fold to most aggression.',
-        postflopTip: 'Respect every bet — they only play when they have it.',
+        postflopTip: 'Respect every bet - they only play when they have it.',
         openRanges: {
             UTG: [...PREMIUM_PAIRS, 'AKs', 'AKo', 'AQs'],
             MP: [...PREMIUM_PAIRS, 'AKs', 'AKo', 'AQs', 'AJs', 'KQs'],
@@ -71,7 +71,7 @@ export const ARCHETYPE_CONFIG = {
         color: '#34d399',
         vpip: { UTG: 9, MP: 12, CO: 14, BTN: 21, SB: 12, BB: 13 },
         description: 'Tight-aggressive. Solid ranges, bets for value and bluff.',
-        postflopTip: 'Play your best hands — they balance well. Respect 3-bets.',
+        postflopTip: 'Play your best hands - they balance well. Respect 3-bets.',
         openRanges: {
             UTG: [...PREMIUM_PAIRS, ...MID_PAIRS.slice(0, 2), ...BROADWAY_SUITED, 'AKo', 'AQo', 'AJo'],
             MP: [...PREMIUM_PAIRS, ...MID_PAIRS, ...BROADWAY_SUITED, 'AKo', 'AQo', 'AJo', 'KQo', ...SUITED_ACES.slice(0, 3)],
@@ -125,7 +125,7 @@ export const ARCHETYPE_CONFIG = {
         color: '#fb923c',
         vpip: { UTG: 19, MP: 29, CO: 38, BTN: 47, SB: 39, BB: 54 },
         description: 'Calls too wide. Never raises. Never folds to bets.',
-        postflopTip: 'Bet thin for value. Abandon all bluffs — they never fold.',
+        postflopTip: 'Bet thin for value. Abandon all bluffs - they never fold.',
         openRanges: {
             UTG: [...PREMIUM_PAIRS, ...MID_PAIRS, ...BROADWAY_SUITED, ...BROADWAY_OFF, ...SUITED_ACES, ...SUITED_CONNECTORS, ...WEAK_OFFSUIT_ACES.slice(0, 4), 'K9s', 'Q9s', 'J9s'],
             MP: [...PREMIUM_PAIRS, ...MID_PAIRS, ...SMALL_PAIRS.slice(0, 2), ...BROADWAY_SUITED, ...BROADWAY_OFF, ...SUITED_ACES, ...SUITED_CONNECTORS, ...SUITED_GAPPERS, ...BROADWAYS_MEDIUM, ...WEAK_OFFSUIT_ACES.slice(0, 6)],
@@ -239,7 +239,7 @@ export function getArchetypeRange(archetypeId, position = 'BTN', action = 'open'
         return openRange.filter(h => !threeBet.has(h));
     }
 
-    console.warn(`[VillainArchetypeRanges] Unknown action "${action}" — no range available.`);
+    console.warn(`[VillainArchetypeRanges] Unknown action "${action}" - no range available.`);
     return [];
 }
 

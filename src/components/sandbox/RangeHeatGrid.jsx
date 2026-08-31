@@ -198,7 +198,7 @@ export default function RangeHeatGrid({
                 />
                 {pickHigh != null && pickLow != null && pickHigh === pickLow && (
                     <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        Same rank twice selects the pocket pair — the suit toggle does not apply.
+                        Same rank twice selects the pocket pair - the suit toggle does not apply.
                     </p>
                 )}
             </div>

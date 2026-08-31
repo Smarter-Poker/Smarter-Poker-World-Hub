@@ -363,6 +363,20 @@ jobs:
           # of bug survives review. Pure static analysis; no DB access needed.
           node scripts/ci/check-stranded-writers.mjs
 
+      - name: "CHECK 13: No em dashes in anything a player reads"
+        run: |
+          # Dan: "remove any and all em bars as they are banned from use."
+          #
+          # Club Arena has enforced this since 2026-08-20. This repo - which
+          # serves smarter.poker itself and 939 page routes - had no copy gate
+          # of any kind, so the rule covered one half of what a player sees and
+          # 2,314 em dashes outside comments had built up across 649 files.
+          #
+          # Comments are ignored on purpose; so are regex literals, because a
+          # hyphen inside a character class is a RANGE and rewriting one
+          # silently changes what the expression matches.
+          node scripts/ci/check-ui-text.mjs
+
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
         run: |
           # Closes the vendoring-drift bug CLASS behind three separate prod

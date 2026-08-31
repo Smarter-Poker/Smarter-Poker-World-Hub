@@ -396,7 +396,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                                                 <div className="sl-friend-time">
                                                     <span className="sl-online-dot" />
                                                     Checked in {timeAgo(c.created_at)}
-                                                    {c.message && <span className="sl-friend-msg"> — "{c.message}"</span>}
+                                                    {c.message && <span className="sl-friend-msg"> - "{c.message}"</span>}
                                                 </div>
                                             </div>
                                             <button

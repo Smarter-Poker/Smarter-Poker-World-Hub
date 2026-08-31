@@ -278,7 +278,7 @@ class TableManager {
       const isInvited = this._privateInvites?.has(String(playerId));
       const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
       if (!isInvited && !isStaff) {
-        return { success: false, error: 'Private table — ask admin for an invitation', code: 'PRIVATE_TABLE' };
+        return { success: false, error: 'Private table - ask admin for an invitation', code: 'PRIVATE_TABLE' };
       }
     }
 
@@ -288,7 +288,7 @@ class TableManager {
       const vipTiers = ['vip', 'gold', 'platinum', 'diamond'];
       const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
       if (!vipTiers.includes(tier) && !isStaff) {
-        return { success: false, error: 'VIP-only table — upgrade your membership', code: 'VIP_ONLY' };
+        return { success: false, error: 'VIP-only table - upgrade your membership', code: 'VIP_ONLY' };
       }
     }
 

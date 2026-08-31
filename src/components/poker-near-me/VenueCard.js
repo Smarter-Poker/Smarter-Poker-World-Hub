@@ -1653,7 +1653,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <>
                         <div className="vc3-trust-header">
                             <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                            <span className="vc3-trust-val" style={{ color: trust.color }}>{(venue.trust_score && venue.trust_score > 0) ? venue.trust_score + '/5' : '—'}</span>
+                            <span className="vc3-trust-val" style={{ color: trust.color }}>{(venue.trust_score && venue.trust_score > 0) ? venue.trust_score + '/5' : '-'}</span>
                         </div>
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{

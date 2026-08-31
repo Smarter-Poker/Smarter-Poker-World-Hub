@@ -776,7 +776,7 @@ function HorsesDashboard({ user, onLogout }) {
                             }}>
                                 <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
                                 <div style={{ fontWeight: 700, fontSize: 16 }}>No Reported Hands</div>
-                                <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>All clear — no disputes pending.</div>
+                                <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>All clear - no disputes pending.</div>
                             </div>
                         )}
 
@@ -798,22 +798,22 @@ function HorsesDashboard({ user, onLogout }) {
                                         <tr key={h.id}>
                                             <td style={{ fontWeight: 700, color: '#FFD700' }}>#{h.hand_number}</td>
                                             <td style={{ color: '#B0B3B8', fontSize: 11, fontFamily: 'monospace' }}>
-                                                {h.table_id ? h.table_id.slice(0, 8) : '—'}
+                                                {h.table_id ? h.table_id.slice(0, 8) : '-'}
                                             </td>
                                             <td style={{ color: '#4CAF50', fontWeight: 700 }}>
                                                 {(h.pot_total || 0).toLocaleString()}
                                             </td>
                                             <td style={{ fontSize: 11 }}>
-                                                {h.started_at ? new Date(h.started_at).toLocaleString() : '—'}
+                                                {h.started_at ? new Date(h.started_at).toLocaleString() : '-'}
                                             </td>
                                             <td style={{ fontSize: 11, color: '#ff4d4f' }}>
-                                                {h.reported_at ? new Date(h.reported_at).toLocaleString() : '—'}
+                                                {h.reported_at ? new Date(h.reported_at).toLocaleString() : '-'}
                                             </td>
                                             <td style={{ fontSize: 11 }}>
                                                 {h.winners?.map(w => {
                                                     const p = h.players?.find(x => String(x.userId || x.id) === String(w.userId || w.playerId));
                                                     return p?.displayName || 'Player';
-                                                }).join(', ') || '—'}
+                                                }).join(', ') || '-'}
                                             </td>
                                             <td>
                                                 <button

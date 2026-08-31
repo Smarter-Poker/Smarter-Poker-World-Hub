@@ -158,7 +158,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     // Buy-in range
     const buyins = displayTour.typical_buyins;
     const buyinText = buyins && (buyins.min || buyins.max)
-        ? [buyins.min && formatMoney(buyins.min), buyins.max && formatMoney(buyins.max)].filter(Boolean).join(' – ')
+        ? [buyins.min && formatMoney(buyins.min), buyins.max && formatMoney(buyins.max)].filter(Boolean).join(' - ')
         : null;
 
     if (isLoadingLiveData) {

@@ -217,7 +217,7 @@ COACHING TONE: ${coachingTone}
 
 Provide your analysis in this EXACT JSON format (no markdown):
 {
-  "headline": "3–6 word headline about the psychological concept",
+  "headline": "3-6 word headline about the psychological concept",
   "shortExplanation": "One sentence capturing the core mental-game insight",
   "deepDive": {
     "equityAnalysis": "How does this scenario affect decision-quality / EV indirectly?",
@@ -226,7 +226,7 @@ Provide your analysis in this EXACT JSON format (no markdown):
     "boardTexture": "What environmental cues should the student notice next time?"
   },
   "keyTakeaway": "The #1 actionable principle to remember",
-  "similarSpots": "1–2 similar mental-game scenarios where this same concept applies",
+  "similarSpots": "1-2 similar mental-game scenarios where this same concept applies",
   "mixedStrategyNote": "",
   "confidence": ${wasCorrect ? '0.9' : '0.7'}
 }
@@ -278,7 +278,7 @@ Be specific to THIS scenario. Avoid generic advice.`;
                   shortExplanation: content.slice(0, 200) || 'Review the optimal mental-game response for this scenario.',
                   deepDive: null,
                   keyTakeaway: wasCorrect
-                      ? 'Your mental-game habit here is solid — keep reinforcing it.'
+                      ? 'Your mental-game habit here is solid - keep reinforcing it.'
                       : 'Identify the trigger and rehearse the optimal response.',
                   confidence: 0.5,
               },

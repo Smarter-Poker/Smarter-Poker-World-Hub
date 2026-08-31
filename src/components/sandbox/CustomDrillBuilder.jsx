@@ -195,7 +195,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                You can still launch — the drill will tell you if nothing matches.
+                                You can still launch - the drill will tell you if nothing matches.
                             </p>
                             <button
                                 type="button"

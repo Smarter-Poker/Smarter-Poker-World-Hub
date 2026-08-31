@@ -528,7 +528,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // Handle buy diamonds click - navigate to store
     const handleBuyDiamonds = () => {
-        console.log('Buy diamonds clicked — navigating to diamond store');
+        console.log('Buy diamonds clicked - navigating to diamond store');
         router.push('/hub/diamond-store');
     };
 
@@ -558,7 +558,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // Navigate to settings page
     const handleSettings = () => {
-        console.log('Settings clicked — navigating to settings page');
+        console.log('Settings clicked - navigating to settings page');
         router.push('/hub/settings');
     };
 
@@ -568,7 +568,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // Handle logo click → Return to hub home
     const handleLogoClick = () => {
-        console.log('Logo clicked — Returning to World Hub home');
+        console.log('Logo clicked - Returning to World Hub home');
         exitOrb();
         router.push('/hub');
     };

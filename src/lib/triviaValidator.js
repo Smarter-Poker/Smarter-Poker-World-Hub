@@ -289,7 +289,7 @@ function checkLogic(q) {
             /\b(draw\s*to|need.*outs|improve.*hand|chase|still\s*draw)\b/i.test(o)
         );
         if (hasDrawImproveOption)
-            errors.push('LOGIC-02: Drawing/improving mentioned on the river — no more cards to come');
+            errors.push('LOGIC-02: Drawing/improving mentioned on the river - no more cards to come');
     }
 
     const fullText = `${q.question} ${q.explanation || ''}`;
@@ -308,7 +308,7 @@ function checkLogic(q) {
     if (stackMatch) {
         const stack = parseInt(stackMatch[1]);
         if (stack > 30 && correctOption.includes('shove') && /open/i.test(correctOption))
-            errors.push(`LOGIC-05: Open-shoving recommended at ${stack}BB — too deep for open-shove (typically <20BB)`);
+            errors.push(`LOGIC-05: Open-shoving recommended at ${stack}BB - too deep for open-shove (typically <20BB)`);
     }
 
     // LOGIC-06: satellite survival beats chip accumulation (ported).
@@ -316,7 +316,7 @@ function checkLogic(q) {
         const shortStacksPresent = /short\s*stack|(\d)\s*BB.*?blind/i.test(q.question);
         const playerIsSafe = /safe|covered|3rd|2nd|chip\s*lead/i.test(q.question);
         if (shortStacksPresent && playerIsSafe)
-            errors.push('LOGIC-06: Aggressive play recommended in satellite when player is safe and short stacks present — survival > chip accumulation');
+            errors.push('LOGIC-06: Aggressive play recommended in satellite when player is safe and short stacks present - survival > chip accumulation');
     }
 
     // --- LOGIC-07 — BB ANTE RULE: Tournament antes must equal 1BB ---
@@ -392,7 +392,7 @@ function checkQuality(q) {
     // QUAL-05: definition-only questions must be scenario-based (ported).
     if (q.question && /^what\s+(is|does|are)\s+/i.test(q.question)
         && !/scenario|situation|hand|board|stack/i.test(q.question))
-        errors.push('QUAL-05: Definition-only question detected — must be scenario-based');
+        errors.push('QUAL-05: Definition-only question detected - must be scenario-based');
 
     if (q.options) {
         const fillerPatterns = [

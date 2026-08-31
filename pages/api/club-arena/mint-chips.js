@@ -217,7 +217,7 @@ export default async function handler(req, res) {
       notifyClubAdmins(supabaseAdmin, {
         clubId, type: 'chips_minted',
         title: `${amount.toLocaleString()} Chips Minted`,
-        message: `${amount.toLocaleString()} chips minted from ${diamondsNeeded.toLocaleString()} diamonds${notes ? ` — ${notes}` : ''}.`,
+        message: `${amount.toLocaleString()} chips minted from ${diamondsNeeded.toLocaleString()} diamonds${notes ? ` - ${notes}` : ''}.`,
         data: { amount, diamonds: diamondsNeeded },
         excludeUserId: user.id,
       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
       notifyClubAdmins(supabaseAdmin, {
         clubId, type: 'chips_minted',
         title: `🪙 ${amount.toLocaleString()} Chips Minted`,
-        message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` — ${notes}` : ''}.`,
+        message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` - ${notes}` : ''}.`,
         data: { amount },
         excludeUserId: user.id,
       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));

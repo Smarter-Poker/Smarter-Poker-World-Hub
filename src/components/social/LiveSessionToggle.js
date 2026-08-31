@@ -220,7 +220,7 @@ export default function LiveSessionToggle({ currentUser }) {
             </div>
             {session && (
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>
-                {session.venue_name} — {session.stakes} {session.game_type} — {elapsed}
+                {session.venue_name} - {session.stakes} {session.game_type} - {elapsed}
               </div>
             )}
           </div>
@@ -319,7 +319,7 @@ export default function LiveSessionToggle({ currentUser }) {
                     {session.venue_name}
                   </div>
                   <div style={{ color: T.textSec, fontSize: 12 }}>
-                    {session.stakes} {session.game_type} — {elapsed}
+                    {session.stakes} {session.game_type} - {elapsed}
                     {session.status === 'break' && (
                       <span style={{ color: T.gold, marginLeft: 6 }}>ON BREAK</span>
                     )}

@@ -108,11 +108,11 @@ export default function MarketplaceDetailExperience({
   return (
     <>
       <Head>
-        <title>{`${title} — Smarter.Poker Marketplace`}</title>
+        <title>{`${title} - Smarter.Poker Marketplace`}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonicalUrl} />
         <meta property="og:type" content={openGraphType} />
-        <meta property="og:title" content={`${title} — Smarter.Poker Marketplace`} />
+        <meta property="og:title" content={`${title} - Smarter.Poker Marketplace`} />
         <meta property="og:description" content={description} />
         <meta property="og:image" content={socialImage} />
         <meta property="og:url" content={canonicalUrl} />

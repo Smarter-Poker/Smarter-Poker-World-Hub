@@ -13,7 +13,7 @@ const SOLUTION_MODES = [
 ];
 
 const SPOTS = [
-  { name: 'BTN vs BB — SRP Flop', board: 'A♠ K♥ 7♦',
+  { name: 'BTN vs BB - SRP Flop', board: 'A♠ K♥ 7♦',
     full: [
       { size: 'Check', freq: 33, ev: 1.71, hands: 'Low pairs, weak draws, air' },
       { size: 'Bet 25%', freq: 28, ev: 1.80, hands: 'Medium pairs, gutshots, backdoors' },
@@ -22,23 +22,23 @@ const SPOTS = [
     ],
     simplified: [
       { size: 'Check', freq: 35, ev: 1.72, hands: 'Low pairs, weak draws, air, some medium hands' },
-      { size: 'Bet 33%', freq: 65, ev: 1.79, hands: 'Everything you want to bet — merged range' },
+      { size: 'Bet 33%', freq: 65, ev: 1.79, hands: 'Everything you want to bet - merged range' },
     ],
     single: [
-      { size: 'Bet 33%', freq: 67, ev: 1.77, hands: 'Entire betting range — simplified to one size' },
+      { size: 'Bet 33%', freq: 67, ev: 1.77, hands: 'Entire betting range - simplified to one size' },
       { size: 'Check', freq: 33, ev: 1.71, hands: 'Checking range' },
     ],
     evLoss: { simplified: 0.02, single: 0.05 },
   },
-  { name: 'CO vs BTN 3BP — Flop', board: 'Q♥ J♠ 5♦',
+  { name: 'CO vs BTN 3BP - Flop', board: 'Q♥ J♠ 5♦',
     full: [
-      { size: 'Check', freq: 62, ev: -0.45, hands: 'Most hands — no range advantage' },
+      { size: 'Check', freq: 62, ev: -0.45, hands: 'Most hands - no range advantage' },
       { size: 'Bet 25%', freq: 18, ev: -0.48, hands: 'Small stabs with weak hands and blocks' },
       { size: 'Bet 50%', freq: 12, ev: -0.52, hands: 'Strong draws, top pair good kicker' },
       { size: 'Bet 100%', freq: 8, ev: -0.60, hands: 'Sets, top two pair, nut draws' },
     ],
     simplified: [
-      { size: 'Check', freq: 65, ev: -0.44, hands: 'Default — most of your range' },
+      { size: 'Check', freq: 65, ev: -0.44, hands: 'Default - most of your range' },
       { size: 'Bet 33%', freq: 35, ev: -0.50, hands: 'Value + draws at one small size' },
     ],
     single: [
@@ -47,7 +47,7 @@ const SPOTS = [
     ],
     evLoss: { simplified: 0.01, single: 0.03 },
   },
-  { name: 'BB vs BTN — Turn Probe', board: 'T♣ 7♥ 2♠ K♦',
+  { name: 'BB vs BTN - Turn Probe', board: 'T♣ 7♥ 2♠ K♦',
     full: [
       { size: 'Check', freq: 55, ev: -0.82, hands: 'Weak hands, trapping monsters' },
       { size: 'Bet 33%', freq: 20, ev: -0.78, hands: 'Medium pairs, draws' },

@@ -135,7 +135,7 @@ function _describeBoardTexture(board: string): string {
     if (connected) desc += 'Connected / straight draws present. ';
     const highCards = ranks.filter(r => r >= 9); // T+
     if (highCards.length >= 2) desc += 'High-card heavy board. ';
-    else if (highCards.length === 0 && cards.length >= 3) desc += 'Low board — favors preflop caller. ';
+    else if (highCards.length === 0 && cards.length >= 3) desc += 'Low board - favors preflop caller. ';
     return desc.trim() || 'Relatively dry texture.';
 }
 
@@ -232,7 +232,7 @@ export function FeedbackCard({
                 ? strategyInsight.keyFactors.slice(0, 3).join(' • ')
                 : coaching.concepts.length > 0
                     ? `Key concepts: ${coaching.concepts.map((c: string) => c.replace(/_/g, ' ')).join(', ')}.`
-                    : (result.isCorrect ? 'Solid play — keep it up.' : `Review ${result.gtoLine.action} in this spot type.`);
+                    : (result.isCorrect ? 'Solid play - keep it up.' : `Review ${result.gtoLine.action} in this spot type.`);
 
             // Use StrategyExplainer for deeper explanation when available
             const shortExplain = strategyInsight?.explanation || coaching.detail || coaching.text;
@@ -244,7 +244,7 @@ export function FeedbackCard({
 
             setEngineExplanation({
                 headline: strategyInsight?.strategicConcept
-                    ? `${coaching.text} — ${strategyInsight.strategicConcept}`
+                    ? `${coaching.text} - ${strategyInsight.strategicConcept}`
                     : coaching.text,
                 shortExplanation: shortExplain,
                 deepDive: Object.keys(deepDive || {}).length > 0 ? deepDive : undefined,

@@ -103,7 +103,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
         // ⚡ INSTANT FEEDBACK
         const sizeMB = Math.round(file.size / (1024 * 1024));
-        toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
+        toast.info(`Video selected (${sizeMB}MB) - preparing upload…`, 3000);
 
         // ── Background processing while user types caption ──
 
@@ -342,7 +342,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                                 borderRadius: '50%', animation: 'spin 0.8s linear infinite'
                             }} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-                                Preparing Your Video — This May Take A Moment...
+                                Preparing Your Video - This May Take A Moment...
                             </span>
 
                         </div>

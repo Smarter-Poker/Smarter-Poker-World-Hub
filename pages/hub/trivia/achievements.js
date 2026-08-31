@@ -269,7 +269,7 @@ export default function TriviaAchievements() {
         <TriviaErrorBoundary pageName="Achievements">
         <>
             <SEOHead
-                title="Trivia Achievements — Unlock Rewards"
+                title="Trivia Achievements - Unlock Rewards"
                 description="Track Your Poker Trivia Achievements. Unlock Badges, Rewards, And Bragging Rights."
                 canonical="/hub/trivia/achievements"
             />

@@ -339,7 +339,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                                     </div>
                                     <div className="sc-ev-details">
                                         {ev.venue_name && <span>{ev.venue_name}</span>}
-                                        {ev.start_date && <span> · {ev.start_date}{ev.end_date ? ` — ${ev.end_date}` : ''}</span>}
+                                        {ev.start_date && <span> · {ev.start_date}{ev.end_date ? ` - ${ev.end_date}` : ''}</span>}
                                     </div>
                                     {ev.guaranteed && <div className="sc-ev-gtd">${Number(ev.guaranteed).toLocaleString()} GTD</div>}
                                 </div>

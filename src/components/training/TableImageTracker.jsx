@@ -25,7 +25,7 @@ const IMAGES = [
     perception: 'Opponents think you\'re a maniac who plays too many hands aggressively.',
     exploits: [
       { adj: 'Value bet thinner', reason: 'Opponents call you down lighter. Get paid with marginal hands.' },
-      { adj: 'Reduce bluff frequency', reason: 'You\'re already getting called — make sure you have goods.' },
+      { adj: 'Reduce bluff frequency', reason: 'You\'re already getting called - make sure you have goods.' },
       { adj: 'Trap more', reason: 'Let opponents hang themselves trying to catch your bluffs.' },
     ],
     counters: ['You\'ll face more check-raises', 'Opponents trap with strong hands', 'Variance is much higher'],
@@ -58,8 +58,8 @@ const IMAGES = [
 
 const TIPS = [
   'Your image changes throughout a session based on shown hands',
-  'After showing a bluff, tighten up — opponents will call you wider',
-  'After showing premiums, bluff more — opponents will over-fold',
+  'After showing a bluff, tighten up - opponents will call you wider',
+  'After showing premiums, bluff more - opponents will over-fold',
   'New to the table? Default TAG image. Adjust after 30+ minutes',
 ];
 

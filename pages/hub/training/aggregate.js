@@ -169,7 +169,7 @@ export default function AggregateReports() {
         </div>
 
         <p style={styles.subtitle}>
-          Aggregated strategy across all flop textures — see when to C-bet vs check by board type
+          Aggregated strategy across all flop textures - see when to C-bet vs check by board type
         </p>
 
         {/* Filters */}

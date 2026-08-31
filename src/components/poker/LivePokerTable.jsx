@@ -1297,7 +1297,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                     Pot: {formatStack ? formatStack(h.potTotal) : h.potTotal?.toLocaleString() || '0'}
                   </span>
                   <span style={{ fontSize: 11, color: pnlColor, fontWeight: 700 }}>
-                    {heroWon ? '✓ Won' : '—'}
+                    {heroWon ? '✓ Won' : '-'}
                   </span>
                 </div>
                 {/* Board cards */}
@@ -1481,7 +1481,7 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
   // G8: Expanded metrics
   const vpipPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.vpipCount || 0) / sessionStats.handsPlayed * 100) : 0;
   const pfrPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.pfrCount || 0) / sessionStats.handsPlayed * 100) : 0;
-  const af = (sessionStats.aggressionCalls || 0) > 0 ? ((sessionStats.aggressionBets || 0) / sessionStats.aggressionCalls).toFixed(1) : '—';
+  const af = (sessionStats.aggressionCalls || 0) > 0 ? ((sessionStats.aggressionBets || 0) / sessionStats.aggressionCalls).toFixed(1) : '-';
   const winRate = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.handsWon || 0) / sessionStats.handsPlayed * 100) : 0;
   // Position win rates
   const posStats = Object.entries(sessionStats.positionTotal || {}).map(([pos, total]) => ({
@@ -1517,7 +1517,7 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
       {/* Row 1: Core metrics */}
       <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginBottom: 8 }}>
         <Stat icon="" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
-        <Stat icon="" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
+        <Stat icon="" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '-'} color="#FFD700" />
         <Stat icon="" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
         <Stat icon="" label="Players" value={activePlayers.length} />
         <Stat icon="" label="Total" value={sessionStats.handsPlayed || 0} />
@@ -4023,7 +4023,7 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
           Take a Seat
         </h3>
         <p style={{ color: T.textSecondary, fontSize: 13, marginBottom: isClubTable ? 4 : 20 }}>
-          Buy-in: {minBuyIn.toLocaleString()} – {effectiveMax.toLocaleString()} chips
+          Buy-in: {minBuyIn.toLocaleString()} - {effectiveMax.toLocaleString()} chips
         </p>
         {isClubTable && chipBalance !== null && (
           <p style={{ color: insufficientChips ? '#FA383E' : '#31A24C', fontSize: 12, marginBottom: 16 }}>
@@ -4475,7 +4475,7 @@ function TournamentHUD({ tournamentId, userId }) {
           <>
             <div style={{ fontSize: 10, fontWeight: 800, color: '#4ECDC4', textTransform: 'uppercase' }}>BREAK</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-              Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '—'}
+              Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '-'}
             </div>
             <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: '#4ECDC4', marginLeft: 'auto' }}>
               {breakCountdown > 0 ? fmtTime(breakCountdown) : '--:--'}
@@ -4511,7 +4511,7 @@ function TournamentHUD({ tournamentId, userId }) {
           background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.5)',
           color: '#fbbf24', textAlign: 'center',
         }}>
-          ▲ BUBBLE — {remaining} players left, {paidPlaces} paid
+          ▲ BUBBLE - {remaining} players left, {paidPlaces} paid
         </div>
       )}
 
@@ -5176,7 +5176,7 @@ function GTOCheckBadge({ result, heroAction, visible }) {
     const { action, potOdds, handStrength, phase } = heroAction;
 
     // Simple heuristic: compare action vs. expected play
-    if (!action) return { grade: 'neutral', label: '—', color: '#888', tip: 'No action recorded' };
+    if (!action) return { grade: 'neutral', label: '-', color: '#888', tip: 'No action recorded' };
 
     // Fold with strong hand = major deviation
     if (action === 'fold' && handStrength > 60) {
@@ -5188,11 +5188,11 @@ function GTOCheckBadge({ result, heroAction, visible }) {
     }
     // Raise with premium = optimal
     if ((action === 'raise' || action === 'bet') && handStrength > 70) {
-      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Value bet with strong hand — well played.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Value bet with strong hand - well played.' };
     }
     // Fold with weak hand = optimal
     if (action === 'fold' && handStrength < 20) {
-      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Good fold — limited equity vs. opponent range.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Good fold - limited equity vs. opponent range.' };
     }
     // Default: slight leak for passive play
     if (action === 'check' && handStrength > 50 && phase === 'river') {
@@ -5461,7 +5461,7 @@ function ResultOverlay({ result, send, userId }) {
       const name = w.displayName || w.playerName || `Player`;
       const amt = w.amount ? ` (+${w.amount})` : '';
       const hand = w.handDescription || '';
-      lines.push(`★ ${name}${amt}${hand ? ` — ${hand}` : ''}`);
+      lines.push(`★ ${name}${amt}${hand ? ` - ${hand}` : ''}`);
     });
 
     if (result.rake) lines.push(`Rake: ${result.rake}`);
@@ -7980,7 +7980,7 @@ function LivePokerTable({
               {[
                 { section: 'Game Actions', keys: [
                   ['F', 'Fold'], ['C / Space', 'Check / Call'], ['A', 'All-In'],
-                  ['T', 'Use Time Bank'], ['1–9', 'Bet Size (Min → Max)'],
+                  ['T', 'Use Time Bank'], ['1-9', 'Bet Size (Min → Max)'],
                 ]},
                 { section: 'Utilities', keys: [
                   ['S', 'Sit Out / Sit In'], ['M', 'Toggle Auto-Muck'],
@@ -9055,7 +9055,7 @@ function LivePokerTable({
                 boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>Run It Twice — Results</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>Run It Twice - Results</div>
               {/* I7: Auto-dismiss countdown bar */}
               <div style={{ width: '100%', height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' }}>
                 <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: 6, ease: 'linear' }}

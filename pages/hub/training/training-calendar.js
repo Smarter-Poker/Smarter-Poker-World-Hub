@@ -328,7 +328,7 @@ export default function TrainingCalendarPage() {
                           key={cell.key}
                           type="button"
                           disabled={cell.isFuture}
-                          aria-label={cell.isFuture ? `${cell.date.toDateString()} (future)` : `${cell.date.toDateString()}: ${cell.data?.hands || 0} hands, ${cell.data?.sessions || 0} sessions${cell.isToday ? ' — today' : ''}`}
+                          aria-label={cell.isFuture ? `${cell.date.toDateString()} (future)` : `${cell.date.toDateString()}: ${cell.data?.hands || 0} hands, ${cell.data?.sessions || 0} sessions${cell.isToday ? ' - today' : ''}`}
                           aria-pressed={selectedDay === cell.key}
                           whileTap={!cell.isFuture ? { scale: 0.8 } : {}}
                           onClick={() =>

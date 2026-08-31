@@ -186,25 +186,25 @@ export const TAB_ROUTES = {
 // routes are meant to solve.
 export const TAB_META = {
   diamonds: {
-    title: 'Diamond Store — Smarter.Poker',
+    title: 'Diamond Store - Smarter.Poker',
     description: 'Buy Diamonds To Unlock Premium Features Across Smarter.Poker And Club Arena.',
   },
   vip: {
-    title: 'VIP Membership — Smarter.Poker',
+    title: 'VIP Membership - Smarter.Poker',
     description:
       'Everything Included With VIP: Every Premium Day Pass, Higher Diamond Caps, 500 Bonus Diamonds A Month And The Full Club Arena Feature Set.',
   },
   merch: {
-    title: 'Merch Store — Smarter.Poker',
+    title: 'Merch Store - Smarter.Poker',
     description: 'Official Smarter.Poker Apparel, Card Protectors, Decks And Chip Sets.',
   },
   rewards: {
-    title: 'Smarter Rewards — Smarter.Poker',
+    title: 'Smarter Rewards - Smarter.Poker',
     description:
       'Every Way To Earn Diamonds, The Real Daily And Monthly Caps, And Every Hidden Achievement.',
   },
   'club-shop': {
-    title: 'Club Shop — Smarter.Poker',
+    title: 'Club Shop - Smarter.Poker',
     description: 'Spend Diamonds On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
   },
 };
@@ -653,7 +653,7 @@ export default function DiamondStorePage({ initialTab }) {
             status,
             receipt: body.data,
             ...(needsRedemptionReview ? {
-              message: 'Your card payment and Diamonds are recorded, but the item was not purchased. Your Diamonds remain available—buy the item separately without paying by card again.',
+              message: 'Your card payment and Diamonds are recorded, but the item was not purchased. Your Diamonds remain available-buy the item separately without paying by card again.',
             } : {}),
           });
           if (status === 'complete') {
@@ -1613,8 +1613,8 @@ export default function DiamondStorePage({ initialTab }) {
         ? VIP_MEMBERSHIP.monthly
         : VIP_MEMBERSHIP.annual;
   const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
-    ? `Activate Daily VIP With Diamonds — ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
-    : `Subscribe — $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
+    ? `Activate Daily VIP With Diamonds - ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
+    : `Subscribe - $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
 
   return (
     <>
@@ -1802,7 +1802,7 @@ export default function DiamondStorePage({ initialTab }) {
                         <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
                           You Are Already A VIP Member
                           {vipTier
-                            ? ` — ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}`
+                            ? ` - ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}`
                             : ''}
                         </div>
                         <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
@@ -1886,7 +1886,7 @@ export default function DiamondStorePage({ initialTab }) {
                       }}
                     >
                       Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against
-                      Paying Monthly — About Two Months Free
+                      Paying Monthly - About Two Months Free
                     </div>
                   )}
 
@@ -2022,7 +2022,7 @@ export default function DiamondStorePage({ initialTab }) {
                               }}
                             >
                               <Gem size={16} />
-                              Pay With Diamonds Instead — {Number(cost).toLocaleString()}
+                              Pay With Diamonds Instead - {Number(cost).toLocaleString()}
                             </button>
                             <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
                               {!known
@@ -2525,9 +2525,9 @@ export default function DiamondStorePage({ initialTab }) {
                               {' '}
                               Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
                             </strong>{' '}
-                            — Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
+                            - Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
                             {fmt(MONTHLY_CAP.vip)} {GEM} VIP. Share Streak Multipliers Help You
-                            Reach The Cap Faster — They Never Raise It.
+                            Reach The Cap Faster - They Never Raise It.
                           </p>
                         </div>
 
@@ -2650,7 +2650,7 @@ export default function DiamondStorePage({ initialTab }) {
                           <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                           <p style={styles.overviewCardText}>
                             Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across{' '}
-                            {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones —
+                            {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones -
                             Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
                             Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
                           </p>
@@ -2692,7 +2692,7 @@ export default function DiamondStorePage({ initialTab }) {
                     >
                       <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                       <p style={styles.introText}>
-                        All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker —{' '}
+                        All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker -{' '}
                         {STANDARD_REWARDS.length} Standard Rewards Plus {TOTAL_EASTER_EGGS} Hidden
                         Achievements
                       </p>
@@ -2725,7 +2725,7 @@ export default function DiamondStorePage({ initialTab }) {
                         </div>
                       </div>
                       <p style={styles.introText}>
-                        The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help
+                        The Cap Is Measured After Your Share Streak Multiplier - Multipliers Help
                         You Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It.
                         Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month
                         Budget On Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = $
@@ -2774,7 +2774,7 @@ export default function DiamondStorePage({ initialTab }) {
                       </h2>
                       <p style={styles.introText}>
                         {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT}{' '}
-                        Categories — {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
+                        Categories - {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
                         Tracking Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On
                         Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays{' '}
                         {biggestEggValue()} {GEM}.
@@ -3260,7 +3260,7 @@ export default function DiamondStorePage({ initialTab }) {
                       </span>
                     </h2>
                     <p style={styles.introText}>
-                      Purchase In-Game Items For Your Club With Diamonds — Time Banks, Table Skins,
+                      Purchase In-Game Items For Your Club With Diamonds - Time Banks, Table Skins,
                       Throwables, Emotes & More.
                     </p>
                   </div>

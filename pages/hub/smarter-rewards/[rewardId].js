@@ -49,7 +49,7 @@ export default function RewardDetail({ reward }) {
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: `${reward.name} — Smarter Rewards`,
+      name: `${reward.name} - Smarter Rewards`,
       description: reward.description,
       url: `https://smarter.poker${canonical}`,
     },

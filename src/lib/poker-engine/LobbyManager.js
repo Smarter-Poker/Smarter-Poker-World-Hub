@@ -105,7 +105,7 @@ class LobbyManager {
   async initialize() {
     // Skip channel creation if no Supabase client (memory-only mode)
     if (!this.supabase) {
-      console.debug('[LobbyManager] No Supabase client — running without lobby broadcast');
+      console.debug('[LobbyManager] No Supabase client - running without lobby broadcast');
       return;
     }
 
@@ -958,7 +958,7 @@ class LobbyManager {
                   table_id: config.tableId,
                   rake_amount: rakeAmount,
                   pot_size: data.potTotal || 0,
-                  note: 'record_rake argument mismatch — see comment in LobbyManager.js',
+                  note: 'record_rake argument mismatch - see comment in LobbyManager.js',
                 },
                 resolved: false,
               });
@@ -1114,7 +1114,7 @@ class LobbyManager {
         if (autoRestart) {
           // Auto-restart: keep table alive, just set status to waiting
           entry.table.status = 'WAITING';
-          console.debug(`[LobbyManager] Table ${tableId} empty — auto_restart ON, keeping alive`);
+          console.debug(`[LobbyManager] Table ${tableId} empty - auto_restart ON, keeping alive`);
           entry.table.emit('table_waiting', { reason: 'empty', autoRestart: true });
         } else {
           // Standard: close after timeout

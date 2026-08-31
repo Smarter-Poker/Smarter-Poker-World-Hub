@@ -74,7 +74,7 @@ async function emailCritical(alerts) {
         .join('');
 
     const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:640px">
-    <h2 style="color:#c0392b;margin-bottom:4px">Production alert — players may be affected</h2>
+    <h2 style="color:#c0392b;margin-bottom:4px">Production alert - players may be affected</h2>
     <p style="color:#666;margin-top:0">${alerts.length} critical alert(s) firing on the poker engine.</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>
     <p style="color:#888;font-size:12px;margin-top:16px">
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         const expected = process.env.ALERT_WEBHOOK_SECRET;
         if (!expected) {
             // Fail closed: an unauthenticated public alert sink is a spam vector.
-            console.warn('[alerts/engine] ALERT_WEBHOOK_SECRET not configured — refusing');
+            console.warn('[alerts/engine] ALERT_WEBHOOK_SECRET not configured - refusing');
             return res.status(503).json({ error: 'Alert receiver not configured' });
         }
         if (req.headers['x-alert-secret'] !== expected) {

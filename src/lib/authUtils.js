@@ -395,7 +395,7 @@ export async function authedFetch(url, options = {}) {
 
         // Refresh didn't help — clear fast-path so next page does full auth
         try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        console.warn(`[authedFetch] 401 on ${url} — token refresh failed`);
+        console.warn(`[authedFetch] 401 on ${url} - token refresh failed`);
     }
 
     return response;

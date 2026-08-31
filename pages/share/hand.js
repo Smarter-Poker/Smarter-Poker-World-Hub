@@ -40,8 +40,8 @@ export default function ShareHandPage() {
         hand: hand || '',
     }).toString()}`;
 
-    const title = `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} — ${amount || ''} | Smarter.Poker`;
-    const description = `${hand ? hand + ' — ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
+    const title = `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} - ${amount || ''} | Smarter.Poker`;
+    const description = `${hand ? hand + ' - ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
 
     return (
         <>
@@ -127,7 +127,7 @@ export default function ShareHandPage() {
                         fontSize: 14,
                         color: 'rgba(255,255,255,0.5)',
                     }}>
-                        {stakes || 'Cash Game'} at {venue || 'Live Poker'} — Pot: {pot || '?'}
+                        {stakes || 'Cash Game'} at {venue || 'Live Poker'} - Pot: {pot || '?'}
                     </div>
                 </div>
 
@@ -220,7 +220,7 @@ export default function ShareHandPage() {
                     color: 'rgba(255,255,255,0.2)',
                     textAlign: 'center',
                 }}>
-                    The #1 Poker Intelligence Platform — Track, Train, Dominate.
+                    The #1 Poker Intelligence Platform - Track, Train, Dominate.
                 </div>
             </div>
         </>

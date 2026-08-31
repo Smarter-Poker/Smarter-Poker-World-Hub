@@ -125,7 +125,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 5: REGRESSION — CARD CONVERSION
     // ═══════════════════════════════════════════════════
-    console.debug('\n--- TEST 5: Regression — Card Conversion ---');
+    console.debug('\n--- TEST 5: Regression - Card Conversion ---');
 
     const objCards = Brain.cardsToStrings([{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }]);
     assert(objCards[0] === 'Ac', 'Object card → Ac');
@@ -136,7 +136,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 6: REGRESSION — GARBAGE FOLDING
     // ═══════════════════════════════════════════════════
-    console.debug('\n--- TEST 6: Regression — Garbage Folding ---');
+    console.debug('\n--- TEST 6: Regression - Garbage Folding ---');
 
     let folds = 0;
     for (let i = 0; i < 10; i++) {
@@ -159,7 +159,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 7: REGRESSION — STRONG HAND BETTING
     // ═══════════════════════════════════════════════════
-    console.debug('\n--- TEST 7: Regression — Strong Hand Betting ---');
+    console.debug('\n--- TEST 7: Regression - Strong Hand Betting ---');
 
     let bets = 0;
     for (let i = 0; i < 10; i++) {
@@ -182,7 +182,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 8: REGRESSION — HAND EVALUATOR
     // ═══════════════════════════════════════════════════
-    console.debug('\n--- TEST 8: Regression — Hand Evaluator ---');
+    console.debug('\n--- TEST 8: Regression - Hand Evaluator ---');
 
     const eval1 = Brain.evaluatePostflopHand(['Ac', 'Ah'], ['7c', '3d', '2s']);
     assert(eval1.category === 'overpair', `AA overpair: ${eval1.category}`);
@@ -195,7 +195,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 9: REGRESSION — SUPABASE PERSISTENCE
     // ═══════════════════════════════════════════════════
-    console.debug('\n--- TEST 9: Regression — Supabase ---');
+    console.debug('\n--- TEST 9: Regression - Supabase ---');
 
     Brain.recordPerformanceAction(HORSE, 'preflop', 'raise', true);
     const saved = await Brain.saveSessionAnalytics(HORSE, 'test-sweep11');
@@ -231,7 +231,7 @@ function assert(condition, label) {
         console.debug('\n❌ FAILURES:');
         failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.debug('\n✅ ALL TESTS PASSED — SWEEP 11 CLEAN');
+        console.debug('\n✅ ALL TESTS PASSED - SWEEP 11 CLEAN');
     }
 
     // Cleanup evolution test data

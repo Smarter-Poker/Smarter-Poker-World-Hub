@@ -325,7 +325,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                         <label>Buy-In Range</label>
                         <div className="ta-range-row">
                             <input type="number" placeholder="Min $" value={prefs.minBuyin} onChange={e => setPrefs(p => ({ ...p, minBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
-                            <span className="ta-range-sep">—</span>
+                            <span className="ta-range-sep">-</span>
                             <input type="number" placeholder="Max $" value={prefs.maxBuyin} onChange={e => setPrefs(p => ({ ...p, maxBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
                         </div>
                     </div>

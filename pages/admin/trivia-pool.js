@@ -54,7 +54,7 @@ export async function getServerSideProps({ req }) {
         const adminClient = createClient(url, srKey);
         const { data: profile } = await adminClient
             .from('profiles').select('is_admin').eq('id', userData.user.id).maybeSingle();
-        if (!profile?.is_admin) return { props: { error: 'Forbidden — admin only' } };
+        if (!profile?.is_admin) return { props: { error: 'Forbidden - admin only' } };
     }
 
     if (!url || !srKey) return { props: { error: 'Server misconfigured' } };
@@ -214,8 +214,8 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                 {/* Top summary cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
                     <Card title="Pool total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#fbbf24' : '#ef4444'} />
-                    <Card title="Track A (deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% — solver-grounded`} color="#22c55e" />
-                    <Card title="Track B (Grok-3-mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% — fact-verified`} color="#06b6d4" />
+                    <Card title="Track A (deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
+                    <Card title="Track B (Grok-3-mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#06b6d4" />
                 </div>
 
                 {/* Per-category table */}
@@ -264,7 +264,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         </div>
                         {audit.recentFlagged.length > 0 && (
                             <>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED — needs human review</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - needs human review</div>
                                 <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
                                     {audit.recentFlagged.map((f, i) => (
                                         <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
@@ -304,7 +304,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         {/* Circuit breaker / category health */}
                         {phase54.categoryHealth.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER — per-category audit pass rate</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - per-category audit pass rate</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
                                     {phase54.categoryHealth.map(h => (
                                         <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
@@ -342,7 +342,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         {/* Recent regression failures */}
                         {phase54.recentRegressionFailures.length > 0 && (
                             <div>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES — last 48h</div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - last 48h</div>
                                 <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
                                     {phase54.recentRegressionFailures.map((f, i) => (
                                         <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
@@ -366,7 +366,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         the workers VM. The handler picks the most-undertarget bucket, runs Track A (deterministic, free) for strategy
                         categories or Track B (Grok-3-mini, ~$0.002 per batch) for fact categories, and inserts directly into
                         <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>trivia_questions</code>.
-                        At ~30 questions per tick × 6 ticks/day, the pool fills in ~5–6 weeks at well under $20 total Grok spend.
+                        At ~30 questions per tick × 6 ticks/day, the pool fills in ~5-6 weeks at well under $20 total Grok spend.
                     </div>
                 </div>
             </div>

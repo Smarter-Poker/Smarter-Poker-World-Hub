@@ -24,11 +24,11 @@ function getSupabase() {
 
 // Import tier config from engine
 const STAKES_TIERS = {
-  nano:      { label: 'Nano',      blindRange: '0.05/0.1 – 0.1/0.2', feeBB: 0.6,  payout: { loser: 7.5,  winner: 3.75,  table: 3.75,  total: 15  } },
-  micro:     { label: 'Micro',     blindRange: '0.2/0.4 – 0.4/0.8',  feeBB: 0.4,  payout: { loser: 12.5, winner: 6.25,  table: 6.25,  total: 25  } },
-  small:     { label: 'Small',     blindRange: '0.5/1 – 1.5/3',      feeBB: 0.25, payout: { loser: 20,   winner: 10,    table: 10,    total: 40  } },
-  mid:       { label: 'Mid',       blindRange: '2/4 – 4/8',          feeBB: 0.12, payout: { loser: 27.5, winner: 13.75, table: 13.75, total: 55  } },
-  high:      { label: 'High',      blindRange: '5/10 – 20/40',       feeBB: 0.06, payout: { loser: 35,   winner: 17.5,  table: 17.5,  total: 70  } },
+  nano:      { label: 'Nano',      blindRange: '0.05/0.1 - 0.1/0.2', feeBB: 0.6,  payout: { loser: 7.5,  winner: 3.75,  table: 3.75,  total: 15  } },
+  micro:     { label: 'Micro',     blindRange: '0.2/0.4 - 0.4/0.8',  feeBB: 0.4,  payout: { loser: 12.5, winner: 6.25,  table: 6.25,  total: 25  } },
+  small:     { label: 'Small',     blindRange: '0.5/1 - 1.5/3',      feeBB: 0.25, payout: { loser: 20,   winner: 10,    table: 10,    total: 40  } },
+  mid:       { label: 'Mid',       blindRange: '2/4 - 4/8',          feeBB: 0.12, payout: { loser: 27.5, winner: 13.75, table: 13.75, total: 55  } },
+  high:      { label: 'High',      blindRange: '5/10 - 20/40',       feeBB: 0.06, payout: { loser: 35,   winner: 17.5,  table: 17.5,  total: 70  } },
   nosebleeds:{ label: 'Nosebleeds', blindRange: '25/50+',             feeBB: 0.03, payout: { loser: 42.5, winner: 21.25, table: 21.25, total: 85  } },
 };
 

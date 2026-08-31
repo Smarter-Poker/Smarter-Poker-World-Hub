@@ -18,7 +18,7 @@ const PROGRESS_AREAS = [
     mastery: 'When you can articulate your range on every street and your opponent\'s range too.' },
   { area: 'Hand Reading', icon: '○', color: '#f59e0b',
     skills: ['Range narrowing per street', 'Combo counting on boards', 'Blocker awareness', 'Behavioral tells (live)'],
-    metrics: 'Accuracy improves with volume — track your predictions vs actual holdings.',
+    metrics: 'Accuracy improves with volume - track your predictions vs actual holdings.',
     checkpoints: '[ ] Can count combos quickly | [ ] Understand how board texture filters ranges | [ ] Use blockers in bluff decisions',
     mastery: 'When you regularly predict villain\'s holding within a 5-combo range on the river.' },
   { area: 'Mental Game', icon: '◇', color: '#8b5cf6',

@@ -44,7 +44,7 @@ const CONCEPTS = [
     icon: '◆',
     headsUp: { value: 'Important', desc: 'Position matters but edge is manageable.' },
     multiway: { value: 'Critical', desc: 'Acting last after 3+ players gives massive information advantage.' },
-    adjustment: 'Tighten up in early position even more. The BTN becomes incredibly powerful in multiway pots — you see everyone act first.',
+    adjustment: 'Tighten up in early position even more. The BTN becomes incredibly powerful in multiway pots - you see everyone act first.',
     color: '#8b5cf6',
   },
   {

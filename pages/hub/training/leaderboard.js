@@ -140,7 +140,7 @@ export default function TrainingLeaderboard() {
   return (
     <PageTransition>
       <SEOHead
-        title="Training Leaderboard — Top Students"
+        title="Training Leaderboard - Top Students"
         description="See Who Leads The GTO Training Leaderboard On Smarter.Poker."
         canonical="/hub/training/leaderboard"
       />

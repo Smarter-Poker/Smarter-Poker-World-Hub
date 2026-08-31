@@ -61,9 +61,9 @@ export default function InstallPage() {
             {
                 num: 1,
                 title: 'Open Safari',
-                desc: 'Navigate to smarter.poker in Safari. This must be Safari — Chrome and other browsers do not support "Add to Home Screen" on iOS/iPadOS.',
+                desc: 'Navigate to smarter.poker in Safari. This must be Safari - Chrome and other browsers do not support "Add to Home Screen" on iOS/iPadOS.',
                 icon: '🧭',
-                highlight: 'Safari only — not Chrome'
+                highlight: 'Safari only - not Chrome'
             },
             {
                 num: 2,
@@ -89,7 +89,7 @@ export default function InstallPage() {
             {
                 num: 5,
                 title: 'Launch From Home Screen',
-                desc: 'The Smarter.Poker icon now appears on your home screen. Tap it to open the app in full-screen mode — no browser bars, no tabs.',
+                desc: 'The Smarter.Poker icon now appears on your home screen. Tap it to open the app in full-screen mode - no browser bars, no tabs.',
                 icon: '🚀',
                 highlight: 'Full-screen app experience'
             }
@@ -138,8 +138,8 @@ export default function InstallPage() {
     return (
         <>
             <SEOHead
-                title="Install Smarter.Poker — iPad & Android App"
-                description="Get Smarter.Poker on your iPad or Android device. Add to home screen for a native app experience — free, no app store required."
+                title="Install Smarter.Poker - iPad & Android App"
+                description="Get Smarter.Poker on your iPad or Android device. Add to home screen for a native app experience - free, no app store required."
             />
             <div className="min-h-screen bg-gradient-to-br from-[#0a0a15] via-[#0f1029] to-[#0a0a15] text-white font-['Inter']" style={{ paddingBottom: 70 }}>
 
@@ -155,7 +155,7 @@ export default function InstallPage() {
                             Get Smarter.Poker<br />On Your Device
                         </h1>
                         <p className="text-[#B0B3B8] text-lg max-w-md mx-auto mb-6">
-                            Add Smarter.Poker to your home screen for a full-screen, native app experience — completely free.
+                            Add Smarter.Poker to your home screen for a full-screen, native app experience - completely free.
                             Notifications only work from the installed app.
                         </p>
 

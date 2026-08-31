@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       // ORB-0 FIX-4: Fail hard if service key is missing — never fall back to anon for admin ops
       if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
           console.warn('[ANTIGRAVITY] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
-          return res.status(500).json({ error: 'Server configuration error — contact admin' });
+          return res.status(500).json({ error: 'Server configuration error - contact admin' });
       }
 
       // BUG #240 FIX: Require JWT auth and verify caller is the same user
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
               }
 
               if (emailMatch) {
-                  console.info('[ANTIGRAVITY] Duplicate email found — nullifying email for new profile to prevent constraint violation and orphaning.');
+                  console.info('[ANTIGRAVITY] Duplicate email found - nullifying email for new profile to prevent constraint violation and orphaning.');
 
                   // Update the existing profile to reflect the latest login just in case
                   const { error: err_profiles_vzk0i } = await getSupabase()
@@ -349,7 +349,7 @@ export default async function handler(req, res) {
 
           if (isDisposable) {
               console.warn(
-                  '[ANTI-ABUSE] Disposable signup domain detected — creating profile but WITHHOLDING welcome package ' +
+                  '[ANTI-ABUSE] Disposable signup domain detected - creating profile but WITHHOLDING welcome package ' +
                   '(0 ◆ instead of 500 ◆, no 30-day VIP).',
                   {
                       user_id,
@@ -474,7 +474,7 @@ export default async function handler(req, res) {
               });
           }
 
-          console.info(`[ANTIGRAVITY] ✓ Profile created — username: ${finalUsername}`);
+          console.info(`[ANTIGRAVITY] ✓ Profile created - username: ${finalUsername}`);
 
           // CRITICAL: Ensure new users receive their welcome diamonds in the actual balance table!
           await grantWelcomeDiamonds();

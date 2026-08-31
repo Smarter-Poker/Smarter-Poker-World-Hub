@@ -356,7 +356,7 @@ export default function EmojiThrower({
             }}
             onClick={handleTableThrow}
           >
-            🎯 Tap a player to throw {selectedEmoji} — or tap here for table
+            🎯 Tap a player to throw {selectedEmoji} - or tap here for table
           </motion.div>
         )}
       </AnimatePresence>

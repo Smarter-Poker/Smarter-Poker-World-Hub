@@ -653,7 +653,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     if (!mediaRecorderRef.current || recordedChunksRef.current.length === 0) {
       setShareToast(
         clipBufferArmed
-          ? 'Buffer still filling — try again in a moment'
+          ? 'Buffer still filling - try again in a moment'
           : 'Enable Clip first to start buffering'
       );
       if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
@@ -889,7 +889,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
       }
     } catch (err) {
       setComments((prev) => prev.filter((c) => c.id !== optimisticId));
-      setCommentError('Network error — please retry');
+      setCommentError('Network error - please retry');
       // BUG FIX (LV-1): same fix for catch branch
       if (commentErrorTimerRef.current) clearTimeout(commentErrorTimerRef.current);
       commentErrorTimerRef.current = setTimeout(() => {
@@ -1312,7 +1312,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         setShareToast('');
                       }, 2500);
                     } catch (err) {
-                      setShareToast('Copy failed — try sharing instead');
+                      setShareToast('Copy failed - try sharing instead');
                       if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
                       shareToastTimerRef.current = setTimeout(() => {
                         shareToastTimerRef.current = null;
@@ -1423,7 +1423,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         }, 2500);
                       } else {
                         if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                        setShareToast(data.error || 'Could not share — please try again');
+                        setShareToast(data.error || 'Could not share - please try again');
                         shareToastTimerRef.current = setTimeout(() => {
                           shareToastTimerRef.current = null;
                           setShareToast('');
@@ -1431,7 +1431,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                       }
                     } catch (err) {
                       if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                      setShareToast('Could not share — network error');
+                      setShareToast('Could not share - network error');
                       shareToastTimerRef.current = setTimeout(() => {
                         shareToastTimerRef.current = null;
                         setShareToast('');

@@ -204,7 +204,7 @@ function buildJsonLd(data) {
         '@context': 'https://schema.org',
         '@type': 'Event',
         name: g.title || `${GAME_TYPE_LABELS[g.game_type] || g.game_type || 'Poker'} ${g.stakes || ''}`.trim(),
-        description: g.description || `${page.name} — ${formatStakesLine(group)}`,
+        description: g.description || `${page.name} - ${formatStakesLine(group)}`,
         startDate: startIso,
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         eventStatus: 'https://schema.org/EventScheduled',
@@ -249,7 +249,7 @@ function buildJsonLd(data) {
         // search engines can parse for "[buy-in] [structure] tournament"
         // intent. Falls back to the simple title for cash games.
         about: g.format === 'tournament'
-          ? `Live poker tournament${g.structure ? ` (${g.structure})` : ''}${g.buyin_min != null ? ` — $${g.buyin_min} buy-in` : ''}`
+          ? `Live poker tournament${g.structure ? ` (${g.structure})` : ''}${g.buyin_min != null ? ` - $${g.buyin_min} buy-in` : ''}`
           : undefined,
       };
     });
@@ -782,7 +782,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   if (serverError || !data) {
     return (
       <>
-        <SEOHead title="Home Game — Temporarily Unavailable" description="We couldn't load this page right now." noindex={true} />
+        <SEOHead title="Home Game - Temporarily Unavailable" description="We couldn't load this page right now." noindex={true} />
         <div className="hgs-page">
           <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} />
           <PokerNearMeFamilyNav />
@@ -804,7 +804,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const canonical = `/hub/home-games/${page.slug}`;
   const shareUrl = `${SITE_URL}${canonical}`;
 
-  const metaTitle = `${page.name} — Home Game${page.city ? ` in ${page.city}, ${page.state}` : ''}`;
+  const metaTitle = `${page.name} - Home Game${page.city ? ` in ${page.city}, ${page.state}` : ''}`;
   const metaDesc =
     (group.description || page.description || `Join ${page.name}, a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}. ${formatStakesLine(group)}.`).slice(0, 160);
 
@@ -836,7 +836,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          content: `Check out ${page.name} — a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}! ${shareUrl}`,
+          content: `Check out ${page.name} - a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}! ${shareUrl}`,
           content_type: 'text',
           visibility: 'public',
           metadata: {
@@ -1358,7 +1358,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt></dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
                 {group.typical_time && !group.settings?.schedule_summary && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
-                  <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
+                  <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} - ${group.typical_buyin_max || '?'}</dd></div>
                 )}
                 {(() => {
                     // max_players is a single group-level column: the total cap
@@ -1468,7 +1468,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 onClick={() => { setVouchersModalOpen(false); handleVouchToggle(); }}
                 disabled={vouchBusy}
               >
-                {vouchBusy ? '…' : (hasVouched ? '✓ You Vouched — Remove' : '+ Add Your Vouch')}
+                {vouchBusy ? '…' : (hasVouched ? '✓ You Vouched - Remove' : '+ Add Your Vouch')}
               </button>
             </div>
           </div>
@@ -1502,7 +1502,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 </button>
                 {/* Twitter/X */}
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${page.name} — a poker home game! `)}&url=${encodeURIComponent(shareUrl)}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${page.name} - a poker home game! `)}&url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#e2e8f0', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
@@ -1613,7 +1613,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   </p>
                   <p className="hgs-seat-request-note">
                     Request a seat and the host gets your request straight away. They&apos;ll
-                    approve you and confirm your seat — no need to join first.
+                    approve you and confirm your seat - no need to join first.
                   </p>
                   <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-note">
                     Add a note for the host (optional)

@@ -353,11 +353,11 @@ export function ActiveIdentityProvider({ children }) {
                     // blocked re-application, so it never came back without a
                     // reload.
                     if (res.status === 404) {
-                        console.warn('[ActiveIdentity] Club page 404 — page deleted, resetting to personal');
+                        console.warn('[ActiveIdentity] Club page 404 - page deleted, resetting to personal');
                         setActiveIdentity({ mode: 'personal', clubPage: null });
                         setOwnedPages(prev => prev.filter(p => p.id !== activeIdentity.clubPage.id));
                     } else {
-                        console.warn('[ActiveIdentity] Club page check failed (HTTP', res.status, ') — keeping identity, this is not evidence of deletion');
+                        console.warn('[ActiveIdentity] Club page check failed (HTTP', res.status, ') - keeping identity, this is not evidence of deletion');
                     }
                     return;
                 }

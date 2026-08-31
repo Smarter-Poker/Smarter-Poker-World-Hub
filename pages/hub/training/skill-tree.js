@@ -351,11 +351,11 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
           </div>
           <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 1 }}>
             {isLocked
-              ? 'Locked — complete prerequisite'
+              ? 'Locked - complete prerequisite'
               : isMastered
                 ? `Mastered at ${accuracy}%`
                 : accuracy
-                  ? `${accuracy}% — need ${node.threshold}%`
+                  ? `${accuracy}% - need ${node.threshold}%`
                   : `Goal: ${node.threshold}% accuracy`}
           </div>
         </div>
@@ -374,7 +374,7 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
                     : 'var(--sp-fg-dim)',
               }}
             >
-              {accuracy !== null ? `${accuracy}%` : '—'}
+              {accuracy !== null ? `${accuracy}%` : '-'}
             </div>
             <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{node.xp} XP</div>
           </>

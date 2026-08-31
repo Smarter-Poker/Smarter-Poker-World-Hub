@@ -100,7 +100,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
             setError(persistenceMessage(result, 'Could not create the link. Please try again.'));
         } catch (err) {
             console.warn('[ShareScenarioModal] create error:', err?.message || err);
-            setError('Could not create the link — check your connection.');
+            setError('Could not create the link - check your connection.');
         } finally {
             setLoading(false);
         }
@@ -173,7 +173,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 return;
             }
             setRevokeStep('confirm');
-            setRevokeError({ body: persistenceMessage(result, 'The link could not be revoked. It is still live — please try again.'), retry: true });
+            setRevokeError({ body: persistenceMessage(result, 'The link could not be revoked. It is still live - please try again.'), retry: true });
         } catch (e) {
             if (!mounted.current) return;
             console.warn('[ShareScenarioModal] revoke error:', e?.message || e);
@@ -202,7 +202,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
     const copyToClipboard = useCallback(async () => {
         if (!shareUrl || linkDead) return;
         if (typeof navigator?.clipboard?.writeText !== 'function') {
-            setError('Copying is blocked here — long-press the link above to copy it.');
+            setError('Copying is blocked here - long-press the link above to copy it.');
             return;
         }
         try {
@@ -213,7 +213,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
             try { navigator.vibrate?.(10); } catch (e) { /* noop */ }
         } catch (e) {
             console.warn('[ShareScenarioModal] copy failed:', e?.message || e);
-            setError('Copying is blocked here — long-press the link above to copy it.');
+            setError('Copying is blocked here - long-press the link above to copy it.');
         }
     }, [shareUrl, linkDead]);
 
@@ -447,7 +447,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                                 <Info size={18} strokeWidth={2} color={T.textDim} style={{ flexShrink: 0, marginTop: 1 }} />
                                 <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
                                     {revocable
-                                        ? 'This link is public — anyone who has it can open the spot until you revoke it here.'
+                                        ? 'This link is public - anyone who has it can open the spot until you revoke it here.'
                                         : 'This link was created while you were signed out, so it is public and cannot be revoked from here. Only share spots you are happy for anyone to open.'}
                                 </p>
                             </div>

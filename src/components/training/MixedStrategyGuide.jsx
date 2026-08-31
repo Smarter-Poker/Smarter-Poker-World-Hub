@@ -11,7 +11,7 @@ const MIXED_CONCEPTS = [
     example: 'Solver checks AK on A♠7♦2♣ about 40% of the time. Why? To protect the checking range and trap.',
     practical: 'You don\'t need to mix perfectly. Use a simplified strategy: always bet with your strongest and weakest hands, check the middle.' },
   { concept: 'Indifference Principle', icon: '', color: '#22c55e',
-    detail: 'At equilibrium, mixed strategy hands are indifferent between actions — each action has the SAME EV. The solver picks frequencies to make the opponent indifferent too.',
+    detail: 'At equilibrium, mixed strategy hands are indifferent between actions - each action has the SAME EV. The solver picks frequencies to make the opponent indifferent too.',
     example: 'If you\'re mixed between bet and check with KQ on a K-high board, both options are worth exactly the same in EV.',
     practical: 'If both options are equal EV, just pick one and be consistent. The error is small either way.' },
   { concept: 'Simplifying Mixed Strategies', icon: '', color: '#f59e0b',

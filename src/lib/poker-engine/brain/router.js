@@ -165,7 +165,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             sandwichedFoldMod = isOOPSandwich ? 14 : 10;   // OOP sandwich = tighter (+14 vs +10)
             sandwichedDrawThreshold = isOOPSandwich ? 18 : 15; // OOP needs more outs to continue
             if (counterStrategy.mode === 'standard') counterStrategy.mode = 'sandwich_survival';
-            console.debug(`[HorseBrain]  SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
+            console.debug(`[HorseBrain]  SANDWICH DETECTED: ${profileId.substring(0, 8)} - tightening ranges (+10 fold threshold)`);
         }
     }
 
@@ -208,7 +208,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const tableBlacklistedUntil = tableTimebankBlacklist.get(tableId) || 0;
             if (Date.now() > tableBlacklistedUntil) {
                 tableTimebankBlacklist.set(tableId, Date.now() + 60 * 60 * 1000); // 60 min table ban
-                console.warn(`[HorseBrain] ⏱ MODULE 15 STALL: ${primaryOppId.substring(0, 8)} stall score=${tbData.suspicionScore} — blacklisting table ${tableId.substring(0, 8)} for 60min`);
+                console.warn(`[HorseBrain] ⏱ MODULE 15 STALL: ${primaryOppId.substring(0, 8)} stall score=${tbData.suspicionScore} - blacklisting table ${tableId.substring(0, 8)} for 60min`);
                 // Spike tilt to 1.0 so evaluateSessions triggers a stand-up
                 if (!tiltMap.has(profileId)) tiltMap.set(profileId, {});
                 tiltMap.get(profileId).multiplier = 1.0;
@@ -229,14 +229,14 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // If horse has been showing cards too much (>25% showdown rate), tighten up.
     const imageExposed = isImageExposed(profileId, tableId);
     if (imageExposed) {
-        console.debug(`[HorseBrain]  MODULE 20 IMAGE EXPOSED: ${profileId.substring(0, 8)} — humans floating lighter, tightening thresholds.`);
+        console.debug(`[HorseBrain]  MODULE 20 IMAGE EXPOSED: ${profileId.substring(0, 8)} - humans floating lighter, tightening thresholds.`);
     }
 
     // ─── MODULE 22: ISOLATION SIZING TELL ───
     // If primary opponent has mechanical iso sizing → widen 3-bet range vs them
     const isoTell = primaryOppId ? isMechanicalIsolator(primaryOppId) : { isMechanical: false };
     if (isoTell.isMechanical) {
-        console.debug(`[HorseBrain]  MODULE 22 ISO TELL: ${primaryOppId?.substring(0, 8)} mechanical isolator (avg=${isoTell.avgSize.toFixed(1)}bb, σ=${isoTell.stdDev.toFixed(2)}) — widening 3-bet range.`);
+        console.debug(`[HorseBrain]  MODULE 22 ISO TELL: ${primaryOppId?.substring(0, 8)} mechanical isolator (avg=${isoTell.avgSize.toFixed(1)}bb, σ=${isoTell.stdDev.toFixed(2)}) - widening 3-bet range.`);
     }
 
     // ─── PLO / VARIANT-AWARE ROUTING ───
@@ -258,32 +258,32 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         ? detectLimpTrap(numLimpers, mapPosition(heroPlayer.position || 'mp'), ploSPR, false)
         : { isLimpTrap: false };
     if (limpTrap.isLimpTrap) {
-        console.debug(`[HorseBrain]  MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} — reducing raise freq.`);
+        console.debug(`[HorseBrain]  MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} - reducing raise freq.`);
     }
 
     // ─── MODULE 25: MIN-RAISE HARASSMENT DETECTOR ───
     const minRaiseTell = primaryOppId ? isMinRaiser(primaryOppId) : { isMinRaiser: false, rate: 0 };
     if (minRaiseTell.isMinRaiser) {
-        console.debug(`[HorseBrain]  MODULE 25 MIN-RAISE: ${primaryOppId?.substring(0, 8)} min-raises ${(minRaiseTell.rate * 100).toFixed(0)}% — 3-betting wider, not folding to min-raises.`);
+        console.debug(`[HorseBrain]  MODULE 25 MIN-RAISE: ${primaryOppId?.substring(0, 8)} min-raises ${(minRaiseTell.rate * 100).toFixed(0)}% - 3-betting wider, not folding to min-raises.`);
     }
 
     // ─── MODULE 26: SQUEEZE OVERKILL DETECTOR ───
     const squeezeTell = primaryOppId ? isSqueezeOverkill(primaryOppId) : { isOverkill: false, avgMult: 0 };
     if (squeezeTell.isOverkill) {
-        console.debug(`[HorseBrain]  MODULE 26 SQUEEZE: ${primaryOppId?.substring(0, 8)} over-squeezes (avg ${squeezeTell.avgMult.toFixed(1)}×pot) — folding wider vs 3rd-player squeeze.`);
+        console.debug(`[HorseBrain]  MODULE 26 SQUEEZE: ${primaryOppId?.substring(0, 8)} over-squeezes (avg ${squeezeTell.avgMult.toFixed(1)}×pot) - folding wider vs 3rd-player squeeze.`);
     }
 
     // ─── MODULE 29: STRADDLE / BOMB-POT EQUITY ADJUSTER ───
     const hasStraddle = engineState.hasStraddle || false;
     const bombPotInfo = detectBombPotOrStraddle(potSize, bb, hasStraddle);
     if (bombPotInfo.equityThresholdBoost > 0) {
-        console.debug(`[HorseBrain]  MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% — tightening commit threshold.`);
+        console.debug(`[HorseBrain]  MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% - tightening commit threshold.`);
     }
 
     // ─── MODULE 30: ANGLE-SHOOT TIMING DETECTOR ───
     const angleTell = primaryOppId ? detectAngleShoot(primaryOppId) : { isAngleShooting: false, extraEntropyMs: 0 };
     if (angleTell.isAngleShooting) {
-        console.debug(`[HorseBrain]  MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions — adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
+        console.debug(`[HorseBrain]  MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions - adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
     }
 
     // ─── PLO5 / PLO6 VARIANT-SPECIFIC ROUTING ───
@@ -1055,7 +1055,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (sprTrap.isTrap) {
             const handEvalTrap = evaluatePostflopHand(holeCardStrings, boardStrings);
             if (handEvalTrap.strength < 55) {
-                console.debug(`[HorseBrain]  MODULE 18 SPR TRAP: ${sprTrap.reason} — folding marginal hand (strength=${handEvalTrap.strength})`);
+                console.debug(`[HorseBrain]  MODULE 18 SPR TRAP: ${sprTrap.reason} - folding marginal hand (strength=${handEvalTrap.strength})`);
                 finalAction = 'fold';
                 finalAmount = null;
             }

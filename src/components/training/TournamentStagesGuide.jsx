@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 
 const STAGES = [
   {
-    name: 'Early Stage', range: 'Blinds 25/50 — 100/200', stacks: '150-200bb', color: '#10b981',
+    name: 'Early Stage', range: 'Blinds 25/50 - 100/200', stacks: '150-200bb', color: '#10b981',
     overview: 'Deep stacked. Play like a cash game. Speculative hands have massive implied odds.',
     adjustments: [
       { area: 'Opening', tip: 'Standard cash game ranges. Open tighter from EP, wider from LP.' },
@@ -19,7 +19,7 @@ const STAGES = [
     danger: 'Going broke with top pair at 200bb effective. This is a cash game leak in tournaments.',
   },
   {
-    name: 'Middle Stage', range: 'Blinds 200/400 — 1000/2000', stacks: '30-80bb', color: '#f59e0b',
+    name: 'Middle Stage', range: 'Blinds 200/400 - 1000/2000', stacks: '30-80bb', color: '#f59e0b',
     overview: 'Most important stage. ICM starts mattering. Stack preservation becomes key.',
     adjustments: [
       { area: 'Stealing', tip: 'Increase steal attempts as antes kick in. Antes add 20%+ to each pot.' },
@@ -46,7 +46,7 @@ const STAGES = [
     name: 'In The Money', range: 'Money to Final Table', stacks: '20-100bb', color: '#3b82f6',
     overview: 'Pressure eases slightly. Focus shifts to final table. Laddering pay jumps matters.',
     adjustments: [
-      { area: 'Aggression', tip: 'Increase aggression again. Many players tighten after cashing — exploit this.' },
+      { area: 'Aggression', tip: 'Increase aggression again. Many players tighten after cashing - exploit this.' },
       { area: 'Pay Jumps', tip: 'Each elimination means everyone earns more. Short stacks benefit from stalling.' },
       { area: 'Position', tip: 'Position is premium. Fight for BTN and CO pots more than ever.' },
       { area: 'Reshoves', tip: '20-30bb reshove ranges widen. Pick spots where opener is likely to fold.' },

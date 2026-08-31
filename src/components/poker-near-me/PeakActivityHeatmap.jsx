@@ -165,7 +165,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
                     role="button"
                     tabIndex={0}
                     aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
-                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} — Avg: ${cell.avg_tables} tables`}
+                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} - Avg: ${cell.avg_tables} tables`}
                     onMouseEnter={() => setHoveredCell(cell)}
                     onMouseLeave={() => setHoveredCell(null)}
                     onClick={() => setHoveredCell(cell)}
@@ -202,7 +202,7 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
           color: '#fff', fontSize: 13, textAlign: 'center',
           border: '1px solid rgba(0,212,255,0.2)',
         }}>
-          {DAY_LABELS[hoveredCell.day]} at {HOUR_LABELS[hoveredCell.hour]} — Avg: {hoveredCell.avg_tables} tables
+          {DAY_LABELS[hoveredCell.day]} at {HOUR_LABELS[hoveredCell.hour]} - Avg: {hoveredCell.avg_tables} tables
         </div>
       )}
 

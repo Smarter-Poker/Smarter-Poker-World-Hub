@@ -285,7 +285,7 @@ export default async function handler(req, res) {
       if (agentsErr) {
         return res.status(500).json({
           success: false,
-          error: `Could not read agents for settlement: ${agentsErr.message}. Period left open — nothing was settled.`,
+          error: `Could not read agents for settlement: ${agentsErr.message}. Period left open - nothing was settled.`,
         });
       }
 
@@ -505,7 +505,7 @@ export default async function handler(req, res) {
               p_amount: unionHold,
             });
             if (refundErr) {
-              console.error('[settle-period] CRITICAL: union hold refund ALSO failed — treasury debited, union not credited:', refundErr.message);
+              console.error('[settle-period] CRITICAL: union hold refund ALSO failed - treasury debited, union not credited:', refundErr.message);
               // Chips have been destroyed: the club was debited, the union was
               // never credited, and putting them back failed too. That is a
               // conservation break and must not be reported as a success.
@@ -513,7 +513,7 @@ export default async function handler(req, res) {
                 success: false,
                 error: `CRITICAL: the union hold of ${unionHold} was debited from the club `
                   + `treasury, crediting the union failed, and the refund failed as well. `
-                  + `Those chips are unaccounted for — reconcile before settling again.`,
+                  + `Those chips are unaccounted for - reconcile before settling again.`,
                 conservationBreak: true,
                 amount: unionHold,
                 periodId: pid,
@@ -528,7 +528,7 @@ export default async function handler(req, res) {
             club_id: clubId,
             amount: unionHold,
             transaction_type: 'union_hold',
-            notes: `Union rake hold: ${unionHold.toLocaleString()} chips (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake) — Period #${period.period_number}`,
+            notes: `Union rake hold: ${unionHold.toLocaleString()} chips (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake) - Period #${period.period_number}`,
             metadata: {
               period_id: pid,
               period_number: period.period_number,
@@ -676,7 +676,7 @@ export default async function handler(req, res) {
           success: false,
           error: `Settlement completed but the period could not be marked closed: `
             + `${err_settlement_periods_3wobo.message}. DO NOT re-run close for this `
-            + `period — commissions and the union hold have already been applied.`,
+            + `period - commissions and the union hold have already been applied.`,
           periodId: pid,
           alreadyApplied: true,
         });
@@ -761,7 +761,7 @@ export default async function handler(req, res) {
           to_user_id: agentData.user_id,
           amount: cr.commission_amount,
           transaction_type: 'commission',
-          notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Manual settlement`,
+          notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips - Manual settlement`,
           metadata: {
             period_id: cr.period_id,
             commission_record_id: cr.id,
@@ -873,7 +873,7 @@ export default async function handler(req, res) {
               to_user_id: agentData.user_id,
               amount: cr.commission_amount,
               transaction_type: 'commission',
-              notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Period settlement`,
+              notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips - Period settlement`,
               metadata: {
                 period_id: periodId,
                 commission_record_id: cr.id,

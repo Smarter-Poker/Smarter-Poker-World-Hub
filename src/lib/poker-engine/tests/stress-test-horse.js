@@ -28,7 +28,7 @@ function assert(condition, label, extra = '') {
         failed++;
         failures.push(label);
         newBugs.push(label);
-        console.warn(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
+        console.warn(`  ❌ FAIL: ${label}${extra ? ' - ' + extra : ''}`);
     }
 }
 
@@ -295,7 +295,7 @@ function isValidAction(action) {
         const r = await Brain.getDecision(HR, preState, mkLegal(4, 100, 6), tc());
         if (r.action?.type === 'fold') preFolds++;
     }
-    assert(preFolds === 0, `DEFERRED-8: coldCallDecision receives equity — nuts never fold facing raise (folds: ${preFolds}/20)`);
+    assert(preFolds === 0, `DEFERRED-8: coldCallDecision receives equity - nuts never fold facing raise (folds: ${preFolds}/20)`);
 
     // If sidePot received 0, it would always suggest fold with all-in players
     const spState = mkState(BOARDS.flop_wet, NUT_HAND, 30, 10, 100, 'btn', 2, { allInPlayers: [{ id: 'allin-1', stack: 0 }] });
@@ -304,7 +304,7 @@ function isValidAction(action) {
         const r = await Brain.getDecision(HR, spState, mkLegal(10, 100, 30), tc());
         if (r.action?.type === 'fold') spFolds++;
     }
-    assert(spFolds === 0, `DEFERRED-5: sidePot receives equity — nuts never fold with side pot (folds: ${spFolds}/10)`);
+    assert(spFolds === 0, `DEFERRED-5: sidePot receives equity - nuts never fold with side pot (folds: ${spFolds}/10)`);
 
     // ══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 24 RIVER DONK BLOCK — ACTUALLY FIRES
@@ -428,7 +428,7 @@ function isValidAction(action) {
         newBugs.forEach(b => console.warn(`  - ${b}`));
         process.exit(1);
     } else {
-        console.debug('\n✅ STRESS TEST CLEAN — ZERO NEW BUGS — ENGINE IS BATTLE-READY');
+        console.debug('\n✅ STRESS TEST CLEAN - ZERO NEW BUGS - ENGINE IS BATTLE-READY');
     }
     console.debug('');
 })();

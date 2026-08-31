@@ -94,7 +94,7 @@ export default function HostCreateTableModal({
     e?.preventDefault?.();
     const seats = parseInt(maxSeats, 10);
     if (!Number.isFinite(seats) || seats < 2 || seats > 10) {
-      toast.error('Max seats must be 2–10');
+      toast.error('Max seats must be 2-10');
       return;
     }
     const parsedMin = buyinMin === '' ? null : parseInt(buyinMin, 10);
@@ -238,7 +238,7 @@ export default function HostCreateTableModal({
           {/* Max seats */}
           <div>
             <label htmlFor="hct-maxseats" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
-              Max seats (2–10)
+              Max seats (2-10)
             </label>
             <input
               id="hct-maxseats"

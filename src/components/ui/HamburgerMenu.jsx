@@ -939,7 +939,7 @@ export default function HamburgerMenu({
             }}
           >
             <WifiOff size={18} aria-hidden="true" color={colors.danger} />
-            <span style={{ minWidth: 0 }}>You are offline. Cached pages still open — anything that needs the network will wait.</span>
+            <span style={{ minWidth: 0 }}>You are offline. Cached pages still open - anything that needs the network will wait.</span>
           </div>
         )}
 

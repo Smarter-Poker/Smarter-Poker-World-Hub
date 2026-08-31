@@ -189,7 +189,7 @@ function _identifyStrengths(stats: any, positionStats?: any): string[] {
 
 function _identifyWeaknesses(stats: any, weakSpots?: any[], classificationCounts?: any): string[] {
     const areas: string[] = [];
-    if (classificationCounts?.blunder > 0) areas.push(`${classificationCounts.blunder} blunder${classificationCounts.blunder > 1 ? 's' : ''} — review these hands`);
+    if (classificationCounts?.blunder > 0) areas.push(`${classificationCounts.blunder} blunder${classificationCounts.blunder > 1 ? 's' : ''} - review these hands`);
     if (weakSpots && weakSpots.length > 0) {
         const worst = weakSpots[0];
         areas.push(`Weakest spot: ${worst.position || ''} ${worst.street || ''} ${worst.spotType || ''}`.trim());
@@ -250,14 +250,14 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
             const localCoaching: AICoaching = {
                 overallGrade: stats.accuracy >= 90 ? 'A+' : stats.accuracy >= 80 ? 'A' : stats.accuracy >= 70 ? 'B' : stats.accuracy >= 60 ? 'C' : 'D',
                 headline: stats.accuracy >= 90
-                    ? 'Exceptional session — GTO mastery in action.'
+                    ? 'Exceptional session - GTO mastery in action.'
                     : stats.accuracy >= 80
-                    ? 'Strong session — your GTO fundamentals are solid.'
+                    ? 'Strong session - your GTO fundamentals are solid.'
                     : stats.accuracy >= 70
-                    ? 'Good session — a few spots to tighten up.'
+                    ? 'Good session - a few spots to tighten up.'
                     : stats.accuracy >= 60
                     ? 'Decent session with room for improvement.'
-                    : 'Focus on the basics — review your biggest mistakes.',
+                    : 'Focus on the basics - review your biggest mistakes.',
                 strengths: _identifyStrengths(stats, positionStats),
                 areasToImprove: _identifyWeaknesses(stats, weakSpots, classificationCounts),
                 detailedFeedback: _buildDetailedFeedback(stats, gtowScore, totalEVLoss, classificationCounts),
@@ -366,7 +366,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                             {passed ? 'LEVEL CLEARED!' : 'KEEP PRACTICING'}
                         </h1>
                         <p style={styles.subtitle}>
-                            {gameName} — Level {level}
+                            {gameName} - Level {level}
                         </p>
                     </motion.div>
 

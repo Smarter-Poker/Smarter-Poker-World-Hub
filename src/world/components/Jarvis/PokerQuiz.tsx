@@ -334,7 +334,7 @@ export function PokerQuiz({ onClose, onEarnDiamonds }: PokerQuizProps) {
                         }}>
                             {selectedAnswer === currentQuestion.correctIndex ? '✓ Correct!' : '✗ Incorrect'}
                         </strong>
-                        {' — '}
+                        {' - '}
                         {currentQuestion.explanation}
                     </p>
                     {selectedAnswer === currentQuestion.correctIndex && streak > 0 && (

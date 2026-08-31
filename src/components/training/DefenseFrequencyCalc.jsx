@@ -21,7 +21,7 @@ const STREET_SCENARIOS = [
   { name: 'Flop vs 33% C-Bet', street: 'Flop', betPct: 33, potSize: 6, villainRange: 'Wide (65%)', heroDefense: 'Call with all pairs, draws, overcards. Fold bottom of range.' },
   { name: 'Turn vs 67% Barrel', street: 'Turn', betPct: 67, potSize: 14, villainRange: 'Polarizing (45%)', heroDefense: 'Call with top pair+, strong draws. Fold weak pairs, missed draws.' },
   { name: 'River vs Pot Overbet', street: 'River', betPct: 150, potSize: 32, villainRange: 'Very Polarized (25%)', heroDefense: 'Call with two pair+, strong blockers. Fold most one pair.' },
-  { name: 'River vs 33% Thin Value', street: 'River', betPct: 33, potSize: 20, villainRange: 'Merged (60%)', heroDefense: 'Call very wide — villain bets thin. Only fold pure air.' },
+  { name: 'River vs 33% Thin Value', street: 'River', betPct: 33, potSize: 20, villainRange: 'Merged (60%)', heroDefense: 'Call very wide - villain bets thin. Only fold pure air.' },
 ];
 
 function DefenseFrequencyCalc() {

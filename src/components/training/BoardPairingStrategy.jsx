@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const PAIRED_BOARDS = [
   { board: 'K♠ K♦ 7♣', type: 'Top Card Paired', pfr_adv: 95,
     strategy: 'PFR has massive advantage. C-bet ~80% with small sizing (25-33%). Villain almost never has Kx.',
-    key: 'Bet small, bet often. Your range has KK, AK, KQ — they have almost none of these.' },
+    key: 'Bet small, bet often. Your range has KK, AK, KQ - they have almost none of these.' },
   { board: 'Q♥ 8♣ 8♦', type: 'Bottom Card Paired', pfr_adv: 70,
     strategy: 'PFR still has advantage but less extreme. C-bet ~60% with small sizing.',
     key: 'BB can have 87s, 89s type hands. Still bet frequently but slightly less than top-paired.' },
@@ -16,7 +16,7 @@ const PAIRED_BOARDS = [
     strategy: 'PFR has more TT, AT, KT. C-bet at high frequency. Villain has some Tx suited but not many.',
     key: 'Your overpairs are very strong on paired boards. JJ+ can bet three streets for value.' },
   { board: 'A♣ A♠ 5♦', type: 'Ace Paired', pfr_adv: 85,
-    strategy: 'You have AA, AK, AQ — but so might villain with AK/AQ at lower frequency. Bet for thin value.',
+    strategy: 'You have AA, AK, AQ - but so might villain with AK/AQ at lower frequency. Bet for thin value.',
     key: 'When the board pairs the ace, both players\' Ax range is reduced. Medium pairs gain value.' },
   { board: '3♥ 3♠ 9♦', type: 'Low Paired', pfr_adv: 60,
     strategy: 'BB has more 3x combos (32s-36s). PFR still has range advantage but nut advantage is less clear.',
@@ -32,7 +32,7 @@ export default function BoardPairingStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Board Pairing Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Paired boards are gold for the PFR — learn to exploit them.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Paired boards are gold for the PFR - learn to exploit them.</p>
 
       {/* Board selector */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>

@@ -152,7 +152,7 @@ export default function SurvivalModeGame({
                 </p>
                 {remainingCap <= 0 && (
                     <p style={{ fontSize: '13px', color: '#fbbf24', marginTop: '8px' }}>
-                        Daily diamond cap reached — this run counts for the leaderboard.
+                        Daily diamond cap reached - this run counts for the leaderboard.
                     </p>
                 )}
             </div>
@@ -284,7 +284,7 @@ export default function SurvivalModeGame({
                     fontSize: '13px'
                 }}>
                     {capReached
-                        ? 'Daily cap reached — playing for the leaderboard'
+                        ? 'Daily cap reached - playing for the leaderboard'
                         : `+${multiplier} diamonds for correct answer`}
                 </div>
             </div>

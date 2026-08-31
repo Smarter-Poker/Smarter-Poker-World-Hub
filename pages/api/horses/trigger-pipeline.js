@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       //      never from a request header.
       return res.status(501).json({
           success: false,
-          error: 'Pipeline triggering is not implemented — the /api/cron/horses-stories handler does not exist, so no pipeline was run and no run was logged.',
+          error: 'Pipeline triggering is not implemented - the /api/cron/horses-stories handler does not exist, so no pipeline was run and no run was logged.',
           requestedType: type,
       });
 

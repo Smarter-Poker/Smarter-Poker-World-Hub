@@ -62,7 +62,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
 
     const handleCopyStats = useCallback(() => {
         const lines = [
-            `📊 ${user?.display_name || 'Player'} — Staking Profile`,
+            `📊 ${user?.display_name || 'Player'} - Staking Profile`,
             `════════════════════════`,
         ];
         if (privacy.showROI) lines.push(`ROI: ${profileStats.roi}%`);

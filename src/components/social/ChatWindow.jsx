@@ -1269,7 +1269,7 @@ const PostCard = React.memo(
               match?.[1] ||
               post.content
                 .replace(/^Checked in at /i, '')
-                .split('—')[0]
+                .split('-')[0]
                 .trim();
             const locationText = match?.[2]?.trim() || '';
             return (

@@ -145,9 +145,9 @@ const LESSONS = [
     color: 'var(--sp-accent-green)',
     desc: 'When to continuation bet and sizing selection',
     concepts: [
-      'A continuation bet is a flop bet by the last preflop aggressor. Its profitability depends on the two ranges, the board, position, sizing, and stack depth—not merely on having raised before the flop.',
+      'A continuation bet is a flop bet by the last preflop aggressor. Its profitability depends on the two ranges, the board, position, sizing, and stack depth-not merely on having raised before the flop.',
       'In a heads-up, single-raised pot, the raiser can often bet frequently on dry high-card boards such as K-7-2 rainbow. Connected boards such as J-T-9 two-tone usually require more checking because the caller has more strong made hands and draws.',
-      'This lesson compares a small 33% pot range bet on favorable dry boards with selective 66–75% pot betting on connected boards. Large bets should be supported by strong value and suitable bluffs.',
+      'This lesson compares a small 33% pot range bet on favorable dry boards with selective 66-75% pot betting on connected boards. Large bets should be supported by strong value and suitable bluffs.',
     ],
     quiz: [
       {
@@ -172,7 +172,7 @@ const LESSONS = [
       },
       {
         q: 'You Are The Preflop Raiser On A Connected Flop. Which Plan Matches This Lesson\'s Selective Large-Bet Strategy?',
-        opts: ['Bet 75% Pot With The Entire Range', 'Bet 33% Pot With The Entire Range', 'Check More Often, Then Bet 66–75% With Strong Value And Suitable Bluffs', 'Check The Entire Range'],
+        opts: ['Bet 75% Pot With The Entire Range', 'Bet 33% Pot With The Entire Range', 'Check More Often, Then Bet 66-75% With Strong Value And Suitable Bluffs', 'Check The Entire Range'],
         answer: 2,
       },
       {
@@ -278,7 +278,7 @@ const LESSONS = [
     color: 'var(--sp-accent-red)',
     desc: 'Final street value bets, bluffs, and river decisions',
     concepts: [
-      'On the river, hands have fixed equity — no more draws. Your range should be polarized: bet with very strong hands (value) and some bluffs, check medium hands.',
+      'On the river, hands have fixed equity - no more draws. Your range should be polarized: bet with very strong hands (value) and some bluffs, check medium hands.',
       'Value bet sizing on the river should be based on how wide your opponent will call. Larger bets get called by narrower ranges but extract more per call.',
       'Optimal bluff-to-value ratio depends on your bet size. For a pot-sized bet, you should bluff 1 hand for every 2 value hands (33% bluffs in your betting range).',
     ],
