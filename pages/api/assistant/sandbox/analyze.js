@@ -24,6 +24,14 @@ import {
   chooseTrainingCacheMatch,
   mapTrainingQuestionToAnalysis,
 } from '../../../../src/lib/sandbox/trainingCacheSolver.mjs';
+import {
+  ScenarioValidationError,
+  activeNodeLocks,
+  applyNodeLockModel,
+  buildDecisionFingerprint,
+  buildDecisionLine,
+  validateAndNormalizeScenario,
+} from '../../../../src/lib/sandbox/scenarioContract.mjs';
 import { getGrokClient } from '../../../../src/lib/grokClient';
 import { rateLimit, LIMITS, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
@@ -123,27 +131,10 @@ const analysisCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getCacheKey(params) {
-  const { heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor, villainArchetype, socratic, facingBet, potSize, villainRange } = params;
-  // Board identity must preserve WHICH card landed on which street —
-  // [Ah,Kd,Qs]+2c is a different spot than [Ah,Kd,2c]+Qs.
-  const flopPart = [...(board?.flop || [])].filter(Boolean).map(c => String(c).toLowerCase()).sort().join('');
-  const boardPart = `${flopPart}|${(board?.turn || '').toLowerCase()}|${(board?.river || '').toLowerCase()}`;
-  return JSON.stringify({
-    h: [heroHand?.card1, heroHand?.card2].filter(Boolean).sort().join(''),
-    p: heroPosition, s: Math.round((Number(heroStack) || 0) / 10) * 10,
-    g: gameType,
-    b: boardPart,
-    em: exploitMode || 'gto',
-    bf: bubbleFactor || 1.0,
-    va: villainArchetype || null,
-    sp: socratic?.userPick || null,
-    // The response depends on the action line (Check vs Call labels), the pot
-    // and the villain range — all three feed the Grok prompt, so two spots that
-    // differ only in those MUST NOT collide on one cache entry.
-    fb: !!facingBet,
-    ps: Number(potSize) || 6,
-    vr: String(villainRange || '').slice(0, 80),
-  });
+  // Full canonical identity: concrete cards, exact street order, pot, every
+  // seat/range/stack/lock, every sized action, mode, bubble factor and coach
+  // pick. A materially different poker decision can never reuse this entry.
+  return buildDecisionFingerprint(params);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -351,16 +342,21 @@ async function querySolverData(params) {
         street,
         boardCards,
         facingBet,
+        decisionContext: params.decisionContext,
       });
       if (match) {
-        const source = match.matchTier === 1
-          ? 'Training Solver — Exact Hand And Board'
+        const source = match.contextVerified
+          ? 'Training Solver — Exact Decision Context'
+          : match.matchTier === 1
+          ? 'Training Solver — Hand And Board Approximation'
           : 'Training Solver — Flop-Matched Hand';
         return {
           trainingQuestion: match.question,
           cacheRow: match.row,
           matchTier: match.matchTier,
           source,
+          contextVerified: match.contextVerified === true,
+          contextMismatches: match.contextMismatches || [],
         };
       }
     }
@@ -897,12 +893,17 @@ function buildPreflopHeatmap(chart) {
 async function analyzeWithGrok(params) {
   try {
     const grok = getGrokClient();
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic } = params;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic, actionHistory } = params;
 
     const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
     const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
-    const heroHandStr = `${heroHand?.card1 || 'As'} ${heroHand?.card2 || 'Kd'}`;
+    const heroHandStr = `${heroHand.card1} ${heroHand.card2}`;
     const villainDesc = villains?.slice(0, 3).map(v => `${v.archetype?.name || 'Unknown'} (${v.stack}bb)`).join(', ') || 'Unknown';
+    const actionLine = buildDecisionLine(actionHistory);
+    const locks = activeNodeLocks(villains);
+    const nodeLockContext = locks.length > 0
+      ? `\n- Declared Villain Deviations: ${locks.map(lock => `${lock.position} ${lock.lock}`).join(', ')}`
+      : '';
 
     // Exploit mode context injection
     let exploitContext = '';
@@ -940,12 +941,13 @@ async function analyzeWithGrok(params) {
 
 SCENARIO:
 - Hero Hand: ${heroHandStr}
-- Hero Position: ${heroPosition || 'BTN'}
-- Hero Stack: ${heroStack || 100}bb
+- Hero Position: ${heroPosition}
+- Hero Stack: ${heroStack}bb
 - Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game (ChipEV)'}
-- Pot Size: ${potSize || 6}bb
+- Pot Size: ${potSize}bb
 - Board: ${boardStr}
-- Villains: ${villainDesc}${villainRangeContext}${exploitContext}${icmContext}${socraticContext}
+- Action Line: ${actionLine}
+- Villains: ${villainDesc}${villainRangeContext}${nodeLockContext}${exploitContext}${icmContext}${socraticContext}
 
 Respond in EXACT JSON format (no markdown):
 {
@@ -1261,13 +1263,6 @@ export default async function handler(req, res) {
         key: `pa:sandbox:analyze:${userId}`, max: 30, windowSeconds: 60,
       })) return;
 
-      const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, villainRange, socratic } = req.body || {};
-
-      // req.body is untrusted — a string bubbleFactor would blow up .toFixed()
-      // in the explanation/ICM builders and 500 the whole request.
-      const rawBubble = Number(req.body?.bubbleFactor);
-      const bubbleFactor = isFinite(rawBubble) && rawBubble > 0 ? rawBubble : 1.0;
-
       // Full analysis is post-session/training only. The authority helper is
       // fail-closed, and the feature-level gate also excludes limited review.
       const contextAccess = await checkSandboxAccess(getSupabase(), userId);
@@ -1279,20 +1274,38 @@ export default async function handler(req, res) {
         });
       }
 
+      let decisionContext;
+      try {
+        decisionContext = validateAndNormalizeScenario(req.body);
+      } catch (error) {
+        if (error instanceof ScenarioValidationError) {
+          return res.status(422).json({
+            success: false,
+            code: error.code,
+            error: error.message,
+            issues: error.issues,
+          });
+        }
+        throw error;
+      }
+
+      const {
+        heroHand, heroPosition, heroStack, gameType, villains, board, betSizing,
+        potSize, actionHistory, exploitMode, villainArchetype, villainRange,
+        socratic, bubbleFactor,
+      } = decisionContext;
+
       // (Rate limiting happens at the top of the handler, before any DB work.)
 
       // Derived inputs must be computed BEFORE the cache lookup — they are part
       // of the cache identity.
       const street = getStreet(board);
       const heroNotation = heroHandToNotation(heroHand);
-      const calculatedPot = potSize || 6;
+      const calculatedPot = potSize;
       const facingBet = isFacingBet(actionHistory, heroPosition, street);
 
       // Check cache
-      const cacheKey = getCacheKey({
-        heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor,
-        villainArchetype, socratic, facingBet, potSize: calculatedPot, villainRange,
-      });
+      const cacheKey = getCacheKey(decisionContext);
       const cached = analysisCache.get(cacheKey);
       if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
         const savedSessionId = await persistSandboxAnalysis({
@@ -1319,6 +1332,7 @@ export default async function handler(req, res) {
 
       const solverResult = await querySolverData({
         heroHand, heroPosition, heroStack, gameType, board, facingBet,
+        decisionContext,
       });
 
       if (solverResult) {
@@ -1380,7 +1394,7 @@ export default async function handler(req, res) {
       // Only an exact canonical Training question proves the full decision
       // context. Raw solved-board lookups omit position/action-line identity
       // and therefore remain approximations even when the board is exact.
-      const truthLevel = solverBacked && solverResult?.trainingQuestion && matchTier === 1
+      const truthLevel = solverBacked && solverResult?.trainingQuestion && matchTier === 1 && solverResult?.contextVerified === true
         ? 'solver_verified'
         : (solverBacked ? 'solver_approx' : 'ai_approx');
       const responseData = {
@@ -1399,6 +1413,9 @@ export default async function handler(req, res) {
         street,
         confidence: truthLevel === 'solver_verified' ? 'High' : truthLevel === 'solver_approx' ? 'Medium' : 'Low',
         canonicalQuestionId: solverResult?.cacheRow?.question_id || null,
+        decisionFingerprint: buildDecisionFingerprint(decisionContext),
+        contextVerified: solverResult?.contextVerified === true,
+        contextMismatches: solverResult?.contextMismatches || [],
 
         // Range heatmap (may be null for Grok fallback)
         rangeHeatmap,
@@ -1407,8 +1424,14 @@ export default async function handler(req, res) {
         context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition}`,
       };
 
+      const nodeLocks = activeNodeLocks(villains);
+      if (nodeLocks.length > 0) {
+        const adjusted = applyNodeLockModel(responseData, nodeLocks, { facingBet });
+        Object.assign(responseData, adjusted);
+      }
+
       // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
-      if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {
+      if (nodeLocks.length === 0 && gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {
         const icmHero = parseFloat((analysis.ev.hero * bubbleFactor).toFixed(3));
         responseData.icmAdjusted = true;
         responseData.bubbleFactor = bubbleFactor;
