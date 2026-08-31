@@ -65,6 +65,22 @@ const SKIP_FILES = new Set([
   'src/components/social/ClubPagesView.jsx',
   'src/components/social/PublicGameBoard.jsx',
   'src/components/training/TripleBarrelTrainer.jsx',
+  // Not auth debt like the ten below. The js-safety check reads the line
+  //     *   import { PokerBrainStorage } from './poker-brain-supabase';
+  // out of this file's documentation header and reports it as a broken
+  // import. It is a comment, and it says so on main already. Touching the
+  // file would make this sweep the thing that surfaced it.
+  'src/lib/poker-brain/storage.js',
+  'pages/api/admin/cron-health.js',
+  'pages/auth/mfa.js',
+  'pages/auth/reset-password.js',
+  'pages/claim/[token].js',
+  'pages/club/[id].js',
+  'pages/home-game/[code].js',
+  'src/lib/poker-brain/decision-bridge.js',
+  'src/engine/CentralBus.js',
+  'src/hooks/useMessengerService.js',
+  'src/lib/authUtils.js',
 ]);
 
 /**

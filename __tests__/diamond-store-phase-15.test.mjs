@@ -111,7 +111,10 @@ test('cart ownership, current variant price, and balance broadcasts survive relo
     read('src/hooks/useDiamondBalance.js'),
   ]);
   assert.match(cartStore, /ownerId: 'guest'/);
-  assert.match(cartStore, /partialize: \(state\) => \(\{ items: state\.items, ownerId: state\.ownerId \}\)/);
+  assert.match(
+    cartStore,
+    /partialize: \(state\) => \(\{[\s\S]*items: state\.items,[\s\S]*ownerId: state\.ownerId,[\s\S]*syncPending: state\.syncPending/
+  );
   assert.match(cartPage, /cartLoadRequestRef/);
   assert.match(cartPage, /isCurrentCartLoad/);
   assert.match(merchStore, /variant\?\.priceUsd, product\.priceUsd/);

@@ -15,6 +15,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
+const MARKETPLACE_LEDGER_TIMEOUT_MS = 20000;
+
 export default function OrderHistory() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
   useTrainingBus('diamond-store-orders');
@@ -44,6 +46,11 @@ export default function OrderHistory() {
     loadAbortRef.current?.abort();
     const controller = new AbortController();
     loadAbortRef.current = controller;
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, MARKETPLACE_LEDGER_TIMEOUT_MS);
     try {
       const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
       const response = await authedFetch(`/api/store/order-ledger?limit=50${cursorQuery}`, {
@@ -80,17 +87,27 @@ export default function OrderHistory() {
       setLoading(false);
       setLoadingMore(false);
     } catch (error) {
-      if (error?.name === 'AbortError' || requestId !== loadRequestRef.current) return;
+      if (requestId !== loadRequestRef.current) return;
+      if (error?.name === 'AbortError' && !timedOut) return;
       console.warn('Error loading orders:', error);
       if (append) {
-        setPartialError('Older Marketplace Records Could Not Be Loaded Right Now.');
+        setPartialError(
+          timedOut
+            ? 'Older Marketplace Records Timed Out. Try Loading Them Again.'
+            : 'Older Marketplace Records Could Not Be Loaded Right Now.'
+        );
       } else {
-        setLoadError(error?.message || 'Could not load orders');
+        setLoadError(
+          timedOut
+            ? 'Order History Timed Out. Try Again.'
+            : error?.message || 'Could Not Load Orders'
+        );
         setPartialError(null);
       }
       setLoading(false);
       setLoadingMore(false);
     } finally {
+      window.clearTimeout(timeout);
       if (loadAbortRef.current === controller) loadAbortRef.current = null;
     }
   }, [user?.id]);

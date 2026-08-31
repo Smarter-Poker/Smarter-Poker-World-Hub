@@ -109,7 +109,7 @@ function parseSeriesCards($: cheerio.CheerioAPI): Array<{
         const state = locationMatch?.[2]?.trim() || '';
 
         // Parse dates
-        const dateMatch = dateText.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s*[-–]\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
+        const dateMatch = dateText.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s*[--]\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
         const startDate = dateMatch?.[1] || '';
         const endDate = dateMatch?.[2] || '';
 

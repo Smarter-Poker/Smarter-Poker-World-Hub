@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, CheckCircle, Clock3, ReceiptText, X } from 'lucide-react';
 
 import styles from './CheckoutStatusPanel.module.css';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import { checkoutReceiptHref } from '../../lib/store/checkoutReconciliation';
 
 const COPY = {
   verifying: {
@@ -46,7 +48,7 @@ function amountLabel(receipt) {
   }
   return null;
 }
-export default function CheckoutStatusPanel({ state, onDismiss }) {
+export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export default function CheckoutStatusPanel({ state, onDismiss }) {
   const receipt = state.receipt || null;
   const reference = receipt?.sessionId ? receipt.sessionId.slice(-12).toUpperCase() : null;
   const amount = amountLabel(receipt);
+  const receiptHref = checkoutReceiptHref(receipt);
 
   return (
     <section
@@ -101,6 +104,23 @@ export default function CheckoutStatusPanel({ state, onDismiss }) {
               </div>
             )}
           </dl>
+        )}
+        {state.status !== 'verifying' && (
+          <div className={styles.actions}>
+            {state.status === 'complete' && receiptHref && (
+              <Link href={receiptHref} className={styles.primaryAction}>
+                View Verified Receipt
+              </Link>
+            )}
+            {['failed', 'pending'].includes(state.status) && typeof onRetry === 'function' && (
+              <button type="button" className={styles.primaryAction} onClick={onRetry}>
+                Verify Again
+              </button>
+            )}
+            <Link href="/hub/diamond-store/orders" className={styles.secondaryAction}>
+              View Order History
+            </Link>
+          </div>
         )}
       </div>
       {state.status !== 'verifying' && (

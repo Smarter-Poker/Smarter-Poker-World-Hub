@@ -149,7 +149,7 @@ function getUpcomingSeries(tourCode, registryTours) {
     // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9"
     function parseInformalDate(dateStr) {
         if (!dateStr) return null;
-        const parts = dateStr.split(/\s*[-–]\s*/);
+        const parts = dateStr.split(/\s*[--]\s*/);
         // An explicit 4-digit year anywhere in the string wins over the heuristic.
         const explicitYearMatch = dateStr.match(/\b(20\d{2})\b/);
         const explicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : null;

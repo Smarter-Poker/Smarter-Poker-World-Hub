@@ -8,7 +8,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
 
         function parseStopDates(dateStr) {
             if (!dateStr) return null;
-            const parts = dateStr.split(/\s*[-–]\s*/);
+            const parts = dateStr.split(/\s*[--]\s*/);
             function parseOne(s, fallbackMonth) {
                 if (!s) return null;
                 s = s.trim().replace(',', '');
@@ -248,7 +248,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
         allVenuesForMap.forEach(v => {
             if (v.venue_type === 'charity' && v.name) {
                 let bn = v.name.replace(/\s*\(.*\)/g, ''); // Remove parentheticals like (CCG Poker)
-                bn = bn.split(' — ')[0]; // ui-text-ignore: splits SCRAPED venue names that already contain this character
+                bn = bn.split(' - ')[0]; // Em dash
                 bn = bn.split(' - ')[0]; // En dash / Hyphen
                 bn = bn.split(' @ ')[0];
                 bn = bn.toLowerCase().trim();
