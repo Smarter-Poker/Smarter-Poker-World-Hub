@@ -125,19 +125,13 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
-test('all right icons shimmer every 15-20 seconds and active VIP has a neon-white outline', () => {
+test('all global header shimmer is removed and active VIP keeps a neon-white outline', () => {
   for (const source of [header, commander]) {
-    assert.match(source, /15_000 \+ Math\.floor\(Math\.random\(\) \* 5_001\)/);
-    assert.match(source, /setIconShimmerVisible\(true\)/);
-    assert.match(source, /setIconShimmerVisible\(false\)/);
     assert.match(source, /data-vip-active=/);
     assert.match(source, /vip--active/);
-    assert.match(source, /controls--shimmer/);
-    assert.match(source, /data-header-icons-shimmer=/);
     assert.match(source, /:not\([^)]*vip--active\)::after/);
     assert.match(source, /inset 0 0 0 1px rgba\(255, 255, 255, \.92\)/);
-    assert.match(source, /controls--shimmer[^\{]*\{[\s\S]*?overflow: hidden/);
-    assert.match(source, /animation:[^;]*RightIconShimmer 1\.5s/);
+    assert.doesNotMatch(source, /shimmer/i);
   }
 });
 

@@ -66,7 +66,6 @@ export default function CommanderLayout({ children, title }) {
   const [staff, setStaff] = useState(null);
   const [profileAvatar, setProfileAvatar] = useState('/default-avatar.png');
   const [isVip, setIsVip] = useState(false);
-  const [iconShimmerVisible, setIconShimmerVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -126,30 +125,6 @@ export default function CommanderLayout({ children, title }) {
     };
   }, []);
 
-  useEffect(() => {
-    let pauseTimer;
-    let shimmerTimer;
-    let cancelled = false;
-    const scheduleNextShimmer = () => {
-      const randomDelayMs = 15_000 + Math.floor(Math.random() * 5_001);
-      pauseTimer = window.setTimeout(() => {
-        if (cancelled) return;
-        setIconShimmerVisible(true);
-        shimmerTimer = window.setTimeout(() => {
-          if (cancelled) return;
-          setIconShimmerVisible(false);
-          scheduleNextShimmer();
-        }, 1_500);
-      }, randomDelayMs);
-    };
-
-    scheduleNextShimmer();
-    return () => {
-      cancelled = true;
-      if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
-      if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
-    };
-  }, []);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
   const [clubPageId, setClubPageId] = useState(null); // Set when venue has an existing club page
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
@@ -938,27 +913,6 @@ export default function CommanderLayout({ children, title }) {
             0 0 5px rgba(255, 255, 255, .75),
             0 0 10px rgba(210, 240, 255, .38);
         }
-        .cmd-approved-header__controls--shimmer .cmd-approved-header__button {
-          overflow: hidden;
-        }
-        .cmd-approved-header__controls--shimmer .cmd-approved-header__button::before {
-          content: '';
-          position: absolute;
-          z-index: 20;
-          top: -15%;
-          bottom: -15%;
-          left: -45%;
-          width: 34%;
-          transform: skewX(-18deg);
-          background: linear-gradient(90deg, transparent, rgba(85, 190, 255, .55) 25%, rgba(255, 255, 255, .98) 52%, rgba(255, 211, 88, .7) 74%, transparent);
-          box-shadow: 0 0 20px rgba(61, 171, 255, .8);
-          animation: cmdApprovedGlobalRightIconShimmer 1.5s cubic-bezier(.2, .65, .35, 1) both;
-          pointer-events: none;
-        }
-        @keyframes cmdApprovedGlobalRightIconShimmer {
-          from { left: -45%; }
-          to { left: 115%; }
-        }
         @media (display-mode: standalone), (display-mode: fullscreen) {
           .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
           .cmd-approved-header__controls { top: max(env(safe-area-inset-top, 0px), 24px); }
@@ -969,7 +923,7 @@ export default function CommanderLayout({ children, title }) {
 
         <header className="cmd-approved-header" data-artwork="approved-global-header">
         <img src="/images/global-header/global-header-desktop.png" alt="" width="1648" height="168" className="cmd-approved-header__art" aria-hidden="true" fetchpriority="high" decoding="sync" />
-          <div className={`cmd-approved-header__controls${iconShimmerVisible ? ' cmd-approved-header__controls--shimmer' : ''}`} data-header-icons-shimmer={iconShimmerVisible ? 'active' : 'idle'}>
+          <div className="cmd-approved-header__controls">
             <button type="button" className="cmd-approved-header__button cmd-approved-header__menu" onClick={() => setMenuOpen(true)} aria-label="Open Menu" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__back" onClick={() => router.back()} aria-label="Go back" />
             <button type="button" className="cmd-approved-header__button cmd-approved-header__hub" onClick={() => router.push('/hub')} aria-label="Go to the Hub" />

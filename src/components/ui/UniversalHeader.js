@@ -11,7 +11,7 @@
  * - "Smarter.Poker" in white text
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
  * - Profile picture (uploaded photo by default; Arena avatar only by opt-in)
- * - VIP card entitlement state with a randomized member shimmer
+ * - VIP card entitlement state with a subtle neon-white active outline
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
@@ -163,7 +163,6 @@ export default function UniversalHeader({
       return false;
     }
   });
-  const [iconShimmerVisible, setIconShimmerVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -266,33 +265,6 @@ export default function UniversalHeader({
   const displayAvatar = isMounted ? resolvedPortrait || '/default-avatar.png' : null;
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? notificationCount : 0;
-
-  // One clearly visible pass crosses the complete right-side icon bank after
-  // each newly selected random fifteen-to-twenty-second pause.
-  useEffect(() => {
-    let pauseTimer;
-    let shimmerTimer;
-    let cancelled = false;
-    const scheduleNextShimmer = () => {
-      const randomDelayMs = 15_000 + Math.floor(Math.random() * 5_001);
-      pauseTimer = window.setTimeout(() => {
-        if (cancelled) return;
-        setIconShimmerVisible(true);
-        shimmerTimer = window.setTimeout(() => {
-          if (cancelled) return;
-          setIconShimmerVisible(false);
-          scheduleNextShimmer();
-        }, 1_500);
-      }, randomDelayMs);
-    };
-
-    scheduleNextShimmer();
-    return () => {
-      cancelled = true;
-      if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
-      if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
-    };
-  }, []);
 
   // Live Help state
   const liveHelp = useLiveHelp();
@@ -1145,20 +1117,6 @@ export default function UniversalHeader({
                     50% { box-shadow: 0 0 18px rgba(0, 245, 255, 0.6), 0 0 4px rgba(0, 245, 255, 0.2); }
                 }
 
-                /* Shimmer skeleton for first-time users with no cached avatar */
-                @keyframes shimmer-avatar {
-                    0% { background-position: -200% 0; }
-                    100% { background-position: 200% 0; }
-                }
-                .profile-orb-shimmer {
-                    background: linear-gradient(90deg,
-                        rgba(0, 136, 255, 0.15) 25%,
-                        rgba(0, 245, 255, 0.3) 50%,
-                        rgba(0, 136, 255, 0.15) 75%) !important;
-                    background-size: 200% 100% !important;
-                    animation: shimmer-avatar 1.5s ease-in-out infinite !important;
-                }
-
                 .profile-orb:hover {
                     opacity: 0.85;
                     transform: scale(1.08);
@@ -1402,37 +1360,6 @@ export default function UniversalHeader({
                         0 0 10px rgba(210, 240, 255, .38);
                 }
 
-                .approved-global-header__controls--shimmer .approved-global-header__button {
-                    overflow: hidden;
-                }
-
-                .approved-global-header__controls--shimmer .approved-global-header__button::before {
-                    content: '';
-                    position: absolute;
-                    z-index: 20;
-                    top: -15%;
-                    bottom: -15%;
-                    left: -45%;
-                    width: 34%;
-                    transform: skewX(-18deg);
-                    background: linear-gradient(
-                        90deg,
-                        transparent,
-                        rgba(85, 190, 255, .55) 25%,
-                        rgba(255, 255, 255, .98) 52%,
-                        rgba(255, 211, 88, .7) 74%,
-                        transparent
-                    );
-                    box-shadow: 0 0 20px rgba(61, 171, 255, .8);
-                    animation: approvedGlobalRightIconShimmer 1.5s cubic-bezier(.2, .65, .35, 1) both;
-                    pointer-events: none;
-                }
-
-                @keyframes approvedGlobalRightIconShimmer {
-                    from { left: -45%; }
-                    to { left: 115%; }
-                }
-
                 .approved-global-header__badge {
                     position: absolute;
                     top: 3px;
@@ -1483,12 +1410,7 @@ export default function UniversalHeader({
           fetchpriority="high"
           decoding="sync"
         />
-        <div
-          className={`approved-global-header__controls${
-            iconShimmerVisible ? ' approved-global-header__controls--shimmer' : ''
-          }`}
-          data-header-icons-shimmer={iconShimmerVisible ? 'active' : 'idle'}
-        >
+        <div className="approved-global-header__controls">
           <button
             type="button"
             className="approved-global-header__button approved-global-header__menu"
