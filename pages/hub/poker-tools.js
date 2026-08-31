@@ -13,7 +13,7 @@ import {
 } from '../../src/lib/poker/pokerOddsEngine';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    ArrowLeft, Menu as MenuIcon, X, UserPlus, Crown, RotateCcw, Play, Loader2,
+    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2,
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════
@@ -237,11 +237,11 @@ export default function PokerToolsPage() {
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                             minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
                         }}>
-                        <MenuIcon size={20} aria-hidden />
+                        <SlidersHorizontal size={20} aria-hidden />
                     </button>
                 </div>
 
-                {/* ─── HAMBURGER MENU ─── */}
+                {/* ─── CALCULATOR SETTINGS PANEL ─── */}
                 {showMenu && (
                     <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setShowMenu(false)}>
                         <div style={{

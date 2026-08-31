@@ -1,5 +1,5 @@
 /**
- * SCENARIO IMPORT — JSON / CSV (W7-1)
+ * SCENARIO IMPORT · JSON / CSV (W7-1)
  * ═══════════════════════════════════════════════════════════════════════════
  * Honest retitle: this parser accepts the sandbox's own scenario JSON or a
  * four-field CSV line. It does NOT read native PioSolver or GTO+ exports, and
@@ -83,10 +83,10 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                 try {
                     raw = JSON.parse(rawInput);
                 } catch (e) {
-                    throw new Error('That JSON could not be parsed - check for a trailing comma or a missing quote.');
+                    throw new Error('That JSON could not be parsed · check for a trailing comma or a missing quote.');
                 }
             } else {
-                // CSV: Board, Position, Pot, Stack — stack is optional but the
+                // CSV: Board, Position, Pot, Stack · stack is optional but the
                 // old code read parts[3] after only requiring three fields and
                 // silently substituted 100bb.
                 const parts = rawInput.split(',').map(s => s.trim()).filter(Boolean);
@@ -137,7 +137,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
     const handleConfirm = useCallback(() => {
         if (!preview?.state) return;
         onImport?.(preview.state);
-        toast.success('Scenario loaded - use undo at the table to revert');
+        toast.success('Scenario loaded · use undo at the table to revert');
         onClose?.();
     }, [preview, onImport, onClose]);
 

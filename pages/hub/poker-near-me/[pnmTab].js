@@ -30,10 +30,39 @@ import useTourMapStops from '../../../src/hooks/useTourMapStops';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
+import { FavLiveToast, TabErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
+import useDiscoveryGestureController from '../../../src/components/poker-near-me/useDiscoveryGestureController';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
+import {
+  buildDiscoveryUrl,
+  DEFAULT_RADIUS_MILES,
+  DIRECTORY_PAGE_SIZE,
+  EVENTS_SUB_TABS,
+  getCurrentDay,
+  getTabSlug,
+  MAX_RADIUS_MILES,
+  MORE_SUB_TABS,
+  normalizeRadiusMiles,
+  normalizeRouteSlug,
+  normalizeVenueType,
+  PAGE_SIZE,
+  PAGE_SIZE_DAILY,
+  PAGE_SIZE_LIVE,
+  PRIMARY_TABS,
+  RADIUS_TIERS,
+  resolveDiscoveryDeepLink,
+  ROUTE_META,
+  safeSetItem,
+  SEARCH_HISTORY_MAX,
+  snapshotAgeDays,
+  TAB_ORDER,
+  trackSearchEvent,
+  venueMatchesGameType,
+  venueMatchesStakes,
+} from '../../../src/components/poker-near-me/discoveryController';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
   { ssr: false }
@@ -103,410 +132,6 @@ const LocationEnableModal = dynamic(
   () => import('../../../src/components/ui/LocationEnableModal'),
   { ssr: false }
 );
-
-// Page configuration constants
-const PAGE_SIZE = 20;
-const PAGE_SIZE_DAILY = 50;
-const PAGE_SIZE_LIVE = 30;
-const SEARCH_HISTORY_MAX = 8;
-const DEFAULT_RADIUS_MILES = 50;
-const DIRECTORY_PAGE_SIZE = 160;
-const snapshotAgeDays = (generatedAt) => {
-  const timestamp = Date.parse(String(generatedAt || ''));
-  return Number.isFinite(timestamp) ? Math.max(0, Math.floor((Date.now() - timestamp) / 86400000)) : undefined;
-};
-// BUG FIX: /api/poker/venues hard-caps the radius at 150mi in BOTH query paths
-// (bounding-box pre-filter and the final distance filter), so 200mi / 500mi /
-// "Any Distance" all returned exactly the 150mi result set while the UI implied
-// the search had widened — and "Load More" fired two more full 500-row requests
-// that could never return a new venue. The page now agrees with the server (and
-// with VenuesTabPanel, which already used [50, 100, 150]).
-const MAX_RADIUS_MILES = 150;
-const RADIUS_TIERS = [50, 100, 150]; // Progressive radius expansion for "Load More"
-
-// Normalize any radius value (persisted, voice-parsed or user-selected) to a
-// number the server will actually honour. 'any' is no longer offered, but old
-// localStorage blobs and old deep links still carry it.
-function normalizeRadiusMiles(value) {
-  if (String(value).toLowerCase() === 'any') return MAX_RADIUS_MILES;
-  const n = Number(value);
-  if (!isFinite(n) || n <= 0) return DEFAULT_RADIUS_MILES;
-  return Math.min(n, MAX_RADIUS_MILES);
-}
-
-// Tab order for swipe navigation
-const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
-const PRIMARY_TABS = [
-  { id: 'venues', label: 'Venues' },
-  { id: 'events', label: 'Events' },
-  { id: 'live', label: 'Live' },
-  { id: 'map', label: 'Map' },
-  { id: 'saved', label: 'Saved' },
-  { id: 'more', label: 'More' },
-];
-const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
-const MORE_SUB_TABS = ['overview', 'roadtrip', 'social', 'alerts', 'nearmenow', 'tripcost'];
-
-const ROUTE_META = {
-  venues: {
-    heading: 'POKER NEAR ME',
-    breadcrumb: 'Venues',
-    title: 'Poker Near Me - Find Live Poker Rooms & Casinos',
-    description: 'Discover live poker rooms, casinos, and card rooms near you with current schedules, map discovery, and venue details across the United States.',
-  },
-  map: {
-    heading: 'POKER ROOM MAP',
-    breadcrumb: 'Map',
-    title: 'Poker Room Map - Casinos & Card Rooms Near You',
-    description: 'Explore poker rooms, casinos, card rooms, and live-game locations on an interactive map with location-aware discovery.',
-  },
-  saved: {
-    heading: 'SAVED POKER PLACES',
-    breadcrumb: 'Saved',
-    title: 'Saved Poker Rooms, Casinos & Card Rooms',
-    description: 'Return to your saved poker rooms, casinos, card rooms, tours, and series in one private discovery workspace.',
-  },
-  'live-games': {
-    heading: 'CASH GAMES NEAR ME',
-    breadcrumb: 'Live Games',
-    title: 'Live Cash Games - Find Poker Rooms & Casinos Near You',
-    description: 'Discover live cash games, poker rooms, casinos, and card rooms near you with observed and modeled table availability clearly identified.',
-  },
-  tours: {
-    heading: 'POKER TOURS',
-    breadcrumb: 'Tours',
-    title: 'Poker Tours - Circuits & Tour Stops Near You',
-    description: 'Explore poker tours, traveling circuits, upcoming stops, schedules, and host venues across the live poker network.',
-  },
-  series: {
-    heading: 'POKER SERIES',
-    breadcrumb: 'Series',
-    title: 'Poker Series - Tournament Series Near You',
-    description: 'Find current and upcoming poker series, festival schedules, host venues, buy-ins, and guarantees.',
-  },
-  'daily-tournaments': {
-    heading: 'DAILY TOURNAMENTS',
-    breadcrumb: 'Daily Tournaments',
-    title: 'Daily Poker Tournaments Near You',
-    description: 'Find daily poker tournaments by day, game, buy-in, guarantee, distance, and venue.',
-  },
-  'events-calendar': {
-    heading: 'EVENTS CALENDAR',
-    breadcrumb: 'Events Calendar',
-    title: 'Poker Events Calendar - Tournaments Near You',
-    description: 'Browse poker tournaments and live events in a location-aware calendar with clear schedules and venue details.',
-  },
-  more: {
-    heading: 'DISCOVERY TOOLS',
-    breadcrumb: 'Tools',
-    title: 'Poker Discovery Tools - Trends, Alerts & Trip Planning',
-    description: 'Plan poker trips, compare venues, review game trends, configure alerts, and use community discovery tools.',
-  },
-  roadtrip: {
-    heading: 'POKER ROAD TRIP',
-    breadcrumb: 'Road Trip Planner',
-    title: 'Poker Road Trip Planner - Rooms Along Your Route',
-    description: 'Plan a poker road trip and find casinos, card rooms, tournaments, and poker stops along your route.',
-  },
-  alerts: {
-    heading: 'TOURNAMENT ALERTS',
-    breadcrumb: 'Alerts',
-    title: 'Poker Tournament Alerts - Games Near You',
-    description: 'Configure location-aware poker tournament and live-game alerts by distance, schedule, and game type.',
-  },
-};
-
-function normalizeRouteSlug(value) {
-  const slug = Array.isArray(value) ? value[0] : value;
-  if (slug === 'live') return 'live-games';
-  if (slug === 'daily') return 'daily-tournaments';
-  if (slug === 'calendar') return 'events-calendar';
-  if (slug === 'events') return 'series';
-  return ROUTE_META[slug] ? slug : null;
-}
-
-// Venue types this page is willing to accept from localStorage, deep links and
-// voice input. NOTE: 'poker_tour' is deliberately absent — VoiceSearch emits it
-// but nothing downstream (the API, useTourMapStops, the Venue Type select)
-// recognises it, so letting it through produced a permanently blank page that
-// survived reload. See normalizeVenueType below.
-const SAFE_VENUE_TYPES = new Set([
-  'casino',
-  'card_room',
-  'poker_club',
-  'home_game',
-  'charity',
-  'tour_stop',
-]);
-
-// Map any externally-supplied venue type onto the page's real filter domain.
-// Returns null when the value is not usable.
-function normalizeVenueType(value) {
-  const raw = String(value || '').toLowerCase();
-  if (raw === 'poker_tour') return 'tour_stop';
-  if (raw === 'cardroom' || raw === 'card_room') return 'poker_club';
-  return SAFE_VENUE_TYPES.has(raw) ? raw : null;
-}
-
-// SEO FIX: the canonical tag and the deep-link writer used to derive the URL
-// slug independently, so crawled /daily-tournaments declared a canonical of
-// /daily and created a second indexable duplicate instead of consolidating.
-// Both now call this one table.
-function getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab }) {
-  if (showLiveTab) return 'live-games';
-  if (activeTab === 'map') return 'map';
-  if (activeTab === 'saved') return 'saved';
-  if (activeTab === 'more') {
-    if (activeMoreTab === 'alerts') return 'alerts';
-    if (activeMoreTab === 'roadtrip') return 'roadtrip';
-    return 'more';
-  }
-  if (activeTab === 'events') {
-    if (activeEventTab === 'daily') return 'daily-tournaments';
-    if (activeEventTab === 'calendar') return 'events-calendar';
-    return activeEventTab || 'events';
-  }
-  return 'venues';
-}
-
-// ── Safe localStorage helper — evicts large cache blobs if quota is exceeded ──
-// Priority eviction order: offline-venues (largest), map-filters, analytics
-function safeSetItem(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
-      // Evict largest known cache blobs and retry once
-      const EVICT_KEYS = ['sp-offline-venues', 'sp-search-analytics', 'poker-near-me-map-filters'];
-      // BUG FIX: `wrote` only flips inside the successful retry. Previously a
-      // `freed` flag was set right after removeItem, so a retry that ALSO threw
-      // still suppressed the terminal warning — the write was lost silently
-      // after a cache blob had already been discarded for nothing.
-      let wrote = false;
-      for (const evictKey of EVICT_KEYS) {
-        if (evictKey !== key && localStorage.getItem(evictKey)) {
-          localStorage.removeItem(evictKey);
-          try {
-            localStorage.setItem(key, value);
-            wrote = true;
-            return;
-          } catch (_) {
-            console.warn('[App] Handled exception:', _?.message || _);
-          }
-        }
-      }
-      if (!wrote) console.warn('[PNM] localStorage quota exhausted - could not write:', key);
-    }
-  }
-}
-
-// Search analytics tracker
-function trackSearchEvent(eventName, data) {
-  try {
-    // Log for analytics (can be wired to Sentry, Mixpanel, etc.)
-    if (typeof window !== 'undefined' && window.__SEARCH_ANALYTICS__) {
-      window.__SEARCH_ANALYTICS__.push({ event: eventName, data, timestamp: Date.now() });
-    }
-    // Store locally for aggregate analysis
-    const key = 'sp-search-analytics';
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    // Prevent quota exhaustion by omitting large/non-scalar data
-    const safeData = { ...data };
-    delete safeData.venues;
-    delete safeData.results;
-    delete safeData.filteredData;
-    existing.push({ event: eventName, ...safeData, ts: Date.now() });
-    // Keep last 50 events
-    if (existing.length > 50) existing.splice(0, existing.length - 50);
-    safeSetItem(key, JSON.stringify(existing));
-  } catch (e) {
-    console.warn('[App] Handled exception:', e?.message || e);
-  }
-}
-
-// TOTAL_VENUES removed — now derived dynamically from allVenuesForMap.length
-
-// Home games are now fetched and merged in the backend via /api/poker/venues.js
-// Home-game radius filtering also happens in the backend now.
-
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-// ─── SHARED GAME-TYPE / STAKES PREDICATES ────────────────────────────────────
-// BUG FIX: the Stakes and Game Type dropdowns used to mean different things to
-// the map than to the venue list — useTourMapStops branched on 'cash'|'mtt' and
-// on `stakes_cash` (which only a minority of venues have), while the card list
-// branched on 'nlh'|'plo' and had its stakes block commented out entirely. One
-// control produced two contradictory results side by side. Both surfaces now go
-// through these two predicates.
-//
-// Missing data means UNKNOWN, not "no match" — a venue with no games_offered /
-// stakes_cash is never excluded, which is what kept charity and home games (and
-// every tour pin) on the map.
-function venueMatchesGameType(venue, gameType) {
-  if (!gameType || gameType === 'all') return true;
-  const games = venue?.games_offered || [];
-  if (!Array.isArray(games) || games.length === 0) return true; // unknown — keep
-  const nameOf = (g) => (g?.game_type || g?.name || g || '').toString().toLowerCase();
-  const hasNLH = games.some((g) => {
-    const name = nameOf(g);
-    return name.includes('nlh') || name.includes('hold') || name.includes('holdem');
-  });
-  const hasPLO = games.some((g) => {
-    const name = nameOf(g);
-    return name.includes('plo') || name.includes('omaha') || name.includes('pot limit');
-  });
-  const hasMixed = games.some((g) => {
-    const name = nameOf(g);
-    return (
-      name.includes('mix') ||
-      name.includes('horse') ||
-      name.includes('hors') ||
-      name.includes('8-game') ||
-      name.includes('dealer')
-    );
-  });
-  const hasPLO8 = games.some((g) => {
-    const name = nameOf(g);
-    return (
-      name.includes('plo8') ||
-      name.includes('omaha hi') ||
-      name.includes('o8') ||
-      name.includes('big o')
-    );
-  });
-  const hasStud = games.some((g) => nameOf(g).includes('stud'));
-  if (gameType === 'nlh') return hasNLH;
-  if (gameType === 'plo') return hasPLO;
-  if (gameType === 'plo8') return hasPLO8;
-  if (gameType === 'mixed') return hasMixed || (hasNLH && hasPLO);
-  if (gameType === 'stud') return hasStud;
-  if (gameType === 'cash') return games.length > 0;
-  if (gameType === 'mtt') return !!venue?.has_tournaments;
-  if (gameType === 'other') return !hasNLH && !hasPLO && !hasPLO8 && !hasStud;
-  return true; // unknown/future filter keys — show all
-}
-
-function venueMatchesStakes(venue, stakes) {
-  if (!stakes || stakes === 'all' || stakes === 'any') return true;
-  const st = venue?.stakes_cash;
-  if (!Array.isArray(st) || st.length === 0) return true; // unknown — keep
-  const has = (...needles) =>
-    st.some((s) => needles.some((n) => String(s || '').includes(n)));
-  if (stakes === '$1/2') return has('1/2', '1/3');
-  if (stakes === '$2/5') return has('2/5');
-  if (stakes === '$5/10+') return has('5/10', '10/20', '25/50');
-  return true;
-}
-
-function getCurrentDay() {
-  return DAYS_OF_WEEK[new Date().getDay()];
-}
-
-// ═══ FAVORITE VENUE LIVE TOAST ═══
-// Appears 5s after mount, visible for 2s, then auto-hides
-function FavLiveToast({ message, onClick }) {
-  const [visible, setVisible] = useState(false);
-  const [exiting, setExiting] = useState(false);
-
-  useEffect(() => {
-    const showTimer = setTimeout(() => setVisible(true), 5000);
-    const hideTimer = setTimeout(() => setExiting(true), 7000); // 5s delay + 2s visible
-    const removeTimer = setTimeout(() => setVisible(false), 7400); // allow exit animation
-    return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
-      clearTimeout(removeTimer);
-    };
-  }, []);
-
-  if (!visible) return null;
-
-  // A11Y FIX: was a clickable <div> — the "jump to your live favorites" action
-  // was mouse-only (no role, no tabIndex, no key handler). A real <button> gets
-  // focus, Enter/Space and screen-reader semantics for free.
-  return (
-    <button
-      type="button"
-      className={`pnm-fav-toast${exiting ? ' pnm-fav-toast-exit' : ''}`}
-      onClick={onClick}
-      style={{ font: 'inherit', cursor: 'pointer' }}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="none">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-      </svg>
-      <span>{message}</span>
-    </button>
-  );
-}
-
-// ─── Error Boundary for Tab Panels (prevents one tab crash from killing the page) ───
-class TabErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.warn(`[PNM] Tab crashed:`, error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return React.createElement(
-        'div',
-        {
-          // A11Y FIX: announce the crash to assistive tech instead of silently
-          // swapping the tab contents for text nobody is told about.
-          role: 'alert',
-          style: { textAlign: 'center', padding: 60, color: 'rgba(200,214,229,0.6)' },
-        },
-        React.createElement(
-          'div',
-          { style: { fontSize: 40, marginBottom: 16, opacity: 0.3 } },
-          '\u26A0'
-        ),
-        React.createElement(
-          'p',
-          { style: { fontSize: 16, fontWeight: 600, marginBottom: 8, color: '#f59e0b' } },
-          'This Tab Encountered An Error'
-        ),
-        React.createElement(
-          'p',
-          {
-            style: {
-              fontSize: 12,
-              marginBottom: 20,
-              color: 'rgba(200,214,229,0.4)',
-              maxWidth: 300,
-              margin: '0 auto 20px',
-            },
-          },
-          String(this.state.error?.message || 'Unknown error')
-        ),
-        React.createElement(
-          'button',
-          {
-            onClick: () => this.setState({ hasError: false, error: null }),
-            style: {
-              padding: '10px 24px',
-              borderRadius: 20,
-              border: '1px solid rgba(212,168,83,0.3)',
-              background: 'rgba(212,168,83,0.1)',
-              color: '#d4a853',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            },
-          },
-          'Reset Tab'
-        )
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
 export default function PokerNearMePage({ initialDirectory = null }) {
@@ -622,6 +247,28 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     // dead key to localStorage on every session.
   });
 
+  // Native history writes do not update Next's router query. This ref prevents
+  // that stale query from fighting the currently selected discovery surface.
+  const lastRouteTabRef = useRef(null);
+  const discoveryPageExitingRef = useRef(false);
+
+  // A debounced filter write must never win a race against a full navigation.
+  // WebKit dispatches pagehide early enough to cancel the stale writer; pageshow
+  // resets the guard when this page returns from the back-forward cache.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const markExiting = () => { discoveryPageExitingRef.current = true; };
+    const markActive = () => { discoveryPageExitingRef.current = false; };
+    window.addEventListener('beforeunload', markExiting);
+    window.addEventListener('pagehide', markExiting);
+    window.addEventListener('pageshow', markActive);
+    return () => {
+      window.removeEventListener('beforeunload', markExiting);
+      window.removeEventListener('pagehide', markExiting);
+      window.removeEventListener('pageshow', markActive);
+    };
+  }, []);
+
   // HARDENED: Reset 'live' tab back to 'map' on every mount — live tab is ephemeral
   const tabResetDoneRef = useRef(false);
 
@@ -632,6 +279,40 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   const activeMoreTab = uiFilters.activeMoreTab || 'overview';
   const sortBy = uiFilters.sortBy;
   const seriesViewMode = uiFilters.seriesViewMode;
+
+  // Surface changes are committed synchronously. WebKit can heavily defer a
+  // timer while a newly selected dynamic panel is evaluating, which previously
+  // left the visible Events state paired with the old /venues address. Filter
+  // and search changes remain debounced replacements in the effect below.
+  const pushDiscoverySurface = (nextState) => {
+    if (typeof window === 'undefined' || discoveryPageExitingRef.current) return;
+    const pathSlug = getTabSlug({
+      showLiveTab,
+      activeTab,
+      activeEventTab,
+      activeMoreTab,
+      ...nextState,
+    });
+    const newUrl = `/hub/poker-near-me/${pathSlug}${window.location.search}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    lastRouteTabRef.current = pathSlug;
+    if (currentUrl !== newUrl) {
+      // This is a view-state transition inside one already-mounted discovery
+      // application. A native entry preserves live map/realtime state and gives
+      // Back/Forward real semantics; router.push can refetch this dynamic Pages
+      // route in WebKit even when `shallow` is requested.
+      window.history.pushState(
+        {
+          ...window.history.state,
+          as: newUrl,
+          url: newUrl,
+          options: { ...window.history.state?.options, shallow: true, scroll: false },
+        },
+        '',
+        newUrl
+      );
+    }
+  };
 
   // Ephemeral live tab state — never persisted across sessions. Starts always false.
   const [showLiveTab, setShowLiveTab] = React.useState(false);
@@ -652,11 +333,29 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       setUiFilter('activeTab', val);
     }
   };
+  const navigateActiveTab = (val) => {
+    if (val !== activeTab || showLiveTab) {
+      pushDiscoverySurface({
+        showLiveTab: false,
+        activeTab: val,
+        activeMoreTab: val === 'more' ? 'overview' : activeMoreTab,
+      });
+    }
+    setActiveTab(val);
+  };
   // Helper to toggle live tab — also hides it when switching to any real tab
   const activateTab = (val) => {
     if (val === 'live') {
+      pushDiscoverySurface({ showLiveTab: !showLiveTab });
       setShowLiveTab((prev) => !prev);
     } else {
+      if (val !== activeTab || showLiveTab) {
+        pushDiscoverySurface({
+          showLiveTab: false,
+          activeTab: val,
+          activeMoreTab: val === 'more' ? 'overview' : activeMoreTab,
+        });
+      }
       setShowLiveTab(false);
       setActiveTab(val);
     }
@@ -676,6 +375,18 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   };
   const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
   const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
+  const navigateActiveEventTab = (val) => {
+    if (val !== activeEventTab) {
+      pushDiscoverySurface({ showLiveTab: false, activeTab: 'events', activeEventTab: val });
+    }
+    setActiveEventTab(val);
+  };
+  const navigateActiveMoreTab = (val) => {
+    if (val !== activeMoreTab) {
+      pushDiscoverySurface({ showLiveTab: false, activeTab: 'more', activeMoreTab: val });
+    }
+    setActiveMoreTab(val);
+  };
   const setSortBy = (val) => setUiFilter('sortBy', val);
   const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
 
@@ -686,7 +397,6 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // /hub/poker-near-me/<slug> URLs switches tabs (the one-shot mount parser below
   // only runs once). lastRouteTabRef is also updated by the deep-link URL writer so
   // UI-driven tab changes (history.replaceState) don't get fought by this effect.
-  const lastRouteTabRef = useRef(null);
   useEffect(() => {
     if (!router.isReady) return;
     const rawParam = router.query.pnmTab;
@@ -1077,15 +787,11 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     };
   }, []);
 
-  // Swipe gesture state
-  const touchStartRef = useRef(null);
-  const touchEndRef = useRef(null);
   const contentRef = useRef(null);
 
   // Pull-to-refresh state
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const pullStartRef = useRef(null);
 
   // Push notification state
   const [pushPermission, setPushPermission] = useState('default');
@@ -2489,7 +2195,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       // BUG FIX: renderContent short-circuits on showLiveTab, so setting activeTab
       // alone left the live feed on screen and the card permanently invisible.
       setShowLiveTab(false);
-      if (activeTab !== 'venues') setActiveTab('venues');
+      if (activeTab !== 'venues') navigateActiveTab('venues');
 
       // Try to find the card immediately.
       // BUG FIX: VenuesTabPanel renders tour stops as `tour-card-<tour_code>`, not
@@ -3192,37 +2898,39 @@ export default function PokerNearMePage({ initialDirectory = null }) {
     if (typeof window === 'undefined' || !router.isReady || !paramsAbsorbed.current) return;
     if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
     deepLinkRef.current = setTimeout(() => {
+      if (discoveryPageExitingRef.current) return;
       // SEO FIX: the slug table now lives in the module-scope getTabSlug helper,
       // shared with the canonical tag below. They used to derive slugs
       // independently ('daily' vs 'daily-tournaments'), so the crawled URL
       // declared a canonical pointing at a DIFFERENT URL that renders the same
       // content — creating a duplicate instead of consolidating it.
-      const pathSlug = getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab });
+      const { pathSlug, url: newUrl } = buildDiscoveryUrl({
+        showLiveTab,
+        activeTab,
+        activeEventTab,
+        activeMoreTab,
+        searchQuery,
+        venueType: filters.venueType,
+      });
 
       // Keep the route-sync effect in agreement with UI-driven URL rewrites
-      // (history.replaceState doesn't update router.query.pnmTab).
+      // (native history writes don't update router.query.pnmTab).
       lastRouteTabRef.current = pathSlug;
 
-      const params = new URLSearchParams();
-      if (searchQuery) {
-        params.set('q', searchQuery);
-      }
-      // Only write ?filter= for KNOWN valid venue types — never write 'undefined'.
-      // BUG FIX: 'poker_tour' used to be in this set, so a bad voice-search value
-      // was written to the URL and survived reload. It is gone from the shared
-      // SAFE_VENUE_TYPES for exactly that reason.
-      if (SAFE_VENUE_TYPES.has(filters.venueType)) params.set('filter', filters.venueType);
-      const qs = params.toString();
-      const newUrl = '/hub/poker-near-me/' + pathSlug + (qs ? '?' + qs : '');
-
-      // Re-read current path to check if we really need to replace
-      const currentUrl = router.asPath;
+      // router.asPath stays stale after a native History API write. Compare the
+      // actual address bar so later filter changes cannot duplicate an entry.
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
       if (currentUrl !== newUrl) {
-        // IMPORTANT: Use window.history.replaceState, NOT router.replace.
+        // IMPORTANT: Use the native History API, NOT router.replace.
         // router.replace can cause a re-render cycle that resets component state,
         // which wipes out searchQuery and causes an empty URL to be pushed immediately after.
         window.history.replaceState(
-          { ...window.history.state, as: newUrl, url: newUrl },
+          {
+            ...window.history.state,
+            as: newUrl,
+            url: newUrl,
+            options: { ...window.history.state?.options, shallow: true, scroll: false },
+          },
           '',
           newUrl
         );
@@ -3246,282 +2954,103 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   useEffect(() => {
     if (typeof window === 'undefined' || paramsAbsorbed.current) return;
 
-    // Parse native URL immediately for 100% reliable deep-linking on first load
-    const searchParams = new URLSearchParams(window.location.search);
-    const qParam = searchParams.get('q');
-    const tabParam = searchParams.get('tab');
-    const subParam = searchParams.get('sub');
-    const filterParam = searchParams.get('filter');
+    const target = resolveDiscoveryDeepLink({
+      pathname: window.location.pathname,
+      search: window.location.search,
+    });
 
-    const pathname = window.location.pathname;
-    const parts = pathname.split('/');
-    const slug = parts[parts.length - 1]; // e.g. 'live-games', 'map', 'venues'
+    if (target.query) setSearchQuery(target.query);
+    if (target.openSearch) setShowGlobalSearch(true);
 
-    if (qParam) {
-      setSearchQuery(qParam);
-      setShowGlobalSearch(true); // Automatically open the global search modal!
-    }
-
-    if (slug) {
-      let internalTab = slug;
-      let internalSub = null;
-      let internalMoreSub = null;
-      let isLive = false;
-
-      if (slug === 'live-games') {
-        isLive = true;
-      } else if (slug === 'venues') {
-        internalTab = 'venues';
-      } else if (slug === 'map') {
-        internalTab = 'map';
-      } else if (slug === 'saved') {
-        internalTab = 'saved';
-      } else if (
-        // 'daily' and 'calendar' accepted for backwards compat with previously
-        // shared URLs emitted by the old deep-link writer
-        [
-          'series',
-          'tours',
-          'events',
-          'daily-tournaments',
-          'events-calendar',
-          'daily',
-          'calendar',
-        ].includes(slug)
-      ) {
-        internalTab = 'events';
-        if (slug === 'daily-tournaments' || slug === 'daily') internalSub = 'daily';
-        else if (slug === 'events-calendar' || slug === 'calendar') internalSub = 'calendar';
-        else internalSub = slug === 'events' ? 'series' : slug;
-      } else if (['roadtrip', 'alerts', 'more'].includes(slug)) {
-        internalTab = 'more';
-        if (slug === 'roadtrip' || slug === 'alerts') internalMoreSub = slug;
-      } else if (tabParam) {
-        // Fallback for legacy deep links (e.g. ?tab=live backwards compat)
-        if (tabParam === 'live') isLive = true;
-        else internalTab = tabParam === 'favorites' ? 'saved' : tabParam;
+    if (target.showLiveTab) {
+      setShowLiveTab(true);
+      if (target.canonicalLiveUrl) {
+        window.history.replaceState(
+          { ...window.history.state, as: target.canonicalLiveUrl, url: target.canonicalLiveUrl },
+          '',
+          target.canonicalLiveUrl
+        );
       }
-
-      if (isLive) {
-        setShowLiveTab(true);
-        if (typeof window !== 'undefined') {
-          // Update URL to clean format and drop query
-          const cleanUrl = '/hub/poker-near-me/live-games' + (qParam ? '?q=' + qParam : '');
-          window.history.replaceState(
-            { ...window.history.state, as: cleanUrl, url: cleanUrl },
-            '',
-            cleanUrl
-          );
-        }
-      } else if (
-        TAB_ORDER.includes(internalTab) ||
-        internalTab === 'events' ||
-        internalTab === 'more'
-      ) {
-        setShowLiveTab(false); // Reset live tab when navigating to any other tab
-        if (internalTab === 'more' && internalMoreSub) {
-          // BUG FIX: setActiveTab('more') resets the More sub-tab to 'overview',
-          // which clobbered deep links to /alerts and /roadtrip. Set directly.
-          setUiFilter('activeTab', 'more');
-          setActiveMoreTab(internalMoreSub);
-        } else {
-          setActiveTab(internalTab);
-        }
-        if (internalSub) setActiveEventTab(internalSub);
+    } else if (target.activeTab) {
+      setShowLiveTab(false);
+      if (target.activeTab === 'more' && target.activeMoreTab) {
+        setUiFilter('activeTab', 'more');
+        setActiveMoreTab(target.activeMoreTab);
+      } else {
+        setActiveTab(target.activeTab);
       }
+      if (target.activeEventTab) setActiveEventTab(target.activeEventTab);
     }
 
-    // Read events sub-tab from URL
-    if (subParam && EVENTS_SUB_TABS.includes(subParam)) {
-      setActiveEventTab(subParam);
+    if (target.venueType) {
+      setFilters((previous) => ({ ...previous, venueType: target.venueType }));
     }
-    if (subParam && MORE_SUB_TABS.includes(subParam)) {
-      setActiveMoreTab(subParam);
-    }
-
-    // GUARD: reject 'undefined' (string) or any non-real venue type as a filter
-    // param. Legacy links carrying ?filter=poker_tour are folded onto 'tour_stop'
-    // rather than accepted verbatim — nothing downstream understands 'poker_tour'.
-    if (filterParam) {
-      const normalizedFilter =
-        filterParam === 'all' ? 'all' : normalizeVenueType(filterParam);
-      if (normalizedFilter) {
-        setFilters((prev) => ({ ...prev, venueType: normalizedFilter }));
-      }
-    }
-
     // Set unconditionally so the writer effect can activate when router is ready
     paramsAbsorbed.current = true;
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ═══ SWIPE GESTURE HANDLERS ═══
-  const handleTouchStart = useCallback((e) => {
-    if (e.target.closest && e.target.closest('.leaflet-container')) return;
-    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-    touchEndRef.current = null;
-  }, []);
-
-  const handleTouchMove = useCallback((e) => {
-    if (e.target.closest && e.target.closest('.leaflet-container')) return;
-    touchEndRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    if (!touchStartRef.current || !touchEndRef.current) return;
-    const dx = touchEndRef.current.x - touchStartRef.current.x;
-    const dy = touchEndRef.current.y - touchStartRef.current.y;
-    const elapsed = Date.now() - touchStartRef.current.time;
-    // Must be a horizontal swipe: fast, horizontal dominant, > 80px
-    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
-      // BUG FIX: renderContent short-circuits on showLiveTab and returns the Live
-      // feed regardless of activeTab, but this handler only ever SET showLiveTab —
-      // it never cleared it. So once Live Games was open (and swipe is the only
-      // in-page navigation on mobile) every further swipe silently rewrote the
-      // persisted activeTab underneath while the screen stayed on the live feed and
-      // the tab strip stayed on 'Live'. Handle the live feed first, using its real
-      // position in TAB_ORDER, and always leave it on the way out.
-      if (showLiveTab) {
-        const liveIdx = TAB_ORDER.indexOf('live');
-        const nextTab = dx < 0 ? TAB_ORDER[liveIdx + 1] : TAB_ORDER[liveIdx - 1];
-        if (nextTab) {
-          setShowLiveTab(false);
-          setActiveTab(nextTab);
-        }
-      } else if (activeTab === 'events') {
-        // Events tab: handle sub-tab swiping (tours/series/daily/calendar)
-        const evtIdx = EVENTS_SUB_TABS.indexOf(activeEventTab);
-        if (evtIdx !== -1) {
-          if (dx < 0 && evtIdx < EVENTS_SUB_TABS.length - 1) {
-            setActiveEventTab(EVENTS_SUB_TABS[evtIdx + 1]);
-          } else if (dx > 0 && evtIdx > 0) {
-            setActiveEventTab(EVENTS_SUB_TABS[evtIdx - 1]);
-          } else if (dx > 0 && evtIdx === 0) {
-            setActiveTab('venues'); // Exit left to venues
-          } else if (dx < 0 && evtIdx === EVENTS_SUB_TABS.length - 1) {
-            setActiveTab('live'); // Exit right to live
-            setShowLiveTab(true);
-          }
-        }
-      } else if (activeTab === 'more') {
-        const moreIdx = MORE_SUB_TABS.indexOf(activeMoreTab);
-        if (moreIdx !== -1) {
-          if (dx < 0 && moreIdx < MORE_SUB_TABS.length - 1) {
-            setActiveMoreTab(MORE_SUB_TABS[moreIdx + 1]);
-          } else if (dx > 0 && moreIdx > 0) {
-            setActiveMoreTab(MORE_SUB_TABS[moreIdx - 1]);
-          } else if (dx > 0 && moreIdx === 0) {
-            setActiveTab('saved'); // Exit left to saved
-          }
-        }
-      } else {
-        // All other tabs: main-level tab swiping
-        const currentIdx = TAB_ORDER.indexOf(activeTab);
-        if (currentIdx !== -1) {
-          if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
-            const nextTab = TAB_ORDER[currentIdx + 1];
-            setActiveTab(nextTab);
-            if (nextTab === 'live') setShowLiveTab(true);
-          } else if (dx > 0 && currentIdx > 0) {
-            const nextTab = TAB_ORDER[currentIdx - 1];
-            setActiveTab(nextTab);
-            if (nextTab === 'live') setShowLiveTab(true);
-          }
-        }
+  // Native pushState keeps the page mounted, so Next.js does not restore our
+  // React state when the user traverses browser history. Re-absorb the canonical
+  // URL on popstate. The writer observes that the address already matches, and
+  // the polite route announcer below reports the restored surface to assistive
+  // technology.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const restoreDiscoveryState = () => {
+      const target = resolveDiscoveryDeepLink({
+        pathname: window.location.pathname,
+        search: window.location.search,
+      });
+      setShowGlobalSearch(false);
+      setSearchQuery(target.query || '');
+      setShowLiveTab(Boolean(target.showLiveTab));
+      if (target.activeTab === 'more') {
+        setUiFilter('activeTab', 'more');
+        setActiveMoreTab(target.activeMoreTab || 'overview');
+      } else if (target.activeTab) {
+        setActiveTab(target.activeTab);
+        if (target.activeEventTab) setActiveEventTab(target.activeEventTab);
       }
-    }
-    touchStartRef.current = null;
-    touchEndRef.current = null;
-  }, [activeTab, activeEventTab, activeMoreTab, showLiveTab]);
+      setFilters((previous) => ({
+        ...previous,
+        venueType: target.venueType || 'all',
+      }));
+      lastRouteTabRef.current = normalizeRouteSlug(
+        window.location.pathname.split('/').filter(Boolean).at(-1)
+      );
+    };
+    window.addEventListener('popstate', restoreDiscoveryState);
+    return () => window.removeEventListener('popstate', restoreDiscoveryState);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ═══ PULL-TO-REFRESH ═══
-  const pullDistanceRef = useRef(0);
-  // MOBILE FIX: `window.scrollY <= 0` was always true on phones. At max-width
-  // 640px styles/poker-near-me.css gives .pnm-page a fixed 100dvh height, and
-  // .pnm-page already sets overflow-x:hidden — so per the CSS overflow spec its
-  // overflow-y stops being visible and .pnm-page, not the document, becomes the
-  // scroll container. window.scrollY therefore stayed 0 no matter how far down
-  // the venue list the user was, and any >80px downward drag while scrolling back
-  // up armed the refresh and fired four API calls plus a full list re-render.
-  // Walk the real ancestor chain from the touch target instead.
-  const isScrolledToTop = (node) => {
-    if (typeof window === 'undefined') return false;
-    const docTop =
-      window.scrollY || (document.documentElement && document.documentElement.scrollTop) || 0;
-    if (docTop > 0) return false;
-    let el = node;
-    while (el && el.nodeType === 1 && el !== document.body) {
-      if (el.scrollTop > 0) return false;
-      el = el.parentElement;
-    }
-    return true;
-  };
-
-  const handlePullStart = useCallback((e) => {
-    if (e.target.closest && e.target.closest('.leaflet-container')) return;
-    if (isScrolledToTop(e.target)) {
-      pullStartRef.current = e.touches[0].clientY;
-    }
-  }, []);
-
-  // PERF FIX: this used to call setPullDistance() on EVERY touchmove, re-rendering
-  // this 3,500-line page component (and every unmemoized tab panel and the whole
-  // filter bar beneath it) once per frame of a drag. The value only ever drove the
-  // indicator's inline height/opacity and its label, so the drag is now animated
-  // imperatively against the indicator node; state is written only on the mount
-  // transition (0 -> pulling) and on release.
-  const pullIndicatorRef = useRef(null);
-  const pullLabelRef = useRef(null);
-  const pullPastThresholdRef = useRef(false);
-
-  const handlePullMove = useCallback((e) => {
-    if (pullStartRef.current === null) return;
-    const diff = e.touches[0].clientY - pullStartRef.current;
-    if (diff > 0 && diff < 150) {
-      pullDistanceRef.current = diff;
-      const el = pullIndicatorRef.current;
-      if (!el) {
-        // Indicator isn't mounted yet — one state write to render it, then the
-        // subsequent frames of this drag are handled imperatively below.
-        setPullDistance(diff);
-        return;
-      }
-      el.style.height = `${diff * 0.5}px`;
-      el.style.opacity = String(Math.min(diff / 80, 1));
-      const past = diff > 80;
-      if (past !== pullPastThresholdRef.current) {
-        pullPastThresholdRef.current = past;
-        if (pullLabelRef.current) {
-          pullLabelRef.current.textContent = past ? '↑ Release to refresh' : '↓ Pull to refresh';
-        }
-      }
-    }
-  }, []);
-
-  // fetchAllDataRef is declared with the other fetch refs near the top of the
-  // component; it is re-pointed at the current render's closure here.
   fetchAllDataRef.current = fetchAllData;
   fetchVenuesRef.current = fetchVenues;
   fetchDailyRef.current = fetchDailyTournaments;
 
-  const handlePullEnd = useCallback(() => {
-    const dist = pullDistanceRef.current;
-    pullPastThresholdRef.current = false;
-    if (dist > 80 && !isRefreshing) {
-      setIsRefreshing(true);
-      setPullDistance(0);
-      pullDistanceRef.current = 0;
-      if (fetchAllDataRef.current) {
-        fetchAllDataRef.current({ includeVenues: true }).finally(() => {
-          setIsRefreshing(false);
-        });
-      }
-    } else {
-      setPullDistance(0);
-      pullDistanceRef.current = 0;
-    }
-    pullStartRef.current = null;
-  }, [isRefreshing]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handlePullStart,
+    handlePullMove,
+    handlePullEnd,
+    pullIndicatorRef,
+    pullLabelRef,
+  } = useDiscoveryGestureController({
+    activeTab,
+    activeEventTab,
+    activeMoreTab,
+    showLiveTab,
+    setActiveTab: navigateActiveTab,
+    setActiveEventTab: navigateActiveEventTab,
+    setActiveMoreTab: navigateActiveMoreTab,
+    setShowLiveTab,
+    setPullDistance,
+    isRefreshing,
+    setIsRefreshing,
+    fetchAllDataRef,
+  });
+   // ═══ PUSH NOTIFICATION REGISTRATION ═══
   // ═══ PUSH NOTIFICATION REGISTRATION ═══
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -3774,7 +3303,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           venueMaxGtd={venueMaxGtd}
           promotionVenueIds={promotionVenueIds}
           pnmReviewStatsMap={pnmReviewStatsMap}
-          setActiveTab={setActiveTab}
+          setActiveTab={navigateActiveTab}
           router={router}
           openVenueModal={openVenueModal}
         />
@@ -3856,7 +3385,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         return (
           <MoreTabPanel
             activeMoreTab={activeMoreTab}
-            setActiveMoreTab={setActiveMoreTab}
+            setActiveMoreTab={navigateActiveMoreTab}
             allVenuesForMap={allVenuesForMap}
             venues={venues}
             userLocation={userLocation}
@@ -3871,7 +3400,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             setPushPermission={setPushPermission}
             guardAction={guardAction}
             requestGpsLocation={requestGpsLocation}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateActiveTab}
             router={router}
             openVenueModal={openVenueModal}
           />
@@ -4273,7 +3802,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               message={toastMsg}
               onClick={() => {
                 setShowLiveTab(false);
-                setActiveTab('saved');
+                navigateActiveTab('saved');
               }}
             />
           );
@@ -4436,6 +3965,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
 
         {/* ═══ MAIN CONTENT — full width, no sidebar ═══ */}
         <main className="pnm-layout" aria-label="Poker Near Me discovery results">
+          <p className="pnm-route-announcer" role="status" aria-live="polite" aria-atomic="true">
+            Showing {routeMeta.breadcrumb}
+          </p>
           <div className="pnm-main">
             {/* ─── MAIN CONTENT AREA ─── */}
 
@@ -4527,7 +4059,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 <div className="pnm-venues-below-map">
                   <button
                     className={'pnm-venues-below-btn' + (activeTab === 'venues' ? ' active' : '')}
-                    onClick={() => setActiveTab('venues')}
+                    onClick={() => navigateActiveTab('venues')}
                   >
                     Venues
                     {venues.length > 0 && <span className="pnm-tab-badge">{venues.length}</span>}
@@ -4639,12 +4171,13 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 // leaves the Live feed on screen (same defect as the swipe handler
                 // and the map pin handler) — clear it on the way out.
                 setShowLiveTab(false);
-                setActiveTab(target.tab);
-                if (target.sub) setActiveEventTab(target.sub);
+                navigateActiveTab(target.tab);
+                if (target.sub) navigateActiveEventTab(target.sub);
               } else if (
                 String(parsed.filters.tab).toLowerCase() === 'live' ||
                 String(parsed.filters.tab).toLowerCase() === 'live-games'
               ) {
+                pushDiscoverySurface({ showLiveTab: true });
                 setShowLiveTab(true);
               }
             }

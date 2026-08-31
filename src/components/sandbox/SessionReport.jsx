@@ -1,14 +1,14 @@
 /**
- * SESSION REPORT — export the current sitting
+ * SESSION REPORT · export the current sitting
  * ═══════════════════════════════════════════════════════════════════════════
  * Fixes that matter here:
- *   • SCOPE — sandbox.js hydrates sessionLog with up to 50 archived hands, so
+ *   • SCOPE · sandbox.js hydrates sessionLog with up to 50 archived hands, so
  *     the old report described the user's history, not this sitting. EVERY
  *     entry carries a `createdAt`, so this run is isolated by the explicit
  *     `sessionStartedAt` stamp the page writes on the hands it creates (with
  *     `source === 'live'` as a secondary marker), plus a toggle so the full
  *     history view is still reachable.
- *   • EXPORT — `<a download>` on a data: URL does nothing on iOS Safari. All
+ *   • EXPORT · `<a download>` on a data: URL does nothing on iOS Safari. All
  *     image output now goes through the shared exportCanvas helper
  *     (share sheet -> blob URL -> download) and is previewed before export.
  *   • The hub post now publishes the true summed EV, not avg x totalHands.
@@ -62,12 +62,12 @@ function drawReportCanvas(data) {
     ctx.fillText('SMARTER.POKER', W / 2, 62);
     ctx.fillStyle = T.textMuted;
     ctx.font = font(16);
-    ctx.fillText(`Virtual Sandbox - ${scopeLabel}`, W / 2, 90);
+    ctx.fillText(`Virtual Sandbox · ${scopeLabel}`, W / 2, 90);
 
     const boxes = [
         { val: String(totalHands), label: 'HANDS', color: T.accent },
-        { val: scoredHands > 0 ? `${accuracy}%` : '-', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
-        { val: coachStreak > 0 ? String(coachStreak) : '-', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
+        { val: scoredHands > 0 ? `${accuracy}%` : 'Not Available', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
+        { val: coachStreak > 0 ? String(coachStreak) : 'Not Available', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
     ];
     const boxW = (W - 80 - 2 * 16) / 3;
     boxes.forEach((b, i) => {
@@ -94,7 +94,7 @@ function drawReportCanvas(data) {
     ctx.fillText(`AVG EV DELTA: ${avgEvDelta} BB   ·   TOTAL: ${totalEvDelta} BB`, 40, y);
     y += 34;
 
-    // Wrapping chip rows — the old single fillText ran past the canvas edge.
+    // Wrapping chip rows · the old single fillText ran past the canvas edge.
     const chips = (title, entries) => {
         if (!entries.length) return;
         ctx.fillStyle = T.textDim;
@@ -130,14 +130,14 @@ function drawReportCanvas(data) {
         const scored = entry.isCorrect != null;
         ctx.fillStyle = !scored ? T.textMuted : entry.isCorrect ? T.success : T.danger;
         ctx.font = font(18, '800');
-        ctx.fillText(!scored ? '·' : entry.isCorrect ? '✓' : '✗', 40, y);
+        ctx.fillText(!scored ? 'Not Available' : entry.isCorrect ? '✓' : '✗', 40, y);
         ctx.fillStyle = T.text;
         ctx.font = font(16, '700');
-        ctx.fillText(String(entry.hand || '-'), 70, y);
+        ctx.fillText(String(entry.hand || 'Not Available'), 70, y);
         ctx.fillStyle = T.textMuted;
         ctx.font = font(15);
-        ctx.fillText(String(entry.position || '-'), 200, y);
-        wrapText(ctx, String(entry.optimalAction || '-'), 300, y, W - 340, 20, 1);
+        ctx.fillText(String(entry.position || 'Not Available'), 200, y);
+        wrapText(ctx, String(entry.optimalAction || 'Not Available'), 300, y, W - 340, 20, 1);
         y += 30;
     });
 
@@ -285,7 +285,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
-                    // The true sum over scored hands — avg x totalHands inflated
+                    // The true sum over scored hands · avg x totalHands inflated
                     // this by the ratio of unscored hands (often 10x).
                     handCount: stats.totalHands,
                     evLoss: Number(stats.evSum.toFixed(2)),
@@ -389,10 +389,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                             { label: 'Hands', value: String(stats.totalHands), colour: T.accent },
                             {
                                 label: 'GTO accuracy',
-                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : '-',
+                                value: stats.scoredHands > 0 ? `${stats.accuracy}%` : 'Not Available',
                                 colour: stats.scoredHands > 0 ? pctTone(stats.accuracy) : T.textMuted,
                             },
-                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : '-', colour: coachStreak > 0 ? T.warn : T.textMuted },
+                            { label: 'Streak', value: coachStreak > 0 ? String(coachStreak) : 'Not Available', colour: coachStreak > 0 ? T.warn : T.textMuted },
                         ].map(box => (
                             <div
                                 key={box.label}
@@ -469,10 +469,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                                             width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                                             background: !isScored ? T.textDim : entry.isCorrect ? T.success : T.danger,
                                         }} />
-                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || '-'}</span>
-                                        <span>{entry?.position || '-'}</span>
+                                        <span style={{ fontWeight: 700, color: T.text, ...numeric }}>{entry?.hand || 'Not Available'}</span>
+                                        <span>{entry?.position || 'Not Available'}</span>
                                         <span style={{ marginLeft: 'auto', color: T.textDim, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {entry?.optimalAction || '-'}
+                                            {entry?.optimalAction || 'Not Available'}
                                         </span>
                                     </div>
                                 );

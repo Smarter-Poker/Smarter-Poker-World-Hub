@@ -7,6 +7,10 @@ import UniversalHeader from '../ui/UniversalHeader';
 import PageTransition from '../transitions/PageTransition';
 import MarketplaceCommerceNav from './MarketplaceCommerceNav';
 import styles from './MarketplaceDetailExperience.module.css';
+import {
+  marketplaceCopy,
+  marketplaceStructuredData,
+} from '../../lib/store/marketplaceCopy';
 
 const DEFAULT_MARKETPLACE_IMAGE = '/images/store-v3/diamond-vault-hero.webp';
 
@@ -74,6 +78,15 @@ export default function MarketplaceDetailExperience({
   const closeMediaRef = useRef(null);
   const canonicalUrl = absoluteMarketplaceUrl(canonical);
   const socialImage = absoluteMarketplaceUrl(safeImage);
+  const copyTitle = marketplaceCopy(title);
+  const copyDescription = marketplaceCopy(description);
+  const copyEyebrow = marketplaceCopy(eyebrow);
+  const copyImageAlt = marketplaceCopy(imageAlt || title);
+  const copyCardLabel = marketplaceCopy(cardLabel);
+  const copyDiamondLabel = marketplaceCopy(diamondLabel);
+  const copyInventoryLabel = marketplaceCopy(inventoryLabel);
+  const copyStatus = marketplaceCopy(status);
+  const copySecurity = marketplaceCopy(securityCopy);
 
   useEffect(() => {
     if (selectedMedia >= media.length) setSelectedMedia(0);
@@ -108,19 +121,21 @@ export default function MarketplaceDetailExperience({
   return (
     <>
       <Head>
-        <title>{`${title} - Smarter.Poker Marketplace`}</title>
-        <meta name="description" content={description} />
+        <title>{`${copyTitle}: Smarter.Poker Marketplace`}</title>
+        <meta name="description" content={copyDescription} />
         <link rel="canonical" href={canonicalUrl} />
         <meta property="og:type" content={openGraphType} />
-        <meta property="og:title" content={`${title} - Smarter.Poker Marketplace`} />
-        <meta property="og:description" content={description} />
+        <meta property="og:title" content={`${copyTitle}: Smarter.Poker Marketplace`} />
+        <meta property="og:description" content={copyDescription} />
         <meta property="og:image" content={socialImage} />
         <meta property="og:url" content={canonicalUrl} />
         <meta name="twitter:card" content="summary_large_image" />
         {noindex && <meta name="robots" content="noindex,nofollow" />}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }}
+          dangerouslySetInnerHTML={{
+            __html: serializeStructuredData(marketplaceStructuredData(structuredData)),
+          }}
         />
       </Head>
 
@@ -133,7 +148,7 @@ export default function MarketplaceDetailExperience({
             {breadcrumbs.map((crumb, index) => (
               <span key={crumb.href}>
                 <Link href={crumb.href} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>
-                  {crumb.label}
+                  {marketplaceCopy(crumb.label)}
                 </Link>
                 {index < breadcrumbs.length - 1 && <ChevronRight size={13} aria-hidden="true" />}
               </span>
@@ -145,7 +160,7 @@ export default function MarketplaceDetailExperience({
               <div className={styles.mediaStage}>
                 <img
                   src={media[selectedMedia]}
-                  alt={selectedMedia === 0 ? imageAlt || '' : `${imageAlt || title} detail ${selectedMedia + 1}`}
+                  alt={selectedMedia === 0 ? copyImageAlt : `${copyImageAlt} Detail ${selectedMedia + 1}`}
                   width={1200}
                   height={900}
                   loading="eager"
@@ -156,7 +171,7 @@ export default function MarketplaceDetailExperience({
                   type="button"
                   ref={inspectButtonRef}
                   className={styles.inspectButton}
-                  aria-label={`Inspect ${title} image full screen`}
+                  aria-label={`Inspect ${copyTitle} Image Full Screen`}
                   aria-controls={mediaDialogId}
                   aria-expanded={mediaExpanded}
                   onClick={() => setMediaExpanded(true)}
@@ -165,12 +180,12 @@ export default function MarketplaceDetailExperience({
                 </button>
               </div>
               {media.length > 1 && (
-                <div className={styles.mediaRail} role="group" aria-label={`${title} image gallery`}>
+                <div className={styles.mediaRail} role="group" aria-label={`${copyTitle} Image Gallery`}>
                   {media.map((source, index) => (
                     <button
                       type="button"
                       key={source}
-                      aria-label={`Show ${title} image ${index + 1}`}
+                      aria-label={`Show ${copyTitle} Image ${index + 1}`}
                       aria-pressed={selectedMedia === index}
                       onClick={() => setSelectedMedia(index)}
                     >
@@ -190,7 +205,7 @@ export default function MarketplaceDetailExperience({
                   id={mediaDialogId}
                   role="dialog"
                   aria-modal="true"
-                  aria-label={`${title} image inspection`}
+                  aria-label={`${copyTitle} Image Inspection`}
                   onMouseDown={(event) => {
                     if (event.target === event.currentTarget) closeMedia();
                   }}
@@ -199,45 +214,45 @@ export default function MarketplaceDetailExperience({
                     type="button"
                     ref={closeMediaRef}
                     className={styles.closeMedia}
-                    aria-label="Close image inspection"
+                    aria-label="Close Image Inspection"
                     autoFocus
                     onClick={closeMedia}
                   >
                     <X size={22} aria-hidden="true" /> Close
                   </button>
-                  <img src={media[selectedMedia]} alt={imageAlt || title} />
+                  <img src={media[selectedMedia]} alt={copyImageAlt} />
                 </div>
               )}
             </div>
 
             <div className={styles.commandPanel}>
-              <span className={styles.eyebrow}>{eyebrow}</span>
-              <h1>{title}</h1>
-              <p className={styles.description}>{description}</p>
+              <span className={styles.eyebrow}>{copyEyebrow}</span>
+              <h1>{copyTitle}</h1>
+              <p className={styles.description}>{copyDescription}</p>
 
               <div className={styles.readoutGrid}>
                 {price != null && (
                   <div>
-                    <small>{cardLabel}</small>
+                    <small>{copyCardLabel}</small>
                     <strong>${Number(price).toFixed(2)}</strong>
                   </div>
                 )}
                 {diamondPrice != null && (
                   <div>
-                    <small>{diamondLabel}</small>
+                    <small>{copyDiamondLabel}</small>
                     <strong><Gem size={17} aria-hidden="true" /> {Number(diamondPrice).toLocaleString()}</strong>
                   </div>
                 )}
                 <div>
-                  <small>{inventoryLabel}</small>
-                  <strong>{status}</strong>
+                  <small>{copyInventoryLabel}</small>
+                  <strong>{copyStatus}</strong>
                 </div>
               </div>
 
               <div className={styles.actions}>{actions}</div>
-              {securityCopy && (
+              {copySecurity && (
                 <p className={styles.securityCopy}>
-                  <Sparkles size={14} aria-hidden="true" /> {securityCopy}
+                  <Sparkles size={14} aria-hidden="true" /> {copySecurity}
                 </p>
               )}
             </div>

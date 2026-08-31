@@ -26,11 +26,31 @@ import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../.
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { PodErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Extracted Utilities (Bundle Splitting) ───
 import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../../src/components/poker-near-me/lobby/PnmSoundUtils';
 import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
+import {
+  CHECKIN_BATCH_MAX_IDS,
+  CHECKIN_BATCH_SIZE,
+  GAME_TYPE_API_PARAM,
+  LOBBY_DESTINATIONS,
+  POD_FEATURES,
+  VENUE_COUNT_CACHE_AT,
+  VENUE_COUNT_CACHE_KEY,
+  VENUE_COUNT_TTL_MS,
+  WIDE_VENUE_LIMIT,
+  clearSharedGpsLocation,
+  createLobbyJsonLd,
+  normalizeVoiceFilters,
+  persistSharedGpsLocation,
+} from '../../../src/components/poker-near-me/lobby/lobbyController';
+import {
+  useLobbyDialogController,
+  useLobbyShareController,
+} from '../../../src/components/poker-near-me/lobby/useLobbyInteractionController';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
@@ -75,27 +95,6 @@ const PodHomeGames = dynamic(() => import('../../../src/components/poker-near-me
 const PodTours = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodTours'), { ssr: false });
 const PodSeries = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodSeries'), { ssr: false });
 
-// ─── Error Boundary for Pod Content ───
-class PodErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.warn(`[PNM] Pod "${this.props.podName}" crashed:`, error, info); }
-  render() {
-    if (this.state.hasError) {
-      return React.createElement('div', { style: { textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' } },
-        React.createElement('div', { style: { fontSize: 36, marginBottom: 12, opacity: 0.3 } }, '\u26A0'),
-        React.createElement('p', { style: { fontSize: 15, fontWeight: 600, marginBottom: 8, color: '#f59e0b' } }, `"${this.props.podName}" encountered an error`),
-        React.createElement('p', { style: { fontSize: 12, marginBottom: 16, color: 'rgba(200,214,229,0.35)' } }, String(this.state.error?.message || 'Unknown error')),
-        React.createElement('button', {
-          onClick: () => { this.setState({ hasError: false, error: null }); if (this.props.onReset) this.props.onReset(); },
-          style: { padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.08)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
-        }, 'Reset Pod')
-      );
-    }
-    return this.props.children;
-  }
-}
-
 // ─── Constants (cache/retry/page-size imported from PnmApiCache) ───
 
 // fetchWithRetry imported from PnmApiCache
@@ -105,20 +104,6 @@ class PodErrorBoundary extends React.Component {
 // `stakes` or `sort` param — sending those did nothing except fragment the
 // CDN cache key and leave game filtering to a client-side pass that could
 // only narrow the currently loaded page.
-// Cached platform venue count (stats bar) — see the effect that reads these.
-const VENUE_COUNT_CACHE_KEY = 'pnm_venue_count';
-const VENUE_COUNT_CACHE_AT = 'pnm_venue_count_at';
-const VENUE_COUNT_TTL_MS = 24 * 60 * 60 * 1000;
-
-// Tab-cycle targets for the full-screen panel's focus trap.
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const GAME_TYPE_API_PARAM = {
-  nlh: 'hasNLH',
-  plo: 'hasPLO',
-  mixed: 'hasMixed',
-};
-
 // ─── Crawlable destinations ────────────────────────────────────────────────
 // Both visual layers of this page (LobbyCanvas, LobbyOverlay) are ssr:false, so
 // the delivered HTML used to contain no headline and none of the twelve
@@ -127,157 +112,13 @@ const GAME_TYPE_API_PARAM = {
 // side) as a visually-hidden landmark and also feeds the ItemList JSON-LD.
 // Mirrors GRID_HOTSPOTS in src/components/poker-near-me/lobby/LobbyOverlay.jsx
 // and POD_ROUTES below — keep all three in step.
-const LOBBY_DESTINATIONS = [
-  { label: 'Poker Near Me', href: '/hub/poker-near-me/venues' },
-  { label: 'Home Games', href: '/hub/home-games' },
-  { label: 'Live Games', href: '/hub/poker-near-me/live-games' },
-  { label: 'Poker Tours', href: '/hub/poker-tours' },
-  { label: 'Map View', href: '/hub/poker-near-me/map' },
-  { label: 'Calendar', href: '/hub/events-calendar' },
-  { label: 'Poker Series', href: '/hub/poker-near-me/series' },
-  { label: 'Trip Planner', href: '/hub/poker-near-me/roadtrip' },
-  { label: 'Daily Grind', href: '/hub/daily-tournaments' },
-  { label: 'Saved Venues', href: '/hub/poker-near-me/saved' },
-  { label: 'Friends', href: '/hub/friends' },
-  { label: 'Tournament Alerts', href: '/hub/poker-near-me/alerts' },
-];
-
-const LOBBY_SITE_URL = 'https://smarter.poker';
-
 // schemas.website carries the SearchAction that targets this exact URL; the
 // ItemList exposes the twelve destinations as structured data.
-const LOBBY_JSON_LD = {
-  '@graph': [
-    schemas.website,
-    {
-      '@type': 'ItemList',
-      name: 'Poker Near Me',
-      itemListElement: LOBBY_DESTINATIONS.map((d, i) => ({
-        '@type': 'ListItem',
-        position: i + 1,
-        name: d.label,
-        url: `${LOBBY_SITE_URL}${d.href}`,
-      })),
-    },
-  ],
-};
+const LOBBY_JSON_LD = createLobbyJsonLd(schemas.website);
 
 // Every "wide" venue request (GPS, saved location, deep link, pod search) asks
 // for this many rows in one shot. Kept in one place so the refresh path can
 // rebuild the same request instead of collapsing the list back to one page.
-const WIDE_VENUE_LIMIT = 200;
-
-// /api/poker/checkins/batch-counts hard-caps its incoming id list at 50, so the
-// client must chunk to the same number or the tail is silently dropped.
-const CHECKIN_BATCH_SIZE = 50;
-const CHECKIN_BATCH_MAX_IDS = 200;
-
-// Venue types /api/poker/venues actually understands. VoiceSearch can emit
-// 'poker_tour', which matches no row and would blank the results, so anything
-// outside this set is dropped rather than sent.
-const SAFE_VENUE_TYPES = new Set(['casino', 'card_room', 'poker_club', 'home_game', 'charity']);
-
-// Radius values the pod selects actually offer. A voice transcript can say
-// "within 30 miles", which is not one of them — snap up to the nearest offered
-// value so the select still shows the filter that is in force.
-const POD_RADIUS_OPTIONS = [5, 10, 25, 50, 100, 150];
-
-// Fold VoiceSearch's raw parse output onto the filter domains this page reads.
-// Returns only keys that have a real consumer; everything else is dropped
-// rather than written into the filter object as dead weight.
-function normalizeVoiceFilters(raw) {
-  const next = {};
-  if (!raw || typeof raw !== 'object') return next;
-
-  // VoiceSearch emits 'NLH' | 'PLO' | 'Mixed' | 'Stud'. fetchVenues and the pod
-  // chips are lowercase, and 'stud' has no API param / chip, so it is dropped.
-  const gameType = String(raw.gameType || '').toLowerCase();
-  if (GAME_TYPE_API_PARAM[gameType]) {
-    next.gameType = gameType;
-    next.svGameType = gameType;
-  }
-
-  // VoiceSearch emits 'poker_tour' for any transcript containing "tour", which
-  // matches no venue_type row and would blank the results.
-  const venueType = String(raw.venueType || '').toLowerCase();
-  if (SAFE_VENUE_TYPES.has(venueType)) {
-    next.venueType = venueType;
-    next.svVenueType = venueType;
-  }
-
-  const parsedRadius = parseInt(raw.radius, 10);
-  if (parsedRadius && !isNaN(parsedRadius)) {
-    const snapped = POD_RADIUS_OPTIONS.find(o => o >= parsedRadius) || 150;
-    next.radius = String(snapped);
-    next.svRadius = String(snapped);
-    next.nmRadius = String(snapped);
-  }
-
-  // Buy-in bounds are read from the PREFIXED keys by PodVenueSearchEngine
-  // (`${prefix}MinBuyin` / `${prefix}MaxBuyin`); the bare keys VoiceSearch emits
-  // are read by nothing. Write both pods' keys — the Search pod currently runs
-  // with showBuyIn={false}, the Near Me pod is where these bite.
-  const minBuyin = Number(raw.minBuyin);
-  if (raw.minBuyin != null && !isNaN(minBuyin) && minBuyin > 0) {
-    next.svMinBuyin = String(minBuyin);
-    next.nmMinBuyin = String(minBuyin);
-  }
-  const maxBuyin = Number(raw.maxBuyin);
-  if (raw.maxBuyin != null && !isNaN(maxBuyin) && maxBuyin > 0) {
-    next.svMaxBuyin = String(maxBuyin);
-    next.nmMaxBuyin = String(maxBuyin);
-  }
-
-  // `stakes` ('1/2', '2/5') and `tab` are deliberately dropped: /api/poker/venues
-  // implements no stakes filter, and the lobby routes pods rather than tabs.
-  return next;
-}
-
-// ─── Shared location key ───────────────────────────────────────────────────
-// 'sp-user-gps' is the platform-wide location key: GlobalSearchOverlay (the
-// lobby's ONLY search bar), LiveGamesFeed and /hub/poker-near-me/[pnmTab] all
-// read it. The lobby used to persist coordinates to 'pnm_last_location' only,
-// so a user who enabled GPS here still ran every search with no location —
-// results came back unsorted by distance and unfiltered by radius.
-function persistSharedGpsLocation(loc) {
-  if (typeof window === 'undefined') return;
-  if (!loc || loc.lat == null || loc.lng == null) return;
-  try {
-    localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
-    window.dispatchEvent(new Event('sp_user_gps_updated'));
-  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-}
-
-function clearSharedGpsLocation() {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem('sp-user-gps');
-    window.dispatchEvent(new Event('sp_user_gps_updated'));
-  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-}
-
-const POD_FEATURES = {
-  search: { title: 'Search Venues', tab: 'venues' },
-  nearme: { title: 'Near Me', tab: 'nearnow' },
-  homegames: { title: 'Home Games', tab: 'homegames' },
-  livegames: { title: 'Live Games', tab: 'live' },
-  mapview: { title: 'Map View', tab: 'map' },
-  tours: { title: 'Tours', tab: 'tours' },
-  calendar: { title: 'Calendar', tab: 'calendar' },
-  daily: { title: 'Daily', tab: 'daily' },
-  series: { title: 'Series', tab: 'series' },
-  roadtrip: { title: 'Trip Planner', tab: 'roadtrip' },
-  favorites: { title: 'Saved', tab: 'favorites' },
-  social: { title: 'Friends', tab: 'social' },
-  alerts: { title: 'Alerts', tab: 'alerts' },
-  tripcost: { title: 'Trip Cost Calculator', tab: 'tripcost' },
-  compare: { title: 'Compare Venues', tab: 'compare' },
-  scraperhealth: { title: 'Scraper Health', tab: 'scraperhealth' },
-  peakheatmap: { title: 'Peak Activity', tab: 'peakheatmap' },
-  gametrends: { title: 'Game Trends', tab: 'gametrends' },
-  gamealerts: { title: 'Game Alerts', tab: 'gamealerts' },
-};
-
 // DailyTournamentsPanel — loaded via dynamic import above (Bundle Splitting)
 
 export default function PokerNearMeLobby() {
@@ -1867,103 +1708,19 @@ export default function PokerNearMeLobby() {
     setActivePod(null);
   }, []);
 
-  // ─── Keyboard: Escape to close panel ───
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && showPanel) {
-        handlePanelClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showPanel, handlePanelClose]);
-
-  // ─── Panel focus management (role=dialog aria-modal) ───
-  // [AUDIT] The full-screen panel was a bare fixed div: everything behind it
-  // (UniversalHeader, the 12 grid hotspots) stayed in the tab order and in the
-  // accessibility tree, so a keyboard or screen-reader user tabbed straight out
-  // of the panel into invisible content, and Escape dropped focus onto <body>.
-  const panelRef = useRef(null);
-  const panelBackBtnRef = useRef(null);
-  const panelOpenerRef = useRef(null);
-
-  useEffect(() => {
-    if (!showPanel) return;
-    // Remember what had focus so it can be restored on close.
-    panelOpenerRef.current = (typeof document !== 'undefined' && document.activeElement) || null;
-    const id = requestAnimationFrame(() => { panelBackBtnRef.current?.focus?.(); });
-    return () => {
-      cancelAnimationFrame(id);
-      const opener = panelOpenerRef.current;
-      panelOpenerRef.current = null;
-      if (opener && typeof opener.focus === 'function' && document.contains(opener)) {
-        opener.focus();
-      }
-    };
-  }, [showPanel]);
-
-  const handlePanelKeyDown = useCallback((e) => {
-    if (e.key !== 'Tab') return;
-    const root = panelRef.current;
-    if (!root) return;
-    const nodes = Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR))
-      .filter(el => el.offsetParent !== null || el === document.activeElement);
-    if (nodes.length === 0) return;
-    const first = nodes[0];
-    const last = nodes[nodes.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }, []);
-
-  // ─── Voice Search modal: focus + Escape ───
-  const voiceCloseBtnRef = useRef(null);
-  useEffect(() => {
-    if (!showVoiceSearch) return;
-    const opener = (typeof document !== 'undefined' && document.activeElement) || null;
-    const id = requestAnimationFrame(() => { voiceCloseBtnRef.current?.focus?.(); });
-    const onKey = (e) => { if (e.key === 'Escape') setShowVoiceSearch(false); };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      cancelAnimationFrame(id);
-      window.removeEventListener('keydown', onKey);
-      if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
-    };
-  }, [showVoiceSearch]);
-
-  // ─── Share deep link (state-driven label, no DOM mutation) ───
-  const [shareCopied, setShareCopied] = useState(false);
-  const shareTimeoutRef = useRef(null);
-  useEffect(() => () => { if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current); }, []);
-  // Panel title for the share sheet, read through a ref so handleShareClick can
-  // stay dependency-free without losing the "Smarter.Poker - <panel>" label.
   const panelTitleRef = useRef('');
-  const handleShareClick = useCallback(() => {
-    const shareUrl = window.location.href;
-    const title = panelTitleRef.current
-      ? `Smarter.Poker - ${panelTitleRef.current}`
-      : 'Smarter.Poker';
-    if (navigator.share) {
-      navigator.share({ title, url: shareUrl })
-        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-      return;
-    }
-    if (!navigator.clipboard?.writeText) {
-      console.warn('[App] Clipboard API unavailable; share link not copied');
-      return;
-    }
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => {
-        setShareCopied(true);
-        if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
-        shareTimeoutRef.current = setTimeout(() => setShareCopied(false), 1500);
-      })
-      .catch(e => console.warn('[App] Clipboard write rejected:', e?.message || e));
-  }, []);
+  const {
+    panelRef,
+    panelBackBtnRef,
+    voiceCloseBtnRef,
+    handlePanelKeyDown,
+  } = useLobbyDialogController({
+    showPanel,
+    onPanelClose: handlePanelClose,
+    showVoiceSearch,
+    setShowVoiceSearch,
+  });
+  const { shareCopied, handleShareClick } = useLobbyShareController(panelTitleRef);
 
   // ─── Series/Tour token helper ───
   // [LB6 FIX] Defined BEFORE handleToggleFavorite to avoid temporal dead zone (TDZ).
@@ -2793,7 +2550,11 @@ export default function PokerNearMeLobby() {
               aria-labelledby="pnm-panel-title"
               onKeyDown={handlePanelKeyDown}
               style={{
-                position: 'fixed', inset: 0, zIndex: 51,
+                // The panel is an aria-modal dialog and must sit above the
+                // fixed global header (z-index 10050). At 51 its Back/Close
+                // controls rendered underneath the header and could not be
+                // clicked, particularly at desktop widths.
+                position: 'fixed', inset: 0, zIndex: 10100,
                 background: 'linear-gradient(160deg, #0c1828, #060a14)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
                 animation: 'lobby-panelSlideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',

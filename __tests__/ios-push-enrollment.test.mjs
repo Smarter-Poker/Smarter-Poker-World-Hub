@@ -178,3 +178,15 @@ test('standalone_detected analytics survived the rewrite', () => {
     assert.match(src2, /recordOnServer\('standalone_detected'\)/, 'standalone_detected must still be recorded');
     assert.match(src2, /alreadyCountedRef/, 'it must be guarded or it fires repeatedly per session');
 });
+
+test('confirmed receipts preserve separate devices with identical generic signatures', () => {
+    const migration = readFileSync(join(ROOT, 'supabase/migrations/20260901030900_safe_push_receipt_confirmation.sql'), 'utf8');
+    assert.match(migration, /confirm_push_subscription_receipt/);
+    assert.match(migration, /WHERE endpoint = p_endpoint/);
+    assert.doesNotMatch(migration, /device_label|user_agent|older\./);
+
+    const receipt = readFileSync(join(ROOT, 'pages/api/push/receipt.js'), 'utf8');
+    assert.match(receipt, /\.rpc\('confirm_push_subscription_receipt', \{ p_endpoint: endpoint \}\)/);
+    assert.match(receipt, /if \(error\) console\.warn/);
+    assert.doesNotMatch(receipt, /\.update\(\{ last_receipt_at:/);
+});

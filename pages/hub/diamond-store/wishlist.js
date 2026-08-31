@@ -16,6 +16,7 @@ import { useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { Heart, RefreshCw, ShoppingBag, Trash2 } from 'lucide-react';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 export default function Wishlist() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/wishlist');
@@ -82,7 +83,7 @@ export default function Wishlist() {
   return (
     <PageTransition>
       <SEOHead
-        title="Wishlist - Diamond Store"
+        title="Wishlist: Diamond Store"
         description="Your Saved Items In The Diamond Store Wishlist."
         canonical="/hub/diamond-store/wishlist"
         noindex={true}
@@ -107,7 +108,7 @@ export default function Wishlist() {
             <div role="alert" style={styles.emptyState}>
               <Heart size={46} color="#ff5f6d" aria-hidden="true" />
               <h2 style={styles.emptyTitle}>Could Not Load Wishlist</h2>
-              <p style={styles.emptyText}>{loadError}</p>
+              <p style={styles.emptyText}>{marketplaceCopy(loadError)}</p>
               <button type="button" onClick={loadWishlist} style={styles.retryButton}>
                 <RefreshCw size={15} aria-hidden="true" /> Retry Wishlist
               </button>
@@ -139,7 +140,7 @@ export default function Wishlist() {
                       {catalog?.image_url ? (
                         <img
                           src={catalog.image_url}
-                          alt={item.product_name}
+                          alt={marketplaceCopy(item.product_name)}
                           style={styles.productImage}
                           loading="lazy"
                         />
@@ -149,9 +150,9 @@ export default function Wishlist() {
                     </div>
                     <div style={styles.productBody}>
                       <span style={styles.productType}>
-                        {catalog?.category || item.product_type || 'Marketplace'}
+                        {marketplaceCopy(catalog?.category || item.product_type || 'Marketplace')}
                       </span>
-                      <h2 style={styles.productName}>{catalog?.name || item.product_name}</h2>
+                      <h2 style={styles.productName}>{marketplaceCopy(catalog?.name || item.product_name)}</h2>
                       <div style={styles.priceRow}>
                         <span style={styles.price}>${priceUsd.toFixed(2)}</span>
                         <span style={styles.diamondPrice}>
@@ -164,7 +165,7 @@ export default function Wishlist() {
                         </Link>
                         <button
                           type="button"
-                          aria-label={`Remove ${item.product_name} From Wishlist`}
+                          aria-label={`Remove ${marketplaceCopy(item.product_name)} From Wishlist`}
                           onClick={() => removeFromWishlist(item.product_id)}
                           disabled={removingId === item.product_id}
                           style={styles.removeButton}

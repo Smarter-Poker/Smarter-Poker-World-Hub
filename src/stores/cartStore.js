@@ -25,12 +25,16 @@ const useCartStore = create(
       // cart is treated as guest-only and is never imported into an account.
       ownerId: 'guest',
       isOpen: false,
+      // A local cart mutation remains authoritative until its exact snapshot is
+      // mirrored to user_preferences. This prevents a paid, now-empty cart from
+      // being repopulated by an older cross-device snapshot on the next visit.
+      syncPending: false,
 
       setOwner: (ownerId) => {
         const nextOwner = ownerId || 'guest';
         set((state) => state.ownerId === nextOwner
           ? state
-          : { ownerId: nextOwner, items: [] });
+          : { ownerId: nextOwner, items: [], syncPending: false });
       },
 
       // Add item to cart
@@ -46,6 +50,7 @@ const useCartStore = create(
                   ? { ...i, quantity: clampQuantity(i, (i.quantity || 1) + (item.quantity || 1)) }
                   : i
               ),
+              syncPending: true,
             };
           } else {
             // Add new item
@@ -54,6 +59,7 @@ const useCartStore = create(
                 ...state.items,
                 { ...item, quantity: clampQuantity(item, item.quantity || 1) },
               ],
+              syncPending: true,
             };
           }
         });
@@ -63,6 +69,7 @@ const useCartStore = create(
       removeItem: (itemId) => {
         set((state) => ({
           items: state.items.filter((i) => i.id !== itemId),
+          syncPending: true,
         }));
       },
 
@@ -77,6 +84,7 @@ const useCartStore = create(
           items: state.items.map((i) =>
             i.id === itemId ? { ...i, quantity: clampQuantity(i, quantity) } : i
           ),
+          syncPending: true,
         }));
       },
 
@@ -93,12 +101,25 @@ const useCartStore = create(
                 quantity: clampQuantity(i, i.quantity),
               }))
           : [];
-        set({ items: next });
+        set({ items: next, syncPending: true });
       },
+
+      // Remote hydration is not a local mutation and must not immediately
+      // mirror the same snapshot back to the server.
+      replaceFromServer: (items) => {
+        const next = Array.isArray(items)
+          ? items
+              .filter((i) => i && i.id != null)
+              .map((i) => ({ ...i, quantity: clampQuantity(i, i.quantity) }))
+          : [];
+        set({ items: next, syncPending: false });
+      },
+
+      markSynced: () => set({ syncPending: false }),
 
       // Clear cart
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], syncPending: true });
       },
 
       // Toggle cart open/closed
@@ -137,10 +158,20 @@ const useCartStore = create(
       // silently loses the cart. Keep the existing SSR-safe storage selector,
       // but wrap it with Zustand's JSON adapter.
       storage: createJSONStorage(() => getStorage()),
-      partialize: (state) => ({ items: state.items, ownerId: state.ownerId }),
-      version: 2,
+      partialize: (state) => ({
+        items: state.items,
+        ownerId: state.ownerId,
+        syncPending: state.syncPending,
+      }),
+      version: 3,
       migrate: (persisted, version) => {
-        if (version < 2) return { ...persisted, items: [], ownerId: 'guest' };
+        if (version < 2) return { ...persisted, items: [], ownerId: 'guest', syncPending: false };
+        if (version < 3) {
+          return {
+            ...persisted,
+            syncPending: Array.isArray(persisted?.items) && persisted.items.length > 0,
+          };
+        }
         return persisted;
       },
     }

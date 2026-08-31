@@ -21,7 +21,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  // [Phase 6.1.15] Rate limit writes · prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
             const { name, scenario } = req.body || {};
             if (!name || !scenario) return res.status(400).json({ error: 'Name and scenario required' });
 
-            // Bound the stored payload — scenario_json is otherwise unlimited.
+            // Bound the stored payload · scenario_json is otherwise unlimited.
             let scenarioSize = 0;
             try {
                 scenarioSize = JSON.stringify(scenario).length;

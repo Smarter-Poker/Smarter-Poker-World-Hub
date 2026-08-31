@@ -4,7 +4,7 @@
  * Admin utility for forcing a solver outcome and inspecting raw sandbox state.
  *
  * Gating: an explicit `isAdmin` prop (server-verified upstream) always wins.
- * The localStorage flag is a DEV convenience only — it is ignored in production
+ * The localStorage flag is a DEV convenience only · it is ignored in production
  * builds now, because a client-writable key must never unlock a path that
  * injects fabricated solver output into the coach tables.
  *
@@ -26,7 +26,7 @@ const ACTIONS = ['Fold', 'Check', 'Call', 'Bet', 'Raise'];
 export function hasGodModeAccess(isAdmin) {
     if (isAdmin === true) return true;
     if (isAdmin === false) return false;
-    // In production only a server-verified isAdmin prop opens this panel — the
+    // In production only a server-verified isAdmin prop opens this panel · the
     // old localStorage key was client-writable, so anyone could forge access.
     if (process.env.NODE_ENV === 'production') return false;
     // Non-production builds stay open for local testing.
@@ -76,7 +76,7 @@ export default function GodModePanel({ onClose, setResults, sandboxState, isAdmi
         };
 
         if (typeof setResults !== 'function') {
-            console.warn('[GodModePanel] setResults handler missing - nothing injected');
+            console.warn('[GodModePanel] setResults handler missing · nothing injected');
             onClose?.();
             return;
         }

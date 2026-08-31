@@ -18,6 +18,7 @@ import { notifyUser } from '../../../src/lib/club-arena/notify';
 import { validateSettlement } from '../../../src/contracts/orb4_syndicate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -81,6 +82,16 @@ export default async function handler(req, res) {
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/settle-period')) return;
+
+  // ZERO-DRIFT (2026-08-31): DURABLE idempotency. The in-memory guard above
+  // is per-lambda; this one is shared across instances via
+  // fn_idempotency_begin/finish. Money actions only.
+  if (['open', 'close', 'pay', 'pay_all'].includes(action)) {
+    const { proceed } = await beginIdempotent(
+      supabaseAdmin, req, res, `settle-period:${user.id}:${clubId}:${action}`
+    );
+    if (!proceed) return;
+  }
 
   try {
     // Verify authorization

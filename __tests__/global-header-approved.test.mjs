@@ -60,18 +60,18 @@ const moduleOwnsHeader = (entryFile, seen = new Set()) => {
   });
 };
 
-test('approved command-grid source and desktop crop are present', () => {
+test('the user-approved three-bar hamburger source and desktop crop are pinned', () => {
   const source = join(root, 'public/images/global-header/global-header-approved-source.png');
   const crop = join(root, 'public/images/global-header/global-header-desktop.png');
   assert.ok(existsSync(source));
   assert.ok(existsSync(crop));
   assert.equal(
     createHash('sha256').update(readFileSync(source)).digest('hex'),
-    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f'
+    '37f2dd1cf6bf264c20402a1a928fa053bcdde4866b231e6d9c5f7d158d01df2a'
   );
   assert.equal(
     createHash('sha256').update(readFileSync(crop)).digest('hex'),
-    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771'
+    '7c5613a84a395abd6b9527785b46c99fb28b6264e2258bee366a04cac5500c7f'
   );
 });
 
@@ -81,6 +81,7 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /approved-global-header__avatar/);
   assert.match(header, /src=\{displayAvatar \|\| '\/default-avatar\.png'\}/);
   assert.match(header, /setCommandMenuOpen\(true\)/);
+  assert.match(header, /data-menu-symbol="hamburger"/);
   assert.match(header, /onCommandMenuOpenChange\?\.\(nextOpen\)/);
   assert.match(header, /isCommandMenuControlled/);
   assert.match(header, /setIsWalletOpen\(true\)/);
@@ -104,13 +105,13 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /aria-label=\{isVip \? 'VIP Membership active' : 'VIP Membership inactive'\}/);
 });
 
-test('World Hub hard-locks the selected profile photo as a square with a thin black edge', () => {
+test('World Hub removes the baked profile ornament and hard-locks one thin black-framed circle', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 1px solid rgba\(0, 0, 0, \.92\);[\s\S]*?border-radius: 0;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?inset: 1px !important;[\s\S]*?border-radius: 0;/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 0;[\s\S]*?border-radius: 50%;[\s\S]*?background: #000;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?transform: translate\(-50%, -50%\) !important;[\s\S]*?border: 1px solid rgba\(0, 0, 0, \.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
   assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
-  assert.match(header, /object-fit: contain !important/);
+  assert.match(header, /object-fit: cover !important/);
   assert.match(header, /resolveHeaderPortrait\([\s\S]*?user\?\.useAvatarAsProfilePic === true/);
   assert.doesNotMatch(header, /contextAvatar\?\.imageUrl \|\| user\?\.avatar/);
   assert.match(portraitResolver, /if \(useAvatarAsProfilePic\) return arenaAvatarUrl \|\| profilePhotoUrl/);
@@ -125,18 +126,27 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /cmd-approved-header__avatar/);
   assert.match(commander, /src=\{profileAvatar\}/);
   assert.match(commander, /resolveHeaderPortrait\(profilePhotoUrl, arenaAvatarUrl, useAvatarAsProfilePic\)/);
-  assert.match(commander, /object-fit: contain !important/);
+  assert.match(commander, /\.cmd-approved-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 1px solid rgba\(0, 0, 0, \.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
+  assert.match(commander, /object-fit: cover !important/);
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
-test('all global header shimmer is removed and active VIP keeps a neon-white outline', () => {
+test('all global header shimmer and active VIP selector boxes are removed', () => {
   for (const source of [header, commander]) {
     assert.match(source, /data-vip-active=/);
     assert.match(source, /vip--active/);
     assert.match(source, /:not\([^)]*vip--active\)::after/);
-    assert.match(source, /inset 0 0 0 1px rgba\(255, 255, 255, \.92\)/);
+    assert.doesNotMatch(source, /vip--active\s*\{/);
+    assert.doesNotMatch(source, /inset 0 0 0 1px rgba\(255, 255, 255, \.92\)/);
     assert.doesNotMatch(source, /shimmer/i);
   }
+});
+
+test('mobile unread badges keep the notification bell visible and the number readable', () => {
+  assert.match(header, /@media \(max-width: 900px\)[\s\S]*?approved-global-header__badge/);
+  assert.match(header, /right: -2px;/);
+  assert.match(header, /min-width: clamp\(12px, 1\.7vw, 18px\)/);
+  assert.match(header, /font-size: clamp\(7px, 1vw, 10px\)/);
 });
 
 test('all 264 Hub page modules own the shared header or inherit the app-root fallback', () => {

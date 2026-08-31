@@ -2,7 +2,6 @@ import { after } from 'next/server';
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { openAuditJobToken, sealAuditJobToken } from '../../../../../src/lib/personal-assistant/auditJobToken.mjs';
 import {
-  kickAuditWorker,
   mergeAuditJobProgress,
   newWorkerToken,
   reconcileAuditEvidence,
@@ -12,6 +11,8 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const MAX_TRANSIENT_FAILURES = 3;
+const MAX_BATCHES_PER_INVOCATION = 50;
+const WORKER_BUDGET_MS = 260_000;
 let client;
 
 function db() {
@@ -72,7 +73,8 @@ async function processClaimedJob(job, workerToken, origin) {
 
   const batchMs = Date.now() - startedAt;
   let progress = mergeAuditJobProgress(job.progress, body, batchMs);
-  const transient = [429, 502, 503, 504].includes(response.status) && body?.retryable === true;
+  const transient = (response.status === 508)
+    || ([429, 502, 503, 504].includes(response.status) && body?.retryable === true);
   if (!response.ok || body?.success === false) {
     const failures = Number(job.progress?.consecutiveFailures || 0) + 1;
     progress = { ...progress, consecutiveFailures: failures, complete: false };
@@ -81,7 +83,7 @@ async function processClaimedJob(job, workerToken, origin) {
     // Clear that checkpoint so the next user start creates a fresh audit rather
     // than resurrecting the same permanently invalid cursor forever.
     const invalidCursor = body?.code === 'invalid_audit_cursor';
-    const saved = await checkpoint(job.id, workerToken, {
+    await checkpoint(job.id, workerToken, {
       status: retry ? 'queued' : 'failed',
       stage: retry ? 'retrying' : 'failed',
       auditCursor: invalidCursor ? null : (body?.clubArenaSync?.auditCursor || job.audit_cursor),
@@ -89,17 +91,26 @@ async function processClaimedJob(job, workerToken, origin) {
       errorCode: body?.code || `http_${response.status || 500}`,
       errorMessage: body?.error || 'The deterministic audit could not continue.',
     });
-    if (retry && saved) await kickAuditWorker(saved, { origin });
-    return;
+    // A browser status poll or a later device reclaims retryable checkpoints.
+    // Do not recursively invoke the worker: Vercel rejects a serverless
+    // request chain after several hops with HTTP 508.
+    return null;
   }
 
   progress = { ...progress, consecutiveFailures: 0 };
   const nextCursor = body?.clubArenaSync?.auditCursor || null;
+  const nextCursorFingerprint = body?.clubArenaSync?.cursorFingerprint || null;
   if (body?.auditInProgress === true && nextCursor) {
     // Every invocation is already bounded to one database/solver page, so the
     // job can safely cover accounts of any size. Stop only if the continuation
     // fails to advance; a fixed total-page ceiling strands large accounts.
-    if (nextCursor === job.audit_cursor) {
+    const cursorDidNotAdvance = nextCursorFingerprint
+      ? nextCursorFingerprint === job.progress?.cursorFingerprint
+      : nextCursor === job.audit_cursor;
+    const durableWorkRecorded = Number(body?.clubArenaSync?.handsAudited) > 0
+      || Number(body?.clubArenaSync?.decisionsAnalyzed) > 0
+      || Number(body?.clubArenaSync?.obsoleteDecisionsRemoved) > 0;
+    if (cursorDidNotAdvance && !durableWorkRecorded) {
       await checkpoint(job.id, workerToken, {
         status: 'failed', stage: 'failed', auditCursor: null, progress,
         errorCode: 'audit_cursor_stalled',
@@ -108,13 +119,30 @@ async function processClaimedJob(job, workerToken, origin) {
       return;
     }
     const saved = await checkpoint(job.id, workerToken, {
-      status: 'queued', stage: 'importing_hands', auditCursor: nextCursor, progress,
+      status: 'running', stage: 'importing_hands', auditCursor: nextCursor,
+      progress: { ...progress, cursorFingerprint: nextCursorFingerprint || undefined },
     });
-    if (saved) await kickAuditWorker(saved, { origin });
+    return saved ? { continueJob: saved } : null;
+  }
+
+  const sync = body?.sync;
+  const persistenceComplete = body?.persisted === true
+    && body?.partial !== true
+    && (!sync || (sync.handExamples?.persisted !== false
+      && sync.suggestionsPersisted !== false
+      && sync.resolutionsPersisted !== false
+      && sync.statsPersisted !== false));
+  if (!persistenceComplete) {
+    await checkpoint(job.id, workerToken, {
+      status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
+      progress: { ...progress, complete: false },
+      errorCode: 'audit_persistence_incomplete',
+      errorMessage: 'The audit evidence was analyzed, but every result could not be durably reconciled. Restarting will retry the saved checkpoint.',
+    });
     return;
   }
 
-  progress = { ...progress, complete: true };
+  progress = { ...progress, complete: true, cursorFingerprint: null };
   const reconciliation = await reconcileAuditEvidence(db(), job.user_id, progress);
   const result = {
     ...body,
@@ -128,10 +156,20 @@ async function processClaimedJob(job, workerToken, origin) {
     },
     reconciliation,
   };
+  if (reconciliation?.consistent !== true) {
+    await checkpoint(job.id, workerToken, {
+      status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
+      progress: { ...progress, complete: false }, reconciliation,
+      errorCode: 'audit_reconciliation_failed',
+      errorMessage: 'The deterministic audit finished, but its stored evidence did not reconcile. Restarting will verify the saved checkpoint again.',
+    });
+    return;
+  }
   const saved = await checkpoint(job.id, workerToken, {
     status: 'completed', stage: 'completed', auditCursor: null, progress, result, reconciliation,
   });
   if (saved) await notifyCompletion(saved, result);
+  return null;
 }
 
 export async function POST(request) {
@@ -153,14 +191,30 @@ export async function POST(request) {
   }
   const origin = new URL(request.url).origin;
   after(async () => {
+    let activeJob = job;
+    let batchesProcessed = 0;
+    const deadline = Date.now() + WORKER_BUDGET_MS;
     try {
-      await processClaimedJob(job, workerToken, origin);
+      // Continue bounded detector pages inside one serverless invocation. The
+      // former worker -> detector -> worker HTTP chain hit Vercel's recursive
+      // invocation guard after four pages and failed valid audits with 508.
+      while (activeJob && batchesProcessed < MAX_BATCHES_PER_INVOCATION && Date.now() < deadline) {
+        const outcome = await processClaimedJob(activeJob, workerToken, origin);
+        activeJob = outcome?.continueJob || null;
+        batchesProcessed += 1;
+      }
+      if (activeJob) {
+        await checkpoint(activeJob.id, workerToken, {
+          status: 'queued', stage: 'importing_hands', auditCursor: activeJob.audit_cursor,
+          progress: activeJob.progress || {},
+        });
+      }
     } catch (error) {
       console.warn('[PA Audit Worker] Unhandled job failure:', error?.message || error);
       try {
-        await checkpoint(job.id, workerToken, {
-          status: 'failed', stage: 'failed', auditCursor: job.audit_cursor,
-          progress: { ...(job.progress || {}), complete: false },
+        await checkpoint(activeJob?.id || job.id, workerToken, {
+          status: 'failed', stage: 'failed', auditCursor: activeJob?.audit_cursor || job.audit_cursor,
+          progress: { ...(activeJob?.progress || job.progress || {}), complete: false },
           errorCode: 'worker_unhandled_error',
           errorMessage: 'The worker stopped unexpectedly. Restarting will resume from the saved checkpoint.',
         });

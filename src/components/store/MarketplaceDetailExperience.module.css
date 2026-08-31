@@ -2,6 +2,7 @@
   min-height: 100vh;
   padding: 100px 24px 120px;
   color: #eaf8fc;
+  text-transform: capitalize;
   background:
     radial-gradient(circle at 68% 10%, rgba(0, 155, 220, 0.16), transparent 32%),
     linear-gradient(180deg, #071018, #010306 38%, #000);

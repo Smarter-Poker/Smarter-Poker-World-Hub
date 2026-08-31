@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-08-31 — Phase 64 (Poker Near Me Phase 2 shared map foundation)
+**Last Updated:** 2026-08-31 — Phase 67 (Poker Near Me Phase 4 controller decomposition)
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1476,3 +1476,58 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Permanent regression gates | Leak-engine, API/security, durable-operation, push-identity, TypeScript, production-build, and desktop/mobile browser checks cover the phase. |
 
 **Release state:** Complete. PR #1112 merged the durable audit system; PR #1122 hardened every nested public receipt projection. Vercel production revision `b262cb2b` passed authenticated/anonymous/forged-worker API probes, 1,347-hand receipt restoration and reconciliation, duplicate-push endpoint/outbox checks, and the 23-pass desktop/mobile Personal Assistant browser matrix. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-2-durable-audit-operations.md`.
+
+**Final closeout addendum:** A renewed live-device audit found five active browser subscriptions despite one notification/outbox event. Phase 66 now also includes receipt-confirmed endpoint reconciliation and a route-wide Personal Assistant copy policy for title capitalization and em-dash removal. Release verification is tracked in the Phase 2 audit evidence file.
+
+**Final published verification:** PR #1129 merged at `176c214d` and is present in the Vercel production ancestry. The refreshed authenticated production matrix passed 22 checks with two desktop-inapplicable mobile checks skipped. Live owner/anonymous/forged-worker probes passed, the 1,347-hand receipt reconciled with 1,570 persisted decisions, and account delivery state is one notification, one outbox event, one confirmed iPhone endpoint, and one confirmed Mac endpoint with no duplicate groups. Migration `20260831173000` makes the receipt RPC executable only by `service_role` in production.
+
+---
+
+## PHASE 67 — Poker Near Me Phase 4 Controller Decomposition (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Shared controller ownership | Route, tab, deep-link, filter, time, analytics, storage, crawl-graph, cache, batch, and GPS logic moved from the lobby and discovery pages into named pure modules. |
+| Interaction controllers | Lobby focus/Escape/share behavior and discovery swipe/pull-to-refresh behavior now live in dedicated reusable hooks with explicit lifecycle cleanup. |
+| Shared recovery | Tab/pod boundaries and live-favorite feedback use one reusable recovery component instead of page-local copies. |
+| Page-size reduction | Lobby dropped from 3,967 to 3,728 lines and discovery from 4,741 to 4,144, removing 836 controller lines from route components without changing data ownership. |
+| Real defect repair | The lobby modal now clears the fixed global header, the Commander root no longer enters a trailing-slash rewrite loop, and map/media/keyboard browser gates reflect supported user flows. |
+| Preserved behavior | Existing routes, handlers, APIs, Supabase/realtime data, maps/geolocation, filters, forms, venue data, permissions, navigation, responsive behavior, and deep-link aliases remain wired. |
+| Permanent regression gate | Phase 16 unit and desktop/mobile journeys cover controller delegation, canonical state, modal lifecycle, gestures, persistence, bounded analytics, and production rewrite order. |
+
+**Coverage:** The lobby plus 11 canonical discovery routes directly inherit the controller system; the 354 current directory/location URLs remain covered by their established shared systems and regression gates.
+
+**Release state:** Complete. PR #1126 auto-merged as `638889cc`; Vercel deployment `dpl_H6vmPtys6n1NP6k5cCrr9f1Se3GA` promoted to production with healthy database/header checks, five representative Poker Near Me routes at HTTP 200, the Commander root/login loop closed, 14/14 live desktop/mobile Phase 14+16 journeys passing, and visual zero-overflow proof at 390 CSS pixels. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.
+
+---
+
+## PHASE 68 — Poker Near Me Phase 5 Cross-Engine Navigation + Accessibility (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Browser-history contract | User surface changes push canonical entries, filter/search synchronization replaces in place, and Back/Forward restores matching React state without discarding live map/realtime ownership. |
+| Navigation-race repair | Page lifecycle guards prevent a stale debounced discovery writer from undoing a full state/city/detail navigation. |
+| Assistive route state | A polite live region announces same-document route changes and restored history state. |
+| Safari/WebKit hardening | The interactive tab rail owns its hit-test layer, visual masks have WebKit prefixes, and dedicated desktop/iPhone WebKit projects permanently cover the phase. |
+| Contrast resilience | Increased-contrast and forced-colors contracts preserve text, boundaries, selection, focus, and live indicators without relying on glow or background artwork. |
+| Shared-family preservation | The lobby, 11 canonical discovery destinations, and 12 representative discovery/location/detail/event source families retain their existing APIs, data, maps, filters, forms, permissions, and templates. |
+| Regression gate | Phase 17 is included in both `test:pnm` and repository prebuild, with compiled desktop/mobile navigation, semantics, reduced-motion, forced-colors, and overflow journeys. |
+
+**Pre-publication verification:** 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, and the exact webpack production build (403 static pages) passed. Preview WebKit and production evidence are tracked in `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
+
+---
+
+## PHASE 69 — Marketplace Completion Phase 2 Of 8: Purchase Assurance (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Trusted card returns | Stripe, the authenticated owner, and the exact server-owned purchase, order, or subscription record must agree before a return is complete. |
+| Exact cart reconciliation | Server-priced checkout snapshots remove only verified product, variant, and quantity lines while preserving later additions and unrelated cart contents. |
+| Cross-device correctness | Unsynced local snapshots remain authoritative, preference writes are serialized, and stale remote carts cannot restore purchased lines. |
+| Bounded recovery | Checkout, order-history, and receipt reads have explicit deadlines, truthful failed states, and accessible direct retry controls. |
+| Private same-surface receipts | Completed returns link to owner-scoped receipts and order history inside the Marketplace browser surface. |
+| Visual contract | Purchase-assurance controls use sharp cyan and steel casino hardware, 44-pixel targets, title-cased copy, and no green, purple, or banned long bars. |
+| Permanent regression gate | Phase 23 contracts are included in `test:marketplace` and the Vercel build context; desktop and mobile browser coverage includes a failed return, retry, receipt link, and exact cart decrement. |
+| Preserved economics | Prices, Diamond grants and burns, Stripe and webhook settlement, inventory, entitlements, Club ownership, database schema, and deferred Printful automation are unchanged. |
+
+**Verification before publication:** 209/209 canonical Marketplace contracts, 60 applicable compiled-production desktop/mobile browser checks, and the exact optimized production build with 403/403 static pages pass on the integrated branch. Live credentialed probes are run before Phase 2 is closed. Full evidence: `.agent/audits/2026-08-31-marketplace-completion-phase-2-purchase-assurance.md`.

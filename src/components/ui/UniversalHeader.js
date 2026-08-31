@@ -11,7 +11,7 @@
  * - "Smarter.Poker" in white text
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
  * - Profile picture (uploaded photo by default; Arena avatar only by opt-in)
- * - VIP card entitlement state with a subtle neon-white active outline
+ * - VIP card entitlement state without selector boxes
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
@@ -1305,8 +1305,8 @@ export default function UniversalHeader({
                     position: absolute !important;
                     box-sizing: border-box;
                     overflow: hidden;
-                    border: 1px solid rgba(0, 0, 0, .92);
-                    border-radius: 0;
+                    border: 0;
+                    border-radius: 50%;
                     background: #000;
                     contain: layout paint;
                     isolation: isolate;
@@ -1323,17 +1323,19 @@ export default function UniversalHeader({
 
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    inset: 1px !important;
+                    top: 50% !important;
+                    left: 50% !important;
                     z-index: 1;
                     display: block;
-                    width: auto;
+                    width: 72%;
                     height: auto;
-                    aspect-ratio: auto;
-                    transform: none !important;
+                    aspect-ratio: 1;
+                    transform: translate(-50%, -50%) !important;
                     overflow: hidden;
-                    border: 0;
-                    border-radius: 0;
-                    background: #000;
+                    box-sizing: border-box;
+                    border: 1px solid rgba(0, 0, 0, .94);
+                    border-radius: 50%;
+                    background: transparent;
                     pointer-events: none;
                 }
 
@@ -1347,9 +1349,9 @@ export default function UniversalHeader({
                     aspect-ratio: auto !important;
                     transform: none !important;
                     border: 0 !important;
-                    border-radius: 0 !important;
-                    background: #000;
-                    object-fit: contain !important;
+                    border-radius: 50% !important;
+                    background: transparent !important;
+                    object-fit: cover !important;
                     object-position: center !important;
                     opacity: 1 !important;
                     pointer-events: none;
@@ -1362,14 +1364,6 @@ export default function UniversalHeader({
                     z-index: 1;
                     background: rgba(0, 0, 0, .42);
                     pointer-events: none;
-                }
-
-                .approved-global-header__vip--active {
-                    border-radius: 12%;
-                    box-shadow:
-                        inset 0 0 0 1px rgba(255, 255, 255, .92),
-                        0 0 5px rgba(255, 255, 255, .75),
-                        0 0 10px rgba(210, 240, 255, .38);
                 }
 
                 .approved-global-header__badge {
@@ -1388,6 +1382,19 @@ export default function UniversalHeader({
                     color: #fff;
                     box-shadow: 0 2px 8px rgba(0,0,0,.72);
                     font: 800 11px/1 system-ui, sans-serif;
+                }
+
+                @media (max-width: 900px) {
+                    .approved-global-header__badge {
+                        top: 0;
+                        right: -2px;
+                        min-width: clamp(12px, 1.7vw, 18px);
+                        min-height: clamp(12px, 1.7vw, 18px);
+                        padding: 0 2px;
+                        border-width: 1px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,.72);
+                        font-size: clamp(7px, 1vw, 10px);
+                    }
                 }
 
                 @media (display-mode: standalone), (display-mode: fullscreen) {
@@ -1427,7 +1434,7 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
-            data-menu-symbol="command-grid"
+            data-menu-symbol="hamburger"
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()

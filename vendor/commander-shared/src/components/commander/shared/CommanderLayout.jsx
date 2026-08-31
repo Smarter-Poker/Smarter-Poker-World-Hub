@@ -853,8 +853,8 @@ export default function CommanderLayout({ children, title }) {
           overflow: hidden;
           contain: layout paint;
           isolation: isolate;
-          border: 1px solid rgba(0, 0, 0, .92);
-          border-radius: 0;
+          border: 0;
+          border-radius: 50%;
           background: #000;
         }
         .cmd-approved-header__wallet { left: 73.2%; width: 7.1%; }
@@ -868,17 +868,19 @@ export default function CommanderLayout({ children, title }) {
         .cmd-approved-header__notifications { left: 92.3%; width: 6.2%; }
         .cmd-approved-header__avatar-slot {
           position: absolute !important;
-          inset: 1px !important;
+          top: 50% !important;
+          left: 50% !important;
           z-index: 1;
           display: block;
-          width: auto;
+          width: 72%;
           height: auto;
-          aspect-ratio: auto;
-          transform: none !important;
+          aspect-ratio: 1;
+          transform: translate(-50%, -50%) !important;
           overflow: hidden;
-          border: 0;
-          border-radius: 0;
-          background: #000;
+          box-sizing: border-box;
+          border: 1px solid rgba(0, 0, 0, .94);
+          border-radius: 50%;
+          background: transparent;
           pointer-events: none;
         }
         .cmd-approved-header__avatar-slot > .cmd-approved-header__avatar {
@@ -891,9 +893,9 @@ export default function CommanderLayout({ children, title }) {
           aspect-ratio: auto !important;
           transform: none !important;
           border: 0 !important;
-          border-radius: 0 !important;
-          background: #000;
-          object-fit: contain !important;
+          border-radius: 50% !important;
+          background: transparent !important;
+          object-fit: cover !important;
           object-position: center !important;
           opacity: 1 !important;
           pointer-events: none;
@@ -905,13 +907,6 @@ export default function CommanderLayout({ children, title }) {
           z-index: 1;
           background: rgba(0, 0, 0, .42);
           pointer-events: none;
-        }
-        .cmd-approved-header__vip--active {
-          border-radius: 12%;
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, .92),
-            0 0 5px rgba(255, 255, 255, .75),
-            0 0 10px rgba(210, 240, 255, .38);
         }
         @media (display-mode: standalone), (display-mode: fullscreen) {
           .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }

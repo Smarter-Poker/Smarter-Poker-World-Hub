@@ -14,9 +14,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
-// Tiny list module on purpose — importing eggVerifiers.js here would pull 28
+// Tiny list module on purpose: importing eggVerifiers.js here would pull 28
 // server-side database queries into the client bundle just to print a count.
 import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
+import { marketplaceCopy } from '../../src/lib/store/marketplaceCopy';
 
 // God-Mode Stack
 import supabase from '../../src/lib/supabase';
@@ -31,6 +32,8 @@ import {
   clearCommerceRequestById,
   getOrCreateCommerceRequestId,
 } from '../../src/lib/store/checkoutIntentStore';
+import { reconcilePurchasedCart } from '../../src/lib/store/checkoutReconciliation';
+import useCartStore from '../../src/stores/cartStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import shellStyles from '../../src/components/diamond-store/DiamondStoreShell.module.css';
 
@@ -82,7 +85,7 @@ import {
   VIP_MEMBERSHIP,
   VIP_BENEFITS,
   MERCHANDISE,
-  // Diamond Rewards Standard v2 — every economy number below is derived from
+  // Diamond Rewards Standard v2: every economy number below is derived from
   // src/config/diamondRewards.js. Never re-type a cap or a count by hand.
   DAILY_CAP,
   MONTHLY_CAP,
@@ -129,6 +132,7 @@ const GEM = '\uD83D\uDC8E';
 export const STORE_TABS = ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'];
 const REWARD_TABS = ['overview', 'diamonds', 'eggs'];
 const CHECKOUT_STATUS_RETRY_DELAYS = [0, 1200, 2400, 4800];
+const CHECKOUT_STATUS_REQUEST_TIMEOUT_MS = 20000;
 const CLUB_CARD_PACKAGE_OPTIONS = [
   { packageId: 'micro', diamonds: 100, price: 1 },
   { packageId: 'small', diamonds: 500, price: 5 },
@@ -182,29 +186,29 @@ export const TAB_ROUTES = {
 
 // Five addresses means five tab titles and five meta descriptions. Without
 // this, all five routes would share "Diamond Store" and be indistinguishable in
-// the browser's tab strip — which is the exact problem opening them in separate
+// the browser's tab strip: which is the exact problem opening them in separate
 // routes are meant to solve.
 export const TAB_META = {
   diamonds: {
-    title: 'Diamond Store - Smarter.Poker',
+    title: 'Diamond Store: Smarter.Poker',
     description: 'Buy Diamonds To Unlock Premium Features Across Smarter.Poker And Club Arena.',
   },
   vip: {
-    title: 'VIP Membership - Smarter.Poker',
+    title: 'VIP Membership: Smarter.Poker',
     description:
       'Everything Included With VIP: Every Premium Day Pass, Higher Diamond Caps, 500 Bonus Diamonds A Month And The Full Club Arena Feature Set.',
   },
   merch: {
-    title: 'Merch Store - Smarter.Poker',
+    title: 'Merch Store: Smarter.Poker',
     description: 'Official Smarter.Poker Apparel, Card Protectors, Decks And Chip Sets.',
   },
   rewards: {
-    title: 'Smarter Rewards - Smarter.Poker',
+    title: 'Smarter Rewards: Smarter.Poker',
     description:
       'Every Way To Earn Diamonds, The Real Daily And Monthly Caps, And Every Hidden Achievement.',
   },
   'club-shop': {
-    title: 'Club Shop - Smarter.Poker',
+    title: 'Club Shop: Smarter.Poker',
     description: 'Spend Diamonds On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
   },
 };
@@ -394,14 +398,14 @@ export default function DiamondStorePage({ initialTab }) {
   // five tabs of component state. It stopped being correct the moment each tab
   // became its own address: `usePersistedFilters` hydrates from a localStorage
   // entry with a 30-DAY TTL, so a member who last looked at the VIP tab would
-  // open /hub/diamond-store and be shown VIP — under a tab titled "Diamond
+  // open /hub/diamond-store and be shown VIP: under a tab titled "Diamond
   // Store", with a diamond-store URL to share and diamond-store meta in the
   // head. The URL and the screen disagreed, and the URL was the one thing the
   // user actually chose.
   //
   // The route is now the single source of truth for which tab is shown. A
   // pre-existing `activeTab` key left in a browser's storage is simply never
-  // read again — no migration needed, it ages out on its own TTL.
+  // read again: no migration needed, it ages out on its own TTL.
   //
   // `rewardsSubTab` stays persisted: that is a sub-view WITHIN one page, it has
   // no URL of its own, and remembering it is the behaviour people want.
@@ -454,6 +458,9 @@ export default function DiamondStorePage({ initialTab }) {
   const [pendingSpend, setPendingSpend] = useState(null);
   const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
   const [checkoutReturn, setCheckoutReturn] = useState(null);
+  const [checkoutVerificationAttempt, setCheckoutVerificationAttempt] = useState(0);
+  const cartOwnerId = useCartStore((state) => state.ownerId);
+  const reconciledCheckoutSessionsRef = useRef(new Set());
 
   useEffect(() => {
     if (!router.isReady || activeTab !== 'vip') return;
@@ -543,7 +550,7 @@ export default function DiamondStorePage({ initialTab }) {
   // URL they can copy and share correctly.
   //
   // `router.replace` rather than `push` so the Back button returns to wherever
-  // they came from instead of bouncing off the redirect. No loop is possible —
+  // they came from instead of bouncing off the redirect. No loop is possible :
   // the destination renders with `initialTab` set, and this effect returns on
   // its first line when that is true.
   useEffect(() => {
@@ -599,7 +606,7 @@ export default function DiamondStorePage({ initialTab }) {
     let cancelled = false;
     let retryTimer = null;
     const controller = new AbortController();
-    setCheckoutReturn({ status: 'verifying' });
+    setCheckoutReturn({ status: 'verifying', sessionId: rawSession });
     // Remove the transport parameters before any network work so a Stripe
     // session reference never lingers in copied URLs, analytics, or referrers.
     clearCheckoutTransport();
@@ -607,6 +614,7 @@ export default function DiamondStorePage({ initialTab }) {
     if (!token) {
       setCheckoutReturn({
         status: 'failed',
+        sessionId: rawSession,
         message: 'Sign In To Verify This Checkout And View Its Receipt.',
       });
       return undefined;
@@ -627,18 +635,34 @@ export default function DiamondStorePage({ initialTab }) {
           if (cancelled || controller.signal.aborted) return;
 
           let response;
+          const requestController = new AbortController();
+          const abortRequest = () => requestController.abort();
+          controller.signal.addEventListener('abort', abortRequest, { once: true });
+          let requestTimedOut = false;
+          const requestTimer = window.setTimeout(() => {
+            requestTimedOut = true;
+            requestController.abort();
+          }, CHECKOUT_STATUS_REQUEST_TIMEOUT_MS);
           try {
             response = await fetch(
               `/api/store/checkout-status?session_id=${encodeURIComponent(rawSession)}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-                signal: controller.signal,
+                signal: requestController.signal,
               }
             );
           } catch (error) {
-            if (error?.name === 'AbortError' || cancelled) return;
+            if (cancelled || controller.signal.aborted) return;
+            if (error?.name === 'AbortError' && requestTimedOut) {
+              if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
+              throw new Error('Checkout Verification Timed Out. Try Verification Again.');
+            }
+            if (error?.name === 'AbortError') return;
             if (attempt < CHECKOUT_STATUS_RETRY_DELAYS.length - 1) continue;
             throw error;
+          } finally {
+            window.clearTimeout(requestTimer);
+            controller.signal.removeEventListener('abort', abortRequest);
           }
 
           const body = await response.json().catch(() => null);
@@ -647,13 +671,16 @@ export default function DiamondStorePage({ initialTab }) {
           }
           if (cancelled) return;
 
-          const status = body.data?.status === 'complete' ? 'complete' : 'pending';
+          const status = ['complete', 'failed'].includes(body.data?.status)
+            ? body.data.status
+            : 'pending';
           const needsRedemptionReview = body.data?.redemptionStatus === 'needs_review';
           setCheckoutReturn({
             status,
+            sessionId: rawSession,
             receipt: body.data,
             ...(needsRedemptionReview ? {
-              message: 'Your card payment and Diamonds are recorded, but the item was not purchased. Your Diamonds remain available-buy the item separately without paying by card again.',
+              message: 'Your Card Payment And Diamonds Are Recorded, But The Item Was Not Purchased. Your Diamonds Remain Available: Buy The Item Separately Without Paying By Card Again.',
             } : {}),
           });
           if (status === 'complete') {
@@ -677,7 +704,11 @@ export default function DiamondStorePage({ initialTab }) {
         }
       } catch (error) {
         if (cancelled) return;
-        setCheckoutReturn({ status: 'failed', message: error.message });
+        setCheckoutReturn({
+          status: 'failed',
+          sessionId: rawSession,
+          message: error.message,
+        });
         captureStoreEvent('checkout_verification_failed', { route: activeTab });
       }
     })();
@@ -693,6 +724,7 @@ export default function DiamondStorePage({ initialTab }) {
     router.query.canceled,
     router.query.session_id,
     router.query.success,
+    checkoutVerificationAttempt,
   ]);
 
   useEffect(() => {
@@ -708,6 +740,27 @@ export default function DiamondStorePage({ initialTab }) {
       });
     }
   }, [checkoutReturn?.receipt?.requestId, checkoutReturn?.status, user?.id]);
+
+  // A verified owner-scoped receipt is the only signal allowed to remove paid
+  // cart quantities. Exact server-resolved lines preserve anything added or
+  // increased while Stripe Checkout was open.
+  useEffect(() => {
+    if (checkoutReturn?.status !== 'complete' || !user?.id) return;
+    const sessionId = checkoutReturn.receipt?.sessionId;
+    const purchasedLines = checkoutReturn.receipt?.cartItems;
+    if (
+      !sessionId
+      || !Array.isArray(purchasedLines)
+      || purchasedLines.length === 0
+      || cartOwnerId !== user.id
+      || reconciledCheckoutSessionsRef.current.has(sessionId)
+    ) return;
+
+    const cartStore = useCartStore.getState();
+    const reconciled = reconcilePurchasedCart(cartStore.items, purchasedLines);
+    if (reconciled !== cartStore.items) cartStore.setItems(reconciled);
+    reconciledCheckoutSessionsRef.current.add(sessionId);
+  }, [cartOwnerId, checkoutReturn?.receipt, checkoutReturn?.status, user?.id]);
 
   // Clear any pending club-shop success-toast timer on unmount
   useEffect(
@@ -759,7 +812,7 @@ export default function DiamondStorePage({ initialTab }) {
       cancelled = true;
     };
   }, []);
-  // Realtime subscription — live updates (read actual VIP status from payload)
+  // Realtime subscription: live updates (read actual VIP status from payload)
   useEffect(() => {
     if (!user?.id) return;
     const _ch = supabase
@@ -791,7 +844,7 @@ export default function DiamondStorePage({ initialTab }) {
     };
   }, [user?.id]);
 
-  // Cross-tab diamond purchase sync — refresh balance when another tab purchases
+  // Cross-tab diamond purchase sync: refresh balance when another tab purchases
   useEffect(() => {
     let cancelled = false;
     const cleanup = listenBroadcast('smarter_poker_diamond_sync', () => {
@@ -884,7 +937,7 @@ export default function DiamondStorePage({ initialTab }) {
     }
   };
 
-  // VIP subscription — the daily pass is bought with diamonds, the monthly and
+  // VIP subscription: the daily pass is bought with diamonds, the monthly and
   // annual tiers go straight to a Stripe Checkout subscription session.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
@@ -961,7 +1014,7 @@ export default function DiamondStorePage({ initialTab }) {
           'X-Idempotency-Key': idempotencyKey,
         },
       });
-      // Parse the body FIRST — the API returns meaningful errors
+      // Parse the body FIRST: the API returns meaningful errors
       // ('Insufficient diamonds' + required/current) with a 400.
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -1062,7 +1115,7 @@ export default function DiamondStorePage({ initialTab }) {
   /**
    * Buy a MONTHLY or ANNUAL membership entirely in diamonds.
    *
-   * This path already existed end to end — pages/api/store/purchase-vip-with-
+   * This path already existed end to end: pages/api/store/purchase-vip-with-
    * diamonds.js derives the cost server-side from the USD price at 100
    * diamonds per dollar ($19.99 -> 1,999), is idempotent, and refuses the
    * daily plan because that has its own endpoint. Nothing on the VIP page ever
@@ -1098,7 +1151,7 @@ export default function DiamondStorePage({ initialTab }) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        // The API returns required/current on a shortfall — say the number
+        // The API returns required/current on a shortfall: say the number
         // rather than a bare failure the member cannot act on.
         const short =
           data?.required != null && data?.current != null
@@ -1200,7 +1253,7 @@ export default function DiamondStorePage({ initialTab }) {
     }
   };
 
-  // Merchandise checkout lives in src/components/store/MerchStore.jsx — it talks
+  // Merchandise checkout lives in src/components/store/MerchStore.jsx: it talks
   // to /api/store/create-checkout-session (card) and /api/store/purchase-with-diamonds
   // (diamonds) directly, so the page no longer needs a merch purchase handler.
 
@@ -1254,6 +1307,9 @@ export default function DiamondStorePage({ initialTab }) {
           (data.items || []).map((i) => ({
             ...i,
             club_id: targetClub,
+            name: marketplaceCopy(i.name),
+            description: marketplaceCopy(i.description),
+            category: marketplaceCopy(i.category),
             is_active: true,
             price: Number(i.price) || 0,
             purchase_count: i.purchase_count || 0,
@@ -1399,7 +1455,7 @@ export default function DiamondStorePage({ initialTab }) {
     loadClubShop(true);
   }, [activeTab, checkoutReturn?.status, loadClubShop]);
 
-  // ═══ Club Shop: Admin — load all items (active + hidden) ═══
+  // ═══ Club Shop: Admin: load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
     if (!clubShopClubId || clubShopAdminLoadingRef.current) return false;
     const requestClubId = clubShopClubId;
@@ -1613,8 +1669,8 @@ export default function DiamondStorePage({ initialTab }) {
         ? VIP_MEMBERSHIP.monthly
         : VIP_MEMBERSHIP.annual;
   const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
-    ? `Activate Daily VIP With Diamonds - ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
-    : `Subscribe - $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
+    ? `Activate Daily VIP With Diamonds: ${Number(selectedVIPPlan?.price || 0).toLocaleString()}`
+    : `Subscribe: $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
 
   return (
     <>
@@ -1718,7 +1774,11 @@ export default function DiamondStorePage({ initialTab }) {
           <UniversalHeader pageDepth={1} />
 
           <main className={`store-redesign-content ${shellStyles.root}`}>
-            <CheckoutStatusPanel state={checkoutReturn} onDismiss={() => setCheckoutReturn(null)} />
+            <CheckoutStatusPanel
+              state={checkoutReturn}
+              onDismiss={() => setCheckoutReturn(null)}
+              onRetry={() => setCheckoutVerificationAttempt((attempt) => attempt + 1)}
+            />
             <SmarterStoreShowcase
               activeTab={activeTab}
               packages={DIAMOND_PACKAGES}
@@ -1769,17 +1829,17 @@ export default function DiamondStorePage({ initialTab }) {
 
                     Restored 2026-08-26. `VIPCard` was imported and never
                     rendered, `handleVIPSubscribe` was defined and never called,
-                    and `vipSubscribeLabel` was computed and never read — so the
+                    and `vipSubscribeLabel` was computed and never read : so the
                     VIP page listed 23 benefits and 11 FAQs and then offered no
                     way whatsoever to become a member. Verified against the
                     deployed bundle before touching anything: "subscribe-button
-                    .png" and "Subscribe —" both returned 0 occurrences in
+                    .png" and "Subscribe :" both returned 0 occurrences in
                     production.
                    ═══════════════════════════════════════════════════════════ */}
 
                   {/* Current membership, when there is one. Without this the page
                     invites an existing member to "Subscribe" as though they had
-                    nothing — the single most likely way to take a second
+                    nothing : the single most likely way to take a second
                     payment from someone who already paid. */}
                   {isVip && (
                     <div
@@ -1802,7 +1862,7 @@ export default function DiamondStorePage({ initialTab }) {
                         <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
                           You Are Already A VIP Member
                           {vipTier
-                            ? ` - ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}`
+                            ? `: ${String(vipTier).replace(/^./, (c) => c.toUpperCase())}`
                             : ''}
                         </div>
                         <div style={{ color: '#B0B3B8', fontSize: 13, marginTop: 2 }}>
@@ -1886,7 +1946,7 @@ export default function DiamondStorePage({ initialTab }) {
                       }}
                     >
                       Saves ${Number(VIP_MEMBERSHIP.annual.savings).toFixed(2)} A Year Against
-                      Paying Monthly - About Two Months Free
+                      Paying Monthly: About Two Months Free
                     </div>
                   )}
 
@@ -1967,7 +2027,7 @@ export default function DiamondStorePage({ initialTab }) {
                     </div>
                   )}
 
-                  {/* Pay in diamonds — monthly and annual only. The daily plan is
+                  {/* Pay in diamonds: monthly and annual only. The daily plan is
                     already priced in diamonds and has its own endpoint. */}
                   {selectedVIPPlan && !selectedVIPPlan.isDiamondCost && (
                     <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 8 }}>
@@ -2022,7 +2082,7 @@ export default function DiamondStorePage({ initialTab }) {
                               }}
                             >
                               <Gem size={16} />
-                              Pay With Diamonds Instead - {Number(cost).toLocaleString()}
+                              Pay With Diamonds Instead: {Number(cost).toLocaleString()}
                             </button>
                             <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
                               {!known
@@ -2525,9 +2585,9 @@ export default function DiamondStorePage({ initialTab }) {
                               {' '}
                               Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
                             </strong>{' '}
-                            - Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
+                            With Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
                             {fmt(MONTHLY_CAP.vip)} {GEM} VIP. Share Streak Multipliers Help You
-                            Reach The Cap Faster - They Never Raise It.
+                            Reach The Cap Faster: They Never Raise It.
                           </p>
                         </div>
 
@@ -2650,7 +2710,7 @@ export default function DiamondStorePage({ initialTab }) {
                           <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                           <p style={styles.overviewCardText}>
                             Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across{' '}
-                            {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones -
+                            {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones:
                             Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
                             Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
                           </p>
@@ -2692,7 +2752,7 @@ export default function DiamondStorePage({ initialTab }) {
                     >
                       <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                       <p style={styles.introText}>
-                        All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker -{' '}
+                        All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker:{' '}
                         {STANDARD_REWARDS.length} Standard Rewards Plus {TOTAL_EASTER_EGGS} Hidden
                         Achievements
                       </p>
@@ -2725,7 +2785,7 @@ export default function DiamondStorePage({ initialTab }) {
                         </div>
                       </div>
                       <p style={styles.introText}>
-                        The Cap Is Measured After Your Share Streak Multiplier - Multipliers Help
+                        The Cap Is Measured After Your Share Streak Multiplier: Multipliers Help
                         You Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It.
                         Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month
                         Budget On Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = $
@@ -2774,7 +2834,7 @@ export default function DiamondStorePage({ initialTab }) {
                       </h2>
                       <p style={styles.introText}>
                         {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT}{' '}
-                        Categories - {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
+                        Categories: {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
                         Tracking Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On
                         Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays{' '}
                         {biggestEggValue()} {GEM}.
@@ -2977,7 +3037,7 @@ export default function DiamondStorePage({ initialTab }) {
               )}
 
               {/* ═══════════════════════════════════════════════════════════════════ */}
-              {/* CLUB SHOP TAB — Diamond-funded marketplace items from user's club */}
+              {/* CLUB SHOP TAB: Diamond-funded marketplace items from user's club */}
               {/* ═══════════════════════════════════════════════════════════════════ */}
               {activeTab === 'club-shop' && (
                 <>
@@ -3260,7 +3320,7 @@ export default function DiamondStorePage({ initialTab }) {
                       </span>
                     </h2>
                     <p style={styles.introText}>
-                      Purchase In-Game Items For Your Club With Diamonds - Time Banks, Table Skins,
+                      Purchase In-Game Items For Your Club With Diamonds: Time Banks, Table Skins,
                       Throwables, Emotes & More.
                     </p>
                   </div>
@@ -3292,7 +3352,7 @@ export default function DiamondStorePage({ initialTab }) {
                       }}
                     >
                       <AlertTriangle size={30} color="#FF6B6B" />
-                      <div>{clubShopError}</div>
+                      <div>{marketplaceCopy(clubShopError)}</div>
                       <button
                         type="button"
                         onClick={() => loadClubShop(false)}
@@ -4026,7 +4086,7 @@ export default function DiamondStorePage({ initialTab }) {
                                   aria-hidden="true"
                                   style={{ verticalAlign: 'middle', marginRight: 8 }}
                                 />
-                                {clubShopAdminError}
+                                {marketplaceCopy(clubShopAdminError)}
                               </span>
                               <button
                                 type="button"
@@ -4307,7 +4367,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 }
                                 setClubProcessing(true);
                                 try {
-                                  // Server-side admin CRUD (post-Phase-37 RLS lockdown — anon
+                                  // Server-side admin CRUD (post-Phase-37 RLS lockdown: anon
                                   // writes to club_shop_items now blocked by design).
                                   const token = getAccessToken();
                                   if (!token) throw new Error('Not authenticated');
@@ -4399,7 +4459,7 @@ export default function DiamondStorePage({ initialTab }) {
                                         fontSize: 14,
                                       }}
                                     >
-                                      {item.name}
+                                      {marketplaceCopy(item.name)}
                                     </div>
                                     <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
                                       {item.price.toLocaleString()} Diamonds •{' '}
@@ -4412,7 +4472,7 @@ export default function DiamondStorePage({ initialTab }) {
                                           color: 'rgba(255,255,255,0.4)',
                                         }}
                                       >
-                                        {item.category || 'Time Banks'}
+                                        {marketplaceCopy(item.category || 'Time Banks')}
                                       </span>{' '}
                                       • {item.net_purchase_count || 0} net sold •{' '}
                                       {fmt(item.revenue)} Diamonds burned
@@ -4614,7 +4674,7 @@ export default function DiamondStorePage({ initialTab }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES — imported from src/components/diamond-store/diamondStoreStyles.js
+// STYLES: imported from src/components/diamond-store/diamondStoreStyles.js
 // (single source of truth; the former inline duplicate was removed after being
 // verified byte-identical to the shared module)
 // ═══════════════════════════════════════════════════════════════════════════

@@ -26,7 +26,7 @@ const routes = [
   { path: '/hub/merch-store' },
   { path: '/hub/merch-store/hoodie-neural' },
   { path: '/hub/merch-store/fulfillment', marker: 'Fulfillment Command Vault' },
-  { path: '/hub/diamond-store/cart', marker: 'Shopping Cart — Diamond Store' },
+  { path: '/hub/diamond-store/cart', marker: 'Shopping Cart: Diamond Store' },
   { path: '/hub/diamond-store/orders', marker: 'Order History' },
   { path: '/hub/diamond-store/wishlist', marker: 'Wishlist' },
   { path: '/hub/diamond-store/orders/phase-11-proof?source=merchandise' },

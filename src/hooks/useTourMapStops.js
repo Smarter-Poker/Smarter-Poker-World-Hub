@@ -8,7 +8,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
 
         function parseStopDates(dateStr) {
             if (!dateStr) return null;
-            const parts = dateStr.split(/\s*[-–]\s*/);
+            const parts = dateStr.split(/\s*[--]\s*/);
             function parseOne(s, fallbackMonth) {
                 if (!s) return null;
                 s = s.trim().replace(',', '');

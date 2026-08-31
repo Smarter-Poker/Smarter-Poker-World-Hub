@@ -25,6 +25,7 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../../src/lib/store/checkoutIntentStore';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
@@ -45,12 +46,14 @@ export default function ShoppingCart() {
   useTrainingBus('diamond-store-cart');
 
   // Cart CONTENTS live in the shared zustand store (persist key
-  // 'smarter-poker-cart') — the same store the diamond-store page and the
+  // 'smarter-poker-cart'): the same store the diamond-store page and the
   // floating cart drawer use. Supabase user_preferences.diamond_cart is only
   // cross-device persistence: it hydrates this store on load and mirrors it
   // on change.
   const cart = useCartStore((state) => state.items);
   const setCartItems = useCartStore((state) => state.setItems);
+  const replaceCartFromServer = useCartStore((state) => state.replaceFromServer);
+  const markCartSynced = useCartStore((state) => state.markSynced);
   const storeUpdateQuantity = useCartStore((state) => state.updateQuantity);
   const storeRemoveItem = useCartStore((state) => state.removeItem);
   const storeClearCart = useCartStore((state) => state.clearCart);
@@ -66,13 +69,16 @@ export default function ShoppingCart() {
   const [pendingDiamondCheckout, setPendingDiamondCheckout] = useState(null);
 
   const hydratedRef = useRef(false);
-  // JSON of the last cart known to match Supabase — prevents mirror loops
+  // JSON of the last cart known to match Supabase: prevents mirror loops
   const lastSyncedRef = useRef(null);
-  // Timestamp of the last edit made in this tab — a realtime echo must not
+  // Timestamp of the last edit made in this tab: a realtime echo must not
   // stomp an edit the user just made here
   const lastLocalEditRef = useRef(0);
   const cartOwnerRef = useRef(null);
   const cartLoadRequestRef = useRef(0);
+  // Serialize preference writes so an older, slower request can never finish
+  // after a newer snapshot and leave the server with stale cart contents.
+  const cartWriteChainRef = useRef(Promise.resolve(true));
 
   const DIAMONDS_PER_DOLLAR = 100;
 
@@ -104,7 +110,7 @@ export default function ShoppingCart() {
       if (cartLoadRequestRef.current === requestId) cartLoadRequestRef.current += 1;
     };
   }, [authChecking, cartOwnerId, setCartOwner, user?.id]);
-  // Realtime subscription — live updates
+  // Realtime subscription: live updates
   useEffect(() => {
     if (!user?.id) return;
     const _ch = supabase
@@ -158,6 +164,7 @@ export default function ShoppingCart() {
 
   const applyRemoteCart = (remoteItems, ownerId, requestId) => {
     if (!isCurrentCartLoad(ownerId, requestId)) return;
+    if (useCartStore.getState().syncPending) return;
     const remoteJson = JSON.stringify(remoteItems);
     const currentItems = useCartStore.getState().items;
     if (remoteJson === JSON.stringify(currentItems)) {
@@ -169,7 +176,7 @@ export default function ShoppingCart() {
     // the mirror effect push them up rather than silently discarding them.
     if (!hydratedRef.current && currentItems.length > 0) return;
     lastSyncedRef.current = remoteJson;
-    setCartItems(remoteItems);
+    replaceCartFromServer(remoteItems);
   };
 
   const loadCart = async (signal, ownerId = user?.id || 'guest', requestId = cartLoadRequestRef.current) => {
@@ -177,17 +184,28 @@ export default function ShoppingCart() {
       // Cart contents come from the shared store; Supabase only hydrates it
       if (user?.id) {
         try {
-          const { data: prefData } = await supabase
+          const { data: prefData, error: preferenceError } = await supabase
             .from('user_preferences')
             .select('preferences')
             .eq('user_id', user.id)
             .maybeSingle();
+          if (preferenceError) throw preferenceError;
           const savedCart = prefData?.preferences?.diamond_cart;
           if (!isCurrentCartLoad(ownerId, requestId)) return;
           if (Array.isArray(savedCart)) {
-            applyRemoteCart(savedCart, ownerId, requestId);
+            if (useCartStore.getState().syncPending) {
+              const localItems = useCartStore.getState().items;
+              const saved = await saveCart(localItems);
+              if (!isCurrentCartLoad(ownerId, requestId)) return;
+              if (saved && JSON.stringify(useCartStore.getState().items) === JSON.stringify(localItems)) {
+                markCartSynced();
+                lastSyncedRef.current = JSON.stringify(localItems);
+              }
+            } else {
+              applyRemoteCart(savedCart, ownerId, requestId);
+            }
           } else if (!hydratedRef.current) {
-            // No server cart yet — seed it from the shared store, or from
+            // No server cart yet: seed it from the shared store, or from
             // the legacy standalone cart if the store is empty.
             const storeItems = useCartStore.getState().items;
             const seed = storeItems.length > 0 ? storeItems : readLegacyLocalCart();
@@ -197,6 +215,9 @@ export default function ShoppingCart() {
               const saved = await saveCart(seed);
               if (!isCurrentCartLoad(ownerId, requestId)) return;
               if (saved) {
+                if (JSON.stringify(useCartStore.getState().items) === JSON.stringify(seed)) {
+                  markCartSynced();
+                }
                 lastSyncedRef.current = JSON.stringify(seed);
                 localStorage.removeItem(LEGACY_CART_KEY);
               }
@@ -288,9 +309,15 @@ export default function ShoppingCart() {
     if (json === lastSyncedRef.current) return;
     lastSyncedRef.current = json;
     let cancelled = false;
+    const write = cartWriteChainRef.current
+      .catch(() => false)
+      .then(() => saveCart(cart));
+    cartWriteChainRef.current = write;
     (async () => {
-      const ok = await saveCart(cart);
-      if (!ok && !cancelled) {
+      const ok = await write;
+      if (ok && !cancelled && JSON.stringify(useCartStore.getState().items) === json) {
+        markCartSynced();
+      } else if (!ok && !cancelled) {
         // Let the next change retry instead of assuming the server matches
         lastSyncedRef.current = null;
         toast.error('Cart Could Not Be Saved On The Server');
@@ -299,7 +326,7 @@ export default function ShoppingCart() {
     return () => {
       cancelled = true;
     };
-  }, [cart, hydrated, user?.id]);
+  }, [cart, hydrated, markCartSynced, user?.id]);
 
   const updateQuantity = (itemId, newQuantity) => {
     lastLocalEditRef.current = Date.now();
@@ -322,7 +349,7 @@ export default function ShoppingCart() {
 
   // ═══ Cart grouping ═══
   // A Stripe checkout session is single-purpose: create-checkout-session.js
-  // handles ONE type per session — 'diamonds' (any number of packages, each
+  // handles ONE type per session: 'diamonds' (any number of packages, each
   // up to MAX_DIAMOND_QUANTITY_PER_PACKAGE), 'subscription' (a server-resolved
   // Stripe price ID), or 'merchandise' (catalog/merch rows).
   // Sending a diamond package down the merchandise path is rejected as
@@ -332,7 +359,7 @@ export default function ShoppingCart() {
   const vipItems = cart.filter((item) => item?.type === 'vip');
   const merchItems = cart.filter((item) => item?.type !== 'diamonds' && item?.type !== 'vip');
 
-  // Diamond packages can't be bought with diamonds — the purchase API only
+  // Diamond packages can't be bought with diamonds: the purchase API only
   // deducts diamonds (no grant happens outside the Stripe webhook), so this
   // path would charge the user and deliver nothing.
   const hasDiamondItems = diamondItems.length > 0;
@@ -419,7 +446,7 @@ export default function ShoppingCart() {
     if (cardGroup === 'diamonds') {
       // The store page adds diamond packages as `diamond-<packageId>`;
       // the server keys off the bare package id. Only the id and quantity
-      // are sent — every price/diamond figure is resolved server-side.
+      // are sent: every price/diamond figure is resolved server-side.
       const lineItems = [];
       for (const pkg of diamondItems) {
         const packageId = String(pkg?.packageId || pkg?.id || '').replace(/^diamond-/, '');
@@ -484,7 +511,7 @@ export default function ShoppingCart() {
       }
       throw new Error('Checkout Session Missing Redirect URL');
     } catch (err) {
-      // Stay on the cart so the user can retry — the button re-enables via finally
+      // Stay on the cart so the user can retry: the button re-enables via finally
       toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
     } finally {
       setCheckingOut(false);
@@ -561,7 +588,7 @@ export default function ShoppingCart() {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        // Prefer the server's own figures — the client estimate can differ
+        // Prefer the server's own figures: the client estimate can differ
         // from merchandise_items.price_diamonds
         const required = data?.details?.required;
         if (typeof required === 'number') {
@@ -612,7 +639,7 @@ export default function ShoppingCart() {
     return (
       <>
         <SEOHead
-          title="Shopping Cart - Diamond Store"
+          title="Shopping Cart: Diamond Store"
           description="View And Manage Items In Your Diamond Store Shopping Cart."
           canonical="/hub/diamond-store/cart"
           noindex={true}
@@ -633,7 +660,7 @@ export default function ShoppingCart() {
   return (
     <PageTransition>
       <SEOHead
-        title="Shopping Cart - Diamond Store"
+        title="Shopping Cart: Diamond Store"
         description="View And Manage Items In Your Diamond Store Shopping Cart."
         canonical="/hub/diamond-store/cart"
         noindex={true}
@@ -702,7 +729,7 @@ export default function ShoppingCart() {
                   <span>${getSubtotal().toFixed(2)}</span>
                 </div>
 
-                {/* Mixed cart — one purchase type per checkout session */}
+                {/* Mixed cart: one purchase type per checkout session */}
                 {!usingDiamonds && !cardGroup && (
                   <div style={styles.noticeBox}>
                     VIP memberships are purchased from the Diamond Store page, not from the cart.
@@ -742,7 +769,7 @@ export default function ShoppingCart() {
                     Payment Method
                   </p>
 
-                  {/* Pay with Diamonds Option — hidden when the cart holds diamond packages */}
+                  {/* Pay with Diamonds Option: hidden when the cart holds diamond packages */}
                   {!hasDiamondItems && (
                     <button
                       type="button"
@@ -994,6 +1021,7 @@ export default function ShoppingCart() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQuantity, onRemove }) {
+  const copyName = marketplaceCopy(name);
   return (
     <motion.div
       style={{ ...styles.cartItem, ...(isMobile ? styles.cartItemMobile : {}) }}
@@ -1005,7 +1033,7 @@ function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQu
       {image && (
         <img
           src={image}
-          alt={name}
+          alt={copyName}
           style={{ ...styles.itemImage, ...(isMobile ? styles.itemImageMobile : {}) }}
           loading="lazy"
           decoding="async"
@@ -1013,8 +1041,8 @@ function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQu
       )}
 
       <div style={styles.itemDetails}>
-        <h4 style={styles.itemName}>{name}</h4>
-        <p style={styles.itemType}>{type}</p>
+        <h4 style={styles.itemName}>{copyName}</h4>
+        <p style={styles.itemType}>{marketplaceCopy(type)}</p>
         <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
       </div>
 
@@ -1022,7 +1050,7 @@ function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQu
         <div style={styles.quantityControl}>
           <button
             type="button"
-            aria-label={`Decrease Quantity Of ${name}`}
+            aria-label={`Decrease Quantity Of ${copyName}`}
             onClick={() => onUpdateQuantity(quantity - 1)}
             style={styles.quantityButton}
           >
@@ -1033,7 +1061,7 @@ function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQu
           </output>
           <button
             type="button"
-            aria-label={`Increase Quantity Of ${name}`}
+            aria-label={`Increase Quantity Of ${copyName}`}
             onClick={() => onUpdateQuantity(quantity + 1)}
             style={styles.quantityButton}
           >

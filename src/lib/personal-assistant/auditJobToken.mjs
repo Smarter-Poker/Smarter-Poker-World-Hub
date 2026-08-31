@@ -37,8 +37,13 @@ export function openAuditJobToken(token, expectedPurpose) {
 }
 
 export function getAuditWorkerOrigin() {
+  // Vercel's per-deployment URL is protected by SSO even for production
+  // deployments. Server-to-server requests to VERCEL_URL therefore receive a
+  // platform 401 before our signed worker credential reaches middleware. Use
+  // the public production origin, which remains pinned to a READY deployment.
+  if (process.env.NODE_ENV === 'production') {
+    return (process.env.PA_PUBLIC_BASE_URL || 'https://smarter.poker').replace(/\/$/, '');
+  }
   if (process.env.PA_INTERNAL_BASE_URL) return process.env.PA_INTERNAL_BASE_URL.replace(/\/$/, '');
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.NODE_ENV !== 'production') return `http://127.0.0.1:${process.env.PORT || 3000}`;
-  return 'https://smarter.poker';
+  return `http://127.0.0.1:${process.env.PORT || 3000}`;
 }

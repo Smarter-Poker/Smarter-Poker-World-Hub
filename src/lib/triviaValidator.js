@@ -158,12 +158,12 @@ function checkSync(q) {
     const correctOption = q.options[q.correct_index];
     if (!correctOption) return ['SYNC-01: correct_index points to non-existent option'];
     const explanation = q.explanation.toLowerCase();
-    const correctAction = correctOption.toLowerCase().split(/[\s,—-]+/)[0];
+    const correctAction = correctOption.toLowerCase().split(/[\s,--]+/)[0];
     const actionWords = ['fold', 'call', 'raise', 'shove', 'check', 'bet', 'limp', 'yes', 'no'];
     if (actionWords.includes(correctAction)) {
         const wrongOptions = q.options.filter((_, i) => i !== q.correct_index);
         for (const wrongOpt of wrongOptions) {
-            const wrongAction = wrongOpt.toLowerCase().split(/[\s,—-]+/)[0];
+            const wrongAction = wrongOpt.toLowerCase().split(/[\s,--]+/)[0];
             if (actionWords.includes(wrongAction) && wrongAction !== correctAction) {
                 const correctCount = (explanation.match(new RegExp(`\\b${escapeRegex(correctAction)}\\b`, 'gi')) || []).length;
                 const wrongCount = (explanation.match(new RegExp(`\\b${escapeRegex(wrongAction)}\\b`, 'gi')) || []).length;

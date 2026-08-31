@@ -208,6 +208,36 @@ test('Club Arena live rows normalize stages, board, button and revealed hero car
   assert.equal(hand.streets.preflop.actions[1].isHero, true);
 });
 
+test('Club Arena solver identity uses starting stacks in big blinds and explicit format only', () => {
+  const base = {
+    id: 'stack-format-hand', game_variant: 'nlh', button_seat: 1,
+    hole_cards: { hero: ['As', 'Kh'] },
+    actions: [{ userId: 'hero', action: 'fold', stage: 'preflop', amount: 0 }],
+  };
+  const exact = normalizeClubArenaHand({
+    ...base,
+    summary: {
+      format: 'cash', bigBlind: 2, buttonSeat: 1,
+      players: [
+        { userId: 'hero', seat: 1, startStack: 200, endStack: 320 },
+        { userId: 'villain', seat: 2, startStack: 200, endStack: 80 },
+      ],
+    },
+  }, 'hero');
+  assert.equal(exact?.format, 'cash');
+  assert.equal(exact?.hero.stack, 100);
+
+  const unknown = normalizeClubArenaHand({
+    ...base,
+    players: [
+      { userId: 'hero', seat: 1, stack: 200 },
+      { userId: 'villain', seat: 2, stack: 200 },
+    ],
+  }, 'hero');
+  assert.equal(unknown?.format, null);
+  assert.equal(unknown?.hero.stack, null);
+});
+
 test('exact Club Arena matches are stamped with matcher v2 provenance', async () => {
   const result = await auditParsedHands(
     auditDb([cachedQuestion(solverQuestion())]),

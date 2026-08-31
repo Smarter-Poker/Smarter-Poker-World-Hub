@@ -16,9 +16,9 @@ import { BottomSheet, PAStyles, Segmented, Skeleton } from './paKit';
 
 const STREETS = ['Any', 'Preflop', 'Flop', 'Turn', 'River'];
 // Canonical position vocabulary (matches sandbox.js POSITIONS, LeakHeatmap and
-// the stored metadata->>hero_position values — 'EP' matches nothing).
+// the stored metadata->>hero_position values · 'EP' matches nothing).
 const POSITIONS = ['Any', 'UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
-// The custom-drill route clamps limit to 20 — offering 50 silently delivered 20.
+// The custom-drill route clamps limit to 20 · offering 50 silently delivered 20.
 const HAND_COUNTS = [5, 10, 20];
 const PROBE_LIMIT = 20;
 
@@ -124,7 +124,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                     options={HAND_COUNTS.map(c => ({ value: c, label: String(c) }))}
                 />
 
-                {/* Live match count — loading / ok / empty / error, never silent */}
+                {/* Live match count · loading / ok / empty / error, never silent */}
                 <div
                     aria-live="polite"
                     style={{
@@ -195,7 +195,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                You can still launch - the drill will tell you if nothing matches.
+                                You can still launch · the drill will tell you if nothing matches.
                             </p>
                             <button
                                 type="button"

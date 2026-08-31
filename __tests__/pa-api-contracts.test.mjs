@@ -42,6 +42,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizePersonalAssistantCopy } from '../src/lib/personal-assistant/copyPolicy.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API_ROOTS = ['pages/api/assistant', 'pages/api/sandbox'];
@@ -159,4 +160,27 @@ test('the exemption list stays honest (no stale entries)', () => {
     const stale = Object.keys(EXEMPT).filter(rel => !known.has(rel));
     assert.deepEqual(stale, [],
         `these exemptions name routes that no longer exist — delete them:\n  ${stale.join('\n  ')}`);
+});
+
+test('every Personal Assistant route installs the dynamic title-case and separator policy', () => {
+    const mark = '\u2014';
+    assert.equal(normalizePersonalAssistantCopy(mark), 'Not Available');
+    assert.equal(normalizePersonalAssistantCopy(`Ready ${mark} Run Audit`), 'Ready · Run Audit');
+
+    for (const rel of [
+        'pages/hub/personal-assistant/index.js',
+        'pages/hub/personal-assistant/sandbox.js',
+        'pages/hub/personal-assistant/leaks.js',
+        'pages/sandbox/[id].js',
+    ]) {
+        const route = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+        assert.match(route, /import PersonalAssistantCopyPolicy/);
+        assert.match(route, /<PersonalAssistantCopyPolicy\s*\/>/);
+    }
+
+    const policy = fs.readFileSync(path.join(ROOT, 'src/components/personal-assistant/PersonalAssistantCopyPolicy.js'), 'utf8');
+    assert.match(policy, /MutationObserver/);
+    assert.match(policy, /characterData: true/);
+    assert.match(policy, /attributeFilter: \['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'\]/);
+    assert.match(policy, /text-transform: capitalize !important/);
 });

@@ -171,7 +171,7 @@ export default function MerchProductDetail({ product }) {
     ? 'Available For Card Or Diamonds'
     : product.inStock === false
       ? 'Sold Out'
-      : 'Preview - Fulfillment Pending';
+      : 'Preview: Fulfillment Pending';
 
   const productSchema = {
     '@context': 'https://schema.org',

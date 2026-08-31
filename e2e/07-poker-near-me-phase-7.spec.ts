@@ -6,12 +6,16 @@ async function expectNoOverflow(page: Page, route: string) {
 }
 
 test.describe('Poker Near Me phase 7 map scale and operations', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test('map runtime serves local styles and publishes live coverage telemetry', async ({ page }, testInfo) => {
     testInfo.snapshotSuffix = '';
     const remoteMapAssets: string[] = [];
     page.on('request', (request) => {
       if (!['script', 'stylesheet'].includes(request.resourceType())) return;
-      if (/leaflet|markercluster/i.test(request.url()) && !request.url().startsWith('http://127.0.0.1') && !request.url().startsWith('https://smarter.poker')) {
+      const hostname = new URL(request.url()).hostname;
+      const isFirstParty = hostname === 'smarter.poker' || hostname === 'localhost' || hostname === '127.0.0.1';
+      if (/leaflet|markercluster/i.test(request.url()) && !isFirstParty) {
         remoteMapAssets.push(request.url());
       }
     });

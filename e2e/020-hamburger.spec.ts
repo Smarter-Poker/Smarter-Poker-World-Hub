@@ -21,6 +21,7 @@ type WorldCase = {
   label: string;
   path: string;
   accent: string;
+  expectedActiveHref?: string;
   primary: Array<{ href: string; label: string }>;
 };
 
@@ -109,7 +110,7 @@ const WORLDS: WorldCase[] = [
       ['/hub/diamond-arena/leaderboard', 'Ranks'],
       ['/hub/diamond-arena/stats', 'Stats'],
       ['/hub/diamond-arena/history', 'History'],
-      ['/hub/diamond-store?category=diamonds', 'Store'],
+      ['/hub/diamond-store', 'Store'],
     ]),
   },
   {
@@ -159,6 +160,7 @@ const WORLDS: WorldCase[] = [
     label: 'Bankroll Manager',
     path: '/hub/bankroll-manager',
     accent: '#f15aff',
+    expectedActiveHref: '/hub/bankroll-manager?view=dashboard',
     primary: items([
       ['/hub/bankroll-manager?view=dashboard', 'Summary'],
       ['/hub/bankroll-manager?view=log-session', 'Log'],
@@ -201,6 +203,7 @@ const WORLDS: WorldCase[] = [
     label: 'Poker Near Me',
     path: '/hub/poker-near-me',
     accent: '#f4f7fb',
+    expectedActiveHref: '/hub/poker-near-me/lobby',
     primary: items([
       ['/hub/poker-near-me/lobby', 'Nearby'],
       ['/hub/poker-near-me/venues', 'Venues'],
@@ -215,6 +218,7 @@ const WORLDS: WorldCase[] = [
     label: 'Marketplace',
     path: '/hub/marketplace',
     accent: '#ffd84a',
+    expectedActiveHref: '/hub/diamond-store',
     primary: items([
       ['/hub/marketplace', 'Market'],
       ['/hub/diamond-store', 'Diamonds'],
@@ -227,6 +231,18 @@ const WORLDS: WorldCase[] = [
 ];
 
 async function visitWorld(page: Page, world: WorldCase): Promise<void> {
+  await page.addInitScript(() => {
+    (window as Window & { __worldCommandClicks?: string[] }).__worldCommandClicks = [];
+    document.addEventListener('click', (event) => {
+      const target = event.target as Element | null;
+      const command = target?.closest?.('[data-command-target]');
+      if (!command) return;
+      event.preventDefault();
+      (window as Window & { __worldCommandClicks?: string[] }).__worldCommandClicks?.push(
+        command.getAttribute('data-command-target') || ''
+      );
+    }, true);
+  });
   if (world.id === 'news') {
     await page.addInitScript(() => window.sessionStorage.setItem('news-intro-seen', 'true'));
   }
@@ -275,6 +291,13 @@ for (const world of WORLDS) {
       await expect(tile).toContainText(label);
     }
 
+    const activeHref = world.expectedActiveHref || world.primary[0].href;
+    await expect(primaryDeck.locator('.sp-grid-tile[aria-current="page"]')).toHaveCount(1);
+    await expect(primaryDeck.locator(`.sp-grid-tile[href="${activeHref}"]`)).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+
     // The trigger and drawer use a six-node command grid. The legacy three-bar
     // mark and its retired image assets must never appear in the live DOM.
     if ((await trigger.getAttribute('data-world-menu-trigger')) === 'route-fallback') {
@@ -284,6 +307,7 @@ for (const world of WORLDS) {
     await expect(page.locator('img[src*="hamburger" i], img[src*="btn-hamburger" i]')).toHaveCount(
       0
     );
+    await expect(page.locator('svg[data-lucide="menu"], [data-menu-symbol="three-bars"]')).toHaveCount(0);
 
     await expect
       .poll(async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)))
@@ -322,6 +346,26 @@ for (const world of WORLDS) {
       expect(socialChrome.background).toContain('rgb(255, 255, 255)');
       expect(socialChrome.title).toBe('rgb(5, 5, 5)');
     }
+
+    // Exercise every command's real React activation path without leaving the
+    // world. A capture listener cancels only the browser's default navigation;
+    // the component handler still records the command and closes the drawer.
+    for (const [index, destination] of world.primary.entries()) {
+      const command = primaryDeck.locator(`.sp-grid-tile[href="${destination.href}"]`);
+      await command.click();
+      await expect(dialog).toBeHidden();
+      const captured = await page.evaluate(() =>
+        (window as Window & { __worldCommandClicks?: string[] }).__worldCommandClicks || []
+      );
+      expect(captured.at(-1)).toBe(destination.href);
+      if (index < world.primary.length - 1) {
+        await trigger.click();
+        await expect(dialog).toBeVisible();
+      }
+    }
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();

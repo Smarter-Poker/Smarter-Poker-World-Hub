@@ -7,8 +7,8 @@
  *     equity yet we show a prompt, never an invented "55.0%" in the same badge
  *     treatment as a real figure.
  *  2. It is a flex COLUMN, so it fits whatever height the parent gives it
- *     (sandbox.js mounts it in a 220px box; the old absolute offsets — texture
- *     at 50% + 100px, hero tag at bottom:120 — were clipped there).
+ *     (sandbox.js mounts it in a 220px box; the old absolute offsets · texture
+ *     at 50% + 100px, hero tag at bottom:120 · were clipped there).
  *  3. Per-seat equity only renders when per-seat equity actually exists;
  *     otherwise a single honest "Hero vs field" figure.
  */
@@ -48,7 +48,7 @@ function normalizeEquity(equity) {
 }
 
 /**
- * Suit texture is a FLOP property — `suitCount === cards.length` can never be
+ * Suit texture is a FLOP property · `suitCount === cards.length` can never be
  * true once there are 4+ cards, which used to label every turn "Mixed".
  */
 function describeTexture(cards) {

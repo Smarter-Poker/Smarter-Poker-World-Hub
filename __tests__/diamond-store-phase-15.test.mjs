@@ -87,8 +87,8 @@ test('card settlement, webhook leases, refunds, and card-funded redemption are d
   assert.doesNotMatch(clubPage, /smarter_poker_pending_club_detail_card_purchase/);
   assert.doesNotMatch(storePage, /smarter_poker_pending_club_card_purchase/);
   assert.doesNotMatch(storePage, /smarter_poker_pending_daily_vip_card/);
-  assert.match(storePage, /item was not purchased/);
-  assert.match(clubPage, /item was not purchased/);
+  assert.match(storePage, /Item Was Not Purchased/i);
+  assert.match(clubPage, /Item Was Not Purchased/i);
   assert.match(webhook, /reconcile_card_merch_refund_atomic/);
   assert.doesNotMatch(webhook, /STOCK NOT RETURNED/);
   assert.match(webhook, /checkout\.sessions\.list\(\{ payment_intent/);
@@ -111,7 +111,10 @@ test('cart ownership, current variant price, and balance broadcasts survive relo
     read('src/hooks/useDiamondBalance.js'),
   ]);
   assert.match(cartStore, /ownerId: 'guest'/);
-  assert.match(cartStore, /partialize: \(state\) => \(\{ items: state\.items, ownerId: state\.ownerId \}\)/);
+  assert.match(
+    cartStore,
+    /partialize: \(state\) => \(\{[\s\S]*items: state\.items,[\s\S]*ownerId: state\.ownerId,[\s\S]*syncPending: state\.syncPending/
+  );
   assert.match(cartPage, /cartLoadRequestRef/);
   assert.match(cartPage, /isCurrentCartLoad/);
   assert.match(merchStore, /variant\?\.priceUsd, product\.priceUsd/);

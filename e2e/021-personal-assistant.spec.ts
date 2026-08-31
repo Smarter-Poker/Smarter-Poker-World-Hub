@@ -36,6 +36,35 @@ async function expectAccessibleMain(page: Page) {
   expect(audit).toEqual({ unnamed: 0, undersized: 0, imagesWithoutAlt: 0, duplicateIds: 0 });
 }
 
+async function expectPersonalAssistantCopyPolicy(page: Page) {
+  await expect.poll(() => page.evaluate(() => document.body.classList.contains('pa-copy-policy'))).toBe(true);
+  const audit = await page.evaluate(() => {
+    const mark = String.fromCharCode(0x2014);
+    const attributes = ['alt', 'aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'placeholder', 'title', 'data-tooltip'];
+    const attributeViolations = [...document.querySelectorAll('*')].filter(element =>
+      attributes.some(name => element.getAttribute(name)?.includes(mark))
+    ).length;
+    const sentenceCaseAttributes = [...document.querySelectorAll('*')].filter(element =>
+      attributes.some(name => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(element.getAttribute(name) || ''))
+    ).length;
+    const transformViolations = [...document.querySelectorAll('main *')].filter(element => {
+      const directText = [...element.childNodes]
+        .filter(node => node.nodeType === Node.TEXT_NODE)
+        .some(node => node.textContent?.trim());
+      return directText && window.getComputedStyle(element).textTransform !== 'capitalize';
+    }).length;
+    return {
+      bodyTransform: window.getComputedStyle(document.body).textTransform,
+      titleViolations: document.title.includes(mark) ? 1 : 0,
+      textViolations: (document.body.innerText.match(new RegExp(mark, 'g')) || []).length,
+      attributeViolations,
+      sentenceCaseAttributes,
+      transformViolations,
+    };
+  });
+  expect(audit).toEqual({ bodyTransform: 'capitalize', titleViolations: 0, textViolations: 0, attributeViolations: 0, sentenceCaseAttributes: 0, transformViolations: 0 });
+}
+
 test.describe('Personal Assistant primary and secondary surfaces', () => {
   test.beforeEach(async ({ page }) => {
     // This suite validates PA controls, not the unrelated one-time push opt-in.
@@ -65,10 +94,12 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       '/hub/personal-assistant',
       '/hub/personal-assistant/sandbox',
       '/hub/personal-assistant/leaks',
+      '/sandbox/zzzz',
     ]) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('main')).toBeVisible();
       await expectAccessibleMain(page);
+      await expectPersonalAssistantCopyPolicy(page);
       await expectHealthyLayout(page);
     }
   });
@@ -107,10 +138,11 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       }),
     }));
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
-    await expect(page.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
-    await expect(page.getByText('BTN · Pot 6 BB')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
+    const dailySection = page.locator('section[aria-labelledby="daily-title"]');
+    await expect(dailySection.getByRole('heading', { name: 'Hand Of The Day' })).toBeVisible();
+    await expect(dailySection.getByText('You Hold T9s On The Flop. What Is The GTO Play?')).toBeVisible();
+    await expect(dailySection.getByText('BTN · Pot 6 BB')).toBeVisible();
+    await expect(dailySection.getByRole('button', { name: /Load In Sandbox/i })).toBeVisible();
     await expectHealthyLayout(page);
   });
 
@@ -265,7 +297,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     }));
 
     await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /Button Open Frequency.*Open details/i }).click();
+    await page.getByRole('button', { name: /^Button Open Frequency\..*Open details/i }).click();
     const details = page.getByRole('dialog', { name: 'Leak details: Button Open Frequency' });
     await expect(details).toBeVisible();
     await expect(details.getByRole('heading', { name: 'How To Fix It' })).toBeVisible();
@@ -305,7 +337,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       reconciliation: status === 'completed' ? { consistent: true, checkedAt: '2026-08-31T12:00:00.000Z', persistedDecisions: 30 } : null,
       result: status === 'completed' ? { success: true, persisted: true, handsAnalyzed: 550, leaksDetected: 2, leaks: [] } : null,
     });
-    await page.route('**/api/assistant/leaks/audit-jobs', async route => {
+    await page.route(/\/api\/assistant\/leaks\/audit-jobs(?:\?.*)?$/, async route => {
       if (route.request().method() === 'POST') {
         started = true;
         return route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ success: true, accepted: true, job: job('running', 400) }) });

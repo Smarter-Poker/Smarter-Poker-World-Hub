@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { authedFetch, ensureAuthReady, getAuthUser } from '../../lib/authUtils';
 import supabase from '../../lib/supabase';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './RewardTelemetryConsole.module.css';
 
 const EMPTY_PROGRESS = {
@@ -99,7 +100,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
         <div>
           <span className={styles.kicker}><Activity size={15} aria-hidden="true" /> Live Account Signal</span>
           <h2 id="reward-telemetry-title">Verified Reward Telemetry</h2>
-          <p>Your server-owned earning caps, streak, and multiplier-read directly from the diamond ledger.</p>
+          <p>Your Server-Owned Earning Caps, Streak, And Multiplier: Read Directly From The Diamond Ledger.</p>
         </div>
         <span className={styles.integrityBadge}><ShieldCheck size={16} aria-hidden="true" /> Ledger Verified</span>
       </div>
@@ -115,7 +116,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
           <Sparkles size={23} aria-hidden="true" />
           <div>
             <strong>Connect Your Diamond Ledger</strong>
-            <p>Sign in to see your real cap usage, login streak, and multiplier for {reward.name}.</p>
+            <p>Sign In To See Your Real Cap Usage, Login Streak, And Multiplier For {marketplaceCopy(reward.name)}.</p>
             <Link href={loginHref}>Sign In To View My Telemetry</Link>
           </div>
         </div>
@@ -126,7 +127,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
           <Gauge size={23} aria-hidden="true" />
           <div>
             <strong>Telemetry Link Interrupted</strong>
-            <p>{state.message}</p>
+            <p>{marketplaceCopy(state.message)}</p>
             <button type="button" onClick={loadProgress}><RefreshCw size={15} aria-hidden="true" /> Retry Secure Read</button>
           </div>
         </div>

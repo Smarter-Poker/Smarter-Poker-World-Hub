@@ -5,7 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../../src/components/store/MarketplaceDetailExperience.module.css';
+import { marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
 import { authedFetch, useRequireAuth } from '../../../../src/lib/authUtils';
+
+const MARKETPLACE_RECEIPT_TIMEOUT_MS = 20000;
 
 export const ORDER_SOURCES = Object.freeze({
   diamonds: true,
@@ -46,6 +49,7 @@ export default function MarketplaceReceiptPage() {
   const { user, checking } = useRequireAuth(authReturnPath);
   const [loadedRecord, setRecord] = useState(null);
   const [state, setState] = useState({ kind: 'loading', message: 'Reading verified commerce record…' });
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const requestRef = useRef(0);
   // Effects run after paint. Route-key the rendered record as well as aborting
   // requests so receipt A can never flash under receipt B's URL for one frame.
@@ -61,10 +65,15 @@ export default function MarketplaceReceiptPage() {
     setRecord(null);
     if (!router.isReady || checking || !user?.id) return;
     if (!rawOrderId || !source) {
-      setState({ kind: 'error', message: 'This receipt link is missing a valid order type.' });
+      setState({ kind: 'invalid', message: 'This Receipt Link Is Missing A Valid Order Type.' });
       return;
     }
     const controller = new AbortController();
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, MARKETPLACE_RECEIPT_TIMEOUT_MS);
     setState({ kind: 'loading', message: 'Reading verified commerce record…' });
     authedFetch(
       `/api/store/order-ledger?source=${encodeURIComponent(source)}&id=${encodeURIComponent(rawOrderId)}`,
@@ -72,7 +81,11 @@ export default function MarketplaceReceiptPage() {
     )
       .then(async (response) => {
         const payload = await response.json().catch(() => null);
-        if (controller.signal.aborted || requestId !== requestRef.current) return;
+        if (requestId !== requestRef.current) return;
+        if (controller.signal.aborted) {
+          if (timedOut) throw new Error('Receipt verification timed out');
+          return;
+        }
         if (response.status === 404) {
           setRecord(null);
           setState({ kind: 'missing', message: 'No order matching this private receipt was found.' });
@@ -90,22 +103,23 @@ export default function MarketplaceReceiptPage() {
         setState({ kind: 'ready', message: 'Verified server-owned commerce record.' });
       })
       .catch((error) => {
-        if (
-          error?.name === 'AbortError' ||
-          controller.signal.aborted ||
-          requestId !== requestRef.current
-        ) return;
+        if (requestId !== requestRef.current) return;
+        if (error?.name === 'AbortError' && !timedOut) return;
         setRecord(null);
         setState({
           kind: 'error',
-          message: 'The receipt could not be loaded. Try again from Order History.',
+          message: timedOut
+            ? 'Receipt Verification Timed Out. Try Again.'
+            : 'The Receipt Could Not Be Loaded. Try Again From Order History.',
         });
-      });
+      })
+      .finally(() => window.clearTimeout(timeout));
     return () => {
+      window.clearTimeout(timeout);
       requestRef.current += 1;
       controller.abort();
     };
-  }, [checking, rawOrderId, router.isReady, source, user?.id]);
+  }, [checking, rawOrderId, retryAttempt, router.isReady, source, user?.id]);
 
   const timeline = useMemo(() => {
     if (!record) return [];
@@ -176,13 +190,27 @@ export default function MarketplaceReceiptPage() {
       noindex
       commerceActive="orders"
     >
-      <div role="status" aria-live="polite" className={detailStyles.detailCard}>
+      <div
+        role={state.kind === 'error' ? 'alert' : 'status'}
+        aria-live={state.kind === 'error' ? 'assertive' : 'polite'}
+        aria-busy={state.kind === 'loading'}
+        className={detailStyles.detailCard}
+      >
         <h2>
           <ReceiptText size={22} aria-hidden="true" />
           {isMembershipStatus ? ' Membership Verification' : ' Receipt Verification'}
         </h2>
-        <p>{state.message}</p>
+        <p>{marketplaceCopy(state.message)}</p>
         <p>{isMembershipStatus ? 'Membership Record' : 'Receipt'} ID: <strong>{orderLabel}</strong></p>
+        {state.kind === 'error' && (
+          <button
+            type="button"
+            onClick={() => setRetryAttempt((attempt) => attempt + 1)}
+            style={receiptStyles.retryButton}
+          >
+            Retry Receipt Verification
+          </button>
+        )}
       </div>
 
       {record && (
@@ -194,7 +222,7 @@ export default function MarketplaceReceiptPage() {
                 {(record.items || []).map((item, index) => (
                   <div key={`${item.name}-${index}`} style={receiptStyles.line}>
                     <span>
-                      <strong>{item.name}</strong>
+                      <strong>{marketplaceCopy(item.name)}</strong>
                       {item.option && <small style={receiptStyles.option}>{item.option}</small>}
                     </span>
                     <span>x{item.quantity}</span>
@@ -300,5 +328,16 @@ const receiptStyles = {
     border: '1px solid #8ed9eb',
     color: '#dff9ff',
     textDecoration: 'none',
+  },
+  retryButton: {
+    minHeight: 44,
+    marginTop: 12,
+    padding: '0 16px',
+    border: '1px solid #8ed9eb',
+    borderRadius: 0,
+    background: 'linear-gradient(180deg, #1b7692, #04121b 34%, #0d4256)',
+    color: '#f3fcff',
+    fontWeight: 700,
+    cursor: 'pointer',
   },
 };

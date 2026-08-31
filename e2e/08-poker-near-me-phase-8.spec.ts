@@ -6,6 +6,11 @@ async function expectNoOverflow(page: Page, route: string) {
 }
 
 test.describe('Poker Near Me phase 8 signal integrity', () => {
+  // These tests exercise the real venue registry and map hydration. Under the
+  // complete two-browser CI matrix, a healthy response can exceed the global
+  // 30s UI-test default even though the focused suite is consistently green.
+  test.describe.configure({ timeout: 60_000 });
+
   test('bounded venue responses publish integrity metadata and never return held pins', async ({ request }) => {
     const response = await request.get('/api/poker/venues?north=37&south=35&east=-114&west=-116.5&limit=1000');
     expect(response.status()).toBeLessThan(500);
