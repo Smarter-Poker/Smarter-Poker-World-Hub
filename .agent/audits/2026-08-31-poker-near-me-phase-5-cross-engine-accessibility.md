@@ -40,10 +40,13 @@ Repository policy intentionally skips Vercel previews for `agent/*` branches bec
 
 ## Production evidence
 
-- PR #1141 squash-merged as `24cae9ed`; the current production main revision contains that merge.
-- Vercel deployment `dpl_neTxaecVeVMWQgijKmWY2YiJ2TJq` is Ready, targets production, cloned main revision `4961ccc`, and owns the `smarter.poker` alias.
-- The unified live Phase 17 matrix passed 14/14 applicable Chromium, mobile Chrome, desktop WebKit, and iPhone WebKit checks; the two forced-colors cases are intentionally skipped outside Chromium.
+- Core Phase 5 merged in PR #1141 as `24cae9ed`; PR #1150 merged the permanent Safari/WebKit production harness as `e0373dd940`; PR #1153 merged the continuous mobile command-frame correction as `e9e0b1ccfa`.
+- PR #1154 merged the matching Title Case copy contracts as `b262854cdf`. PR #1155 merged the updated Club Arena footer geometry contract as `00507177f4`, removing the only deterministic repository-wide E2E failure exposed during closeout.
+- Vercel deployment `dpl_EF7LQV2aoDGE1sCSqtfuQ7KKDvA8` is Ready, targets production, cloned main revision `7002d6f`, and owns the `smarter.poker` alias.
+- The final unified live Phase 17 matrix passed 18/18 applicable checks across Chromium, mobile Chrome, desktop WebKit, and iPhone WebKit; the two forced-colors cases are intentionally skipped in WebKit, which does not expose Chromium's forced-colors emulation.
+- The full Global Footer E2E workflow passed all 14 Chromium/WebKit route and geometry checks after its shipped Club Arena `clamp(44px, 13.72vw, 132px)` token was synchronized with the test contract.
 - Production desktop 1440×1000 and mobile 390×844 audits each found one main landmark, the correct heading/selected route, zero horizontal overflow, and 44-pixel tab targets.
 - A live mobile Events → Map → browser Back journey restored `/daily-tournaments`, selected Events, and the assistive route announcement without a reload.
 - Visual inspection confirmed the black-first rendered environment, precision chrome framing, restrained blue energy, readable venue imagery, clean desktop composition, and two-column mobile card geometry remain intact.
 - A second exact 390×844 WebKit visual audit verified the closed header trigger and open command menu: every trigger, utility control, section selector, and selected destination has an unbroken contained frame, with zero horizontal overflow.
+- Final production geometry measured the header focus ring five pixels inside the artwork, the selected command tile at one continuous `rgb(72, 199, 255)` pixel with a three-pixel radius and no decorative pseudo-element, and the settled drawer at `left: 0`, `right: 390`, with zero horizontal overflow.
