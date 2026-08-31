@@ -852,24 +852,28 @@ function AuditReceipt({ result }) {
   const sync = result.clubArenaSync || {};
   const progress = result.auditProgress || {};
   const coverage = result.evidenceCoverage || {};
+  const job = result.auditJob || {};
+  const reconciliation = result.reconciliation || job.reconciliation || {};
   const sources = result.evidenceSources || {};
-  const audited = num(coverage.auditedThisRun);
-  const verified = num(coverage.verifiedThisRun);
+  const audited = num(progress.decisionsAnalyzed ?? coverage.auditedThisRun);
+  const verified = num(progress.solverVerified ?? coverage.verifiedThisRun);
   const verificationLabel = audited > 0
     ? `${verified} / ${audited}`
     : `${num(coverage.verifiedDecisions).toLocaleString()} Total`;
   const cells = [
     ['Club Hands Scanned', num(progress.handsScanned ?? sync.handsFound).toLocaleString()],
-    ['Eligible Hands', num(sync.handsEligible).toLocaleString()],
-    ['Private Hands Recovered', num(sync.privateCardsRecovered).toLocaleString()],
-    ['Missing Private Cards', num(sync.handsMissingPrivateCards).toLocaleString()],
-    ['No Hero Decision', num(sync.handsSkippedNoHeroDecisions).toLocaleString()],
+    ['Eligible Hands', num(progress.handsEligible ?? sync.handsEligible).toLocaleString()],
+    ['Private Hands Recovered', num(progress.privateCardsRecovered ?? sync.privateCardsRecovered).toLocaleString()],
+    ['Missing Private Cards', num(progress.handsMissingPrivateCards ?? sync.handsMissingPrivateCards).toLocaleString()],
+    ['No Hero Decision', num(progress.handsSkippedNoHeroDecisions ?? sync.handsSkippedNoHeroDecisions).toLocaleString()],
     ['Audited This Run', num(progress.handsAudited ?? sync.handsAudited).toLocaleString()],
-    ['Already Current', num(sync.handsAlreadyCurrent).toLocaleString()],
-    ['Retried For Coverage', num(sync.handsQueuedForRetry).toLocaleString()],
+    ['Already Current', num(progress.handsAlreadyCurrent ?? sync.handsAlreadyCurrent).toLocaleString()],
+    ['Retried For Coverage', num(progress.handsQueuedForRetry ?? sync.handsQueuedForRetry).toLocaleString()],
     ['Verified Decisions', verificationLabel],
-    ['Unpriced Decisions', num(coverage.unpricedThisRun).toLocaleString()],
+    ['Unpriced Decisions', num(progress.unpriced ?? coverage.unpricedThisRun).toLocaleString()],
     ['Leaks Found', num(result.leaksDetected).toLocaleString()],
+    ['Batches Saved', num(progress.batchesCompleted).toLocaleString()],
+    ['Server Processing', progress.totalProcessingMs ? `${(num(progress.totalProcessingMs) / 1000).toFixed(1)}s` : '—'],
   ];
 
   return (
@@ -883,7 +887,11 @@ function AuditReceipt({ result }) {
         <span>
           <strong id="audit-receipt-title">Deterministic Audit Receipt</strong>
           <span>
-            {sync.available === false
+            {job.status === 'queued' || job.status === 'running'
+              ? `Server Audit ${String(job.stage || 'running').replaceAll('_', ' ')}. This Checkpoint Is Safe Across Reloads And Devices.`
+              : job.status === 'failed'
+                ? 'The Audit Stopped Safely. Restarting Will Resume From Its Saved Checkpoint.'
+              : sync.available === false
               ? 'Club Arena Could Not Be Read During This Scan.'
               : sync.persisted === false
                 ? 'The Hand Audit Completed, But Its Decision Evidence Could Not Be Saved.'
@@ -909,6 +917,16 @@ function AuditReceipt({ result }) {
         <span data-ready={sources.handAudit === true}>Hand Audit Store</span>
         <span data-ready={sources.clubArena === true}>Club Arena</span>
       </div>
+      {progress.coverage && (
+        <p className={toolStyles.auditReceiptNote}>
+          Coverage Funnel · {num(progress.coverage.scanned).toLocaleString()} Scanned → {num(progress.coverage.eligible).toLocaleString()} Eligible → {num(progress.coverage.privateCardsAvailable).toLocaleString()} Private Cards Available → {num(progress.coverage.heroDecisions).toLocaleString()} Hero Decisions → {num(progress.coverage.exactSolverMatches).toLocaleString()} Exact Solver Matches → {num(progress.coverage.unpriced).toLocaleString()} Unpriced → {num(progress.coverage.leaks).toLocaleString()} Leaks
+        </p>
+      )}
+      {reconciliation.checkedAt && (
+        <p className={toolStyles.auditReceiptNote} data-tone={reconciliation.consistent ? 'success' : 'warn'}>
+          Reconciliation {reconciliation.consistent ? 'Passed' : 'Needs Review'} · {num(reconciliation.persistedDecisions).toLocaleString()} Persisted Decisions · Last Checked {new Date(reconciliation.checkedAt).toLocaleString()}
+        </p>
+      )}
       {num(coverage.unpricedThisRun) > 0 && (
         <p className={toolStyles.auditReceiptNote}>
           Unpriced Decisions Stay Excluded From EV Claims And Will Be Retried After The Solver Cache Refresh Window.
@@ -1520,7 +1538,7 @@ export default function LeakFinderPage() {
     userId,
     ready: !authInitializing,
   });
-  const { runDetection, isDetecting, detectionResult, detectionProgress } = useLeakDetection();
+  const { runDetection, isDetecting, detectionResult, detectionProgress, auditJob, error: detectionError } = useLeakDetection();
 
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
   const leaks = useMemo(
@@ -1692,6 +1710,22 @@ export default function LeakFinderPage() {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
     }
   }, [runDetection]);
+
+  const announcedAuditRef = useRef(null);
+  useEffect(() => {
+    if (!auditJob?.id || announcedAuditRef.current === `${auditJob.id}:${auditJob.status}`) return;
+    if (auditJob.status === 'completed' && detectionResult) {
+      announcedAuditRef.current = `${auditJob.id}:${auditJob.status}`;
+      const found = num(detectionResult.leaksDetected);
+      setDetectionSummary({
+        type: detectionResult.partial ? 'info' : 'success',
+        text: `Durable Audit Complete · ${num(auditJob.progress?.handsScanned).toLocaleString()} Hands Scanned · ${num(auditJob.progress?.decisionsAnalyzed).toLocaleString()} Decisions Checked · ${found} Leak${found === 1 ? '' : 's'} Found.`,
+      });
+    } else if (auditJob.status === 'failed') {
+      announcedAuditRef.current = `${auditJob.id}:${auditJob.status}`;
+      setDetectionSummary({ type: 'error', text: friendlyDetectionError(auditJob.error?.message || detectionError) });
+    }
+  }, [auditJob, detectionError, detectionResult]);
 
   // ─── First-visit auto-detection ──────────────────────────────────────────
   //
@@ -2155,8 +2189,8 @@ export default function LeakFinderPage() {
     >
       <Activity size={18} strokeWidth={2} aria-hidden="true" />
       {isDetecting
-        ? `Auditing${detectionProgress?.batchesCompleted ? ` · Batch ${detectionProgress.batchesCompleted + 1}` : '…'}`
-        : detectionResult?.clubArenaSync?.auditCursor ? 'Continue Leak Audit' : 'Run Leak Detection'}
+        ? `Auditing${detectionProgress?.batchesCompleted ? ` · ${detectionProgress.batchesCompleted} Batches Saved` : '…'}`
+        : auditJob?.status === 'failed' && auditJob?.resumable ? 'Resume Saved Audit' : 'Run Leak Detection'}
     </button>
   );
 
@@ -2201,13 +2235,13 @@ export default function LeakFinderPage() {
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Club Arena Link</span>
                   <strong className={toolStyles.telemetryValue} data-tone="live">
-                    {!detectionResult ? 'Ready To Sync' : detectionResult?.clubArenaSync?.available === false ? 'Check Required' : 'Connected'}
+                    {isDetecting ? 'Server Audit Active' : !detectionResult ? 'Ready To Sync' : detectionResult?.clubArenaSync?.available === false ? 'Check Required' : 'Connected'}
                   </strong>
                 </span>
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Club Hands Found</span>
                   <strong className={toolStyles.telemetryValue}>
-                    {detectionResult
+                    {detectionResult || detectionProgress
                       ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
                       : '—'}
                   </strong>
@@ -2215,7 +2249,7 @@ export default function LeakFinderPage() {
                 <span className={toolStyles.telemetryCell}>
                   <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
                   <strong className={toolStyles.telemetryValue} data-tone="gold">
-                    {detectionResult ? num(detectionResult?.solverDecisionsAnalyzed).toLocaleString() : '—'}
+                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : '—'}
                   </strong>
                 </span>
               </div>
@@ -2347,7 +2381,7 @@ export default function LeakFinderPage() {
                       {detectionProgress?.handsScanned > 0
                         ? `${num(detectionProgress.handsScanned).toLocaleString()} Hands Scanned · ${num(detectionProgress.handsAudited).toLocaleString()} Re-Audited · ${num(detectionProgress.decisionsAnalyzed).toLocaleString()} Decisions Checked`
                         : detectSlow
-                        ? 'Detection is taking longer than expected — keep this page open while the current batch finishes.'
+                        ? 'The Server Audit Is Still Working. You Can Safely Leave This Page And Return Later.'
                         : DETECT_STEPS[detectStep]}
                     </p>
                   </div>
@@ -2380,7 +2414,13 @@ export default function LeakFinderPage() {
                 )}
               </div>
 
-              <AuditReceipt result={detectionResult} />
+              <AuditReceipt result={detectionResult || (auditJob ? {
+                auditJob,
+                auditProgress: auditJob.progress,
+                reconciliation: auditJob.reconciliation,
+                leaksDetected: auditJob.progress?.coverage?.leaks || 0,
+                persisted: auditJob.status !== 'failed',
+              } : null)} />
 
               {/* Load error (never replaces the empty state / detect button) */}
               {leaksError && !leaksLoading && (
