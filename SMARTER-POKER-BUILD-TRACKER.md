@@ -1479,6 +1479,8 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 
 **Final closeout addendum:** A renewed live-device audit found five active browser subscriptions despite one notification/outbox event. Phase 66 now also includes receipt-confirmed endpoint reconciliation and a route-wide Personal Assistant copy policy for title capitalization and em-dash removal. Release verification is tracked in the Phase 2 audit evidence file.
 
+**Final published verification:** PR #1129 merged at `176c214d` and is present in the Vercel production ancestry. The refreshed authenticated production matrix passed 22 checks with two desktop-inapplicable mobile checks skipped. Live owner/anonymous/forged-worker probes passed, the 1,347-hand receipt reconciled with 1,570 persisted decisions, and account delivery state is one notification, one outbox event, one confirmed iPhone endpoint, and one confirmed Mac endpoint with no duplicate groups. Migration `20260831173000` makes the receipt RPC executable only by `service_role` in production.
+
 ---
 
 ## PHASE 67 — Poker Near Me Phase 4 Controller Decomposition (2026-08-31)
