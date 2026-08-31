@@ -318,7 +318,7 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
     if (!tree) {
         return (
             <div style={{ padding: 24, textAlign: 'center', color: '#475569', fontSize: 12 }}>
-                Select a spot to view its decision tree
+                Select A Spot To View Its Decision Tree
             </div>
         );
     }
@@ -395,8 +395,8 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 10, color: '#64748b', lineHeight: 1.5,
             }}>
-                <strong style={{ color: '#94a3b8' }}>How to read:</strong> Click nodes to expand/collapse branches.
-                Edge thickness = action frequency. Circles = decisions, Diamonds = chance nodes, Dashed = terminal.
+                <strong style={{ color: '#94a3b8' }}>How To Read:</strong> Click Nodes To Expand/Collapse Branches.
+                Edge Thickness = Action Frequency. Circles = Decisions, Diamonds = Chance Nodes, Dashed = Terminal.
             </div>
         </div>
     );

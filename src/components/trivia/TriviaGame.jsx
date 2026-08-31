@@ -653,7 +653,7 @@ export default function TriviaGame({
                     <div className="stakes-pot">
                         <Gem size={18} className="stake-gem" />
                         <span className="stake-value">{stakePot}</span>
-                        <span className="stake-label">at risk</span>
+                        <span className="stake-label">At Risk</span>
                     </div>
                     {multiplier > 1 && (
                         <div className="multiplier-badge">
@@ -729,7 +729,7 @@ export default function TriviaGame({
             <div className="game-header">
                 <div className="progress-info">
                     <span className="question-count">
-                        Question {currentIndex + 1} of {questions.length}
+                        Question {currentIndex + 1} Of {questions.length}
                     </span>
                     <div className="progress-bar">
                         <div
@@ -843,13 +843,13 @@ export default function TriviaGame({
                                     {revealed && index === revealedCorrectIndex && (
                                         <>
                                             <CheckCircle size={20} className="result-icon correct" aria-hidden />
-                                            <span className="sr-only">Correct answer</span>
+                                            <span className="sr-only">Correct Answer</span>
                                         </>
                                     )}
                                     {revealed && index === selectedAnswer && index !== revealedCorrectIndex && (
                                         <>
                                             <XCircle size={20} className="result-icon incorrect" aria-hidden />
-                                            <span className="sr-only">Your answer, incorrect</span>
+                                            <span className="sr-only">Your Answer, Incorrect</span>
                                         </>
                                     )}
                                 </motion.button>

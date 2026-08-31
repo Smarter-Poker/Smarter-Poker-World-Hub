@@ -154,7 +154,7 @@ function ContinuationBetTrainer() {
                 {userDecision === bestAction ? '✓ Correct!': '✕ Incorrect'}
               </span>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginLeft: 12 }}>
-                Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% frequency)
+                Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% Frequency)
               </span>
             </div>
 
@@ -207,7 +207,7 @@ function ContinuationBetTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

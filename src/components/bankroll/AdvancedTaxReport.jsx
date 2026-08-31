@@ -148,7 +148,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
             }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Advanced Tax Report</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>IRS-ready P/L summary with state-specific calculations</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>IRS-Ready P/L Summary With State-Specific Calculations</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select

@@ -42,7 +42,7 @@ export default function StackOffRanges() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Stack-Off Ranges
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Which hands to commit your stack with by SPR.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Which Hands To Commit Your Stack With By SPR.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {STACKOFF_SPOTS.map((s, i) => (

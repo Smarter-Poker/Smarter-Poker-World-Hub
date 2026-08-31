@@ -32,7 +32,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
         return (
             <div style={styles.container}>
                 <div style={styles.title}>Session History</div>
-                <div style={styles.loading}>Loading sessions...</div>
+                <div style={styles.loading}>Loading Sessions...</div>
             </div>
         );
     }
@@ -41,7 +41,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
         return (
             <div style={styles.container}>
                 <div style={styles.title}>Session History</div>
-                <div style={styles.empty}>No sessions recorded yet. Complete a game to see your history.</div>
+                <div style={styles.empty}>No Sessions Recorded Yet. Complete A Game To See Your History.</div>
             </div>
         );
     }
@@ -50,7 +50,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.title}>Session History</div>
-                <div style={styles.count}>{sessions.length} sessions</div>
+                <div style={styles.count}>{sessions.length} Sessions</div>
             </div>
 
             <div style={styles.list}>
@@ -79,7 +79,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                             <div style={styles.sessionInfo}>
                                 <div style={styles.sessionDate}>{timeAgo}</div>
                                 <div style={styles.sessionMeta}>
-                                    {session.hands_played || session.questions_answered || 0} hands
+                                    {session.hands_played || session.questions_answered || 0} Hands
                                     {session.total_ev_loss ? ` · -${session.total_ev_loss.toFixed(1)} EV` : ''}
                                     {session.mistake_count ? ` · ${session.mistake_count} mistakes` : ''}
                                 </div>

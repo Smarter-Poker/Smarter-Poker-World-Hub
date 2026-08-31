@@ -42,7 +42,7 @@ export default function EquityDistribution() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Equity Distribution
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How equity spreads across your range by board type.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How Equity Spreads Across Your Range By Board Type.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {EQUITY_BOARDS.map((b, i) => (

@@ -107,7 +107,7 @@ function ThinValueTrainer() {
         <div style={{ textAlign: 'center', padding: 16, background: 'rgba(251,146,60,0.06)', borderRadius: 10, border: '1px solid rgba(251,146,60,0.15)', marginBottom: 16 }}>
           <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: 5, marginBottom: 6 }}>{spot.board}</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#fb923c', marginBottom: 6 }}>Hero: {spot.hero}</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{spot.position} • Villain checks to you</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{spot.position} • Villain Checks To You</div>
         </div>
 
         {/* Decision */}
@@ -116,7 +116,7 @@ function ThinValueTrainer() {
             <button onClick={() => handleChoice('bet')} style={{
               padding: '14px 32px', borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700,
               cursor: 'pointer', background: '#10b981', color: '#fff', flex: 1, maxWidth: 180,
-            }}>Bet for Value</button>
+            }}>Bet For Value</button>
             <button onClick={() => handleChoice('check')} style={{
               padding: '14px 32px', borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700,
               cursor: 'pointer', background: '#6b7280', color: '#fff', flex: 1, maxWidth: 180,
@@ -141,11 +141,11 @@ function ThinValueTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'bet' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>{spot.evBet}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV of Betting</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Betting</div>
               </div>
               <div style={{ flex: 1, padding: 10, background: 'rgba(107,114,128,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#9ca3af' }}>{spot.evCheck}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV of Checking</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Checking</div>
               </div>
             </div>
 
@@ -177,7 +177,7 @@ function ThinValueTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Thin Value Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Thin Value Trainer Failed To Load: {err.message}</div>;
   }
 }
 

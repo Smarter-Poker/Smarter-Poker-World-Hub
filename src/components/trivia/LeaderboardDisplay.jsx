@@ -137,7 +137,7 @@ export default function LeaderboardDisplay({
                         {isCurrentUser && <span className="you-badge">YOU</span>}
                     </span>
                 </div>
-                <div className="score">{readScore(entry).toLocaleString()} pts</div>
+                <div className="score">{readScore(entry).toLocaleString()} Pts</div>
                 {time !== null && (
                     <div className="time">
                         <Clock size={14} />

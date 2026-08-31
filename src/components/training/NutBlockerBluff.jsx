@@ -33,7 +33,7 @@ export default function NutBlockerBluff() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Nut Blocker Bluffs
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use card removal to find the most profitable bluffs.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use Card Removal To Find The Most Profitable Bluffs.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLOCKER_SPOTS.map((s, i) => (

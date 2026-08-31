@@ -78,7 +78,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
             <div style={styles.header}>
                 <div style={styles.title}>Mistake Patterns</div>
                 <div style={styles.headerStats}>
-                    <span style={styles.headerStat}>{totalMistakes} mistakes</span>
+                    <span style={styles.headerStat}>{totalMistakes} Mistakes</span>
                     <span style={{ ...styles.headerStat, color: '#ef4444' }}>-{totalEvLoss.toFixed(1)} EV</span>
                 </div>
             </div>
@@ -94,7 +94,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                     <div style={styles.insightText}>
                         {generateInsight(mistakePatterns[0])}
                         <span style={styles.insightMeta}>
-                            {' '}- {mistakePatterns[0].count} occurrences, -{mistakePatterns[0].avgEvLoss.toFixed(2)} avg EV
+                            {' '}- {mistakePatterns[0].count} Occurrences, -{mistakePatterns[0].avgEvLoss.toFixed(2)} Avg EV
                         </span>
                     </div>
                 </motion.div>

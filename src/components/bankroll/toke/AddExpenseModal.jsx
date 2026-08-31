@@ -83,7 +83,7 @@ function AddExpenseModal({
                             autoFocus
                         />
 
-                        <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (optional)</label>
+                        <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (Optional)</label>
                         <input
                             type="text"
                             value={expenseForm.description}

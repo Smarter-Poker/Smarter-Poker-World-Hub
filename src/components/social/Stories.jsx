@@ -719,7 +719,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                         color: 'white', fontSize: 14,
                         display: 'flex', alignItems: 'center', gap: 6,
                     }}>
-                        👁 {currentStory.view_count || 0} views
+                        👁 {currentStory.view_count || 0} Views
                     </div>
                 )}
             </div>
@@ -1078,7 +1078,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                             padding: 40,
                         }}>
                             <h2 style={{ color: 'white', fontSize: 24, fontWeight: 700, margin: 0 }}>
-                                What do you want to share?
+                                What Do You Want To Share?
                             </h2>
 
                             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>

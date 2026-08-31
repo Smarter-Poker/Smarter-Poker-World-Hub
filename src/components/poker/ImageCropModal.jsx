@@ -93,7 +93,7 @@ export default function ImageCropModal({ file, onCropComplete, onCancel }) {
           Frame Your Poker Hand
         </div>
         <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 16, textAlign: 'center' }}>
-          Drag to pan, use mouse wheel to zoom. Ensure hole cards and board are visible.
+          Drag To Pan, Use Mouse Wheel To Zoom. Ensure Hole Cards And Board Are Visible.
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>

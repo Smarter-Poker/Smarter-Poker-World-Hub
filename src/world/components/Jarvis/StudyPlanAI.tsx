@@ -131,7 +131,7 @@ Make it practical and actionable for a busy player.`);
             {/* Focus Area Selection */}
             <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '10px', color: 'rgba(255, 215, 0, 0.7)', marginBottom: '6px' }}>
-                    What do you want to focus on?
+                    What Do You Want To Focus On?
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {Object.entries(STUDY_TOPICS || {}).map(([key, topic]) => (
@@ -190,7 +190,7 @@ Make it practical and actionable for a busy player.`);
                             Focus: {STUDY_TOPICS[selectedFocus as keyof typeof STUDY_TOPICS]?.name}
                         </div>
                         <div style={{ fontSize: '12px', fontWeight: 600, color: '#FFD700' }}>
-                            {studyPlan.filter(s => s.completed).length}/{studyPlan.length} completed
+                            {studyPlan.filter(s => s.completed).length}/{studyPlan.length} Completed
                         </div>
                     </div>
 
@@ -239,7 +239,7 @@ Make it practical and actionable for a busy player.`);
                                     fontSize: '9px',
                                     color: 'rgba(255, 255, 255, 0.5)'
                                 }}>
-                                    <span>⏱️ {session.duration} min</span>
+                                    <span>⏱️ {session.duration} Min</span>
                                     <span>{session.resources[0]}</span>
                                 </div>
                             </div>

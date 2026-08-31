@@ -153,8 +153,8 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
                             color: 'rgba(255, 255, 255, 0.7)',
                             fontSize: '13px'
                         }}>
-                            Drop screenshot here, click to upload,<br />
-                            or <strong style={{ color: '#FFD700' }}>Ctrl+V</strong> to paste
+                            Drop Screenshot Here, Click To Upload,<br />
+                            Or <strong style={{ color: '#FFD700' }}>Ctrl+V</strong> To Paste
                         </p>
                     </>
                 )}
@@ -177,7 +177,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
             }}>
                 <strong style={{ color: '#FFD700' }}>💡 Tips:</strong>
                 <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
-                    <li>Works With PokerStars, GGPoker, ACR, etc.</li>
+                    <li>Works With PokerStars, GGPoker, ACR, Etc.</li>
                     <li>Include Visible Hole Cards And Board</li>
                     <li>Stack Sizes And Pot Size Help Accuracy</li>
                 </ul>

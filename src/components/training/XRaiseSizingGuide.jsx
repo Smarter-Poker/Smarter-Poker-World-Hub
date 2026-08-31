@@ -109,7 +109,7 @@ function XRaiseSizingGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>X-Raise Sizing Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>X-Raise Sizing Guide Failed To Load: {err.message}</div>;
   }
 }
 

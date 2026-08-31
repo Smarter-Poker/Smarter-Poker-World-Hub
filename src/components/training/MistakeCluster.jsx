@@ -53,7 +53,7 @@ export default function MistakeCluster({ progressData = [] }) {
             <div style={styles.emptyContainer}>
                 <div style={styles.emptyIcon}>■</div>
                 <h4 style={styles.emptyTitle}>NO CRITICAL LEAKS DETECTED</h4>
-                <p style={styles.emptyText}>Your accuracy is solid across the board. Keep crushing the drills to generate more data.</p>
+                <p style={styles.emptyText}>Your Accuracy Is Solid Across The Board. Keep Crushing The Drills To Generate More Data.</p>
             </div>
         );
     }
@@ -84,7 +84,7 @@ export default function MistakeCluster({ progressData = [] }) {
                                 borderRadius: 4
                             }} />
                         </div>
-                        <div style={styles.mistakeLabel}>{cluster.mistakes} mistakes recorded</div>
+                        <div style={styles.mistakeLabel}>{cluster.mistakes} Mistakes Recorded</div>
                     </div>
                 ))}
             </div>

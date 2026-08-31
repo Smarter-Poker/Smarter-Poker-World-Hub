@@ -288,7 +288,7 @@ export function DrillMode({ onAskJarvis, onClose }: DrillModeProps) {
                 <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎲</div>
                     <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '16px' }}>
-                        Random GTO scenarios to test your skills
+                        Random GTO Scenarios To Test Your Skills
                     </p>
                     <button
                         onClick={startDrill}

@@ -328,7 +328,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
-                        Range vs Range Equity
+                        Range Vs Range Equity
                     </div>
                     {stats && (
                         <div style={{
@@ -519,7 +519,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                                     </div>
                                                     {draws && draws.outs > 0 && (
                                                         <div style={{ fontSize: 10, color: '#818cf8', marginTop: 2 }}>
-                                                            +{draws.outs} outs ({(draws.equity * 100).toFixed(0)}% draw equity)
+                                                            +{draws.outs} Outs ({(draws.equity * 100).toFixed(0)}% Draw Equity)
                                                         </div>
                                                     )}
                                                 </div>

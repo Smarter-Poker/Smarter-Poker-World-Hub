@@ -104,7 +104,7 @@ function HeadsUpStrategyGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Heads-Up Strategy Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Heads-Up Strategy Guide Failed To Load: {err.message}</div>;
   }
 }
 

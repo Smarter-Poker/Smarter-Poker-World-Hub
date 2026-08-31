@@ -153,7 +153,7 @@ function PositionFrequencyHeatmap() {
 
         {showDelta && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>vs</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Vs</span>
             {SCENARIOS.filter(s => s !== scenario).map(s => (
               <button
                 key={s}
@@ -260,10 +260,10 @@ function PositionFrequencyHeatmap() {
           <div style={{ marginTop: 16, padding: 14, background: 'rgba(245,158,11,0.08)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.2)' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>{positionSummary.pos} Summary</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>
-              Primary action: <span style={{ color: '#10b981', fontWeight: 600 }}>{positionSummary.topAction}</span> at {positionSummary.topFreq}% frequency.
-              {' '}Combined action frequency across all lines: {positionSummary.total}%.
+              Primary Action: <span style={{ color: '#10b981', fontWeight: 600 }}>{positionSummary.topAction}</span> At {positionSummary.topFreq}% Frequency.
+              {' '}Combined Action Frequency Across All Lines: {positionSummary.total}%.
               {selectedCell?.action && (
-                <span> Currently viewing: <span style={{ color: '#f59e0b', fontWeight: 600 }}>{selectedCell.action}</span> = {data[selectedCell.pos]?.[selectedCell.action] || 0}%
+                <span> Currently Viewing: <span style={{ color: '#f59e0b', fontWeight: 600 }}>{selectedCell.action}</span> = {data[selectedCell.pos]?.[selectedCell.action] || 0}%
                   {showDelta && ` (delta: ${(data[selectedCell.pos]?.[selectedCell.action] || 0) - (compareData[selectedCell.pos]?.[selectedCell.action] || 0)})`}
                 </span>
               )}
@@ -273,7 +273,7 @@ function PositionFrequencyHeatmap() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Position Frequency Heatmap failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Position Frequency Heatmap Failed To Load: {err.message}</div>;
   }
 }
 

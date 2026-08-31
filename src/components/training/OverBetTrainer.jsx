@@ -107,7 +107,7 @@ function OverBetTrainer() {
         {!showAnswer && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10, textAlign: 'center' }}>
-              What is the optimal overbet sizing?
+              What Is The Optimal Overbet Sizing?
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {sizingOptions.map(s => (
@@ -172,7 +172,7 @@ function OverBetTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

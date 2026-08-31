@@ -152,10 +152,10 @@ export default function HostCreateTableModal({
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 id="hct-title" className="text-xl font-bold flex items-center gap-2">
-              <Plus className="w-5 h-5 text-indigo-400" /> Add a table
+              <Plus className="w-5 h-5 text-indigo-400" /> Add A Table
             </h2>
             <p className="text-sm text-white/60 mt-1">
-              Host a second (or third) table with its own stakes and format.
+              Host A Second (Or Third) Table With Its Own Stakes And Format.
             </p>
           </div>
           <button
@@ -172,7 +172,7 @@ export default function HostCreateTableModal({
           {/* Name */}
           <div>
             <label htmlFor="hct-name" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
-              Table name (optional)
+              Table Name (Optional)
             </label>
             <input
               id="hct-name"
@@ -238,7 +238,7 @@ export default function HostCreateTableModal({
           {/* Max seats */}
           <div>
             <label htmlFor="hct-maxseats" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
-              Max seats (2-10)
+              Max Seats (2-10)
             </label>
             <input
               id="hct-maxseats"
@@ -256,7 +256,7 @@ export default function HostCreateTableModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="hct-buyinmin" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
-                Min buy-in (optional)
+                Min Buy-In (Optional)
               </label>
               <input
                 id="hct-buyinmin"
@@ -270,7 +270,7 @@ export default function HostCreateTableModal({
             </div>
             <div>
               <label htmlFor="hct-buyinmax" className="block text-xs uppercase tracking-wider text-white/50 mb-1">
-                Max buy-in (optional)
+                Max Buy-In (Optional)
               </label>
               <input
                 id="hct-buyinmax"

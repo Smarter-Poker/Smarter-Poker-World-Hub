@@ -265,7 +265,7 @@ export function DiamondRewardTracker({
             <div style={styles.header}>
                 <div style={styles.progressSection}>
                     <div style={styles.progressLabel}>
-                        <span>Today&apos;s Earnings</span>
+                        <span>Today&apos;S Earnings</span>
                         <span style={styles.capText}>{diamondsToday} / {dailyCap}</span>
                     </div>
                     <div style={styles.progressBar}>
@@ -278,9 +278,9 @@ export function DiamondRewardTracker({
                     </div>
                     <div style={styles.remainingText}>
                         {remainingCap > 0 ? (
-                            <>{remainingCap} <DiamondIcon /> remaining today · {fmt(monthlyCap)} 💎/month max</>
+                            <>{remainingCap} <DiamondIcon /> Remaining Today · {fmt(monthlyCap)} 💎/Month Max</>
                         ) : (
-                            <>🎉 Daily cap reached - resets at midnight</>
+                            <>🎉 Daily Cap Reached - Resets At Midnight</>
                         )}
                     </div>
                 </div>
@@ -288,7 +288,7 @@ export function DiamondRewardTracker({
                 <div style={styles.streakSection}>
                     <div style={styles.streakNumber}>{currentStreak}</div>
                     <div style={styles.streakLabel}>Day Streak</div>
-                    <div style={styles.streakSub}>Login pays {todaysLogin} 💎</div>
+                    <div style={styles.streakSub}>Login Pays {todaysLogin} 💎</div>
                     {streakMultiplier > 1 && (
                         <div style={styles.multiplierBadge}>{streakMultiplier}x</div>
                     )}
@@ -337,32 +337,32 @@ export function DiamondRewardTracker({
                         {/* Rules Summary — all values read from the catalog */}
                         <div style={styles.rulesSummary}>
                             <div style={styles.rule}>
-                                📊 Daily Cap: <strong>{DAILY_CAP.free} 💎 free / {DAILY_CAP.vip} 💎 VIP</strong>{' '}
-                                ({fmt(MONTHLY_CAP.free)} / {fmt(MONTHLY_CAP.vip)} per month)
+                                📊 Daily Cap: <strong>{DAILY_CAP.free} 💎 Free / {DAILY_CAP.vip} 💎 VIP</strong>{' '}
+                                ({fmt(MONTHLY_CAP.free)} / {fmt(MONTHLY_CAP.vip)} Per Month)
                             </div>
                             <div style={styles.rule}>
                                 🔥 Share Streak:{' '}
                                 <strong>
                                     {MULTIPLIER_LADDER.map((t) => `${t.mult}x at ${t.days}d`).join(' | ')}
                                 </strong>
-                                {' '}- reaches the cap with less work, never raises it
+                                {' '}- Reaches The Cap With Less Work, Never Raises It
                             </div>
                             <div style={styles.rule}>
-                                📅 Daily Login: <strong>{LOGIN_MIN}-{LOGIN_MAX} 💎</strong> on a true consecutive-day
-                                streak (+2 💎 a day, resets if you miss one)
+                                📅 Daily Login: <strong>{LOGIN_MIN}-{LOGIN_MAX} 💎</strong> On A True Consecutive-Day
+                                Streak (+2 💎 A Day, Resets If You Miss One)
                             </div>
                             <div style={styles.rule}>
-                                👥 Referrals: <strong>{fmt(REFERRAL.referrer)} 💎 to you + {fmt(REFERRAL.referee)} 💎 to your friend</strong>,
-                                released after they verify email AND phone AND log in on 5 separate days.
-                                Max {REFERRAL.maxQualifiedPerMonth} qualified per month.
+                                👥 Referrals: <strong>{fmt(REFERRAL.referrer)} 💎 To You + {fmt(REFERRAL.referee)} 💎 To Your Friend</strong>,
+                                Released After They Verify Email AND Phone AND Log In On 5 Separate Days.
+                                Max {REFERRAL.maxQualifiedPerMonth} Qualified Per Month.
                             </div>
                             <div style={styles.rule}>
-                                🥚 Hidden Achievements: <strong>up to {fmt(EASTER_EGG_MONTHLY_CAP)} 💎/month</strong> on
-                                top of the daily cap. Nothing pays more than {fmt(EASTER_EGG_MONTHLY_CAP)} 💎.
+                                🥚 Hidden Achievements: <strong>Up To {fmt(EASTER_EGG_MONTHLY_CAP)} 💎/Month</strong> On
+                                Top Of The Daily Cap. Nothing Pays More Than {fmt(EASTER_EGG_MONTHLY_CAP)} 💎.
                             </div>
                             <div style={styles.rule}>
-                                💵 1 💎 = $0.01. A dedicated free player earns about {fmt(MONTHLY_CAP.free)} 💎 a month
-                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) - a VIP card plus a stack for the Diamond Arena.
+                                💵 1 💎 = $0.01. A Dedicated Free Player Earns About {fmt(MONTHLY_CAP.free)} 💎 A Month
+                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) - A VIP Card Plus A Stack For The Diamond Arena.
                             </div>
                         </div>
                     </div>
@@ -408,9 +408,9 @@ export function DiamondRewardTracker({
                         ))}
 
                         <div style={styles.totalEggs}>
-                            🥚 <strong>{TOTAL_EGGS} hidden achievements</strong> to discover across{' '}
-                            {EGG_CATEGORY_VIEWS.length} categories - part of {TOTAL_WAYS} total ways to earn.
-                            All of them together pay at most {fmt(EASTER_EGG_MONTHLY_CAP)} 💎 a month.
+                            🥚 <strong>{TOTAL_EGGS} Hidden Achievements</strong> To Discover across{' '}
+                            {EGG_CATEGORY_VIEWS.length} Categories - Part Of {TOTAL_WAYS} Total Ways To Earn.
+                            All Of Them Together Pay At Most {fmt(EASTER_EGG_MONTHLY_CAP)} 💎 A Month.
                         </div>
                     </div>
                 )}

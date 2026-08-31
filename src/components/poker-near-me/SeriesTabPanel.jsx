@@ -229,7 +229,7 @@ export default function SeriesTabPanel({
                 </select>
             </div>
             <div className="results-bar">
-                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredSeries.length}</span> Series</span>
                 <div className="view-toggle">
                     <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
@@ -265,7 +265,7 @@ export default function SeriesTabPanel({
                     {displayCount.series < filteredSeries.length && (
                         <div className="load-more">
                             <button className="load-more-btn" onClick={() => loadMore('series')}>
-                                Load More ({filteredSeries.length - displayCount.series} remaining)
+                                Load More ({filteredSeries.length - displayCount.series} Remaining)
                             </button>
                         </div>
                     )}

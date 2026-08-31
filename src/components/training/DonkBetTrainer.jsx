@@ -108,11 +108,11 @@ function DonkBetTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'donk' ? '1px solid rgba(249,115,22,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#f97316' }}>{spot.evDonk}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV of Donk</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Donk</div>
               </div>
               <div style={{ flex: 1, padding: 10, background: 'rgba(107,114,128,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#9ca3af' }}>{spot.evCheck}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV of Check</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Check</div>
               </div>
             </div>
 
@@ -134,7 +134,7 @@ function DonkBetTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Donk Bet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Donk Bet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

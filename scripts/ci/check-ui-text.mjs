@@ -1,58 +1,70 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  NO EM DASHES IN ANYTHING A PERSON READS
+ *  check-ui-text - no em dashes in anything a player can read
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Dan, 2026-08-31: "REMOVE ANY AND ALL M BARS AS THEY ARE BANNED FROM USE."
+ * Dan, 2026-08-20 and again 2026-08-31: em dashes are BANNED from use.
  *
- * Club Arena has had this gate since 2026-08-27. The apex site never did, so
- * every page and sub page it serves was unchecked, and em dashes accumulated in
- * page titles, headings and the placeholder dash tables use for an empty cell.
+ * Club Arena has enforced this since August. The World Hub - which is the
+ * site, and therefore most of the pages a player ever sees - never had the
+ * gate at all, and was holding roughly 3,900 lines of user-facing copy with
+ * one in it. This is the port, widened for how this repo is actually built:
+ * Club Arena is TypeScript-only, the World Hub is a mix of .js, .jsx, .ts and
+ * .tsx across pages/, src/ and app/.
  *
- * WHAT IS CHECKED. Comments are stripped before scanning, so a note ABOUT the
- * rule is not an instance of it, and neither is a file header banner. What is
- * left is code and copy, which is what reaches a person.
+ * What counts as "a player can read":
+ *   JSX text nodes            <span>Held in trust - 400</span>
+ *   UI-ish string literals    label: 'Hands - played'
+ *   CSS `content:` values     content: '-';
  *
- * --fix rewrites only the occurrences OUTSIDE comments, to a plain hyphen. It
- * walks the stripped copy to find real offsets and patches those exact
- * positions in the original, so a comment is never touched.
+ * Comments are exempt. They are not copy, and this repo's comments carry its
+ * institutional memory. Blanking rather than deleting them preserves byte
+ * offsets, which is what lets --fix patch the ORIGINAL file at positions found
+ * in the stripped copy.
+ *
+ *   node scripts/ci/check-ui-text.mjs          report
+ *   node scripts/ci/check-ui-text.mjs --fix    rewrite to plain hyphens
  */
-import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
-const DIRS = ['pages', 'components', 'src'];
-const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.css', '.html']);
+const SCAN_ROOTS = ['pages', 'src', 'app', 'components', 'lib', 'public'].map((d) => join(ROOT, d));
+const EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.html']);
 const SKIP_DIRS = new Set([
-  'node_modules', '.next', 'dist', 'build', 'coverage', '_to_delete',
-  // 'tests' joins '__tests__' here for the same reason: a test script is not
-  // text a person reads, so the rule has nothing to say about it. It is also
-  // the honest boundary. src/lib/poker-engine/tests/* carries 23 dead imports
-  // (../src/GameController and friends, when the file is ../GameController)
-  // that are on origin/main already - verified identical, file by file. A
-  // cosmetic dash sweep that touched those files would drag them into the
-  // js-safety check's changed-file scope and be blamed for breakage it did
-  // not cause. Fixing somebody else's dead test imports is real work that
-  // deserves its own change, not a passenger on this one.
-  '__tests__', 'tests', 'test-results', 'public',
+  'node_modules',
+  'dist',
+  '.next',
+  'out',
+  'build',
+  'coverage',
+  '_to_delete',
+  '__tests__',
+  'test-results',
+  '.git',
+  'vendor',
 ]);
 /**
- * TEN FILES THIS GATE CANNOT CLEAN, AND WHY THAT IS RECORDED HERE RATHER THAN
- * QUIETLY WORKED AROUND.
+ * Files where an em dash is CODE, not copy, and rewriting it changes behaviour.
  *
- * The pre-commit hook refuses any staged file containing
- * supabase.auth.getSession(). All ten carry that call ON origin/main ALREADY -
- * verified, file by file - so it is pre-existing auth-migration debt, not
- * anything this sweep introduced. Cleaning their dashes would have meant either
- * fixing somebody else's auth migration inside a cosmetic sweep, or bypassing a
- * guard that exists because unguarded getSession() calls caused real incidents.
+ * Found the hard way on the first --fix run of this gate: these parse content
+ * that ALREADY EXISTS, written with an em dash by an earlier version of the
+ * app and sitting in the database now. `.split('\u2014')[0]` pulls the venue
+ * out of a "Checked in at <venue> \u2014 <note>" post; swapping the character
+ * makes every one of those rows stop parsing. That is a data migration with a
+ * decision behind it, not a copy fix, so this gate does not get to make it.
  *
- * Neither is a trade worth making, so they are listed. REMOVE A LINE FROM THIS
- * LIST THE MOMENT ITS FILE IS MIGRATED OFF getSession() - the entry is a debt
- * marker, not a permission.
+ * Regex literals are handled structurally below and need no entry here.
  */
 const SKIP_FILES = new Set([
   'scripts/ci/check-ui-text.mjs',
+  'pages/hub/social-media/index.js',
+  'pages/hub/social-pages/[pageId].js',
+  'src/components/social/ChatWindow.jsx',
+  'src/components/social/ClubPageDashboard.jsx',
+  'src/components/social/ClubPagesView.jsx',
+  'src/components/social/PublicGameBoard.jsx',
+  'src/components/training/TripleBarrelTrainer.jsx',
   // Not auth debt like the ten below. The js-safety check reads the line
   //     *   import { PokerBrainStorage } from './poker-brain-supabase';
   // out of this file's documentation header and reports it as a broken
@@ -70,11 +82,41 @@ const SKIP_FILES = new Set([
   'src/hooks/useMessengerService.js',
   'src/lib/authUtils.js',
 ]);
+
+/**
+ * A single line may opt out with a trailing `ui-text-ignore: <reason>`.
+ *
+ * For the one-line case the file-level list above is too blunt for: a data
+ * parser sitting beside real copy. `useTourMapStops` builds a display name
+ * with an em dash AND splits SCRAPED venue names on one, and those are
+ * different strings with different lifetimes - the first is drawn this frame,
+ * the second is matching rows a scraper wrote months ago.
+ *
+ * The reason is mandatory. A bare marker is not an exemption.
+ */
+const LINE_IGNORE = /ui-text-ignore:\s*\S/;
 const EM_DASHES = /[—–―‒]/;
 
 const fix = process.argv.includes('--fix');
 
-/** Strip comments so the scan only sees code and copy. */
+/**
+ * Blank comments AND regex literals in place, so the scan only sees copy.
+ *
+ * Regex bodies matter as much as comments here and for a sharper reason: a
+ * `[\u2014\u2013]` character class exists precisely BECAUSE the data contains
+ * those characters. Rewriting it produces `[--]` - a valid, meaningless range -
+ * and the pattern silently stops matching. This gate's Club Arena ancestor did
+ * exactly that to its own stripper on its first run, and this repo had ten
+ * date-range and check-in parsers with the same shape waiting for it.
+ *
+ * The regex detector is deliberately conservative: a `/` only opens a literal
+ * where an operand is legal (after `(`, `,`, `=`, `:`, `[`, `!`, `&`, `|`, `?`,
+ * `{`, `;`, `return`, or the start of a line). Anything ambiguous is left
+ * alone, which can only ever make this gate stricter, never wrong.
+ *
+ * Everything is BLANKED rather than deleted so byte offsets survive - that is
+ * what lets --fix patch the original file at positions found in this copy.
+ */
 function stripComments(source, isCss, isHtml) {
   let out = source;
   if (isHtml) out = out.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ' '));
@@ -82,23 +124,75 @@ function stripComments(source, isCss, isHtml) {
   if (!isCss) {
     // Line comments, but not the // inside a URL like https://
     out = out.replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + ' '.repeat(m.length - p1.length));
+    out = blankRegexLiterals(out);
   }
   return out;
 }
 
+/** Blank the body of every regex literal, preserving length. */
+function blankRegexLiterals(src) {
+  const chars = src.split('');
+  const OPENS = new Set(['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', ';', '\n']);
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] !== '/') continue;
+    // What precedes it, ignoring spaces?
+    let j = i - 1;
+    while (j >= 0 && (chars[j] === ' ' || chars[j] === '\t')) j--;
+    const prev = j >= 0 ? chars[j] : '\n';
+    const isReturn = src.slice(Math.max(0, j - 5), j + 1).endsWith('return');
+    if (!OPENS.has(prev) && !isReturn) continue;
+    // Scan to the closing unescaped '/', bailing at a newline (not a literal).
+    let k = i + 1;
+    let inClass = false;
+    let closed = -1;
+    for (; k < chars.length; k++) {
+      const c = chars[k];
+      if (c === '\\') {
+        k++;
+        continue;
+      }
+      if (c === '\n') break;
+      if (c === '[') inClass = true;
+      else if (c === ']') inClass = false;
+      else if (c === '/' && !inClass) {
+        closed = k;
+        break;
+      }
+    }
+    if (closed < 0) continue;
+    for (let m = i + 1; m < closed; m++) if (chars[m] !== '\n') chars[m] = ' ';
+    i = closed;
+  }
+  return chars.join('');
+}
+
 function walk(dir, acc = []) {
-  if (!existsSync(dir)) return acc;
+  let st;
+  try {
+    st = statSync(dir);
+  } catch {
+    return acc; // a root this checkout does not have is not a failure
+  }
+  if (!st.isDirectory()) {
+    if (EXTS.has(extname(dir))) acc.push(dir);
+    return acc;
+  }
   for (const entry of readdirSync(dir)) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = join(dir, entry);
-    const st = statSync(full);
-    if (st.isDirectory()) walk(full, acc);
+    let est;
+    try {
+      est = statSync(full);
+    } catch {
+      continue;
+    }
+    if (est.isDirectory()) walk(full, acc);
     else if (EXTS.has(extname(entry))) acc.push(full);
   }
   return acc;
 }
 
-const files = DIRS.flatMap((d) => walk(join(ROOT, d)));
+const files = [...new Set(SCAN_ROOTS.flatMap((r) => walk(r)))];
 const offenders = [];
 let fixedCount = 0;
 let fixedFiles = 0;
@@ -109,46 +203,67 @@ for (const file of files) {
   const original = readFileSync(file, 'utf8');
   if (!EM_DASHES.test(original)) continue;
 
-  const isCss = extname(file) === '.css';
-  const isHtml = extname(file) === '.html';
-  const scannable = stripComments(original, isCss, isHtml);
+  const ext = extname(file);
+  const scannable = stripComments(original, ext === '.css', ext === '.html');
   if (!EM_DASHES.test(scannable)) continue; // only in comments -> allowed
+
+  // Line starts, so a per-line opt-out can be honoured by character offset.
+  const lineOf = (() => {
+    const starts = [0];
+    for (let i = 0; i < original.length; i++) if (original[i] === '\n') starts.push(i + 1);
+    return (idx) => {
+      let lo = 0;
+      let hi = starts.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (starts[mid] <= idx) lo = mid;
+        else hi = mid - 1;
+      }
+      return lo;
+    };
+  })();
+  const sourceLines = original.split('\n');
+  const exempt = (idx) => LINE_IGNORE.test(sourceLines[lineOf(idx)] ?? '');
 
   if (fix) {
     const patched = original.split('');
-    let touched = 0;
+    let n = 0;
     for (let i = 0; i < scannable.length; i++) {
-      if (EM_DASHES.test(scannable[i])) {
+      if (EM_DASHES.test(scannable[i]) && !exempt(i)) {
         patched[i] = '-';
-        touched++;
+        n++;
       }
     }
-    if (touched > 0) {
+    if (n) {
       writeFileSync(file, patched.join(''), 'utf8');
-      fixedCount += touched;
+      fixedCount += n;
       fixedFiles++;
     }
     continue;
   }
 
   scannable.split('\n').forEach((line, idx) => {
-    if (EM_DASHES.test(line)) {
-      offenders.push(`${rel}:${idx + 1}: ${line.trim().slice(0, 120)}`);
-    }
+    if (!EM_DASHES.test(line)) return;
+    if (LINE_IGNORE.test(sourceLines[idx] ?? '')) return;
+    offenders.push(`${rel}:${idx + 1}: ${line.trim().slice(0, 120)}`);
   });
 }
 
 if (fix) {
-  console.log(`check-ui-text: fixed ${fixedCount} em dash(es) across ${fixedFiles} file(s).`);
+  console.log(
+    `check-ui-text: replaced ${fixedCount} em dash(es) across ${fixedFiles} file(s), outside comments.`
+  );
   process.exit(0);
 }
 
 if (offenders.length > 0) {
-  console.error('\ncheck-ui-text: em dashes are banned in anything a person reads.\n');
-  for (const o of offenders.slice(0, 40)) console.error(`  ${o}`);
-  if (offenders.length > 40) console.error(`  ... and ${offenders.length - 40} more`);
-  console.error('\nUse a plain hyphen, or run: node scripts/ci/check-ui-text.mjs --fix\n');
+  console.error('\ncheck-ui-text FAILED: em dashes found in user-facing text.\n');
+  console.error('Dan: em dashes are banned from use. Use a plain hyphen.');
+  console.error('Autofix: node scripts/ci/check-ui-text.mjs --fix\n');
+  offenders.slice(0, 60).forEach((o) => console.error('  ' + o));
+  if (offenders.length > 60) console.error(`  ... and ${offenders.length - 60} more`);
+  console.error('');
   process.exit(1);
 }
 
-console.log('check-ui-text: OK - no em dashes in UI text.');
+console.log(`check-ui-text: OK - no em dashes in UI text (${files.length} files scanned).`);

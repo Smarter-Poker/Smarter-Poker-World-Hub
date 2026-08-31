@@ -1774,7 +1774,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     style={{ width: `${Math.min(100, sessionAuditResult.overallScore || 0)}%` }}
                   />
                 </div>
-                <div className="text-xs text-slate-400 mt-1">{sessionAuditResult.overallScore ?? '--'} / 100 -- {sessionAuditResult.handsAnalyzed || 0} hands analyzed</div>
+                <div className="text-xs text-slate-400 mt-1">{sessionAuditResult.overallScore ?? '--'} / 100 -- {sessionAuditResult.handsAnalyzed || 0} Hands Analyzed</div>
               </div>
             </div>
             {/* Leaks */}
@@ -1799,7 +1799,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     <div key={street} className="bg-slate-700/50 rounded p-2 text-center">
                       <div className="text-xs text-slate-400 capitalize">{street}</div>
                       <div className="text-lg font-bold">{data?.avgScore ?? '--'}</div>
-                      <div className="text-[9px] text-slate-500">{data?.hands || 0} hands</div>
+                      <div className="text-[9px] text-slate-500">{data?.hands || 0} Hands</div>
                     </div>
                   ))}
                 </div>
@@ -1905,7 +1905,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   </select>
                   {autoTournamentStage && autoTournamentStage.confidence >= 0.5 && (
                     <span className="text-[9px] text-cyan-400 ml-1" title={autoTournamentStage.reasoning}>
-                      (auto)
+                      (Auto)
                     </span>
                   )}
                 </>
@@ -1950,7 +1950,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           {potSize > 0 && (
             <span className={`rounded px-2 py-1 ${ocrStale ? 'bg-yellow-900/80' : 'bg-slate-800'}`}>
               Pot: <span className="font-bold text-white">{potSize}</span>
-              {ocrStale && <span className="text-yellow-400 text-[9px] ml-1">(stale)</span>}
+              {ocrStale && <span className="text-yellow-400 text-[9px] ml-1">(Stale)</span>}
             </span>
           )}
           {heroStack > 0 && (
@@ -1970,7 +1970,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           )}
           {debugMode && betToCall > 0 && (
             <span className="bg-slate-800 rounded px-2 py-1">
-              To call: <span className="font-bold text-white">{betToCall}</span>
+              To Call: <span className="font-bold text-white">{betToCall}</span>
             </span>
           )}
           {debugMode && availableActions && availableActions.any && (
@@ -2025,7 +2025,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           <div className="text-3xl font-black text-white leading-none">
             {displayAction}
             {decision && decision.ready && decision.raiseAmount > 0 && (
-              <span className="text-2xl ml-2">to {decision.raiseAmount}</span>
+              <span className="text-2xl ml-2">To {decision.raiseAmount}</span>
             )}
           </div>
           <div className="text-sm text-white/90 mt-1">{displayReason}</div>
@@ -2039,7 +2039,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {potOddsPct !== null && potOddsPct > 0 && potSize > 0 && (
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
-                  <div className="text-[9px] text-white/60 uppercase">Pot odds</div>
+                  <div className="text-[9px] text-white/60 uppercase">Pot Odds</div>
                   <div className="text-sm font-bold">{potOddsPct}%</div>
                 </div>
               )}
@@ -2114,7 +2114,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                       <div className={'text-sm font-bold ' + lowColor}>{pct}%</div>
                       {decision.detection.unknownCount > 0 && (
                         <div className="text-[9px] text-amber-300 mt-0.5">
-                          {decision.detection.unknownCount} unknown
+                          {decision.detection.unknownCount} Unknown
                         </div>
                       )}
                     </div>
@@ -2168,7 +2168,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           )}
           {actionValidation && !actionValidation.consistent && (
             <div className="mt-2 text-[11px] text-amber-200 bg-amber-900/30 border border-amber-500/40 rounded px-2 py-1">
-              Heads up: {actionValidation.reason}
+              Heads Up: {actionValidation.reason}
             </div>
           )}
         </div>
@@ -2263,7 +2263,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 <span className="text-[10px] text-slate-500 font-mono px-2 py-1 bg-slate-800 rounded-full">
                   {lastTimingMs.toFixed(1)}ms | f{frameCount}
                   {useHardwired && hardwiredStats && (
-                    <> | HW avg:{hardwiredStats.avgDistance} max:{hardwiredStats.maxDistance}{hardwiredStats.allPerfect ? ' PERFECT' : ''}</>
+                    <> | HW Avg:{hardwiredStats.avgDistance} Max:{hardwiredStats.maxDistance}{hardwiredStats.allPerfect ? ' PERFECT' : ''}</>
                   )}
                 </span>
               )}
@@ -2271,7 +2271,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {/* Diagnostic overlay -- only shown in debug mode */}
               {debugMode && diagInfo && (
                 <div className="text-[8px] font-mono bg-black/90 text-cyan-300 p-1 rounded mt-1 max-w-full overflow-x-auto whitespace-pre leading-tight">
-                  {diagInfo.build} | {diagInfo.vw}x{diagInfo.vh} s:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | h:{diagInfo.holeFound}/{diagInfo.holeN} b:{diagInfo.boardFound}/{diagInfo.boardN}
+                  {diagInfo.build} | {diagInfo.vw}x{diagInfo.vh} S:{diagInfo.sX}/{diagInfo.sY} | Tpl:{diagInfo.tpl} | H:{diagInfo.holeFound}/{diagInfo.holeN} B:{diagInfo.boardFound}/{diagInfo.boardN}
                   {'\n'}{(diagInfo.probe || []).map((p) =>
                     `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} d=${p.dist}`
                   ).join('\n')}
@@ -2335,7 +2335,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                         }}
                         className="text-[10px] px-2 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
                       >
-                        Inject into Matcher
+                        Inject Into Matcher
                       </button>
                       <button
                         onClick={() => {
@@ -2358,7 +2358,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     </div>
                   </div>
                   <div className="text-[9px] text-slate-400 mb-2">
-                    Click a card label to change it. Set the correct card key (e.g., Ah, Kd, 7s) then click Inject.
+                    Click A Card Label To Change It. Set The Correct Card Key (E.G., Ah, Kd, 7S) Then Click Inject.
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {capturePreview.crops.map((crop, i) => {
@@ -2539,7 +2539,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             {!streamReady && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
                 <p className="text-sm font-semibold mb-3">
-                  Capture your PokerBros emulator window
+                  Capture Your PokerBros Emulator Window
                 </p>
                 <button
                   onClick={startScreenCapture}
@@ -2549,14 +2549,14 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 </button>
                 {streamError && <p className="mt-3 text-red-400 text-xs">{streamError}</p>}
                 {!matcherReady && (
-                  <p className="mt-3 text-amber-400 text-xs">Loading card templates...</p>
+                  <p className="mt-3 text-amber-400 text-xs">Loading Card Templates...</p>
                 )}
               </div>
             )}
             {streamReady && (
               <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 px-2.5 py-1 rounded-full border border-white/20 z-10">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-semibold">LIVE v12</span>
+                <span className="text-[10px] font-semibold">LIVE V12</span>
               </div>
             )}
             {/* DETECTION REGION OVERLAY: always visible when streaming.
@@ -2615,7 +2615,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   ))}
                   {/* AR info badge */}
                   <div className="absolute bottom-2 right-2 bg-black/80 text-[8px] text-white px-1.5 py-0.5 rounded z-10 font-mono">
-                    {vw}x{vh} | ref:{refW}x{refH} | AR:{arDiff > 0.03 ? 'CORRECTED' : 'OK'} | s:{sX.toFixed(2)} o:{Math.round(oX)},{Math.round(oY)} | CAL:{calOffset ? `${calOffset.cardsFound}cards dx=${calOffset.refDx} dy=${calOffset.refDy}` : 'scanning...'}
+                    {vw}x{vh} | Ref:{refW}x{refH} | AR:{arDiff > 0.03 ? 'CORRECTED' : 'OK'} | S:{sX.toFixed(2)} O:{Math.round(oX)},{Math.round(oY)} | CAL:{calOffset ? `${calOffset.cardsFound}cards dx=${calOffset.refDx} dy=${calOffset.refDy}` : 'scanning...'}
                   </div>
                 </>
               );
@@ -2651,14 +2651,14 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           {debugMode && debugProbe && (
             <div className="mt-2 rounded-lg border border-fuchsia-500/40 bg-fuchsia-950/30 p-2 text-[10px] font-mono text-fuchsia-100 overflow-auto" style={{ maxHeight: 600 }}>
               <div className="mb-1 text-fuchsia-300 font-bold">
-                Probe {debugProbe.variant} &middot; {debugProbe.videoW}x{debugProbe.videoH} &middot; tpl:{debugProbe.templates ?? '?'} &middot; {new Date(debugProbe.ts).toLocaleTimeString()}
+                Probe {debugProbe.variant} &middot; {debugProbe.videoW}x{debugProbe.videoH} &middot; Tpl:{debugProbe.templates ?? '?'} &middot; {new Date(debugProbe.ts).toLocaleTimeString()}
               </div>
               <div className="mb-1 text-cyan-300">
-                FIXED SCALING: ref {effectiveLayout.referenceSize?.w || 480}x{effectiveLayout.referenceSize?.h || 1054} -&gt; video {debugProbe.videoW}x{debugProbe.videoH} (sX={debugProbe.videoW ? (debugProbe.videoW / (effectiveLayout.referenceSize?.w || 480)).toFixed(3) : '?'} sY={debugProbe.videoH ? (debugProbe.videoH / (effectiveLayout.referenceSize?.h || 1054)).toFixed(3) : '?'})
+                FIXED SCALING: Ref {effectiveLayout.referenceSize?.w || 480}x{effectiveLayout.referenceSize?.h || 1054} -&gt; Video {debugProbe.videoW}x{debugProbe.videoH} (SX={debugProbe.videoW ? (debugProbe.videoW / (effectiveLayout.referenceSize?.w || 480)).toFixed(3) : '?'} SY={debugProbe.videoH ? (debugProbe.videoH / (effectiveLayout.referenceSize?.h || 1054)).toFixed(3) : '?'})
               </div>
               {debugProbe.tableBounds && (
                 <div className="mb-1 text-yellow-300">
-                  TABLE BOUNDS: ({debugProbe.tableBounds.x},{debugProbe.tableBounds.y}) {debugProbe.tableBounds.w}x{debugProbe.tableBounds.h} conf={debugProbe.tableBounds.confidence?.toFixed(2)}
+                  TABLE BOUNDS: ({debugProbe.tableBounds.x},{debugProbe.tableBounds.y}) {debugProbe.tableBounds.w}x{debugProbe.tableBounds.h} Conf={debugProbe.tableBounds.confidence?.toFixed(2)}
                 </div>
               )}
               {(debugProbe.log || []).slice(0, 24).map((entry, i) => (
@@ -2678,7 +2678,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   felt or wrong area, the problem is coordinates. */}
               {debugProbe.cropPreviews && debugProbe.cropPreviews.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-fuchsia-500/30">
-                  <div className="text-fuchsia-300 font-bold mb-1">CROP PREVIEWS (what matcher sees):</div>
+                  <div className="text-fuchsia-300 font-bold mb-1">CROP PREVIEWS (What Matcher Sees):</div>
                   <div className="flex flex-wrap gap-2">
                     {debugProbe.cropPreviews.map((cp, i) => (
                       <div key={'crop-' + i} className="flex flex-col items-center">
@@ -2700,8 +2700,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
           {matcherReady && templateCount < 10 && (
             <p className="mt-2 text-[11px] text-amber-400 leading-snug">
-              Only {templateCount} templates loaded. Detection accuracy will improve as the full
-              52-card library is captured. Play more hands to build the library.
+              Only {templateCount} Templates Loaded. Detection Accuracy Will Improve As The Full
+              52-Card Library Is Captured. Play More Hands To Build The Library.
             </p>
           )}
         </div>
@@ -2778,7 +2778,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         {/* KEYBOARD SHORTCUTS HINT -- debug only */}
         {debugMode && (
           <div className="mt-3 text-center text-[10px] text-slate-600">
-            M=mute  Space=pause  Esc=clear  R=reset  D=debug  C=confidence
+            M=Mute  Space=Pause  Esc=Clear  R=Reset  D=Debug  C=Confidence
           </div>
         )}
 

@@ -135,7 +135,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
           </svg>
-          <h3>Best Time to Go</h3>
+          <h3>Best Time To Go</h3>
         </div>
         {(predictions?.summary?.data_quality || batchInsights?.data_quality) && (
           <span className={`bttg-quality bttg-quality-${(batchInsights?.data_quality || predictions?.summary?.data_quality || '').toLowerCase()}`}>

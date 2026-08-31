@@ -111,7 +111,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Tournament Calendar</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>Major series schedules & budget planning</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>Major Series Schedules & Budget Planning</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => setViewMode('calendar')} style={{ background: viewMode === 'calendar' ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${viewMode === 'calendar' ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`, color: viewMode === 'calendar' ? '#00d4ff' : '#64748b', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Calendar</button>
@@ -128,7 +128,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {interestedEvents.length} Events</div>
                         <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#fbbf24' : '#f87171' }}>
-                            ${totalBudgetNeeded.toLocaleString()} needed
+                            ${totalBudgetNeeded.toLocaleString()} Needed
                         </div>
                     </div>
                     <div style={{ height: 6, background: 'rgba(0,0,0,0.4)', borderRadius: 3, overflow: 'hidden' }}>
@@ -143,7 +143,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         />
                     </div>
                     <div style={{ fontSize: 10, color: '#64748b', marginTop: 6 }}>
-                        Bankroll covers {budgetHealth.toFixed(0)}% of planned buy-ins
+                        Bankroll Covers {budgetHealth.toFixed(0)}% Of Planned Buy-Ins
                     </div>
                 </div>
             )}
@@ -275,7 +275,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.prizePool}</div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% of Bankroll</div>
+                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f87171' : '#e2e8f0', marginTop: 4 }}>
                                 {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '-'}%
                             </div>
@@ -295,7 +295,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
 
             {/* Event count summary */}
             <div style={{ textAlign: 'center', fontSize: 11, color: '#64748b' }}>
-                {monthEvents.length} events in {MONTHS[currentMonth]} • {upcomingEvents.length} total upcoming
+                {monthEvents.length} Events In {MONTHS[currentMonth]} • {upcomingEvents.length} Total Upcoming
             </div>
         </div>
     );

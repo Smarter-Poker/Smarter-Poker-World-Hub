@@ -83,7 +83,7 @@ function RiverSizingGuide() {
 
         <div style={{ padding: 14, background: `${s.color}11`, borderRadius: 10, border: `1px solid ${s.color}33`, marginBottom: 12 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: s.color, marginBottom: 2 }}>{s.name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best for: {s.when}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best For: {s.when}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{s.logic}</div>
         </div>
 
@@ -101,7 +101,7 @@ function RiverSizingGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>River Sizing Guide failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>River Sizing Guide Failed: {err.message}</div>;
   }
 }
 

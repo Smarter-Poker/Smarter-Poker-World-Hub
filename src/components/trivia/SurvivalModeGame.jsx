@@ -152,7 +152,7 @@ export default function SurvivalModeGame({
                 </p>
                 {remainingCap <= 0 && (
                     <p style={{ fontSize: '13px', color: '#fbbf24', marginTop: '8px' }}>
-                        Daily diamond cap reached - this run counts for the leaderboard.
+                        Daily Diamond Cap Reached - This Run Counts For The Leaderboard.
                     </p>
                 )}
             </div>
@@ -174,7 +174,7 @@ export default function SurvivalModeGame({
             }}>
                 <span style={{ color: '#ef4444', fontWeight: 'bold' }}>SURVIVAL</span>
                 <span style={{ color: '#fbbf24' }}>Streak: {streak}</span>
-                <span style={{ color: '#00D4FF' }}>{diamondsEarned} diamonds</span>
+                <span style={{ color: '#00D4FF' }}>{diamondsEarned} Diamonds</span>
             </div>
 
             {/* Multiplier Bar */}
@@ -197,7 +197,7 @@ export default function SurvivalModeGame({
                     }} />
                 </div>
                 <span style={{ fontWeight: 'bold' }}>{multiplier}x</span>
-                <span style={{ fontSize: '11px', opacity: 0.6 }}>{5 - (streak % 5)} to next</span>
+                <span style={{ fontSize: '11px', opacity: 0.6 }}>{5 - (streak % 5)} To Next</span>
             </div>
 
             {/* Question Card */}

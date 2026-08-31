@@ -198,7 +198,7 @@ export default async function handler(req, res) {
             totalCount,
             // Explicit so an operator reading this endpoint understands why
             // everything is "unknown" rather than assuming an outage.
-            telemetry: hasTelemetry ? 'reporting' : 'no writer — cron_health_log is empty; jobs do not report completion yet',
+            telemetry: hasTelemetry ? 'reporting' : 'no writer - cron_health_log is empty; jobs do not report completion yet',
             crons: results,
             checkedAt: new Date().toISOString(),
         });

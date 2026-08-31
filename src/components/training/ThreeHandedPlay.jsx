@@ -42,7 +42,7 @@ export default function ThreeHandedPlay() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         3-Handed Play
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Key adjustments for 3-way final table action.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Key Adjustments For 3-Way Final Table Action.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {THREE_HANDED.map((c, i) => (

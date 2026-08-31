@@ -244,7 +244,7 @@ export default function SizingTrainer() {
         </div>
 
         <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
-          You decide to bet. What sizing do you choose?
+          You Decide To Bet. What Sizing Do You Choose?
         </div>
 
         {/* ●●● SIZING OPTIONS ●●● */}
@@ -343,7 +343,7 @@ export default function SizingTrainer() {
       {score.total >= 3 && (
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
-            Accuracy by Sizing
+            Accuracy By Sizing
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {SIZINGS.map(s => {

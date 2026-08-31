@@ -101,7 +101,7 @@ function EarlyPositionGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Early Position Guide failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Early Position Guide Failed: {err.message}</div>;
   }
 }
 

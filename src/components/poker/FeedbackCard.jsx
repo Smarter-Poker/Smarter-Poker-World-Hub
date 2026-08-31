@@ -304,7 +304,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
             marginBottom: 12,
           }}
         >
-          Read more
+          Read More
         </button>
       ) : null}
 

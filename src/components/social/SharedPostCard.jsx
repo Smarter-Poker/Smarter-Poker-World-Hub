@@ -91,7 +91,7 @@ export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {
                 marginTop: 8, padding: '10px 12px', borderRadius: 10,
                 background: bg, border: `1px solid ${border}`,
                 fontSize: 12, color: subColor, fontStyle: 'italic',
-            }}>Loading post preview...</div>
+            }}>Loading Post Preview...</div>
         );
     }
 

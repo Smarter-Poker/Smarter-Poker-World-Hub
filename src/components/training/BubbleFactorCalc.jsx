@@ -119,7 +119,7 @@ function BubbleFactorCalc() {
         <div style={{ textAlign: 'center', padding: 16, background: calc.isBubble ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.08)', borderRadius: 10, border: `1px solid ${calc.isBubble ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.25)'}`, marginBottom: 16 }}>
           <div style={{ fontSize: 36, fontWeight: 900, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>{calc.bubbleFactor}x</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>Bubble Factor</div>
-          {calc.isBubble && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>ON THE BUBBLE - Tighten up!</div>}
+          {calc.isBubble && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>ON THE BUBBLE - Tighten Up!</div>}
         </div>
 
         {/* Equity Comparison */}
@@ -150,7 +150,7 @@ function BubbleFactorCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Bubble Factor Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Bubble Factor Calculator Failed To Load: {err.message}</div>;
   }
 }
 

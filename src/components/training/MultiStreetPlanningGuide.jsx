@@ -75,7 +75,7 @@ function MultiStreetPlanningGuide() {
         <div style={{ padding: 12, background: `${plan.color}11`, borderRadius: 10, border: `1px solid ${plan.color}33`, marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 4 }}>{plan.board}</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: plan.color, marginBottom: 2 }}>Hero: {plan.hand}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{plan.position} | Pot: {plan.pot} bb | Stack: {plan.stack} bb</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{plan.position} | Pot: {plan.pot} BB | Stack: {plan.stack} BB</div>
         </div>
 
         {/* Street-by-street plan */}
@@ -93,12 +93,12 @@ function MultiStreetPlanningGuide() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isRevealed ? 6 : 0 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: isRevealed ? plan.color : 'rgba(255,255,255,0.4)' }}>{st.street}</span>
                   {isRevealed && <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{st.plan}</span>}
-                  {!isRevealed && i === revealedStreet + 1 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Click to reveal</span>}
+                  {!isRevealed && i === revealedStreet + 1 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Click To Reveal</span>}
                 </div>
                 {isRevealed && (
                   <>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 4 }}>{st.reasoning}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Pot after: {st.potAfter} bb</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Pot After: {st.potAfter} BB</div>
                   </>
                 )}
               </div>
@@ -115,7 +115,7 @@ function MultiStreetPlanningGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Street Planning failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Street Planning Failed To Load: {err.message}</div>;
   }
 }
 

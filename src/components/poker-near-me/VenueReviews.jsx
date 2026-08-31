@@ -358,7 +358,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         <div className="vr-cat-averages-head">
                             <span>Category Ratings</span>
                             {verifiedCount > 0 && (
-                                <span className="vr-verified-count">{verifiedCount} verified player{verifiedCount !== 1 ? 's' : ''}</span>
+                                <span className="vr-verified-count">{verifiedCount} Verified player{verifiedCount !== 1 ? 's' : ''}</span>
                             )}
                         </div>
                         {Object.entries(CATEGORY_AVG_LABELS).map(([key, label]) => {
@@ -384,7 +384,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
-                        Write a Review
+                        Write A Review
                     </button>
                 )}
 
@@ -397,7 +397,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         </div>
 
                         <div className="vr-form-group">
-                            <label>Category Ratings (optional)</label>
+                            <label>Category Ratings (Optional)</label>
                             <div className="vr-category-ratings">
                                 {CATEGORIES.map(cat => (
                                     <div key={cat.key} className="vr-cat-row">
@@ -444,10 +444,10 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
                 {/* Reviews list */}
                 <div className="vr-list">
-                    {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading reviews...</span></div>}
+                    {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading Reviews...</span></div>}
                     {!loading && reviews.length === 0 && (
                         <div className="vr-empty">
-                            <p>No reviews yet. Be the first!</p>
+                            <p>No Reviews Yet. Be The First!</p>
                         </div>
                     )}
                     {reviews.map((r, i) => (

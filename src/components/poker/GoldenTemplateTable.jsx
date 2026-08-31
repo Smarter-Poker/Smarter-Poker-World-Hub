@@ -554,7 +554,7 @@ export default function GoldenTemplateTable({
                 color: '#f0f0f0',
                 fontSize: 14,
             }}>
-                Question {questionNumber} of {totalQuestions}
+                Question {questionNumber} Of {totalQuestions}
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════

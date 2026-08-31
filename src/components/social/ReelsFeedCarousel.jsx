@@ -3229,7 +3229,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     >
                       <path d="M20 6L9 17l-5-5" />
                     </svg>{' '}
-                    Shared to My Feed!
+                    Shared To My Feed!
                   </>
                 ) : sharingToFeed ? (
                   'Sharing...'
@@ -3247,7 +3247,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                       <polyline points="16 6 12 2 8 6" />
                       <line x1="12" y1="2" x2="12" y2="15" />
                     </svg>{' '}
-                    Share to My Feed
+                    Share To My Feed
                   </>
                 )}
               </button>
@@ -3403,7 +3403,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     cursor: 'pointer',
                   }}
                 >
-                  x
+                  X
                 </button>
               </div>
             </div>
@@ -3417,7 +3417,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     padding: 20,
                   }}
                 >
-                  No comments yet. Be the first!
+                  No Comments Yet. Be The First!
                 </p>
               )}
               {reelComments.map((c) => (
@@ -3731,7 +3731,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     marginLeft: 'auto',
                   }}
                 >
-                  x
+                  X
                 </button>
               </div>
             )}
@@ -3895,7 +3895,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                   <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
                   <div style={{ fontSize: 16, fontWeight: 600 }}>Report Submitted</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                    Thank you. We will review this content.
+                    Thank You. We Will Review This Content.
                   </div>
                 </div>
               ) : (
@@ -3904,7 +3904,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     Report This Reel
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 12 }}>
-                    Why are you reporting this content?
+                    Why Are You Reporting This Content?
                   </div>
                   {[
                     'Inappropriate Content',
@@ -4168,7 +4168,7 @@ export function ReelsFeedCarousel() {
           textAlign: 'center',
         }}
       >
-        <div style={{ color: C.textSec, fontSize: 13, marginBottom: 8 }}>Could not load reels</div>
+        <div style={{ color: C.textSec, fontSize: 13, marginBottom: 8 }}>Could Not Load Reels</div>
         <button
           onClick={() => loadReels()}
           style={{

@@ -65,7 +65,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                     {isCurrentUser && <span style={{ fontSize: 9, color: '#00d4ff', marginLeft: 4, fontWeight: 600 }}>YOU</span>}
                 </div>
                 <div style={{ fontSize: 9, color: '#475569' }}>
-                    {entry.sessions_completed || 0} session{(entry.sessions_completed || 0) !== 1 ? 's' : ''} • {entry.questions_answered || 0} hands
+                    {entry.sessions_completed || 0} session{(entry.sessions_completed || 0) !== 1 ? 's' : ''} • {entry.questions_answered || 0} Hands
                 </div>
             </div>
 
@@ -147,7 +147,7 @@ export default function LeaderboardPanel({ userId, gameId }) {
                     transition={{ duration: 1.5, repeat: Infinity }}
                     style={styles.loadingText}
                 >
-                    Loading rankings...
+                    Loading Rankings...
                 </motion.div>
             )}
 
@@ -159,7 +159,7 @@ export default function LeaderboardPanel({ userId, gameId }) {
 
             {!loading && !error && entries.length === 0 && (
                 <div style={{ color: '#475569', fontSize: 11, textAlign: 'center', padding: 16 }}>
-                    No entries yet for this period. Be the first!
+                    No Entries Yet For This Period. Be The First!
                 </div>
             )}
 

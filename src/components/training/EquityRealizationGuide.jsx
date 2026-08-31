@@ -96,13 +96,13 @@ function EquityRealizationGuide() {
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(6,182,212,0.06)', borderRadius: 8, border: '1px solid rgba(6,182,212,0.12)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>Key Takeaway</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
-            Raw equity doesnt equal money won. A hand with 40% equity IP might be more profitable than a hand with 50% equity OOP. Always consider how much equity you can actually REALIZE before calling or raising.
+            Raw Equity Doesnt Equal Money Won. A Hand With 40% Equity IP Might Be More Profitable Than A Hand With 50% Equity OOP. Always Consider How Much Equity You Can Actually REALIZE Before Calling Or Raising.
           </div>
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Equity Realization Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Equity Realization Guide Failed To Load: {err.message}</div>;
   }
 }
 

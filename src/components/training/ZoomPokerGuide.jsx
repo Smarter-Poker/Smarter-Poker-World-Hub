@@ -42,7 +42,7 @@ export default function ZoomPokerGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Zoom / Fast-Fold Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximize your edge in fast-fold poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximize Your Edge In Fast-Fold Poker.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {ZOOM_TOPICS.map((topic, i) => (

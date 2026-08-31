@@ -42,7 +42,7 @@ export default function SolverSimplify() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Solver Simplifier
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Turn solver complexity into real-world strategy.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Turn Solver Complexity Into Real-World Strategy.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {SIMPLIFY_RULES.map((r, i) => (
@@ -72,7 +72,7 @@ export default function SolverSimplify() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.evLoss}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How to Implement</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How To Implement</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.howTo}</div>
           </div>
         </div>

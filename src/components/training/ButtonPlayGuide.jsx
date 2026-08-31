@@ -33,7 +33,7 @@ export default function ButtonPlayGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Button Play Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The BTN prints money - here's how to maximize every orbit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The BTN Prints Money - Here's How To Maximize Every Orbit.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {BTN_SECTIONS.map((s, i) => (
@@ -67,7 +67,7 @@ export default function ButtonPlayGuide() {
 
       {/* Win rate by position */}
       <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>Expected Win Rate by Position</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>Expected Win Rate By Position</div>
         {[
           { pos: 'BTN', rate: '+25 bb/100', width: '100%', color: '#22c55e' },
           { pos: 'CO', rate: '+15 bb/100', width: '60%', color: '#3b82f6' },

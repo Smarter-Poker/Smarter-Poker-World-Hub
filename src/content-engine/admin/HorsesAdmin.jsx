@@ -514,7 +514,7 @@ function HorsesDashboard({ user, onLogout }) {
                                 <button onClick={() => triggerGeneration('daily')} className="action-btn featured">
                                     <span className="icon">📅</span>
                                     <span className="label">Full Daily</span>
-                                    <span className="desc">{settings.posts_per_day} posts</span>
+                                    <span className="desc">{settings.posts_per_day} Posts</span>
                                 </button>
                                 <button onClick={() => triggerGeneration('publish')} className="action-btn">
                                     <span className="icon">📤</span>
@@ -593,7 +593,7 @@ function HorsesDashboard({ user, onLogout }) {
                                     />
                                 </div>
                                 <div className="setting-item">
-                                    <label>Min Delay (minutes)</label>
+                                    <label>Min Delay (Minutes)</label>
                                     <input
                                         type="number"
                                         value={settings.min_delay_minutes}
@@ -603,7 +603,7 @@ function HorsesDashboard({ user, onLogout }) {
                                     />
                                 </div>
                                 <div className="setting-item">
-                                    <label>Max Delay (minutes)</label>
+                                    <label>Max Delay (Minutes)</label>
                                     <input
                                         type="number"
                                         value={settings.max_delay_minutes}
@@ -622,8 +622,8 @@ function HorsesDashboard({ user, onLogout }) {
                                         value={settings.ai_model}
                                         onChange={(e) => updateSettings('ai_model', e.target.value)}
                                     >
-                                        <option value="gpt-4o">GPT-4o (Best)</option>
-                                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                        <option value="gpt-4o">GPT-4O (Best)</option>
+                                        <option value="gpt-4o-mini">GPT-4O Mini</option>
                                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                                     </select>
                                 </div>
@@ -764,10 +764,10 @@ function HorsesDashboard({ user, onLogout }) {
                     <div className="stats-view">
                         <h2>⚠️ Reported Hands</h2>
                         <p style={{ color: '#888', marginBottom: 16, fontSize: 14 }}>
-                            Hands flagged by players for admin review. Investigate disputes and dismiss false reports.
+                            Hands Flagged By Players For Admin Review. Investigate Disputes And Dismiss False Reports.
                         </p>
 
-                        {reportedLoading && <p style={{ color: '#888' }}>Loading reported hands...</p>}
+                        {reportedLoading && <p style={{ color: '#888' }}>Loading Reported Hands...</p>}
 
                         {!reportedLoading && reportedHands.length === 0 && (
                             <div style={{
@@ -776,7 +776,7 @@ function HorsesDashboard({ user, onLogout }) {
                             }}>
                                 <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
                                 <div style={{ fontWeight: 700, fontSize: 16 }}>No Reported Hands</div>
-                                <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>All clear - no disputes pending.</div>
+                                <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>All Clear - No Disputes Pending.</div>
                             </div>
                         )}
 

@@ -42,7 +42,7 @@ export default function SessionReviewTool() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Session Review Tool
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured post-session review for maximum improvement.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured Post-Session Review For Maximum Improvement.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {REVIEW_STEPS.map((s, i) => (
@@ -68,7 +68,7 @@ export default function SessionReviewTool() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${step.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${step.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: step.color }}>What to Do</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: step.color }}>What To Do</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.what}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>

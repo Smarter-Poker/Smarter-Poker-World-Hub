@@ -178,7 +178,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                 window.dispatchEvent(new CustomEvent('sandbox-hand-deleted', { detail: { id } }));
                 toast((t) => (
                     <span style={{ display: 'flex', alignItems: 'center', gap: S.sm, fontSize: F.bodySm }}>
-                        Scenario deleted
+                        Scenario Deleted
                         <button
                             type="button"
                             className="pa-btn"
@@ -279,7 +279,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     icon={<FolderOpen size={22} strokeWidth={2} />}
                     title="Empty archive"
                     body='Use "Save to folder" in the sandbox menu to start building a drilling library.'
-                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back to the table</button>}
+                    action={<button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back To The Table</button>}
                 />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -322,7 +322,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     {/* Search */}
                     <label style={{ display: 'flex', alignItems: 'center', gap: S.sm, background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: `0 ${S.md}px`, minHeight: 44 }}>
                         <Search size={18} strokeWidth={2} color={T.textDim} />
-                        <span className="pa-vh">Search saved scenarios</span>
+                        <span className="pa-vh">Search Saved Scenarios</span>
                         <input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -361,7 +361,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     )}
 
                     <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} in {activeFolder || 'Not Available'}
+                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} In {activeFolder || 'Not Available'}
                     </div>
 
                     {filtered.length === 0 ? (
@@ -377,7 +377,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                     onClick={() => { setQuery(''); setActiveTag(null); }}
                                     style={btn('secondary')}
                                 >
-                                    Clear filters
+                                    Clear Filters
                                 </button>
                             )}
                         />
@@ -469,7 +469,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                     onClick={() => setPage(p => p + 1)}
                                     style={{ ...btn('secondary', { block: true }) }}
                                 >
-                                    Load {Math.min(PAGE_SIZE, filtered.length - visible.length)} more
+                                    Load {Math.min(PAGE_SIZE, filtered.length - visible.length)} More
                                 </button>
                             )}
                         </>

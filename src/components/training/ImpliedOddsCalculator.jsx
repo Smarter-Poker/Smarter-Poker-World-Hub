@@ -78,7 +78,7 @@ function ImpliedOddsCalculator() {
             <div style={{ fontSize: 22, fontWeight: 900, color: '#3b82f6' }}>{calc.eqPct}%</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Price to Call</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Price To Call</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#ef4444' }}>{calc.directPct}%</div>
           </div>
           <div style={{ padding: 10, background: profitableWithoutImplied ? 'rgba(16,185,129,0.08)' : 'rgba(249,115,22,0.08)', borderRadius: 8, textAlign: 'center' }}>
@@ -93,13 +93,13 @@ function ImpliedOddsCalculator() {
         <div style={{ padding: 14, borderRadius: 10, marginBottom: 16, textAlign: 'center', background: calc.canRealize ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${calc.canRealize ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
           {profitableWithoutImplied ? (
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#10b981' }}>Direct call is profitable!</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Implied odds are a bonus - you have the direct odds to call.</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#10b981' }}>Direct Call Is Profitable!</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Implied Odds Are A Bonus - You Have The Direct Odds To Call.</div>
             </div>
           ) : (
             <div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Need to win on later streets:</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: calc.canRealize ? '#10b981' : '#ef4444' }}>{calc.impliedNeeded} bb</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Need To Win On Later Streets:</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: calc.canRealize ? '#10b981' : '#ef4444' }}>{calc.impliedNeeded} BB</div>
               <div style={{ fontSize: 11, color: calc.canRealize ? '#10b981' : '#ef4444', marginTop: 4, fontWeight: 600 }}>
                 {calc.canRealize ? `Achievable - ${Math.round(calc.impliedNeeded / (stack - calc.callAmount) * 100)}% of remaining stack` : 'NOT achievable - would need more than effective stack!'}
               </div>
@@ -119,7 +119,7 @@ function ImpliedOddsCalculator() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Implied Odds Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Implied Odds Calculator Failed To Load: {err.message}</div>;
   }
 }
 

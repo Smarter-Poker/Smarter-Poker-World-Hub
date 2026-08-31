@@ -42,7 +42,7 @@ export default function PushFoldChart() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Push/Fold Charts
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Mathematically optimal shove ranges by spot.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Mathematically Optimal Shove Ranges By Spot.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PUSHFOLD_RANGES.map((r, i) => (

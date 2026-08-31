@@ -36,7 +36,7 @@ export default function PotOddsTrainer() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Pot Odds Trainer
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Should you call? Practice the math that wins poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Should You Call? Practice The Math That Wins Poker.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {SCENARIOS.map((sc, i) => (
@@ -57,7 +57,7 @@ export default function PotOddsTrainer() {
             <div style={{ fontSize: 20, fontWeight: 800, color: '#3b82f6' }}>{s.pot}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Bet to Call</div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>Bet To Call</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{s.bet}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
@@ -99,7 +99,7 @@ export default function PotOddsTrainer() {
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#22c55e' }}>{analysis.equity}%</div>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>EV of Call</div>
+                <div style={{ fontSize: 10, color: '#64748b' }}>EV Of Call</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: parseFloat(analysis.ev) > 0 ? '#22c55e' : '#ef4444' }}>{analysis.ev}</div>
               </div>
             </div>

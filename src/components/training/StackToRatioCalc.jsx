@@ -40,19 +40,19 @@ function StackToRatioCalc() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#06b6d4' }}>Stack-to-Pot Ratio Calculator</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#06b6d4' }}>Stack-To-Pot Ratio Calculator</h3>
 
         {/* Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (bb)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
             <input type="range" min={5} max={300} step={5} value={stack} onChange={e => setStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#06b6d4' }} />
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{stack} bb</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{stack} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (bb)</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
             <input type="range" min={1} max={100} step={1} value={pot} onChange={e => setPot(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#06b6d4' }} />
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{pot} bb</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{pot} BB</div>
           </div>
         </div>
 
@@ -60,14 +60,14 @@ function StackToRatioCalc() {
         <div style={{ textAlign: 'center', padding: 16, background: `${calc.zone.color}15`, borderRadius: 10, border: `1px solid ${calc.zone.color}30`, marginBottom: 16 }}>
           <div style={{ fontSize: 42, fontWeight: 900, color: calc.zone.color }}>{calc.spr}</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: calc.zone.color, marginBottom: 4 }}>{calc.zone.label} SPR</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Equity needed to commit: ~{calc.commitThreshold}%</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Equity Needed To Commit: ~{calc.commitThreshold}%</div>
         </div>
 
         {/* Strategy Guide */}
         <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16, borderLeft: `4px solid ${calc.zone.color}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: calc.zone.color, marginBottom: 6 }}>Strategy at {calc.zone.label} SPR</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: calc.zone.color, marginBottom: 6 }}>Strategy At {calc.zone.label} SPR</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: 6 }}>{calc.zone.strategy}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stack-off hands: {calc.zone.hands}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stack-Off Hands: {calc.zone.hands}</div>
         </div>
 
         {/* SPR Zone Visualization */}
@@ -98,7 +98,7 @@ function StackToRatioCalc() {
         </div>
 
         {/* Common Scenarios */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Common Preflop Scenarios (100bb deep)</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Common Preflop Scenarios (100BB Deep)</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {PREFLOP_SCENARIOS.map((s, i) => {
             const zone = SPR_ZONES.find(z => s.spr <= z.max);
@@ -117,7 +117,7 @@ function StackToRatioCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>SPR Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>SPR Calculator Failed To Load: {err.message}</div>;
   }
 }
 

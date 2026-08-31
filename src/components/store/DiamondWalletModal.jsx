@@ -363,7 +363,7 @@ const DonutChart = ({ data }) => {
                     {total.toLocaleString()}
                 </text>
                 <text x={cx} y={cy + 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7">
-                    total
+                    Total
                 </text>
             </svg>
             <div style={{ flex: 1 }}>
@@ -1590,9 +1590,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </div>
                         {/* Anti-abuse info */}
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 10, lineHeight: 1.4 }}>
-                            Standard: 10-100 per transfer | 500/day | 200/day per friend | 60s cooldown<br/>
-                            VIP Friends (60+ days): 10-500 per transfer | 2,000/day<br/>
-                            5min cooldown between transfers to same friend | 1,000/day receive cap
+                            Standard: 10-100 Per Transfer | 500/Day | 200/Day Per Friend | 60S Cooldown<br/>
+                            VIP Friends (60+ Days): 10-500 Per Transfer | 2,000/Day<br/>
+                            5Min Cooldown Between Transfers To Same Friend | 1,000/Day Receive Cap
                         </div>
                         {/* P2-4: Daily limit progress bar */}
                         {dailyLimitInfo && (
@@ -1600,7 +1600,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
                                     <span>Today: {dailyLimitInfo.sent.toLocaleString()} / {dailyLimitInfo.limit.toLocaleString()}</span>
                                     <span style={{ color: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#58d9ff' }}>
-                                        {(dailyLimitInfo.limit - dailyLimitInfo.sent).toLocaleString()} remaining
+                                        {(dailyLimitInfo.limit - dailyLimitInfo.sent).toLocaleString()} Remaining
                                     </span>
                                 </div>
                                 <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
@@ -1721,7 +1721,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                             }}>
                                                 {friendsLoading ? (
-                                                    <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
+                                                    <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading Friends...</div>
                                                 ) : (() => {
                                                     const q = friendSearch.trim().toLowerCase();
                                                     const matches = transferFriends.filter(f =>
@@ -1729,7 +1729,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                         (f.username || '').toLowerCase().includes(q)
                                                     );
                                                     if (matches.length === 0) {
-                                                        return <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No matching friends found</div>;
+                                                        return <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No Matching Friends Found</div>;
                                                     }
                                                     return matches.slice(0, 10).map(f => (
                                                         <button
@@ -1767,7 +1767,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                          {/* Hint text when less than 3 chars */}
                                          {friendSearch.trim().length > 0 && friendSearch.trim().length < 3 && (
                                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4, paddingLeft: 4 }}>
-                                                 Type at least 3 characters to search...
+                                                 Type At Least 3 Characters To Search...
                                              </div>
                                          )}
                                      </>
@@ -1913,12 +1913,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             <div style={{ background: 'rgba(74, 222, 128, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Earned</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, color: '#58d9ff', fontFamily: 'Rajdhani, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
-                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: +{stats.weekEarned.toLocaleString()}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This Week: +{stats.weekEarned.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(248, 113, 113, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Spent</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, color: '#f87171', fontFamily: 'Rajdhani, monospace' }}>-{stats.totalSpent.toLocaleString()}</div>
-                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: -{stats.weekSpent.toLocaleString()}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This Week: -{stats.weekSpent.toLocaleString()}</div>
                             </div>
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Top Sources</div>
@@ -1971,7 +1971,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 {stats.monthlyTrend.earnedChange >= 0
                                                     ? <ArrowUpRight size={10} />
                                                     : <ArrowDownRight size={10} />}
-                                                {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% vs last month
+                                                {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% Vs Last Month
                                             </div>
                                         )}
                                     </div>
@@ -1992,7 +1992,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 {stats.monthlyTrend.spentChange >= 0
                                                     ? <ArrowUpRight size={10} />
                                                     : <ArrowDownRight size={10} />}
-                                                {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% vs last month
+                                                {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% Vs Last Month
                                             </div>
                                         )}
                                     </div>
@@ -2070,7 +2070,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             padding: 40,
                             color: 'rgba(255, 255, 255, 0.4)',
                         }}>
-                            <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>&#x26A0;&#xFE0F;</div>
+                            <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>&#X26A0;&#XFE0F;</div>
                             <div style={{ fontSize: 13, marginBottom: 14, color: 'rgba(255, 255, 255, 0.45)' }}>
                                 {error}
                             </div>
@@ -2116,7 +2116,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {filter === 'all' && !searchQuery && (
                                 <>
                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
-                                        Earn diamonds through daily logins, trivia, and more
+                                        Earn Diamonds Through Daily Logins, Trivia, And More
                                     </div>
                                     {/* H3: Enhanced empty state CTA */}
                                     {(balance ?? 0) === 0 && (
@@ -2386,9 +2386,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         justifyContent: 'center',
                         gap: 12,
                     }}>
-                        <span>{total.toLocaleString()} total transactions</span>
+                        <span>{total.toLocaleString()} Total Transactions</span>
                         {filteredTx.length !== transactions.length && (
-                            <span>| {filteredTx.length} shown</span>
+                            <span>| {filteredTx.length} Shown</span>
                         )}
                     </div>
                 )}

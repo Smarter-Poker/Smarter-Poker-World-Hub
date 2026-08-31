@@ -567,7 +567,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                 {street === 'all' ? '◇ All' : STREETS.find(s => s.id === street)?.icon + ' ' + street.charAt(0).toUpperCase() + street.slice(1)}
                             </span>
                             <span style={styles.summaryBadge}>
-                                {questionsCount} hands
+                                {questionsCount} Hands
                             </span>
                         </div>
                         <motion.button

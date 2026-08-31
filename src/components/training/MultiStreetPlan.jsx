@@ -42,7 +42,7 @@ export default function MultiStreetPlan() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         · Multi-Street Planner
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Plan all three streets before acting on the flop.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Plan All Three Streets Before Acting On The Flop.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {STREET_PLANS.map((p, i) => (

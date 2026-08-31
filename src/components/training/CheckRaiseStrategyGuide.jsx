@@ -116,7 +116,7 @@ function CheckRaiseStrategyGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Check-Raise Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Check-Raise Guide Failed To Load: {err.message}</div>;
   }
 }
 

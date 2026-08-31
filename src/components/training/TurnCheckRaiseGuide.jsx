@@ -29,7 +29,7 @@ export default function TurnCheckRaiseGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Turn Check-Raise Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The turn check-raise is the most feared move in poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Turn Check-Raise Is The Most Feared Move In Poker.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {TURN_XR_SPOTS.map((s, i) => (

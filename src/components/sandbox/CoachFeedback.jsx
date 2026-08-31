@@ -204,7 +204,7 @@ export default function CoachFeedback({
                             {FREQUENCY_INSIGHTS[feedback.freqLevel]}
                             {feedback.optimalFreq > 0 && (
                                 <span style={{ color: T.purple, fontWeight: 700, ...numeric }}>
-                                    {' '}({Math.round(feedback.optimalFreq)}% here)
+                                    {' '}({Math.round(feedback.optimalFreq)}% Here)
                                 </span>
                             )}
                         </div>
@@ -216,7 +216,7 @@ export default function CoachFeedback({
                                 fontSize: F.caption, color: T.textMuted, textTransform: 'uppercase',
                                 letterSpacing: 0.6, fontWeight: 700, marginBottom: S.sm,
                             }}>
-                                Action frequencies
+                                Action Frequencies
                             </div>
                             <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                                 {Object.entries(feedback.breakdown)
@@ -249,7 +249,7 @@ export default function CoachFeedback({
                             onClick={() => onDrill({ position: feedback.position, street: results?.street || null })}
                         >
                             <Target size={18} strokeWidth={2} />
-                            Drill more spots from {feedback.position}
+                            Drill More Spots From {feedback.position}
                         </button>
                     )}
                 </div>

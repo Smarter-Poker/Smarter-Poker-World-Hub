@@ -47,7 +47,7 @@ export default function ICMDealMaker() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ICM Deal Maker
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Negotiate final table deals with ICM equity.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Negotiate Final Table Deals With ICM Equity.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {DEAL_SCENARIOS.map((s, i) => (

@@ -375,10 +375,10 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                         : 'Play a few hands in the sandbox to generate a report.'}
                     action={archivedCount > 0 && scope === 'session' ? (
                         <button type="button" className="pa-btn" onClick={() => setScope('all')} style={btn('secondary')}>
-                            Show all loaded hands
+                            Show All Loaded Hands
                         </button>
                     ) : (
-                        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back to the table</button>
+                        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary')}>Back To The Table</button>
                     )}
                 />
             ) : (
@@ -410,22 +410,22 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
 
                     {stats.scoredHands > 0 && stats.scoredHands < stats.totalHands && (
                         <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                            Accuracy is based on {stats.scoredHands} coached hand{stats.scoredHands === 1 ? '' : 's'} of {stats.totalHands}.
+                            Accuracy Is Based On {stats.scoredHands} Coached hand{stats.scoredHands === 1 ? '' : 's'} Of {stats.totalHands}.
                         </p>
                     )}
 
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         <span style={pill(stats.evSum >= 0 ? 'success' : 'danger')}>
-                            {stats.evSum >= 0 ? '+' : ''}{stats.evSum.toFixed(2)} BB total
+                            {stats.evSum >= 0 ? '+' : ''}{stats.evSum.toFixed(2)} BB Total
                         </span>
                         <span style={pill('neutral')}>Avg {stats.avgEvDelta} BB</span>
-                        <span style={pill('neutral')}>{stats.evCount} scored spot{stats.evCount === 1 ? '' : 's'}</span>
+                        <span style={pill('neutral')}>{stats.evCount} Scored spot{stats.evCount === 1 ? '' : 's'}</span>
                     </div>
 
                     {stats.posEntries.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Positions played
+                                Positions Played
                             </h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                                 {stats.posEntries.map(([pos, count]) => (
@@ -438,7 +438,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {stats.streetEntries.length > 0 && (
                         <div>
                             <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                                Streets analysed
+                                Streets Analysed
                             </h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
                                 {stats.streetEntries.map(([street, count]) => (
@@ -451,7 +451,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {/* Recent hands */}
                     <div>
                         <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                            Recent hands
+                            Recent Hands
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {stats.recent.map((entry, i) => {
@@ -483,7 +483,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                     {/* Export preview */}
                     <div>
                         <h4 style={{ fontSize: F.label, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, margin: `0 0 ${S.sm}px` }}>
-                            Shareable card
+                            Shareable Card
                         </h4>
                         {previewUrl ? (
                             /* eslint-disable-next-line @next/next/no-img-element */

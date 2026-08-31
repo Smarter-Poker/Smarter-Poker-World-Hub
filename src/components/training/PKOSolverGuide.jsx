@@ -51,7 +51,7 @@ export default function PKOSolverGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         PKO / Bounty Solver
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Bounty-adjusted strategy for Progressive Knockout tournaments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Bounty-Adjusted Strategy For Progressive Knockout Tournaments.</p>
 
       {/* Bounty Ratio Selector */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>

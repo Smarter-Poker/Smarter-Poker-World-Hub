@@ -367,7 +367,7 @@ export default function ArticleCard({
                     </div>
                 )}
                 <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
-                    Click to read full article →
+                    Click To Read Full Article →
                 </div>
             </div>
         </div>

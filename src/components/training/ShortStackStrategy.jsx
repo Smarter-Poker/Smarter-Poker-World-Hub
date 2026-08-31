@@ -103,7 +103,7 @@ function ShortStackStrategy() {
                 <div key={p.pos} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `4px solid ${p.color}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: p.color }}>{p.pos}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: p.color }}>{p.pct}% of hands</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: p.color }}>{p.pct}% Of Hands</span>
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{p.range}</div>
                   <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, marginTop: 6 }}>
@@ -122,15 +122,15 @@ function ShortStackStrategy() {
         ) : (
           <>
             <div style={{ textAlign: 'center', padding: 10, background: 'rgba(251,113,133,0.06)', borderRadius: 8, marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#fb7185' }}>BB Call Ranges vs Shoves</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>How wide to call when facing an all-in</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fb7185' }}>BB Call Ranges Vs Shoves</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>How Wide To Call When Facing An All-In</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {CALL_RANGES.map((c, i) => (
                 <div key={c.vsPos} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: '4px solid #3b82f6' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6' }}>{c.vsPos}</span>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>~{c.width}% call</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>~{c.width}% Call</span>
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{c.range}</div>
                 </div>
@@ -141,7 +141,7 @@ function ShortStackStrategy() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Short Stack Strategy failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Short Stack Strategy Failed To Load: {err.message}</div>;
   }
 }
 

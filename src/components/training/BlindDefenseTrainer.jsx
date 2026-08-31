@@ -90,7 +90,7 @@ function BlindDefenseTrainer() {
         {/* Opener Info */}
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #f472b6' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-            <span style={{ fontWeight: 700, color: '#f472b6' }}>{data.opener}</span> opens {data.openSize} ({data.openPct}% range) → {view === 'bb' ? 'BB' : 'SB'} defends
+            <span style={{ fontWeight: 700, color: '#f472b6' }}>{data.opener}</span> Opens {data.openSize} ({data.openPct}% Range) → {view === 'bb' ? 'BB' : 'SB'} Defends
           </div>
         </div>
 
@@ -141,7 +141,7 @@ function BlindDefenseTrainer() {
               </>
             ) : (
               <div style={{ padding: 16, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                SB is the opener in this scenario - switch to BB view
+                SB Is The Opener In This Scenario - Switch To BB View
               </div>
             )}
           </>
@@ -155,7 +155,7 @@ function BlindDefenseTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Blind Defense Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Blind Defense Trainer Failed To Load: {err.message}</div>;
   }
 }
 

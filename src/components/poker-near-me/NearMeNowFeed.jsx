@@ -352,7 +352,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 <div className="nmf-radius">
                     <span className="nmf-ctrl-label">Radius:</span>
                     {RADIUS_OPTIONS.map(r => (
-                        <button key={r} className={'nmf-chip' + (radius === r ? ' active' : '')} onClick={() => setRadius(r)}>{r} mi</button>
+                        <button key={r} className={'nmf-chip' + (radius === r ? ' active' : '')} onClick={() => setRadius(r)}>{r} Mi</button>
                     ))}
                 </div>
                 <div className="nmf-type-filter">
@@ -376,8 +376,8 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                             <path d="M12 8v4M12 16h.01" />
                         </svg>
                     </div>
-                    <p className="nmf-empty-title">No activity nearby right now</p>
-                    <p className="nmf-empty-hint">Try increasing your radius or check back soon</p>
+                    <p className="nmf-empty-title">No Activity Nearby Right Now</p>
+                    <p className="nmf-empty-hint">Try Increasing Your Radius Or Check Back Soon</p>
                     
                     {/* CTA Buttons */}
                     <div className="nmf-empty-ctas">
@@ -450,7 +450,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                                             const d = computeDistance(item.venue);
                                             return d !== null ? (
                                                 <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'rgba(63,185,80,0.15)', color: '#3fb950', border: '1px solid rgba(63,185,80,0.25)' }}>
-                                                    {d < 1 ? '<1' : Math.round(d)} mi
+                                                    {d < 1 ? '<1' : Math.round(d)} Mi
                                                 </span>
                                             ) : null;
                                         })()}

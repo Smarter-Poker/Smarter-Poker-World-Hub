@@ -39,7 +39,7 @@ function assert(condition, label) {
     for (const table of tables) {
         const { data, error } = await supabase.from(table).select('*').limit(1);
         if (error) {
-            console.debug(`  ⚠️  Table "${table}" — Error: ${error.message}`);
+            console.debug(`  ⚠️  Table "${table}" - Error: ${error.message}`);
             if (error.message.includes('does not exist') || error.code === '42P01') {
                 assert(false, `Supabase table "${table}" EXISTS`);
             } else {
@@ -193,15 +193,15 @@ function assert(condition, label) {
         const minBet = Math.min(...betAmounts);
         const maxBet = Math.max(...betAmounts);
 
-        assert(minBet >= 2, `Min bet >= 2 (min raise) — got ${minBet}`);
-        assert(maxBet <= 190, `Max bet <= stack — got ${maxBet}`);
-        assert(avgBet >= 3 && avgBet <= 100, `Avg bet size reasonable — got ${Math.round(avgBet)}`);
+        assert(minBet >= 2, `Min bet >= 2 (min raise) - got ${minBet}`);
+        assert(maxBet <= 190, `Max bet <= stack - got ${maxBet}`);
+        assert(avgBet >= 3 && avgBet <= 100, `Avg bet size reasonable - got ${Math.round(avgBet)}`);
 
         // Bet sizing variety — should NOT always be the same size
         const uniqueBets = new Set(betAmounts).size;
         assert(uniqueBets >= 2, `Bet sizing variety: ${uniqueBets} unique sizes`);
     } else {
-        console.debug('  ⚠️ No bets placed in 25 postflop hands — checking if check-heavy is valid');
+        console.debug('  ⚠️ No bets placed in 25 postflop hands - checking if check-heavy is valid');
         assert(true, 'No bets (may be correct for given board textures)');
     }
 
@@ -433,7 +433,7 @@ function assert(condition, label) {
             assert(false, `Read back from Supabase (error: ${error?.message || 'no data'})`);
         }
     } else {
-        console.debug('  ⚠️ saveSessionAnalytics returned false — table may not exist');
+        console.debug('  ⚠️ saveSessionAnalytics returned false - table may not exist');
         assert(false, 'Supabase session analytics persistence WORKS');
     }
 
@@ -448,7 +448,7 @@ function assert(condition, label) {
         console.debug('\n❌ FAILURES:');
         failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.debug('\n✅ ALL DEEP TESTS PASSED — VERIFIED END-TO-END');
+        console.debug('\n✅ ALL DEEP TESTS PASSED - VERIFIED END-TO-END');
     }
 
     console.debug('');

@@ -33,7 +33,7 @@ export default function DiscoveryStatusRail({
         <dd>{venueCount > 0 ? `${venueCount.toLocaleString()} indexed` : 'Loading'}</dd>
       </div>
       <div className={`pnm-status-rail__item pnm-status-rail__item--${feed.tone}`}>
-        <dt>Table feed</dt>
+        <dt>Table Feed</dt>
         <dd><span className="pnm-status-rail__signal" aria-hidden="true" />{feed.label}</dd>
       </div>
       <div className="pnm-status-rail__item">

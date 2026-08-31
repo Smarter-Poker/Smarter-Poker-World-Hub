@@ -33,7 +33,7 @@ export default function RiverOverbetGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         River Overbet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Overbetting the river = maximum pressure. Use wisely.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Overbetting The River = Maximum Pressure. Use Wisely.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {OVERBET_SPOTS.map((s, i) => (

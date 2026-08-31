@@ -83,12 +83,12 @@ function RiverPolarizationGuide() {
               <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>Check {concept.visual.check}%</span>
             </div>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Optimal ratio: {concept.ratio}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Optimal Ratio: {concept.ratio}</div>
         </div>
 
         {/* When to use */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: concept.color, marginBottom: 4 }}>When to use {concept.type}:</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: concept.color, marginBottom: 4 }}>When To Use {concept.type}:</div>
           {concept.when.map((w, i) => (
             <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: `2px solid ${concept.color}44`, marginBottom: 3 }}>{w}</div>
           ))}
@@ -130,7 +130,7 @@ function RiverPolarizationGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Polarization Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Polarization Guide Failed To Load: {err.message}</div>;
   }
 }
 

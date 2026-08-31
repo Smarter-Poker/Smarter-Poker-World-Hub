@@ -64,7 +64,7 @@ function RangeVsRangeSim() {
   try {
     return (
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#06b6d4' }}>Range vs Range Equity</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#06b6d4' }}>Range Vs Range Equity</h3>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {MATCHUPS.map((m, i) => (
@@ -122,7 +122,7 @@ function RangeVsRangeSim() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Range vs Range Sim failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Range Vs Range Sim Failed To Load: {err.message}</div>;
   }
 }
 

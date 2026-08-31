@@ -657,7 +657,7 @@ export default function TableMiniView({
               >×</button>
             </div>
             <div style={S.replayBody}>
-              <span style={S.replayWinner}>{lastHandResult.winnerName} won {fmtPot(lastHandResult.amount)}</span>
+              <span style={S.replayWinner}>{lastHandResult.winnerName} Won {fmtPot(lastHandResult.amount)}</span>
             </div>
           </div>
         )}

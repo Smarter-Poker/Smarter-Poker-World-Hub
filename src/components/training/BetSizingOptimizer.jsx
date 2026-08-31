@@ -114,7 +114,7 @@ function BetSizingOptimizer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Bet Sizing Optimizer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Bet Sizing Optimizer Failed To Load: {err.message}</div>;
   }
 }
 

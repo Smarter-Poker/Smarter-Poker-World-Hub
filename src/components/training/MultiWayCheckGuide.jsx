@@ -32,7 +32,7 @@ export default function MultiWayCheckGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Multi-Way Pot Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>More players = tighter play. Here's how to adjust.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>More Players = Tighter Play. Here's How To Adjust.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {MW_RULES.map((r, i) => (

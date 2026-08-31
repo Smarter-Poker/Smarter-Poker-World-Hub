@@ -104,7 +104,7 @@ function ContinuationBetGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Guide failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Guide Failed To Load: {err.message}</div>;
   }
 }
 

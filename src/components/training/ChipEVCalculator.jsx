@@ -161,7 +161,7 @@ export default function ChipEVCalculator() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Chip EV Calculator</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Compare chip EV vs $EV in tournament spots</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Compare Chip EV Vs $EV In Tournament Spots</div>
         </div>
 
         {/* Scenario selector */}
@@ -222,7 +222,7 @@ export default function ChipEVCalculator() {
               {selectedScenario.riskPremium}%
             </div>
             <div style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
-              ICM tax on aggressive plays
+              ICM Tax On Aggressive Plays
             </div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
@@ -231,7 +231,7 @@ export default function ChipEVCalculator() {
               {Math.abs(selectedScenario.chipEV - selectedScenario.dollarEV)}
             </div>
             <div style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
-              Chip EV vs $EV gap
+              Chip EV Vs $EV Gap
             </div>
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function ChipEVCalculator() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Chip EV Calculator</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

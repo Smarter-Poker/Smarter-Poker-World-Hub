@@ -123,7 +123,7 @@ function BettingPatternAnalyzer() {
 
         {/* How to exploit */}
         <div style={{ padding: 12, background: 'rgba(16,185,129,0.06)', borderRadius: 8, marginBottom: 12, borderLeft: '4px solid #10b981' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>How to Exploit</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>How To Exploit</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{pattern.exploit}</div>
         </div>
 
@@ -139,7 +139,7 @@ function BettingPatternAnalyzer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Betting Pattern Analyzer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Betting Pattern Analyzer Failed To Load: {err.message}</div>;
   }
 }
 

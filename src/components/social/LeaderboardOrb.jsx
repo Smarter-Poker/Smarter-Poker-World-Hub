@@ -373,7 +373,7 @@ export const LeaderboardOrb = ({
             {currentUserEntry && (
                 <footer className="current-user-footer">
                     <span>Your Rank: #{currentUserEntry.rank}</span>
-                    <span>{(currentUserEntry.diamonds_earned || 0).toLocaleString()} Diamonds earned</span>
+                    <span>{(currentUserEntry.diamonds_earned || 0).toLocaleString()} Diamonds Earned</span>
                 </footer>
             )}
 

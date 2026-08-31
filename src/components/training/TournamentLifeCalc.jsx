@@ -129,7 +129,7 @@ function TournamentLifeCalc() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Tournament Life Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Tournament Life Calculator Failed To Load: {err.message}</div>;
   }
 }
 

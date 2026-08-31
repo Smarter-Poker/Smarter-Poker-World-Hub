@@ -458,7 +458,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
     if (!handHistory.length) {
         return (
             <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                No hands to review. Complete a session first.
+                No Hands To Review. Complete A Session First.
             </div>
         );
     }

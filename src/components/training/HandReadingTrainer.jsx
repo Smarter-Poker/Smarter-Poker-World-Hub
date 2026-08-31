@@ -90,7 +90,7 @@ function HandReadingTrainer() {
                   </>
                 )}
                 {!visible && i === revealedStreet + 1 && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Click to reveal next street →</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Click To Reveal Next Street →</div>
                 )}
               </div>
             );
@@ -124,7 +124,7 @@ function HandReadingTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Reading Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Reading Trainer Failed To Load: {err.message}</div>;
   }
 }
 

@@ -890,12 +890,12 @@ function LiveGamesFeed({
                             </span>
                             {g.buyin && (
                                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
-                                    Buy-in: {g.buyin}
+                                    Buy-In: {g.buyin}
                                 </span>
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                            {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 11 }}>{g.players_waiting} waiting</span>}
+                            {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 11 }}>{g.players_waiting} Waiting</span>}
                             {isPASource ? (
                                 <span style={{ color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
                                     {g.runs || `~${g.tables_running} est.`}
@@ -1153,7 +1153,7 @@ function LiveGamesFeed({
                                     </span>
                                 ) : (
                                     <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                        No live game data
+                                        No Live Game Data
                                     </span>
                                 )}
                             </div>
@@ -1329,7 +1329,7 @@ function LiveGamesFeed({
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data - Intelligence Engines Are Syncing</div>
                         <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
-                            Live scrapers are temporarily offline. Showing last-known game data - no information has been lost.
+                            Live Scrapers Are Temporarily Offline. Showing Last-Known Game Data - No Information Has Been Lost.
                         </div>
                     </div>
                     <button
@@ -1361,7 +1361,7 @@ function LiveGamesFeed({
                             {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
-                            Cards marked ESTIMATED are modelled from weeks of observed history, not a live scrape.
+                            Cards Marked ESTIMATED Are Modelled From Weeks Of Observed History, Not A Live Scrape.
                         </div>
                     </div>
                 </div>
@@ -1422,7 +1422,7 @@ function LiveGamesFeed({
                                     {/* The list below is hard-capped at 200 cards; say so
                                         rather than reporting a total the list never reaches. */}
                                     {mergedVenues.length > 200 ? (
-                                        <>Showing <span style={{ color: '#ef4444', fontWeight: 800 }}>200</span> of {mergedVenues.length} Live Venues</>
+                                        <>Showing <span style={{ color: '#ef4444', fontWeight: 800 }}>200</span> Of {mergedVenues.length} Live Venues</>
                                     ) : (
                                         <><span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues</>
                                     )}
@@ -1465,7 +1465,7 @@ function LiveGamesFeed({
                                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,0.6)" strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                     </div>
                                     <p style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', margin: '0 0 4px' }}>Intelligence Engines Are Syncing</p>
-                                    <p style={{ fontSize: 13, color: 'rgba(245,158,11,0.6)', marginBottom: 16 }}>Live game data is being refreshed. Check back in a few minutes.</p>
+                                    <p style={{ fontSize: 13, color: 'rgba(245,158,11,0.6)', marginBottom: 16 }}>Live Game Data Is Being Refreshed. Check Back In A Few Minutes.</p>
                                     <button onClick={() => fetchGlobalLiveData(true)} disabled={isRefreshing} style={{ padding: '10px 20px', borderRadius: 10, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', fontSize: 13, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                                         {isRefreshing ? 'Retrying...' : 'Retry Now'}
                                     </button>
@@ -1614,7 +1614,7 @@ class LiveGamesFeedErrorBoundary extends React.Component {
                     </svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>Intelligence Engines Syncing</div>
-                <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.65)', marginBottom: 20 }}>Live data is refreshing. Retrying automatically...</div>
+                <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.65)', marginBottom: 20 }}>Live Data Is Refreshing. Retrying Automatically...</div>
                 <button onClick={() => this.setState({ hasError: false })} style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>Retry Now</button>
             </div>
         );

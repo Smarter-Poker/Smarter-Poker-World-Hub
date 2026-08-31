@@ -172,7 +172,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                         exit={{ opacity: 0 }}
                         style={styles.successBanner}
                     >
-                        ✓ Logged successfully!
+                        ✓ Logged Successfully!
                     </motion.div>
                 )}
             </AnimatePresence>

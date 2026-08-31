@@ -245,7 +245,7 @@ export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {
                             }}>MYSTERY</div>
                         </div>
                         <div style={{ color: FB.dim, fontSize: 14, fontWeight: 600 }}>
-                            Opening envelope for <strong style={{ color: FB.text }}>{reveal.playerName}</strong>...
+                            Opening Envelope For <strong style={{ color: FB.text }}>{reveal.playerName}</strong>...
                         </div>
                     </>
                 )}
@@ -279,7 +279,7 @@ export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {
                             </div>
 
                             <div style={{ color: FB.text, fontSize: 14, marginBottom: 12 }}>
-                                <strong>{reveal.playerName}</strong> reveals...
+                                <strong>{reveal.playerName}</strong> Reveals...
                             </div>
 
                             <div style={{
@@ -291,11 +291,11 @@ export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {
                                 {reveal.amount.toLocaleString()}
                             </div>
 
-                            <div style={{ fontSize: 12, color: FB.dim }}>chips bounty awarded</div>
+                            <div style={{ fontSize: 12, color: FB.dim }}>Chips Bounty Awarded</div>
                         </div>
 
                         <div style={{ marginTop: 12, fontSize: 11, color: FB.dim }}>
-                            Tap anywhere to dismiss
+                            Tap Anywhere To Dismiss
                         </div>
                     </>
                 )}

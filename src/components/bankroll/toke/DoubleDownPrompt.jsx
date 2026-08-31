@@ -29,7 +29,7 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
                     initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                     style={styles.promptCard}
                 >
-                    <div style={styles.promptIcon}>35m</div>
+                    <div style={styles.promptIcon}>35M</div>
                     <h3 style={styles.promptTitle}>
                         {promptDown.down_type === 'break' ? 'Still On Break?' :
                             promptDown.down_type === 'brush' ? 'Still Brushing?' :

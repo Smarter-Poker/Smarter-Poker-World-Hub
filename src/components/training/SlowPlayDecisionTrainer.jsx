@@ -122,7 +122,7 @@ function SlowPlayDecisionTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Slow Play Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Slow Play Trainer Failed To Load: {err.message}</div>;
   }
 }
 

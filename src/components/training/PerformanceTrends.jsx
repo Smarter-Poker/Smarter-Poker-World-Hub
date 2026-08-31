@@ -277,7 +277,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                 <div style={styles.sectionTitle}>Performance Trends</div>
                 <div style={styles.loading}>
                     <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                        Analyzing your training data...
+                        Analyzing Your Training Data...
                     </motion.div>
                 </div>
             </div>
@@ -392,7 +392,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                 >
                     <div style={styles.chartLabel}>
                         EV Loss / Hand
-                        <span style={styles.chartSubLabel}>lower is better</span>
+                        <span style={styles.chartSubLabel}>Lower Is Better</span>
                     </div>
                     <LineChart
                         data={scoreTrend}
@@ -483,7 +483,7 @@ function LeakDetectionPanel({ sessionHistory }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 Leak Detection
                 <span style={{ fontSize: 9, fontWeight: 400, color: '#94a3b8' }}>
-                    {leaks.length} leak{leaks.length !== 1 ? 's' : ''} identified
+                    {leaks.length} leak{leaks.length !== 1 ? 's' : ''} Identified
                 </span>
             </div>
             {leaks.slice(0, 3).map((leak, i) => (

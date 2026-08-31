@@ -472,7 +472,7 @@ export default function TriviaResult({
                 {isArcade && shownTimeBonus > 0 && (
                     <div className="time-bonus">
                         <Clock size={16} />
-                        <span>+{shownTimeBonus} bonus diamonds for {timeRemaining}s remaining!</span>
+                        <span>+{shownTimeBonus} Bonus Diamonds For {timeRemaining}s Remaining!</span>
                     </div>
                 )}
 
@@ -538,7 +538,7 @@ export default function TriviaResult({
                 <div className="actions">
                     <Link href="/hub/trivia" className="action-btn secondary">
                         <Home size={18} />
-                        Back to Trivia
+                        Back To Trivia
                     </Link>
                     <button className="action-btn share" onClick={handleShare}>
                         <Share2 size={18} />
@@ -567,7 +567,7 @@ export default function TriviaResult({
                     {showDoubleButton && onDoubleOrNothing && (
                         <button className="action-btn double-or-nothing" onClick={onDoubleOrNothing}>
                             <Zap size={18} />
-                            Double or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
+                            Double Or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
                         </button>
                     )}
                 </div>

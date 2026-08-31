@@ -152,7 +152,7 @@ export default function QuizModeEngine() {
           Quiz Mode
         </h3>
         <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
-          Test your poker knowledge under pressure. Choose a difficulty and go.
+          Test Your Poker Knowledge Under Pressure. Choose A Difficulty And Go.
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
@@ -164,7 +164,7 @@ export default function QuizModeEngine() {
               transition: 'all 0.2s',
             }}>
               <div style={{ color: d.color, fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{d.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: 11 }}>{d.questions} questions</div>
+              <div style={{ color: '#94a3b8', fontSize: 11 }}>{d.questions} Questions</div>
               <div style={{ color: '#64748b', fontSize: 11 }}>{d.timer > 0 ? `${d.timer}s per question` : 'No time limit'}</div>
             </div>
           ))}
@@ -200,7 +200,7 @@ export default function QuizModeEngine() {
           <div style={{ color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#f59e0b' : '#ef4444', fontSize: 48, fontWeight: 800 }}>
             {totalScore}
           </div>
-          <div style={{ color: '#94a3b8', fontSize: 14 }}>points</div>
+          <div style={{ color: '#94a3b8', fontSize: 14 }}>Points</div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
@@ -255,7 +255,7 @@ export default function QuizModeEngine() {
           <span style={{ color: '#64748b', fontSize: 11 }}>Score: {totalScore}</span>
           {streak > 1 && (
             <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
-              ▲ {streak} streak
+              ▲ {streak} Streak
             </span>
           )}
         </div>

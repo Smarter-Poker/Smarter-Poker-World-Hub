@@ -236,7 +236,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                         </>
                     ) : (
                         <div style={{ padding: 24, textAlign: 'center', color: C.textSec }}>
-                            User not found
+                            User Not Found
                         </div>
                     )}
                 </div>

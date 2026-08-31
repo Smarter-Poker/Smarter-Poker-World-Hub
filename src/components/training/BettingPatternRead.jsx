@@ -42,7 +42,7 @@ export default function BettingPatternRead() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Betting Pattern Reader
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Decode hand strength from multi-street betting lines.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Decode Hand Strength From Multi-Street Betting Lines.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PATTERNS.map((p, i) => (

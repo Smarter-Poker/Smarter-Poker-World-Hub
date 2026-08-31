@@ -208,7 +208,7 @@ function HandRankingQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Ranking Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Hand Ranking Quiz Failed To Load: {err.message}</div>;
   }
 }
 

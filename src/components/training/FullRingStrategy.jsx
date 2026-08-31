@@ -42,7 +42,7 @@ export default function FullRingStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Full Ring (9-Max) Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master 9-handed play - the classic poker format.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master 9-Handed Play - The Classic Poker Format.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {FR_CONCEPTS.map((c, i) => (
@@ -68,7 +68,7 @@ export default function FullRingStrategy() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>vs 6-Max</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Vs 6-Max</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.keyDiff}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>

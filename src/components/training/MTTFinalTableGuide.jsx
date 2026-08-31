@@ -42,7 +42,7 @@ export default function MTTFinalTableGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         MTT Final Table Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate the most important stage of any tournament.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate The Most Important Stage Of Any Tournament.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {FT_CONCEPTS.map((t, i) => (

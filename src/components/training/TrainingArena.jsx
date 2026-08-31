@@ -229,7 +229,7 @@ export default function TrainingArena({
                 <h2 style={styles.errorTitle}>Cannot Start Training</h2>
                 <p style={styles.errorText}>{error}</p>
                 <button onClick={onExit} style={styles.exitButton}>
-                    Return to Library
+                    Return To Library
                 </button>
             </div>
         );
@@ -262,7 +262,7 @@ export default function TrainingArena({
                     </span>
                 </div>
                 <p style={styles.completeSubtext}>
-                    {runState.correctCount}/20 correct • 85% required to pass
+                    {runState.correctCount}/20 Correct • 85% Required To Pass
                 </p>
                 <div style={styles.completeActions}>
                     {!passed && (

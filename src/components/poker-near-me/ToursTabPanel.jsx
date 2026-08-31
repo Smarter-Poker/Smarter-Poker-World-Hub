@@ -154,7 +154,7 @@ export default function ToursTabPanel({
                     {displayCount.tours < filteredTours.length && (
                         <div className="load-more">
                             <button className="load-more-btn" onClick={() => loadMore('tours')}>
-                                Load More ({filteredTours.length - displayCount.tours} remaining)
+                                Load More ({filteredTours.length - displayCount.tours} Remaining)
                             </button>
                         </div>
                     )}

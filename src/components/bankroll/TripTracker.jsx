@@ -523,7 +523,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                     )}
                                 </div>
                                 <div style={styles.tripCardFooter}>
-                                    <span>{trip.entryCount || 0} entries</span>
+                                    <span>{trip.entryCount || 0} Entries</span>
                                     <span style={styles.viewReportLink}>View Report →</span>
                                 </div>
                             </motion.div>

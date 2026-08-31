@@ -42,7 +42,7 @@ export default function FloatingStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Floating Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Call in position to steal the pot on later streets.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Call In Position To Steal The Pot On Later Streets.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {FLOAT_SPOTS.map((s, i) => (

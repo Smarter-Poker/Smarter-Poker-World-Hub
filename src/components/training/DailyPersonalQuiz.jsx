@@ -92,7 +92,7 @@ export default function DailyPersonalQuiz() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Daily Strategy Quiz
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized daily challenges targeting your weak spots.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized Daily Challenges Targeting Your Weak Spots.</p>
 
       {/* Stats Bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -153,7 +153,7 @@ export default function DailyPersonalQuiz() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: showResult ? (opt.correct ? '#22c55e' : isSelected ? '#ef4444' : '#64748b') : '#e2e8f0' }}>
                     {opt.action}
                   </span>
-                  {showResult && <span style={{ fontSize: 10, fontFamily: 'monospace', color: opt.ev >= 0 ? '#22c55e' : '#ef4444' }}>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} bb</span>}
+                  {showResult && <span style={{ fontSize: 10, fontFamily: 'monospace', color: opt.ev >= 0 ? '#22c55e' : '#ef4444' }}>EV: {opt.ev > 0 ? '+' : ''}{opt.ev} BB</span>}
                 </div>
                 {showResult && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>

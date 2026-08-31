@@ -38,7 +38,7 @@ export default function UTGRangeGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ▲ UTG Range Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Tight is right - the tightest position demands discipline.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Tight Is Right - The Tightest Position Demands Discipline.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {FORMATS.map((f, i) => (
@@ -60,7 +60,7 @@ export default function UTGRangeGuide() {
         ))}
 
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12, marginTop: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: format.color, marginBottom: 6 }}>Tips for {format.name}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: format.color, marginBottom: 6 }}>Tips For {format.name}</div>
           {format.tips.map((t, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', display: 'flex', gap: 6 }}>
               <span style={{ color: format.color }}>•</span> {t}

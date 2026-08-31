@@ -432,7 +432,7 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
             {/* Friends list */}
             <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 12 }}>
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading friends...</div>
+                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading Friends...</div>
                 ) : filtered.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>
                         {friends.length === 0 ? 'No friends yet. Add friends to share directly!' : 'No friends match your search.'}
@@ -625,11 +625,11 @@ function GroupsTab({ post, onClose }) {
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }} className="hide-scroll">
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading groups...</div>
+                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading Groups...</div>
                 ) : groups.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                         <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
-                        <div style={{ fontSize: 14 }}>You are not in any groups or clubs yet.</div>
+                        <div style={{ fontSize: 14 }}>You Are Not In Any Groups Or Clubs Yet.</div>
                     </div>
                 ) : (
                     groups.map(group => {
@@ -724,7 +724,7 @@ function WhoSharedTab({ post }) {
                     <div style={{ fontSize: 24 }}>🔥</div>
                     <div>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{data.streak.streak_days} Day Share Streak!</div>
-                        <div style={{ fontSize: 12, opacity: 0.9 }}>You're on fire keeping the community active.</div>
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>You're On Fire Keeping The Community Active.</div>
                     </div>
                 </div>
             )}

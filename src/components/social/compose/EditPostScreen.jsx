@@ -46,7 +46,7 @@ function Row({ icon, label, value, onClick, chevron = true }) {
             {value && (
                 <span style={{ color: '#1877F2', fontWeight: 600, fontSize: 14, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
             )}
-            {chevron && <span aria-hidden="true" style={{ color: '#bcc0c4', fontSize: 16 }}>&#x276F;</span>}
+            {chevron && <span aria-hidden="true" style={{ color: '#bcc0c4', fontSize: 16 }}>&#X276F;</span>}
         </button>
     );
 }
@@ -97,7 +97,7 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                         background: 'none', border: 'none', color: '#050505',
                         fontSize: 22, padding: 8, cursor: 'pointer',
                     }}
-                >&#x2190;</button>
+                >&#X2190;</button>
                 <div style={{ fontSize: 17, fontWeight: 600 }}>{headerLabel}</div>
                 <div style={{ width: 40 }} />
             </div>
@@ -151,9 +151,9 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                                 display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
                             }}
                         >
-                            <span aria-hidden="true">&#x1F310;</span>
+                            <span aria-hidden="true">&#X1F310;</span>
                             {visibilityLabel[audienceMode] || 'Public'}
-                            <span aria-hidden="true" style={{ fontSize: 10 }}>&#x25BE;</span>
+                            <span aria-hidden="true" style={{ fontSize: 10 }}>&#X25BE;</span>
                         </button>
                         <button
                             onClick={() => setAiLabel(!aiLabel)}
@@ -167,9 +167,9 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                                 display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
                             }}
                         >
-                            <span aria-hidden="true">&#x2795;</span>
-                            AI label {aiLabel ? 'on' : 'off'}
-                            <span aria-hidden="true" style={{ fontSize: 10 }}>&#x25BE;</span>
+                            <span aria-hidden="true">&#X2795;</span>
+                            AI Label {aiLabel ? 'on' : 'off'}
+                            <span aria-hidden="true" style={{ fontSize: 10 }}>&#X25BE;</span>
                         </button>
                         <textarea
                             value={draft}
@@ -217,8 +217,8 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '14px 16px', borderTop: '1px solid #e4e6eb',
                 }}>
-                    <span aria-hidden="true" style={{ fontSize: 18, width: 24, textAlign: 'center', color: '#65676B' }}>&#x1F4D6;</span>
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 15 }}>Share to your story</span>
+                    <span aria-hidden="true" style={{ fontSize: 18, width: 24, textAlign: 'center', color: '#65676B' }}>&#X1F4D6;</span>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: 15 }}>Share To Your Story</span>
                     <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 28 }}>
                         <input
                             type="checkbox"
@@ -366,7 +366,7 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                             fontSize: 11, color: '#8a8d91', textAlign: 'center',
                             lineHeight: 1.4, marginTop: 4,
                         }}>
-                            Keep this screen open. We'll let you know when it's posted.
+                            Keep This Screen Open. We'll Let You Know When It's Posted.
                         </div>
                     </div>
                 </div>

@@ -130,15 +130,15 @@ export default function InstallAppSheet({ onClose, reason }) {
     if (installed) {
         body = (
             <p style={S.lead}>
-                Smarter Poker is already installed on this device. Open it from your Home Screen
-                to get alerts.
+                Smarter Poker Is Already Installed On This Device. Open It From Your Home Screen
+                To Get Alerts.
             </p>
         );
     } else if (iosOtherBrowser) {
         body = (
             <p style={S.lead}>
-                On iPhone and iPad, only Safari can add an app to your Home Screen. Open
-                smarter.poker in Safari, then come back to this screen.
+                On IPhone And IPad, Only Safari Can Add An App To Your Home Screen. Open
+                Smarter.Poker In Safari, Then Come Back To This Screen.
             </p>
         );
     } else if (nativeAvailable) {
@@ -146,8 +146,8 @@ export default function InstallAppSheet({ onClose, reason }) {
         body = (
             <>
                 <p style={S.lead}>
-                    Install Smarter Poker as an app and get seat alerts, messages and game
-                    updates on your phone like any other app.
+                    Install Smarter Poker As An App And Get Seat Alerts, Messages And Game
+                    Updates On Your Phone Like Any Other App.
                 </p>
                 <button type="button" onClick={handleInstall} disabled={busy} style={S.primary}>
                     {busy ? 'Opening...' : 'Install App'}
@@ -158,7 +158,7 @@ export default function InstallAppSheet({ onClose, reason }) {
         body = (
             <>
                 <p style={S.lead}>
-                    Apple does not allow one-tap installs in Safari, so it takes three quick steps.
+                    Apple Does Not Allow One-Tap Installs In Safari, So It Takes Three Quick Steps.
                 </p>
                 <ol style={S.list}>
                     {IOS_STEPS.map((step, i) => (
@@ -179,8 +179,8 @@ export default function InstallAppSheet({ onClose, reason }) {
         body = (
             <>
                 <p style={S.lead}>
-                    Install Smarter Poker as an app for faster access and phone alerts. If your
-                    browser supports it, look for the install icon in the address bar.
+                    Install Smarter Poker As An App For Faster Access And Phone Alerts. If Your
+                    Browser Supports It, Look For The Install Icon In The Address Bar.
                 </p>
                 <button type="button" onClick={handleInstall} disabled={busy} style={S.primary}>
                     {busy ? 'Opening...' : 'Try Install'}

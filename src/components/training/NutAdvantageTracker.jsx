@@ -117,7 +117,7 @@ function NutAdvantageTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Nut Advantage Tracker failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Nut Advantage Tracker Failed To Load: {err.message}</div>;
   }
 }
 

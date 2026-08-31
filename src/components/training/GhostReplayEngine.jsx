@@ -49,7 +49,7 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
     if (!handHistory || handHistory.length === 0) {
         return (
             <div style={styles.overlay}>
-                <div style={styles.emptyBox}>No hand history available for this session. <button onClick={onClose} style={styles.closeBtnText}>Go Back</button></div>
+                <div style={styles.emptyBox}>No Hand History Available For This Session. <button onClick={onClose} style={styles.closeBtnText}>Go Back</button></div>
             </div>
         );
     }
@@ -75,7 +75,7 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
                         <div style={styles.recordingDot} />
                         <div>
                             <div style={styles.title}>GHOST REPLAY <span style={{ color: '#64748b' }}>{'//'}</span> {sessionName}</div>
-                            <div style={styles.subtitle}>Hand {currentIndex + 1} of {handHistory.length}</div>
+                            <div style={styles.subtitle}>Hand {currentIndex + 1} Of {handHistory.length}</div>
                         </div>
                     </div>
                     <button onClick={onClose} style={styles.closeBtn}><X size={20} color="#94a3b8" /></button>

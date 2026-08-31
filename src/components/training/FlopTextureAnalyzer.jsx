@@ -222,7 +222,7 @@ export default function FlopTextureAnalyzer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Texture Analyzer</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Understand how board texture affects strategy</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Understand How Board Texture Affects Strategy</div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['detail', 'compare'].map(m => (
@@ -291,7 +291,7 @@ export default function FlopTextureAnalyzer() {
 
             {/* Range hits */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution on This Board</div>
+              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution On This Board</div>
               <RangeHitChart hits={selectedTexture.rangeHits} />
               <div style={{ display: 'flex', gap: 10, marginTop: 6, justifyContent: 'center' }}>
                 {[{ label: 'Top Pair+', color: '#22c55e' }, { label: 'Overpair', color: '#3b82f6' }, { label: 'Draws', color: '#f59e0b' }, { label: 'Air', color: '#64748b' }].map(c => (
@@ -353,7 +353,7 @@ export default function FlopTextureAnalyzer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Flop Texture Analyzer</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

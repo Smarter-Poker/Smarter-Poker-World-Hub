@@ -301,7 +301,7 @@ export default function GeevesMenuWidget() {
                                 color: 'rgba(255,255,255,0.4)',
                                 marginBottom: 4,
                             }}>
-                                Quick questions:
+                                Quick Questions:
                             </div>
                             {quickQuestions.map((q, i) => (
                                 <button

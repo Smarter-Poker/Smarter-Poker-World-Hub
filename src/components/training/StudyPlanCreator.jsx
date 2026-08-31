@@ -42,7 +42,7 @@ export default function StudyPlanCreator() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Study Plan Creator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured study plans by skill level.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured Study Plans By Skill Level.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {STUDY_PLANS.map((p, i) => (
@@ -63,7 +63,7 @@ export default function StudyPlanCreator() {
             <span style={{ fontSize: 15, fontWeight: 800, color: plan.color }}>{plan.level}</span>
           </div>
           <div style={{ background: `${plan.color}20`, borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: plan.color }}>{plan.weeklyHours}/wk</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: plan.color }}>{plan.weeklyHours}/Wk</span>
           </div>
         </div>
         <div style={{ background: `${plan.color}08`, borderRadius: 8, padding: 10, marginBottom: 8 }}>

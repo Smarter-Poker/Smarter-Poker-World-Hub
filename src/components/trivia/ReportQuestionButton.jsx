@@ -55,7 +55,7 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
     if (done) {
         return (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', padding: '6px 8px' }}>
-                ✓ Thanks - report submitted
+                ✓ Thanks - Report Submitted
             </div>
         );
     }
@@ -100,9 +100,9 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
                 maxWidth: 380,
                 width: '100%',
             }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: 18, color: '#fff' }}>Report question</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: 18, color: '#fff' }}>Report Question</h3>
                 <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-                    What's wrong with this one?
+                    What's Wrong With This One?
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {REASONS.map(r => (

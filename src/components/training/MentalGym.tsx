@@ -217,7 +217,7 @@ const MentalGym: React.FC<MentalGymProps> = ({
                     style={styles.timerContainer}
                 >
                     <div style={styles.timerLabel}>
-                        <span style={{ color: timerColor }}>{timeLeft}</span>s
+                        <span style={{ color: timerColor }}>{timeLeft}</span>S
                     </div>
                     <div style={styles.timerBar}>
                         <motion.div

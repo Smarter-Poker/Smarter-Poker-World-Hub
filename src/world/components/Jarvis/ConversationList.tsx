@@ -138,7 +138,7 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
                         color: 'rgba(255, 215, 0, 0.5)',
                         fontSize: '13px'
                     }}>
-                        No previous conversations yet
+                        No Previous Conversations Yet
                     </div>
                 ) : (
                     conversations.map((conv) => (
@@ -182,7 +182,7 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
                                     fontSize: '11px',
                                     color: 'rgba(255, 255, 255, 0.5)'
                                 }}>
-                                    {conv.messageCount} messages • {formatDate(conv.updatedAt)}
+                                    {conv.messageCount} Messages • {formatDate(conv.updatedAt)}
                                 </div>
                             </div>
                             <span style={{

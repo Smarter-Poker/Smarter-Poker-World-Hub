@@ -37,7 +37,7 @@ export default function MidStakesGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Mid Stakes Strategy (NL50-NL200)
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Level up from ABC poker to balanced, thinking play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Level Up From ABC Poker To Balanced, Thinking Play.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {MID_CONCEPTS.map((t, i) => (

@@ -42,7 +42,7 @@ export default function ReverseImpliedOdds() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ▲ Reverse Implied Odds
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When making your hand actually costs you money.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When Making Your Hand Actually Costs You Money.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {RIO_SPOTS.map((s, i) => (

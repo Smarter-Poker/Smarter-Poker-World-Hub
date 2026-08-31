@@ -103,7 +103,7 @@ function CompletedEventsList({
                                         {gig.end_date && <span> - {new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}</span>}
                                     </div>
                                     <div style={styles.gigCardFooter}>
-                                        <span>{gig.totalDowns || 0} downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
+                                        <span>{gig.totalDowns || 0} Downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
                                         <span style={styles.viewReportLink}>View Report →</span>
                                     </div>
                                 </div>

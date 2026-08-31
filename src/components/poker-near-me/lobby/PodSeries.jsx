@@ -32,7 +32,7 @@ export default function PodSeries({
           ))}
         </select>
         <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
-          <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredSeries.length}</span> series
+          <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredSeries.length}</span> Series
         </span>
       </div>
       <div style={{ display: 'grid', gap: 12 }}>

@@ -166,12 +166,12 @@ function AccuracyTrend({ data, avg }) {
             }}>
                 {active ? (
                     <span style={{ color: T.text, fontWeight: 700 }}>
-                        {active.date} · {active.pct}% over {active.total} hand{active.total === 1 ? '' : 's'}
+                        {active.date} · {active.pct}% Over {active.total} hand{active.total === 1 ? '' : 's'}
                     </span>
                 ) : (
                     <>
                         <span>{points[0]?.date}</span>
-                        <span style={{ color: T.textDim, fontWeight: 700 }}>Tap a bar</span>
+                        <span style={{ color: T.textDim, fontWeight: 700 }}>Tap A Bar</span>
                         <span>{points[points.length - 1]?.date}</span>
                     </>
                 )}
@@ -315,7 +315,7 @@ export default function SessionAnalytics({ userId }) {
                 body="Turn on Coach Mode in the Sandbox and play a few spots · your accuracy, positions and streets show up here."
                 action={
                     <button type="button" className="pa-btn" style={btn('primary')} onClick={() => practice({})}>
-                        Open the Sandbox
+                        Open The Sandbox
                     </button>
                 }
             />
@@ -343,7 +343,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.positionStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position accuracy · tap to drill</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Position Accuracy · Tap To Drill</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.positionStats.map(p => {
                                 const isWeak = p.position === stats.weakPosition;
@@ -378,7 +378,7 @@ export default function SessionAnalytics({ userId }) {
 
                 {stats.streetStats?.length > 0 && (
                     <div>
-                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Street accuracy</div>
+                        <div style={{ ...sectionTitle, marginBottom: S.sm }}>Street Accuracy</div>
                         <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                             {stats.streetStats.map(st => {
                                 const weakest = st.street === stats.weakestStreet;
@@ -416,7 +416,7 @@ export default function SessionAnalytics({ userId }) {
                         onClick={() => practice({ position: stats.weakPosition, label: `Position leak: ${stats.weakPosition}` })}
                     >
                         <TrendingUp size={18} strokeWidth={2} />
-                        Drill your weakest position ({stats.weakPosition})
+                        Drill Your Weakest Position ({stats.weakPosition})
                     </button>
                 )}
             </div>

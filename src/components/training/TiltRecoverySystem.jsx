@@ -137,7 +137,7 @@ function TiltRecoverySystem() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Tilt Recovery System failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Tilt Recovery System Failed To Load: {err.message}</div>;
   }
 }
 

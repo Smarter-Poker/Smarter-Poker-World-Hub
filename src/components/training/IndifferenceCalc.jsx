@@ -37,7 +37,7 @@ export default function IndifferenceCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ◇ Indifference Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How bet sizing determines optimal bluff frequency.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How Bet Sizing Determines Optimal Bluff Frequency.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {INDIFF_SPOTS.map((s, i) => (

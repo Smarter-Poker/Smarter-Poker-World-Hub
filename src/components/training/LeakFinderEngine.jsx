@@ -125,7 +125,7 @@ export default function LeakFinderEngine() {
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Leak Finder</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Automated leak detection with fix recommendations</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Automated Leak Detection With Fix Recommendations</div>
         </div>
 
         {/* Summary cards */}
@@ -210,7 +210,7 @@ export default function LeakFinderEngine() {
                       transition: 'width 0.3s',
                     }} />
                   </div>
-                  <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>{leak.progress}% fixed</span>
+                  <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>{leak.progress}% Fixed</span>
                 </div>
 
                 {/* Expanded content */}
@@ -246,7 +246,7 @@ export default function LeakFinderEngine() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Leak Finder</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

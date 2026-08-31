@@ -129,7 +129,7 @@ function FlopCBetMatrix() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Matrix failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>C-Bet Matrix Failed To Load: {err.message}</div>;
   }
 }
 

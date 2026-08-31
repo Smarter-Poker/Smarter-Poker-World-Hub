@@ -85,7 +85,7 @@ function DrawOddsCalculator() {
         {/* Draw Info */}
         <div style={{ padding: 10, background: 'rgba(52,211,153,0.06)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #34d399' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
-            {DRAW_TYPES[selectedDraw].name} - {outs} outs
+            {DRAW_TYPES[selectedDraw].name} - {outs} Outs
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{DRAW_TYPES[selectedDraw].description}</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Ex: {DRAW_TYPES[selectedDraw].example}</div>
@@ -93,9 +93,9 @@ function DrawOddsCalculator() {
 
         {/* Custom Outs Slider */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Custom Outs (override)</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Custom Outs (Override)</div>
           <input type="range" min={1} max={20} step={0.5} value={outs} onChange={e => setCustomOuts(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#34d399', textAlign: 'center' }}>{outs} outs</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#34d399', textAlign: 'center' }}>{outs} Outs</div>
         </div>
 
         {/* Results */}
@@ -115,9 +115,9 @@ function DrawOddsCalculator() {
 
         {/* Bet Size & Profitability */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Villain Bet Size (% pot)</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Villain Bet Size (% Pot)</div>
           <input type="range" min={10} max={200} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{betPct}% pot</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{betPct}% Pot</div>
         </div>
 
         <div style={{
@@ -130,14 +130,14 @@ function DrawOddsCalculator() {
           </div>
           {!calc.profitable && (
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-              Need {calc.impliedOddsNeeded}% extra equity from implied odds
+              Need {calc.impliedOddsNeeded}% Extra Equity From Implied Odds
             </div>
           )}
         </div>
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Draw Odds Calculator failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Draw Odds Calculator Failed To Load: {err.message}</div>;
   }
 }
 

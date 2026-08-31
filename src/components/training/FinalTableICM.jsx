@@ -132,7 +132,7 @@ function FinalTableICM() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Stack Distribution</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Total: {(totalChips / 1000).toFixed(0)}K chips | Prize Pool: ${totalPrizePool.toLocaleString()}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Total: {(totalChips / 1000).toFixed(0)}K Chips | Prize Pool: ${totalPrizePool.toLocaleString()}</span>
           </div>
           {scenario.stacks.map((stack, i) => (
             <StackBar
@@ -183,7 +183,7 @@ function FinalTableICM() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Final Table ICM failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Final Table ICM Failed To Load: {err.message}</div>;
   }
 }
 

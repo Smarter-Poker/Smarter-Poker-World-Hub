@@ -39,7 +39,7 @@ export default function ProbeBluffGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #10b981, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Probe Bluff Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Attack when the PFR shows weakness by checking back.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Attack When The PFR Shows Weakness By Checking Back.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {PROBE_SCENARIOS.map((s, i) => (

@@ -34,7 +34,7 @@ export default function DoubleBarrelGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Double Barrel Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master the turn continuation bet - when to fire and when to give up.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master The Turn Continuation Bet - When To Fire And When To Give Up.</p>
 
       {/* Scenario selector */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
@@ -65,7 +65,7 @@ export default function DoubleBarrelGuide() {
             <button onClick={() => setShowVerdict(true)}
               style={{ padding: '8px 24px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'linear-gradient(135deg, #f59e0b, #ef4444)', color: '#000', fontSize: 14 }}>
-              Barrel or Check?
+              Barrel Or Check?
             </button>
           ) : (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

@@ -336,7 +336,7 @@ export default function GTOScenarioDisplay({
                     {isLoadingImage ? (
                         <div className={styles.loadingPanel} role="status" aria-live="polite">
                             <span className={styles.loadingSpinner} aria-hidden="true" />
-                            <p className={styles.loadingLabel}>Rendering the Jarvis GTO panel...</p>
+                            <p className={styles.loadingLabel}>Rendering The Jarvis GTO Panel...</p>
                         </div>
                     ) : (
                         <img
@@ -360,7 +360,7 @@ export default function GTOScenarioDisplay({
                             onClick={() => setShowCard(false)}
                         >
                             <RotateCcw size={14} aria-hidden="true" />
-                            <span>Show text analysis</span>
+                            <span>Show Text Analysis</span>
                         </button>
                     </div>
                 )}
@@ -542,7 +542,7 @@ export default function GTOScenarioDisplay({
                                 </span>
                             </button>
                             <p className={styles.panelHint}>
-                                Renders this hand as a Jarvis-styled analysis card.
+                                Renders This Hand As A Jarvis-Styled Analysis Card.
                             </p>
                         </>
                     )}

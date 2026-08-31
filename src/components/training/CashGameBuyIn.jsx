@@ -42,7 +42,7 @@ export default function CashGameBuyIn() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Cash Game Buy-In Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Optimize your stack size for maximum profit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Optimize Your Stack Size For Maximum Profit.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {BUYIN_TOPICS.map((topic, i) => (

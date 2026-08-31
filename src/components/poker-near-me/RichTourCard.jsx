@@ -84,7 +84,7 @@ function TourCardSkeleton({ venue }) {
                         <span style={{ color: tourColor.text, fontSize: 14, fontWeight: 800 }}>{code || 'TOUR'}</span>
                     </div>
                 )}
-                <div style={{ opacity: 0.4, fontSize: 13 }}>Loading live data...</div>
+                <div style={{ opacity: 0.4, fontSize: 13 }}>Loading Live Data...</div>
             </div>
             <h4 style={{ margin: '8px 0 4px', fontSize: 16, fontWeight: 700 }}>{venue.tour_name || venue.name}</h4>
         </div>
@@ -287,7 +287,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <span style={{ display: 'inline-flex', color: 'rgba(255,255,255,0.4)' }}><MoneyIcon /></span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#eab308' }}>
-                        Buy-ins: {buyinText}
+                        Buy-Ins: {buyinText}
                     </span>
                 </div>
             )}
@@ -309,7 +309,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                 which carries no stops. Without this the card just showed nothing. */}
             {isRegistryFallback && (
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
-                    Schedule not yet published
+                    Schedule Not Yet Published
                 </div>
             )}
 

@@ -42,7 +42,7 @@ export function JarvisDashboard({ userId, compact = false }) {
         return (
             <div style={styles.container}>
                 <div style={styles.empty}>
-                    Complete training sessions to unlock Jarvis insights!
+                    Complete Training Sessions To Unlock Jarvis Insights!
                 </div>
             </div>
         );
@@ -118,7 +118,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                     {topLeaks.slice(0, 3).map((leak, idx) => (
                         <div key={idx} style={styles.leakRow}>
                             <span style={styles.leakName}>{leak.leak}</span>
-                            <span style={styles.leakCount}>{leak.count} times</span>
+                            <span style={styles.leakCount}>{leak.count} Times</span>
                         </div>
                     ))}
                 </div>

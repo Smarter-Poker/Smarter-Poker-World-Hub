@@ -517,7 +517,7 @@ export function EndStreamModal({
                 opacity: 0.5,
               }}
             >
-              No preview available
+              No Preview Available
             </div>
           )}
         </div>
@@ -582,7 +582,7 @@ export function EndStreamModal({
         {/* #13: No recording warning */}
         {!videoBlob && (
           <div style={{ padding: '0 16px 16px', color: '#FFA500', fontSize: 13, fontWeight: 600 }}>
-            Recording not available - this stream was live-only and cannot be saved or posted.
+            Recording Not Available - This Stream Was Live-Only And Cannot Be Saved Or Posted.
           </div>
         )}
 
@@ -637,7 +637,7 @@ export function EndStreamModal({
               opacity: isUploading || !videoBlob ? 0.4 : 1,
             }}
           >
-            Save to Lives
+            Save To Lives
           </button>
 
           {/* Keep for later — always enabled. Without this, a failed

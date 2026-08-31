@@ -193,9 +193,9 @@ export default function HostRosterPickerModal({
       <div className="bg-gradient-to-b from-[#152036] to-[#0d1626] border border-white/10 rounded-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-white">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 id="hrp-title" className="text-xl font-bold">Seat a member</h2>
+            <h2 id="hrp-title" className="text-xl font-bold">Seat A Member</h2>
             <p className="text-sm text-white/60 mt-1">
-              Pick an approved member (or add someone new) and drop them into a seat.
+              Pick An Approved Member (Or Add Someone New) And Drop Them Into A Seat.
             </p>
           </div>
           <button
@@ -242,7 +242,7 @@ export default function HostRosterPickerModal({
         )}
         {initialSeat && (
           <p className="text-sm mb-4 text-white/80">
-            Seating at <span className="font-semibold text-white">Seat {initialSeat}</span>.
+            Seating At <span className="font-semibold text-white">Seat {initialSeat}</span>.
           </p>
         )}
 
@@ -292,7 +292,7 @@ export default function HostRosterPickerModal({
             </div>
             <div>
               <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/50 mb-1">
-                <Phone className="w-3 h-3" /> Phone (optional)
+                <Phone className="w-3 h-3" /> Phone (Optional)
               </label>
               <input
                 type="tel"
@@ -318,7 +318,7 @@ export default function HostRosterPickerModal({
         {/* Roster list */}
         {loading ? (
           <div className="flex items-center justify-center py-10 text-white/50">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading roster…
+            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading Roster…
           </div>
         ) : error ? (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-200">
@@ -352,7 +352,7 @@ export default function HostRosterPickerModal({
                       <span className="font-semibold text-sm truncate">{m.display_name}</span>
                       {m.is_roster_only && (
                         <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white/70 px-1.5 py-0.5 rounded">
-                          Roster-only
+                          Roster-Only
                         </span>
                       )}
                     </div>

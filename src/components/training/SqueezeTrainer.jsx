@@ -129,7 +129,7 @@ function SqueezeTrainer() {
         {quizMode && !guess && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10, textAlign: 'center' }}>
-              What is the optimal squeeze frequency?
+              What Is The Optimal Squeeze Frequency?
             </div>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
               {freqBrackets.map(b => (
@@ -208,7 +208,7 @@ function SqueezeTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Squeeze Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Squeeze Trainer Failed To Load: {err.message}</div>;
   }
 }
 

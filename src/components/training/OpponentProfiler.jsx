@@ -187,7 +187,7 @@ const AdjustmentsPanel = memo(({ archetype }) => {
                 fontSize: 11, fontWeight: 700, color: a.color, marginBottom: 8,
                 textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
-                Exploitative Adjustments vs {a.fullName}
+                Exploitative Adjustments Vs {a.fullName}
             </div>
             {a.adjustments.map((adj, i) => (
                 <div key={i} style={{

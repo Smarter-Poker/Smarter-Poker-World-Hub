@@ -100,11 +100,11 @@ export default function ScenarioFilterPanel({
             <div className="scenario-filter-header">
                 <div className="scenario-filter-heading">
                     <span className="scenario-filter-kicker">
-                        <SlidersHorizontal size={13} aria-hidden /> Range tuner
+                        <SlidersHorizontal size={13} aria-hidden /> Range Tuner
                     </span>
-                    <h3 id="scenario-filter-title">Build a practice pool</h3>
+                    <h3 id="scenario-filter-title">Build A Practice Pool</h3>
                     <p id="scenario-filter-description">
-                        Choose the table conditions you want to drill.
+                        Choose The Table Conditions You Want To Drill.
                     </p>
                 </div>
                 <button
@@ -123,7 +123,7 @@ export default function ScenarioFilterPanel({
                         <label htmlFor="scenario-filter-position">
                             <MapPin size={14} aria-hidden /> Position
                         </label>
-                        <span className="scenario-filter-field-note">Where you are seated</span>
+                        <span className="scenario-filter-field-note">Where You Are Seated</span>
                         <div className="scenario-filter-select-wrap">
                             <select
                                 id="scenario-filter-position"
@@ -139,9 +139,9 @@ export default function ScenarioFilterPanel({
 
                     <div className="scenario-filter-field">
                         <label htmlFor="scenario-filter-stack-depth">
-                            <Layers3 size={14} aria-hidden /> Stack depth
+                            <Layers3 size={14} aria-hidden /> Stack Depth
                         </label>
-                        <span className="scenario-filter-field-note">Effective big blinds</span>
+                        <span className="scenario-filter-field-note">Effective Big Blinds</span>
                         <div className="scenario-filter-select-wrap">
                             <select
                                 id="scenario-filter-stack-depth"
@@ -159,7 +159,7 @@ export default function ScenarioFilterPanel({
                         <label htmlFor="scenario-filter-format">
                             <Table2 size={14} aria-hidden /> Format
                         </label>
-                        <span className="scenario-filter-field-note">Table size and structure</span>
+                        <span className="scenario-filter-field-note">Table Size And Structure</span>
                         <div className="scenario-filter-select-wrap">
                             <select
                                 id="scenario-filter-format"
@@ -176,7 +176,7 @@ export default function ScenarioFilterPanel({
 
                 <div className="scenario-filter-readout">
                     <div className="scenario-filter-meter" aria-hidden="true">
-                        <span>Practice pool</span>
+                        <span>Practice Pool</span>
                         <strong>{isDirty ? '-' : filteredCount}</strong>
                         <small>/ {availableScenarios}</small>
                     </div>
@@ -206,7 +206,7 @@ export default function ScenarioFilterPanel({
                         <RotateCcw size={15} aria-hidden /> Reset
                     </button>
                     <button type="submit" className="scenario-filter-apply">
-                        <Check size={16} aria-hidden /> Apply filters
+                        <Check size={16} aria-hidden /> Apply Filters
                     </button>
                 </div>
             </form>

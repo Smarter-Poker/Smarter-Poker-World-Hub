@@ -48,7 +48,7 @@ export default function RangeAdvantageGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Range Advantage Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand who has range advantage vs nut advantage on every flop.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand Who Has Range Advantage Vs Nut Advantage On Every Flop.</p>
 
       {/* Board selector */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
@@ -64,7 +64,7 @@ export default function RangeAdvantageGuide() {
       {/* Board display */}
       <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'center' }}>
         <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 4, marginBottom: 8 }}>{board.flop}</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.pfr} vs {board.caller}</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.pfr} Vs {board.caller}</div>
 
         {!revealed ? (
           <button onClick={() => setRevealed(true)}

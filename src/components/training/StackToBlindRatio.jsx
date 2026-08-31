@@ -40,9 +40,9 @@ export default function StackToBlindRatio() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        Stack-to-Blind Ratio
+        Stack-To-Blind Ratio
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Your stack size dictates your entire strategy.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Your Stack Size Dictates Your Entire Strategy.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {SBR_ZONES.map((z, i) => (

@@ -209,7 +209,7 @@ export function EquityCalculator({ onClose }: EquityCalculatorProps) {
                             }}>
                                 <div style={{ fontSize: '12px', color: '#fff' }}>
                                     <strong style={{ color: '#FFD700' }}>{selectedHand}</strong>
-                                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', margin: '0 8px' }}>vs</span>
+                                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', margin: '0 8px' }}>Vs</span>
                                     <strong>{matchup.vs}</strong>
                                 </div>
 
@@ -287,7 +287,7 @@ export function EquityCalculator({ onClose }: EquityCalculatorProps) {
             }}>
                 <strong style={{ color: '#FFD700' }}>💡 Pot Odds Tip:</strong>
                 <br />
-                To call profitably: Equity % ≥ Bet / (Pot + Bet) × 100
+                To Call Profitably: Equity % ≥ Bet / (Pot + Bet) × 100
             </div>
         </div>
     );

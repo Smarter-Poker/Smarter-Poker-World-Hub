@@ -54,8 +54,8 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
 
                 <h2 style={styles.title}>Set Your Starting Bankroll</h2>
                 <p style={styles.subtitle}>
-                    Before logging sessions, tell us how much money you&apos;re starting with.
-                    This is the total amount dedicated to gambling.
+                    Before Logging Sessions, Tell Us How Much Money You&apos;Re Starting With.
+                    This Is The Total Amount Dedicated To Gambling.
                 </p>
 
                 <form onSubmit={handleSubmit} style={styles.form}>
@@ -90,7 +90,7 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
                     </div>
 
                     <p style={styles.hint}>
-                        You can add or withdraw from your bankroll at any time from the dashboard.
+                        You Can Add Or Withdraw From Your Bankroll At Any Time From The Dashboard.
                     </p>
 
                     <button

@@ -238,7 +238,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                             <div style={{ padding: '36px 24px', textAlign: 'center' }}>
                                 <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Submission Failed</div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
-                                    Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>support@smarter.poker</a> Directly.
+                                    Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>Support@Smarter.Poker</a> Directly.
                                 </div>
                                 <button
                                     onClick={() => setResult(null)}

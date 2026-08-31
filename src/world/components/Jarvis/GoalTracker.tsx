@@ -200,7 +200,7 @@ What should be my next priority, and how can I stay on track?`);
                     </h4>
                     {goals.length > 0 && (
                         <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '2px' }}>
-                            {completedCount}/{goals.length} completed • {totalProgress}% overall
+                            {completedCount}/{goals.length} Completed • {totalProgress}% Overall
                         </div>
                     )}
                 </div>
@@ -221,7 +221,7 @@ What should be my next priority, and how can I stay on track?`);
                         color: 'rgba(255, 255, 255, 0.5)',
                         fontSize: '11px'
                     }}>
-                        No goals yet. Add one to start tracking!
+                        No Goals Yet. Add One To Start Tracking!
                     </div>
                 ) : (
                     goals.map(goal => (

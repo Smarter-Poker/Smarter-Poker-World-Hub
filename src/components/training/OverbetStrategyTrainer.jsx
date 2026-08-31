@@ -89,8 +89,8 @@ function OverbetStrategyTrainer() {
         <div style={{ padding: 14, background: 'rgba(249,115,22,0.06)', borderRadius: 10, border: '1px solid rgba(249,115,22,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>{spot.board}</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>Hero: {spot.hero}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.street} | Pot: {spot.pot} bb</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Should you overbet or use normal sizing?</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.street} | Pot: {spot.pot} BB</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Should You Overbet Or Use Normal Sizing?</div>
         </div>
 
         {!choice && (
@@ -129,7 +129,7 @@ function OverbetStrategyTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Overbet Trainer Failed To Load: {err.message}</div>;
   }
 }
 

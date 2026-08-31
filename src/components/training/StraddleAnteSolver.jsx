@@ -61,7 +61,7 @@ export default function StraddleAnteSolver() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Straddle & Ante Solver
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Strategy solutions for live poker straddles, antes, and bomb pots.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Strategy Solutions For Live Poker Straddles, Antes, And Bomb Pots.</p>
 
       {/* Structure Selector */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>

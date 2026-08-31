@@ -369,7 +369,7 @@ export default function TaxReportPanel({ userId }) {
                                     <div style={{ textAlign: 'center' }}>
                                         <Upload size={22} style={{ color: METAL.textSecondary, marginBottom: 4 }} />
                                         <div style={{ color: METAL.textSecondary, fontSize: 15, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                                            Upload from gallery or drop file
+                                            Upload From Gallery Or Drop File
                                         </div>
                                         <div style={{ color: METAL.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
                                             JPG, PNG, WEBP, PDF — Max 10MB
@@ -430,7 +430,7 @@ export default function TaxReportPanel({ userId }) {
                         </div>
 
                         <div style={{ marginBottom: 14 }}>
-                            <label style={styles.metaLabel}>DESCRIPTION (optional)</label>
+                            <label style={styles.metaLabel}>DESCRIPTION (Optional)</label>
                             <input
                                 type="text"
                                 placeholder="e.g. Bellagio Main Event, DraftKings Super Bowl"
@@ -466,7 +466,7 @@ export default function TaxReportPanel({ userId }) {
                 ) : w2gForms.length === 0 ? (
                     <div style={styles.vaultEmpty}>
                         <span style={{ color: METAL.textMuted, fontSize: 15, fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
-                            No W-2G forms uploaded for {selectedYear}
+                            No W-2G Forms Uploaded For {selectedYear}
                         </span>
                     </div>
                 ) : (

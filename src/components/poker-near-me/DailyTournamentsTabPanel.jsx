@@ -160,7 +160,7 @@ export default function DailyTournamentsTabPanel({
                 <input type="number" placeholder="Min $" value={dtMinBuyin}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailyMinBuyin: e.target.value }))}
                     style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>to</span>
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>To</span>
                 <input type="number" placeholder="Max $" value={dtMaxBuyin}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailyMaxBuyin: e.target.value }))}
                     style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
@@ -180,7 +180,7 @@ export default function DailyTournamentsTabPanel({
             <div className="results-bar" style={{ marginBottom: 8 }}>
                 <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
                 {!pendingDay && filtered.length > shown.length && (
-                    <span className="results-showing">Showing {shown.length} of {filtered.length}</span>
+                    <span className="results-showing">Showing {shown.length} Of {filtered.length}</span>
                 )}
             </div>
 
@@ -198,7 +198,7 @@ export default function DailyTournamentsTabPanel({
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="empty-state">
-                    <p>No daily tournaments match your filters for {filters.selectedDay}</p>
+                    <p>No Daily Tournaments Match Your Filters For {filters.selectedDay}</p>
                     <button onClick={() => setFilters(f => ({ ...f, hubDailyGameType: 'all', hubDailyMinBuyin: '', hubDailyMaxBuyin: '', hubDailyMinGtd: '' }))}>Clear Daily Filters</button>
                 </div>
             ) : (
@@ -234,7 +234,7 @@ export default function DailyTournamentsTabPanel({
                 {filtered.length > shown.length && (
                     <div className="load-more">
                         <button className="load-more-btn" onClick={() => setRenderLimit(l => l + PAGE_SIZE)}>
-                            Load More ({filtered.length - shown.length} remaining)
+                            Load More ({filtered.length - shown.length} Remaining)
                         </button>
                     </div>
                 )}

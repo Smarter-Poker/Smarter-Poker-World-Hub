@@ -25,7 +25,7 @@ export default function AnteStealGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         □‍▼ Ante Steal Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Antes change everything - steal wider when there's dead money.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Antes Change Everything - Steal Wider When There's Dead Money.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {ANTE_MATH.map((s, i) => (
@@ -55,8 +55,8 @@ export default function AnteStealGuide() {
       </motion.div>
 
       <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Rule of Thumb</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>For every 1 BB of extra dead money, widen your CO open range by ~5-7%.</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Rule Of Thumb</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>For Every 1 BB Of Extra Dead Money, Widen Your CO Open Range By ~5-7%.</div>
       </div>
     </div>
   );

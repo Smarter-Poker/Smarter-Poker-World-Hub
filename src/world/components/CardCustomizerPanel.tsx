@@ -137,7 +137,7 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                         <span style={{ fontSize: 22 }}>🎴</span>
                         <div>
                             <div style={s.headerTitle}>Customize My Hub</div>
-                            <div style={s.headerSub}>Toggle which cards appear on your World Hub</div>
+                            <div style={s.headerSub}>Toggle Which Cards Appear On Your World Hub</div>
                         </div>
                     </div>
                     <button onClick={onClose} style={s.closeBtn}>✕</button>
@@ -145,7 +145,7 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
 
                 {/* Note */}
                 <div style={s.note}>
-                    Hidden cards disappear from the carousel and quick-launch bar. Pinned cards 📌 cannot be hidden.
+                    Hidden Cards Disappear From The Carousel And Quick-Launch Bar. Pinned Cards 📌 Cannot Be Hidden.
                 </div>
 
                 {/* Card List */}
@@ -224,7 +224,7 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                         }}
                         style={s.resetBtn}
                     >
-                        Reset to Default
+                        Reset To Default
                     </button>
                     <button onClick={onClose} style={s.doneBtn}>Done</button>
                 </div>

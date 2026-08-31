@@ -64,7 +64,7 @@ function GTOGlossary() {
           ))}
         </div>
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} terms</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} Terms</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 400, overflowY: 'auto' }}>
           {filtered.map((t, i) => (
@@ -98,7 +98,7 @@ function GTOGlossary() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>GTO Glossary failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>GTO Glossary Failed To Load: {err.message}</div>;
   }
 }
 

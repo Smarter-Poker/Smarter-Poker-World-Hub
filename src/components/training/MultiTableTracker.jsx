@@ -115,8 +115,8 @@ function TableCard({ table, selected, onClick }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-        <span>Win rate: <span style={{ color: table.winRate >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>{table.winRate >= 0 ? '+' : ''}{table.winRate} bb/100</span></span>
-        <span>{table.players} players • {table.status}</span>
+        <span>Win Rate: <span style={{ color: table.winRate >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>{table.winRate >= 0 ? '+' : ''}{table.winRate} BB/100</span></span>
+        <span>{table.players} Players • {table.status}</span>
       </div>
     </div>
   );
@@ -153,7 +153,7 @@ function MultiTableTracker() {
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#3b82f6' }}>Multi-Table Tracker</h3>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{aggregate.activeTables}/{aggregate.totalTables} active</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{aggregate.activeTables}/{aggregate.totalTables} Active</span>
         </div>
 
         {/* Aggregate Stats */}
@@ -241,7 +241,7 @@ function MultiTableTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Table Tracker failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Multi-Table Tracker Failed To Load: {err.message}</div>;
   }
 }
 

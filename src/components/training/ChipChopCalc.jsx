@@ -42,7 +42,7 @@ export default function ChipChopCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Chip Chop Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Make smart deals at final tables.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Make Smart Deals At Final Tables.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {DEAL_TYPES.map((d, i) => (

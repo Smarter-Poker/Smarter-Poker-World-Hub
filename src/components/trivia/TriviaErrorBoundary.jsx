@@ -169,7 +169,7 @@ class TriviaErrorBoundary extends React.Component {
                                     transition: 'background 0.2s',
                                 }}
                             >
-                                Back to Lobby
+                                Back To Lobby
                             </Link>
                         </div>
 

@@ -290,7 +290,7 @@ export default function BankrollRulesCard({ userId }) {
       <div style={styles.container}>
         <h3 style={styles.title}>Bankroll Rules</h3>
         <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-          Loading rules...
+          Loading Rules...
         </div>
       </div>
     );

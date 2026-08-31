@@ -150,7 +150,7 @@ function TableCard({ table, onJoin }) {
           {table.smallBlind}/{table.bigBlind}
         </div>
         <div style={{ color: T.textMuted, fontSize: 11 }}>
-          Buy-in: {table.minBuyIn}-{table.maxBuyIn}
+          Buy-In: {table.minBuyIn}-{table.maxBuyIn}
         </div>
       </div>
 
@@ -170,9 +170,9 @@ function TableCard({ table, onJoin }) {
 
       {/* Footer stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', color: T.textMuted, fontSize: 11 }}>
-        <span>{table.playerCount}/{table.maxSeats} players</span>
-        <span>Avg pot: {table.avgPot || '-'}</span>
-        <span>{table.handsPerHour || '-'} h/hr</span>
+        <span>{table.playerCount}/{table.maxSeats} Players</span>
+        <span>Avg Pot: {table.avgPot || '-'}</span>
+        <span>{table.handsPerHour || '-'} H/Hr</span>
       </div>
     </motion.div>
   );
@@ -285,7 +285,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
               onChange={(e) => update('minBuyIn', parseInt(e.target.value) || 20)}
               style={{ ...inputStyle, width: 90, textAlign: 'center' }}
             />
-            <span style={{ color: T.textMuted, alignSelf: 'center' }}>to</span>
+            <span style={{ color: T.textMuted, alignSelf: 'center' }}>To</span>
             <input
               type="number" value={config.maxBuyIn}
               onChange={(e) => update('maxBuyIn', parseInt(e.target.value) || 200)}
@@ -496,7 +496,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
               Poker Lobby
             </h1>
             <p style={{ color: T.textMuted, fontSize: 12, margin: '2px 0 0' }}>
-              {tables.length} tables • {totalPlayers} players online
+              {tables.length} Tables • {totalPlayers} Players Online
             </p>
           </div>
 
@@ -603,7 +603,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: T.textMuted }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}></div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>No tables found</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>No Tables Found</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>
             {tables.length === 0
               ? 'Be the first - create a table!'

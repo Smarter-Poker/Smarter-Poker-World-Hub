@@ -38,7 +38,7 @@ export default function BankrollManagement() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Bankroll Management
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Protect your roll - the #1 reason players go broke is poor BRM.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Protect Your Roll - The #1 Reason Players Go Broke Is Poor BRM.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {FORMATS.map((f, i) => (
@@ -66,7 +66,7 @@ export default function BankrollManagement() {
             <div style={{ fontSize: 18, fontWeight: 800, color: format.color }}>{analysis.recommended.name}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Buy-ins</div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>Buy-Ins</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>{analysis.buyinsAtRec}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>

@@ -185,7 +185,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                             </div>
                                             <div style={s.venueStats}>
                                                 <div style={s.venueTotal}>${v.totalTokes.toFixed(0)}</div>
-                                                {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/hr</div>}
+                                                {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/Hr</div>}
                                             </div>
                                         </div>
                                     ))}

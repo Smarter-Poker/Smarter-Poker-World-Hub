@@ -247,7 +247,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 {query && results.length === 0 && (
                     <div style={{ padding: 40, textAlign: 'center' }}>
                         <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 14 }}>
-                            No results for "{query}"
+                            No Results For "{query}"
                         </span>
                     </div>
                 )}

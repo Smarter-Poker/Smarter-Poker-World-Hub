@@ -1057,7 +1057,7 @@ export default function GlobalSearchOverlay({
               disableClustering={venueResults.length < 20}
             />
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1001, padding: '4px 14px', background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(110,231,239,0.12)', borderRadius: 20, fontSize: 11, color: 'rgba(200,214,229,0.65)', fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-              {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} - tap a pin for details
+              {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} - Tap A Pin For Details
             </div>
           </div>
         )}
@@ -1172,7 +1172,7 @@ export default function GlobalSearchOverlay({
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.25)' }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Search Anything</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(200,214,229,0.35)' }}>City, State, Venue, Casino,<br />Tournament, Series, or Tour Name</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(200,214,229,0.35)' }}>City, State, Venue, Casino,<br />Tournament, Series, Or Tour Name</div>
                 </div>
               )}
             </div>
@@ -1188,7 +1188,7 @@ export default function GlobalSearchOverlay({
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.35)' }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Results Found</div>
-                  <div style={{ fontSize: 13 }}>Try a different city, venue name, or tour</div>
+                  <div style={{ fontSize: 13 }}>Try A Different City, Venue Name, Or Tour</div>
                 </div>
               )}
 
@@ -1196,7 +1196,7 @@ export default function GlobalSearchOverlay({
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '10px 14px', background: 'rgba(110,231,239,0.05)', border: '1px solid rgba(110,231,239,0.1)', borderRadius: 10 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} for "{localQuery}"</span>
+                    <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} For "{localQuery}"</span>
                     {nlIntent ? (
                       <>
                         {/* Only intents that were actually applied get a chip */}
@@ -1220,7 +1220,7 @@ export default function GlobalSearchOverlay({
                   </div>
                   {nlIntent?.isNaturalLanguage && (
                     <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 11, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
-                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> - Applied filters: {[
+                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> - Applied Filters: {[
                         nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
                         nlIntent.applied?.timeWindow && nlIntent.timeWindow?.replace(/_/g, ' '),
                         nlIntent.applied?.stateCode && `in ${nlIntent.stateCode}`,

@@ -249,9 +249,9 @@ function ExternalLinkModal({ url, title, onClose }) {
                             <span style={styles.blockedIcon}>🔐</span>
                             <h3 style={styles.blockedTitle}>Content Preview Unavailable</h3>
                             <p style={styles.blockedText}>
-                                This website doesn't allow embedding.
+                                This Website Doesn't Allow Embedding.
                                 <br />
-                                Copy the link to view it in your browser.
+                                Copy The Link To View It In Your Browser.
                             </p>
                             <button onClick={copyLink} style={styles.openBtn}>
                                 {copied ? '✓ Link Copied!' : '📋 Copy Link to Clipboard'}
@@ -315,7 +315,7 @@ function ExternalLinkModal({ url, title, onClose }) {
                 {/* Footer */}
                 <div style={styles.footer}>
                     <span style={styles.footerText}>
-                        🛡️ You're still on Smarter.Poker - You never left!
+                        🛡️ You're Still On Smarter.Poker - You Never Left!
                     </span>
                 </div>
             </div>

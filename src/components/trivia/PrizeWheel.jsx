@@ -299,7 +299,7 @@ export default function PrizeWheel({
                                     hiding the value of the streak system. */}
                                 {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
                                     <span className="result-breakdown">
-                                        {result.reward.baseAmount} x {result.reward.appliedMultiplier} streak bonus
+                                        {result.reward.baseAmount} X {result.reward.appliedMultiplier} Streak Bonus
                                     </span>
                                 )}
                             </div>

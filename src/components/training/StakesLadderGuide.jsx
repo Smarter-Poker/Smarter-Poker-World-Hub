@@ -35,7 +35,7 @@ export default function StakesLadderGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Stakes Ladder Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're ready to move up - and when to move down.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know When You're Ready To Move Up - And When To Move Down.</p>
 
       {/* Ladder visual */}
       <div style={{ display: 'grid', gap: 4, marginBottom: 16 }}>
@@ -73,7 +73,7 @@ export default function StakesLadderGuide() {
 
       <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>▲ Move DOWN When</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Below 20 buy-ins, losing at the stake over 50k+ hands, or if losing affects your mental game.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Below 20 Buy-Ins, Losing At The Stake Over 50K+ Hands, Or If Losing Affects Your Mental Game.</div>
       </div>
     </div>
   );

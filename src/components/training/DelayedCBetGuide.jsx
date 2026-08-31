@@ -40,7 +40,7 @@ export default function DelayedCBetGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ⏱ Delayed C-Bet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Check flop, attack turn - the sneaky delayed continuation bet.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Check Flop, Attack Turn - The Sneaky Delayed Continuation Bet.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {DELAYED_SPOTS.map((s, i) => (
@@ -48,7 +48,7 @@ export default function DelayedCBetGuide() {
             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? 'linear-gradient(135deg, #8b5cf6, #a855f7)' : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
-            {s.hand} on {s.flop.split(' ').slice(0,2).join('')}
+            {s.hand} On {s.flop.split(' ').slice(0,2).join('')}
           </button>
         ))}
       </div>
@@ -57,7 +57,7 @@ export default function DelayedCBetGuide() {
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Your Hand: <span style={{ fontWeight: 800, color: '#8b5cf6' }}>{spot.hand}</span></div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>FLOP (checked)</div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>FLOP (Checked)</div>
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, opacity: 0.7 }}>{spot.flop}</div>
           </div>
           <span style={{ fontSize: 20, color: '#64748b' }}>→</span>
@@ -72,7 +72,7 @@ export default function DelayedCBetGuide() {
           <button onClick={() => setRevealed(true)}
             style={{ padding: '8px 24px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
               background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', color: '#fff', fontSize: 14 }}>
-            Bet or Check?
+            Bet Or Check?
           </button>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

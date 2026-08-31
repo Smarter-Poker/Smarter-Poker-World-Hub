@@ -225,7 +225,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
                     </div>
                     <div className="tc-group half">
-                        <label>Gas Price ($/gal)</label>
+                        <label>Gas Price ($/Gal)</label>
                         <input
                             type="number"
                             step="0.1"
@@ -286,7 +286,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                             <div className="tc-break-icon buyin"><BreakIcon kind="buyin" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Buy-Ins</span>
-                                <span className="tc-break-detail">${costs.typicalBuyIn} × {sessionsPerDay}/day × {days} days</span>
+                                <span className="tc-break-detail">${costs.typicalBuyIn} × {sessionsPerDay}/Day × {days} Days</span>
                             </div>
                             <span className="tc-break-amount">${costs.buyInSpend.toLocaleString()}</span>
                         </div>
@@ -308,7 +308,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                             <div className="tc-break-icon meals"><BreakIcon kind="meals" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Meals</span>
-                                <span className="tc-break-detail">${costs.mealsDaily}/day × {days} days</span>
+                                <span className="tc-break-detail">${costs.mealsDaily}/Day × {days} Days</span>
                             </div>
                             <span className="tc-break-amount">${costs.mealTotal.toLocaleString()}</span>
                         </div>
@@ -317,7 +317,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                     {!costs.distanceKnown && (
                         <div className="tc-no-gps">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
-                            {costs.distanceUnavailableReason}. The total below excludes travel.
+                            {costs.distanceUnavailableReason}. The Total Below Excludes Travel.
                         </div>
                     )}
                 </div>

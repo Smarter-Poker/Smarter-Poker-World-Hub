@@ -47,7 +47,7 @@ export default function TurnProbeGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Turn Probe Bet Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Exploit weakness when the flop goes check-check.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Exploit Weakness When The Flop Goes Check-Check.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PROBE_SPOTS.map((s, i) => (
@@ -79,7 +79,7 @@ export default function TurnProbeGuide() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.sizing}</div>
           </div>
           <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${spot.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Best Hands to Probe</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Best Hands To Probe</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.bestHands}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>

@@ -42,7 +42,7 @@ export default function MultiTableStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ■ Multi-Table Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Find your optimal table count for maximum hourly profit.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Find Your Optimal Table Count For Maximum Hourly Profit.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {TABLE_TIERS.map((t, i) => (

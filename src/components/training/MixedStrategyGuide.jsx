@@ -37,7 +37,7 @@ export default function MixedStrategyGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ◆ Mixed Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why solvers mix and how to simplify for real play.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why Solvers Mix And How To Simplify For Real Play.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {MIXED_CONCEPTS.map((c, i) => (

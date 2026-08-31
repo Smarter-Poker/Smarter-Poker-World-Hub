@@ -91,7 +91,7 @@ export default function StreakBadge({
                     </div>
                     <div className="progress-text">
                         <ChevronUp size={12} />
-                        {streak.daysUntilNext} days to {nextTier.title}
+                        {streak.daysUntilNext} Days To {nextTier.title}
                     </div>
                 </div>
             )}

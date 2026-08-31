@@ -43,7 +43,7 @@ export default function SemiBluffTrainer() {
          Semi-Bluff Trainer
       </h3>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>Should you semi-bluff or give up?</p>
+        <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>Should You Semi-Bluff Or Give Up?</p>
         {score.total > 0 && (
           <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>
             {score.correct}/{score.total} ({Math.round(score.correct/score.total*100)}%)

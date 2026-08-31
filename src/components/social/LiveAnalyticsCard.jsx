@@ -108,12 +108,12 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
                     Stream Ended
                 </h2>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '0 0 28px' }}>
-                    Here's how your stream performed
+                    Here's How Your Stream Performed
                 </p>
 
                 {loading ? (
                     <div style={{ color: 'rgba(255,255,255,0.4)', padding: '32px 0', fontSize: 14 }}>
-                        Calculating stats...
+                        Calculating Stats...
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
@@ -161,7 +161,7 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
                         cursor: 'pointer',
                     }}
                 >
-                    Save or Post Replay
+                    Save Or Post Replay
                 </button>
             </div>
         </div>

@@ -386,8 +386,8 @@ export default function HomeGamePage() {
   return (
     <>
       <SEOHead
-        title={`${group.name} — Home Game`}
-        description={group.description || `${group.name} — Home game group in ${group.city}, ${group.state}. Join the group on Smarter.Poker.`}
+        title={`${group.name} - Home Game`}
+        description={group.description || `${group.name} - Home game group in ${group.city}, ${group.state}. Join the group on Smarter.Poker.`}
         canonical={`/home-game/${code}`}
         ogImage={group.cover_photo_url || undefined}
       />

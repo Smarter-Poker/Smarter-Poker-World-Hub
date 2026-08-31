@@ -37,7 +37,7 @@ export default function EquityBucketGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Equity Bucket Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Categorize your hand equity to simplify decisions instantly.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Categorize Your Hand Equity To Simplify Decisions Instantly.</p>
 
       {/* Bucket spectrum */}
       <div style={{ display: 'flex', height: 40, borderRadius: 8, overflow: 'hidden', marginBottom: 16, cursor: 'pointer' }}>

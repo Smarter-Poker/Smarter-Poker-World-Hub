@@ -69,7 +69,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 <div style={{
                     fontSize: 11, color: '#64748b', marginTop: 4, fontWeight: 600,
                 }}>
-                    {totalCombos} / {maxCombos} combos
+                    {totalCombos} / {maxCombos} Combos
                 </div>
                 {/* Progress bar */}
                 <div style={{

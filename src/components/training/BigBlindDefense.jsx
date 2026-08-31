@@ -37,7 +37,7 @@ export default function BigBlindDefense() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ■ Big Blind Defense
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Defend your BB correctly - it's the #1 skill gap in poker.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Defend Your BB Correctly - It's The #1 Skill Gap In Poker.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {DEFENSE_SCENARIOS.map((s, i) => (
@@ -45,7 +45,7 @@ export default function BigBlindDefense() {
             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: scenarioIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: scenarioIdx === i ? '#fff' : '#94a3b8' }}>
-            vs {s.opener}
+            Vs {s.opener}
           </button>
         ))}
       </div>
@@ -53,7 +53,7 @@ export default function BigBlindDefense() {
       <motion.div key={scenarioIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: scenario.color }}>vs {scenario.opener}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: scenario.color }}>Vs {scenario.opener}</span>
           <span style={{ padding: '4px 10px', borderRadius: 6, background: `${scenario.color}20`, fontSize: 13, fontWeight: 800, color: scenario.color }}>
             Defend {scenario.defense}
           </span>
@@ -76,7 +76,7 @@ export default function BigBlindDefense() {
 
       {/* Defense frequency visual */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Defense Frequency by Opener</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Defense Frequency By Opener</div>
         {DEFENSE_SCENARIOS.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 50 }}>{s.opener}</span>

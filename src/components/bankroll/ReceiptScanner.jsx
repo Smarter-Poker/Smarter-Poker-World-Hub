@@ -253,7 +253,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             <Camera size={32} />
                         </div>
                         <p style={styles.uploadText}>TAP TO SCAN RECEIPT</p>
-                        <p style={styles.uploadHint}>Auto-detects And Captures Receipts</p>
+                        <p style={styles.uploadHint}>Auto-Detects And Captures Receipts</p>
                     </div>
                     <div style={styles.uploadDivider}>
                         <span style={styles.uploadDividerLine} />
@@ -265,7 +265,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                         style={styles.fileUploadBtn}
                     >
                         <Upload size={14} />
-                        Upload from gallery
+                        Upload From Gallery
                     </button>
                     <input
                         ref={fileInputRef}

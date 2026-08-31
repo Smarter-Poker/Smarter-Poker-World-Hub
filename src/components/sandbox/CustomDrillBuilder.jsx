@@ -154,12 +154,12 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
                                 <AlertTriangle size={18} strokeWidth={2} color={T.warn} />
                                 <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn }}>
-                                    No spots match yet
+                                    No Spots Match Yet
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                Nothing in the question pool covers {street === 'Any' ? 'any street' : street.toLowerCase()}
-                                {position === 'Any' ? '' : ` from ${position}`}. Widen a filter to continue.
+                                Nothing In The Question Pool Covers {street === 'Any' ? 'any street' : street.toLowerCase()}
+                                {position === 'Any' ? '' : ` from ${position}`}. Widen A Filter To Continue.
                             </p>
                             <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                                 {position !== 'Any' && (
@@ -169,7 +169,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                         onClick={() => setPosition('Any')}
                                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
                                     >
-                                        Any position
+                                        Any Position
                                     </button>
                                 )}
                                 {street !== 'Any' && (
@@ -179,7 +179,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                                         onClick={() => setStreet('Any')}
                                         style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
                                     >
-                                        Any street
+                                        Any Street
                                     </button>
                                 )}
                             </div>
@@ -191,11 +191,11 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
                                 <AlertTriangle size={18} strokeWidth={2} color={T.danger} />
                                 <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
-                                    Could not check the pool
+                                    Could Not Check The Pool
                                 </span>
                             </div>
                             <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                You can still launch · the drill will tell you if nothing matches.
+                                You Can Still Launch · The Drill Will Tell You If Nothing Matches.
                             </p>
                             <button
                                 type="button"

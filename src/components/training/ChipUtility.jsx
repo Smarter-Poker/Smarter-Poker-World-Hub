@@ -42,7 +42,7 @@ export default function ChipUtility() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Chip Utility Theory
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why tournament chips have non-linear value.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Why Tournament Chips Have Non-Linear Value.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {UTILITY_CONCEPTS.map((c, i) => (

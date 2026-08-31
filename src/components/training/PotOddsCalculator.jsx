@@ -65,7 +65,7 @@ export default function PotOddsCalculator() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Pot Odds Calculator</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Calculate pot odds, implied odds, and required equity to call</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Calculate Pot Odds, Implied Odds, And Required Equity To Call</div>
         </div>
 
         {/* Presets */}
@@ -92,7 +92,7 @@ export default function PotOddsCalculator() {
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Bet to Call</span>
+              <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Bet To Call</span>
               <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 800 }}>{betSize}</span>
             </div>
             <input type="range" min={1} max={500} value={betSize} onChange={e => setBetSize(Number(e.target.value))}
@@ -103,7 +103,7 @@ export default function PotOddsCalculator() {
         {/* Implied odds slider */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Implied Odds (Extra Value on Future Streets)</span>
+            <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Implied Odds (Extra Value On Future Streets)</span>
             <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 800 }}>+{impliedExtra}</span>
           </div>
           <input type="range" min={0} max={500} value={impliedExtra} onChange={e => setImpliedExtra(Number(e.target.value))}
@@ -140,7 +140,7 @@ export default function PotOddsCalculator() {
             </div>
           </div>
           <div style={{ color: '#94a3b8', fontSize: 9, marginTop: 4, textAlign: 'center' }}>
-            Bet is {calculations.betPctOfPot}% of pot - you need {calculations.breakEven.toFixed(1)}% equity to call
+            Bet Is {calculations.betPctOfPot}% Of Pot - You Need {calculations.breakEven.toFixed(1)}% Equity To Call
           </div>
         </div>
 
@@ -158,7 +158,7 @@ export default function PotOddsCalculator() {
 
         {/* Common draws table */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Common Draws - Equity vs Required {calculations.breakEven.toFixed(1)}%</div>
+          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Common Draws - Equity Vs Required {calculations.breakEven.toFixed(1)}%</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {DRAWS.map(draw => {
               const equity = street === 'flop' ? draw.flop : draw.turn;
@@ -193,15 +193,15 @@ export default function PotOddsCalculator() {
           <div style={{ display: 'flex', gap: 10, marginTop: 8, justifyContent: 'center' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-              <span style={{ color: '#94a3b8', fontSize: 8 }}>Profitable call</span>
+              <span style={{ color: '#94a3b8', fontSize: 8 }}>Profitable Call</span>
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
-              <span style={{ color: '#94a3b8', fontSize: 8 }}>Needs implied odds</span>
+              <span style={{ color: '#94a3b8', fontSize: 8 }}>Needs Implied Odds</span>
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-              <span style={{ color: '#94a3b8', fontSize: 8 }}>Not enough equity</span>
+              <span style={{ color: '#94a3b8', fontSize: 8 }}>Not Enough Equity</span>
             </span>
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function PotOddsCalculator() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Pot Odds Calculator</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

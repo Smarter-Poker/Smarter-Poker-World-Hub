@@ -194,7 +194,7 @@ What patterns do you see? How can I better manage my emotional state?`);
                         😤 Tilt Journal
                     </h4>
                     <div style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '2px' }}>
-                        {entries.length} entries logged
+                        {entries.length} Entries Logged
                     </div>
                 </div>
                 {onClose && (
@@ -216,7 +216,7 @@ What patterns do you see? How can I better manage my emotional state?`);
                     {/* Trigger Selection */}
                     <div style={{ marginBottom: '10px' }}>
                         <label style={{ fontSize: '10px', color: 'rgba(255, 215, 0, 0.7)', display: 'block', marginBottom: '4px' }}>
-                            What triggered the tilt?
+                            What Triggered The Tilt?
                         </label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                             {COMMON_TRIGGERS.map(trigger => (
@@ -269,7 +269,7 @@ What patterns do you see? How can I better manage my emotional state?`);
                     {/* Response */}
                     <div style={{ marginBottom: '10px' }}>
                         <label style={{ fontSize: '10px', color: 'rgba(255, 215, 0, 0.7)', display: 'block', marginBottom: '4px' }}>
-                            How did you respond?
+                            How Did You Respond?
                         </label>
                         <input
                             value={newEntry.response}
@@ -351,7 +351,7 @@ What patterns do you see? How can I better manage my emotional state?`);
                         color: 'rgba(255, 255, 255, 0.5)',
                         fontSize: '10px'
                     }}>
-                        No entries yet. Log your first tilt episode to start tracking patterns.
+                        No Entries Yet. Log Your First Tilt Episode To Start Tracking Patterns.
                     </div>
                 ) : (
                     entries.slice(0, 5).map(entry => (

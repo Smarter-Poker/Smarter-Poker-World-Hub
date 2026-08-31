@@ -174,7 +174,7 @@ export default function BluffCatcherAnalyzer() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Bluff Catcher Analyzer</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Should you call or fold with bluff catchers?</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Should You Call Or Fold With Bluff Catchers?</div>
         </div>
 
         {/* Scenario selector */}
@@ -206,7 +206,7 @@ export default function BluffCatcherAnalyzer() {
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
             <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Pot / Bet</div>
             <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{selectedScenario.pot} / {selectedScenario.bet}</div>
-            <div style={{ color: '#94a3b8', fontSize: 9 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% of pot</div>
+            <div style={{ color: '#94a3b8', fontSize: 9 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% Of Pot</div>
           </div>
         </div>
 
@@ -268,7 +268,7 @@ export default function BluffCatcherAnalyzer() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Bluff Catcher Analyzer</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

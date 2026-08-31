@@ -4025,7 +4025,7 @@ function UniversalDynamicTable({
                                         color: isActiveSeat ? '#ffd67a' : '#e2af3a',
                                         whiteSpace: 'nowrap',
                                     }}>
-                                        {stackSize} bb
+                                        {stackSize} BB
                                     </div>
 
                                     {/* Dealer Button — rendered at table level per
@@ -4542,7 +4542,7 @@ function UniversalDynamicTable({
                             </div>
                         )}
                         <div style={{ ...styles.questionOfPill, bottom: isMobile ? 3 : 16 }}>
-                            Question {questionNumber} of {totalQuestions}
+                            Question {questionNumber} Of {totalQuestions}
                         </div>
                     </div>
                 </div>
@@ -4934,9 +4934,9 @@ function UniversalDynamicTable({
                                 />
                             ) : (
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
-                                    No solver range matrix for this spot.
+                                    No Solver Range Matrix For This Spot.
                                     <br />
-                                    Range data loads with solved spots.
+                                    Range Data Loads With Solved Spots.
                                 </div>
                             )}
                         </InfoPanelShell>
@@ -5015,7 +5015,7 @@ function UniversalDynamicTable({
                                     <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
                                         By Hand Class
                                         <span style={{ marginLeft: 6, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0 }}>
-                                            {handClassStrategy.totalCombos} combos
+                                            {handClassStrategy.totalCombos} Combos
                                         </span>
                                     </div>
                                     {handClassStrategy.rows.map(row => (
@@ -5023,7 +5023,7 @@ function UniversalDynamicTable({
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginBottom: 2 }}>
                                                 <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{row.label}</span>
                                                 <span style={{ color: 'var(--sp-fg-dim)', fontFamily: "'Inter', monospace" }}>
-                                                    {row.share}% of range
+                                                    {row.share}% Of Range
                                                 </span>
                                             </div>
                                             {/* One stacked bar per class: the
@@ -5297,7 +5297,7 @@ function UniversalDynamicTable({
                                     border: '1px solid rgba(239,68,68,0.45)',
                                     background: 'rgba(239,68,68,0.10)',
                                 }}>
-                                    TIME - auto-{timeExpired === 'fold' ? 'folded' : 'checked'}
+                                    TIME - Auto-{timeExpired === 'fold' ? 'folded' : 'checked'}
                                 </span>
                             )}
                             <span style={{
@@ -5403,7 +5403,7 @@ function UniversalDynamicTable({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                                    Action mix
+                                    Action Mix
                                 </div>
                                 {/* GTOW parity #31 — say where these numbers came
                                     from. An estimated mix that looks identical to a
@@ -5527,7 +5527,7 @@ function UniversalDynamicTable({
                             }}
                         >
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
-                                EV by Action
+                                EV By Action
                             </div>
                             {options.slice(0, 9).map(opt => {
                                 const optId = opt.id || opt;
@@ -5771,7 +5771,7 @@ function UniversalDynamicTable({
                                                 {/* Phase 53: Hand category for context */}
                                                 {fq?.handCategory && (
                                                     <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: 'var(--sp-accent-purple)' }}>
-                                                        Your hand: {fq.handCategory}
+                                                        Your Hand: {fq.handCategory}
                                                     </div>
                                                 )}
 
@@ -5780,7 +5780,7 @@ function UniversalDynamicTable({
                                                     <strong style={{ color: 'var(--sp-accent-green)' }}>Optimal:</strong>{' '}
                                                     {correctOpt}
                                                     {correctFreq > 0 && (
-                                                        <span style={{ color: 'var(--sp-fg-muted)' }}> at {correctFreq}%</span>
+                                                        <span style={{ color: 'var(--sp-fg-muted)' }}> At {correctFreq}%</span>
                                                     )}
                                                 </div>
 
@@ -5790,12 +5790,12 @@ function UniversalDynamicTable({
                                                         <strong style={{ color: 'var(--sp-accent-red)' }}>Your Pick:</strong>{' '}
                                                         {selectedOpt}
                                                         {selectedFreq > 0 ? (
-                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% - part of the mix but suboptimal)</span>
+                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% - Part Of The Mix But Suboptimal)</span>
                                                         ) : (
-                                                            <span style={{ color: 'var(--sp-accent-red)' }}> (0% - not in the solver's strategy)</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> (0% - Not In The Solver's Strategy)</span>
                                                         )}
                                                         {evLoss > 0 && (
-                                                            <span style={{ color: 'var(--sp-accent-red)' }}> - loses {evLoss.toFixed(2)} BB</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> - Loses {evLoss.toFixed(2)} BB</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -6042,7 +6042,7 @@ function UniversalDynamicTable({
                                         padding: '4px 2px',
                                     }}
                                 >
-                                    More coaching insights
+                                    More Coaching Insights
                                 </summary>
                             {/* ═══ PHASE 261-280: Deep coaching insights ═══ */}
                             {(() => {
@@ -6303,7 +6303,7 @@ function UniversalDynamicTable({
                                 <div style={{
                                     marginTop: 4, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right',
                                 }}>
-                                    Total EV loss: <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>
+                                    Total EV Loss: <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>
                                         -{handSummary.totalEVLoss.toFixed(1)}bb
                                     </span>
                                 </div>
@@ -6447,7 +6447,7 @@ function UniversalDynamicTable({
                                     ))}
                                 </div>
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>
-                                    {computedDifficulty.label} difficulty • Session complete
+                                    {computedDifficulty.label} Difficulty • Session Complete
                                 </div>
                                 {/* PHASE 6: Review Mistakes Button */}
                                 {sessionMistakesListRef.current.length > 0 && (

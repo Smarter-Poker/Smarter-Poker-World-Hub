@@ -1938,7 +1938,7 @@ export function SharedPostCreator({
                           letterSpacing: 0.3,
                         }}
                       >
-                        Generating thumbnail…
+                        Generating Thumbnail…
                       </span>
                     </div>
                   )
@@ -2166,7 +2166,7 @@ export function SharedPostCreator({
                       fontSize: 12,
                     }}
                   >
-                    Drag slider to pick frame
+                    Drag Slider To Pick Frame
                   </div>
                 )}
                 {scrubberDuration > 0 && (
@@ -2249,13 +2249,13 @@ export function SharedPostCreator({
                     padding: '4px 0',
                   }}
                 >
-                  Loading frames…
+                  Loading Frames…
                 </div>
               ) : (
                 thumbFrames.length > 0 && (
                   <>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 4 }}>
-                      Quick picks:
+                      Quick Picks:
                     </div>
                     <div style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 4 }}>
                       {thumbFrames.map(
@@ -2354,7 +2354,7 @@ export function SharedPostCreator({
             </div>
           )}
           <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>
-            {media.length}/{MAX_MEDIA} files
+            {media.length}/{MAX_MEDIA} Files
           </div>
         </div>
       )}
@@ -2767,7 +2767,7 @@ export function SharedPostCreator({
             <circle cx="12" cy="10" r="3" />
           </svg>
           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-            Checking in at {checkInVenue.name}
+            Checking In At {checkInVenue.name}
           </span>
           <button
             onClick={() => setCheckInVenue(null)}

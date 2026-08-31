@@ -117,7 +117,7 @@ function SeatSelectionGuide() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Seat Selection Guide failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Seat Selection Guide Failed: {err.message}</div>;
   }
 }
 

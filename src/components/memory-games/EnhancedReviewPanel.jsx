@@ -134,7 +134,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             {gradeResult.score >= 95 ? 'PERFECT RECALL' : gradeResult.score >= 85 ? 'MASTERY ACHIEVED' : gradeResult.score >= 70 ? 'ALMOST THERE' : 'KEEP PRACTICING'}
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            {positionLabel} • Level {scenario.level || '?'} • {Object.keys(solution || {}).length} hands in range
+                            {positionLabel} • Level {scenario.level || '?'} • {Object.keys(solution || {}).length} Hands In Range
                         </div>
                     </div>
 
@@ -167,8 +167,8 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             {gradeResult.wrongActionHands.length > 0 && <div style={{ flex: gradeResult.wrongActionHands.length, background: '#F59E0B' }} />}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                            <span>{gradeResult.correctHands}/{Object.keys(solution || {}).length} correct</span>
-                            <span>{mistakes.length} mistakes</span>
+                            <span>{gradeResult.correctHands}/{Object.keys(solution || {}).length} Correct</span>
+                            <span>{mistakes.length} Mistakes</span>
                         </div>
                     </div>
 
@@ -186,7 +186,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                                 ))}
                             </div>
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                                Avg: {avgAccuracy}% over {totalSessions} sessions
+                                Avg: {avgAccuracy}% Over {totalSessions} Sessions
                             </div>
                         </div>
                     )}
@@ -200,15 +200,15 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                         <div style={{ textAlign: 'center', padding: 40, color: '#22C55E' }}>
                             <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
                             <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800 }}>FLAWLESS!</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>No mistakes - you nailed this range perfectly.</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>No Mistakes - You Nailed This Range Perfectly.</div>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {/* Legend */}
                             <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-                                <span><span style={{ color: '#3B82F6' }}>●</span> Missed (should have played)</span>
-                                <span><span style={{ color: '#EF4444' }}>●</span> Extra (shouldn't have played)</span>
-                                <span><span style={{ color: '#F59E0B' }}>●</span> Wrong action</span>
+                                <span><span style={{ color: '#3B82F6' }}>●</span> Missed (Should Have Played)</span>
+                                <span><span style={{ color: '#EF4444' }}>●</span> Extra (Shouldn't Have Played)</span>
+                                <span><span style={{ color: '#F59E0B' }}>●</span> Wrong Action</span>
                             </div>
 
                             {mistakes.map((m, i) => {
@@ -376,7 +376,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                         {showSolution && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <div style={{ width: 10, height: 10, borderRadius: 2, border: '2px solid #FFD700' }} />
-                                <span style={{ color: '#FFD700' }}>Your mistake</span>
+                                <span style={{ color: '#FFD700' }}>Your Mistake</span>
                             </div>
                         )}
                     </div>
@@ -387,7 +387,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
                                 {Object.keys(solution || {}).length}
                             </div>
-                            <div style={{ color: 'rgba(255,255,255,0.4)' }}>Hands in Range</div>
+                            <div style={{ color: 'rgba(255,255,255,0.4)' }}>Hands In Range</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>

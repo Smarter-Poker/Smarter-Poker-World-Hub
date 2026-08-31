@@ -138,7 +138,7 @@ export default function TiltTrackerPanel() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Tilt Tracker</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Monitor your emotional state and stay in control</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Monitor Your Emotional State And Stay In Control</div>
         </div>
 
         {/* Tilt Meter */}
@@ -146,7 +146,7 @@ export default function TiltTrackerPanel() {
 
         {/* Trigger buttons */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Log a Trigger</div>
+          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Log A Trigger</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {TRIGGERS.map(t => {
               const isActive = activeTriggers.includes(t.id);
@@ -232,7 +232,7 @@ export default function TiltTrackerPanel() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Tilt Tracker</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

@@ -32,7 +32,7 @@ export default function LateRegStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ⏰ Late Registration Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When to late-reg tournaments and how to play when you do.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When To Late-Reg Tournaments And How To Play When You Do.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {LATE_REG_FACTORS.map((f, i) => (

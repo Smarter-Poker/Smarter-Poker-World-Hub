@@ -39,7 +39,7 @@ export default function RunItTwiceCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Run It Twice Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Same EV, less variance. When does it matter most?</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Same EV, Less Variance. When Does It Matter Most?</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {RIT_SCENARIOS.map((s, i) => (
@@ -87,7 +87,7 @@ export default function RunItTwiceCalc() {
 
       <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#8b5cf6', marginBottom: 4 }}>Key Insight</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Running it twice NEVER changes your EV - only your variance. Always accept RIT as the underdog.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Running It Twice NEVER Changes Your EV - Only Your Variance. Always Accept RIT As The Underdog.</div>
       </div>
     </div>
   );

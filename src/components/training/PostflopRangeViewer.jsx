@@ -447,7 +447,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
-                Solver Strategy • Click another hand to compare
+                Solver Strategy • Click Another Hand To Compare
             </div>
         </motion.div>
     );
@@ -550,7 +550,7 @@ function BoardSelector({ board, onChange }) {
                     </span>
                 );
             }) : (
-                <span style={{ fontSize: 10, color: '#475569' }}>Click to set board</span>
+                <span style={{ fontSize: 10, color: '#475569' }}>Click To Set Board</span>
             )}
         </div>
     );
@@ -816,7 +816,7 @@ export default function PostflopRangeViewer({
                     Betting: {rangeStats.bettingPct.toFixed(1)}%
                 </div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>
-                    ({Math.round(rangeStats.bettingCombos)}/{Math.round(rangeStats.totalCombos)} combos)
+                    ({Math.round(rangeStats.bettingCombos)}/{Math.round(rangeStats.totalCombos)} Combos)
                 </div>
             </div>
 
@@ -912,8 +912,8 @@ export default function PostflopRangeViewer({
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 9, color: '#475569', lineHeight: 1.6, textAlign: 'center',
             }}>
-                <strong style={{ color: '#94a3b8' }}>Postflop Range Viewer</strong> - Frequencies from PioSolver-calibrated strategy matrices.
-                Cell color = dominant action. Click any cell for full breakdown. Filter by action with the buttons above.
+                <strong style={{ color: '#94a3b8' }}>Postflop Range Viewer</strong> - Frequencies From PioSolver-Calibrated Strategy Matrices.
+                Cell Color = Dominant Action. Click Any Cell For Full Breakdown. Filter By Action With The Buttons Above.
             </div>
         </div>
     );

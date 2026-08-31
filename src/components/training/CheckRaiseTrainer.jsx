@@ -102,7 +102,7 @@ function CheckRaiseTrainer() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
             <span>{spot.street}</span>
             <span>{spot.position}</span>
-            <span>Villain bets {spot.villainBet}</span>
+            <span>Villain Bets {spot.villainBet}</span>
             <span>Sizing: <span style={{ color: '#14b8a6', fontWeight: 700 }}>{spot.optimalSize}</span></span>
           </div>
         </div>
@@ -111,7 +111,7 @@ function CheckRaiseTrainer() {
         {quizMode && !userGuess && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 10, textAlign: 'center' }}>
-              How often should you check-raise here?
+              How Often Should You Check-Raise Here?
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
               {['Rarely', 'Sometimes', 'Often', 'Frequently'].map(g => (
@@ -133,7 +133,7 @@ function CheckRaiseTrainer() {
             <span style={{ fontSize: 16, fontWeight: 800, color: userGuess === freqBucket(spot.xrFreq) ? '#10b981' : '#ef4444' }}>
               {userGuess === freqBucket(spot.xrFreq) ? '✓ Correct!': `✕ Wrong - Answer: ${freqBucket(spot.xrFreq)}`}
             </span>
-            <span style={{ marginLeft: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>X/R frequency: {spot.xrFreq}%</span>
+            <span style={{ marginLeft: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>X/R Frequency: {spot.xrFreq}%</span>
           </div>
         )}
 
@@ -185,7 +185,7 @@ function CheckRaiseTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Check-Raise Trainer failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Check-Raise Trainer Failed To Load: {err.message}</div>;
   }
 }
 

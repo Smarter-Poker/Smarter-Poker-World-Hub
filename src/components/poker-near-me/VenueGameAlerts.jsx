@@ -274,7 +274,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                 color: '#fff', fontSize: 14, outline: 'none',
               }}
             >
-              <option value="">Select venue...</option>
+              <option value="">Select Venue...</option>
               {venueOptions.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
@@ -289,7 +289,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                 color: '#fff', fontSize: 14, outline: 'none',
               }}
             >
-              <option value="">Select game type...</option>
+              <option value="">Select Game Type...</option>
               {GAME_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
@@ -311,7 +311,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
       {/* Active alerts list */}
       {loading ? (
-        <div style={{ color: '#64748b', textAlign: 'center', padding: 20 }}>Loading alerts...</div>
+        <div style={{ color: '#64748b', textAlign: 'center', padding: 20 }}>Loading Alerts...</div>
       ) : alerts.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: 24, color: '#64748b', fontSize: 14,
@@ -399,7 +399,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
             ))}
           </div>
           <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(148,163,184,0.55)' }}>
-            Counts marked &quot;est.&quot; are modelled from historical activity, not a live table count.
+            Counts Marked &quot;Est.&quot; Are Modelled From Historical Activity, Not A Live Table Count.
           </div>
         </div>
       )}

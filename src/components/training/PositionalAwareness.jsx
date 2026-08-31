@@ -42,7 +42,7 @@ export default function PositionalAwareness() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         · Positional Awareness
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Every seat demands a different strategy.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Every Seat Demands A Different Strategy.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {POSITIONS.map((p, i) => (

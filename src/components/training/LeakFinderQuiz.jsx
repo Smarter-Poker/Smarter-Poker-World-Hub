@@ -124,7 +124,7 @@ function LeakFinderQuiz() {
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{leak.scenario}</div>
         </div>
 
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>What is the leak?</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>What Is The Leak?</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
           {leak.options.map((opt, i) => {
             const isSelected = selected === i;
@@ -187,7 +187,7 @@ function LeakFinderQuiz() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Leak Finder Quiz failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Leak Finder Quiz Failed To Load: {err.message}</div>;
   }
 }
 

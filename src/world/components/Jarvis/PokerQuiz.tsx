@@ -343,7 +343,7 @@ export function PokerQuiz({ onClose, onEarnDiamonds }: PokerQuizProps) {
                             fontSize: '11px',
                             color: '#FFD700'
                         }}>
-                            💎 +{Math.min(streak, 5)} Diamonds earned!
+                            💎 +{Math.min(streak, 5)} Diamonds Earned!
                         </p>
                     )}
                 </div>

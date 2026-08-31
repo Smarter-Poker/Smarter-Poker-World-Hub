@@ -197,7 +197,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                     )}
 
                     <div>
-                        <label htmlFor="shm-folder" style={labelStyle}>Folder name</label>
+                        <label htmlFor="shm-folder" style={labelStyle}>Folder Name</label>
                         <input
                             id="shm-folder"
                             value={folder}
@@ -207,7 +207,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                         />
                         {isExisting && (
                             <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs }}>
-                                Adds to the existing folder.
+                                Adds To The Existing Folder.
                             </div>
                         )}
 
@@ -238,13 +238,13 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                         {existingFolders.length === 0 && !loadError && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginTop: S.md, fontSize: F.caption, color: T.textDim }}>
                                 <FolderPlus size={18} strokeWidth={2} />
-                                This will be your first study folder.
+                                This Will Be Your First Study Folder.
                             </div>
                         )}
                     </div>
 
                     <div>
-                        <label htmlFor="shm-tags" style={labelStyle}>Tags (comma separated, optional)</label>
+                        <label htmlFor="shm-tags" style={labelStyle}>Tags (Comma Separated, Optional)</label>
                         <input
                             id="shm-tags"
                             value={tagsInput}
@@ -255,7 +255,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                     </div>
 
                     <div>
-                        <label htmlFor="shm-note" style={labelStyle}>Note (optional)</label>
+                        <label htmlFor="shm-note" style={labelStyle}>Note (Optional)</label>
                         <textarea
                             id="shm-note"
                             value={note}

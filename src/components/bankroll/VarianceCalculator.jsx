@@ -68,7 +68,7 @@ function VarianceCalculator({ entries = [] }) {
                 <div style={styles.statBox}>
                     <div style={styles.statLabel}>Hourly Rate</div>
                     <div style={{ ...styles.statValue, color: stats.hourlyRate >= 0 ? '#22c55e' : '#ef4444' }}>
-                        ${stats.hourlyRate.toFixed(0)}/hr
+                        ${stats.hourlyRate.toFixed(0)}/Hr
                     </div>
                 </div>
             </div>
@@ -86,7 +86,7 @@ function VarianceCalculator({ entries = [] }) {
                     <span style={{ ...styles.extremeValue, color: '#eab308' }}>${stats.maxDrawdown.toLocaleString()}</span>
                 </div>
             </div>
-            <div style={styles.sampleNote}>Based on {stats.sampleSize} sessions</div>
+            <div style={styles.sampleNote}>Based On {stats.sampleSize} Sessions</div>
         </div>
     );
 }

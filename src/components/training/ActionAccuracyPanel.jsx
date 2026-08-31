@@ -173,7 +173,7 @@ export default function ActionAccuracyPanel({ actionAccuracy }) {
                 const weakest = [...actions].sort((a, b) => a.accuracy - b.accuracy)[0];
                 return (
                     <div style={styles.insight}>
-                        Weakest action: <span style={{ color: weakest.config.color, fontWeight: 'bold' }}>{weakest.config.label}</span> at {weakest.accuracy}% - focus on {weakest.config.label.toLowerCase()} decisions
+                        Weakest Action: <span style={{ color: weakest.config.color, fontWeight: 'bold' }}>{weakest.config.label}</span> At {weakest.accuracy}% - Focus On {weakest.config.label.toLowerCase()} Decisions
                     </div>
                 );
             })()}

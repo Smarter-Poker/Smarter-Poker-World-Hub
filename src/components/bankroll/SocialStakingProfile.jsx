@@ -84,7 +84,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
             {/* Header */}
             <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Staking Profile</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>Share verified performance with potential backers</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Share Verified Performance With Potential Backers</div>
             </div>
 
             {/* Profile Preview Card */}
@@ -181,7 +181,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                             {profileStats.totalNet >= 0 ? '+' : ''}${profileStats.totalNet.toLocaleString()}
                         </span>
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Powered by Smarter.Poker</div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>Powered By Smarter.Poker</div>
                 </div>
             </div>
 

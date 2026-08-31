@@ -42,7 +42,7 @@ export default function LivePokerTells() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ○ Live Poker Tells
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Read physical behavior at the live table.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Read Physical Behavior At The Live Table.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {TELLS.map((t, i) => (

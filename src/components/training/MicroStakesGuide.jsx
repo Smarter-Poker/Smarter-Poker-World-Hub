@@ -37,7 +37,7 @@ export default function MicroStakesGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Micro Stakes Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Beat NL2-NL25 with rock-solid fundamentals.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Beat NL2-NL25 With Rock-Solid Fundamentals.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {MICRO_TIPS.map((t, i) => (

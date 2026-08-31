@@ -42,7 +42,7 @@ export default function ThinValueGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Thin Value Mastery
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Extract max value from medium-strength hands.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Extract Max Value From Medium-Strength Hands.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {THIN_VALUE_SPOTS.map((s, i) => (

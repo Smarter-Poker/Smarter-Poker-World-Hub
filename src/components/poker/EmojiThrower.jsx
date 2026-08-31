@@ -123,7 +123,7 @@ function EmojiPicker({ onSelect, onClose }) {
         marginTop: 6, paddingTop: 6,
         borderTop: '1px solid rgba(255,255,255,0.08)',
       }}>
-        Tap a player to target, or throw to table
+        Tap A Player To Target, Or Throw To Table
       </div>
     </motion.div>
   );
@@ -356,7 +356,7 @@ export default function EmojiThrower({
             }}
             onClick={handleTableThrow}
           >
-            🎯 Tap a player to throw {selectedEmoji} - or tap here for table
+            🎯 Tap A Player To Throw {selectedEmoji} - Or Tap Here For Table
           </motion.div>
         )}
       </AnimatePresence>

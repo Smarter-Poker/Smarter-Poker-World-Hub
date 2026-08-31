@@ -306,8 +306,8 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
       {/* Empty state */}
       {selectedVenues.length === 0 && filteredVenues.length === 0 && (
         <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
-          <p style={{ fontSize: 14, fontWeight: 600 }}>No venues found</p>
-          <p style={{ fontSize: 12 }}>Try a different search term.</p>
+          <p style={{ fontSize: 14, fontWeight: 600 }}>No Venues Found</p>
+          <p style={{ fontSize: 12 }}>Try A Different Search Term.</p>
         </div>
       )}
     </div>

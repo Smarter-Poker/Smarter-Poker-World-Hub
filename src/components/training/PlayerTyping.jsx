@@ -42,7 +42,7 @@ export default function PlayerTyping() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         · Player Type System
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Classify opponents and exploit their tendencies.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Classify Opponents And Exploit Their Tendencies.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {PLAYER_TYPES.map((t, i) => (
@@ -67,7 +67,7 @@ export default function PlayerTyping() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{ptype.style}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How to Exploit</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Exploit</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{ptype.exploit}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>

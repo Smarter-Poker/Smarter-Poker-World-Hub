@@ -44,13 +44,13 @@ export default function ResultsMatrix() {
                     <div className="result-header">
                         <h3 className="venue-name">{item.data.name}</h3>
                         {item.data.distance_mi && (
-                            <span className="distance">{item.data.distance_mi.toFixed(1)} mi</span>
+                            <span className="distance">{item.data.distance_mi.toFixed(1)} Mi</span>
                         )}
                     </div>
                     <div className="result-meta">
                         <span className="location">{item.data.city}, {item.data.state}</span>
                         {item.data.poker_tables && (
-                            <span className="tables">{item.data.poker_tables} tables</span>
+                            <span className="tables">{item.data.poker_tables} Tables</span>
                         )}
                     </div>
                     {item.data.games_offered && (
@@ -88,7 +88,7 @@ export default function ResultsMatrix() {
                 </div>
                 {item.data.total_events && (
                     <div className="tournament-stats">
-                        <span className="stat">{item.data.total_events} events</span>
+                        <span className="stat">{item.data.total_events} Events</span>
                         {item.data.main_event_buyin && (
                             <span className="stat">${item.data.main_event_buyin} Main</span>
                         )}
@@ -108,7 +108,7 @@ export default function ResultsMatrix() {
                     <h2 className="matrix-title">
                         {gameType === 'CASH' ? 'Cash Games' : 'Tournaments'}
                     </h2>
-                    <span className="matrix-count">{items.length} results</span>
+                    <span className="matrix-count">{items.length} Results</span>
                     <button className="close-btn" onClick={toggleResultsDrawer}>×</button>
                 </div>
 

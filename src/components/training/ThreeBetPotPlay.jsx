@@ -29,7 +29,7 @@ export default function ThreeBetPotPlay() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         3-Bet Pot Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate the biggest pots correctly - 3-bet pots are where the money is.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate The Biggest Pots Correctly - 3-Bet Pots Are Where The Money Is.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
         {PERSPECTIVES.map((p, i) => (

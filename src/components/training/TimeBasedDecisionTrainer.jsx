@@ -94,7 +94,7 @@ function TimeBasedDecisionTrainer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#f472b6' }}>Timed Decisions</h3>
           <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-            <span>{accuracy}% accuracy</span>
+            <span>{accuracy}% Accuracy</span>
             <span>Avg: {avgTime}s</span>
           </div>
         </div>
@@ -193,7 +193,7 @@ function TimeBasedDecisionTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Timed Decisions failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Timed Decisions Failed To Load: {err.message}</div>;
   }
 }
 

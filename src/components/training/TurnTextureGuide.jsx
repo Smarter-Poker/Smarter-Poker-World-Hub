@@ -37,7 +37,7 @@ export default function TurnTextureGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Turn Texture Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How different turn cards reshape the hand.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How Different Turn Cards Reshape The Hand.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {TURN_TEXTURES.map((t, i) => (
@@ -66,7 +66,7 @@ export default function TurnTextureGuide() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tex.ipAction}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Out of Position</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Out Of Position</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tex.oopAction}</div>
           </div>
         </div>

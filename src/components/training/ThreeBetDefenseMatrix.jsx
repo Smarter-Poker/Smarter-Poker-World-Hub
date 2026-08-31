@@ -58,8 +58,8 @@ function ThreeBetDefenseMatrix() {
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
               fontSize: 10, fontWeight: 700,
             }}>
-              <div>{m.opener} vs</div>
-              <div>{m.threeBetter} 3-bet</div>
+              <div>{m.opener} Vs</div>
+              <div>{m.threeBetter} 3-Bet</div>
             </button>
           ))}
         </div>
@@ -108,7 +108,7 @@ function ThreeBetDefenseMatrix() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>3-Bet Defense Matrix failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>3-Bet Defense Matrix Failed To Load: {err.message}</div>;
   }
 }
 

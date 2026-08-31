@@ -37,7 +37,7 @@ export default function FreqBenchmarks() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Frequency Benchmarks
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Compare your frequencies against optimal targets.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Compare Your Frequencies Against Optimal Targets.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {FREQ_BENCHMARKS.map((f, i) => (
@@ -68,7 +68,7 @@ export default function FreqBenchmarks() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How to Adjust</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How To Adjust</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.adjust}</div>
           </div>
         </div>

@@ -37,7 +37,7 @@ export default function PLOBasicsGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         PLO Fundamentals
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Essential Pot Limit Omaha concepts for Hold'em players.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Essential Pot Limit Omaha Concepts For Hold'em Players.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {PLO_BASICS.map((t, i) => (

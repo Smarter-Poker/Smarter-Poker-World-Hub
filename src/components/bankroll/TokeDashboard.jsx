@@ -166,7 +166,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                             <TT>
                                 <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{d.venue}</div>
                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 6 }}>{d.date}</div>
-                                <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} tokes</div>
+                                <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} Tokes</div>
                                 <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 3 }}>
                                     {d.hours}h · Running: {fmt(d.cumulative)}
                                 </div>
@@ -206,8 +206,8 @@ function TokeDashboard({ userId, refreshTrigger }) {
                             <TT>
                                 <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{d.venue}</div>
                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 6 }}>{d.date}</div>
-                                <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} tokes</div>
-                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>{d.hours}h worked</div>
+                                <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} Tokes</div>
+                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>{d.hours}h Worked</div>
                             </TT>
                         );
                     }} />
@@ -287,8 +287,8 @@ function TokeDashboard({ userId, refreshTrigger }) {
                             return (
                                 <TT>
                                     <div style={{ color: d.color, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{d.name}</div>
-                                    <div style={{ color: '#e5e7eb', fontWeight: 700, fontSize: 15 }}>{d.value} downs</div>
-                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>{pct}% of total</div>
+                                    <div style={{ color: '#e5e7eb', fontWeight: 700, fontSize: 15 }}>{d.value} Downs</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>{pct}% Of Total</div>
                                 </TT>
                             );
                         }} />
@@ -298,7 +298,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none' }}>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Total</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b', letterSpacing: '-0.5px' }}>{totalDowns}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>downs</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Downs</div>
                 </div>
                 {/* Legend */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 8 }}>

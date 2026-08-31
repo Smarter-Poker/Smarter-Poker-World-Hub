@@ -40,7 +40,7 @@ export default function SmallBlindComplete() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Small Blind Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The hardest position - minimize losses with the right approach.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The Hardest Position - Minimize Losses With The Right Approach.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {SB_STRATEGIES.map((s, i) => (
@@ -72,7 +72,7 @@ export default function SmallBlindComplete() {
 
       <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>SB Expected Loss</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Even the best players lose ~15-25 bb/100 from the SB. The goal is to lose LESS, not win.</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Even The Best Players Lose ~15-25 BB/100 From The SB. The Goal Is To Lose LESS, Not Win.</div>
       </div>
     </div>
   );

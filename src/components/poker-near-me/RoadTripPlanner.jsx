@@ -450,13 +450,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <label>Search Corridor</label>
                         <div className="rtp-chips" role="radiogroup" aria-label="Search corridor">
                             {CORRIDOR_OPTIONS.map(mi => (
-                                <button type="button" role="radio" aria-checked={corridorMi === mi} key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} mi</button>
+                                <button type="button" role="radio" aria-checked={corridorMi === mi} key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} Mi</button>
                             ))}
                         </div>
                     </div>
 
                     <div className="rtp-option-group">
-                        <label>Travel Dates (optional)</label>
+                        <label>Travel Dates (Optional)</label>
                         <div className="rtp-date-row">
                             <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
                             <span className="rtp-date-sep">→</span>
@@ -502,7 +502,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                             <span className="rtp-saved-trip-to">{trip.destination || '?'}</span>
                                         </div>
                                         <div className="rtp-saved-trip-meta">
-                                            {trip.corridorMi && <span>{trip.corridorMi} mi corridor</span>}
+                                            {trip.corridorMi && <span>{trip.corridorMi} Mi Corridor</span>}
                                             {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} stop{trip.waypoints.length > 1 ? 's' : ''}</span>}
                                             <span>{new Date(trip.savedAt).toLocaleDateString()}</span>
                                         </div>
@@ -548,26 +548,26 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     <div className="rtp-stats-bar">
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{Math.round(routeResult.totalDistance)}</span>
-                            <span className="rtp-stat-label">miles (straight-line)</span>
+                            <span className="rtp-stat-label">Miles (Straight-Line)</span>
                         </div>
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{Math.floor(routeResult.totalDriveTime / 60)}h {routeResult.totalDriveTime % 60}m</span>
-                            <span className="rtp-stat-label">est. drive time</span>
+                            <span className="rtp-stat-label">Est. Drive Time</span>
                         </div>
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{routeResult.venues.length}</span>
-                            <span className="rtp-stat-label">venues found</span>
+                            <span className="rtp-stat-label">Venues Found</span>
                         </div>
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{routeResult.stops.length}</span>
-                            <span className="rtp-stat-label">stops</span>
+                            <span className="rtp-stat-label">Stops</span>
                         </div>
                     </div>
 
                     {/* Distance is great-circle between stop centroids, not routed
                         road mileage, so it under-reports a real drive. Say so. */}
                     <div className="rtp-estimate-note">
-                        Distance and drive time are straight-line estimates at 55 mph. Actual road mileage is typically 15-30 percent higher.
+                        Distance And Drive Time Are Straight-Line Estimates At 55 Mph. Actual Road Mileage Is Typically 15-30 Percent Higher.
                     </div>
 
                     {/* Save / Share Actions */}
@@ -656,8 +656,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
                                     {mapStatus === 'error' ? (
                                         <div>
-                                            <p>Route map could not be loaded. The stop and venue lists below are unaffected.</p>
-                                            <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry route map</button>
+                                            <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
+                                            <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
                                         </div>
                                     ) : 'Loading route map...'}
                                 </div>
@@ -701,10 +701,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 );
                             })}
                             {routeResult.venues.length > 20 && (
-                                <div className="rtp-more">+{routeResult.venues.length - 20} more venues</div>
+                                <div className="rtp-more">+{routeResult.venues.length - 20} More Venues</div>
                             )}
                             {routeResult.venues.length === 0 && (
-                                <div className="rtp-empty" role="status">No mapped poker rooms were found inside this route corridor.</div>
+                                <div className="rtp-empty" role="status">No Mapped Poker Rooms Were Found Inside This Route Corridor.</div>
                             )}
                         </div>
                     </div>
@@ -726,7 +726,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 </div>
                             ))}
                             {routeResult.tournaments.length > 20 && (
-                                <div className="rtp-more">+{routeResult.tournaments.length - 20} more tournaments</div>
+                                <div className="rtp-more">+{routeResult.tournaments.length - 20} More Tournaments</div>
                             )}
                         </div>
                     )}
@@ -745,7 +745,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         </div>
                     )}
                     {dateRange.start && dateRange.end && routeResult.tournaments.length === 0 && routeResult.series.length === 0 && (
-                        <div className="rtp-empty" role="status">No route-matched tournaments or series overlap these travel dates.</div>
+                        <div className="rtp-empty" role="status">No Route-Matched Tournaments Or Series Overlap These Travel Dates.</div>
                     )}
                 </div>
             )}

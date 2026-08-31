@@ -453,7 +453,7 @@ Give me 3 specific exploits for this player type.`;
                     color: 'rgba(255, 255, 255, 0.5)',
                     fontSize: '12px'
                 }}>
-                    Click "+ Add" to create an opponent profile
+                    Click "+ Add" To Create An Opponent Profile
                 </div>
             )}
         </div>

@@ -211,7 +211,7 @@ export default function TournamentTrainer() {
           padding: '4px 12px', borderRadius: 6, background: 'rgba(59,130,246,0.15)',
           color: '#3b82f6', fontSize: 12, fontWeight: 700,
         }}>
-          {score.correct}/{score.total} correct ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%)
+          {score.correct}/{score.total} Correct ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%)
         </div>
       </div>
 
@@ -393,7 +393,7 @@ export default function TournamentTrainer() {
           </div>
           {scenario.bubbleSize && (
             <div style={{ color: '#f59e0b', fontSize: 11, marginTop: 6 }}>
-              Bubble: {scenario.playersLeft} remain, {scenario.bubbleSize} get paid
+              Bubble: {scenario.playersLeft} Remain, {scenario.bubbleSize} Get Paid
             </div>
           )}
         </div>

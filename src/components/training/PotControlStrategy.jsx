@@ -112,7 +112,7 @@ function PotControlStrategy() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Control Strategy failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Pot Control Strategy Failed: {err.message}</div>;
   }
 }
 

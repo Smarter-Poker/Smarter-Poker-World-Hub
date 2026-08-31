@@ -42,7 +42,7 @@ export default function PLODrawMath() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         PLO Draw Mathematics
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Calculate outs, equity, and wraps in Omaha.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Calculate Outs, Equity, And Wraps In Omaha.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {DRAW_TYPES.map((t, i) => (
@@ -59,7 +59,7 @@ export default function PLODrawMath() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: d.color }}>{d.icon} {d.name}</span>
-          <span style={{ padding: '4px 10px', borderRadius: 20, background: `${d.color}20`, fontSize: 13, fontWeight: 800, color: d.color }}>{d.outs} outs</span>
+          <span style={{ padding: '4px 10px', borderRadius: 20, background: `${d.color}20`, fontSize: 13, fontWeight: 800, color: d.color }}>{d.outs} Outs</span>
         </div>
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace' }}>
           <div style={{ fontSize: 11, color: d.color }}>{d.example}</div>

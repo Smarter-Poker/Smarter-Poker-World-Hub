@@ -37,7 +37,7 @@ export default function BalancingFrequencies() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ◇ Balancing Frequencies
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>GTO-balanced frequencies for every major decision point.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>GTO-Balanced Frequencies For Every Major Decision Point.</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BALANCE_SPOTS.map((s, i) => (

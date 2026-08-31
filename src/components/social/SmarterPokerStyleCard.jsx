@@ -74,7 +74,7 @@ export const CreatePostBox = ({ user, onPost }) => (
     <div className="sp-create-post-header">
       <SPAvatar src={user?.avatar} name={user?.name} size={40} />
       <button className="sp-create-input">
-        What's on your mind, {user?.firstName || 'there'}?
+        What's On Your Mind, {user?.firstName || 'there'}?
       </button>
     </div>
     <div className="sp-create-divider" />
@@ -813,8 +813,8 @@ export const SPPostCard = ({
         </div>
         <span className="reaction-count">{likeCount}</span>
         <div className="comment-share-count">
-          {commentCount > 0 && <span>{commentCount} comments</span>}
-          {shareCount > 0 && <span>{shareCount} shares</span>}
+          {commentCount > 0 && <span>{commentCount} Comments</span>}
+          {shareCount > 0 && <span>{shareCount} Shares</span>}
         </div>
       </div>
 

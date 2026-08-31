@@ -83,7 +83,7 @@ export default function FriendChallengeModal({
                 <MetalFrame padding="24px" showBolts={true}>
                     <div className="modal-header">
                         <Send size={32} className="header-icon" />
-                        <h2>Challenge a Friend</h2>
+                        <h2>Challenge A Friend</h2>
                         <button className="close-btn" onClick={onClose}>
                             <X size={20} />
                         </button>
@@ -158,10 +158,10 @@ export default function FriendChallengeModal({
                                 <div className="challenge-summary">
                                     <p>
                                         Challenge <strong>{selectedFriend?.username || 'this player'}</strong> for{' '}
-                                        <strong>{selectedStake.toLocaleString()} diamonds</strong>
+                                        <strong>{selectedStake.toLocaleString()} Diamonds</strong>
                                     </p>
                                     <p className="win-text">
-                                        Winner takes <strong>{(selectedStake * 2).toLocaleString()} diamonds</strong>
+                                        Winner Takes <strong>{(selectedStake * 2).toLocaleString()} Diamonds</strong>
                                     </p>
                                 </div>
                             )}
@@ -191,7 +191,7 @@ export default function FriendChallengeModal({
                                 <Check size={48} />
                             </motion.div>
                             <h3>Challenge Sent!</h3>
-                            <p>{selectedFriend?.username} has 24 hours to accept</p>
+                            <p>{selectedFriend?.username} Has 24 Hours To Accept</p>
                         </div>
                     )}
                 </MetalFrame>

@@ -182,10 +182,10 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     }}>
                         <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
                         <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                            Cannot embed this content
+                            Cannot Embed This Content
                         </div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-                            Some sites block embedding. Click below to view in a new tab.
+                            Some Sites Block Embedding. Click Below To View In A New Tab.
                         </div>
                         <button
                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
@@ -200,7 +200,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                                 fontWeight: 600,
                             }}
                         >
-                            Open in New Tab ↗
+                            Open In New Tab ↗
                         </button>
                     </div>
                 )}

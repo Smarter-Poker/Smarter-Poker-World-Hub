@@ -128,12 +128,12 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                         Back
                     </button>
                     <button type="button" className="pa-btn" onClick={handleApply} style={{ ...btn('primary'), flex: 1 }}>
-                        <Check size={18} strokeWidth={2} /> Load into sandbox
+                        <Check size={18} strokeWidth={2} /> Load Into Sandbox
                     </button>
                 </>
             ) : (
                 <button type="button" className="pa-btn" onClick={handleParse} style={{ ...btn('primary', { block: true }) }}>
-                    Check hand history
+                    Check Hand History
                 </button>
             )}
         >
@@ -166,7 +166,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             ))}
                         </div>
                         <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
-                            Loading replaces the current table setup. The sandbox keeps an undo step, so you can back out.
+                            Loading Replaces The Current Table Setup. The Sandbox Keeps An Undo Step, So You Can Back Out.
                         </p>
                     </>
                 ) : (
@@ -187,11 +187,11 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 onClick={() => { setHHText(SAMPLE); reset(); }}
                                 style={{ ...btn('ghost'), fontSize: F.label, padding: '0 12px', color: T.accent }}
                             >
-                                <FileText size={18} strokeWidth={2} /> Load sample
+                                <FileText size={18} strokeWidth={2} /> Load Sample
                             </button>
                         </div>
 
-                        <label htmlFor="hh-text" className="pa-vh">Hand history text</label>
+                        <label htmlFor="hh-text" className="pa-vh">Hand History Text</label>
                         <textarea
                             id="hh-text"
                             value={hhText}
@@ -207,7 +207,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
 
                         {detected && (
                             <div style={{ fontSize: F.caption, color: T.textMuted }}>
-                                Detected format: <strong style={{ color: T.text }}>{detected}</strong>
+                                Detected Format: <strong style={{ color: T.text }}>{detected}</strong>
                             </div>
                         )}
 
@@ -224,8 +224,8 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 <div style={{ minWidth: 0 }}>
                                     <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>{status.msg}</div>
                                     <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, lineHeight: 1.45 }}>
-                                        Include the header line, the “Dealt to” line with your hole cards, and any board
-                                        rows. Summary-only exports do not carry enough to rebuild the spot.
+                                        Include The Header Line, The “Dealt To” Line With Your Hole Cards, And Any Board
+                                        Rows. Summary-Only Exports Do Not Carry Enough To Rebuild The Spot.
                                     </div>
                                 </div>
                             </div>

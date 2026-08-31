@@ -33,7 +33,7 @@ export default function OppTendencyTracker() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Opponent Tendency Tracker
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Profile your opponents and find their leaks.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Profile Your Opponents And Find Their Leaks.</p>
 
       {/* Seat selector */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginBottom: 16 }}>

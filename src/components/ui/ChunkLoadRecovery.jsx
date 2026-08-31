@@ -122,7 +122,7 @@ export default function ChunkLoadRecovery() {
                 animation: 'chunkSpinner 0.8s linear infinite',
             }} />
             <span>
-                New version detected - updating automatically...
+                New Version Detected - Updating Automatically...
             </span>
 
             <style>{`

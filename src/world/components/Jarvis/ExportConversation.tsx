@@ -135,7 +135,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                 fontSize: '11px',
                 color: 'rgba(255, 255, 255, 0.7)'
             }}>
-                {messages.length} messages • {messages.filter(m => m.isUser).length} questions
+                {messages.length} Messages • {messages.filter(m => m.isUser).length} Questions
             </div>
 
             {/* Copy Options */}
@@ -145,7 +145,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                     fontSize: '11px',
                     color: 'rgba(255, 215, 0, 0.7)'
                 }}>
-                    Copy to clipboard:
+                    Copy To Clipboard:
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -186,7 +186,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                         color: '#4CAF50',
                         textAlign: 'center'
                     }}>
-                        ✓ Copied to clipboard!
+                        ✓ Copied To Clipboard!
                     </p>
                 )}
             </div>
@@ -198,7 +198,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                     fontSize: '11px',
                     color: 'rgba(255, 215, 0, 0.7)'
                 }}>
-                    Download as file:
+                    Download As File:
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -214,7 +214,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                             cursor: 'pointer'
                         }}
                     >
-                        ⬇️ .txt
+                        ⬇️ .Txt
                     </button>
                     <button
                         onClick={() => downloadAsFile('md')}
@@ -229,7 +229,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                             cursor: 'pointer'
                         }}
                     >
-                        ⬇️ .md
+                        ⬇️ .Md
                     </button>
                 </div>
             </div>
@@ -261,7 +261,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
                         gap: '6px'
                     }}
                 >
-                    🐦 Share on Twitter
+                    🐦 Share On Twitter
                 </button>
             </div>
         </div>

@@ -221,7 +221,7 @@ export default function TournamentEditModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Buy-in (USD) *</label>
+                <label className="block text-sm font-medium text-white mb-1">Buy-In (USD) *</label>
                 <input
                   type="number" min="0" step="1"
                   value={form.buy_in}
@@ -284,7 +284,7 @@ export default function TournamentEditModal({
 
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                Entries Cap <span className="text-[#64748B] text-xs">(leave blank for unlimited)</span>
+                Entries Cap <span className="text-[#64748B] text-xs">(Leave Blank For Unlimited)</span>
               </label>
               <input
                 type="number" min="2" step="1"

@@ -42,7 +42,7 @@ export default function PostFlopAggression() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Postflop Aggression Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when to fire and when to slow down.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know When To Fire And When To Slow Down.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {AGGRESSION_SPOTS.map((s, i) => (

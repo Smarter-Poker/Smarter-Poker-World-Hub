@@ -218,7 +218,7 @@ export default function StudyPlanCurriculum() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 700 }}>{level.name}</span>
-                  {isLocked && <span style={{ color: '#64748b', fontSize: 10 }}>Locked - complete {CURRICULUM[level.level - 2]?.name} first</span>}
+                  {isLocked && <span style={{ color: '#64748b', fontSize: 10 }}>Locked - Complete {CURRICULUM[level.level - 2]?.name} First</span>}
                 </div>
                 <div style={{ color: '#94a3b8', fontSize: 11 }}>{level.desc}</div>
               </div>
@@ -259,7 +259,7 @@ export default function StudyPlanCurriculum() {
                           transition: 'all 0.2s', flexShrink: 0,
                         }}
                       >
-                        {isCompleted && <span style={{ color: '#fff', fontSize: 12, fontWeight: 800 }}>\u2713</span>}
+                        {isCompleted && <span style={{ color: '#fff', fontSize: 12, fontWeight: 800 }}>\U2713</span>}
                       </div>
 
                       <div style={{ flex: 1 }}>

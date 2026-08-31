@@ -42,7 +42,7 @@ export default function CapHitPopup({ open, onClose, data }) {
         {typeof data.amount_sent_24h === 'number' && typeof data.amount_cap_24h === 'number' && (
           <div className="mb-5">
             <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
-              {data.amount_sent_24h} / {data.amount_cap_24h} <Gem size={12} aria-hidden="true" /> used today
+              {data.amount_sent_24h} / {data.amount_cap_24h} <Gem size={12} aria-hidden="true" /> Used Today
             </div>
             <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-amber-500 to-red-500"

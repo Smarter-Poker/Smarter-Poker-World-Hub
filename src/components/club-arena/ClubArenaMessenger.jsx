@@ -240,7 +240,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
         <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''} ${message.isDeleted ? 'deleted-msg' : ''}`}>
             {/* P11-10: Deleted message placeholder */}
             {message.isDeleted ? (
-                <span style={{ fontStyle: 'italic', opacity: 0.5, fontSize: 12 }}>This message was deleted</span>
+                <span style={{ fontStyle: 'italic', opacity: 0.5, fontSize: 12 }}>This Message Was Deleted</span>
             ) : (
             <>
             {/* P4-1: Pin indicator */}
@@ -315,7 +315,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                         })}
                     </div>
                     <div className="poll-footer">
-                        {message.poll.options.reduce((sum, o) => sum + (o.votes || 0), 0)} votes
+                        {message.poll.options.reduce((sum, o) => sum + (o.votes || 0), 0)} Votes
                     </div>
                 </div>
             )}
@@ -372,7 +372,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             )}
 
             {/* P5-6: Edit indicator */}
-            {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
+            {message.isEdited && <span className="edit-indicator" title="Edited">(Edited)</span>}
 
             {/* P5-4 + P10-2 + P14-3 + P20-7: Delivery status ticks with read time tooltip */}
             {message.isOwn && (
@@ -1574,9 +1574,9 @@ export const ChatWindow = ({
                     <span className="chat-user-status">
                         {/* P14-2: Live typing + presence */}
                         {Object.keys(svc.typingUsers || {}).some(uid => svc.typingUsers[uid] && uid !== currentUser?.id)
-                            ? <span style={{ color: '#2D88FF', fontWeight: 600 }}>typing...</span>
+                            ? <span style={{ color: '#2D88FF', fontWeight: 600 }}>Typing...</span>
                             : svc.onlineUsers?.[otherUser?.id]
-                                ? <span style={{ color: '#44b700' }}>Active now</span>
+                                ? <span style={{ color: '#44b700' }}>Active Now</span>
                                 : userStatus === 'away' ? '🟡 Away' : 'Active 2h ago'
                         }
                         {isDND && <span style={{ marginLeft: 4, color: '#E41E3F' }} title="Do Not Disturb">🔕</span>}
@@ -1730,7 +1730,7 @@ export const ChatWindow = ({
                     </div>
                     {showAnalytics && (() => {
                         const analytics = svc.getConversationAnalytics();
-                        if (!analytics) return <div style={{ color: '#888', fontSize: 11, textAlign: 'center', padding: 10 }}>No data yet</div>;
+                        if (!analytics) return <div style={{ color: '#888', fontSize: 11, textAlign: 'center', padding: 10 }}>No Data Yet</div>;
                         return (
                             <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
                                 <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -1747,7 +1747,7 @@ export const ChatWindow = ({
                                             return <div key={h} style={{ flex: 1, borderRadius: 2, background: `rgba(45,136,255,${0.1 + intensity * 0.8})`, height: '100%' }} title={`${h}:00 - ${count} msgs`} />;
                                         })}
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: '#666', marginTop: 2 }}><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: '#666', marginTop: 2 }}><span>12Am</span><span>6Am</span><span>12Pm</span><span>6Pm</span></div>
                                 </div>
                                 <div style={{ marginTop: 8 }}>
                                     <div style={{ fontSize: 10, color: '#aaa', marginBottom: 4 }}>Message Types</div>
@@ -1802,7 +1802,7 @@ export const ChatWindow = ({
             {showScheduledQueue && (
                 <div style={{ maxHeight: 100, overflowY: 'auto', background: '#f0f8ff', borderBottom: '1px solid #ddd', padding: 8, fontSize: 11 }}>
                     <strong>⏰ Pending Messages</strong>
-                    {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>No scheduled messages</p>}
+                    {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>No Scheduled Messages</p>}
                     {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).map((item, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #eee' }}>
                             <span>{item.text?.slice(0, 40)}{item.text?.length > 40 ? '...' : ''}</span>
@@ -1831,7 +1831,7 @@ export const ChatWindow = ({
             {/* P4-1: Pinned Messages Bar */}
             {pinnedIds.length > 0 && (
                 <div className="pinned-bar">
-                    <span>📍 <strong>{pinnedIds.length} pinned</strong></span>
+                    <span>📍 <strong>{pinnedIds.length} Pinned</strong></span>
                     <div style={{ fontSize: 11, color: '#666' }}>
                         {messages.filter(m => pinnedIds.includes(m.id)).slice(0, 2).map((m, i) => (
                             <span key={i} style={{ marginRight: 8 }}>{m.text?.slice(0, 25)}...</span>
@@ -1940,7 +1940,7 @@ export const ChatWindow = ({
                         </div>
                     )}
                     {gifReactionResults.length === 0 && gifReactionSearch && (
-                        <div style={{ textAlign: 'center', color: '#999', fontSize: 11, padding: 8 }}>Click a keyword or type to search...</div>
+                        <div style={{ textAlign: 'center', color: '#999', fontSize: 11, padding: 8 }}>Click A Keyword Or Type To Search...</div>
                     )}
                 </div>
             )}
@@ -1971,7 +1971,7 @@ export const ChatWindow = ({
                         <button style={{ background: '#607d8b', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Manage Permissions</button>
                     </div>
                     <div style={{ marginTop: 8, padding: '4px 8px', background: '#e3f2fd', borderRadius: 6, fontSize: 10, color: '#1565c0' }}>
-                        Admin controls for managing group chat participants, roles, and permissions within the Club Arena hierarchy.
+                        Admin Controls For Managing Group Chat Participants, Roles, And Permissions Within The Club Arena Hierarchy.
                     </div>
                 </div>
             )}
@@ -1979,7 +1979,7 @@ export const ChatWindow = ({
             {/* P5-6: Edit Modal */}
             {editingMsg && (
                 <div style={{ padding: '6px 8px', background: '#fff9e6', borderBottom: '1px solid #ffd700', fontSize: 11 }}>
-                    <strong>✏️ Editing message</strong>
+                    <strong>✏️ Editing Message</strong>
                     <input type="text" value={editText} onChange={e => setEditText(e.target.value)} onKeyPress={handleKeyPress} style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 12, marginTop: 4, boxSizing: 'border-box' }} autoFocus />
                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                         <button style={{ background: '#0088ff', color: 'white', border: 'none', borderRadius: 4, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }} onClick={handleSaveEdit}>Save</button>
@@ -2092,7 +2092,7 @@ export const ChatWindow = ({
                         <button onClick={() => setShowPinnedPanel(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
                     </div>
                     {(svc.pinnedMessages || []).length === 0 ? (
-                        <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No pinned messages</div>
+                        <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No Pinned Messages</div>
                     ) : (svc.pinnedMessages || []).map(pm => (
                         <div key={pm.id} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', marginBottom: 6, fontSize: 12, color: '#ddd' }}>
                             <div style={{ marginBottom: 4, opacity: 0.6, fontSize: 10 }}>{new Date(pm.created_at).toLocaleString()}</div>
@@ -2126,8 +2126,8 @@ export const ChatWindow = ({
                         <button onClick={() => setShowArchiveExport(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
                     </div>
                     <button onClick={() => { svc.archiveConversation(); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📦 Archive Conversation</button>
-                    <button onClick={() => { svc.exportConversation('json'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📄 Export as JSON</button>
-                    <button onClick={() => { svc.exportConversation('pdf'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📝 Export as Text</button>
+                    <button onClick={() => { svc.exportConversation('json'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📄 Export As JSON</button>
+                    <button onClick={() => { svc.exportConversation('pdf'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📝 Export As Text</button>
                     <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '8px 0' }} />
                     <button onClick={() => { if (typeof window !== 'undefined' && window.confirm('Clear all messages? This cannot be undone.')) { svc.clearConversation(); setShowArchiveExport(false); } }} style={{ display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,68,68,0.15)', color: '#ff4444', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>🗑️ Clear All Messages</button>
                 </div>
@@ -2141,7 +2141,7 @@ export const ChatWindow = ({
                             <strong style={{ color: '#fff', fontSize: 14 }}>↪ Forward Message</strong>
                             <button onClick={() => setShowForwardPicker(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
                         </div>
-                        <div style={{ color: '#888', fontSize: 12, marginBottom: 10 }}>Select a conversation to forward to:</div>
+                        <div style={{ color: '#888', fontSize: 12, marginBottom: 10 }}>Select A Conversation To Forward To:</div>
                         {(svc.conversations || []).map(conv => (
                             <button key={conv.id} onClick={async () => { await svc.forwardMessage(showForwardPicker, conv.id); setShowForwardPicker(null); }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', marginBottom: 4, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.06)', color: '#fff', cursor: 'pointer', fontSize: 13, textAlign: 'left' }}>
                                 <span style={{ fontSize: 20 }}>💬</span>
@@ -2149,7 +2149,7 @@ export const ChatWindow = ({
                             </button>
                         ))}
                         {(svc.conversations || []).length === 0 && (
-                            <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No conversations to forward to</div>
+                            <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No Conversations To Forward To</div>
                         )}
                     </div>
                 </div>
@@ -2164,7 +2164,7 @@ export const ChatWindow = ({
                             <button onClick={() => setShowReportModal(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
                         </div>
                         <select value={reportReason} onChange={e => setReportReason(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: '#333', color: '#fff', fontSize: 12 }}>
-                            <option value="">Select reason...</option>
+                            <option value="">Select Reason...</option>
                             <option value="spam">Spam</option>
                             <option value="harassment">Harassment</option>
                             <option value="inappropriate">Inappropriate Content</option>
@@ -2185,7 +2185,7 @@ export const ChatWindow = ({
                             <button onClick={() => setShowGroupWizard(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
                         </div>
                         <input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="Group name..." style={{ width: '100%', padding: '8px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: '#333', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
-                        <div style={{ color: '#888', fontSize: 11, marginBottom: 8 }}>Members will be added from your conversations:</div>
+                        <div style={{ color: '#888', fontSize: 11, marginBottom: 8 }}>Members Will Be Added From Your Conversations:</div>
                         <button disabled={!groupName.trim()} onClick={async () => { const conv = await svc.createGroupConversation({ name: groupName, participants: [] }); if (conv) { setShowGroupWizard(false); setGroupName(''); } }} style={{ display: 'block', width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: groupName.trim() ? '#2D88FF' : 'rgba(255,255,255,0.05)', color: groupName.trim() ? '#fff' : '#999', cursor: groupName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>✨ Create Group</button>
                     </div>
                 </div>
@@ -2205,7 +2205,7 @@ export const ChatWindow = ({
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
                         {(svc.mediaGallery?.[mediaGalleryTab] || []).length === 0 && (
-                            <div style={{ color: '#666', fontSize: 12, textAlign: 'center', padding: 20 }}>No {mediaGalleryTab} found</div>
+                            <div style={{ color: '#666', fontSize: 12, textAlign: 'center', padding: 20 }}>No {mediaGalleryTab} Found</div>
                         )}
                         {mediaGalleryTab === 'images' && (svc.mediaGallery?.images || []).map(item => (
                             <div key={item.id} style={{ marginBottom: 8, borderRadius: 8, overflow: 'hidden' }}>
@@ -2350,7 +2350,7 @@ export const ChatWindow = ({
                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2D88FF', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.2s' }} />
                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2D88FF', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.4s' }} />
                     </span>
-                    Someone is typing...
+                    Someone Is Typing...
                 </div>
             )}
 
@@ -2383,7 +2383,7 @@ export const ChatWindow = ({
                         <button onClick={() => { setShowSearchOverlay(false); setSearchQuery(''); setLocalSearchResults([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-                        {localSearchResults.length === 0 && searchQuery.length >= 2 && <div style={{ textAlign: 'center', padding: 20, color: '#666', fontSize: 12 }}>No messages found</div>}
+                        {localSearchResults.length === 0 && searchQuery.length >= 2 && <div style={{ textAlign: 'center', padding: 20, color: '#666', fontSize: 12 }}>No Messages Found</div>}
                         {localSearchResults.map((result, i) => {
                             const highlighted = svc.highlightSearchMatches(result.text, searchQuery);
                             return (
@@ -2409,7 +2409,7 @@ export const ChatWindow = ({
                         <input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '4px 6px', color: '#e4e6eb', fontSize: 10, outline: 'none' }} />
                         <button onClick={async () => { if (scheduleText && scheduleDate) { await svc.scheduleMessage?.(scheduleText, new Date(scheduleDate).toISOString()); setScheduleText(''); setScheduleDate(''); } }} style={{ background: '#2D88FF', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#fff', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' }}>Schedule</button>
                     </div>
-                    {(svc.scheduledMessages || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 6 }}>No scheduled messages</div>}
+                    {(svc.scheduledMessages || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 6 }}>No Scheduled Messages</div>}
                     {(svc.scheduledMessages || []).map((sm, i) => (
                         <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                             <div style={{ flex: 1 }}>
@@ -2437,7 +2437,7 @@ export const ChatWindow = ({
                             <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Conversation Age</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.conversationAge}d</div></div>
                             <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Avg Response</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.avgResponseTime ? `${insights.avgResponseTime}m` : 'N/A'}</div></div>
                         </div>
-                        <div style={{ fontSize: 10, color: '#666', marginTop: 6, textAlign: 'center' }}>You: {insights.myMessages} • Them: {insights.theirMessages} • Emoji msgs: {insights.topEmojis}</div>
+                        <div style={{ fontSize: 10, color: '#666', marginTop: 6, textAlign: 'center' }}>You: {insights.myMessages} • Them: {insights.theirMessages} • Emoji Msgs: {insights.topEmojis}</div>
                     </div>
                 ) : null;
             })()}
@@ -2449,7 +2449,7 @@ export const ChatWindow = ({
                         <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>🔖 Saved Messages</span>
                         <button onClick={() => setShowBookmarksDrawer(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
                     </div>
-                    {(prefs.bookmarks || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No saved messages</div>}
+                    {(prefs.bookmarks || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No Saved Messages</div>}
                     {(prefs.bookmarks || []).map((bm, i) => (
                         <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 11, color: '#ccc' }}>
                             <div style={{ fontSize: 9, color: '#666', marginBottom: 2 }}>{new Date(bm.created_at || bm.savedAt).toLocaleString()}</div>
@@ -2477,7 +2477,7 @@ export const ChatWindow = ({
                         <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>📝 Edit History</span>
                         <button onClick={() => { setShowEditHistory(null); setEditHistoryData([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
                     </div>
-                    {editHistoryData.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 10 }}>No edit history</div>}
+                    {editHistoryData.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 10 }}>No Edit History</div>}
                     {editHistoryData.map((edit, i) => (
                         <div key={i} style={{ padding: '6px 8px', borderLeft: '2px solid rgba(45,136,255,0.4)', marginBottom: 6, marginLeft: 4 }}>
                             <div style={{ fontSize: 9, color: '#666' }}>{new Date(edit.edited_at).toLocaleString()}</div>
@@ -2507,7 +2507,7 @@ export const ChatWindow = ({
             {/* P20-6: Multi-Select Forward Action Bar */}
             {multiSelectMode && selectedMessageIds.length > 0 && (
                 <div style={{ padding: '6px 12px', background: 'rgba(45,136,255,0.12)', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                    <span style={{ color: '#8ab4f8', fontWeight: 'bold' }}>{selectedMessageIds.length} selected</span>
+                    <span style={{ color: '#8ab4f8', fontWeight: 'bold' }}>{selectedMessageIds.length} Selected</span>
                     <button onClick={async () => { const targetId = prompt('Enter target conversation ID:'); if (targetId) { await svc.forwardMultipleMessages(selectedMessageIds, targetId); setMultiSelectMode(false); setSelectedMessageIds([]); } }} style={{ background: '#2D88FF', border: 'none', borderRadius: 6, padding: '3px 10px', color: '#fff', fontSize: 10, cursor: 'pointer' }}>↪ Forward Selected</button>
                     <button onClick={() => { setMultiSelectMode(false); setSelectedMessageIds([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 10, marginLeft: 'auto' }}>Cancel</button>
                 </div>
@@ -2517,8 +2517,8 @@ export const ChatWindow = ({
             {svc.isOffline && (
                 <div style={{ padding: '6px 12px', background: 'rgba(255,68,68,0.15)', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#ff6b6b' }}>
                     <span style={{ fontSize: 14 }}>📡</span>
-                    <span style={{ fontWeight: 'bold' }}>You are offline</span>
-                    <span style={{ color: '#999', marginLeft: 'auto' }}>Messages will be sent when reconnected</span>
+                    <span style={{ fontWeight: 'bold' }}>You Are Offline</span>
+                    <span style={{ color: '#999', marginLeft: 'auto' }}>Messages Will Be Sent When Reconnected</span>
                 </div>
             )}
 
@@ -2552,7 +2552,7 @@ export const ChatWindow = ({
                         <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>⏰ Active Reminders ({svc.messageReminders?.length || 0})</span>
                         <button onClick={() => setShowRemindersPanel(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
                     </div>
-                    {(!svc.messageReminders || svc.messageReminders.length === 0) && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No active reminders</div>}
+                    {(!svc.messageReminders || svc.messageReminders.length === 0) && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No Active Reminders</div>}
                     {(svc.messageReminders || []).map((r, i) => (
                         <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 11, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <div style={{ flex: 1 }}>
@@ -2568,11 +2568,11 @@ export const ChatWindow = ({
             {/* P21-3: Format Toolbar Hint */}
             {showFormatToolbar && (
                 <div style={{ padding: '4px 12px', background: 'rgba(45,136,255,0.08)', borderRadius: 6, margin: '0 8px 4px', fontSize: 10, color: '#8ab4f8', display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <span><strong>**bold**</strong></span>
-                    <span><em>*italic*</em></span>
-                    <span><code style={{ background: 'rgba(255,255,255,0.1)', padding: '0 3px', borderRadius: 2 }}>`code`</code></span>
-                    <span><del>~~strike~~</del></span>
-                    <span style={{ color: '#999' }}>URLs auto-link</span>
+                    <span><strong>**Bold**</strong></span>
+                    <span><em>*Italic*</em></span>
+                    <span><code style={{ background: 'rgba(255,255,255,0.1)', padding: '0 3px', borderRadius: 2 }}>`Code`</code></span>
+                    <span><del>~~Strike~~</del></span>
+                    <span style={{ color: '#999' }}>URLs Auto-Link</span>
                     <button onClick={() => setShowFormatToolbar(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 10 }}>✕</button>
                 </div>
             )}
@@ -2581,7 +2581,7 @@ export const ChatWindow = ({
             {inputText && (inputText.toLowerCase().includes('@smarter.poker') || inputText.toLowerCase().includes('@smarterpoker')) && (
                 <div style={{ padding: '3px 12px', margin: '0 8px 4px', borderRadius: 6, background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', fontSize: 10, color: '#ffd700', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 12 }}>🔗</span>
-                    <span>This message will be linked to <strong>Smarter.Poker Admin Panel</strong></span>
+                    <span>This Message Will Be Linked To <strong>Smarter.Poker Admin Panel</strong></span>
                 </div>
             )}
 
@@ -2592,7 +2592,7 @@ export const ChatWindow = ({
                         <button onClick={() => setShowBackupRestore(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => svc.backupConversation()} style={{ flex: 1, background: '#2D88FF', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>📥 Backup (.spbk)</button>
+                        <button onClick={() => svc.backupConversation()} style={{ flex: 1, background: '#2D88FF', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>📥 Backup (.Spbk)</button>
                         <button onClick={() => backupFileInputRef.current?.click()} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', color: '#ccc', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>📤 Restore</button>
                         <input type="file" ref={backupFileInputRef} accept=".spbk" style={{ display: 'none' }} onChange={async (e) => {
                             const file = e.target.files?.[0];

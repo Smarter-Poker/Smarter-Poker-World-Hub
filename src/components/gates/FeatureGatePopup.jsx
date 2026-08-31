@@ -536,7 +536,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                             <p style={{
                                 fontSize: 11, color: 'rgba(255,255,255,0.45)',
                                 margin: '0 0 12px', letterSpacing: '0.03em',
-                            }}>One pass. Every premium feature. All day.</p>
+                            }}>One Pass. Every Premium Feature. All Day.</p>
 
                             {/* Button */}
                             <div style={{
@@ -670,7 +670,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                             <span style={{
                                 fontSize: 12, color: 'rgba(255,255,255,0.55)',
                                 letterSpacing: '0.05em',
-                            }}>Want unlimited?</span>
+                            }}>Want Unlimited?</span>
                             <span style={{
                                 fontSize: 12, fontWeight: 700,
                                 color: '#ffd700', letterSpacing: '0.08em',

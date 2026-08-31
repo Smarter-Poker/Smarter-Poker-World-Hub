@@ -148,7 +148,7 @@ const FBRightSidebar = ({ onlineContacts = [], onMessage }) => (
                 <img src="/ads/poker-book.jpg" alt="Ad" onError={(e) => e.target.style.display = 'none'} />
                 <div className="sponsored-text">
                     <span className="sponsored-title">Master GTO Poker</span>
-                    <span className="sponsored-link">Gtotraining.com</span>
+                    <span className="sponsored-link">Gtotraining.Com</span>
                 </div>
             </div>
         </div>
@@ -573,7 +573,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                     }}>
                         <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📝</div>
                         <h3 style={{ margin: '0 0 8px', color: SP_COLORS.textPrimary, fontSize: 20, fontWeight: 700 }}>No Posts Yet</h3>
-                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Be the first to share something with the community</p>
+                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Be The First To Share Something With The Community</p>
                     </div>
                 )}
             </main>

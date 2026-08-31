@@ -37,7 +37,7 @@ export default function MTTEarlyStageGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         MTT Early Stage Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Build your stack in the first levels of a tournament.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Build Your Stack In The First Levels Of A Tournament.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {EARLY_TOPICS.map((topic, i) => (

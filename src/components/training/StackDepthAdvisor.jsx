@@ -134,7 +134,7 @@ function PositionRanges({ ranges, color }) {
   const maxRange = Math.max(...Object.values(ranges || {}));
   return (
     <div>
-      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range by Position</div>
+      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range By Position</div>
       {positions.map(pos => (
         <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ color: '#94a3b8', fontSize: 10, width: 28, fontWeight: 600 }}>{labels[pos]}</span>
@@ -166,7 +166,7 @@ export default function StackDepthAdvisor() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Stack Depth Advisor</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Adjust your strategy based on effective stack depth</div>
+          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Adjust Your Strategy Based On Effective Stack Depth</div>
         </div>
 
         {/* BB Slider */}
@@ -256,7 +256,7 @@ export default function StackDepthAdvisor() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Stack Depth Advisor</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

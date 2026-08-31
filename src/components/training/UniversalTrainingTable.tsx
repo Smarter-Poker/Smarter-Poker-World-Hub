@@ -469,7 +469,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         {accuracy}%
                     </div>
                     <div style={{ color: '#9ca3af', marginBottom: 20 }}>
-                        {score} / {totalQuestions} correct • Need 85% to pass
+                        {score} / {totalQuestions} Correct • Need 85% To Pass
                     </div>
 
                     {/* Detected Leaks Section */}
@@ -503,7 +503,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                 })}
                                 {detectedLeaks.length > 3 && (
                                     <div style={{ opacity: 0.7 }}>
-                                        +{detectedLeaks.length - 3} more
+                                        +{detectedLeaks.length - 3} More
                                     </div>
                                 )}
                             </div>

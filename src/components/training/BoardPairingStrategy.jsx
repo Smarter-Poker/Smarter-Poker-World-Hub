@@ -32,7 +32,7 @@ export default function BoardPairingStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Board Pairing Strategy
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Paired boards are gold for the PFR - learn to exploit them.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Paired Boards Are Gold For The PFR - Learn To Exploit Them.</p>
 
       {/* Board selector */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>

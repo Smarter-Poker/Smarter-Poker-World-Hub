@@ -207,7 +207,7 @@ export default function SurvivalGame({
                 <div className="stat diamonds" title={`Daily cap: ${DAILY_DIAMOND_CAP}`}>
                     <Gem size={18} />
                     <span>+{diamondsEarned}</span>
-                    <span className="cap-hint">/ {remainingCap} left today</span>
+                    <span className="cap-hint">/ {remainingCap} Left Today</span>
                 </div>
             </div>
 
@@ -305,7 +305,7 @@ export default function SurvivalGame({
                             </div>
                             {remainingCap <= 0 && (
                                 <div className="cap-warning">
-                                    Daily diamond cap reached!
+                                    Daily Diamond Cap Reached!
                                 </div>
                             )}
                         </div>

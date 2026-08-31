@@ -999,7 +999,7 @@ function HamburgerMenuContent({
             }}
           >
             <WifiOff size={18} aria-hidden="true" color={colors.danger} />
-            <span style={{ minWidth: 0 }}>You are offline. Cached pages still open - anything that needs the network will wait.</span>
+            <span style={{ minWidth: 0 }}>You Are Offline. Cached Pages Still Open - Anything That Needs The Network Will Wait.</span>
           </div>
         )}
 
@@ -1045,9 +1045,9 @@ function HamburgerMenuContent({
             {searchResults.length === 0 ? (
               <div style={{ padding: '24px 16px', textAlign: 'center', color: colors.textSec, fontSize: 14, lineHeight: 1.45 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 6 }}>
-                  No matches
+                  No Matches
                 </div>
-                Nothing in this menu matches &ldquo;{query.trim()}&rdquo;. Try a shorter word.
+                Nothing In This Menu Matches &ldquo;{query.trim()}&rdquo;. Try A Shorter Word.
               </div>
             ) : (
               <div role="group" aria-label="Search results">
@@ -1166,7 +1166,7 @@ function HamburgerMenuContent({
                       >
                         <ChevronRight size={20} aria-hidden="true" />
                       </div>
-                      <div style={{ fontSize: 12, marginTop: 6 }}>See all</div>
+                      <div style={{ fontSize: 12, marginTop: 6 }}>See All</div>
                     </Link>
                   )}
                 </div>
@@ -1323,7 +1323,7 @@ function HamburgerMenuContent({
                 {renderSectionTitle('Favourites')}
                 {favItems.length === 0 ? (
                   <div style={{ padding: '0 16px 12px', fontSize: 13, color: colors.textSec, lineHeight: 1.45 }}>
-                    Tap any link below to pin it here, then tap the star button again when you are done.
+                    Tap Any Link Below To Pin It Here, Then Tap The Star Button Again When You Are Done.
                   </div>
                 ) : (
                   favItems.map((item, i) => renderNavigation(item, `fav-${i}`))
@@ -1391,9 +1391,9 @@ function HamburgerMenuContent({
               {menuItems.length === 0 && (
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: colors.textSec, fontSize: 14, lineHeight: 1.45 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 6 }}>
-                    Nothing here yet
+                    Nothing Here Yet
                   </div>
-                  Use the links below to get back to the hub.
+                  Use The Links Below To Get Back To The Hub.
                 </div>
               )}
 

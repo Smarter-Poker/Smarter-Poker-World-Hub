@@ -287,7 +287,7 @@ export function AnalyticsSidebar({ hands, onClose }) {
   }, [hands]);
 
   if (!stats) return (
-    <div style={{ padding: 20, color: '#888', textAlign: 'center', fontSize: 12 }}>No data available yet.</div>
+    <div style={{ padding: 20, color: '#888', textAlign: 'center', fontSize: 12 }}>No Data Available Yet.</div>
   );
 
   const maxPnl = Math.max(...stats.pnlHistory.map(p => Math.abs(p.pnl)), 1);
@@ -533,7 +533,7 @@ export function SessionSummaryModal({ stats, onClose, onShare }) {
           <div style={{ fontSize: 28, marginBottom: 4 }}></div>
           <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: 0 }}>Session Complete</h2>
           <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
-            {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} at the table
+            {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} At The Table
           </div>
         </div>
 
@@ -651,11 +651,11 @@ export function ReconnectionOverlay({ disconnectedAt, onForceReconnect }) {
         {autoSitOut ? 'Auto Sit-Out Active' : 'Reconnecting...'}
       </div>
       <div style={{ color: '#888', fontSize: 12 }}>
-        Disconnected {elapsed}s ago
+        Disconnected {elapsed}s Ago
       </div>
       {autoSitOut && (
         <div style={{ color: '#FFD600', fontSize: 11, fontWeight: 600 }}>
-          You have been automatically sat out.
+          You Have Been Automatically Sat Out.
         </div>
       )}
       <button

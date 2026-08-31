@@ -76,7 +76,7 @@ function CheckBehindStrategy() {
 
         {!revealed ? (
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Should you bet or check behind?</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Should You Bet Or Check Behind?</div>
             <button onClick={() => setRevealed(true)} style={{
               padding: '10px 24px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700,
               cursor: 'pointer', background: '#8b5cf6', color: '#fff',
@@ -109,7 +109,7 @@ function CheckBehindStrategy() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Check Behind Strategy failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Check Behind Strategy Failed: {err.message}</div>;
   }
 }
 

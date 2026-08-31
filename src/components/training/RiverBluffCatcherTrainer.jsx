@@ -104,11 +104,11 @@ function RiverBluffCatcherTrainer() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Pot</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{spot.pot} bb</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{spot.pot} BB</div>
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Bet</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{spot.bet} bb</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{spot.bet} BB</div>
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
@@ -156,7 +156,7 @@ function RiverBluffCatcherTrainer() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>River Bluff Catcher failed to load: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>River Bluff Catcher Failed To Load: {err.message}</div>;
   }
 }
 

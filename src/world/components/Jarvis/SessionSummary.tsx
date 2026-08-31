@@ -112,7 +112,7 @@ Please analyze:
                 marginBottom: '12px'
             }}>
                 <div>
-                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Duration (min)</label>
+                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Duration (Min)</label>
                     <input
                         type="number"
                         value={session.duration}
@@ -138,7 +138,7 @@ Please analyze:
                     />
                 </div>
                 <div>
-                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Buy-in ($)</label>
+                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Buy-In ($)</label>
                     <input
                         type="number"
                         value={session.buyIn}
@@ -151,7 +151,7 @@ Please analyze:
                     />
                 </div>
                 <div>
-                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Cash-out ($)</label>
+                    <label style={{ fontSize: '9px', color: 'rgba(255, 255, 255, 0.5)' }}>Cash-Out ($)</label>
                     <input
                         type="number"
                         value={session.cashOut}
@@ -201,7 +201,7 @@ Please analyze:
                     }}>
                         ${hourlyRate.toFixed(0)}
                     </div>
-                    <div style={{ fontSize: '8px', color: 'rgba(255, 255, 255, 0.5)' }}>/hour</div>
+                    <div style={{ fontSize: '8px', color: 'rgba(255, 255, 255, 0.5)' }}>/Hour</div>
                 </div>
             </div>
 

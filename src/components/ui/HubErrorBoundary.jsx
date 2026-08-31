@@ -158,7 +158,7 @@ export class HubErrorBoundary extends React.Component {
                                 textAlign: 'center',
                                 userSelect: 'none',
                             }}>
-                                Show error details
+                                Show Error Details
                             </summary>
                             <pre style={{
                                 marginTop: 12,

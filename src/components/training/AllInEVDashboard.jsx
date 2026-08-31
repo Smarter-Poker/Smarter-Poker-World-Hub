@@ -37,7 +37,7 @@ export default function AllInEVDashboard() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         All-In EV Dashboard
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Separate skill from luck. Track your true winrate.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Separate Skill From Luck. Track Your True Winrate.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {AIEV_CONCEPTS.map((c, i) => (

@@ -80,7 +80,7 @@ export default function SimplifiedSolutions() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
          Simplified Solutions
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Auto-simplify solver output to the best N sizings at each decision point.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Auto-Simplify Solver Output To The Best N Sizings At Each Decision Point.</p>
 
       {/* Mode Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
@@ -97,9 +97,9 @@ export default function SimplifiedSolutions() {
       {/* EV Loss Badge */}
       {modeIdx > 0 && (
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 8, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#f59e0b' }}>EV Loss from simplification:</span>
+          <span style={{ fontSize: 11, color: '#f59e0b' }}>EV Loss From Simplification:</span>
           <span style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' }}>
-            -{(modeIdx === 1 ? spot.evLoss.simplified : spot.evLoss.single).toFixed(2)} bb/hand
+            -{(modeIdx === 1 ? spot.evLoss.simplified : spot.evLoss.single).toFixed(2)} BB/Hand
           </span>
         </div>
       )}

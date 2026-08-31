@@ -92,7 +92,7 @@ function TableImageTracker() {
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>How to Exploit This Image</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>How To Exploit This Image</div>
           {img.exploits.map((e, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: img.color, marginBottom: 2 }}>{e.adj}</div>
@@ -117,7 +117,7 @@ function TableImageTracker() {
       </div>
     );
   } catch (err) {
-    return <div style={{ padding: 20, color: '#ef4444' }}>Table Image Tracker failed: {err.message}</div>;
+    return <div style={{ padding: 20, color: '#ef4444' }}>Table Image Tracker Failed: {err.message}</div>;
   }
 }
 

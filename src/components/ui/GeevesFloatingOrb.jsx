@@ -436,7 +436,7 @@ export default function GeevesFloatingOrb() {
                     }}
                 >
                     {tipText}
-                    <div style={{ fontSize: 10, color: 'rgba(0,212,255,0.7)', marginTop: 3 }}>Tap to ask →</div>
+                    <div style={{ fontSize: 10, color: 'rgba(0,212,255,0.7)', marginTop: 3 }}>Tap To Ask →</div>
                 </div>
             )}
 
@@ -571,7 +571,7 @@ export default function GeevesFloatingOrb() {
                                     Hey! I'm Geeves 👋
                                 </div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 16, lineHeight: 1.5 }}>
-                                    I know everything about Smarter.Poker, Club Commander, and Club Arena. Ask me anything!
+                                    I Know Everything About Smarter.Poker, Club Commander, And Club Arena. Ask Me Anything!
                                 </div>
                                 {/* Quick Chips */}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>

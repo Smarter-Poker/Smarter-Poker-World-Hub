@@ -956,7 +956,7 @@ function ThrowablePicker({ onSelect, onClose }) {
         marginTop: 8, paddingTop: 6,
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        Pick a throwable, then tap a player to throw it
+        Pick A Throwable, Then Tap A Player To Throw It
       </div>
     </motion.div>
   );
@@ -1107,7 +1107,7 @@ function ThrowableEmojis({
             }}
             onClick={handleTableThrow}
           >
-            🎯 Tap a player to throw - or tap here for table
+            🎯 Tap A Player To Throw - Or Tap Here For Table
           </motion.div>
         )}
       </AnimatePresence>

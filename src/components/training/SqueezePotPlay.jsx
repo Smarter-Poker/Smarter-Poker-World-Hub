@@ -41,7 +41,7 @@ export default function SqueezePotPlay() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Squeeze Pot Dynamics
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>After the squeeze - how to navigate these bloated pots.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>After The Squeeze - How To Navigate These Bloated Pots.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {SQUEEZE_SPOTS.map((s, i) => (

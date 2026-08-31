@@ -120,7 +120,7 @@ export default function JarvisChatWidget({ user }) {
                             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                         }}
                     >
-                        Chat with Jarvis
+                        Chat With Jarvis
                     </motion.div>
                 )}
             </AnimatePresence>

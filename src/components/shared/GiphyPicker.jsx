@@ -251,11 +251,11 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
                     <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: '#65676B' }}>
                         <div style={{ fontSize: 24, marginBottom: 8 }}>🎞️</div>
                         <div style={{ fontSize: 13 }}>{error}</div>
-                        <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY in Vercel to enable</div>
+                        <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY In Vercel To Enable</div>
                     </div>
                 ) : gifs.length === 0 ? (
                     <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: '#65676B' }}>
-                        No {tab === 'gif' ? 'GIFs' : 'stickers'} found
+                        No {tab === 'gif' ? 'GIFs' : 'stickers'} Found
                     </div>
                 ) : (
                     <>
@@ -296,7 +296,7 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
                 color: '#65676B',
                 borderTop: '1px solid #E4E6EB',
             }}>
-                Powered by GIPHY
+                Powered By GIPHY
             </div>
         </div>
     );

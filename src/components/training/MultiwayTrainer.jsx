@@ -53,7 +53,7 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
                 marginBottom: 6, textAlign: 'center',
             }}>
                 {numPlayers}-Way
-                {isBaseline && <span style={{ fontSize: 8, color: '#3b82f6', marginLeft: 4 }}>baseline</span>}
+                {isBaseline && <span style={{ fontSize: 8, color: '#3b82f6', marginLeft: 4 }}>Baseline</span>}
             </div>
 
             {/* Bet/Check bar */}
@@ -92,7 +92,7 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
                 <div style={{ marginTop: 4, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                     {strategy.adjustments.cbetMultiplier < 0.8 && (
                         <span style={{ fontSize: 7, padding: '1px 4px', borderRadius: 2, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
-                            C-bet ↓{((1 - strategy.adjustments.cbetMultiplier) * 100).toFixed(0)}%
+                            C-Bet ↓{((1 - strategy.adjustments.cbetMultiplier) * 100).toFixed(0)}%
                         </span>
                     )}
                     {strategy.adjustments.bluffMultiplier < 0.6 && (
@@ -228,7 +228,7 @@ export default function MultiwayTrainer() {
             {/* Strategy comparison grid */}
             <div style={{ padding: 12 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>
-                    How Strategy Changes by Number of Players
+                    How Strategy Changes By Number Of Players
                 </div>
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
                     {[2, 3, 4, 5, 6].map(n => (
@@ -253,14 +253,14 @@ export default function MultiwayTrainer() {
                     <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.6 }}>
                         {strategies[2]?.betFrequency > 0 && strategies[3]?.betFrequency < strategies[2]?.betFrequency && (
                             <div>
-                                Bet frequency drops from <strong>{(strategies[2].betFrequency * 100).toFixed(0)}%</strong> heads-up to{' '}
-                                <strong>{(strategies[3].betFrequency * 100).toFixed(0)}%</strong> 3-way to{' '}
-                                <strong>{(strategies[4]?.betFrequency * 100 || 0).toFixed(0)}%</strong> 4-way.
+                                Bet Frequency Drops From <strong>{(strategies[2].betFrequency * 100).toFixed(0)}%</strong> Heads-Up to{' '}
+                                <strong>{(strategies[3].betFrequency * 100).toFixed(0)}%</strong> 3-Way to{' '}
+                                <strong>{(strategies[4]?.betFrequency * 100 || 0).toFixed(0)}%</strong> 4-Way.
                             </div>
                         )}
                         {strategies[3] && (
                             <div style={{ marginTop: 2 }}>
-                                3-way motivation: <em style={{ color: '#a5b4fc' }}>{strategies[3].motivation}</em>
+                                3-Way Motivation: <em style={{ color: '#a5b4fc' }}>{strategies[3].motivation}</em>
                             </div>
                         )}
                     </div>
@@ -269,7 +269,7 @@ export default function MultiwayTrainer() {
                 {/* Visual bet freq chart across player counts */}
                 <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
-                        Bet Frequency by Player Count
+                        Bet Frequency By Player Count
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 60 }}>
                         {[2, 3, 4, 5, 6].map(n => {

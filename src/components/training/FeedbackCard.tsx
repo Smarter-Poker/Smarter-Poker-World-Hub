@@ -463,7 +463,7 @@ export function FeedbackCard({
                                             {engineExplanation.deepDive.equityAnalysis && (
                                                 <div>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
-                                                         Equity vs Range
+                                                         Equity Vs Range
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
                                                         {engineExplanation.deepDive.equityAnalysis}
@@ -892,7 +892,7 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
                         fontSize: '11px',
                         color: COLORS.critical
                     }}>
-                        {evDiffFromGTO.toFixed(2)} BB worse
+                        {evDiffFromGTO.toFixed(2)} BB Worse
                     </div>
                 )}
             </div>

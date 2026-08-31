@@ -45,7 +45,7 @@ export default function FlopDonkDefense() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         ■ Donk Bet Defense
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When they lead into you - don't panic, exploit their sizing.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When They Lead Into You - Don't Panic, Exploit Their Sizing.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {DONK_TYPES.map((d, i) => (

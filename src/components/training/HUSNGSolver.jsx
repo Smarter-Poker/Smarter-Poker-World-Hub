@@ -63,7 +63,7 @@ export default function HUSNGSolver() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         » HU SNG Solver
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Nash equilibrium push/fold charts for Heads-Up Sit & Go tournaments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Nash Equilibrium Push/Fold Charts For Heads-Up Sit & Go Tournaments.</p>
 
       {/* Stack Depth Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>

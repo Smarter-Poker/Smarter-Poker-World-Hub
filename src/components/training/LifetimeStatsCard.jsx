@@ -77,7 +77,7 @@ export default function LifetimeStatsCard({
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.title}>Lifetime Stats</div>
-                <div style={styles.sessionCount}>{totalSessions} sessions</div>
+                <div style={styles.sessionCount}>{totalSessions} Sessions</div>
             </div>
 
             {/* Hero score */}

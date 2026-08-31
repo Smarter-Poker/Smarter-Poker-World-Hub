@@ -42,7 +42,7 @@ export default function HeadsUpAdjust() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Heads-Up Adjustments
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Dominate 1v1 situations with these adjustments.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Dominate 1V1 Situations With These Adjustments.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {HU_ADJUSTMENTS.map((a, i) => (

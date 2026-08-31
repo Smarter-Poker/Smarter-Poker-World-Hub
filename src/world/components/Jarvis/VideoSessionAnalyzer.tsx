@@ -205,8 +205,8 @@ Please analyze:
                         color: 'rgba(255, 255, 255, 0.5)',
                         fontSize: '11px'
                     }}>
-                        No moments marked yet.<br />
-                        Add timestamps from your session recording.
+                        No Moments Marked Yet.<br />
+                        Add Timestamps From Your Session Recording.
                     </div>
                 ) : (
                     moments.map(moment => (

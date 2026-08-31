@@ -201,7 +201,7 @@ export default function FlopCategoryBrowser() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Category Browser</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Browse GTO solutions by flop texture - {totalFlops.toFixed(1)}% of all flops covered</div>
+            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Browse GTO Solutions By Flop Texture - {totalFlops.toFixed(1)}% Of All Flops Covered</div>
           </div>
         </div>
 
@@ -256,7 +256,7 @@ export default function FlopCategoryBrowser() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#64748b', fontSize: 9 }}>{cat.pattern}</span>
-                    <span style={{ color: '#22c55e', fontSize: 9, fontWeight: 600 }}>IP C-bet: {cat.ipCbet}%</span>
+                    <span style={{ color: '#22c55e', fontSize: 9, fontWeight: 600 }}>IP C-Bet: {cat.ipCbet}%</span>
                     <span style={{ color: getAdvantageColor(cat.rangeAdvantage), fontSize: 9, fontWeight: 600 }}>Advantage: {cat.rangeAdvantage}</span>
                   </div>
                 </div>
@@ -291,9 +291,9 @@ export default function FlopCategoryBrowser() {
                       {cat.subCategories.map((sub, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
                           <span style={{ color: '#94a3b8', fontSize: 10, flex: 1 }}>{sub.name}</span>
-                          <span style={{ color: '#22c55e', fontSize: 10, fontWeight: 700 }}>C-bet: {sub.cbet}%</span>
+                          <span style={{ color: '#22c55e', fontSize: 10, fontWeight: 700 }}>C-Bet: {sub.cbet}%</span>
                           <span style={{ color: '#3b82f6', fontSize: 10 }}>Size: {sub.size}</span>
-                          <span style={{ color: '#64748b', fontSize: 9 }}>{sub.examples.toLocaleString()} flops</span>
+                          <span style={{ color: '#64748b', fontSize: 9 }}>{sub.examples.toLocaleString()} Flops</span>
                         </div>
                       ))}
                     </div>
@@ -315,7 +315,7 @@ export default function FlopCategoryBrowser() {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <h3 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>Flop Category Browser</h3>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Component loading... Please refresh if this persists.</p>
+        <p style={{ color: '#64748b', fontSize: 13 }}>Component Loading... Please Refresh If This Persists.</p>
       </div>
     );
   }

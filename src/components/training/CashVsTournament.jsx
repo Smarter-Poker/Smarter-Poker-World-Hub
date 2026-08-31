@@ -35,9 +35,9 @@ export default function CashVsTournament() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        » Cash Games vs Tournaments
+        » Cash Games Vs Tournaments
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand the key differences between formats.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand The Key Differences Between Formats.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {COMPARISONS.map((t, i) => (

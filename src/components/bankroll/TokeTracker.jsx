@@ -1124,8 +1124,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <span>🚗</span>
-                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} miles × ${rate}/mi</span>
-                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
+                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} Miles × ${rate}/Mi</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} Deductible</span>
                             </div>
                         );
                     })()}
@@ -1157,7 +1157,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Mileage</span>
-                            <span style={styles.reportStatValue}>{gig.mileage || 0} mi</span>
+                            <span style={styles.reportStatValue}>{gig.mileage || 0} Mi</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Per Day</span>
@@ -1188,7 +1188,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                         </span>
                                         <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
                                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
-                                            <span>{day.totalDowns || 0} downs</span>
+                                            <span>{day.totalDowns || 0} Downs</span>
                                             <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                             {(day.totalExpenses || 0) > 0 && <span style={{ color: '#ef4444' }}>-{formatCurrency(day.totalExpenses)}</span>}
                                         </div>
@@ -1338,7 +1338,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             )}
                             <p style={styles.activeGigMeta}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
-                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} total
+                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
@@ -1464,7 +1464,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 <span style={styles.closedDayStats}>
                                     <span style={{ color: '#38bdf8' }}>{formatCurrency(day.totalTokes || 0)}</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
-                                    <span>{day.totalDowns || 0} downs</span>
+                                    <span>{day.totalDowns || 0} Downs</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
                                     <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                 </span>
@@ -1553,7 +1553,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                         {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                         {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
                                                             <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
-                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} buy-in
+                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} Buy-In
                                                             </span>
                                                         )}
                                                         {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -1582,10 +1582,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     editingMultiplierId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
                                                             <select value={multiplierEditValue} onChange={e => setMultiplierEditValue(e.target.value)} style={{ ...styles.tokeInput, width: 70 }}>
-                                                                <option value="1">1.0x</option>
-                                                                <option value="1.2">1.2x</option>
-                                                                <option value="1.5">1.5x</option>
-                                                                <option value="2">2.0x</option>
+                                                                <option value="1">1.0X</option>
+                                                                <option value="1.2">1.2X</option>
+                                                                <option value="1.5">1.5X</option>
+                                                                <option value="2">2.0X</option>
                                                             </select>
                                                             <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
@@ -1643,7 +1643,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={styles.activeActions}>
                         {confirmCloseDay ? (
                             <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                                <span style={styles.confirmText}>Close out Day {currentDayNumber}? Add a note (optional):</span>
+                                <span style={styles.confirmText}>Close Out Day {currentDayNumber}? Add A Note (Optional):</span>
                                 <input
                                     type="text"
                                     value={closeDayNotes}

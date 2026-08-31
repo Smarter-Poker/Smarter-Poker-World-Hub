@@ -37,7 +37,7 @@ export default function HighStakesGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         High Stakes Strategy (NL500+)
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Elite concepts for the toughest games on the planet.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Elite Concepts For The Toughest Games On The Planet.</p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {HIGH_CONCEPTS.map((t, i) => (

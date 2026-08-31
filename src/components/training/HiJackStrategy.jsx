@@ -29,7 +29,7 @@ export default function HiJackStrategy() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         HiJack Strategy Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The HJ bridges early and late position - adapt accordingly.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The HJ Bridges Early And Late Position - Adapt Accordingly.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {HJ_TOPICS.map((t, i) => (

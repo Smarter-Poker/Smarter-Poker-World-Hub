@@ -233,7 +233,7 @@ export default function SeatGridTable({
               ) : (
                 <>
                   <span className="text-sm font-bold">{seatNumber}</span>
-                  <span className="text-[9px] text-[#94A3B8]">open</span>
+                  <span className="text-[9px] text-[#94A3B8]">Open</span>
                 </>
               )}
             </button>
@@ -291,7 +291,7 @@ export default function SeatGridTable({
           {changeMode && (
             <div className="flex items-center gap-2 bg-[#F59E0B]/10 border border-[#F59E0B]/40
                             rounded-lg px-3 py-2 text-xs text-[#F59E0B]">
-              Tap an empty seat to move there
+              Tap An Empty Seat To Move There
               <button
                 onClick={() => setChangeMode(null)}
                 className="text-[#F59E0B] hover:text-[#FBBF24]"
@@ -314,7 +314,7 @@ export default function SeatGridTable({
             className="text-sm text-[#22D3EE] hover:text-[#67E8F9] flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            Seat a member at this table
+            Seat A Member At This Table
           </button>
         </div>
       )}
@@ -338,7 +338,7 @@ export default function SeatGridTable({
             {busy === `start:${table.id}` ? 'Starting…' : 'Start table'}
           </button>
           <p className="mt-1 text-[11px] text-[#94A3B8] text-center">
-            Seats everyone currently reserved. This cannot be undone.
+            Seats Everyone Currently Reserved. This Cannot Be Undone.
           </p>
         </div>
       )}

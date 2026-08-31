@@ -163,7 +163,7 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
                     <span style={{ fontSize: 8, color: '#94a3b8' }}>SCORE</span>
                     {avgScore && (
                         <span style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
-                            avg: {avgScore}
+                            Avg: {avgScore}
                         </span>
                     )}
                 </div>
@@ -232,7 +232,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Positional Accuracy</span>
                 <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal' }}>
-                    Session avg: {avgAccuracy}%
+                    Session Avg: {avgAccuracy}%
                 </span>
             </div>
             <div style={{ display: 'flex', gap: 8, height: 100, alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -373,7 +373,7 @@ export function DailyChallengeBanner({ gtowScore }) {
         >
             <div>
                 <div style={{ fontSize: 13, fontWeight: 'bold', color: '#00d4ff' }}>Daily Study Goal</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Complete 1 session with a +70% score</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Complete 1 Session With A +70% Score</div>
             </div>
             {/* GTOW parity #25: the goal threshold was 85 on the legacy 0-100
                 scale. gtowScore is now signed -100..+100, where 85 maps to 70. */}

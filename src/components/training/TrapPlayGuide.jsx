@@ -31,7 +31,7 @@ export default function TrapPlayGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Trap Play Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when slow playing wins big and when it costs you the pot.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know When Slow Playing Wins Big And When It Costs You The Pot.</p>
 
       {/* Spot navigation */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -40,7 +40,7 @@ export default function TrapPlayGuide() {
             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
-            {s.hand} on {s.board.split(' ').slice(0,2).join('')}
+            {s.hand} On {s.board.split(' ').slice(0,2).join('')}
           </button>
         ))}
       </div>

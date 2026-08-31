@@ -146,7 +146,7 @@ export function ConversationHistory({ onSelect, onNewConversation }: Conversatio
                             </div>
                         ) : conversations.length === 0 ? (
                             <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                                No previous conversations
+                                No Previous Conversations
                             </div>
                         ) : (
                             conversations.map(conv => (

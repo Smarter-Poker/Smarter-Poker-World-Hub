@@ -50,7 +50,7 @@ export default function StackEffectiveCalc() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Effective Stack Calculator
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know the real stack depth in every pot - it changes everything.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know The Real Stack Depth In Every Pot - It Changes Everything.</p>
 
       {/* Player stacks */}
       <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
@@ -76,7 +76,7 @@ export default function StackEffectiveCalc() {
         <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Effective Stack (Hero)</div>
         <div style={{ fontSize: 36, fontWeight: 800, color: '#8b5cf6' }}>{heroEffective} BB</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>
-          {activePlayers.length} active players | Smallest covers: {activePlayers.map(p => p.stack).sort((a,b) => a-b)[0]} BB
+          {activePlayers.length} Active Players | Smallest Covers: {activePlayers.map(p => p.stack).sort((a,b) => a-b)[0]} BB
         </div>
       </motion.div>
 

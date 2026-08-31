@@ -211,7 +211,7 @@ export default function LocationEnableModal({
             </div>
             <div>
               <div id="location-enable-title" className="location-enable-modal__title" style={{ fontSize: 18, fontWeight: 800, color: '#e6edf5', letterSpacing: '-0.3px' }}>Enable Location</div>
-              <div id="location-enable-description" className="location-enable-modal__description" style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find poker rooms near you instantly</div>
+              <div id="location-enable-description" className="location-enable-modal__description" style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find Poker Rooms Near You Instantly</div>
             </div>
           </div>
           <button
@@ -264,7 +264,7 @@ export default function LocationEnableModal({
               fontSize: 11, fontWeight: 700, color: '#d4a853', textTransform: 'uppercase',
               letterSpacing: '0.8px', marginBottom: 10,
             }}>
-              {platformLabel} \u2014 How To Enable
+              {platformLabel} \U2014 How To Enable
             </div>
 
             <div style={{ display: 'grid', gap: 8 }}>
@@ -312,7 +312,7 @@ export default function LocationEnableModal({
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(200,214,229,0.1)' }} />
-            or
+            Or
             <div style={{ flex: 1, height: 1, background: 'rgba(200,214,229,0.1)' }} />
           </div>
 

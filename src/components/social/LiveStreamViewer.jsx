@@ -1131,7 +1131,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
               gap: 8,
             }}
           >
-            🔊 Tap for sound
+            🔊 Tap For Sound
           </button>
         )}
 
@@ -1380,7 +1380,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <span style={{ fontSize: 18 }}>📲</span>
-                    <span>Share to apps...</span>
+                    <span>Share To Apps...</span>
                   </button>
                 )}
 
@@ -1523,7 +1523,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                   opacity: 0.7,
                 }}
               >
-                ✂️ Sign in to clip
+                ✂️ Sign In To Clip
               </button>
             ) : (
               <>
@@ -2016,7 +2016,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
           ))}
           {!chatExpanded && comments.length > 5 && (
             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>
-              tap to see all {comments.length} messages
+              Tap To See All {comments.length} Messages
             </div>
           )}
           <div ref={commentsEndRef} />

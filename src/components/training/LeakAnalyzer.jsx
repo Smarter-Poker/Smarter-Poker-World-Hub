@@ -37,7 +37,7 @@ export default function LeakAnalyzer() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Leak Analyzer
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use your stats to diagnose and fix leaks.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use Your Stats To Diagnose And Fix Leaks.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 16 }}>
         {LEAK_STATS.map((s, i) => (
@@ -68,7 +68,7 @@ export default function LeakAnalyzer() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How to Fix</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.fix}</div>
           </div>
         </div>

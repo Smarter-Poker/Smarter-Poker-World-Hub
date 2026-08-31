@@ -39,7 +39,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                     marginBottom: 24,
                     lineHeight: 1.6,
                 }}>
-                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this game.
+                    You Need <strong style={{ color: '#FFD700' }}>{gameCost} Diamonds</strong> To Play This Game.
                 </p>
 
                 {!isVIP && (
@@ -60,10 +60,10 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                             color: '#fff',
                             marginBottom: 4,
                         }}>
-                            $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                            $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/Month</span>
                         </div>
                         <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
-                            UNLIMITED ACCESS • No diamonds needed
+                            UNLIMITED ACCESS • No Diamonds Needed
                         </div>
                     </div>
                 )}

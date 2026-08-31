@@ -32,7 +32,7 @@ export default function MergeRangeGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Range Types Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Polarized vs Merged vs Linear - the three betting paradigms.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Polarized Vs Merged Vs Linear - The Three Betting Paradigms.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
         {RANGE_TYPES.map((r, i) => (
@@ -70,7 +70,7 @@ export default function MergeRangeGuide() {
           </div>
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: rangeType.color, marginBottom: 6 }}>When to Use {rangeType.type}:</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: rangeType.color, marginBottom: 6 }}>When To Use {rangeType.type}:</div>
         {rangeType.when.map((w, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', display: 'flex', gap: 6 }}>
             <span style={{ color: rangeType.color }}>•</span> {w}

@@ -539,7 +539,7 @@ export default function InviteFriendsModal({
                         letterSpacing: '1px',
                         marginBottom: 12,
                     }}>
-                        Search Contacts to Message
+                        Search Contacts To Message
                     </div>
                     <div style={{
                         borderRadius: 12,
