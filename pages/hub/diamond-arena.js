@@ -118,7 +118,7 @@ export default function DiamondArenaPage({ initialArenaAvailable = false }) {
                 
             </SEOHead>
 
-            <div className="diamond-arena-page" style={styles.container}>
+            <div className="diamond-arena-page" data-diamond-arena-page="true" style={styles.container}>
                 {/* Universal Header */}
                 <div style={styles.header}>
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />

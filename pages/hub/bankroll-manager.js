@@ -124,7 +124,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) 
     <div style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer' } : {}) }} onClick={onClick}>
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
-        <div style={styles.statLoading}>-</div>
+        <div style={styles.statLoading}>—</div>
       ) : (
         <div style={styles.statValue}>
           <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
@@ -787,7 +787,7 @@ export default function BankrollManagerPage() {
     <PageTransition>
       
       <SEOHead
-        title="Bankroll Manager - Track Your Poker Profits"
+        title="Bankroll Manager — Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
       >
@@ -938,7 +938,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeTrip.location_name && `${activeTrip.location_name} · `}
-                            Day {daysSinceStart} · {activeTrip.entryCount || 0} Sessions
+                            Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1004,7 +1004,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeSeries.location_name && `${activeSeries.location_name} · `}
-                            Day {daysSinceStart} · {activeSeries.entryCount || 0} Sessions
+                            Day {daysSinceStart} · {activeSeries.entryCount || 0} sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1050,7 +1050,7 @@ export default function BankrollManagerPage() {
                     <div className="bankroll-stats-grid" style={styles.statsGrid}>
                       <StatCard
                         title="Bankroll Balance"
-                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '-'}
+                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
                         isLoading={isLoading}
                         onClick={() => setShowAdjustModal(true)}
                       />
@@ -1059,7 +1059,7 @@ export default function BankrollManagerPage() {
                         value={
                           stats
                             ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                            : '-'
+                            : '—'
                         }
                         isLoading={isLoading}
                       />
@@ -1234,7 +1234,7 @@ export default function BankrollManagerPage() {
                         gap: 12,
                       }}>
                         <div style={{ fontSize: 32 }}>👑</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only - Advanced Analytics</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only — Advanced Analytics</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
                           onClick={() => router.push('/hub/diamond-store')}
@@ -1250,7 +1250,7 @@ export default function BankrollManagerPage() {
                             marginTop: 4,
                           }}
                         >
-                          Upgrade To VIP
+                          Upgrade to VIP
                         </button>
                       </div>
                     )}
@@ -1539,7 +1539,7 @@ export default function BankrollManagerPage() {
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To CSV</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Download All Sessions For Spreadsheet Analysis
+                          Download all sessions for spreadsheet analysis
                         </div>
                       </div>
                       <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
@@ -1583,7 +1583,7 @@ export default function BankrollManagerPage() {
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To JSON</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Full Data Export For Backup Or API Use
+                          Full data export for backup or API use
                         </div>
                       </div>
                       <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
@@ -1617,7 +1617,7 @@ export default function BankrollManagerPage() {
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To PDF</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                          Formatted Report For Printing Or Sharing
+                          Formatted report for printing or sharing
                         </div>
                       </div>
                       <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
@@ -1633,7 +1633,7 @@ export default function BankrollManagerPage() {
                   <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-Save Sessions</span>
+                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-save Sessions</span>
                       <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
@@ -1819,7 +1819,7 @@ export default function BankrollManagerPage() {
                   </div>
 
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
-                    What Would You Like To Do With This Receipt?
+                    What would you like to do with this receipt?
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <button
@@ -1868,7 +1868,7 @@ export default function BankrollManagerPage() {
                   </button>
                   {entries.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                      No Entries Yet. Create A New Expense Instead.
+                      No entries yet. Create a new expense instead.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
@@ -1958,6 +1958,7 @@ export default function BankrollManagerPage() {
             />
           ) : (
             <motion.div
+              role="presentation"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1976,6 +1977,10 @@ export default function BankrollManagerPage() {
               onClick={closeLogModal}
             >
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="bankroll-sign-in-title"
+                aria-describedby="bankroll-sign-in-description"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
@@ -1990,9 +1995,9 @@ export default function BankrollManagerPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div style={{ marginBottom: 16, color: '#65676b', fontSize: 32 }}>Sign In</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
-                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
-                  Please Sign In To Log Your Poker Sessions And Track Your Bankroll.
+                <h2 id="bankroll-sign-in-title" style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
+                <p id="bankroll-sign-in-description" style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
+                  Please sign in to log your poker sessions and track your bankroll.
                 </p>
                 <button
                   onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
@@ -2078,7 +2083,7 @@ export default function BankrollManagerPage() {
                     {ruleViolations.some(v => v.severity === 'info') ? 'Goal Reached!' : 'Rule Violation Alert'}
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                    {ruleViolations.length} rule{ruleViolations.length > 1 ? 's' : ''} Triggered
+                    {ruleViolations.length} rule{ruleViolations.length > 1 ? 's' : ''} triggered
                   </p>
                 </div>
               </div>

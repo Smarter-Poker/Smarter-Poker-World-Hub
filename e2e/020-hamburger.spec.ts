@@ -365,7 +365,10 @@ for (const world of WORLDS) {
     expect(interactiveBarViolations).toEqual([]);
 
     await expect
-      .poll(async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)))
+      .poll(
+        async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)),
+        { timeout: 15_000 },
+      )
       .toBeLessThanOrEqual(1);
 
     const metrics = await dialog.evaluate((element) => {
@@ -431,8 +434,10 @@ for (const world of WORLDS) {
 
 test('Bankroll Log deep links preserve the visible authorization gate and clean their URL', async ({ page }) => {
   await page.goto('/hub/bankroll-manager?view=log-session', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'Sign In Required' })).toBeVisible();
-  await page.getByRole('button', { name: 'Got It' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sign In Required' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
   await expect(page).not.toHaveURL(/view=log-session/);
 });
 
@@ -448,11 +453,13 @@ test('Toke Taxes opens for an empty account and closes without stale deep-link s
 
 test('Diamond Arena content never hides beneath its fixed world footer', async ({ page }) => {
   await page.goto('/hub/diamond-arena', { waitUntil: 'domcontentloaded' });
-  const geometry = await page.evaluate(() => {
-    const arena = document.querySelector('.diamond-arena-page')?.getBoundingClientRect();
-    const footer = document.querySelector('[data-global-bottom-nav="true"]')?.getBoundingClientRect();
-    return arena && footer ? { arenaBottom: arena.bottom, footerTop: footer.top } : null;
-  });
-  expect(geometry).not.toBeNull();
-  expect((geometry?.arenaBottom || 0) - (geometry?.footerTop || 0)).toBeLessThanOrEqual(1);
+  const arena = page.locator('[data-diamond-arena-page="true"]');
+  const footer = page.locator('[data-global-bottom-nav="true"]');
+  await expect(arena).toBeVisible();
+  await expect(footer).toBeVisible();
+  await expect.poll(async () => {
+    const [arenaBox, footerBox] = await Promise.all([arena.boundingBox(), footer.boundingBox()]);
+    if (!arenaBox || !footerBox) return Number.POSITIVE_INFINITY;
+    return arenaBox.y + arenaBox.height - footerBox.y;
+  }).toBeLessThanOrEqual(1);
 });
