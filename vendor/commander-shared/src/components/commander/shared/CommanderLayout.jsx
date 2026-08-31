@@ -908,13 +908,6 @@ export default function CommanderLayout({ children, title }) {
           background: rgba(0, 0, 0, .42);
           pointer-events: none;
         }
-        .cmd-approved-header__vip--active {
-          border-radius: 12%;
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, .92),
-            0 0 5px rgba(255, 255, 255, .75),
-            0 0 10px rgba(210, 240, 255, .38);
-        }
         @media (display-mode: standalone), (display-mode: fullscreen) {
           .cmd-approved-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
           .cmd-approved-header__controls { top: max(env(safe-area-inset-top, 0px), 24px); }
