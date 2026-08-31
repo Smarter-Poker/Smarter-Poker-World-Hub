@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
+import { acquireScrollLock } from '../../lib/scrollLock';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -622,9 +623,8 @@ export default function GlobalSearchOverlay({
 
   // Lock body scroll
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
+    if (!isOpen) return undefined;
+    return acquireScrollLock('PokerNearMeGlobalSearch');
   }, [isOpen]);
 
   // A11Y FIX: the shell declares role="dialog" aria-modal="true" and locks body scroll, but
