@@ -19,8 +19,11 @@ test('phase 4 location route hierarchy is present and server-backed', () => {
   assert.match(helper, /stateSlugToCode/);
   const sitemap = read('pages/sitemap.xml.js');
   assert.match(sitemap, /buildPokerVenueUrls/);
-  assert.match(sitemap, /venue_type/);
-  assert.match(sitemap, /\['series', 'tour', 'home_game'\]\.includes\(venue\.venue_type\)/);
+  assert.match(sitemap, /fetchVenueDirectoryResilient/);
+  assert.match(sitemap, /buildPokerVenueSitemapUrls/);
+  const sitemapRoutes = read('src/lib/poker-near-me/sitemapRoutes.js');
+  assert.match(sitemapRoutes, /venue_type/);
+  assert.match(sitemapRoutes, /series.*tour.*home_game/);
 });
 
 test('venue, home game, and dashboard inherit the shared signal chassis', () => {
