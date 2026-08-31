@@ -1264,12 +1264,12 @@ const PostCard = React.memo(
         {post.content &&
           /^Checked in at /i.test(post.content) &&
           (() => {
-            const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–]\s*(.+))?$/i);
+            const match = post.content.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
             const venueName =
               match?.[1] ||
               post.content
                 .replace(/^Checked in at /i, '')
-                .split('—')[0]
+                .split('-')[0]
                 .trim();
             const locationText = match?.[2]?.trim() || '';
             return (

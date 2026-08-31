@@ -15,13 +15,13 @@ import { PAStyles, hashString } from './paKit';
 // ── Coaching tip templates ─────────────────────────────────────────────────
 const CORRECT_TIPS = [
     ({ hand, position, action, textureClause }) =>
-        `Great read — ${action} with ${hand} from ${position}${textureClause} matches solver frequency.`,
+        `Great read - ${action} with ${hand} from ${position}${textureClause} matches solver frequency.`,
     ({ hand, position, textureClause }) =>
         `Spot on. The solver takes this line from ${position} with ${hand}${textureClause}. Keep trusting the read.`,
     ({ action, position, villainClause }) =>
         `Correct: ${action} is the equilibrium play from ${position}${villainClause}.`,
     ({ hand, action, textureClause }) =>
-        `Nailed it. ${action} with ${hand}${textureClause} is solver-approved — your board reading is sharp.`,
+        `Nailed it. ${action} with ${hand}${textureClause} is solver-approved - your board reading is sharp.`,
     ({ position, villainClause }) =>
         `Perfect. You are playing ${position} at equilibrium${villainClause}. This spot is well calibrated in your game.`,
 ];
@@ -40,9 +40,9 @@ const INCORRECT_TIPS = [
 ];
 
 const FREQUENCY_INSIGHTS = {
-    high: 'High-frequency play (65%+) — the solver takes this action nearly every time it reaches this node.',
-    medium: 'Mixed-frequency spot (35–65%) — both actions are defensible; exploitative reads break the tie.',
-    low: 'Low-frequency play (under 35%) — the solver only takes this line with specific combos.',
+    high: 'High-frequency play (65%+) - the solver takes this action nearly every time it reaches this node.',
+    medium: 'Mixed-frequency spot (35-65%) - both actions are defensible; exploitative reads break the tie.',
+    low: 'Low-frequency play (under 35%) - the solver only takes this line with specific combos.',
 };
 
 function boardToCards(board) {
@@ -103,7 +103,7 @@ export default function CoachFeedback({
         const evLossRaw = Number(results?.ev?.evLoss);
         const evLoss = Number.isFinite(evLossRaw) ? Math.abs(evLossRaw) : null;
         const evClause = (!isCorrect && evLoss != null && evLoss > 0.005)
-            ? ` — about ${evLoss.toFixed(2)} BB of EV`
+            ? ` - about ${evLoss.toFixed(2)} BB of EV`
             : '';
 
         const data = { hand, position, gtoAction, userAction, action: gtoAction, textureClause, villainClause, evClause };

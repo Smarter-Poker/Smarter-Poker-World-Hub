@@ -12,7 +12,7 @@ const SCENARIOS = [
   { board: ['K♦','9♣','4♠','6♣'], label: 'K94-6 backdoor', verdict: 'BARREL', reason: 'Backdoor flush draw arrived but board still dry. Continue with overcards and pairs.' },
   { board: ['A♥','7♥','2♣','J♦'], label: 'A72♥-J', verdict: 'BARREL', reason: 'Overcard on turn changes nothing for Ax. Keep barreling broadways and Ax combos.' },
   { board: ['8♠','7♦','6♣','5♥'], label: '876-5 four straight', verdict: 'CHECK', reason: 'Four to a straight kills your fold equity. Even 9x makes a straight. Shut down.' },
-  { board: ['K♣','Q♠','4♦','A♥'], label: 'KQ4-A scare card', verdict: 'BARREL', reason: 'Ace on turn is great for PFR range. Fire big — opponents fold Kx, Qx.' },
+  { board: ['K♣','Q♠','4♦','A♥'], label: 'KQ4-A scare card', verdict: 'BARREL', reason: 'Ace on turn is great for PFR range. Fire big - opponents fold Kx, Qx.' },
   { board: ['J♣','T♣','2♠','3♦'], label: 'JT♣2-3 brick', verdict: 'BARREL', reason: 'Brick turn on draw-heavy flop. Barrel to deny equity from flush/straight draws.' },
 ];
 
@@ -34,7 +34,7 @@ export default function DoubleBarrelGuide() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Double Barrel Guide
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master the turn continuation bet — when to fire and when to give up.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master the turn continuation bet - when to fire and when to give up.</p>
 
       {/* Scenario selector */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>

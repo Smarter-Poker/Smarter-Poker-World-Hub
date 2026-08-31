@@ -108,7 +108,7 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
         ) : (
           <div className={styles.body}>
             <div className={styles.readout}>
-              <div><small>HAND SIGNAL</small><strong>{modal.hand || '—'}</strong></div>
+              <div><small>HAND SIGNAL</small><strong>{modal.hand || '-'}</strong></div>
               <span style={{ '--jarvis-action': actionColor }}>{action.toUpperCase()}</span>
             </div>
             <dl className={styles.compare}>

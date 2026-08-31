@@ -1057,7 +1057,7 @@ export default function GlobalSearchOverlay({
               disableClustering={venueResults.length < 20}
             />
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1001, padding: '4px 14px', background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(110,231,239,0.12)', borderRadius: 20, fontSize: 11, color: 'rgba(200,214,229,0.65)', fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-              {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} — tap a pin for details
+              {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} - tap a pin for details
             </div>
           </div>
         )}
@@ -1215,12 +1215,12 @@ export default function GlobalSearchOverlay({
                         )}
                       </>
                     ) : (
-                      <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>— Global Search</span>
+                      <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>- Global Search</span>
                     )}
                   </div>
                   {nlIntent?.isNaturalLanguage && (
                     <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 11, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
-                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> — Applied filters: {[
+                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> - Applied filters: {[
                         nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
                         nlIntent.applied?.timeWindow && nlIntent.timeWindow?.replace(/_/g, ' '),
                         nlIntent.applied?.stateCode && `in ${nlIntent.stateCode}`,

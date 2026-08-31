@@ -237,7 +237,7 @@ function TournamentCard({ tournament, mode, onEdit, onCancel, onView, hostHref }
           )}
           {isCancelled && (
             <p className="text-xs text-[#64748B] italic">
-              Cancelled — restore by recreating from the manage page.
+              Cancelled - restore by recreating from the manage page.
             </p>
           )}
         </div>

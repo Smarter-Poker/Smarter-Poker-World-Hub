@@ -517,7 +517,7 @@ export default function RangeExplorer({
                     {paintMode ? 'Drag to paint' : 'Tap only'}
                 </button>
                 <span style={{ fontSize: F.caption, color: T.textDim, flex: 1, minWidth: 0 }}>
-                    {paintMode ? 'Drag across cells to add or remove.' : 'Painting off — the grid scrolls normally.'}
+                    {paintMode ? 'Drag across cells to add or remove.' : 'Painting off - the grid scrolls normally.'}
                 </span>
             </div>
 

@@ -149,7 +149,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                             {session.profiles?.full_name || session.profiles?.username || 'Player'}
                         </div>
                         <div style={{ color: T.textSec, fontSize: 11 }}>
-                            {session.venue_name} — {session.stakes} {session.game_type}
+                            {session.venue_name} - {session.stakes} {session.game_type}
                         </div>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                     <div style={{
                         background: 'rgba(46,204,113,0.15)', color: T.green,
                         padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700,
-                    }}>LIVE — {elapsed}</div>
+                    }}>LIVE - {elapsed}</div>
                     <button onClick={onClose} style={{
                         background: 'none', border: 'none', color: T.textSec,
                         fontSize: 18, cursor: 'pointer', padding: '0 4px',

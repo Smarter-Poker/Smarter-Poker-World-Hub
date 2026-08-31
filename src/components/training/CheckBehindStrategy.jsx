@@ -12,7 +12,7 @@ const SPOTS = [
     street: 'Turn',
     action: 'Check Behind',
     color: '#3b82f6',
-    reason: 'Second pair has showdown value but can\'t handle aggression. Betting turns your hand into a target — villain only continues with better. Check back, get to showdown cheaply.',
+    reason: 'Second pair has showdown value but can\'t handle aggression. Betting turns your hand into a target - villain only continues with better. Check back, get to showdown cheaply.',
     benefit: 'See free river, avoid being raised off your equity',
   },
   {
@@ -30,7 +30,7 @@ const SPOTS = [
     street: 'Turn',
     action: 'Check Behind',
     color: '#f59e0b',
-    reason: 'Flush completes + straight gets there. Your overpair is now a bluff-catcher. Don\'t put more money in — check and evaluate river.',
+    reason: 'Flush completes + straight gets there. Your overpair is now a bluff-catcher. Don\'t put more money in - check and evaluate river.',
     benefit: 'Avoid bloating pot when your hand is now marginal',
   },
   {
@@ -40,7 +40,7 @@ const SPOTS = [
     action: 'Check Behind',
     color: '#8b5cf6',
     reason: 'Board smashes villain\'s calling range (KQ, KJ, QJ, JT, AT). Your aces are vulnerable. Check back some % of the time to protect your checking range and avoid getting check-raised.',
-    benefit: 'Balanced strategy — prevents villain from exploiting your check range',
+    benefit: 'Balanced strategy - prevents villain from exploiting your check range',
   },
   {
     title: 'Thin Value Trap',
@@ -69,7 +69,7 @@ function CheckBehindStrategy() {
         </div>
 
         <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', borderRadius: 10, border: '1px solid rgba(139,92,246,0.15)', marginBottom: 12, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{spot.street} — In Position</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{spot.street} - In Position</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{spot.hand}</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#8b5cf6' }}>{spot.title}</div>
         </div>

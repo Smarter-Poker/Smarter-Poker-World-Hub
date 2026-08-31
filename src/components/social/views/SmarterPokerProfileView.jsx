@@ -848,7 +848,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         lifetimeProfit: user.lifetimeProfit || 0,
         handsPlayed: user.handsPlayed || 0,
         winRate: user.winRate || 0,
-        bestHand: user.bestHand || '—',
+        bestHand: user.bestHand || '-',
         biggestPot: user.biggestPot || 0,
         streak: user.streak || 0,
         gtoMastery: user.gtoMastery || 0

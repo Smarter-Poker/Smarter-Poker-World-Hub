@@ -120,7 +120,7 @@ function formatAmount(r: CatalogReward): string {
 /** The honest limit line. Nothing on this screen is uncapped. */
 function formatNote(r: CatalogReward): string {
     if (r.key === 'referral_qualified') {
-        return `${fmt(REFERRAL.referrer)} 💎 to you + ${fmt(REFERRAL.referee)} 💎 to your friend — released only after they verify email AND phone AND log in on 5 separate days. Max ${REFERRAL.maxQualifiedPerMonth} qualified referrals per month.`;
+        return `${fmt(REFERRAL.referrer)} 💎 to you + ${fmt(REFERRAL.referee)} 💎 to your friend - released only after they verify email AND phone AND log in on 5 separate days. Max ${REFERRAL.maxQualifiedPerMonth} qualified referrals per month.`;
     }
     const limit = r.lifetime
         ? 'Once, ever'
@@ -280,7 +280,7 @@ export function DiamondRewardTracker({
                         {remainingCap > 0 ? (
                             <>{remainingCap} <DiamondIcon /> remaining today · {fmt(monthlyCap)} 💎/month max</>
                         ) : (
-                            <>🎉 Daily cap reached — resets at midnight</>
+                            <>🎉 Daily cap reached - resets at midnight</>
                         )}
                     </div>
                 </div>
@@ -345,7 +345,7 @@ export function DiamondRewardTracker({
                                 <strong>
                                     {MULTIPLIER_LADDER.map((t) => `${t.mult}x at ${t.days}d`).join(' | ')}
                                 </strong>
-                                {' '}— reaches the cap with less work, never raises it
+                                {' '}- reaches the cap with less work, never raises it
                             </div>
                             <div style={styles.rule}>
                                 📅 Daily Login: <strong>{LOGIN_MIN}-{LOGIN_MAX} 💎</strong> on a true consecutive-day
@@ -362,7 +362,7 @@ export function DiamondRewardTracker({
                             </div>
                             <div style={styles.rule}>
                                 💵 1 💎 = $0.01. A dedicated free player earns about {fmt(MONTHLY_CAP.free)} 💎 a month
-                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) — a VIP card plus a stack for the Diamond Arena.
+                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) - a VIP card plus a stack for the Diamond Arena.
                             </div>
                         </div>
                     </div>
@@ -409,7 +409,7 @@ export function DiamondRewardTracker({
 
                         <div style={styles.totalEggs}>
                             🥚 <strong>{TOTAL_EGGS} hidden achievements</strong> to discover across{' '}
-                            {EGG_CATEGORY_VIEWS.length} categories — part of {TOTAL_WAYS} total ways to earn.
+                            {EGG_CATEGORY_VIEWS.length} categories - part of {TOTAL_WAYS} total ways to earn.
                             All of them together pay at most {fmt(EASTER_EGG_MONTHLY_CAP)} 💎 a month.
                         </div>
                     </div>

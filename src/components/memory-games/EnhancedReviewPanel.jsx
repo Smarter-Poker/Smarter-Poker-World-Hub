@@ -200,7 +200,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                         <div style={{ textAlign: 'center', padding: 40, color: '#22C55E' }}>
                             <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
                             <div style={{ fontFamily: 'Rajdhani', fontSize: 18, fontWeight: 800 }}>FLAWLESS!</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>No mistakes — you nailed this range perfectly.</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>No mistakes - you nailed this range perfectly.</div>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

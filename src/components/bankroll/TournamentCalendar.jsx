@@ -126,7 +126,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px 20px', marginBottom: 20,
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner — {interestedEvents.length} Events</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {interestedEvents.length} Events</div>
                         <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#fbbf24' : '#f87171' }}>
                             ${totalBudgetNeeded.toLocaleString()} needed
                         </div>
@@ -277,7 +277,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
                             <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% of Bankroll</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f87171' : '#e2e8f0', marginTop: 4 }}>
-                                {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '—'}%
+                                {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '-'}%
                             </div>
                         </div>
                     </div>

@@ -189,7 +189,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                     {selectedVenue && (
                         <div className="tc-selected-venue">
                             <span className="tc-sv-check">✓</span>
-                            {selectedVenue.name} — {selectedVenue.city}, {selectedVenue.state}
+                            {selectedVenue.name} - {selectedVenue.city}, {selectedVenue.state}
                         </div>
                     )}
                 </div>

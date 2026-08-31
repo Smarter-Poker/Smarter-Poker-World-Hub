@@ -113,7 +113,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
-                message: 'Use 3–20 chars: letters, numbers, _ or .',
+                message: 'Use 3-20 chars: letters, numbers, _ or .',
                 suggestions: [],
             } : null);
             setChecking(false);
@@ -138,7 +138,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             return data;
         } catch (_e) {
             if (myId !== fetchIdRef.current) return null;
-            const fallback = { available: false, message: 'Could not verify — try again.', suggestions: [] };
+            const fallback = { available: false, message: 'Could not verify - try again.', suggestions: [] };
             setAvailability(fallback);
             return fallback;
         } finally {
@@ -153,7 +153,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
-                message: 'Use 3–20 chars: letters, numbers, _ or .',
+                message: 'Use 3-20 chars: letters, numbers, _ or .',
                 suggestions: [],
             } : null);
             setChecking(false);
@@ -229,7 +229,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             }
         } catch (err) {
             console.warn('[social-gate] submit error:', err);
-            setSubmitError('Network error — please try again.');
+            setSubmitError('Network error - please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -243,7 +243,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     <div style={s.header}>
                         <div style={s.iconWrap}>💎</div>
                         <h2 id="spcg-title" style={s.title}>Finish your profile</h2>
-                        <p style={s.subtitle}>One quick step before you jump into Social — so other players can find you.</p>
+                        <p style={s.subtitle}>One quick step before you jump into Social - so other players can find you.</p>
                     </div>
 
                     {/* Step indicator */}
@@ -276,7 +276,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                             <div style={s.helper}>
                                 {nameValid
                                     ? <span style={{ color: '#4ade80' }}>✓ Looks good</span>
-                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>2–80 characters, real name preferred.</span>}
+                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>2-80 characters, real name preferred.</span>}
                             </div>
                             <div style={s.actionsRow}>
                                 <span />
@@ -312,7 +312,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                 {checking && <span style={s.spinner} />}
                             </div>
                             <div style={s.helper}>
-                                {!username && <span style={{ color: 'rgba(255,255,255,0.5)' }}>3–20 chars: letters, numbers, _ or .</span>}
+                                {!username && <span style={{ color: 'rgba(255,255,255,0.5)' }}>3-20 chars: letters, numbers, _ or .</span>}
                                 {username && availability?.available === true && <span style={{ color: '#4ade80' }}>✓ @{username} is available</span>}
                                 {username && availability?.available === false && (
                                     <span style={{ color: '#f87171' }}>{availability.message || `@${username} is taken`}</span>

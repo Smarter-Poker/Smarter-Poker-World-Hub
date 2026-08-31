@@ -7,14 +7,14 @@
 import React, { useState, useMemo } from 'react';
 
 const DRAW_TYPES = [
-  { name: 'Flush Draw', outs: 9, icon: '♠', description: '4 to a flush — 9 outs to complete', example: 'A♠5♠ on K♠7♠2♣' },
-  { name: 'Open-Ended Straight', outs: 8, icon: '⇄', description: '4 connected cards — 8 outs', example: '9♣8♣ on 7♦6♠2♥' },
-  { name: 'Gutshot Straight', outs: 4, icon: '→', description: 'Inside straight draw — 4 outs', example: 'J♥T♥ on 8♠6♣2♦ (needs 9)' },
-  { name: 'Combo Draw (Flush+OESD)', outs: 15, icon: '★', description: 'Flush + straight draw — 15 outs', example: '7♠6♠ on 8♠5♠K♣' },
-  { name: 'Combo Draw (Flush+Gutshot)', outs: 12, icon: '◆', description: 'Flush + gutshot — 12 outs', example: 'A♠J♠ on T♠8♠3♣ (needs Q)' },
-  { name: 'Overcards (2)', outs: 6, icon: 'A', description: 'Two overcards to the board — 6 outs', example: 'A♥K♣ on 8♠5♦2♣' },
-  { name: 'One Overcard', outs: 3, icon: 'K', description: 'Single overcard — 3 outs', example: 'A♥7♣ on K♠8♦4♣ (A only)' },
-  { name: 'Set (pocket pair)', outs: 2, icon: '▪', description: 'Pocket pair to set — 2 outs', example: '8♥8♣ on K♠Q♦3♣' },
+  { name: 'Flush Draw', outs: 9, icon: '♠', description: '4 to a flush - 9 outs to complete', example: 'A♠5♠ on K♠7♠2♣' },
+  { name: 'Open-Ended Straight', outs: 8, icon: '⇄', description: '4 connected cards - 8 outs', example: '9♣8♣ on 7♦6♠2♥' },
+  { name: 'Gutshot Straight', outs: 4, icon: '→', description: 'Inside straight draw - 4 outs', example: 'J♥T♥ on 8♠6♣2♦ (needs 9)' },
+  { name: 'Combo Draw (Flush+OESD)', outs: 15, icon: '★', description: 'Flush + straight draw - 15 outs', example: '7♠6♠ on 8♠5♠K♣' },
+  { name: 'Combo Draw (Flush+Gutshot)', outs: 12, icon: '◆', description: 'Flush + gutshot - 12 outs', example: 'A♠J♠ on T♠8♠3♣ (needs Q)' },
+  { name: 'Overcards (2)', outs: 6, icon: 'A', description: 'Two overcards to the board - 6 outs', example: 'A♥K♣ on 8♠5♦2♣' },
+  { name: 'One Overcard', outs: 3, icon: 'K', description: 'Single overcard - 3 outs', example: 'A♥7♣ on K♠8♦4♣ (A only)' },
+  { name: 'Set (pocket pair)', outs: 2, icon: '▪', description: 'Pocket pair to set - 2 outs', example: '8♥8♣ on K♠Q♦3♣' },
   { name: 'Runner-Runner Flush', outs: 1.5, icon: '♦♦', description: '~1.5 effective outs (backdoor)', example: 'A♠4♠ on K♣7♠2♦ (need 2 spades)' },
   { name: 'Two Pair → Full House', outs: 4, icon: 'FH', description: 'Two pair improving to full house', example: 'K♠J♣ on K♥J♦8♣' },
 ];
@@ -85,7 +85,7 @@ function DrawOddsCalculator() {
         {/* Draw Info */}
         <div style={{ padding: 10, background: 'rgba(52,211,153,0.06)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #34d399' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
-            {DRAW_TYPES[selectedDraw].name} — {outs} outs
+            {DRAW_TYPES[selectedDraw].name} - {outs} outs
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{DRAW_TYPES[selectedDraw].description}</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Ex: {DRAW_TYPES[selectedDraw].example}</div>

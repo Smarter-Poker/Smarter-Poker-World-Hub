@@ -987,7 +987,7 @@ export const ChatWindow = ({
                         updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== queueItem.id) })); 
                     }, delayMs);
                     updatePrefs(p => ({ ...p, scheduledQueue: [...(p.scheduledQueue || []), queueItem] }));
-                    console.debug(`[Messenger] Message scheduled to send in ${delayMs}ms — persisted to queue`);
+                    console.debug(`[Messenger] Message scheduled to send in ${delayMs}ms - persisted to queue`);
                 } else {
                     onSend?.(finalPayloadText);
                     svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12
@@ -1744,7 +1744,7 @@ export const ChatWindow = ({
                                         {analytics.activeHours.map((count, h) => {
                                             const max = Math.max(...analytics.activeHours, 1);
                                             const intensity = count / max;
-                                            return <div key={h} style={{ flex: 1, borderRadius: 2, background: `rgba(45,136,255,${0.1 + intensity * 0.8})`, height: '100%' }} title={`${h}:00 — ${count} msgs`} />;
+                                            return <div key={h} style={{ flex: 1, borderRadius: 2, background: `rgba(45,136,255,${0.1 + intensity * 0.8})`, height: '100%' }} title={`${h}:00 - ${count} msgs`} />;
                                         })}
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: '#666', marginTop: 2 }}><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span></div>

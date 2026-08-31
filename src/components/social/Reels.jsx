@@ -1361,7 +1361,7 @@ export function ReelsViewer({ onClose }) {
       setCommentCounts((prev) => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
     } catch {
       setReelComments((prev) => prev.filter((c) => c.id !== tempId));
-      showErrorToast('Comment failed — please try again');
+      showErrorToast('Comment failed - please try again');
     }
   };
 
@@ -1551,7 +1551,7 @@ export function ReelsViewer({ onClose }) {
       // other errors on share failures. Only show the copy toast for actual copy failures.
       if (platform === 'copy') {
         // Clipboard copy failed — try fallback via selection
-        showErrorToast('Copy failed — try again');
+        showErrorToast('Copy failed - try again');
       }
       // For native/x/facebook/whatsapp failures, the window.open already fired or
       // navigator.share was cancelled by user; no toast needed.
@@ -1865,11 +1865,11 @@ export function ReelsViewer({ onClose }) {
       videoStallTimerRef.current = null;
       const v = videoRef.current;
       if (v && v.readyState < 2) {
-        console.warn('[ReelsViewer] video stall watchdog tripped — auto-skipping', {
+        console.warn('[ReelsViewer] video stall watchdog tripped - auto-skipping', {
           src: url,
           readyState: v.readyState,
           networkState: v.networkState,
-          reason: 'No metadata after 6s — likely HEVC/corrupt/dead URL',
+          reason: 'No metadata after 6s - likely HEVC/corrupt/dead URL',
         });
         if (typeof window !== 'undefined') {
           window.__reelStallSkip = (window.__reelStallSkip || 0) + 1;
@@ -2317,7 +2317,7 @@ export function ReelsViewer({ onClose }) {
                     code: err?.code,
                     message: err?.message,
                     src: url,
-                    suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264',
+                    suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
                   });
                   if (typeof window !== 'undefined') {
                     window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
@@ -4245,7 +4245,7 @@ export function ReelsViewer({ onClose }) {
                           fontWeight: 500,
                         }}
                       >
-                        Skip Description — Share Now
+                        Skip Description - Share Now
                       </button>
                     </div>
                   </div>

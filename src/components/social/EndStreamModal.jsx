@@ -113,7 +113,7 @@ export function EndStreamModal({
         // drawing it produced a solid-black poster. Bail and let the broadcaster
         // keep the client-supplied thumbnail instead of shipping a black frame.
         if (!vidEl.videoWidth || !vidEl.videoHeight) {
-          console.warn('[EndStreamModal] recording frame not ready — skipping auto-thumbnail');
+          console.warn('[EndStreamModal] recording frame not ready - skipping auto-thumbnail');
           try { URL.revokeObjectURL(blobUrl); } catch (_) {}
           return;
         }
@@ -134,7 +134,7 @@ export function EndStreamModal({
             // a manual one). Better than 401-crashing the modal.
             const tok = await getFreshAccessToken();
             if (!tok) {
-              console.warn('[EndStreamModal] thumb upload skipped — session expired');
+              console.warn('[EndStreamModal] thumb upload skipped - session expired');
               URL.revokeObjectURL(blobUrl);
               return;
             }
@@ -582,7 +582,7 @@ export function EndStreamModal({
         {/* #13: No recording warning */}
         {!videoBlob && (
           <div style={{ padding: '0 16px 16px', color: '#FFA500', fontSize: 13, fontWeight: 600 }}>
-            Recording not available — this stream was live-only and cannot be saved or posted.
+            Recording not available - this stream was live-only and cannot be saved or posted.
           </div>
         )}
 

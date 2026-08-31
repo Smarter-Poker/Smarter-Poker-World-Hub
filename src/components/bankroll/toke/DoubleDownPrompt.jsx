@@ -33,7 +33,7 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
                     <h3 style={styles.promptTitle}>
                         {promptDown.down_type === 'break' ? 'Still On Break?' :
                             promptDown.down_type === 'brush' ? 'Still Brushing?' :
-                                'Same Table — Double Down?'}
+                                'Same Table - Double Down?'}
                     </h3>
                     <p style={styles.promptSub}>
                         {promptDown.down_type === 'break' ? 'Your break has been going 35 minutes.' :
@@ -43,7 +43,7 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
                                         {promptDown.game_type || DOWN_TYPE_LABELS[promptDown.down_type]}
                                         {promptDown.table_number ? ` · Table ${promptDown.table_number}` : ''}
                                     </span>
-                                    {' — still at this table after 35 minutes?'}
+                                    {' - still at this table after 35 minutes?'}
                                 </>
                             )}
                     </p>

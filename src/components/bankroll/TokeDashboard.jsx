@@ -385,7 +385,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                                 <KpiTile
                                     icon=""
                                     label="Best Event"
-                                    value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '—'}
+                                    value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
                                     sub={analytics?.bestEvent?.venueName || null}
                                     color="#a78bfa"
                                 />
@@ -427,7 +427,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                                                 `Total Events:   ${a.totalEvents}`,
                                                 `Hours Worked:   ${a.totalHours}h`,
                                                 `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
-                                                `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '—'}`,
+                                                `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
                                                 ``,
                                                 `Down Distribution:`,
                                                 `  Cash:       ${a.downTypes?.cash || 0}`,

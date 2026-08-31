@@ -487,7 +487,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             position: q?.hero_position || null,
             scenario: q?.scenario_text || '',
             pick: pick || 'No answer',
-            correct: q?.correct_answer || '—',
+            correct: q?.correct_answer || '-',
             explanation: q?.gto_explanation || null,
         }]);
     }, []);
@@ -541,7 +541,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
         setAnnouncement(locked.timedOut
             ? `Time up. The solver prefers ${graded?.correct_answer || 'another line'}.`
             : locked.correct
-                ? 'Correct — this action is inside the solver range.'
+                ? 'Correct - this action is inside the solver range.'
                 : `Incorrect. You picked ${locked.pick}; the solver prefers ${graded?.correct_answer}.`);
         try { navigator.vibrate?.(locked.correct ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         persistResult(graded, locked.timedOut ? 'timeout' : locked.pick, locked.correct);
@@ -850,7 +850,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                         {review.persisted
                                             ? 'Saved to your review schedule.'
                                             : review.stored
-                                                ? 'Saved on this device for now — it will move to your account once your review schedule is available.'
+                                                ? 'Saved on this device for now - it will move to your account once your review schedule is available.'
                                                 : 'This browser is blocking storage, so the date above could not be saved. The leak stays in your queue.'}
                                     </span>
                                     {review.verified === true && (
@@ -883,7 +883,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                                         Could not update your review schedule
                                     </span>
                                     <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
-                                        Your answers were still saved. Try again, or carry on — the leak stays in your queue.
+                                        Your answers were still saved. Try again, or carry on - the leak stays in your queue.
                                     </span>
                                     <button
                                         type="button"
@@ -911,7 +911,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                             background: T.warnSoft, border: '1px solid rgba(255,198,109,0.4)', borderRadius: R.sm,
                             padding: S.md, fontSize: F.bodySm, fontWeight: 700, color: T.warn, textAlign: 'center',
                         }}>
-                            Dropped to level {level} — easier spots next run.
+                            Dropped to level {level} - easier spots next run.
                         </div>
                     )}
 

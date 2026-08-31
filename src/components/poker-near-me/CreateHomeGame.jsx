@@ -94,9 +94,9 @@ export default function CreateHomeGame({ onCancel }) {
   };
 
   const bullets = [
-    { Icon: Calendar, text: 'Set your schedule — one-off or recurring' },
+    { Icon: Calendar, text: 'Set your schedule - one-off or recurring' },
     { Icon: Users,    text: 'Manage RSVPs, waitlists, and attendance' },
-    { Icon: Shield,   text: 'Private or public — you control who can join' },
+    { Icon: Shield,   text: 'Private or public - you control who can join' },
     { Icon: Sparkles, text: 'Free public listing on Poker Near Me' },
   ];
 

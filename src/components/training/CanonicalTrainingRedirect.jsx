@@ -25,7 +25,7 @@ export default function CanonicalTrainingRedirect({
 
   return (
     <>
-      <SEOHead title={`${title} — Smarter.Poker`} description={description} noindex />
+      <SEOHead title={`${title} - Smarter.Poker`} description={description} noindex />
       <main className={shellClassName} style={{ minHeight: 'calc(100vh - 70px)', padding: 'clamp(30px, 8vw, 90px) 18px', background: 'radial-gradient(circle at 50% 15%, #12354d 0, #050910 50%, #020407 100%)', color: '#fff' }}>
         <section className={mainClassName} style={{ position: 'relative', maxWidth: 720, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px)', border: '1px solid rgba(145,229,255,.45)', background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)' }}>
           <div style={{ position: 'relative' }}>

@@ -112,7 +112,7 @@ export default function SeatGridTable({
         <div className="bg-[#132240] border border-[#22D3EE]/40 rounded-lg p-5 max-w-sm w-full m-4 shadow-2xl">
           <div className="text-white font-semibold mb-3">
             {pendingSeat.offerGuest
-              ? `Seat ${pendingSeat.seatNumber} — bring a +1?`
+              ? `Seat ${pendingSeat.seatNumber} - bring a +1?`
               : `Claim seat ${pendingSeat.seatNumber}?`}
           </div>
           <p className="text-sm text-[#94A3B8] mb-4">
@@ -168,7 +168,7 @@ export default function SeatGridTable({
             {table.game_type?.toUpperCase() || 'NLH'}
             {table.stakes ? ` · ${table.stakes}` : ''}
             {table.buyin_min || table.buyin_max
-              ? ` · $${table.buyin_min || '?'}–$${table.buyin_max || '?'}`
+              ? ` · $${table.buyin_min || '?'}-$${table.buyin_max || '?'}`
               : ''}
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function SeatGridTable({
               style={pos}
               title={res
                 ? (res.display_name + (isOwn ? ' (you)' : ''))
-                : `Seat ${seatNumber} — empty`}
+                : `Seat ${seatNumber} - empty`}
             >
               {res ? (
                 <>

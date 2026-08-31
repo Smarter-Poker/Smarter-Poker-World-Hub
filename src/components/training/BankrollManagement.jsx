@@ -13,7 +13,7 @@ const FORMATS = [
   { name: 'Sit & Go', buyins: 50, color: '#f59e0b', risk: 'Medium',
     rules: ['50+ buy-ins minimum', 'Lower variance than MTTs', 'ICM mastery reduces variance further', 'Stay disciplined near the bubble'] },
   { name: 'Spin & Go', buyins: 200, color: '#ef4444', risk: 'Very High',
-    rules: ['200+ buy-ins (hyper turbo)', 'Extremely high variance', 'Jackpot hits are rare — grind the base', 'ROI is slim, volume is key'] },
+    rules: ['200+ buy-ins (hyper turbo)', 'Extremely high variance', 'Jackpot hits are rare - grind the base', 'ROI is slim, volume is key'] },
 ];
 
 export default function BankrollManagement() {
@@ -38,7 +38,7 @@ export default function BankrollManagement() {
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
         Bankroll Management
       </h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Protect your roll — the #1 reason players go broke is poor BRM.</p>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Protect your roll - the #1 reason players go broke is poor BRM.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
         {FORMATS.map((f, i) => (

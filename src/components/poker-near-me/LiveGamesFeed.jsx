@@ -123,7 +123,7 @@ function SourceBadge({ source, isSimulated }) {
                 borderRadius: 4,
                 fontWeight: 800,
                 textTransform: 'uppercase',
-            }} title="Modelled from observed history — not a live scrape">
+            }} title="Modelled from observed history - not a live scrape">
                 ESTIMATED
             </span>
         );
@@ -401,7 +401,7 @@ function LiveGamesFeed({
                     setIsScraperDead(false);
                 } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
                     // Scrapers returned nothing (0 venues total) — preserve last-known data silently
-                    console.warn('[LGF] Scraper returned 0 venues — preserving last-known data, feed intact.');
+                    console.warn('[LGF] Scraper returned 0 venues - preserving last-known data, feed intact.');
                     setIsScraperDead(true);
                 } else {
                     // Very first load with 0 venues — nothing to preserve
@@ -433,7 +433,7 @@ function LiveGamesFeed({
             } else {
                 // HTTP error — preserve last-known data
                 if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
-                    console.warn('[LGF] API HTTP error — preserving last-known data.');
+                    console.warn('[LGF] API HTTP error - preserving last-known data.');
                     setIsScraperDead(true);
                     // Do NOT clear isDataStale — offline data continues aging.
                 }
@@ -1084,7 +1084,7 @@ function LiveGamesFeed({
                         {v._isLive && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                title="Modelled from weeks of observed history — not a live scrape">
+                                title="Modelled from weeks of observed history - not a live scrape">
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
                             </span>
                         ) : v._isLive ? (
@@ -1327,9 +1327,9 @@ function LiveGamesFeed({
                         <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data — Intelligence Engines Are Syncing</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data - Intelligence Engines Are Syncing</div>
                         <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
-                            Live scrapers are temporarily offline. Showing last-known game data — no information has been lost.
+                            Live scrapers are temporarily offline. Showing last-known game data - no information has been lost.
                         </div>
                     </div>
                     <button
