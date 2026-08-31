@@ -485,8 +485,6 @@ export function useSandboxAnalysis() {
           nodeLockApplied: data.nodeLockApplied === true,
           nodeLocks: data.nodeLocks || [],
           nodeLockModelVersion: data.nodeLockModelVersion || null,
-          baselineEv: data.baselineEv || null,
-          baselineActions: data.baselineActions || null,
           street: data.street,
           context: data.context,
           // Caller intent belongs to this exact response. Keeping it on the

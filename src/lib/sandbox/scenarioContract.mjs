@@ -15,6 +15,15 @@ const STREETS = ['preflop', 'flop', 'turn', 'river'];
 const GAME_TYPES = new Set(['cash', 'tournament']);
 const NODE_LOCKS = new Set(['None', 'Overfold', 'CallingStation', 'Maniac']);
 const ACTION_RE = /^(?:f|fold|x|check|c|call|r|raise|allin|push|b\d+|bet_\d+|raise_\d+)$/;
+const ARCHETYPE_NAMES = {
+  nit: 'Nit', tag: 'TAG', lag: 'LAG', fish: 'Fish',
+  calling_station: 'Calling Station', maniac: 'Maniac', gto_neutral: 'GTO Neutral',
+};
+const ARCHETYPE_ALIASES = {
+  tight_passive: 'nit', loose_passive: 'calling_station', tight_aggressive: 'tag',
+  loose_aggressive: 'lag', over_bluffer: 'maniac', under_bluffer: 'nit',
+  fit_or_fold: 'fish', icm_scared: 'nit', icm_pressure: 'lag',
+};
 
 function issue(path, code, message) {
   return { path, code, message };
@@ -83,11 +92,33 @@ function normalizeBoard(rawBoard, issues) {
   return { flop, turn, river };
 }
 
-function normalizeArchetype(raw) {
-  if (!raw || typeof raw !== 'object') return { id: 'gto_neutral', name: 'GTO Neutral' };
-  const id = String(raw.id || 'gto_neutral').trim().slice(0, 64) || 'gto_neutral';
-  const name = String(raw.name || id.replace(/_/g, ' ')).trim().slice(0, 96);
-  return { id, name };
+function normalizeArchetype(raw, path, issues) {
+  const requested = String(raw?.id || 'gto_neutral').trim().toLowerCase();
+  const id = ARCHETYPE_NAMES[requested] ? requested : ARCHETYPE_ALIASES[requested];
+  if (!id) {
+    issues.push(issue(path, 'invalid_archetype', 'Villain archetype is not supported.'));
+    return { id: 'gto_neutral', name: ARCHETYPE_NAMES.gto_neutral };
+  }
+  // Display names are server-owned. A client-supplied name must never become
+  // prompt instructions or persisted analysis copy.
+  return { id, name: ARCHETYPE_NAMES[id] };
+}
+
+function normalizeRange(value, path, issues) {
+  const source = String(value || '').trim();
+  if (!source) return '';
+  if (source.length > 500) {
+    issues.push(issue(path, 'range_too_long', 'Poker range notation must be no more than 500 characters.'));
+    return '';
+  }
+  const combo = '[2-9TJQKA]{2}[so]?';
+  const tokenRe = new RegExp(`^(?:${combo}\\+?|${combo}-${combo})$`, 'i');
+  const tokens = source.split(/[,;\n]+/).map(token => token.trim().replace(/10/gi, 'T')).filter(Boolean);
+  if (tokens.length === 0 || tokens.some(token => !tokenRe.test(token))) {
+    issues.push(issue(path, 'invalid_range', 'Poker range must use notation such as AA, AKs, AKo, 22+, or A5s-A2s.'));
+    return '';
+  }
+  return tokens.join(',');
 }
 
 function normalizeVillains(rawVillains, issues, topLevelNodeLock) {
@@ -103,12 +134,12 @@ function normalizeVillains(rawVillains, issues, topLevelNodeLock) {
     if (!NODE_LOCKS.has(nodeLock)) {
       issues.push(issue(`villains[${index}].nodeLock`, 'invalid_node_lock', 'Unsupported node-lock profile.'));
     }
-    const range = typeof source.range === 'string' ? source.range.trim().slice(0, 500) : '';
+    const range = normalizeRange(source.range, `villains[${index}].range`, issues);
     return {
       id: source.id == null ? index : String(source.id).slice(0, 64),
       position: position(source.position, `villains[${index}].position`, issues),
       stack: finiteNumber(source.stack, { min: 1, max: 10000, path: `villains[${index}].stack`, issues }),
-      archetype: normalizeArchetype(source.archetype),
+      archetype: normalizeArchetype(source.archetype, `villains[${index}].archetype`, issues),
       range,
       nodeLock: NODE_LOCKS.has(nodeLock) ? nodeLock : 'None',
     };
@@ -121,7 +152,115 @@ function normalizeActionId(value, path, issues) {
     issues.push(issue(path, 'invalid_action', `${path} is not a supported poker action.`));
     return null;
   }
+  const sized = normalized.match(/^(?:b|bet_|raise_)(\d+)$/);
+  if (sized && (Number(sized[1]) < 1 || Number(sized[1]) > 1000)) {
+    issues.push(issue(path, 'invalid_action_size', `${path} sizing must be between 1% and 1000%.`));
+    return null;
+  }
   return normalized;
+}
+
+function canonicalActionLabel(action) {
+  if (action === 'f' || action === 'fold') return 'Fold';
+  if (action === 'x' || action === 'check') return 'Check';
+  if (action === 'c') return 'Check/Call';
+  if (action === 'call') return 'Call';
+  if (action === 'r' || action === 'raise') return 'Raise';
+  if (action === 'allin' || action === 'push') return 'All-In';
+  const sized = String(action || '').match(/^(b|bet_|raise_)(\d+)$/);
+  if (sized) return `${sized[1] === 'raise_' ? 'Raise' : 'Bet'} ${sized[2]}%`;
+  return 'Action';
+}
+
+function actionKind(action, hasOutstandingWager) {
+  if (action === 'f' || action === 'fold') return 'fold';
+  if (action === 'x' || action === 'check') return 'check';
+  if (action === 'c') return hasOutstandingWager ? 'call' : 'check';
+  if (action === 'call') return 'call';
+  if (action === 'r' || action === 'raise' || String(action || '').startsWith('raise_')) return 'raise';
+  if (action === 'allin' || action === 'push') return 'allin';
+  if (/^(?:b\d+|bet_\d+)$/.test(String(action || ''))) return 'bet';
+  return 'unknown';
+}
+
+function analyzeActionLine(scenario, issues = null) {
+  const entries = scenario?.actionHistory || [];
+  const heroPosition = scenario?.heroPosition;
+  const availableStreet = scenario?.board?.river ? 3 : scenario?.board?.turn ? 2 : scenario?.board?.flop?.length === 3 ? 1 : 0;
+  const allSeats = [heroPosition, ...(scenario?.villains || []).map(villain => villain.position)].filter(Boolean);
+  const folded = new Set();
+  let street = null;
+  let pending = new Set();
+  let checked = new Set();
+  let closed = false;
+  let hadActions = false;
+
+  const report = (path, code, message) => { if (issues) issues.push(issue(path, code, message)); };
+  const activeSeats = () => allSeats.filter(seat => !folded.has(seat));
+
+  entries.forEach((entry, index) => {
+    const streetIndex = STREETS.indexOf(entry.street);
+    if (streetIndex > availableStreet) {
+      report(`actionHistory[${index}].street`, 'street_not_dealt', 'An action cannot occur on a street that has not been dealt.');
+    }
+    if (entry.street !== street) {
+      if (street !== null && hadActions && !closed) {
+        report(`actionHistory[${index}].street`, 'street_advanced_before_close', 'The previous betting round is still open.');
+      }
+      street = entry.street;
+      pending = new Set();
+      checked = new Set();
+      closed = false;
+      hadActions = false;
+    }
+
+    const path = `actionHistory[${index}]`;
+    const actor = entry.position;
+    const hasOutstandingWager = pending.size > 0;
+    const kind = actionKind(entry.action, hasOutstandingWager);
+    const activeBefore = activeSeats();
+
+    if (closed) report(path, 'round_closed', 'No action may follow a closed betting round on the same street.');
+    if (actor && folded.has(actor)) report(`${path}.position`, 'folded_actor', 'A folded player cannot act again.');
+
+    if (hasOutstandingWager) {
+      if (actor && !pending.has(actor)) report(`${path}.position`, 'actor_not_pending', 'This player has no action pending.');
+      if (kind === 'check') report(`${path}.action`, 'check_facing_wager', 'A player facing a wager cannot check.');
+      if (kind === 'bet') report(`${path}.action`, 'bet_facing_wager', 'A player facing a wager must raise rather than bet.');
+
+      if (kind === 'fold') {
+        folded.add(actor);
+        pending.delete(actor);
+      } else if (kind === 'call') {
+        pending.delete(actor);
+      } else if (kind === 'raise' || kind === 'allin') {
+        pending = new Set(activeBefore.filter(seat => seat !== actor));
+      }
+      if ((kind === 'fold' || kind === 'call') && pending.size === 0) closed = true;
+    } else {
+      const preflop = entry.street === 'preflop';
+      if (!preflop && kind === 'call') report(`${path}.action`, 'call_without_wager', 'A postflop call requires an outstanding wager.');
+      if (!preflop && kind === 'fold') report(`${path}.action`, 'fold_without_wager', 'A postflop fold requires an outstanding wager.');
+      if (!preflop && kind === 'raise') report(`${path}.action`, 'raise_without_wager', 'An unopened postflop pot must be bet rather than raised.');
+
+      if (kind === 'fold') folded.add(actor);
+      else if (kind === 'bet' || kind === 'raise' || kind === 'allin') {
+        pending = new Set(activeBefore.filter(seat => seat !== actor));
+      } else if (kind === 'check' || (preflop && kind === 'call')) {
+        checked.add(actor);
+        if (activeBefore.length > 0 && activeBefore.every(seat => checked.has(seat))) closed = true;
+      }
+    }
+
+    if (activeSeats().length <= 1) closed = true;
+    hadActions = true;
+  });
+
+  return { street, pending, closed, heroFacingWager: !closed && pending.has(heroPosition) };
+}
+
+export function isHeroFacingWager(scenario) {
+  return analyzeActionLine(scenario).heroFacingWager;
 }
 
 export function normalizeActionHistory(rawHistory, { issues = [] } = {}) {
@@ -147,7 +286,10 @@ export function normalizeActionHistory(rawHistory, { issues = [] } = {}) {
     return {
       position: actorPosition,
       action,
-      label: String(source.label || source.action || '').trim().slice(0, 80),
+      // Labels are presentation only and therefore server-owned. Accepting a
+      // caller's prose here would feed arbitrary instructions into the model
+      // through buildDecisionLine().
+      label: canonicalActionLabel(action),
       street: streetIndex >= 0 ? street : null,
       isHero: source.isHero === true,
       isVillain: source.isVillain === true,
@@ -199,6 +341,11 @@ export function validateAndNormalizeScenario(input) {
   if (source.socratic?.userPick != null && source.socratic.userPick !== '') {
     socratic = { userPick: normalizeActionId(source.socratic.userPick, 'socratic.userPick', issues) };
   }
+  const villainArchetype = normalizeArchetype(
+    { id: source.villainArchetype || villains[0]?.archetype?.id || 'gto_neutral' },
+    'villainArchetype', issues,
+  ).id;
+  const villainRange = normalizeRange(source.villainRange || villains[0]?.range || '', 'villainRange', issues);
 
   const occupied = new Set();
   for (const [path, seat] of [['heroPosition', heroPosition], ...villains.map((villain, index) => [`villains[${index}].position`, villain.position])]) {
@@ -221,22 +368,15 @@ export function validateAndNormalizeScenario(input) {
     if (entry.isHero && entry.position !== heroPosition) {
       issues.push(issue(`actionHistory[${index}].isHero`, 'hero_position_mismatch', 'Hero action position does not match heroPosition.'));
     }
+    if (entry.isHero && entry.isVillain) {
+      issues.push(issue(`actionHistory[${index}]`, 'conflicting_actor_role', 'An action cannot belong to both hero and villain.'));
+    }
+    if (entry.isVillain && entry.position === heroPosition) {
+      issues.push(issue(`actionHistory[${index}].isVillain`, 'villain_position_mismatch', 'Villain action position cannot match heroPosition.'));
+    }
   });
 
-  const foldedPositions = new Set();
-  const villainPositions = villains.map(villain => villain.position).filter(Boolean);
-  actionHistory.forEach((entry, index) => {
-    const heroFolded = heroPosition ? foldedPositions.has(heroPosition) : false;
-    const everyVillainFolded = villainPositions.length > 0
-      && villainPositions.every(seat => foldedPositions.has(seat));
-    if (heroFolded || everyVillainFolded) {
-      issues.push(issue(`actionHistory[${index}]`, 'terminal_action_followed', 'No action may follow the end of the hand.'));
-    }
-    if (entry.position && foldedPositions.has(entry.position)) {
-      issues.push(issue(`actionHistory[${index}].position`, 'folded_actor', 'A folded player cannot act again.'));
-    }
-    if (entry.action === 'f' || entry.action === 'fold') foldedPositions.add(entry.position);
-  });
+  analyzeActionLine({ heroPosition, villains, board, actionHistory }, issues);
 
   if (issues.length > 0) throw new ScenarioValidationError(issues);
 
@@ -252,8 +392,8 @@ export function validateAndNormalizeScenario(input) {
     actionHistory,
     betSizing,
     exploitMode: ['gto', 'exploit'].includes(exploitMode) ? exploitMode : 'gto',
-    villainArchetype: String(source.villainArchetype || villains[0]?.archetype?.id || 'gto_neutral').slice(0, 64),
-    villainRange: String(source.villainRange || villains[0]?.range || '').trim().slice(0, 500),
+    villainArchetype,
+    villainRange,
     bubbleFactor,
     socratic,
   };
@@ -359,8 +499,6 @@ export function applyNodeLockModel(analysis, locks, { facingBet = false } = {}) 
     isMixed: actions.filter(action => action.frequency >= 5).length > 1,
     ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
     rangeHeatmap: null,
-    baselineEv: analysis.ev || null,
-    baselineActions: analysis.actions,
     nodeLockApplied: true,
     nodeLocks: active,
     nodeLockModelVersion: NODE_LOCK_MODEL_VERSION,

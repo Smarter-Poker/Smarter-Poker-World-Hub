@@ -41,6 +41,9 @@ import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
   safeStorage, usePrefersReducedMotion, useAbortableFetch, isAbortError,
 } from '../../../src/components/sandbox/paKit';
+import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
+import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
+import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import toolStyles from '../../../src/styles/worlds/PersonalAssistantTools.module.css';
 import {
   dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
@@ -57,18 +60,10 @@ const SessionAnalytics = dynamic(
   () => import('../../../src/components/sandbox/SessionAnalytics'),
   { ssr: false, loading: () => <PanelSkeleton label="Loading session analytics" /> },
 );
-const CoachLeaderboard = dynamic(
-  () => import('../../../src/components/sandbox/CoachLeaderboard'),
-  { ssr: false, loading: () => <PanelSkeleton label="Loading leaderboard" /> },
-);
-const MacroLeakDetector = dynamic(
-  () => import('../../../src/components/sandbox/MacroLeakDetector'),
-  { ssr: false, loading: () => <PanelSkeleton label="Loading macro leak detector" /> },
-);
-const LeakHeatmap = dynamic(
-  () => import('../../../src/components/sandbox/LeakHeatmap'),
-  { ssr: false, loading: () => <PanelSkeleton label="Loading leak heatmap" /> },
-);
+// These three command cards stay in the route bundle. When they were separate
+// chunks, slow account API requests could occupy every browser connection and
+// strand the Insights tab on skeletons for several seconds. They are small,
+// and their own data requests still run only after the Insights tab mounts.
 
 // The review drill is the existing sandbox drill loop — never a second drill UI.
 // It is only ever mounted after a tap, so it stays off the first paint.
