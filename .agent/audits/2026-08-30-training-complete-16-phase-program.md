@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-3 Complete; Phase 4 In Progress
+Status: Phases 1-4 Complete; Phase 5 In Progress
 
 ## Objective
 
@@ -250,3 +250,36 @@ None. Phase 2 may begin from the published `09eb5bdf` production baseline.
 ## Phase 2 Remaining Exit Items
 
 None. Phase 3 begins from the published `9bee6d20` production baseline.
+
+## Phase 4 Evidence
+
+- Implementation PR #1065 merged as
+  `932e62a503ac5e1a3f2318555ca12382682b2b00`; protected truth, provenance,
+  runtime, and release-gate PR #1151 merged as
+  `12720a8152472cf4868936cd52caa4fe89b281f6`.
+- The authoritative truth ledger covers 107 games, 1,284 game-level cells,
+  5,895 compatible cache questions, 4,244 generated questions, and 101,390
+  passing truth assertions with zero failures.
+- The warehouse ledger covers 516,973 rows. It separates 409,307 structurally
+  reusable matrices from 107,666 replacements and explicitly records zero
+  provenance-complete exact-runtime rows. River has 169,401 reusable matrices
+  and 20,278 replacements; reuse never implies exact node certification.
+- The protected production writer requires complete validated v2 provenance
+  for new or materially changed artifacts. Historical rows remain unverified.
+- The complete 192-route and 428-surface desktop/mobile Training matrices pass,
+  including all 107 games, both play and arena routes, 174 Club Arena poker
+  surfaces, 40 psychology surfaces, four-answer contracts, explicit verdicts,
+  and persistent manual Next.
+- Independently authenticated live desktop and mobile certifications pass on
+  healthy descendant production build `e16e5e73`: direct login has zero
+  hydration errors; the Hub has 107 cards, zero scanlines, no broken images or
+  overflow; `cash-001`, `adv-011`, `quiz-gauntlet`, and `psy-001` expose the
+  correct runtime UI and four answers; and feedback persists until manual Next.
+- M1 and M2 remain explicitly unsafe to restart or retarget. M1 is alive but
+  idle on an exhausted legacy manifest; M2 is offline on revoked credentials.
+  Neither is credited with current Training-exact output.
+- The approved global header was not changed.
+
+## Phase 4 Remaining Exit Items
+
+None. Phase 5 begins with the published Phase 4 truth and provenance baseline.
