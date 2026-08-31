@@ -122,10 +122,10 @@ test('the complete audit is bounded, efficient, and visibly progressive', () => 
   assert.ok(detectApi.indexOf('if (clubArenaSync?.auditCursor)') < detectApi.indexOf('const solverEvidence = await getSolverTrainingEvidence'));
   assert.match(leakApi, /Promise\.all\(\[\s*readPaged/);
   assert.match(leakApi, /Server-Timing/);
-  assert.match(hooks, /runLeakAuditBatches/);
+  assert.match(hooks, /\/api\/assistant\/leaks\/audit-jobs/);
   assert.match(hooks, /setDetectionProgress/);
   assert.match(leakPage, /Hands Scanned/);
   assert.match(leakPage, /Club Hands Scanned/);
   assert.match(leakPage, /Decisions Checked/);
-  assert.doesNotMatch(leakPage, /it will finish in the background/);
+  assert.match(leakPage, /safely leave this page/i);
 });
