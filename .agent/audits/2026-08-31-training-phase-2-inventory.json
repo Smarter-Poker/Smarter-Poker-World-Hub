@@ -17,7 +17,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 8,
-    "tests": 25,
+    "tests": 26,
     "markerCandidates": 315,
     "possibleUnwiredFunctions": 342,
     "routeStateCells": 752,
@@ -76732,6 +76732,7 @@
     "__tests__/training-card-visual-contract.test.mjs",
     "__tests__/training-casino-realism-catalog.test.mjs",
     "__tests__/training-community-phase-11.test.mjs",
+    "__tests__/training-hub-media-audit.test.mjs",
     "__tests__/training-intelligence-phase-10.test.mjs",
     "__tests__/training-learning-journey-phase-9.test.mjs",
     "__tests__/training-phase-2-adversarial.test.mjs",
@@ -102555,6 +102556,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs"
       ]
@@ -111398,6 +111400,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js",
           "src/components/training/GameCard.jsx",
           "src/components/training/LevelSelector.tsx",
@@ -112187,7 +112190,6 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js",
           "src/components/training/GameCard.jsx"
         ]
@@ -119559,6 +119561,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js",
           "src/components/training/GameCard.jsx",
           "src/components/training/LevelSelector.tsx",
@@ -120348,7 +120351,6 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/training.js",
           "pages/hub/training/category/[categoryId].js",
           "src/components/training/GameCard.jsx"
         ]

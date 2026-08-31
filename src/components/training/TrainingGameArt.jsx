@@ -8,6 +8,9 @@ export default function TrainingGameArt({
   loading = 'lazy',
   fetchPriority,
 }) {
+  // Keep the shared caller contract without forwarding this hydration-sensitive
+  // hint to the underlying image. Eager loading remains controlled by `loading`.
+  void fetchPriority;
   const sources = getGameImageSources(gameId);
   return (
     <picture>
@@ -20,7 +23,6 @@ export default function TrainingGameArt({
         sizes={sizes}
         loading={loading}
         decoding="async"
-        fetchpriority={fetchPriority}
       />
     </picture>
   );

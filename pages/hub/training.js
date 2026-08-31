@@ -40,11 +40,11 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
-import { getGameImage } from '../../src/data/GAME_IMAGES';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
+import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
@@ -62,17 +62,6 @@ const CATEGORY_META = {
 };
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
-
-// Category art keeps every catalog card visually complete when a legacy
-// game-specific filename is absent. Never collapse a failed image into an
-// empty black panel.
-const CATEGORY_FALLBACK_IMAGES = {
-  MTT: '/images/training/mtt_game_card_art.png',
-  CASH: '/images/training/cash_game_card_art_1768471965279.png',
-  SPINS: '/images/training/spins_game_card_art_1768471979905.png',
-  PSYCHOLOGY: '/images/training/psychology_game_card_art_1768471994579.png',
-  ADVANCED: '/images/training/advanced_game_card_art_1768472009165.png',
-};
 
 export default function TrainingPage() {
   const router = useRouter();
@@ -487,19 +476,16 @@ export default function TrainingPage() {
 
 function DrillCard({ game }) {
   if (!game) return null;
-  const imageUrl = getGameImage(game.id);
   // Render tags only for fields the recommendation/library actually provides.
   const formatTag = [game.format, game.stack].filter(Boolean).join(' · ');
   return (
     <div className="sp-drill-card" role="group" aria-label="Today's recommended drill">
       <div className="sp-drill-cover" aria-hidden>
-        <img
-          src={imageUrl}
-          alt=""
+        <TrainingGameArt
+          gameId={game.id}
           loading="eager"
-          decoding="async"
+          sizes="(max-width: 720px) 92vw, 128px"
           className="sp-drill-cover-img"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
         <Target size={22} className="sp-drill-cover-icon" />
       </div>
@@ -653,8 +639,6 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
               : progress >= 100 ? 'mastered'
               : progress === 0  ? 'new'
               : null;
-  const imageUrl = getGameImage(game.id);
-  const fallbackImage = CATEGORY_FALLBACK_IMAGES[game.category] || CATEGORY_FALLBACK_IMAGES.MTT;
   return (
     <button
       className="sp-card"
@@ -664,27 +648,26 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
       aria-label={`${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
     >
       <div className="sp-card-cover">
-        {/* Real game image — preserved from GAME_IMAGES.js */}
-        <img
-          src={imageUrl}
-          alt=""
+        <TrainingGameArt
+          gameId={game.id}
           loading="lazy"
-          decoding="async"
+          sizes="(max-width: 540px) calc(100vw - 24px), (max-width: 1000px) 46vw, 420px"
           className="sp-card-cover-img"
-          onError={(e) => {
-            if (e.currentTarget.src.endsWith(fallbackImage)) return;
-            e.currentTarget.src = fallbackImage;
-          }}
         />
         {/* Shared Smarter.Poker art direction turns every unique game image into
             one coherent dimensional training-console surface. */}
         <div className="sp-card-cover-shade" aria-hidden />
-        <img
-          src="/images/training/training-card-hud-overlay.png"
-          alt=""
-          aria-hidden="true"
-          className="sp-card-hud"
-        />
+        <picture aria-hidden="true">
+          <source type="image/avif" srcSet="/images/training/training-card-hud-overlay.avif" />
+          <source type="image/webp" srcSet="/images/training/training-card-hud-overlay.webp" />
+          <img
+            src="/images/training/training-card-hud-overlay.png"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="sp-card-hud"
+          />
+        </picture>
         <div className="sp-card-badges">
           {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For You</span>}
           {tag === 'mastered'    && <span className="sp-badge sp-badge-mastered"><Check size={11} aria-hidden /> Mastered</span>}
@@ -1239,7 +1222,11 @@ function GlobalStyle() {
         background:
           linear-gradient(90deg, rgba(0,5,13,.98) 0%, rgba(0,7,18,.92) 31%, rgba(0,8,23,.28) 58%, rgba(0,7,18,.10) 100%),
           linear-gradient(0deg, rgba(0,7,16,.78), transparent 42%),
-          url('/images/training/training-orb-hero.png') 62% center / cover no-repeat;
+          image-set(
+            url('/images/training/training-orb-hero.avif') type('image/avif'),
+            url('/images/training/training-orb-hero.webp') type('image/webp'),
+            url('/images/training/training-orb-hero.png') type('image/png')
+          ) 62% center / cover no-repeat;
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,.48),
           inset 0 -2px 0 rgba(27,183,255,.65),
@@ -1555,7 +1542,11 @@ function GlobalStyle() {
           padding: 252px 16px 18px;
           background:
             linear-gradient(180deg, rgba(0, 5, 13, .04) 0, rgba(0, 7, 17, .08) 29%, rgba(0, 8, 18, .82) 42%, rgba(2, 10, 18, .98) 54%, #020a12 100%),
-            url('/images/training/training-orb-hero.png') 67% top / auto 360px no-repeat,
+            image-set(
+              url('/images/training/training-orb-hero.avif') type('image/avif'),
+              url('/images/training/training-orb-hero.webp') type('image/webp'),
+              url('/images/training/training-orb-hero.png') type('image/png')
+            ) 67% top / auto 360px no-repeat,
             #020a12;
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.4),
