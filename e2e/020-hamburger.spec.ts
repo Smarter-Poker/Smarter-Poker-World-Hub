@@ -202,7 +202,7 @@ const WORLDS: WorldCase[] = [
     id: 'poker-near-me',
     label: 'Poker Near Me',
     path: '/hub/poker-near-me',
-    accent: '#f4f7fb',
+    accent: '#38bdf8',
     expectedActiveHref: '/hub/poker-near-me/lobby',
     primary: items([
       ['/hub/poker-near-me/lobby', 'Nearby'],
