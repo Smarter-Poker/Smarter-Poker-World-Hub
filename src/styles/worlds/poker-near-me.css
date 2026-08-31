@@ -82,6 +82,7 @@ body.world-poker-near-me::after {
         linear-gradient(rgba(108, 138, 164, 0.035) 1px, transparent 1px),
         linear-gradient(90deg, rgba(108, 138, 164, 0.035) 1px, transparent 1px);
     background-size: 100% 100%, 48px 48px, 48px 48px;
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent 76%);
     mask-image: linear-gradient(to bottom, black, transparent 76%);
 }
 
@@ -243,6 +244,17 @@ body.world-poker-near-me :is(.pnm-subtitle, .hg-subtitle, .ec-subtitle, .dt-head
     letter-spacing: 0.08em !important;
     text-transform: uppercase;
 }
+
+/* WebKit can retain the hero heading's hit-test box beyond its painted flex
+   bounds while bringing the following tab strip into view. Keep the interactive
+   rail in its own layer and make display-only title glyphs transparent to hits. */
+body.world-poker-near-me .pnm-top-tabs {
+    position: relative;
+    z-index: 3;
+    isolation: isolate;
+}
+
+body.world-poker-near-me .pnm-title { pointer-events: none; }
 
 /* ─── Live operations rail: provenance and freshness, not decorative stats ─── */
 body.world-poker-near-me .pnm-status-rail {
@@ -764,6 +776,22 @@ body.world-poker-near-me :is(button, a):focus-visible {
     outline-offset: 3px;
 }
 
+/* Route changes happen without remounting the discovery application. This
+   visually-hidden live region keeps the current surface explicit for screen
+   readers, including browser Back/Forward restoration. */
+body.world-poker-near-me .pnm-route-announcer {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 body.world-poker-near-me :is(.pnm-top-tab.active, .ec-day-tab.active, .day-tab.active, .tours-view-btn.active) {
     color: var(--pnm-white) !important;
     border-color: rgba(47, 168, 255, 0.58) !important;
@@ -1119,6 +1147,7 @@ body.world-poker-near-me .pnm-deep-deck__scan {
     inset: 0;
     opacity: 0.2;
     background: repeating-linear-gradient(180deg, transparent 0 6px, rgba(115, 173, 214, 0.05) 7px);
+    -webkit-mask-image: linear-gradient(90deg, black, transparent 72%);
     mask-image: linear-gradient(90deg, black, transparent 72%);
 }
 
@@ -1383,5 +1412,92 @@ body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-m
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+/* High-contrast users keep the same hierarchy without depending on luminous
+   blue, translucent panels, background imagery, or box-shadow-only state. */
+@media (prefers-contrast: more) {
+    body.world-poker-near-me {
+        --pnm-muted: #c5d0da;
+        --pnm-hairline: rgba(220, 235, 247, 0.44);
+        --pnm-steel-dim: rgba(210, 228, 242, 0.56);
+        --pnm-blue-line: rgba(89, 194, 255, 0.86);
+    }
+
+    body.world-poker-near-me :is(
+        .pnm-family-nav, .pnm-status-rail, .pnm-filter-bar, .pnm-content,
+        .pnm-deep-deck, .pnm-location-card, .pnm-location-listing__state,
+        .entity-card, .venue-card, .tour-card, .tournament-card
+    ) {
+        border-color: rgba(220, 235, 247, 0.62) !important;
+    }
+
+    body.world-poker-near-me :is(button, a, input, select, textarea):focus-visible {
+        outline-width: 3px !important;
+        outline-offset: 3px !important;
+    }
+}
+
+@media (forced-colors: active) {
+    body.world-poker-near-me {
+        color: CanvasText !important;
+        background: Canvas !important;
+    }
+
+    body.world-poker-near-me::before,
+    body.world-poker-near-me::after,
+    body.world-poker-near-me .pnm-deep-deck__visual::after {
+        display: none !important;
+    }
+
+    body.world-poker-near-me :is(
+        .pnm-page, .hg-page, .ec-page, .dt-page, .venue-page, .tour-page,
+        .series-page, .hgs-page, .hgd-page, .pnm-location-listing,
+        .pnm-family-nav, .pnm-status-rail, .pnm-filter-bar, .pnm-content,
+        .pnm-deep-deck, .pnm-location-card, .pnm-location-listing__state,
+        .entity-card, .venue-card, .tour-card, .tournament-card,
+        .pnm-lobby-page, .lobby-search-wrap, .lobby-card-btn
+    ) {
+        color: CanvasText !important;
+        border-color: CanvasText !important;
+        background: Canvas !important;
+        background-image: none !important;
+        box-shadow: none !important;
+    }
+
+    body.world-poker-near-me :is(
+        .pnm-title, .hg-title, .ec-title, .lobby-title, .lobby-panel-title
+    ) {
+        color: CanvasText !important;
+        background: none !important;
+        -webkit-text-fill-color: CanvasText !important;
+        text-shadow: none !important;
+        filter: none !important;
+    }
+
+    body.world-poker-near-me :is(
+        .pnm-top-tab.active, .pnm-family-nav__link.is-active,
+        [aria-selected='true'], [aria-current='page'], [aria-pressed='true']
+    ) {
+        color: HighlightText !important;
+        border-color: Highlight !important;
+        background: Highlight !important;
+        box-shadow: none !important;
+        forced-color-adjust: none;
+    }
+
+    body.world-poker-near-me :is(button, a, input, select, textarea):focus-visible {
+        outline: 3px solid Highlight !important;
+        outline-offset: 3px !important;
+    }
+
+    body.world-poker-near-me :is(
+        .pnm-live-dot, .pnm-family-nav__live-dot, .pnm-status-rail__signal,
+        .pnm-map-coverage__signal span
+    ) {
+        border: 1px solid CanvasText !important;
+        background: CanvasText !important;
+        box-shadow: none !important;
     }
 }
