@@ -37,8 +37,8 @@ async function activateDiscoveryTab(page: Page, name: RegExp, browserName: strin
 test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening', () => {
   test.setTimeout(150_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(() => {
       localStorage.setItem('pnm_lobby_tutorial_seen', '1');
       localStorage.setItem('pnm_location_prompt_dismissed', '1');
       localStorage.removeItem('sp-filters-poker-near-me');
@@ -88,8 +88,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(Number.parseFloat(motion.transitionDuration)).toBeLessThanOrEqual(0.00001);
   });
 
-  test('representative inherited route families stay semantic and overflow-free at 390x844', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test('representative inherited route families stay semantic and overflow-free at 390x844', async ({ context }) => {
     for (const route of [
       '/hub/poker-near-me/map',
       '/hub/poker-near-me/in/nv',
@@ -98,22 +97,32 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       '/hub/poker-series',
       '/hub/events-calendar',
     ]) {
-      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+      // Each URL is an independent route-family audit. A fresh document avoids
+      // carrying a discovery page's intentionally delayed URL synchronizer into
+      // Playwright's synthetic `page.goto()` for the next family.
+      const routePage = await context.newPage();
+      await routePage.setViewportSize({ width: 390, height: 844 });
+      const response = await routePage.goto(route, { waitUntil: 'domcontentloaded' });
       expect(response?.status(), route).toBe(200);
-      await expect(page.locator('main')).toHaveCount(1);
-      await expectNoOverflow(page, route);
+      expect(new URL(routePage.url()).pathname, route).toBe(route);
+      await expect(routePage.locator('main')).toHaveCount(1);
+      await expectNoOverflow(routePage, route);
+      await routePage.close();
     }
 
     // The full-screen 3D lobby can schedule a same-URL recovery reload while
     // WebKit is compiling the next page in development. Audit it last so that
     // teardown cannot interrupt the following route's navigation.
-    const lobbyResponse = await page.goto('/hub/poker-near-me/lobby', {
+    const lobbyPage = await context.newPage();
+    await lobbyPage.setViewportSize({ width: 390, height: 844 });
+    const lobbyResponse = await lobbyPage.goto('/hub/poker-near-me/lobby', {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });
     expect(lobbyResponse?.status()).toBe(200);
-    await expect(page.locator('main')).toHaveCount(1);
-    await expectNoOverflow(page, '/hub/poker-near-me/lobby');
+    await expect(lobbyPage.locator('main')).toHaveCount(1);
+    await expectNoOverflow(lobbyPage, '/hub/poker-near-me/lobby');
+    await lobbyPage.close();
   });
 
   test('forced colors preserve visible selected and focus states', async ({ page, browserName }) => {
@@ -137,5 +146,56 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(colors.color).not.toBe(colors.background);
     expect(colors.outline).not.toBe('none');
     expect(Number.parseFloat(colors.outlineWidth)).toBeGreaterThanOrEqual(3);
+  });
+
+  test('mobile header and command selectors keep continuous contained borders', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
+    await waitForDiscovery(page);
+
+    const trigger = page.getByRole('button', { name: /Open Poker Near Me Command Menu/i });
+    await trigger.focus();
+    const triggerFocus = await trigger.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const ring = getComputedStyle(element, '::before');
+      const triggerBox = element.getBoundingClientRect();
+      return {
+        outline: style.outlineStyle,
+        ringContent: ring.content,
+        ringBorder: ring.borderTopWidth,
+        ringColor: ring.borderTopColor,
+        visualBottom: triggerBox.bottom - Number.parseFloat(ring.bottom),
+        headerBottom: document.querySelector('.approved-global-header')?.getBoundingClientRect().bottom || 0,
+      };
+    });
+    expect(triggerFocus.outline).toBe('none');
+    expect(triggerFocus.ringContent).not.toBe('none');
+    expect(triggerFocus.ringBorder).toBe('2px');
+    expect(triggerFocus.ringColor).toBe('rgb(54, 186, 255)');
+    expect(triggerFocus.visualBottom).toBeLessThanOrEqual(triggerFocus.headerBottom + 0.5);
+
+    await trigger.click();
+    const drawer = page.getByRole('dialog', { name: 'Poker Near Me Command Menu' });
+    await expect(drawer).toBeVisible();
+    const selected = drawer.locator(".sp-grid-tile[aria-current='page']");
+    await expect(selected).toHaveCount(1);
+    const frame = await selected.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const after = getComputedStyle(element, '::after');
+      return {
+        widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+        color: style.borderTopColor,
+        radius: style.borderRadius,
+        clipPath: style.clipPath,
+        decoration: after.content,
+      };
+    });
+    expect(new Set(frame.widths).size).toBe(1);
+    expect(frame.widths[0]).toBe('1px');
+    expect(frame.color).toBe('rgb(72, 199, 255)');
+    expect(frame.radius).toBe('3px');
+    expect(frame.clipPath).toBe('none');
+    expect(frame.decoration).toBe('none');
+    await expectNoOverflow(page, 'open Poker Near Me command menu');
   });
 });

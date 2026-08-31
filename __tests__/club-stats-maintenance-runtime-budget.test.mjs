@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const handler = readFileSync('pages/api/cron/club-stats-maintenance.js', 'utf8');
 const dispatcher = readFileSync('scripts/openclaw-cron-dispatcher.py', 'utf8');
+const cronHealth = readFileSync('src/lib/cronHealth.js', 'utf8');
 
 test('Stats maintenance finishes inside its Open Claw request deadline', () => {
   const drainBudget = Number(
@@ -39,5 +40,18 @@ test('Stats maintenance finishes inside its Open Claw request deadline', () => {
     /if \(Date\.now\(\) >= handlerDeadline - RESPONSE_RESERVE_SECONDS \* 1000\)/
   );
   assert.match(handler, /result\.budget_exhausted = true/);
+  assert.match(handler, /const workAbort = new AbortController\(\)/);
+  assert.match(handler, /admin\.rpc\(name, args\)\.abortSignal\(workAbort\.signal\)/);
+  assert.match(handler, /AbortSignal\.timeout\(RESPONSE_RESERVE_SECONDS \* 1000\)/);
+  assert.doesNotMatch(handler, /await admin\.rpc\(/);
   assert.doesNotMatch(handler, /Math\.max\(20, Math\.floor\(DRAIN_BUDGET_SECONDS/);
+});
+
+test('Cron health telemetry cannot outlive the dispatcher response budget', () => {
+  const telemetryTimeout = Number(
+    cronHealth.match(/const TELEMETRY_TIMEOUT_MS = (\d+);/)?.[1] ?? Number.NaN
+  );
+  assert.ok(Number.isFinite(telemetryTimeout), 'telemetry timeout must remain explicit');
+  assert.ok(telemetryTimeout <= 10000, 'telemetry may delay a cron response by at most 10 seconds');
+  assert.match(cronHealth, /\.abortSignal\(AbortSignal\.timeout\(TELEMETRY_TIMEOUT_MS\)\)/);
 });
