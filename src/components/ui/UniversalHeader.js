@@ -1305,8 +1305,8 @@ export default function UniversalHeader({
                     position: absolute !important;
                     box-sizing: border-box;
                     overflow: hidden;
-                    border: 1px solid rgba(0, 0, 0, .92);
-                    border-radius: 0;
+                    border: 0;
+                    border-radius: 50%;
                     background: #000;
                     contain: layout paint;
                     isolation: isolate;
@@ -1323,17 +1323,19 @@ export default function UniversalHeader({
 
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    inset: 1px !important;
+                    top: 50% !important;
+                    left: 50% !important;
                     z-index: 1;
                     display: block;
-                    width: auto;
+                    width: 72%;
                     height: auto;
-                    aspect-ratio: auto;
-                    transform: none !important;
+                    aspect-ratio: 1;
+                    transform: translate(-50%, -50%) !important;
                     overflow: hidden;
-                    border: 0;
-                    border-radius: 0;
-                    background: #000;
+                    box-sizing: border-box;
+                    border: 1px solid rgba(0, 0, 0, .94);
+                    border-radius: 50%;
+                    background: transparent;
                     pointer-events: none;
                 }
 
@@ -1347,9 +1349,9 @@ export default function UniversalHeader({
                     aspect-ratio: auto !important;
                     transform: none !important;
                     border: 0 !important;
-                    border-radius: 0 !important;
-                    background: #000;
-                    object-fit: contain !important;
+                    border-radius: 50% !important;
+                    background: transparent !important;
+                    object-fit: cover !important;
                     object-position: center !important;
                     opacity: 1 !important;
                     pointer-events: none;
