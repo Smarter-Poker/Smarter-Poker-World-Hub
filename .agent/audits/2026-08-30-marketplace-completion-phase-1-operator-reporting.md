@@ -250,3 +250,19 @@ The optimized production build passed with all 402 static pages after this
 change. Prices, Diamond burns, Stripe settlement, inventory grants,
 entitlements, commissions, database objects, and Printful behavior remain
 unchanged; automatic Printful fulfillment is still deliberately deferred.
+
+### Public Merchandise Cold-Read Closure — 2026-08-31
+
+The strict verifier against the published item-detail fix passed every page,
+asset, private authorization boundary, checkout capability, and readiness
+probe, but its first public `merch-catalog` request returned 500 after a slow
+cold database read. A direct retry returned the complete live catalog, proving
+the data and schema were intact while exposing a transient read gap.
+
+The public catalog now reads its bounded item and active-variant sets in
+parallel instead of paying two serial Supabase round trips. The read reuses the
+Marketplace readiness policy of at most two attempts with a short backoff;
+variant failures continue to degrade without taking down the base catalog.
+The Marketplace release gate now contains 192 contracts. This change affects
+only public display availability and does not relax the server-side price,
+stock, payment, or fulfillment authorities used at checkout.
