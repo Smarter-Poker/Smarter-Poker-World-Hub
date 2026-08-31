@@ -229,14 +229,22 @@ export default function HamburgerMenu({
   // ── Focus management ──────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      restoreFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
+      if (typeof document !== 'undefined') {
+        const activeElement = document.activeElement;
+        restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
+          ? activeElement
+          : document.querySelector('[data-world-menu-trigger="approved-header"]') || activeElement;
+      }
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
     }
     const prev = restoreFocusRef.current;
     restoreFocusRef.current = null;
-    if (prev && typeof prev.focus === 'function') {
-      try { prev.focus(); } catch (_) {}
+    const focusTarget = prev?.isConnected
+      ? prev
+      : document.querySelector('[data-world-menu-trigger="approved-header"]');
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      try { focusTarget.focus(); } catch (_) {}
     }
     setQuery('');
     setEditFavs(false);
@@ -642,6 +650,7 @@ export default function HamburgerMenu({
         return (
           <div
             key={key}
+            data-world-primary-commands={item.worldPrimary ? activeWorld?.id : undefined}
             style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${item.columns || 2}, minmax(0, 1fr))`,

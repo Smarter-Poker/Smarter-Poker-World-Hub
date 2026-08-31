@@ -78,14 +78,18 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /aspect-ratio: 1648 \/ 168/);
   assert.match(header, /approved-global-header__avatar/);
   assert.match(header, /src=\{displayAvatar \|\| '\/default-avatar\.png'\}/);
-  assert.match(header, /setFallbackMenuOpen\(true\)/);
+  assert.match(header, /setCommandMenuOpen\(true\)/);
+  assert.match(header, /onCommandMenuOpenChange\?\.\(nextOpen\)/);
+  assert.match(header, /isCommandMenuControlled/);
   assert.match(header, /setIsWalletOpen\(true\)/);
   assert.match(header, /router\.push\('\/hub\/vip-membership'\)/);
   assert.match(header, /router\.push\('\/hub\/messenger'\)/);
   assert.match(header, /openOverlay\('notifications'\)/);
 
+  assert.match(header, /`Open \$\{resolvedHeaderWorld\.label\} Command Menu`/);
+  assert.match(header, /: 'Open Menu'/);
+
   for (const label of [
-    'Open Menu',
     'Go back',
     'Go to the Hub',
     'My Profile',

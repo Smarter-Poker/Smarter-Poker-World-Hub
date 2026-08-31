@@ -116,10 +116,11 @@ export const createMenuItem = {
         type: 'section',
         label
     }),
-    grid: (items, columns = 2) => ({
+    grid: (items, columns = 2, opts = {}) => ({
         type: 'grid',
         items,
-        columns
+        columns,
+        ...opts
     })
 };
 
@@ -1400,7 +1401,8 @@ const worldPrimaryDeck = (world, existingItems = []) => {
                 icon: MenuIcons[item.icon] || MenuIcons.grid,
                 hardNav: item.hardNav || existingLinks.get(item.href)?.hardNav,
             })),
-            2
+            2,
+            { worldPrimary: true }
         ),
         createMenuItem.divider(),
     ];

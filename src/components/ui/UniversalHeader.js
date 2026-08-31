@@ -85,6 +85,8 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 export default function UniversalHeader({
   onMenuClick, // Callback for hamburger menu click
   onBackClick, // Override for back navigation
+  commandMenuOpen,
+  onCommandMenuOpenChange,
 }) {
   const router = useRouter();
   const [fallbackMenuOpen, setFallbackMenuOpen] = useState(false);
@@ -96,6 +98,14 @@ export default function UniversalHeader({
   // the canonical drawer directly. Other worlds keep their page-owned
   // handlers so contextual actions such as search and tutorials stay wired.
   const ownsCanonicalMenu = resolvedHeaderWorld?.id === 'social-media';
+  const isCommandMenuControlled = typeof commandMenuOpen === 'boolean';
+  const resolvedCommandMenuOpen = isCommandMenuControlled
+    ? commandMenuOpen
+    : fallbackMenuOpen;
+  const setCommandMenuOpen = (nextOpen) => {
+    if (!isCommandMenuControlled) setFallbackMenuOpen(nextOpen);
+    onCommandMenuOpenChange?.(nextOpen);
+  };
 
   // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
   // Parses localStorage once and returns the cached header object (or null if expired/missing).
@@ -1200,7 +1210,9 @@ export default function UniversalHeader({
                 .approved-global-header {
                     position: sticky;
                     top: 0;
-                    z-index: 100;
+                    /* Global navigation stays reachable above page-owned tours
+                       and modal scrims; the command drawer itself is 10100+. */
+                    z-index: 10050;
                     flex: 0 0 auto;
                     width: 100%;
                     box-sizing: border-box;
@@ -1330,8 +1342,8 @@ export default function UniversalHeader({
 
       {(!onMenuClick || ownsCanonicalMenu) && (
         <HamburgerMenu
-          isOpen={fallbackMenuOpen}
-          onClose={() => setFallbackMenuOpen(false)}
+          isOpen={resolvedCommandMenuOpen}
+          onClose={() => setCommandMenuOpen(false)}
           direction="left"
           theme="dark"
           user={user}
@@ -1361,9 +1373,11 @@ export default function UniversalHeader({
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()
-                : setFallbackMenuOpen(true)
+                : setCommandMenuOpen(true)
             )}
-            aria-label="Open Menu"
+            aria-label={resolvedHeaderWorld
+              ? `Open ${resolvedHeaderWorld.label} Command Menu`
+              : 'Open Menu'}
           />
           <button
             type="button"

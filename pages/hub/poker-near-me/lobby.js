@@ -2696,7 +2696,7 @@ export default function PokerNearMeLobby() {
         </div>
 
         {/* Universal header — back button is now inside the header */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10050, pointerEvents: 'none' }}>
           <div style={{ pointerEvents: 'auto' }}>
             <UniversalHeader
               pageDepth={2}

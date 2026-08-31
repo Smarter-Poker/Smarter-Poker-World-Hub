@@ -1,326 +1,331 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+// Every menu in this contract is public. Keep the spec independently runnable
+// in production verification jobs even when the shared authenticated setup is
+// unavailable; CI may still run its normal setup dependency for other specs.
+test.use({ storageState: { cookies: [], origins: [] } });
+test.beforeEach(() => test.setTimeout(60_000));
 
 /**
- * Hamburger menu end-to-end coverage.
+ * World Command Menu end-to-end contract.
  *
- * MENU-AUDIT.txt catalogued a whole class of dead menu items: a menu config
- * declares a handler (e.g. `setTimerEnabled`) that the page never passes, so the
- * toggle renders, looks interactive, and does absolutely nothing when clicked.
- * The "visibly changes state" test below is written to catch exactly that — a
- * dead toggle leaves `aria-checked` and the track colour untouched.
- *
- * The drawer's toggles are the only `role="switch"` elements in the app
- * (src/components/ui/HamburgerMenu.jsx), and they are inside a container that is
- * `visibility: hidden` while closed — so `getByRole('switch')` resolves to
- * exactly "the toggles of the currently open menu" with no CSS coupling.
+ * The old hamburger test covered three legacy drawers and preference toggles.
+ * World Hub navigation now has one route-aware command system for fourteen
+ * worlds. This suite intentionally owns the product law at the browser layer:
+ * one six-node trigger, one full-height dialog, and exactly six world-specific
+ * primary destinations. Horizontal three-bar menu marks are forbidden.
  */
 
-type MenuPage = {
-  /** Route under test. */
+type WorldCase = {
+  id: string;
+  label: string;
   path: string;
-  /** Menu config key in src/config/hamburgerMenus.js — for failure messages. */
-  worldKey: string;
-  /**
-   * Navigation entries the config promises, matched on href because that is the
-   * actual routing contract (and because a bare label like "All" also exists in
-   * the page body). Only hrefs unique to the drawer are listed.
-   */
-  expectedLinks: Array<{ href: string; label: string }>;
+  accent: string;
+  primary: Array<{ href: string; label: string }>;
 };
 
-const MENU_PAGES: MenuPage[] = [
+const items = (pairs: Array<[string, string]>): Array<{ href: string; label: string }> =>
+  pairs.map(([href, label]) => ({ href, label }));
+
+const WORLDS: WorldCase[] = [
   {
+    id: 'personal-assistant',
+    label: 'Personal Assistant',
+    path: '/hub/personal-assistant',
+    accent: '#4599ff',
+    primary: items([
+      ['/hub/personal-assistant', 'Coach'],
+      ['/hub/personal-assistant/sandbox', 'Sandbox'],
+      ['/hub/personal-assistant/leaks', 'Leaks'],
+      ['/hub/training', 'Train'],
+      ['/hub/preflop-charts', 'Charts'],
+      ['/hub/poker-tools', 'Odds'],
+    ]),
+  },
+  {
+    id: 'training',
+    label: 'Training Games',
+    path: '/hub/training',
+    accent: '#22e67a',
+    primary: items([
+      ['/hub/training', 'Library'],
+      ['/hub/training/play-mode', 'Play'],
+      ['/hub/training/daily-challenge', 'Daily'],
+      ['/hub/training/progress', 'Progress'],
+      ['/hub/training/challenges', 'Goals'],
+      ['/hub/training/leaderboard', 'Ranks'],
+    ]),
+  },
+  {
+    id: 'news',
+    label: 'Poker News',
     path: '/hub/news',
-    worldKey: 'news',
-    expectedLinks: [
-      { href: '/hub/news?tab=videos', label: 'Videos' },
-      { href: '/hub/news?filter=bookmarks', label: 'Bookmarks' },
-      { href: '/hub/news?filter=later', label: 'Read Later' },
-      { href: '/hub/news/sources', label: 'Manage Sources' },
-    ],
+    accent: '#ff7a1a',
+    primary: items([
+      ['/hub/news', 'Latest'],
+      ['/hub/news?tab=videos', 'Videos'],
+      ['/hub/news?tab=reels', 'Reels'],
+      ['/hub/news?tab=events', 'Events'],
+      ['/hub/news?filter=bookmarks', 'Saved'],
+      ['/hub/news/sources', 'Sources'],
+    ]),
   },
   {
-    path: '/hub/notifications',
-    worldKey: 'notifications',
-    expectedLinks: [
-      { href: '/hub/notifications?filter=mentions', label: 'Mentions' },
-      { href: '/hub/notifications?filter=friends', label: 'Friend Requests' },
-    ],
-  },
-  {
+    id: 'trivia',
+    label: 'Poker Trivia',
     path: '/hub/trivia',
-    worldKey: 'trivia',
-    expectedLinks: [
-      { href: '/hub/trivia?mode=daily', label: 'Daily Challenge' },
-      { href: '/hub/trivia/leaderboard', label: 'Leaderboard' },
-      { href: '/hub/trivia/achievements', label: 'Achievements' },
-    ],
+    accent: '#20d6ff',
+    primary: items([
+      ['/hub/trivia', 'Lobby'],
+      ['/hub/trivia/daily', 'Daily'],
+      ['/hub/trivia/arcade', 'Arcade'],
+      ['/hub/trivia/pvp', 'PvP'],
+      ['/hub/trivia/stats', 'Stats'],
+      ['/hub/trivia/leaderboard', 'Ranks'],
+    ]),
+  },
+  {
+    id: 'social-media',
+    label: 'Social Media',
+    path: '/hub/social-media',
+    accent: '#1877f2',
+    primary: items([
+      ['/hub/social-media', 'Feed'],
+      ['/hub/social-media/compose', 'Create'],
+      ['/hub/friends', 'Friends'],
+      ['/hub/messenger', 'Chat'],
+      ['/hub/reels', 'Reels'],
+      ['/hub/social-pages', 'Pages'],
+    ]),
+  },
+  {
+    id: 'diamond-arena',
+    label: 'Diamond Arena',
+    path: '/hub/diamond-arena',
+    accent: '#ffe34d',
+    primary: items([
+      ['/hub/diamond-arena', 'Arena'],
+      ['/hub/diamond-arena/schedule', 'Schedule'],
+      ['/hub/diamond-arena/leaderboard', 'Ranks'],
+      ['/hub/diamond-arena/stats', 'Stats'],
+      ['/hub/diamond-arena/history', 'History'],
+      ['/hub/diamond-store?category=diamonds', 'Store'],
+    ]),
+  },
+  {
+    id: 'my-clubs',
+    label: 'My Clubs',
+    path: '/hub/my-clubs',
+    accent: '#28c9ff',
+    primary: items([
+      ['/hub/my-clubs', 'Clubs'],
+      ['/hub/club-arena', 'Arena'],
+      ['/hub/social-pages', 'Pages'],
+      ['/hub/my-venues', 'Venues'],
+      ['/hub/home-games', 'Games'],
+      ['/hub', 'Hub'],
+    ]),
+  },
+  {
+    id: 'video-library',
+    label: 'Video Library',
+    path: '/hub/video-library',
+    accent: '#ff5b5b',
+    primary: items([
+      ['/hub/video-library', 'Videos'],
+      ['/hub/video-library?type=cash', 'Cash'],
+      ['/hub/video-library?type=tournament', 'Tourneys'],
+      ['/hub/video-library?filter=favorites', 'Saved'],
+      ['/hub/video-library?filter=history', 'History'],
+      ['/hub/video-library?filter=watchlater', 'Later'],
+    ]),
+  },
+  {
+    id: 'odds-calculator',
+    label: 'Odds Calculator',
+    path: '/hub/poker-tools',
+    accent: '#4e9cff',
+    primary: items([
+      ['/hub/poker-tools', 'Odds'],
+      ['/hub/training/equity-calculator', 'Equity'],
+      ['/hub/training/icm-calculator', 'ICM'],
+      ['/hub/preflop-charts', 'Preflop'],
+      ['/hub/training/hand-lab', 'Hand Lab'],
+      ['/hub', 'Hub'],
+    ]),
+  },
+  {
+    id: 'bankroll-manager',
+    label: 'Bankroll Manager',
+    path: '/hub/bankroll-manager',
+    accent: '#f15aff',
+    primary: items([
+      ['/hub/bankroll-manager?view=dashboard', 'Summary'],
+      ['/hub/bankroll-manager?view=log-session', 'Log'],
+      ['/hub/bankroll-manager?view=trips', 'Trips'],
+      ['/hub/bankroll-manager?view=reports', 'Reports'],
+      ['/hub/bankroll-manager?view=rules', 'Rules'],
+      ['/hub/bankroll-manager/export', 'Export'],
+    ]),
+  },
+  {
+    id: 'toke-tracker',
+    label: 'Toke Tracker',
+    path: '/hub/toke-tracker',
+    accent: '#ffb020',
+    primary: items([
+      ['/hub/toke-tracker', 'Tokes'],
+      ['/hub/toke-tracker/shift', 'Shift'],
+      ['/hub/toke-tracker/analytics', 'Stats'],
+      ['/hub/toke-tracker/vault', 'Vault'],
+      ['/hub/toke-tracker/vault?tab=tax', 'Taxes'],
+      ['/hub/toke-tracker/venues', 'Venues'],
+    ]),
+  },
+  {
+    id: 'preflop-charts',
+    label: 'Preflop Charts',
+    path: '/hub/preflop-charts',
+    accent: '#22e6e6',
+    primary: items([
+      ['/hub/preflop-charts', 'Charts'],
+      ['/hub/preflop-charts?mode=speed-drill', 'Speed'],
+      ['/hub/preflop-charts/stats', 'Stats'],
+      ['/hub/preflop-charts/leaderboard', 'Ranks'],
+      ['/hub/preflop-charts/achievements', 'Awards'],
+      ['/hub/preflop-charts/tutorial', 'Tutorial'],
+    ]),
+  },
+  {
+    id: 'poker-near-me',
+    label: 'Poker Near Me',
+    path: '/hub/poker-near-me',
+    accent: '#f4f7fb',
+    primary: items([
+      ['/hub/poker-near-me/lobby', 'Nearby'],
+      ['/hub/poker-near-me/venues', 'Venues'],
+      ['/hub/poker-near-me/events', 'Events'],
+      ['/hub/poker-near-me/live-games', 'Games'],
+      ['/hub/poker-near-me/map', 'Map'],
+      ['/hub/poker-near-me/saved', 'Saved'],
+    ]),
+  },
+  {
+    id: 'marketplace',
+    label: 'Marketplace',
+    path: '/hub/marketplace',
+    accent: '#ffd84a',
+    primary: items([
+      ['/hub/marketplace', 'Market'],
+      ['/hub/diamond-store', 'Diamonds'],
+      ['/hub/merch-store', 'Merch'],
+      ['/hub/club-shop', 'Clubs'],
+      ['/hub/vip-membership', 'VIP'],
+      ['/hub/diamond-store/orders', 'Orders'],
+    ]),
   },
 ];
 
-/**
- * Stored menu preferences (Supabase or localStorage) are fetched after mount and
- * re-render the drawer, so a baseline read taken immediately after opening can
- * be stale. Everything else in this spec uses polled assertions; only the
- * baseline snapshots need this settle window.
- */
-const PREFS_SETTLE_MS = 2_000;
-
-// Opening the drawer, flipping every toggle, reloading and restoring does not
-// fit the project-wide 30s budget. Raised per test rather than in the shared
-// config.
-test.beforeEach(() => {
-  test.setTimeout(90_000);
-});
-
-/** Marks the news intro video as already seen; it otherwise covers the viewport. */
-async function suppressIntro(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    try {
-      window.sessionStorage.setItem('news-intro-seen', 'true');
-    } catch {
-      /* storage unavailable */
-    }
-  });
-}
-
-async function visit(page: Page, path: string): Promise<void> {
-  await suppressIntro(page);
-  await page.goto(path, { waitUntil: 'commit' });
-  await page.waitForLoadState('domcontentloaded');
-  test.skip(
-    page.url().includes('/login'),
-    `${path} redirected to /login — no authenticated storageState available in this run`,
-  );
-  // Next.js error-boundary probes, same as the Hub landing spec.
+async function visitWorld(page: Page, world: WorldCase): Promise<void> {
+  if (world.id === 'news') {
+    await page.addInitScript(() => window.sessionStorage.setItem('news-intro-seen', 'true'));
+  }
+  await page.goto(world.path, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Unhandled Runtime Error', { exact: true })).toHaveCount(0);
 }
 
-const closeButton = (page: Page) => page.getByRole('button', { name: 'Close Menu' });
+async function openWorldMenu(
+  page: Page,
+  world: WorldCase
+): Promise<{ trigger: Locator; dialog: Locator }> {
+  const trigger = page.locator('[data-world-menu-trigger]');
+  await expect(trigger, `${world.label} must expose exactly one command trigger`).toHaveCount(1);
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toHaveAttribute('data-menu-symbol', 'command-grid');
+  await expect(trigger).toHaveAttribute(
+    'aria-label',
+    new RegExp(`Open ${world.label} Command Menu`, 'i')
+  );
 
-async function menuIsOpen(page: Page): Promise<boolean> {
-  return closeButton(page)
-    .waitFor({ state: 'visible', timeout: 2_000 })
-    .then(() => true)
-    .catch(() => false);
+  await trigger.click();
+  const dialog = page.locator(`[data-world-command-menu="${world.id}"]`);
+  await expect(dialog).toHaveCount(1);
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('role', 'dialog');
+  await expect(dialog).toHaveAttribute('aria-modal', 'true');
+  await expect(dialog).toHaveAttribute('data-menu-symbol', 'command-grid');
+  return { trigger, dialog };
 }
 
-/**
- * Opens the drawer. UniversalHeader owns the trigger, so several accessible
- * names are tried in turn; the open drawer's "Close Menu" button is the signal
- * that the right control was hit. Returns false when no trigger could be found,
- * so callers can skip instead of failing on an unrelated header change.
- */
-async function openHamburger(page: Page): Promise<boolean> {
-  // Immediate check (no wait) — the drawer is normally closed at this point.
-  if (await closeButton(page).isVisible().catch(() => false)) return true;
+for (const world of WORLDS) {
+  test(`${world.label} owns one premium six-command menu`, async ({ page }) => {
+    await visitWorld(page, world);
+    const { trigger, dialog } = await openWorldMenu(page, world);
 
-  const candidates = [
-    page.getByRole('button', { name: /^\s*(open\s+)?(menu|main menu|navigation)\s*$/i }),
-    page.getByRole('button', { name: /menu/i }),
-    page.locator('[aria-label*="menu" i]'),
-    page.locator('button[class*="hamburger" i], [data-testid*="menu" i]'),
-  ];
+    const primaryDeck = dialog.locator(`[data-world-primary-commands="${world.id}"]`);
+    await expect(primaryDeck).toHaveCount(1);
+    const primaryTiles = primaryDeck.locator('.sp-grid-tile');
+    await expect(primaryTiles, `${world.label} must render six primary commands`).toHaveCount(6);
 
-  const origin = page.url();
-  for (const candidate of candidates) {
-    const trigger = candidate.first();
-    if ((await trigger.count()) === 0) continue;
-    if (!(await trigger.isVisible().catch(() => false))) continue;
-
-    await trigger.click({ timeout: 5_000 }).catch(() => {
-      /* try the next candidate */
-    });
-    if (await menuIsOpen(page)) return true;
-
-    // A wrong guess may have navigated; get back before trying the next one.
-    if (page.url() !== origin) {
-      await page.goto(origin, { waitUntil: 'commit' });
-      await page.waitForLoadState('domcontentloaded');
+    for (const { href, label } of world.primary) {
+      const tile = primaryDeck.locator(`.sp-grid-tile[href="${href}"]`);
+      await expect(tile, `${world.label} is missing ${label} (${href})`).toHaveCount(1);
+      await expect(tile).toBeVisible();
+      await expect(tile).toContainText(label);
     }
-  }
-  return false;
-}
 
-async function requireOpenMenu(page: Page, worldKey: string): Promise<void> {
-  const opened = await openHamburger(page);
-  test.skip(!opened, `could not locate the hamburger trigger for the '${worldKey}' menu`);
-  await expect(closeButton(page)).toBeVisible();
-}
-
-/** Reads every toggle of the open drawer as { label, checked }, in DOM order. */
-async function readToggles(page: Page): Promise<Array<{ label: string; checked: boolean }>> {
-  const switches = page.getByRole('switch');
-  const count = await switches.count();
-  const out: Array<{ label: string; checked: boolean }> = [];
-  for (let i = 0; i < count; i += 1) {
-    const toggle = switches.nth(i);
-    // The switch's own row carries its <label>; reading it from the element
-    // avoids matching labels elsewhere on the page.
-    const label = await toggle.evaluate(
-      (el) => el.closest('div')?.querySelector('label')?.textContent?.trim() || '',
+    // The trigger and drawer use a six-node command grid. The legacy three-bar
+    // mark and its retired image assets must never appear in the live DOM.
+    if ((await trigger.getAttribute('data-world-menu-trigger')) === 'route-fallback') {
+      await expect(trigger.locator('i')).toHaveCount(6);
+    }
+    await expect(dialog.locator('.sp-command-grid-mark i')).toHaveCount(6);
+    await expect(page.locator('img[src*="hamburger" i], img[src*="btn-hamburger" i]')).toHaveCount(
+      0
     );
-    out.push({
-      label: (label || `toggle #${i + 1}`).replace(/\s+/g, ' ').trim(),
-      checked: (await toggle.getAttribute('aria-checked')) === 'true',
-    });
-  }
-  return out;
-}
 
-/** True when this run carries a real signed-in session. */
-async function isSignedIn(page: Page): Promise<boolean> {
-  return page.evaluate(() => {
-    try {
-      if (window.localStorage.getItem('sp-social-user')) return true;
-      for (let i = 0; i < window.localStorage.length; i += 1) {
-        const key = window.localStorage.key(i) || '';
-        if (/^sb-.*-auth-token$/.test(key) && window.localStorage.getItem(key)) return true;
-      }
-    } catch {
-      /* storage unavailable */
+    await expect
+      .poll(async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)))
+      .toBeLessThanOrEqual(1);
+
+    const metrics = await dialog.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        accent: style.getPropertyValue('--world-accent').trim().toLowerCase(),
+        height: rect.height,
+        width: rect.width,
+        x: rect.x,
+        y: rect.y,
+        viewportHeight: window.innerHeight,
+        viewportWidth: window.innerWidth,
+        documentOverflow:
+          document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        bodyOverflow: getComputedStyle(document.body).overflow,
+      };
+    });
+
+    expect(metrics.accent).toBe(world.accent);
+    expect(Math.abs(metrics.height - metrics.viewportHeight)).toBeLessThanOrEqual(1);
+    expect(metrics.width).toBeLessThanOrEqual(Math.min(400, metrics.viewportWidth) + 1);
+    expect(Math.abs(metrics.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.y)).toBeLessThanOrEqual(1);
+    expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+    expect(metrics.bodyOverflow).toBe('hidden');
+
+    if (world.id === 'social-media') {
+      const socialChrome = await dialog.locator('.sp-command-utility-rail').evaluate((element) => ({
+        background: getComputedStyle(element).backgroundImage,
+        title: getComputedStyle(element.querySelector('.sp-command-title') as Element).color,
+      }));
+      expect(socialChrome.background).toContain('rgb(255, 255, 255)');
+      expect(socialChrome.title).toBe('rgb(5, 5, 5)');
     }
-    return false;
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   });
 }
-
-for (const menu of MENU_PAGES) {
-  test.describe(`12. Hamburger Menu — ${menu.worldKey}`, () => {
-    test(`opens on ${menu.path}, shows its own items, and closes`, async ({ page }) => {
-      await visit(page, menu.path);
-      await requireOpenMenu(page, menu.worldKey);
-
-      // The right menu config is wired to this page (a wrong worldKey silently
-      // falls back to an empty menu — see MENU-AUDIT.txt).
-      for (const { href, label } of menu.expectedLinks) {
-        const link = page.locator(`a[href="${href}"]`).first();
-        await expect(
-          link,
-          `'${menu.worldKey}' menu is missing its '${label}' entry (${href})`,
-        ).toBeVisible();
-        await expect(link).toContainText(label);
-      }
-
-      await closeButton(page).click();
-      await expect(closeButton(page)).toBeHidden();
-      await expect(page.getByRole('switch')).toHaveCount(0);
-    });
-
-    test(`every toggle in the ${menu.worldKey} menu visibly changes state`, async ({ page }) => {
-      await visit(page, menu.path);
-      await requireOpenMenu(page, menu.worldKey);
-
-      const switches = page.getByRole('switch');
-      const count = await switches.count();
-      test.skip(count === 0, `the '${menu.worldKey}' menu declares no toggles`);
-
-      // Stored preferences load asynchronously and re-render the menu; read the
-      // baseline only once they have had a chance to land.
-      await page.waitForTimeout(PREFS_SETTLE_MS);
-      const before = await readToggles(page);
-
-      for (let i = 0; i < count; i += 1) {
-        const toggle = switches.nth(i);
-        const name = before[i]?.label || `toggle #${i + 1}`;
-        const wasChecked = before[i].checked;
-        const trackBefore = await toggle.evaluate((el) => getComputedStyle(el).backgroundColor);
-
-        await toggle.click();
-
-        // A menu item whose handler the page never passes is inert: aria-checked
-        // and the track colour both stay put. That is the audited bug.
-        await expect(toggle, `'${name}' did not change state when clicked`).toHaveAttribute(
-          'aria-checked',
-          String(!wasChecked),
-          { timeout: 10_000 },
-        );
-        const trackAfter = await toggle.evaluate((el) => getComputedStyle(el).backgroundColor);
-        expect(trackAfter, `'${name}' flipped but rendered no visible change`).not.toBe(
-          trackBefore,
-        );
-      }
-
-      // Put everything back so a rerun (and the real account) starts unchanged.
-      for (let i = 0; i < count; i += 1) {
-        await switches.nth(i).click();
-        await expect(switches.nth(i)).toHaveAttribute('aria-checked', String(before[i].checked), {
-          timeout: 10_000,
-        });
-      }
-    });
-
-    test(`${menu.worldKey} toggle states survive a reload`, async ({ page }) => {
-      await visit(page, menu.path);
-      test.skip(
-        !(await isSignedIn(page)),
-        'menu preferences are account-scoped — no signed-in session available in this run',
-      );
-      await requireOpenMenu(page, menu.worldKey);
-
-      const switches = page.getByRole('switch');
-      const count = await switches.count();
-      test.skip(count === 0, `the '${menu.worldKey}' menu declares no toggles`);
-
-      await page.waitForTimeout(PREFS_SETTLE_MS);
-      const before = await readToggles(page);
-      for (let i = 0; i < count; i += 1) {
-        await switches.nth(i).click();
-        await expect(switches.nth(i)).toHaveAttribute('aria-checked', String(!before[i].checked), {
-          timeout: 10_000,
-        });
-      }
-
-      // Give the preference write a moment to land before tearing the page down.
-      await page.waitForTimeout(PREFS_SETTLE_MS);
-      await page.reload({ waitUntil: 'commit' });
-      await page.waitForLoadState('domcontentloaded');
-      await requireOpenMenu(page, menu.worldKey);
-
-      await expect(switches, 'the menu lost toggles after a reload').toHaveCount(count);
-      for (let i = 0; i < count; i += 1) {
-        // Polled, because the stored preferences arrive after first paint.
-        await expect(
-          switches.nth(i),
-          `'${before[i].label}' did not survive the reload`,
-        ).toHaveAttribute('aria-checked', String(!before[i].checked), { timeout: 20_000 });
-      }
-
-      // Restore the account's original preferences.
-      for (let i = 0; i < count; i += 1) {
-        await switches.nth(i).click();
-        await expect(switches.nth(i)).toHaveAttribute('aria-checked', String(before[i].checked), {
-          timeout: 10_000,
-        });
-      }
-    });
-  });
-}
-
-test.describe('12. Hamburger Menu — News Deep Links', () => {
-  // The menu is the only way into these sections, so a broken link here is a
-  // section the reader can never reach.
-  const LINKS: Array<{ label: string; href: string; heading: RegExp }> = [
-    { label: 'Reels', href: '/hub/news?tab=reels', heading: /Poker Reels/i },
-    { label: 'Videos', href: '/hub/news?tab=videos', heading: /Poker Videos/i },
-    { label: 'Events', href: '/hub/news?tab=events', heading: /Upcoming Events/i },
-    { label: 'Bookmarks', href: '/hub/news?filter=bookmarks', heading: /Bookmarked Articles/i },
-    { label: 'Read Later', href: '/hub/news?filter=later', heading: /Read Later/i },
-  ];
-
-  for (const { label, href, heading } of LINKS) {
-    test(`'${label}' opens the matching news section`, async ({ page }) => {
-      await visit(page, '/hub/news');
-      await requireOpenMenu(page, 'news');
-
-      await page.locator(`a[href="${href}"]`).first().click();
-
-      const query = href.slice(href.indexOf('?') + 1);
-      await expect(page).toHaveURL(new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-      await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({
-        timeout: 25_000,
-      });
-      await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
-    });
-  }
-});
