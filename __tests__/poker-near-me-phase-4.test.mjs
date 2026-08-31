@@ -14,7 +14,8 @@ test('phase 4 location route hierarchy is present and server-backed', () => {
   ];
   routes.forEach((file) => assert.ok(fs.existsSync(path.join(root, file)), file));
   const helper = read('src/lib/poker-near-me/locationPages.js');
-  assert.match(helper, /api\/poker\/venues/);
+  assert.match(helper, /fetchVenueDirectoryResilient/);
+  assert.match(helper, /directorySnapshotData/);
   assert.match(helper, /stateSlugToCode/);
   const sitemap = read('pages/sitemap.xml.js');
   assert.match(sitemap, /buildPokerVenueUrls/);

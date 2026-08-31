@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useId, useMemo } from 'react';
 import { radiusToZoom, escapeHtml } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
-import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import { addPokerMapLayers, createPokerClusterOptions, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 import { appendPokerMapBounds, isVenueWithinPokerMapBounds, pokerMapBoundsFromLeaflet } from '../../lib/poker-near-me/mapBounds';
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
@@ -322,6 +322,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   // Geography-only signature — gates fitBounds independently of pin/popup content refreshes
   const fittedGeoSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState('');
+  const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
   const [clusteringAvailable, setClusteringAvailable] = useState(false);
   const [viewportCount, setViewportCount] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(userLocation ? 10 : 5);
@@ -359,6 +361,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   // Phase 1: Initialize the map ONCE
   useEffect(() => {
     mountedRef.current = true;
+    setMapError('');
 
     if (mapInstanceRef.current) return;
     if (!mapRef.current) return;
@@ -477,7 +480,10 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       if (container) container.addEventListener('click', popupClickHandlerRef.current);
     };
 
-    loadLeaflet().catch(err => console.warn('Failed to load map:', err));
+    loadLeaflet().catch(err => {
+      console.warn('Failed to load map:', err);
+      if (mountedRef.current) setMapError('The map engine could not be loaded. Venue lists remain available.');
+    });
 
     return () => {
       mountedRef.current = false;
@@ -491,7 +497,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       markersLayerRef.current = null;
       leafletRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapLoadAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Phase 2: Update markers whenever venues change — now with logo pins
   // `mapReady` is a dependency because Leaflet loads via async dynamic import: without it,
@@ -529,9 +535,12 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           // the marker cache when a room's live table count changed.
           v.is_running ? 1 : 0,
           (v.live_data && v.live_data.tables_running) || 0,
-          (v.live_data && Array.isArray(v.live_data.games) ? v.live_data.games.length : 0),
+          JSON.stringify((v.live_data && v.live_data.games) || []),
           (v.live_data && v.live_data.last_updated) || '',
-          v.logo_url || v.profile_photo_url || '',
+          v.logo_url || '', v.profile_photo_url || '', v.cover_photo_url || '', v.image_url || '',
+          v.name || '', v.city || '', v.state || '', v.address || '', v.phone || '',
+          v.trust_score || '', v.hours || '', v.hours_weekday || '', JSON.stringify(v.games_offered || []),
+          v.detailUrl || '', v.stop_name || '', v.dates || '', v.host_venue_name || '', v.host_venue_logo_url || '',
           v.is_social_page ? 1 : 0,
         ].join(':'))
         .sort()
@@ -776,6 +785,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       </p>
       <div
         ref={mapRef}
+        className="pnm-leaflet-map"
         role="region"
         aria-label="Poker venues map"
         aria-describedby={mapInstructionsId}
@@ -795,7 +805,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           background: '#060810',
         }}
       />
-      {!mapReady && (
+      {!mapReady && !mapError && (
         <div style={{
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
           justifyContent: 'center', color: 'rgba(255,255,255,0.6)',
@@ -803,6 +813,13 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           fontWeight: 600, letterSpacing: '1px',
         }}>
           LOADING MAP...
+        </div>
+      )}
+      {mapError && (
+        <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, textAlign: 'center', color: '#e2e8f0', background: '#060810', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 12 }}>
+          <strong>Map unavailable</strong>
+          <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: 13 }}>{mapError}</span>
+          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try map again</button>
         </div>
       )}
       <MapCoverageReadout
