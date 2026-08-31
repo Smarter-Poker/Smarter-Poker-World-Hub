@@ -307,7 +307,10 @@ async function handler(req, res) {
     }
 
     const payload = {
-      status: alerts.length === 0 ? 'ok' : 'attention',
+      // 2026-08-31: was 'attention', which violates
+      // probe_heartbeats_status_check (ok/failed/partial only) — so the sweep
+      // heartbeat silently failed exactly when it had something to say.
+      status: alerts.length === 0 ? 'ok' : 'partial',
       settled,
       failed,
       expired_unfilled: expired,
