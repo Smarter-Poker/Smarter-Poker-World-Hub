@@ -6,7 +6,10 @@ Scope: Computer 1 (`M1`), Computer 2 (`M2`), the published 529-phase solver mani
 
 ## Verdict
 
-Phase 5 is blocked.
+The solver-farm retarget is blocked. Phase 5 is not permitted to treat either
+machine or any historical warehouse row as exact solver evidence. It may begin
+after Phase 4's protected production closeout because Training now fails closed
+to audited curriculum whenever an exact-state, fully attributed row is absent.
 
 - Computer 1 is online and running the canonical unattended pipeline, but it is not solving or exporting. Its live counters remain `spots_done=0` and `rows_written=0` while its persisted cursor continues to advance and wrap through the manifest.
 - Computer 2 is offline or disconnected from the canonical pipeline. Its last heartbeat is `2026-08-16T00:38:44.304822+00:00`, more than 15 days stale at the time of this audit.
@@ -127,27 +130,33 @@ game, hand EVs are real, and the export carries a validated machine, binary,
 pipeline, manifest, artifact checksum, and audit seal. Legacy matrices remain
 auditable source material but cannot impersonate solver-exact runtime answers.
 
+The production provenance migration is now applied and independently verified:
+all nine provenance columns, both constraints, the trigger function, and the
+write trigger are live. A transactional probe confirmed that an unsealed
+material write is rejected. This closes the database write-gate defect; it does
+not retroactively certify a historical row or make either Windows host ready.
+
 The deep audit wrote atomic checkpoints after every bounded range and refused
 to resume if the fixed hash set changed. This replaced the original
 exported-snapshot approach after Supabase terminated that long-lived read-only
 connection with SQLSTATE `57P01`.
 
-Database statement statistics also prove an unidentified legacy writer is
-active. Since the statistics reset at `2026-08-31T01:15:48.663Z`, a
-`service_role` PostgREST client has issued more than 19,000 one-row INSERTs.
+Database statement statistics also prove that an unidentified legacy writer
+was active before the provenance trigger landed. In the final fixed evidence
+window a `service_role` PostgREST client had issued 2,947 one-row INSERTs.
 The statement writes `game_type`, `scenario_hash`, `stack_depth`,
 `strategy_matrix`, and `street`; it does not write `strategy_matrix_v2` or
 `solved_v2_at`. No matching database cron job exists. M1 and M2 cannot be
 credited with those rows because their local evidence shows no current solve
-or export, and `solved_spots_gold` has no solver version, machine ID, manifest
-checksum, source artifact checksum, quality status, or audit timestamp columns.
+or export. The live table now has the provenance columns and rejects future
+unsealed writes, but those historical rows remain unattributed.
 
 Machine-checkable evidence is recorded in
 `2026-08-31-training-solver-writer-provenance.json`,
 `2026-08-31-training-solver-runtime-readiness.json`, and the per-street
 warehouse evidence files. The Phase 4 migration adds a fail-closed provenance
-write gate for future exports; historical rows remain unverified until they
-are explicitly reconstructed and sealed.
+write gate for future exports and is live; historical rows remain unverified
+until they are explicitly reconstructed and sealed.
 
 ## Approved Retarget Plan
 
@@ -172,7 +181,7 @@ counters remain authoritative for pipeline activity. Do not start M2's task,
 reboot it for this purpose, or retarget M1 yet: doing so would restore an HTTP
 401 loop or a second scanner on the exhausted/misaligned manifest.
 
-Both Windows computers also require an administrator-authorized maintenance window after central implementation is complete. That window must rotate the exposed/revoked credentials without transmitting them through Codex output, inspect the actual scheduled-task definitions, remove duplicate launch paths if present, deploy the protected canonical worker/manifest artifact, and enable exactly one supervised process per host. A fresh heartbeat is not sufficient for certification: each machine must complete a canary solve and write a validated `strategy_matrix_v2` export before the farm is declared restored.
+Both Windows computers still require an administrator-authorized maintenance window. That window must rotate the exposed/revoked credentials without transmitting them through Codex output, inspect the actual scheduled-task definitions, remove duplicate launch paths if present, deploy a future protected canonical worker/manifest artifact only after approved range and ICM inputs exist, and enable exactly one supervised process per host. A fresh heartbeat is not sufficient for certification: each machine must complete a canary solve and write a validated `strategy_matrix_v2` export before the farm is declared restored.
 
 ## Reproduction
 

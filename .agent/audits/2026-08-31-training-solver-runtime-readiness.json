@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-31T19:52:55.214Z",
+  "generatedAt": "2026-08-31T20:30:19.898Z",
   "readOnly": true,
   "scope": "Every solved_spots_gold row matching the 25 family/stack contracts used by the 107-game Training catalog on flop, turn, and river.",
   "definitions": {
@@ -26,7 +26,7 @@
     },
     {
       "file": ".agent/audits/2026-08-31-training-solver-writer-provenance.json",
-      "sha256": "6339798dc5f7656be565591478555983cade101f78fff6599378d82bf37c3dbd"
+      "sha256": "145bf070af0ac844930df66bf8ceb327b9133f11e3a89b36e5ba515399134d68"
     },
     {
       "file": ".agent/audits/2026-08-31-training-solver-replacement-manifest.json",
@@ -41,7 +41,7 @@
     "duplicateDefectiveRows": 1235,
     "runtimeServeableAtSnapshot": 0,
     "provenanceCompleteV2CacheRowsAtSnapshot": 0,
-    "unknownLegacyWriterInsertsSinceStatsReset": 2257
+    "unknownLegacyWriterInsertsSinceStatsReset": 2947
   },
   "byStreet": {
     "flop": {
@@ -49,21 +49,21 @@
       "matrixValidatedRows": 6124,
       "matrixReplacementRequiredRows": 1776,
       "runtimeServeableAtSnapshot": 0,
-      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+      "runtimeBlocker": "The fixed cache snapshot contains no provenance-complete v2 row; historical rows remain unverified until exact state and provenance are reconstructed into the now-gated schema."
     },
     "turn": {
       "auditedRows": 319394,
       "matrixValidatedRows": 233782,
       "matrixReplacementRequiredRows": 85612,
       "runtimeServeableAtSnapshot": 0,
-      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+      "runtimeBlocker": "The fixed cache snapshot contains no provenance-complete v2 row; historical rows remain unverified until exact state and provenance are reconstructed into the now-gated schema."
     },
     "river": {
       "auditedRows": 189679,
       "matrixValidatedRows": 169401,
       "matrixReplacementRequiredRows": 20278,
       "runtimeServeableAtSnapshot": 0,
-      "runtimeBlocker": "No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot."
+      "runtimeBlocker": "The fixed cache snapshot contains no provenance-complete v2 row; historical rows remain unverified until exact state and provenance are reconstructed into the now-gated schema."
     }
   },
   "riverReuseVerdict": {
@@ -101,6 +101,7 @@
     "legacyFrequencyOnlyFallbackAllowed": false,
     "crossFamilyStackStreetFallbackAllowed": false,
     "migrationAddsFailClosedWriterGate": true,
+    "productionWriterGateInstalled": true,
     "historicalRowsRemainUnverified": true
   },
   "releaseGate": {
@@ -109,7 +110,7 @@
     "reasons": [
       "M1 is scanning an exhausted manifest and M2 is in a revoked-credential retry loop.",
       "The exact replacement ledger still contains missing cells and defective scenario hashes.",
-      "Existing rows lack the provenance seal required to attribute and certify their solver artifacts.",
+      "The fixed cache snapshot has zero rows with the provenance seal required to attribute and certify a solver artifact; the live schema now rejects new unsealed writes.",
       "Canonical ranges, pot/stack/rake/position inputs, and ICM payout state remain required before controlled retargeting."
     ]
   }

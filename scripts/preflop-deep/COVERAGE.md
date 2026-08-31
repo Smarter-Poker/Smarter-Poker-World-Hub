@@ -17,14 +17,17 @@ Everything except ICM is "same engine, different inputs." ICM is the one real fo
 
 ## Two tracks
 
-### Track A — chip-EV (runs on the current machines now; buildout = ranges + config)
-Same pipeline we proved (2-player, rake/ante per family). Just needs the range
-library per (table size × depth) + stack/rake/ante config per family.
+### Track A — chip-EV (currently release-gated; buildout = ranges + config)
+The legacy hosts proved that Pio can produce postflop artifacts, but the active
+529-phase installation is exhausted and lacks the immutable Training manifest,
+range checksums, binary checksum, and export provenance required for a certified
+run. The replacement worker stays closed until those inputs and a supervised
+canary are approved.
 
 | Family | Table | Rake | Ante | Status |
 |--------|-------|------|------|--------|
 | hu_cash | HU | yes | no | ranges TODO |
-| 6max_cash | 6-max | yes | no | **Phase 1 live (100bb flop)**; extend depths/turn/river |
+| 6max_cash | 6-max | yes | no | legacy corpus audited; approved range artifacts still required |
 | 9max_cash | 9-max | yes | no | ranges TODO |
 | cash (generic 6-max) | 6-max | yes | no | ranges TODO |
 | mtt_hu_chipev | HU | no | yes | ranges TODO |
@@ -49,8 +52,8 @@ stack model per spot. Blocked until we confirm the machines can do ICM (probe)
 and have the payout parameters.
 
 ## Build order
-1. Turn/river harvest from the flop solves (unlocks the ~130K bulk on the chip-EV
-   flop solves already running).
+1. Reconstruct and certify reusable legacy rows, then target only the exact
+   defective/missing turn and river decisions in the replacement manifest.
 2. Extend chip-EV across depths (parameterize the tree by `eff_stack`) and formats
    (cash → MTT/SNG/Spin chip-EV, HU→9-max), committing phases as ranges land.
 3. ICM track: run the capability probe; if Pro can't do ICM, decide Edge vs an

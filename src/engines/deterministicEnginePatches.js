@@ -396,6 +396,20 @@ export function applyDeterministicEnginePatches(engine) {
 
             for (const scenario of exactMatches || []) {
                 preferV2(scenario);
+                const matrix = scenario.strategy_matrix || {};
+                const solvedHero = String(matrix.position || '').toUpperCase();
+                const solvedVillain = solvedHero === String(matrix.oop_player || '').toUpperCase()
+                    ? String(matrix.ip_player || '').toUpperCase()
+                    : solvedHero === String(matrix.ip_player || '').toUpperCase()
+                        ? String(matrix.oop_player || '').toUpperCase()
+                        : '';
+                const requestedHero = String(heroPosition || '').toUpperCase();
+                const requestedVillain = String(villainPosition || '').toUpperCase();
+                const requestedPot = Number(pot);
+                if (!requestedHero || !requestedVillain
+                    || solvedHero !== requestedHero || solvedVillain !== requestedVillain
+                    || !Number.isFinite(requestedPot)
+                    || Math.abs(Number(matrix.pot_bb) - requestedPot) > 0.05) continue;
                 const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
                 if (question) return question;
             }

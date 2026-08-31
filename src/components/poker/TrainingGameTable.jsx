@@ -204,7 +204,7 @@ function TrainingGameTable({
         </div>
 
         <div className="sp-club-arena-canvas">
-          <img className="sp-club-table-art" src={arenaTheme ? arenaTheme.feltUrl : '/hub/club-arena/assets/skin_carbon_ion-DknFfmaT-v6.png'} alt="" />
+          <img className="sp-club-table-art" src={arenaTheme ? arenaTheme.feltUrl : '/hub/club-arena/assets/skin_carbon_ion-CEYiGucA-v6.png'} alt="" />
 
           <div className={`sp-club-timer ${timer <= 5 ? 'is-urgent' : ''}`}><span>Time</span><strong>{timer}</strong></div>
           <div className="sp-club-pot"><span>Pot</span><strong>{pot}</strong></div>

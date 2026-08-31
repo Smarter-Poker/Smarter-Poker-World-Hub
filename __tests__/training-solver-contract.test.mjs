@@ -230,6 +230,8 @@ test('targeted solver practice fails closed instead of teaching another spot', (
   assert.match(engine, /questions\.length > 0 \? questions : curatedFallback\(\)/);
   assert.doesNotMatch(engine, /sortedScenarios = \[\.\.\.targeted, \.\.\.others\]/);
   assert.match(engine, /matched 0 scenarios; failing closed/);
+  assert.match(engine, /Context filter rejected every action/);
+  assert.doesNotMatch(engine, /Context filter removed all actions[\s\S]*restoring originals/);
   assert.match(patches, /if \(filtered\.length === 0\) return null;/);
   assert.doesNotMatch(patches, /if \(filtered\.length > 0\) allData = filtered;/);
 });
@@ -244,9 +246,12 @@ test('multi-street play requires the exact runout and solver sizing copy uses ch
   assert.match(nextStreetPatch, /const exactMatches = await queryMatches\(`%\$\{boardStr\}`/);
   assert.doesNotMatch(nextStreetPatch, /partialMatches|isApproximateBoard|semantic match/);
   assert.match(nextStreetPatch, /similar texture is not the same decision/i);
+  assert.match(nextStreetPatch, /solvedHero !== requestedHero \|\| solvedVillain !== requestedVillain/);
+  assert.match(nextStreetPatch, /Math\.abs\(Number\(matrix\.pot_bb\) - requestedPot\) > 0\.05/);
   assert.match(engine, /solverPotChips,[\s\S]*gameCategory/);
   assert.match(engine, /hasExactSolverPot/);
   assert.match(engine, /Math\.round\(\(parseInt\(sizeMatch\[1\]\) \/ Number\(ctx\.solverPotChips\)\) \* 100\)/);
+  assert.match(engine, /nextStreetContinuationAction: continuationBet/);
 });
 
 test('warehouse questions carry a complete provenance seal or remain unverified', () => {

@@ -1,3 +1,50 @@
+-- =============================================================================
+-- 20260831141500_training_solver_provenance.sql
+-- =============================================================================
+-- TIER:        2
+-- AUTHOR:      Codex Training Program
+-- AFFECTS:     public.solved_spots_gold, public.sp_require_solver_write_provenance
+-- IRREVERSIBLE: no
+--
+-- WHY:
+--   Phase 4 proved that historical solver rows have no attributable machine,
+--   binary, pipeline, manifest, artifact, quality, or audit identity. New
+--   writes must fail closed instead of extending that unauditable corpus.
+--
+-- HOW:
+--   Adds nullable provenance fields without rewriting historical rows, keeps
+--   legacy data explicitly unverified, and gates every new/materially changed
+--   solver artifact behind a complete validated v2 seal.
+-- =============================================================================
+
+begin;
+
+-- Never sit behind live traffic holding a partial migration transaction. All
+-- changes below are metadata-only; if the brief DDL lock is unavailable, the
+-- migration aborts cleanly and can be retried in a quieter window.
+set local lock_timeout = '5s';
+set local statement_timeout = '120s';
+
+do $$
+begin
+  if to_regclass('public.solved_spots_gold') is null then
+    raise exception 'pre-flight failed: public.solved_spots_gold does not exist';
+  end if;
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'solved_spots_gold'
+      and column_name = 'strategy_matrix'
+  ) or not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'solved_spots_gold'
+      and column_name = 'strategy_matrix_v2'
+  ) then
+    raise exception 'pre-flight failed: solver strategy columns are missing';
+  end if;
+end $$;
+
 -- Phase 4: solver output is not certifiable without machine, binary,
 -- pipeline, manifest, artifact, quality, and audit provenance.
 -- Nullable columns preserve the historical legacy corpus honestly. The
@@ -110,3 +157,48 @@ comment on column public.solved_spots_gold.quality_status is
   'Validated v2, explicitly legacy-sanitized, or quarantined; null means unaudited legacy.';
 comment on column public.solved_spots_gold.audited_at is
   'UTC timestamp at which the worker quality gate accepted the exported artifact.';
+
+do $$
+declare
+  missing_columns integer;
+begin
+  select count(*) into missing_columns
+  from unnest(array[
+    'solver_version', 'solver_binary_checksum', 'machine_id',
+    'pipeline_commit', 'manifest_version', 'manifest_checksum',
+    'source_artifact_checksum', 'quality_status', 'audited_at'
+  ]) as expected(column_name)
+  where not exists (
+    select 1 from information_schema.columns c
+    where c.table_schema = 'public'
+      and c.table_name = 'solved_spots_gold'
+      and c.column_name = expected.column_name
+  );
+
+  if missing_columns <> 0 then
+    raise exception 'post-apply failed: % provenance columns are missing', missing_columns;
+  end if;
+  if to_regprocedure('public.sp_require_solver_write_provenance()') is null then
+    raise exception 'post-apply failed: provenance trigger function is missing';
+  end if;
+  if not exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.solved_spots_gold'::regclass
+      and tgname = 'solved_spots_gold_require_provenance'
+      and not tgisinternal
+  ) then
+    raise exception 'post-apply failed: provenance trigger is missing';
+  end if;
+  if (
+    select count(*) from pg_constraint
+    where conrelid = 'public.solved_spots_gold'::regclass
+      and conname in (
+        'solved_spots_gold_quality_status_check',
+        'solved_spots_gold_v2_provenance_check'
+      )
+  ) <> 2 then
+    raise exception 'post-apply failed: provenance constraints are incomplete';
+  end if;
+end $$;
+
+commit;

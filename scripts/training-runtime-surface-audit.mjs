@@ -10,7 +10,9 @@ const BASE_URL = String(
 ).replace(/\/$/, '');
 const CONCURRENCY = Math.max(1, Number(process.env.TRAINING_AUDIT_CONCURRENCY || 2));
 const BATCH_SIZE = Math.max(CONCURRENCY, Number(process.env.TRAINING_AUDIT_BATCH_SIZE || 8));
-const AUTH_STATE = join(ROOT, 'playwright/.auth/user.json');
+const AUTH_STATE = process.env.TRAINING_AUDIT_AUTH_STATE
+  ? String(process.env.TRAINING_AUDIT_AUTH_STATE)
+  : join(ROOT, 'playwright/.auth/user.json');
 const storedAuth = JSON.parse(readFileSync(AUTH_STATE, 'utf8'));
 const authLocalStorage = storedAuth.origins.find((origin) => (
   new URL(origin.origin).hostname === new URL(BASE_URL).hostname

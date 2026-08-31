@@ -132,8 +132,8 @@ test('active replay and arena effects observe the current hand and game identity
   assert.match(replay, /const handData = useMemo\(\(\) => hand\?\.handData \|\| hand \|\| \{\}, \[hand\]\)/);
   assert.match(arena, /\}, \[question\?\.gameId, questionNumber\]\);/);
   assert.doesNotMatch(arena, /\[showFeedback, onAnswer, options, questionNumber, correctAnswer\]/);
-  assert.match(arena, /skin_carbon_ion-DknFfmaT-v6\.png/);
-  assert.match(gameplay, /skin_carbon_ion-DknFfmaT-v6\.png/);
+  assert.match(arena, /skin_carbon_ion-CEYiGucA-v6\.png/);
+  assert.match(gameplay, /skin_carbon_ion-CEYiGucA-v6\.png/);
   assert.doesNotMatch(`${arena}\n${gameplay}`, /skin_carbon_ion-CuncF2Ud-v6\.png/);
 });
 
@@ -164,4 +164,12 @@ test('browser route audit enforces serious WCAG failures and runtime performance
   assert.match(source, /excessive DOM size/);
   assert.match(source, /closest\('\.approved-global-header'\)/);
   assert.match(source, /'\/training-table-demo'/);
+});
+
+test('runtime matrix keeps authenticated state outside disposable worktrees', () => {
+  const source = read('scripts/training-runtime-surface-audit.mjs');
+
+  assert.match(source, /process\.env\.TRAINING_AUDIT_AUTH_STATE/);
+  assert.match(source, /runtime audit requires an authenticated test-user storage state/);
+  assert.doesNotMatch(source, /writeFileSync\([^)]*user\.json/);
 });

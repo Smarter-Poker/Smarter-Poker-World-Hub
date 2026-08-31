@@ -1713,10 +1713,14 @@ export class DeterministicGTOEngine {
                 if (optimalAction === 'c') optimalAction = 'call';
             }
 
-            // If filtering removed ALL actions, restore original (defensive fallback)
+            // If the declared node type and exported action set disagree, the
+            // row is not a trustworthy description of this decision. Restoring
+            // the original actions could reintroduce Fold at a check node or
+            // Bet when facing a wager, so fail closed and let the curated
+            // curriculum handle the missing cell.
             if (validActions.length === 0) {
-                console.warn(`[DeterministicEngine] Context filter removed all actions for ${scenario.scenario_hash} nodeType=${nodeType}, restoring originals`);
-                validActions = clampedActions.length > 0 ? clampedActions : actions.filter(a => handActions[a] !== undefined);
+                console.warn(`[DeterministicEngine] Context filter rejected every action for ${scenario.scenario_hash} nodeType=${nodeType}`);
+                return null;
             }
 
             // Re-evaluate optimal action after filtering
@@ -1828,6 +1832,16 @@ export class DeterministicGTOEngine {
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
         // The "correct" answer is the highest-frequency action, but partial credit applies
         const isMixedStrategy = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
+        const continuationBet = heroSeat === 'IP' && Number(strategyMatrix.facing_bet_bb || 0) === 0
+            ? validActions
+                .filter(action => /^b\d+$/.test(String(action)))
+                .map(action => ({
+                    action,
+                    distance: Math.abs((Number(String(action).slice(1)) / solverPotChips) - 0.75),
+                }))
+                .filter(candidate => candidate.distance <= 0.03)
+                .sort((a, b) => a.distance - b.distance)[0]?.action || null
+            : null;
 
         return {
             id: `pio_${scenario.id}_${heroHand}_${questionIndex}`,
@@ -1859,6 +1873,9 @@ export class DeterministicGTOEngine {
                 villainBet: nodeType === 'hero_faces_bet'
                     ? this._villainBetBB(scenario, displayPotBb)
                     : 0,
+                solverNode: strategyMatrix.node,
+                solverActionUnits: 'chips',
+                nextStreetContinuationAction: continuationBet,
                 nodeType,  // Phase 22: use already-computed node type
                 context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,

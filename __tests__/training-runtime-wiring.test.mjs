@@ -216,6 +216,47 @@ test('both question endpoints reject solver-card fabrication and share subject r
   assert.doesNotMatch(batch, /String\(q\.engine_type \|\| ''\)\.toUpperCase\(\) === 'PIO'[\s\S]{0,120}isWarehouseSolver/);
 });
 
+test('multi-street progression follows only the exact exported continuation', async () => {
+  const { MultiStreetHand } = await import('../src/engines/MultiStreetHandManager.js');
+  const exactQuestion = {
+    heroHand: 'AKs', heroCards: ['As', 'Ks'],
+    scenario: {
+      board: 'Qh 7d 2c', street: 'flop', pot: 5.5, stackDepth: 100,
+      heroPosition: 'BTN', villainPosition: 'BB',
+      solverActionUnits: 'chips', nextStreetContinuationAction: 'b412',
+    },
+  };
+  const hand = new MultiStreetHand(exactQuestion);
+  hand.recordAction('b412', 'best', 0);
+  assert.equal(hand.currentStreet, 'flop');
+  assert.equal(hand.pot, 13.74);
+
+  const offTree = new MultiStreetHand(exactQuestion);
+  offTree.recordAction('c', 'correct', 0);
+  assert.equal(offTree.currentStreet, 'done');
+
+  const authored = new MultiStreetHand({
+    ...exactQuestion,
+    scenario: { ...exactQuestion.scenario, nextStreetContinuationAction: null },
+  });
+  authored.recordAction('b75', 'best', 0);
+  assert.equal(authored.currentStreet, 'done');
+});
+
+test('next-street API sends and validates exact cards, positions, and unrounded pot', () => {
+  const trainer = fs.readFileSync('src/hooks/useGTOTrainer.js', 'utf8');
+  const api = fs.readFileSync('pages/api/training/next-street.js', 'utf8');
+  assert.match(trainer, /pot: hand\.pot\.toString\(\)/);
+  assert.match(trainer, /heroPosition: hand\.heroPosition/);
+  assert.match(trainer, /villainPosition: hand\.villainPosition/);
+  assert.doesNotMatch(trainer, /pot: Math\.round\(hand\.pot\)\.toString\(\)/);
+  assert.match(api, /Exact game, hand, board, and position state is required/);
+  assert.match(api, /new Set\(exactCards\)\.size !== exactCards\.length/);
+  assert.match(api, /toHandClass\(parsedHeroCards\) !== toHandClass\(String\(heroHand\)\)/);
+  assert.match(api, /Invalid exact next-street state/);
+  assert.doesNotMatch(api, /heroHand \|\| 'AKs'/);
+});
+
 test('chart hand classes render a matching legal representative combo', () => {
   assert.deepEqual(handNotationToRepresentativeCards('AKs'), ['As', 'Ks']);
   assert.deepEqual(handNotationToRepresentativeCards('AKo'), ['As', 'Kh']);

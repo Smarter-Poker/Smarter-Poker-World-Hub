@@ -72,6 +72,8 @@ function main() {
 
   assert(cache.warehouseProvenanceColumnsPresent === false, 'Snapshot unexpectedly claims warehouse provenance columns already existed');
   assert(cache.totals.provenanceCompleteV2Rows === 0, 'Snapshot unexpectedly contains provenance-complete cached v2 rows');
+  assert(writer.missingProvenanceColumns.length === 0, 'Production provenance columns are not fully deployed');
+  assert(writer.provenanceWriteGateInstalled === true, 'Production provenance write gate is not installed');
   assert(replacement.releaseGate?.solverReady === false, 'Replacement manifest must remain fail-closed');
   assert(/create trigger solved_spots_gold_require_provenance/i.test(migration), 'Migration does not install the provenance write gate');
   assert(/quality_status is distinct from 'validated'/i.test(migration), 'Migration does not require validated exports');
@@ -86,7 +88,7 @@ function main() {
       matrixValidatedRows: totals.trainingUsableRows,
       matrixReplacementRequiredRows: totals.replacementRequiredRows,
       runtimeServeableAtSnapshot: 0,
-      runtimeBlocker: 'No warehouse row could carry the complete provenance seal because the required columns did not exist at this snapshot.',
+      runtimeBlocker: 'The fixed cache snapshot contains no provenance-complete v2 row; historical rows remain unverified until exact state and provenance are reconstructed into the now-gated schema.',
     }];
   }));
   const auditedRows = STREETS.reduce((sum, street) => sum + byStreet[street].auditedRows, 0);
@@ -136,6 +138,7 @@ function main() {
       legacyFrequencyOnlyFallbackAllowed: false,
       crossFamilyStackStreetFallbackAllowed: false,
       migrationAddsFailClosedWriterGate: true,
+      productionWriterGateInstalled: true,
       historicalRowsRemainUnverified: true,
     },
     releaseGate: {
@@ -144,7 +147,7 @@ function main() {
       reasons: [
         'M1 is scanning an exhausted manifest and M2 is in a revoked-credential retry loop.',
         'The exact replacement ledger still contains missing cells and defective scenario hashes.',
-        'Existing rows lack the provenance seal required to attribute and certify their solver artifacts.',
+        'The fixed cache snapshot has zero rows with the provenance seal required to attribute and certify a solver artifact; the live schema now rejects new unsealed writes.',
         'Canonical ranges, pot/stack/rake/position inputs, and ICM payout state remain required before controlled retargeting.',
       ],
     },

@@ -6895,7 +6895,7 @@ const styles = {
         maxWidth: 605,
         aspectRatio: '605 / 1000',
         borderRadius: 0,
-        background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-DknFfmaT-v6.png") center / 100% 100% no-repeat',
+        background: 'transparent url("/hub/club-arena/assets/skin_carbon_ion-CEYiGucA-v6.png") center / 100% 100% no-repeat',
         // OUTER GOLD RING of the racetrack rail. The rail reads as two
         // concentric BRIGHT gold hoops with a black channel between them: this
         // border is hoop one, `feltSurface`'s ring is hoop two. Both hoops carry

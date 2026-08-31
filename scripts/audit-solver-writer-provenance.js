@@ -111,7 +111,7 @@ async function main() {
       'audited_at',
     ];
     const result = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       capturedAt: new Date().toISOString(),
       readOnly: true,
       table: 'public.solved_spots_gold',
@@ -128,8 +128,13 @@ async function main() {
         total_exec_time: Number(row.total_exec_time),
         mean_exec_time: Number(row.mean_exec_time),
       })),
-      conclusion: 'Historical legacy PostgREST writes cannot be attributed to M1 or M2 without machine and artifact provenance columns.',
     };
+    const gateInstalled = result.missingProvenanceColumns.length === 0
+      && result.triggers.some((trigger) => trigger.tgname === 'solved_spots_gold_require_provenance');
+    result.provenanceWriteGateInstalled = gateInstalled;
+    result.conclusion = gateInstalled
+      ? 'Historical writes remain unattributed, but production now rejects every new or materially changed solver artifact without the complete validated v2 provenance seal.'
+      : 'Historical legacy PostgREST writes cannot be attributed to M1 or M2, and the production provenance write gate is incomplete.';
     fs.mkdirSync(path.dirname(output), { recursive: true });
     fs.writeFileSync(output, `${JSON.stringify(result, null, 2)}\n`);
     console.log(JSON.stringify({ success: true, output, writerStatements: result.historicalWriterStatements.length }));

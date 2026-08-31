@@ -491,6 +491,16 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
     }
 
     const isMixedStrategy = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
+    const continuationBet = heroSeat === 'IP' && Number(sm.facing_bet_bb || 0) === 0
+        ? validActions
+            .filter(action => /^b\d+$/.test(String(action)))
+            .map(action => ({
+                action,
+                distance: Math.abs((Number(String(action).slice(1)) / solverPotChips) - 0.75),
+            }))
+            .filter(candidate => candidate.distance <= 0.03)
+            .sort((a, b) => a.distance - b.distance)[0]?.action || null
+        : null;
 
     // Build explanation (deterministic, no AI)
     const freqPct = (maxFreq * 100).toFixed(0);
@@ -553,6 +563,9 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
             action: Number(sm.facing_bet_bb) > 0
                 ? `${villainPosition} bets ${Number(sm.facing_bet_bb)} BB`
                 : sm.node_actor === 0 ? 'You are first to act' : `${villainPosition} checks to you`,
+            solverNode: sm.node,
+            solverActionUnits: 'chips',
+            nextStreetContinuationAction: continuationBet,
             isMixedStrategy,
         },
         heroCards: parseHandToCards(heroHand),

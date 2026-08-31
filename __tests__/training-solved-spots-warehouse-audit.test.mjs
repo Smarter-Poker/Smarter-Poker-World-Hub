@@ -131,7 +131,9 @@ test('runtime-readiness audit never equates a salvageable matrix with an exact T
   );
   assert.match(source, /matrixValidatedRows: 'Rows whose board and strategy payload passed/);
   assert.match(source, /runtimeServeableAtSnapshot: 0/);
-  assert.match(source, /No warehouse row could carry the complete provenance seal/);
+  assert.match(source, /fixed cache snapshot contains no provenance-complete v2 row/);
+  assert.match(source, /writer\.provenanceWriteGateInstalled === true/);
+  assert.match(source, /productionWriterGateInstalled: true/);
   assert.match(source, /deriveNodePotState\\\(v2\\\.node/);
   assert.match(source, /New river solves must target only the missing\/defective canonical decisions/);
   assert.match(source, /crossFamilyStackStreetFallbackAllowed: false/);
