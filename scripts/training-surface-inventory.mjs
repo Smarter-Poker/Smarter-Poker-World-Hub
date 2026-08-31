@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { parse } = require('@babel/parser');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, '.agent/audits/2026-08-31-training-phase-2-inventory.json');
@@ -99,32 +103,140 @@ function literals(source, pattern, group = 1) {
   return [...source.matchAll(pattern)].map((match) => match[group]).filter(Boolean);
 }
 
-function ctas(source) {
-  const controls = [];
-  for (const match of source.matchAll(/<(button|a)\b([^>]*)>([\s\S]*?)<\/\1>/gi)) {
-    const attributes = match[2];
-    const body = match[3];
-    const explicit = attributes.match(/(?:aria-label|title)=['"]([^'"]+)['"]/)?.[1];
-    const text = body.replace(/<[^>]+>/g, ' ').replace(/\{[^}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
-    controls.push({
-      element: match[1].toLowerCase(),
-      name: explicit || text || '<dynamic>',
-      line: lineNumber(source, match.index),
-    });
+function jsxName(node) {
+  if (!node) return '';
+  if (node.type === 'JSXIdentifier') return node.name;
+  if (node.type === 'JSXMemberExpression') return `${jsxName(node.object)}.${jsxName(node.property)}`;
+  return '';
+}
+
+function jsxAttribute(opening, name, source) {
+  const attribute = opening.attributes.find((entry) => entry.type === 'JSXAttribute' && entry.name?.name === name);
+  if (!attribute) return null;
+  if (!attribute.value) return 'true';
+  if (attribute.value.type === 'StringLiteral') return attribute.value.value;
+  if (attribute.value.type === 'JSXExpressionContainer') {
+    const expression = attribute.value.expression;
+    return expression?.start !== undefined && expression?.end !== undefined
+      ? source.slice(expression.start, expression.end).trim()
+      : '<expression>';
   }
+  return '<dynamic>';
+}
+
+function jsxText(node, source) {
+  if (!node) return '';
+  if (node.type === 'JSXText') return node.value;
+  if (node.type === 'StringLiteral') return node.value;
+  if (node.type === 'JSXExpressionContainer') {
+    if (node.expression?.type === 'StringLiteral') return node.expression.value;
+    return '';
+  }
+  if (node.type === 'JSXElement') return node.children.map((child) => jsxText(child, source)).join(' ');
+  return '';
+}
+
+function visitAst(node, ancestors, visitor) {
+  if (!node || typeof node !== 'object') return;
+  visitor(node, ancestors);
+  const nextAncestors = [...ancestors, node];
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'loc' || key === 'start' || key === 'end' || key === 'extra') continue;
+    if (Array.isArray(value)) {
+      for (const child of value) visitAst(child, nextAncestors, visitor);
+    } else if (value && typeof value === 'object' && typeof value.type === 'string') {
+      visitAst(value, nextAncestors, visitor);
+    }
+  }
+}
+
+function ctas(source, file) {
+  const controls = [];
+  const ast = parse(source, {
+    sourceType: 'unambiguous',
+    sourceFilename: rel(file),
+    errorRecovery: false,
+    plugins: ['jsx', 'typescript', 'decorators-legacy', 'classProperties', 'dynamicImport', 'topLevelAwait'],
+  });
+  visitAst(ast, [], (node, ancestors) => {
+    if (node.type !== 'JSXElement') return;
+    const opening = node.openingElement;
+    const rawElement = jsxName(opening.name);
+    if (!['button', 'a', 'Link'].includes(rawElement)) return;
+    const explicit = jsxAttribute(opening, 'aria-label', source) || jsxAttribute(opening, 'title', source);
+    const text = node.children.map((child) => jsxText(child, source)).join(' ').replace(/\s+/g, ' ').trim();
+    const element = rawElement.toLowerCase();
+    const destination = jsxAttribute(opening, 'href', source);
+    const onClick = jsxAttribute(opening, 'onClick', source);
+    const type = jsxAttribute(opening, 'type', source);
+    const disabled = jsxAttribute(opening, 'disabled', source);
+    const insideForm = ancestors.some((ancestor) => ancestor.type === 'JSXElement' && jsxName(ancestor.openingElement?.name) === 'form');
+    const wiring = disabled === 'true' && destination === null && onClick === null
+      ? 'disabled-status'
+      : destination !== null
+      ? 'destination'
+      : onClick !== null
+        ? 'handler'
+        : type === 'submit' || (element === 'button' && insideForm && type !== 'button')
+          ? 'form-submit'
+          : 'unwired-static-control';
+    controls.push({
+      element,
+      name: explicit || text || '<dynamic>',
+      line: opening.loc.start.line,
+      handler: onClick,
+      destination,
+      type,
+      disabled,
+      wiring,
+    });
+  });
   return controls;
 }
 
 function functionCandidates(source) {
-  const names = [
-    ...literals(source, /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g),
-    ...literals(source, /\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g),
-    ...literals(source, /\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?[A-Za-z_$][\w$]*\s*=>/g),
+  const declarations = [
+    ...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g),
+    ...source.matchAll(/\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g),
+    ...source.matchAll(/\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?[A-Za-z_$][\w$]*\s*=>/g),
   ];
-  return [...new Set(names)].map((name) => ({
-    name,
-    references: (source.match(new RegExp(`\\b${name.replace(/[$]/g, '\\$&')}\\b`, 'g')) || []).length,
-  }));
+  const unique = new Map();
+  for (const declaration of declarations) {
+    const name = declaration[1];
+    if (unique.has(name)) continue;
+    const prefix = source.slice(Math.max(0, declaration.index - 40), declaration.index);
+    unique.set(name, {
+      name,
+      line: lineNumber(source, declaration.index),
+      references: (source.match(new RegExp(`\\b${name.replace(/[$]/g, '\\$&')}\\b`, 'g')) || []).length,
+      exported: /export\s+(?:default\s+)?$/.test(prefix),
+      defaultExport: /export\s+default\s+$/.test(prefix),
+    });
+  }
+  return [...unique.values()];
+}
+
+function classifyMarker(file, marker) {
+  const testOnly = /^(?:__tests__|e2e)\//.test(file) || /(?:^|\/)test(?:s)?\//i.test(file);
+  const commentOnly = /^(?:\/\/|\/\*|\*|\{?\/\*)/.test(marker.excerpt);
+  const kind = marker.kind;
+  if (testOnly) return { disposition: 'test-fixture', review: 'accepted', rationale: 'Marker is confined to automated test code.' };
+  if (kind === 'PLACEHOLDER' && /\bplaceholder\s*=/.test(marker.excerpt)) {
+    return { disposition: 'ui-input-copy', review: 'accepted', rationale: 'JSX placeholder attribute, not placeholder implementation.' };
+  }
+  if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|dead-link fix)\b/i.test(marker.excerpt)) {
+    return { disposition: 'historical-or-prohibition-comment', review: 'accepted', rationale: 'Comment documents removed behavior or explicitly prohibits a fallback/stub.' };
+  }
+  if (kind === 'SIMULATE' || kind === 'SIMULATED' || kind === 'SIMULATION') {
+    return { disposition: 'domain-simulation', review: 'accepted', rationale: 'Poker/training simulation is an intentional product capability; solver provenance is audited separately.' };
+  }
+  if (kind === 'FALLBACK') {
+    return { disposition: 'resilience-fallback', review: 'phase-review', rationale: 'Runtime resilience path; later phases must prove it is visible, deterministic, and not a silent data-quality downgrade.' };
+  }
+  if (commentOnly && ['TODO', 'FIXME', 'HACK', 'STUB', 'MOCK', 'DUMMY', 'PLACEHOLDER'].includes(kind)) {
+    return { disposition: 'implementation-marker', review: 'phase-review', rationale: 'Explicit implementation marker in reachable Training dependency.' };
+  }
+  return { disposition: 'runtime-marker', review: 'phase-review', rationale: 'Reachable runtime marker requiring phase-specific wiring verification.' };
 }
 
 function sourceInventory(file) {
@@ -141,7 +253,7 @@ function sourceInventory(file) {
     imports: importsFor(file, source).map(rel),
     links: [...new Set(literals(source, /['"`](\/hub\/training[^'"` $}{]*)/g))].sort(),
     apiReferences: [...new Set(literals(source, /['"`](\/api\/[^'"` $}{?]*)/g))].sort(),
-    ctas: ctas(source),
+    ctas: ctas(source, file),
     dialogs: {
       native: (source.match(/<dialog\b/gi) || []).length,
       aria: (source.match(/role=['"]dialog['"]/gi) || []).length,
@@ -155,6 +267,7 @@ function sourceInventory(file) {
       offline: /\boffline\b|navigator\.onLine/i.test(source),
       stale: /\bstale\b|localStorage|sessionStorage/i.test(source),
       success: /\bsuccess\b|setSuccess/i.test(source),
+      authExpiry: /\b(?:401|unauthorized|auth(?:entication)?\s*(?:error|expired)|session\s*expired|sign\s*in)\b/i.test(source),
     },
     persistenceWrites: {
       localStorage: (source.match(/localStorage\.setItem\s*\(/g) || []).length,
@@ -172,8 +285,47 @@ function sourceInventory(file) {
     },
     functions,
     possibleUnwiredFunctions: functions.filter((entry) => entry.references === 1).map((entry) => entry.name),
-    markers,
+    markers: markers.map((marker) => ({ ...marker, ...classifyMarker(rel(file), marker) })),
   };
+}
+
+const DYNAMIC_SAMPLE_VALUES = {
+  gameId: 'cash-001',
+  categoryId: 'CASH',
+  clinicId: 'clinic-01',
+  id: 'phase-2-inventory-sample',
+};
+
+function routeSample(template) {
+  const params = [];
+  let path = template.replace(/\[([^\]]+)\]/g, (_, name) => {
+    const value = DYNAMIC_SAMPLE_VALUES[name] || `sample-${name.toLowerCase()}`;
+    params.push({ name, value, source: name === 'id' ? 'runtime-api-dependent' : 'canonical-static-catalog' });
+    return value;
+  });
+  if (template.includes('/arena/[gameId]')) path += '?level=1';
+  return { path, params, productionSafe: !params.some((param) => param.source === 'runtime-api-dependent') };
+}
+
+function closureFor(entry, edges) {
+  const adjacency = new Map();
+  for (const edge of edges) {
+    if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
+    adjacency.get(edge.from).push(edge.to);
+  }
+  const pending = [entry];
+  const visited = new Set();
+  while (pending.length) {
+    const file = pending.shift();
+    if (!file || visited.has(file)) continue;
+    visited.add(file);
+    for (const dependency of adjacency.get(file) || []) pending.push(dependency);
+  }
+  return [...visited].sort();
+}
+
+function hasReference(source, name) {
+  return new RegExp(`\\b${name.replace(/[$]/g, '\\$&')}\\b`).test(source);
 }
 
 function dynamicPattern(route) {
@@ -197,6 +349,12 @@ function main() {
   const graph = dependencyGraph([...pageFiles, ...apiFiles]);
   const sourceFiles = graph.files.map((file) => join(ROOT, file));
   const sourceRows = sourceFiles.map(sourceInventory);
+  const sourceText = new Map(sourceFiles.map((file) => [rel(file), read(file)]));
+  const tests = [...walk(join(ROOT, '__tests__')), ...walk(join(ROOT, 'e2e'))]
+    .filter((file) => /training/i.test(rel(file)) || /\/hub\/training|src\/components\/training|TRAINING_LIBRARY/.test(read(file)))
+    .sort()
+    .map(rel);
+  const testText = new Map(tests.map((file) => [file, read(join(ROOT, file))]));
   const routes = pageFiles.map((file) => {
     const template = pageRoute(file, pageRoot, '/hub/training');
     const source = sourceRows.find((row) => row.file === rel(file));
@@ -204,6 +362,7 @@ function main() {
       template,
       file: rel(file),
       dynamic: template.includes('['),
+      sample: routeSample(template),
       gameExpansions: template.includes('[gameId]') ? games.length : 0,
       states: source.states,
       ctaCount: source.ctas.length,
@@ -227,20 +386,115 @@ function main() {
     template: pageRoute(file, join(ROOT, 'pages/api'), '/api'),
     file: rel(file),
   }));
-  const tests = [...walk(join(ROOT, '__tests__')), ...walk(join(ROOT, 'e2e'))]
-    .filter((file) => /training/i.test(rel(file)) || /\/hub\/training|src\/components\/training|TRAINING_LIBRARY/.test(read(file)))
-    .sort()
-    .map(rel);
   const componentFiles = graph.files.filter((file) => file.startsWith('src/components/'));
   const hookFiles = graph.files.filter((file) => file.startsWith('src/hooks/'));
   const persistence = sourceRows.filter((row) => Object.values(row.persistenceWrites).some(Boolean));
   const realtime = sourceRows.filter((row) => Object.values(row.realtime).some(Boolean));
   const markers = sourceRows.flatMap((row) => row.markers.map((marker) => ({ file: row.file, ...marker })));
-  const possibleUnwiredFunctions = sourceRows.flatMap((row) => row.possibleUnwiredFunctions.map((name) => ({ file: row.file, name })));
+  const possibleUnwiredFunctions = sourceRows.flatMap((row) => row.functions
+    .filter((entry) => entry.references === 1)
+    .map((entry) => {
+      const externalReferenceFiles = sourceRows
+        .filter((candidate) => candidate.file !== row.file && hasReference(sourceText.get(candidate.file) || '', entry.name))
+        .map((candidate) => candidate.file);
+      let disposition = 'unwired-local-review';
+      let review = 'phase-review';
+      let rationale = 'Local function has no second lexical reference in its declaring file.';
+      if (/^(?:__tests__|e2e)\//.test(row.file)) {
+        disposition = 'test-helper';
+        review = 'accepted';
+        rationale = 'Single-use helper is confined to automated test code.';
+      } else if (entry.defaultExport && row.file.startsWith('pages/hub/training/')) {
+        disposition = 'route-entrypoint';
+        review = 'accepted';
+        rationale = 'Next.js page default export is invoked by the router.';
+      } else if (entry.defaultExport && row.file.startsWith('pages/api/training/')) {
+        disposition = 'api-entrypoint';
+        review = 'accepted';
+        rationale = 'Next.js API default export is invoked by the router.';
+      } else if (entry.exported) {
+        disposition = 'exported-entrypoint';
+        review = externalReferenceFiles.length ? 'accepted' : 'phase-review';
+        rationale = externalReferenceFiles.length
+          ? 'Exported function is referenced by another reachable dependency.'
+          : 'Exported function is public but no lexical reference exists inside the reachable Training graph.';
+      } else if (externalReferenceFiles.length) {
+        disposition = 'cross-file-name-reference';
+        review = 'phase-review';
+        rationale = 'Name appears in another dependency; import/export binding needs semantic confirmation.';
+      }
+      return { file: row.file, ...entry, disposition, review, rationale, externalReferenceFiles };
+    }));
+
+  const stateNames = ['loading', 'empty', 'error', 'retry', 'success', 'stale', 'offline', 'authExpiry'];
+  const routeCoverage = routes.map((route) => {
+    const reachableFiles = closureFor(route.file, graph.edges);
+    const reachableRows = reachableFiles.map((file) => sourceRows.find((row) => row.file === file)).filter(Boolean);
+    const matchingTests = [...testText.entries()]
+      .filter(([file, source]) => source.includes(route.template) || source.includes(route.sample.path.split('?')[0]) || source.includes(route.file) || source.includes(route.file.split('/').pop()))
+      .map(([file]) => file);
+    const states = Object.fromEntries(stateNames.map((state) => {
+      const evidence = state === 'success'
+        ? [route.file, ...reachableRows.filter((row) => row.states.success).map((row) => row.file)]
+        : reachableRows.filter((row) => row.states[state]).map((row) => row.file);
+      return [state, {
+        status: evidence.length ? 'implemented-or-detected' : 'coverage-gap',
+        evidence: [...new Set(evidence)].sort(),
+        tests: matchingTests,
+      }];
+    }));
+    return {
+      route: route.template,
+      file: route.file,
+      sample: route.sample,
+      reachableFiles,
+      states,
+      existingTests: matchingTests,
+      uncoveredStates: stateNames.filter((state) => states[state].status === 'coverage-gap'),
+    };
+  });
+
+  const sourceEffects = new Map(sourceRows.map((row) => {
+    const reachableFiles = closureFor(row.file, graph.edges);
+    const reachableRows = reachableFiles.map((file) => sourceRows.find((candidate) => candidate.file === file)).filter(Boolean);
+    return [row.file, {
+      reachableFiles,
+      apiReferences: [...new Set(reachableRows.flatMap((candidate) => candidate.apiReferences))].sort(),
+      persistence: reachableRows
+        .filter((candidate) => Object.values(candidate.persistenceWrites).some(Boolean))
+        .map((candidate) => ({ file: candidate.file, writes: candidate.persistenceWrites })),
+      realtime: reachableRows
+        .filter((candidate) => Object.values(candidate.realtime).some(Boolean))
+        .map((candidate) => ({ file: candidate.file, subscriptions: candidate.realtime })),
+      tests: [...testText.entries()]
+        .filter(([, source]) => source.includes(row.file) || source.includes(row.file.split('/').pop()))
+        .map(([file]) => file),
+    }];
+  }));
+
+  const ctaLedger = sourceRows.flatMap((row) => row.ctas.map((cta, index) => ({
+    id: `${row.file}:${cta.line}:${index + 1}`,
+    file: row.file,
+    ...cta,
+    effectRef: row.file,
+  })));
+  const dialogLedger = sourceRows.flatMap((row) => {
+    const total = row.dialogs.native + row.dialogs.aria + row.dialogs.modalComponents.length;
+    return Array.from({ length: total }, (_, index) => ({
+      id: `${row.file}:dialog:${index + 1}`,
+      file: row.file,
+      kind: index < row.dialogs.native
+        ? 'native-dialog'
+        : index < row.dialogs.native + row.dialogs.aria
+          ? 'aria-dialog'
+          : row.dialogs.modalComponents[index - row.dialogs.native - row.dialogs.aria],
+      effectRef: row.file,
+    }));
+  });
   const missingLinks = links.filter((link) => !routeExists(link, allPageTemplates));
   const missingApiDefinitions = apiReferences.filter((route) => !routeExists(route, allApiTemplates));
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedBy: 'scripts/training-surface-inventory.mjs',
     frozenInvariants: { globalHeader: 'unchanged', canonicalGames: 107 },
     counts: {
@@ -258,9 +512,15 @@ function main() {
       tests: tests.length,
       markerCandidates: markers.length,
       possibleUnwiredFunctions: possibleUnwiredFunctions.length,
+      routeStateCells: routeCoverage.length * stateNames.length,
+      routeStateCoverageGaps: routeCoverage.reduce((sum, route) => sum + route.uncoveredStates.length, 0),
+      ctaWiringGaps: ctaLedger.filter((cta) => cta.wiring === 'unwired-static-control').length,
+      markerPhaseReview: markers.filter((marker) => marker.review === 'phase-review').length,
+      functionPhaseReview: possibleUnwiredFunctions.filter((entry) => entry.review === 'phase-review').length,
     },
     games,
     routes,
+    routeCoverage,
     apiRoutes,
     sourceFiles: sourceRows,
     dependencyEdges: graph.edges,
@@ -269,11 +529,20 @@ function main() {
     tests,
     persistenceFiles: persistence.map((row) => ({ file: row.file, writes: row.persistenceWrites })),
     realtimeFiles: realtime.map((row) => ({ file: row.file, subscriptions: row.realtime })),
+    ctaLedger,
+    dialogLedger,
+    sourceEffects: [...sourceEffects.entries()].map(([file, effects]) => ({ file, ...effects })),
+    classifications: {
+      markers,
+      possibleUnwiredFunctions,
+    },
     gaps: {
       missingLinks,
       missingApiDefinitions,
       markerCandidates: markers,
       possibleUnwiredFunctions,
+      routeStates: routeCoverage.filter((route) => route.uncoveredStates.length).map((route) => ({ route: route.route, states: route.uncoveredStates })),
+      ctas: ctaLedger.filter((cta) => cta.wiring === 'unwired-static-control').map((cta) => ({ id: cta.id, file: cta.file, line: cta.line, name: cta.name })),
     },
   };
   assert.deepEqual(missingLinks, [], 'Training source contains unresolved page links');

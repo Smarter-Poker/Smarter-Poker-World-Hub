@@ -25,7 +25,7 @@ The first deterministic inventory pass is checked into
 | Reachable dependency files | 588 |
 | Reachable component files | 337 |
 | Reachable hooks | 15 |
-| Static CTA instances | 746 |
+| Static CTA instances | 767 |
 | Dialog/modal instances | 12 |
 | Files with persistence writes | 77 |
 | Files with realtime transports | 8 |
@@ -36,6 +36,29 @@ unresolved literal API references. It fails if the canonical game count drifts,
 if a link or API route becomes unresolved, or if the checked-in manifest is
 stale.
 
+## Route, State, CTA, And Dialog Ledger
+
+The schema 2 inventory adds the first complete machine-readable coverage ledger:
+
+- 94 route rows with canonical sample URLs, including explicit sample parameters
+  for every dynamic route;
+- 752 route-state cells covering loading, empty, error, retry, success,
+  stale-client, offline, and auth-expiry behavior;
+- 767 AST-parsed CTAs mapped to their handler, destination, form submission, or
+  intentionally disabled status state;
+- zero static CTA wiring gaps after distinguishing the disabled Offline Pack
+  status control from an interactive action;
+- 12 dialogs mapped to their reachable API, persistence, realtime, and test
+  dependencies;
+- 214 canonical play/arena expansions across all 107 games;
+- one runtime-data-dependent dynamic tournament sample, labelled honestly rather
+  than pretending a fabricated tournament identifier is production-valid.
+
+The ledger currently exposes 236 missing route-state coverage cells. Those are
+recorded as gaps, not inferred as working behavior. Offline, retry, stale-client,
+auth-expiry, loading, empty, and error handling are now separately countable for
+each route and will be closed or accepted with evidence before Phase 2 exits.
+
 ## Candidate Review Queues
 
 Static analysis intentionally records candidates rather than declaring them
@@ -45,9 +68,12 @@ defects without review:
 - 394 functions referenced only once in their declaring source file.
 
 These queues include comments, exported entry points, legitimate explicit
-fallbacks, and generated helpers. Each item must be classified as reachable and
-valid, dead/unwired, test-only, or an honest external dependency. Later Phase 2
-work will reduce the queues to reviewed dispositions with file/line evidence.
+fallbacks, and generated helpers. Every item now has a machine-readable
+disposition, review status, rationale, and file/line evidence. The classification
+pass accepted route/API entry points, test helpers, intentional input copy,
+historical prohibition comments, and product-domain simulations. It leaves 200
+runtime/fallback markers and 130 possible function-wiring candidates explicitly
+flagged for phase review instead of silently treating them as valid.
 
 ## CI Baseline Observation
 
@@ -62,12 +88,9 @@ Phase 2 will separately prove the Training slice instead of hiding that signal.
 
 ## Remaining Phase 2 Work
 
-1. Classify every marker and possible-unwired-function candidate.
-2. Add explicit per-route state coverage for loading, empty, error, retry,
-   success, stale-client, offline, and auth-expiry behavior.
-3. Resolve dynamic routes other than `gameId` to canonical sample inputs.
-4. Map each CTA/dialog to its handler, destination, API, persistence effect,
-   realtime dependency, and existing test.
-5. Run the complete fixed and dynamic route inventory on desktop and mobile.
-6. Publish through the protected pipeline and verify the production manifest
+1. Review and resolve the 200 fallback/runtime marker dispositions and 130
+   possible function-wiring dispositions still labelled `phase-review`.
+2. Close or evidence the 236 route-state coverage gaps.
+3. Run the complete fixed and dynamic route inventory on desktop and mobile.
+4. Publish through the protected pipeline and verify the production manifest
    baseline before marking Phase 2 complete.
