@@ -61,5 +61,15 @@ leak resolution remains owned by fresh Club Arena evidence.
 
 ## Release Evidence
 
-Pending pull request, normal autopilot merge, production revision verification,
-and authenticated live exact-game handoff checks.
+- Pull request 1156 merged through the protected autopilot flow as
+  `7002d6f07e5bbc818bfd476d89c98df807015838`.
+- Vercel production deployment `dpl_EF7LQV2aoDGE1sCSqtfuQ7KKDvA8` reached
+  Ready, and `https://smarter.poker/api/health` reported healthy application
+  version `7002d6f0` with a healthy database check.
+- The deployed exact-game handoff passed in desktop Chromium and Pixel-class
+  mobile Chrome. Production verification also exposed and closed one ambiguous
+  Playwright text locator before phase completion.
+- The protected account verifier authenticated against production, read 19
+  persisted leak records, found a 10-question server-verified corrective drill,
+  and confirmed that every answer key remained hidden. The non-mutating
+  `--skip-audit` mode was used for this release verification.

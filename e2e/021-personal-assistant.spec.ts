@@ -304,7 +304,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(details.getByRole('heading', { name: 'Recent Example Hands' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Suggested Fixes' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Corrective Review' })).toBeVisible();
-    await expect(details.getByText('Exact Training Game')).toBeVisible();
+    await expect(details.getByText('Exact Training Game', { exact: true })).toBeVisible();
     await expect(details.getByRole('button', { name: 'Start Corrective Review' })).toBeVisible();
     await expect(details.getByRole('button', { name: 'Practice Leak in Sandbox' })).toBeVisible();
     const exactTraining = details.getByRole('button', { name: 'Open Exact Training Game' });
