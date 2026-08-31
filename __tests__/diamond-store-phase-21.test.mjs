@@ -146,6 +146,24 @@ test('shopper storefront resolves membership server-side and cannot remain stuck
   assert.match(api, /clubId,/);
 });
 
+test('Club Shop detail resolves server-owned membership and terminates stalled inventory loads', async () => {
+  const detail = await read('pages/hub/club-shop/[itemId].js');
+  const loaderStart = detail.indexOf('const loadItem = useCallback');
+  const loaderEnd = detail.indexOf('useEffect(() => {', loaderStart);
+  const loader = detail.slice(loaderStart, loaderEnd);
+
+  assert.doesNotMatch(detail, /ensureAuthReady/);
+  assert.doesNotMatch(detail, /src\/lib\/supabase/);
+  assert.doesNotMatch(loader, /\.from\('club_members'\)/);
+  assert.match(detail, /const CLUB_DETAIL_LOAD_TIMEOUT_MS = 12000/);
+  assert.match(loader, /const loadController = new AbortController\(\)/);
+  assert.match(loader, /signal: loadController\.signal/);
+  assert.match(loader, /Club inventory timed out\. Retry the verified inventory request\./);
+  assert.match(loader, /const targetClub = body\.clubId \|\| null/);
+  assert.match(loader, /window\.clearTimeout\(loadTimer\)/);
+  assert.match(detail, /loadAbortRef\.current\?\.abort\(\)/);
+});
+
 test('analytics reports Diamond totals separately and exposes bounded completeness', async () => {
   const analytics = await read('pages/api/club-arena/shop-analytics.js');
   assert.match(analytics, /price_paid, currency/);

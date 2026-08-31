@@ -5,14 +5,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
-import { ensureAuthReady, getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 import {
   clearCommerceRequestId,
   clearCommerceRequestById,
   getOrCreateCommerceRequestId,
 } from '../../../src/lib/store/checkoutIntentStore';
-import supabase from '../../../src/lib/supabase';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
+
+const CLUB_DETAIL_LOAD_TIMEOUT_MS = 12000;
 
 const PACKAGE_OPTIONS = [
   { packageId: 'micro', diamonds: 100, price: 1 },
@@ -48,6 +49,7 @@ export default function ClubShopItemDetail() {
   const [diamondPurchaseRequestId, setDiamondPurchaseRequestId] = useState(null);
   const [diamondCommerceIntent, setDiamondCommerceIntent] = useState(null);
   const loadRequestRef = useRef(0);
+  const loadAbortRef = useRef(null);
   const processingRef = useRef(false);
   const diamondReviewTriggerRef = useRef(null);
   const diamondReviewTitleRef = useRef(null);
@@ -55,6 +57,18 @@ export default function ClubShopItemDetail() {
 
   const loadItem = useCallback(async ({ preserveContext = false, completionMessage = '' } = {}) => {
     const requestId = ++loadRequestRef.current;
+    loadAbortRef.current?.abort();
+    const loadController = new AbortController();
+    loadAbortRef.current = loadController;
+    const loadTimer = window.setTimeout(() => {
+      if (requestId !== loadRequestRef.current) return;
+      loadRequestRef.current += 1;
+      loadController.abort();
+      setState({
+        kind: 'error',
+        message: 'Club inventory timed out. Retry the verified inventory request.',
+      });
+    }, CLUB_DETAIL_LOAD_TIMEOUT_MS);
     if (!preserveContext) {
       setItem(null);
       setClubId(null);
@@ -62,34 +76,25 @@ export default function ClubShopItemDetail() {
       setState({ kind: 'loading', message: 'Loading verified club inventory…' });
     }
     try {
-      const authUser = getAuthUser() || (await ensureAuthReady(supabase));
       const token = getAccessToken();
-      if (requestId !== loadRequestRef.current) return;
-      if (!authUser?.id || !token) {
+      if (!token) {
         setState({ kind: 'auth', message: 'Sign in to view club-specific inventory and purchase controls.' });
         return;
       }
-      let targetClub = requestedClubId;
-      if (!targetClub) {
-        const { data } = await supabase
-          .from('club_members')
-          .select('club_id')
-          .eq('user_id', authUser.id)
-          .limit(1)
-          .maybeSingle();
-        if (requestId !== loadRequestRef.current) return;
-        targetClub = data?.club_id || null;
-      }
-      if (!targetClub) {
-        setState({ kind: 'missing-club', message: 'Join a club to unlock its live equipment bay.' });
-        return;
-      }
-      const response = await fetch(`/api/club-arena/marketplace-items?clubId=${encodeURIComponent(targetClub)}`, {
+
+      const query = requestedClubId ? `?clubId=${encodeURIComponent(requestedClubId)}` : '';
+      const response = await fetch(`/api/club-arena/marketplace-items${query}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: loadController.signal,
       });
       const body = await response.json().catch(() => null);
       if (requestId !== loadRequestRef.current) return;
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Club inventory could not be loaded.');
+      const targetClub = body.clubId || null;
+      if (!targetClub) {
+        setState({ kind: 'missing-club', message: 'Join a club to unlock its live equipment bay.' });
+        return;
+      }
       const match = (body.items || []).find((entry) => entry.id === itemId);
       if (!match) {
         setState({ kind: 'missing', message: 'This item is no longer active in the selected club.' });
@@ -109,6 +114,9 @@ export default function ClubShopItemDetail() {
     } catch (error) {
       if (requestId !== loadRequestRef.current) return;
       setState({ kind: 'error', message: error?.message || 'Club inventory could not be loaded.' });
+    } finally {
+      window.clearTimeout(loadTimer);
+      if (loadAbortRef.current === loadController) loadAbortRef.current = null;
     }
   }, [itemId, requestedClubId, router.query.canceled]);
 
@@ -117,6 +125,8 @@ export default function ClubShopItemDetail() {
     void loadItem();
     return () => {
       loadRequestRef.current += 1;
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
     };
   }, [itemId, loadItem, router.isReady]);
 

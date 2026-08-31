@@ -229,3 +229,24 @@ loaded 11 items, the authenticated Diamond balance, purchase history, Manage
 access, and both settlement choices. The loader now permits a bounded 12-second
 cold start before aborting. It still terminates genuine hangs, invalidates stale
 responses, and keeps the same visible retry path.
+
+### Same-Surface Club Item Detail Closure — 2026-08-31
+
+The final same-surface production journey then exposed the same obsolete data
+path on `/hub/club-shop/[itemId]`. Store navigation correctly remained in one
+browser tab, but the item detail route performed its own browser-side
+`club_members` query and could remain on “Loading verified club inventory…”
+without a terminal state.
+
+Item details now reuse the authenticated `marketplace-items` response for both
+membership and catalog context. The request is abortable, latest-request-wins,
+invalidated on unmount, and bounded by the same 12-second cold-start allowance.
+A genuine stall ends in a visible retryable error rather than an infinite
+loader. The Marketplace gate now contains 191 contracts, including a regression
+that forbids the duplicate client membership lookup and requires the terminal
+timeout path.
+
+The optimized production build passed with all 402 static pages after this
+change. Prices, Diamond burns, Stripe settlement, inventory grants,
+entitlements, commissions, database objects, and Printful behavior remain
+unchanged; automatic Printful fulfillment is still deliberately deferred.
