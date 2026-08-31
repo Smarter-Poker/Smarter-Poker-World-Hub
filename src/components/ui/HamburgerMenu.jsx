@@ -1643,6 +1643,45 @@ function HamburgerMenuContent({
           cursor: progress !important;
           filter: saturate(1.2) brightness(1.08);
         }
+        /* Poker Near Me uses one continuous machined frame per control. Avoid
+           intersecting inset rails and decorative edge fragments: at narrow
+           raster scales those read as broken corners instead of premium trim. */
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-grid-mark,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-context,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-icon-btn,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-menu-row,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile {
+          border-style: solid !important;
+          border-width: 1px !important;
+          border-radius: 3px !important;
+          outline: 0;
+        }
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-grid-mark,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-context,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-icon-btn {
+          border-color: rgba(164, 188, 207, .34) !important;
+          background: #0a1118 !important;
+          box-shadow: inset 0 1px rgba(255, 255, 255, .055) !important;
+        }
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-menu-row,
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile {
+          border-color: rgba(151, 177, 198, .28) !important;
+          background: #090f15 !important;
+          box-shadow: inset 0 1px rgba(255, 255, 255, .04), 0 8px 18px rgba(0, 0, 0, .22) !important;
+        }
+        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile::after {
+          content: none;
+        }
+        .sp-drawer[data-world-command-menu='poker-near-me'] :is(.sp-menu-row, .sp-grid-tile)[aria-current='page'] {
+          border-color: #48c7ff !important;
+          background: #0a1822 !important;
+          box-shadow: inset 0 0 0 1px rgba(72, 199, 255, .12), 0 8px 22px rgba(0, 0, 0, .3) !important;
+        }
+        .sp-drawer[data-world-command-menu='poker-near-me'] :is(.sp-menu-row, .sp-grid-tile, .sp-icon-btn):focus-visible {
+          outline: 2px solid #78d8ff;
+          outline-offset: 2px;
+          border-radius: 3px;
+        }
         .sp-drawer[data-world-command-menu='social-media'] {
           background:
             linear-gradient(90deg, rgba(24,119,242,.045), transparent 2px),

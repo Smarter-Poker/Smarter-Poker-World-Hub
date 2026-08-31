@@ -49,6 +49,11 @@ const MENU_PALETTE_BY_WORLD = Object.freeze({
     accent: '#1877F2',
     accentPressed: '#166FE5',
   }),
+  'poker-near-me': Object.freeze({
+    scheme: 'casino-realism',
+    accent: '#38bdf8',
+    accentPressed: '#1596d2',
+  }),
 });
 
 const cleanPath = (value) => {

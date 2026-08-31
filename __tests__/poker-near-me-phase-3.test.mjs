@@ -72,6 +72,6 @@ test('the lobby never stacks a location prompt over its first-run tutorial', () 
 
 test('Home Games leaves the global brand suffix to SEOHead', () => {
   const page = read('pages/hub/home-games.js');
-  assert.match(page, /title="Home Games — Find Poker Home Games Near You"/);
-  assert.doesNotMatch(page, /title="Home Games — Find Poker Home Games Near You \| Smarter\.Poker"/);
+  assert.match(page, /title="Home Games - Find Poker Home Games Near You"/);
+  assert.doesNotMatch(page, /title="Home Games - Find Poker Home Games Near You \| Smarter\.Poker"/);
 });
