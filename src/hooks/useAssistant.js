@@ -38,11 +38,15 @@ export function useAssistantStats(authState) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
   const hasExplicitAuth = authState !== undefined;
   const authReady = !hasExplicitAuth || authState?.ready !== false;
   const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchStats = useCallback(async () => {
+    activeAbortRef.current?.abort();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeAbortRef.current = controller;
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
@@ -52,9 +56,11 @@ export function useAssistantStats(authState) {
     if (!authReady) return;
     try {
       const token = await getAuthToken();
+      if (requestId !== requestIdRef.current) return;
 
       const response = await fetch('/api/assistant/stats', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        ...(controller ? { signal: controller.signal } : {}),
       });
       const data = await response.json();
       if (requestId !== requestIdRef.current) return;
@@ -79,6 +85,7 @@ export function useAssistantStats(authState) {
         setError(null);
       }
     } catch (err) {
+      if (err?.name === 'AbortError') return;
       if (requestId !== requestIdRef.current) return;
       console.warn('Error fetching stats:', err);
       setError(err.message);
@@ -95,6 +102,7 @@ export function useAssistantStats(authState) {
     window.addEventListener('pa-data-updated', handleUpdate);
     return () => {
       requestIdRef.current += 1;
+      activeAbortRef.current?.abort();
       window.removeEventListener('pa-data-updated', handleUpdate);
     };
   }, [fetchStats]);
@@ -117,17 +125,23 @@ export function useLeaks(statusFilter = null, authState) {
   const [partial, setPartial] = useState(false);
   const [unavailableSources, setUnavailableSources] = useState([]);
   const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
+  const eventOriginRef = useRef({ source: 'useLeaks' });
   const hasExplicitAuth = authState !== undefined;
   const authReady = !hasExplicitAuth || authState?.ready !== false;
   const authUserId = hasExplicitAuth ? (authState?.userId || null) : undefined;
 
   const fetchLeaks = useCallback(async () => {
+    activeAbortRef.current?.abort();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeAbortRef.current = controller;
     const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       setError(null);
       if (!authReady) return;
       const token = await getAuthToken();
+      if (requestId !== requestIdRef.current) return;
 
       let url = '/api/assistant/leaks';
       if (statusFilter) {
@@ -135,7 +149,8 @@ export function useLeaks(statusFilter = null, authState) {
       }
 
       const response = await fetch(url, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        ...(controller ? { signal: controller.signal } : {}),
       });
       const data = await response.json();
       if (requestId !== requestIdRef.current) return;
@@ -162,6 +177,7 @@ export function useLeaks(statusFilter = null, authState) {
         setDemoLeaks((data.demoLeaks || []).map(formatLeak));
       }
     } catch (err) {
+      if (err?.name === 'AbortError') return;
       if (requestId !== requestIdRef.current) return;
       console.warn('Error fetching leaks:', err);
       setError(err.message);
@@ -174,10 +190,14 @@ export function useLeaks(statusFilter = null, authState) {
     fetchLeaks();
 
     // 🔄 BUS LISTENER for real-time Leak updates
-    const handleUpdate = () => fetchLeaks();
+    const handleUpdate = (event) => {
+      if (event?.detail?.origin === eventOriginRef.current) return;
+      fetchLeaks();
+    };
     window.addEventListener('pa-data-updated', handleUpdate);
     return () => {
       requestIdRef.current += 1;
+      activeAbortRef.current?.abort();
       window.removeEventListener('pa-data-updated', handleUpdate);
     };
   }, [fetchLeaks]);
@@ -195,11 +215,13 @@ export function useLeaks(statusFilter = null, authState) {
       });
       const data = await response.json();
       if (data.success) {
+        await fetchLeaks();
         // 📢 Dispatch BUS LISTENER update
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('pa-data-updated'));
+          window.dispatchEvent(new CustomEvent('pa-data-updated', {
+            detail: { origin: eventOriginRef.current },
+          }));
         }
-        await fetchLeaks(); // Refresh local hook state as well
       }
       return data;
     } catch (err) {
