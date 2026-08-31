@@ -157,7 +157,21 @@ test('Open Claw config fails safe and undelivered alerts remain retryable', asyn
   const home = await mkdtemp(join(tmpdir(), 'pnm-openclaw-'));
   try {
     const code = `
-import importlib.util
+import importlib.util, sys, types
+apscheduler = types.ModuleType('apscheduler')
+schedulers = types.ModuleType('apscheduler.schedulers')
+blocking = types.ModuleType('apscheduler.schedulers.blocking')
+triggers = types.ModuleType('apscheduler.triggers')
+cron = types.ModuleType('apscheduler.triggers.cron')
+blocking.BlockingScheduler = type('BlockingScheduler', (), {})
+cron.CronTrigger = type('CronTrigger', (), {})
+sys.modules.update({
+    'apscheduler': apscheduler,
+    'apscheduler.schedulers': schedulers,
+    'apscheduler.schedulers.blocking': blocking,
+    'apscheduler.triggers': triggers,
+    'apscheduler.triggers.cron': cron,
+})
 spec = importlib.util.spec_from_file_location('oc', 'scripts/openclaw-cron-dispatcher.py')
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 assert m.PNM_DIRECTORY_WARN_MS == 3000
