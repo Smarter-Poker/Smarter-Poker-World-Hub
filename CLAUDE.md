@@ -687,6 +687,18 @@ GitHub's environment to execute:
   pipeline is not running. A watchdog that shares a failure domain with the
   thing it watches is not a watchdog. It never deploys anything — section 1.3
   forbids that, and it diagnoses instead.
+  Since 2026-08-31 it carries two further checks on the same schedule rather
+  than new `schedule:` triggers: the root service-worker precache, and
+  **`check-cron-fleet-alive.mjs`**, which asks Supabase directly how long it
+  has been since ANY Open Claw job recorded a run. That one must never become
+  an Open Claw cron for the reason stated above — on 2026-08-31 the production
+  `CRON_SECRET` was rotated without the Hetzner VM being updated, all 85 jobs
+  returned 401, and nothing noticed, because a 401 is refused before
+  `withCronHealth` records anything: the log does not fill with errors, it
+  STOPS. `check-cron-liveness.mjs` asks for failures over 7 days in CI and is
+  structurally unable to see that. Silence is the only observable, so silence
+  is what is measured — threshold 25 minutes, against a worst observed gap of
+  11 minutes across 21,095 runs in a normal week.
 - ~~`news-digest.yml`~~ — **RETIRED 2026-08-16.** Migrated to Open Claw and
   removed from this list and from the CHECK 6c allowlist together, as this
   entry required. The stated blocker ("Open Claw replacement cannot deploy,

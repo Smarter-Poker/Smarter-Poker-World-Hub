@@ -82,3 +82,70 @@ jobs:
       - name: Root service worker precache resolves
         if: always()
         run: node scripts/ci/check-sw-precache.mjs https://smarter.poker
+
+      # ─────────────────────────────────────────────────────────────────────
+      # The Open Claw cron fleet is actually running.
+      #
+      # Added 2026-08-31. The production CRON_SECRET was rotated without the
+      # Hetzner VM being updated; all 85 jobs began returning 401 — push
+      # notifications, every anti-cheat and collusion scan, chip-supply
+      # snapshots. NOTHING noticed. It was found by hand in the VM's journal.
+      #
+      # check-cron-liveness.mjs cannot catch that: a 401 is rejected before
+      # withCronHealth records anything, so the log does not fill with errors,
+      # it STOPS — and that check asks for failures, over 7 days, in CI.
+      # Silence is the only observable, so silence is what this measures.
+      #
+      # It rides this workflow for the same reason the service-worker check
+      # above does (section 11 bans new `schedule:` triggers) — and, more
+      # importantly, because it MUST NOT be an Open Claw cron itself: a
+      # monitor sharing a failure domain with the thing it monitors is dead
+      # exactly when it is needed.
+      #
+      # `always()` so a stale deploy above does not mask a dead fleet here.
+      - name: Open Claw cron fleet is alive
+        id: cron-fleet
+        if: always()
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/check-cron-fleet-alive.mjs 2>&1 | tee /tmp/cron-fleet.log
+
+      # Exit 1 (fleet silent) raises an issue. Exit 2 (cannot tell) does not:
+      # "I could not reach Supabase" is not evidence about the fleet, and an
+      # alarm that fires on its own misconfiguration is one people mute.
+      - name: Raise the alarm if the fleet is silent
+        if: always() && steps.cron-fleet.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if grep -q "cannot tell whether the fleet is alive\|could not reach Supabase\|Supabase answered" /tmp/cron-fleet.log; then
+            echo "::warning::cron-fleet-alive could not reach Supabase — not raising an outage issue."
+            exit 0
+          fi
+          TITLE="Open Claw cron fleet has gone silent"
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number' || true)
+          BODY=$(printf '%s\n' "The GitHub-side watchdog sees no Open Claw job runs at all." "" '```' "$(cat /tmp/cron-fleet.log)" '```' "" "Detector: \`scripts/ci/check-cron-fleet-alive.mjs\` via \`fn_cron_fleet_silence\`." "Closes itself on the next green run.")
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --label "incident" || \
+              gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      # Self-closing: a fleet that recovered should not leave a red issue open.
+      - name: Close the alarm when the fleet recovers
+        if: always() && steps.cron-fleet.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="Open Claw cron fleet has gone silent"
+          for n in $(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[].number' || true); do
+            gh issue comment "$n" --body "Fleet is recording runs again. Closing automatically."
+            gh issue close "$n" || true
+          done
