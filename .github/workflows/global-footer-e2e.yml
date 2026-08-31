@@ -60,7 +60,11 @@ jobs:
           exit 1
 
       - name: Verify footer routes and geometry
-        run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-chromium --project=footer-webkit
+        # This suite deliberately exercises 203 SSR routes, 84 live controls, and
+        # 16 viewport sizes against one production server. Running its large
+        # browser cases concurrently can exhaust the shared server and turn
+        # healthy route hydration into transient 500/hidden-node failures.
+        run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-chromium --project=footer-webkit --workers=1
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3000
