@@ -42,7 +42,6 @@ const ENDPOINT_LIMITS = {
   'club-arena/agent-analytics': 60,
 
   // ─── Club Arena — Write Operations (moderate) ──────────────
-  'club-arena/create-table': 10,
   'club-arena/join-club': 10,
   'club-arena/leave-club': 10,
   'club-arena/buyin': 30,
