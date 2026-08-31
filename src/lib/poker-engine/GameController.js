@@ -163,7 +163,7 @@ class GameController {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !key) {
-      console.warn('[GameController] Missing Supabase credentials — running in memory-only mode');
+      console.warn('[GameController] Missing Supabase credentials - running in memory-only mode');
       this.supabase = null;
     } else {
       this.supabase = createClient(url, key, {
@@ -2149,7 +2149,7 @@ class GameController {
               to_user_id: playerId,
               amount: refundAmount,
               transaction_type: 'tournament_refund',
-              notes: `Tournament cancelled — full refund (${t.name || tournamentId})`,
+              notes: `Tournament cancelled - full refund (${t.name || tournamentId})`,
             }), { critical: true });
             refunded++;
           } else {
@@ -2172,7 +2172,7 @@ class GameController {
                 to_user_id: playerId,
                 amount: refundAmount,
                 transaction_type: 'tournament_refund',
-                notes: `Tournament cancelled — full refund via fallback credit (${t.name || tournamentId})`,
+                notes: `Tournament cancelled - full refund via fallback credit (${t.name || tournamentId})`,
               }), { critical: true });
               refunded++;
             } else {
@@ -2193,7 +2193,7 @@ class GameController {
 
     entry.bridge.destroy();
     this._tournaments.delete(tournamentId);
-    console.debug(`[GameController] Tournament ${tournamentId} cancelled — ${refunded} refunds issued`);
+    console.debug(`[GameController] Tournament ${tournamentId} cancelled - ${refunded} refunds issued`);
     return { success: true, refunded, refundErrors };
   }
 

@@ -223,7 +223,7 @@ export default function SurvivalGame({
                     hit, and the player only found out at game over. */}
                 <span className="milestone-text">
                     {capReached
-                        ? 'Daily cap reached — playing for the leaderboard'
+                        ? 'Daily cap reached - playing for the leaderboard'
                         : `${MILESTONE_INTERVAL - (correctCount % MILESTONE_INTERVAL)} more for +1 diamond`}
                 </span>
             </div>

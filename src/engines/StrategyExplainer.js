@@ -163,7 +163,7 @@ const TEXTURE_REASONING = {
     monotone_high: {
         rangeAdvantage: 'neutral',
         cbetFreq: 'low',
-        reasoning: 'Monotone boards reduce range advantage and increase equity shifts — smaller and less frequent bets.',
+        reasoning: 'Monotone boards reduce range advantage and increase equity shifts - smaller and less frequent bets.',
     },
     monotone_low: {
         rangeAdvantage: 'caller',
@@ -183,7 +183,7 @@ const TEXTURE_REASONING = {
     paired_high: {
         rangeAdvantage: 'raiser',
         cbetFreq: 'high',
-        reasoning: 'High paired boards give the raiser a strong range advantage — fewer combos connect for the caller.',
+        reasoning: 'High paired boards give the raiser a strong range advantage - fewer combos connect for the caller.',
     },
     paired_low: {
         rangeAdvantage: 'caller',
@@ -193,7 +193,7 @@ const TEXTURE_REASONING = {
     connected_wet: {
         rangeAdvantage: 'neutral',
         cbetFreq: 'low',
-        reasoning: 'Connected wet boards distribute equity more evenly — both ranges connect well.',
+        reasoning: 'Connected wet boards distribute equity more evenly - both ranges connect well.',
     },
     broadway_dry: {
         rangeAdvantage: 'raiser',
@@ -279,7 +279,7 @@ export function explainStrategy(params) {
         // ●●● WHY BET? ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (isBetting) {
             if (handMeta.canValue && handMeta.strength === 'monster') {
-                sentences.push(`You have ${handMeta.description} — a premium hand that should bet for value.`);
+                sentences.push(`You have ${handMeta.description} - a premium hand that should bet for value.`);
                 keyFactors.push('Strong value hand');
                 strategicConcept = 'Value Betting';
 
@@ -306,13 +306,13 @@ export function explainStrategy(params) {
                 strategicConcept = 'Semi-Bluff';
 
                 if (betFrequency && betFrequency < 60) {
-                    sentences.push(`The solver only bets this hand ${betFrequency}% of the time — it\'s a mixed strategy where you should randomize.`);
-                    keyFactors.push('Mixed frequency — randomize');
+                    sentences.push(`The solver only bets this hand ${betFrequency}% of the time - it\'s a mixed strategy where you should randomize.`);
+                    keyFactors.push('Mixed frequency - randomize');
                 }
             }
             else if (handMeta.canBluff && handMeta.strength === 'nothing') {
                 sentences.push(`With ${handMeta.description}, this is a pure bluff. The solver selects this hand as a bluff because it has minimal showdown value.`);
-                keyFactors.push('Pure bluff — no showdown value');
+                keyFactors.push('Pure bluff - no showdown value');
                 strategicConcept = 'Bluffing';
 
                 if (street === 'river') {
@@ -387,7 +387,7 @@ export function explainStrategy(params) {
             strategicConcept = 'Equity Folding';
 
             if (handMeta.strength === 'weak_made') {
-                sentences.push('Even weak made hands must sometimes fold when facing aggression — not every pair is a bluff-catcher.');
+                sentences.push('Even weak made hands must sometimes fold when facing aggression - not every pair is a bluff-catcher.');
                 keyFactors.push('Marginal hand facing pressure');
             }
         }
@@ -398,8 +398,8 @@ export function explainStrategy(params) {
                 .filter(([_, f]) => f > 3)
                 .sort((a, b) => b[1] - a[1]);
             if (actions.length >= 2) {
-                sentences.push(`Note: This is a mixed strategy spot (${actions.map(([a, f]) => `${a}: ${Math.round(f)}%`).join(', ')}). The solver splits between actions — use a randomizer to approximate the correct frequencies over many hands.`);
-                keyFactors.push('Mixed strategy — randomize');
+                sentences.push(`Note: This is a mixed strategy spot (${actions.map(([a, f]) => `${a}: ${Math.round(f)}%`).join(', ')}). The solver splits between actions - use a randomizer to approximate the correct frequencies over many hands.`);
+                keyFactors.push('Mixed strategy - randomize');
             }
         }
 

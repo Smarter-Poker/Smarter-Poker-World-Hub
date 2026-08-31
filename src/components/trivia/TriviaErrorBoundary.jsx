@@ -126,7 +126,7 @@ class TriviaErrorBoundary extends React.Component {
                         }}>
                             {canRetry
                                 ? 'Something went wrong. Your progress up to this point is safe. Try again or return to the lobby.'
-                                : 'This keeps failing, so retrying will not help. Head back to the lobby and pick another mode — your diamonds and progress are safe.'}
+                                : 'This keeps failing, so retrying will not help. Head back to the lobby and pick another mode - your diamonds and progress are safe.'}
                         </p>
 
                         {/* Action buttons */}

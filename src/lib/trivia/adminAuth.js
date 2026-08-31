@@ -57,7 +57,7 @@ export function requireAdminSecret(req, res, opts = {}) {
     const hasAdmin = typeof adminSecret === 'string' && adminSecret.length >= 8;
 
     if (!hasCron && !hasAdmin) {
-        console.warn(`[${label}] CRON_SECRET/ADMIN_ROUTE_SECRET not configured — refusing all requests`);
+        console.warn(`[${label}] CRON_SECRET/ADMIN_ROUTE_SECRET not configured - refusing all requests`);
         res.status(500).json({ error: 'Server misconfigured' });
         return false;
     }

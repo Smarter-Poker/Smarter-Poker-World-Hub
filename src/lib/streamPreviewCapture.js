@@ -120,7 +120,7 @@ export class StreamPreviewCapture {
     if (this.disposed) return;
     const mime = pickMime();
     if (!mime) {
-      this.onError(new Error('No supported MediaRecorder MIME — preview disabled'));
+      this.onError(new Error('No supported MediaRecorder MIME - preview disabled'));
       return;
     }
     this.mime = mime;

@@ -79,7 +79,7 @@ function HintButtons({
             return;
         }
         if (!isVip && userDiamonds < hint.cost) {
-            showNotice(`Need ${hint.cost} diamonds — you have ${Math.max(0, userDiamonds)}`, !onNeedDiamonds);
+            showNotice(`Need ${hint.cost} diamonds - you have ${Math.max(0, userDiamonds)}`, !onNeedDiamonds);
             onNeedDiamonds?.(hint);
             return;
         }
@@ -105,7 +105,7 @@ function HintButtons({
                         onClick={() => handleUseHint(hint)}
                         disabled={isInert}
                         aria-disabled={looksDisabled}
-                        aria-label={`${hint.name} — ${hint.description}${isVip ? ' (free for VIP)' : ` (${hint.cost} diamonds)`}`}
+                        aria-label={`${hint.name} - ${hint.description}${isVip ? ' (free for VIP)' : ` (${hint.cost} diamonds)`}`}
                         title={isUsed ? `${hint.name} already used` : hint.description}
                         whileHover={!looksDisabled ? { scale: 1.05 } : {}}
                         whileTap={!looksDisabled ? { scale: 0.95 } : {}}

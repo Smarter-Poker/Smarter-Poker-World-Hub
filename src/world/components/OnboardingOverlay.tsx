@@ -19,7 +19,7 @@ const TOUR_STEPS: TourStep[] = [
     {
         id: 'welcome',
         title: 'Welcome to Smarter Poker! 🎉',
-        description: "Let's take a quick tour of your World Hub — your home base for everything poker.",
+        description: "Let's take a quick tour of your World Hub - your home base for everything poker.",
         target: 'center',
         position: 'center',
     },

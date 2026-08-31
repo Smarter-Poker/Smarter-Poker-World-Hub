@@ -59,9 +59,9 @@ export function mapRpcError(err) {
     case 'GAME_NOT_ACTIVE':
       return { status: 409, error: errName, message: 'This game has been cancelled or has already finished.' };
     case 'WAITLISTED_CANNOT_SELF_SEAT':
-      return { status: 403, error: errName, message: 'The host has you on the waitlist — they will seat you when a spot opens.' };
+      return { status: 403, error: errName, message: 'The host has you on the waitlist - they will seat you when a spot opens.' };
     case 'TABLE_STATE_CHANGED':
-      return { status: 409, error: errName, message: 'The table changed state just now — refresh to see the latest.' };
+      return { status: 409, error: errName, message: 'The table changed state just now - refresh to see the latest.' };
 
     case 'NOT_A_MEMBER':
       return { status: 403, error: errName, message: 'Join this home game to grab a seat.' };
@@ -100,7 +100,7 @@ export function mapRpcError(err) {
       return { status: 409, error: errName, message: 'This game has already started.' };
     case 'RESERVATION_INACTIVE':
     case 'RESERVATION_ALREADY_INACTIVE':
-      return { status: 409, error: errName, message: 'That reservation is no longer active — refresh to see the latest.' };
+      return { status: 409, error: errName, message: 'That reservation is no longer active - refresh to see the latest.' };
     case 'CANNOT_DELETE_DEFAULT_TABLE_WITH_SIBLINGS': return { status: 409, error: errName, message: raw };
     case 'SEAT_OUT_OF_BOUNDS':
     case 'MAX_SEATS_OUT_OF_BOUNDS':

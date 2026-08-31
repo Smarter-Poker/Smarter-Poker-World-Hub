@@ -48,7 +48,7 @@ export const T = {
 };
 
 /** A number that may legitimately be unknown. Never render a fabricated 0. */
-export function num(value, fallback = '—') {
+export function num(value, fallback = '-') {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return fallback;
   return Number(value).toLocaleString();
 }
@@ -61,9 +61,9 @@ export function signed(value) {
 
 /** Dates from the DB are frequently null. Never let toLocaleString throw. */
 export function when(value, withTime = false) {
-  if (!value) return '—';
+  if (!value) return '-';
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return withTime ? d.toLocaleString() : d.toLocaleDateString();
 }
 

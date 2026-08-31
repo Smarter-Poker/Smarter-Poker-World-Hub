@@ -12,5 +12,5 @@
  * It is safe to `git rm src/games/SpeedDrill.js` from a normal shell.
  */
 throw new Error(
-    'src/games/SpeedDrill.js is a dead duplicate — import src/games/SpeedDrillGame.js instead.'
+    'src/games/SpeedDrill.js is a dead duplicate - import src/games/SpeedDrillGame.js instead.'
 );

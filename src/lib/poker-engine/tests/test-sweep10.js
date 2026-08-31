@@ -388,7 +388,7 @@ function assert(condition, label) {
         console.debug('\n❌ FAILURES:');
         failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.debug('\n✅ ALL TESTS PASSED — SWEEP 10 CLEAN');
+        console.debug('\n✅ ALL TESTS PASSED - SWEEP 10 CLEAN');
     }
 
     console.debug('');

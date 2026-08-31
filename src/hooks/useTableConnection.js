@@ -257,7 +257,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
             const amt = w.amount || w.payout || Math.round(potAmt / winners.length);
             setChatMessages(prev => [...prev.slice(-100), {
               type: 'dealer',
-              text: `${w.displayName || 'Winner'} wins ${amt.toLocaleString()}${handName ? ` — ${handName}` : ''}`,
+              text: `${w.displayName || 'Winner'} wins ${amt.toLocaleString()}${handName ? ` - ${handName}` : ''}`,
               ts: Date.now(),
             }]);
           }
@@ -369,7 +369,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         setTableAlert({ type: 'warning', message: `Table closing in ${data.minutesRemaining || 5} minutes`, expiresAt: data.closeAt });
         break;
       case 'game_length_expired':
-        setTableAlert({ type: 'expired', message: 'Game time has ended — table closing after current hand' });
+        setTableAlert({ type: 'expired', message: 'Game time has ended - table closing after current hand' });
         break;
       case 'game_length_extended':
         setTableAlert({ type: 'extended', message: `Game extended (${data.seatedPlayers} players still seated)` });
@@ -404,7 +404,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'nit_warning':
         if (String(data.playerId) === String(userId)) {
-          setTableAlert({ type: 'warning', message: `⚠️ VPIP warning: ${data.vpip}% — play more hands or you'll be sat out` });
+          setTableAlert({ type: 'warning', message: `⚠️ VPIP warning: ${data.vpip}% - play more hands or you'll be sat out` });
           setTimeout(() => setTableAlert(null), 8000);
         }
         break;
@@ -584,7 +584,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         // Connection dropped mid-session — mark disconnected and try state recovery
         setConnected(false);
-        console.warn(`[useTableConnection] Channel ${status} — will auto-reconnect`);
+        console.warn(`[useTableConnection] Channel ${status} - will auto-reconnect`);
         // Supabase client auto-reconnects channels, but refresh state when it does
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = setTimeout(() => {

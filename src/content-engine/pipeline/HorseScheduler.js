@@ -266,8 +266,8 @@ export function applyWritingStyle(comment, profileId) {
     // SANITIZATION - Remove em-dashes and hyphenated-word patterns
     // ═══════════════════════════════════════════════════════════════════════
     result = result
-        .replace(/—/g, ' ')           // Em-dashes to space
-        .replace(/–/g, ' ')           // En-dashes to space
+        .replace(/-/g, ' ')           // Em-dashes to space
+        .replace(/-/g, ' ')           // En-dashes to space
         // Only replace hyphenated non-poker patterns: letter-letter where neither looks like poker shorthand
         // Preserved: 3-bet, one-outer, check-raise, semi-bluff, pre-flop etc (start with digit or 2+ chars)
         .replace(/(?<![0-9a-z]{2,})-(?![0-9])(\b(?!bet|outer|raise|bluff|flop|call|fold|hand|street|barrel|pair|card|pot|roll|way|side))/gi, ' ')

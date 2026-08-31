@@ -31,7 +31,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
    console.warn(msg);
    // In browser, show error instead of silently failing
    if (typeof window !== 'undefined') {
-      console.warn(msg + ' — check your .env.local file');
+      console.warn(msg + ' - check your .env.local file');
    }
    // Don't throw — allow build-time imports to succeed
    // Runtime calls will fail with a clear error
@@ -51,7 +51,7 @@ function getSupabase() {
       const safeUrl = supabaseUrl || 'https://auth.smarter.poker'; // Supabase Custom Domain (paid add-on, $10/mo)
 
       if (!supabaseAnonKey) {
-         console.warn('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY — cannot create authenticated client');
+         console.warn('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY - cannot create authenticated client');
       }
 
       _supabase = createClient(safeUrl, supabaseAnonKey || '', {

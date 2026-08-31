@@ -531,7 +531,7 @@ assert(history.communityCards.length >= 0, 'Community cards recorded');
 // ============================================================
 // CHIP CONSERVATION TESTS
 // ============================================================
-section('CHIP CONSERVATION — All-In Side Pot Scenarios');
+section('CHIP CONSERVATION - All-In Side Pot Scenarios');
 
 // 3-way all-in with different stack sizes
 const pcCons1 = new PotCalculator();
@@ -595,7 +595,7 @@ assertEq(totalPayFold, 350, 'Fold conservation: all chips accounted for');
 // ============================================================
 // GSM — CHIP CONSERVATION THROUGH FULL HAND
 // ============================================================
-section('GSM — CHIP CONSERVATION THROUGH FULL HAND');
+section('GSM - CHIP CONSERVATION THROUGH FULL HAND');
 
 const game3 = new GameStateMachine({
   variant: GAME_VARIANT.HOLDEM,
@@ -645,7 +645,7 @@ assert(omahaResult.category < HAND_CATEGORIES.FLUSH, 'Omaha: cannot play board f
 // ============================================================
 // SPLIT POT — Odd Chip Goes to First Winner
 // ============================================================
-section('SPLIT POT — ODD CHIP HANDLING');
+section('SPLIT POT - ODD CHIP HANDLING');
 
 const pcOdd = new PotCalculator();
 pcOdd.addContribution('a', 101);

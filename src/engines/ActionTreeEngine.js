@@ -311,7 +311,7 @@ export function scoreAction(playerAction, gtoStrategy, potSize) {
             score: 40,
             classification: 'inaccuracy',
             evLoss: 0.5,
-            feedback: `Mixed spot — GTO prefers ${gtoAction} at ${Math.round(freq * 100)}% frequency. ${gtoStrategy.reason}`,
+            feedback: `Mixed spot - GTO prefers ${gtoAction} at ${Math.round(freq * 100)}% frequency. ${gtoStrategy.reason}`,
         };
     }
 

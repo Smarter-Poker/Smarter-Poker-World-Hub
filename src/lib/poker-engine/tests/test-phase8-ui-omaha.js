@@ -145,7 +145,7 @@ async function runTests() {
   assert(asPath === '/cards/spades_a.png', `Ace of spades path: ${asPath}`);
 
   // ═══════════════════════════════════════════════════════
-  section('4. Omaha Variants — Full Hand Play');
+  section('4. Omaha Variants - Full Hand Play');
   // ═══════════════════════════════════════════════════════
 
   // PLO4

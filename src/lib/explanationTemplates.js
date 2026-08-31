@@ -69,7 +69,7 @@ const ACTION_COLORS = {
 };
 
 // ── Safe-value helpers ───────────────────────────────────────────────────────
-const safeStr = (v, fallback = '—') =>
+const safeStr = (v, fallback = '-') =>
     typeof v === 'string' && v.trim().length > 0 ? v : fallback;
 
 const safeNum = (v) =>
@@ -144,16 +144,16 @@ function deriveClassification({ classification, isCorrect, evLoss }) {
 }
 
 const HEADLINE_BY_CLASS = {
-    BEST: 'Optimal — that’s the GTO play.',
-    CORRECT: 'Solid — that’s a valid mix.',
-    INACCURACY: 'Slightly off — small EV leak.',
-    WRONG: 'Leak — solver doesn’t take that line.',
-    BLUNDER: 'Significant punt — costs EV.',
+    BEST: 'Optimal - that’s the GTO play.',
+    CORRECT: 'Solid - that’s a valid mix.',
+    INACCURACY: 'Slightly off - small EV leak.',
+    WRONG: 'Leak - solver doesn’t take that line.',
+    BLUNDER: 'Significant punt - costs EV.',
 };
 
 const KEY_TAKEAWAY_BY_CLASS = {
     BEST: (correct) =>
-        `${actionLabel(correct)} is your default here — recognize the spot and execute.`,
+        `${actionLabel(correct)} is your default here - recognize the spot and execute.`,
     CORRECT: () =>
         'Either action works; commit to one and run it consistently.',
     INACCURACY: (correct, user) =>
@@ -273,7 +273,7 @@ function buildHeadline(klass, evLoss) {
     if (klass === 'BLUNDER') {
         const loss = safeNum(evLoss);
         if (loss !== null && loss > 0) {
-            return `Significant punt — costs ~${loss.toFixed(2)}bb.`;
+            return `Significant punt - costs ~${loss.toFixed(2)}bb.`;
         }
     }
     return HEADLINE_BY_CLASS[klass] || HEADLINE_BY_CLASS.INACCURACY;
@@ -284,14 +284,14 @@ function buildShortExplanation({ correctAnswer, userAnswer, freqsPct, evLoss, kl
     const userFreq = freqsPct?.[userAnswer];
 
     const s1 = optimalFreq != null
-        ? `Solver ${actionVerb(correctAnswer)} ${formatFreqPct(optimalFreq, '—')} of the time here`
+        ? `Solver ${actionVerb(correctAnswer)} ${formatFreqPct(optimalFreq, '-')} of the time here`
         : `Solver ${actionVerb(correctAnswer)} here`;
 
     let s2;
     if (typeof userFreq === 'number' && userFreq >= 1) {
         s2 = (klass === 'CORRECT' || klass === 'BEST')
-            ? `Your ${actionLabel(userAnswer)} also appears at ${formatFreqPct(userFreq)} — valid mix.`
-            : `Your ${actionLabel(userAnswer)} appears at ${formatFreqPct(userFreq)} — but lower frequency.`;
+            ? `Your ${actionLabel(userAnswer)} also appears at ${formatFreqPct(userFreq)} - valid mix.`
+            : `Your ${actionLabel(userAnswer)} appears at ${formatFreqPct(userFreq)} - but lower frequency.`;
     } else {
         const loss = safeNum(evLoss);
         const lossStr = loss != null && loss > 0 ? `, losing ${loss.toFixed(2)}bb` : '';
@@ -335,7 +335,7 @@ function buildDeepDive({ scenario, freqsPct, correctAnswer, evLoss, handEv, alte
         equityAnalysis = 'Preflop equity is determined by the range-vs-range matchup; ' +
             'see the chart engine for the exact pairwise distribution.';
     } else {
-        equityAnalysis = 'Equity profile follows the standard solver assumption for this node — ' +
+        equityAnalysis = 'Equity profile follows the standard solver assumption for this node - ' +
             'see the strategy matrix for the exact pairwise distribution.';
     }
 
@@ -384,7 +384,7 @@ function buildDeepDive({ scenario, freqsPct, correctAnswer, evLoss, handEv, alte
         boardTexture = `Board: ${texture.cards.join(' ')}. ${capitalizeFirst(texture.label)}. ` +
             `Connectedness: ${texture.connectedness}. Suitedness: ${texture.suitedness}.`;
     } else if (street === 'preflop') {
-        boardTexture = 'Preflop spot — texture analysis not applicable.';
+        boardTexture = 'Preflop spot - texture analysis not applicable.';
     } else {
         boardTexture = 'Board texture not provided for this node.';
     }
@@ -466,7 +466,7 @@ function strategicIntent(action, isMixed, texture) {
         return `${lead}. The line balances the range, denies realization, and matches the solver’s expected frequency at this node.`;
     }
     if (texture.broadway >= 2) {
-        return `${lead}. The aggressor leverages range advantage on a high-card runout — small sizings keep villain wide and protect equity at low cost.`;
+        return `${lead}. The aggressor leverages range advantage on a high-card runout - small sizings keep villain wide and protect equity at low cost.`;
     }
     if (texture.paired) {
         return `${lead}. Paired textures compress bluff combos, so the line is sized to extract thin value and maintain a balanced check-range.`;
@@ -475,9 +475,9 @@ function strategicIntent(action, isMixed, texture) {
         return `${lead}. Monotone textures compress equities, so the strategy emphasizes pot-control and selective protection rather than raw aggression.`;
     }
     if (texture.connected) {
-        return `${lead}. Wet textures reward dynamic, balanced strategies — the chosen sizing denies equity to draws while keeping bluffs and value combos credible.`;
+        return `${lead}. Wet textures reward dynamic, balanced strategies - the chosen sizing denies equity to draws while keeping bluffs and value combos credible.`;
     }
-    return `${lead}. Static textures favor disciplined frequencies — overbluffing or overcalling here is heavily punished.`;
+    return `${lead}. Static textures favor disciplined frequencies - overbluffing or overcalling here is heavily punished.`;
 }
 
 function buildGtoAnalysisStrings({
@@ -494,11 +494,11 @@ function buildGtoAnalysisStrings({
 
     if (isMixed) {
         sentences.push(
-            `Solver ${actionVerb(optimalActionCode)} ${optimalPct} of the time with ${handLabel} — this is a mixed-strategy node.`
+            `Solver ${actionVerb(optimalActionCode)} ${optimalPct} of the time with ${handLabel} - this is a mixed-strategy node.`
         );
     } else {
         sentences.push(
-            `${optimalReadable} is a pure ${optimalPct} play with ${handLabel} — solver almost never deviates here.`
+            `${optimalReadable} is a pure ${optimalPct} play with ${handLabel} - solver almost never deviates here.`
         );
     }
 
@@ -524,7 +524,7 @@ function buildGtoAnalysisStrings({
     if (top) {
         const altPct = formatFreqPct(top.frequency);
         sentences.push(
-            `Top alternate: ${actionLabel(top.actionCode || top.action)} at ${altPct} — used to balance the strategy.`
+            `Top alternate: ${actionLabel(top.actionCode || top.action)} at ${altPct} - used to balance the strategy.`
         );
     }
 
@@ -546,7 +546,7 @@ function buildGtoAnalysisStrings({
         mixedStrategy = buildMixedStrategyNote(synthesized, optimalActionCode) ||
             `This is a mixed strategy spot. The solver plays ${actionLabel(optimalActionCode)} (${optimalPct}).`;
     } else {
-        mixedStrategy = `Pure strategy — solver always plays ${actionLabel(optimalActionCode)} (${optimalPct}) with ${handLabel} at this node.`;
+        mixedStrategy = `Pure strategy - solver always plays ${actionLabel(optimalActionCode)} (${optimalPct}) with ${handLabel} at this node.`;
     }
 
     return { explanation, gtoApproach, mixedStrategy };

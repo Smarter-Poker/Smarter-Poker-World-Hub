@@ -312,7 +312,7 @@ const SPOT_SCENARIOS = [
                     { action: 'Bet pot', correct: false, ev: 4.1 },
                     { action: 'Bet 75%', correct: false, ev: 5.1 },
                 ],
-                explanation: 'Turn brings a club draw. Continue betting for value—we still beat most of villain\'s range.',
+                explanation: 'Turn brings a club draw. Continue betting for value-we still beat most of villain\'s range.',
             },
             {
                 street: 'river',
@@ -328,7 +328,7 @@ const SPOT_SCENARIOS = [
                     { action: 'Bet 75%', correct: false, ev: 2.1 },
                     { action: 'Bet 125%', correct: false, ev: 0.6 },
                 ],
-                explanation: 'River is a blank but villain called twice. Check to control pot—better hands raise, worse fold.',
+                explanation: 'River is a blank but villain called twice. Check to control pot-better hands raise, worse fold.',
             },
         ],
     },
@@ -380,7 +380,7 @@ const SPOT_SCENARIOS = [
                     { action: 'Bet 75%', correct: true, ev: 8.8 },
                     { action: 'Bet 125%', correct: false, ev: 5.4 },
                 ],
-                explanation: 'FLUSH! We made it. Lead out for value—villain will pay off with Kx.',
+                explanation: 'FLUSH! We made it. Lead out for value-villain will pay off with Kx.',
             },
             {
                 street: 'river',

@@ -203,7 +203,7 @@ class LeakService {
         const messages = {
             PASSIVE_PLAY: `I've noticed you're playing a bit too passively, sir. You're calling when you should be raising, missing both value and fold equity. Shall I recommend some aggression drills?`,
             OVER_FOLDING: `I observe you're folding quite frequently, sir. Opponents could exploit this with any two cards. Might I suggest some hand defense exercises?`,
-            CALLING_STATION: `A word of caution, sir — you're calling when folding would be optimal. This pattern makes you vulnerable to value bets. I have some discipline drills that might help.`,
+            CALLING_STATION: `A word of caution, sir - you're calling when folding would be optimal. This pattern makes you vulnerable to value bets. I have some discipline drills that might help.`,
             MANIAC_AGGRESSION: `Sir, your aggression frequency appears elevated. Raising when checking or calling is optimal could be costly. Perhaps some pot control exercises would benefit your game?`
         };
 

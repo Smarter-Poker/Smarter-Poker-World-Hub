@@ -347,7 +347,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
                   last_active_at: new Date().toISOString(),
                 }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly).select('id')); // optimistic lock on retry
                 if (!retryAgent?.length) {
-                  console.error(`[ChipBridge] agent rake LOST for agent ${agent.id}: optimistic lock lost twice, ${rakeGenerated} not recorded — commission will under-pay`);
+                  console.error(`[ChipBridge] agent rake LOST for agent ${agent.id}: optimistic lock lost twice, ${rakeGenerated} not recorded - commission will under-pay`);
                 }
               }
             }

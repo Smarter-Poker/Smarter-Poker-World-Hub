@@ -123,7 +123,7 @@ export class HubErrorBoundary extends React.Component {
                         <p style={{ color: '#8a8d91', fontSize: 14, maxWidth: 380, margin: '0 auto 24px' }}>
                             {recovering
                                 ? 'A new build shipped while this page was open, so its code was no longer on the server. Reloading now.'
-                                : 'This section encountered an issue and was isolated to protect the rest of the app. Please try refreshing — everything else is still running normally.'}
+                                : 'This section encountered an issue and was isolated to protect the rest of the app. Please try refreshing - everything else is still running normally.'}
                         </p>
                     </div>
 

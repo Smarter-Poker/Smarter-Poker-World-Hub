@@ -151,7 +151,7 @@ export function verifyMfaCookie(req, expectedUserId = null) {
             missing: 'MFA challenge required',
             malformed: 'Malformed MFA token',
             invalid: 'Invalid MFA token',
-            expired: 'MFA session expired — please re-verify',
+            expired: 'MFA session expired - please re-verify',
             wrongUser: 'MFA token does not match current user',
         },
     });
@@ -182,7 +182,7 @@ export function verifyTrustedDevice(req, expectedUserId = null) {
             missing: 'No trusted device on this browser',
             malformed: 'Malformed trusted-device token',
             invalid: 'Invalid trusted-device token',
-            expired: 'Trusted device expired — please re-verify',
+            expired: 'Trusted device expired - please re-verify',
             wrongUser: 'Trusted-device token does not match current user',
         },
     });

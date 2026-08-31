@@ -36,7 +36,7 @@ export function MessageReactions({ messageId, cacheId, initialReaction, onReact 
 
             // Only call API if we have a cacheId — messages without cache entries can't be rated
             if (!cacheId) {
-                console.warn('[MessageReactions] No cacheId — skipping API call');
+                console.warn('[MessageReactions] No cacheId - skipping API call');
                 onReact?.(finalReaction as any);
                 return;
             }

@@ -44,7 +44,7 @@ async function runTests() {
   const gc = new GameController();
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Initialization');
+  section('GameController - Initialization');
   // ═══════════════════════════════════════════════════════
 
   await gc.initialize();
@@ -58,7 +58,7 @@ async function runTests() {
   assert(gc.initialized === true, 'Double init is safe');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Create Table');
+  section('GameController - Create Table');
   // ═══════════════════════════════════════════════════════
 
   const createResult = await gc.createTable({
@@ -90,7 +90,7 @@ async function runTests() {
   assert(tableList.length === 1, 'listTables returns 1');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Seat Management');
+  section('GameController - Seat Management');
   // ═══════════════════════════════════════════════════════
 
   // Sit down Alice at seat 0
@@ -126,14 +126,14 @@ async function runTests() {
   assert(sitInResult.success === true, 'Alice sits back in');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Add Chips');
+  section('GameController - Add Chips');
   // ═══════════════════════════════════════════════════════
 
   const addResult = await gc.addChips(tableId, 'alice', 50);
   assert(addResult.success === true, 'Alice adds 50 chips');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — State Queries');
+  section('GameController - State Queries');
   // ═══════════════════════════════════════════════════════
 
   const aliceState = await gc.getTableState(tableId, 'alice');
@@ -155,7 +155,7 @@ async function runTests() {
   assert(nullState === null, 'Null state for nonexistent table');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Full Hand Lifecycle');
+  section('GameController - Full Hand Lifecycle');
   // ═══════════════════════════════════════════════════════
 
   // Sit Charlie at seat 2 (need 2+ non-sitting-out for hand)
@@ -203,7 +203,7 @@ async function runTests() {
   assert(stats.totalPlayers === 3, 'Stats show 3 players');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Action Validation');
+  section('GameController - Action Validation');
   // ═══════════════════════════════════════════════════════
 
   // Action on nonexistent table
@@ -215,7 +215,7 @@ async function runTests() {
   assert(badAction2.success === false, 'Cannot act when no hand in progress');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Waitlist');
+  section('GameController - Waitlist');
   // ═══════════════════════════════════════════════════════
 
   const wlJoin = await gc.joinWaitlist(tableId, 'dave', { displayName: 'Dave' });
@@ -228,7 +228,7 @@ async function runTests() {
   assert(wlBad.success === false, 'Cannot join waitlist on nonexistent table');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Chat');
+  section('GameController - Chat');
   // ═══════════════════════════════════════════════════════
 
   const chatResult = await gc.sendChat(tableId, 'alice', 'nh!');
@@ -241,7 +241,7 @@ async function runTests() {
   assert(chatBad.success === false, 'Chat on nonexistent table fails');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Heartbeat / Connection');
+  section('GameController - Heartbeat / Connection');
   // ═══════════════════════════════════════════════════════
 
   // These should not throw
@@ -255,7 +255,7 @@ async function runTests() {
   assert(true, 'Reconnect via heartbeat');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Stand Up / Close Table');
+  section('GameController - Stand Up / Close Table');
   // ═══════════════════════════════════════════════════════
 
   const standResult = await gc.standUp(tableId, 'alice');
@@ -271,7 +271,7 @@ async function runTests() {
   assert(closeBad.success === false, 'Cannot close nonexistent table');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Multiple Tables');
+  section('GameController - Multiple Tables');
   // ═══════════════════════════════════════════════════════
 
   const t1 = await gc.createTable({ name: 'T1', smallBlind: 1, bigBlind: 2, minBuyIn: 40, maxBuyIn: 200 });
@@ -294,14 +294,14 @@ async function runTests() {
   assert(mt2State.seats[0].player?.id === 'multitabler', 'Multi-tabler at T2');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Variant Support');
+  section('GameController - Variant Support');
   // ═══════════════════════════════════════════════════════
 
   const t3Info = gc.getTableInfo(t3.tableId);
   assert(t3Info.config.variant === 'omaha4', 'Omaha table has correct variant (omaha4)');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Shutdown');
+  section('GameController - Shutdown');
   // ═══════════════════════════════════════════════════════
 
   await gc.shutdown();
@@ -309,7 +309,7 @@ async function runTests() {
   assert(gc.lobby.tables.size === 0, 'All tables cleaned up');
 
   // ═══════════════════════════════════════════════════════
-  section('GameController — Singleton (globalThis)');
+  section('GameController - Singleton (globalThis)');
   // ═══════════════════════════════════════════════════════
 
   const { getController, getControllerSync } = require('../src/GameController');
