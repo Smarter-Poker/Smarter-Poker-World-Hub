@@ -1054,7 +1054,15 @@ export default async function handler(req, res) {
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
       const liveHands = stats?.handsPlayed || 0;
       const solverDecisions = solverEvidence.decisions.length;
-      const evidenceCoverage = evidenceReceipt({ liveHands, solverEvidence, clubArenaSync });
+      const sourceCompleteness = {
+        trainingSolver: solverEvidence.sources?.training?.complete === true,
+        handAudit: solverEvidence.sources?.handAudit?.complete === true,
+        clubArena: clubArenaSync.complete === true,
+      };
+      const evidenceCoverage = {
+        ...evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }),
+        sourceCompleteness,
+      };
       const evidenceSources = {
         livePlay: liveHands > 0,
         trainingSolver: solverEvidence.sources?.training?.available === true,
@@ -1088,6 +1096,7 @@ export default async function handler(req, res) {
           clubArenaSync,
           evidenceSources,
           evidenceCoverage,
+          evidencePartial: !sourceCompleteness.trainingSolver || !sourceCompleteness.handAudit,
           leaksDetected: 0,
           leaks: [],
           persisted: statsPersisted,
@@ -1388,11 +1397,14 @@ export default async function handler(req, res) {
         }
       }
 
+      // `partial` is the durable-write contract consumed by the worker. An
+      // incomplete optional evidence source must stay visible, but it must not
+      // misreport successfully persisted Club Arena findings as a failed
+      // transaction. Recovery already fails closed per affected solver scope.
+      const evidencePartial = !sourceCompleteness.trainingSolver ||
+        !sourceCompleteness.handAudit || existingResult.complete !== true;
       const partial = !resolutionsSynced || !statsSynced ||
         clubArenaSync.persisted === false || clubArenaSync.complete === false ||
-        solverEvidence.sources?.training?.complete !== true ||
-        solverEvidence.sources?.handAudit?.complete !== true ||
-        existingResult.complete !== true ||
         secondarySync.handExamples?.persisted === false || !secondarySync.suggestionsPersisted;
 
       return res.status(200).json({
@@ -1400,7 +1412,14 @@ export default async function handler(req, res) {
         handsAnalyzed: liveHands,
         solverDecisionsAnalyzed: solverDecisions,
         evidenceSources,
-        evidenceCoverage,
+        evidenceCoverage: {
+          ...evidenceCoverage,
+          sourceCompleteness: {
+            ...sourceCompleteness,
+            leakHistory: existingResult.complete === true,
+          },
+        },
+        evidencePartial,
         clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
