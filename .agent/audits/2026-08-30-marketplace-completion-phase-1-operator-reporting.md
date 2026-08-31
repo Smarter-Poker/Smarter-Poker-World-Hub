@@ -184,3 +184,19 @@ This pass did not change prices, Stripe or Diamond settlement, inventory,
 commissions, entitlements, database objects, or Printful behavior. Automatic
 Printful fulfillment remains deliberately deferred; card and Diamond checkout
 remain enabled.
+
+### Final Live Hydration Re-Certification — 2026-08-31
+
+A fresh signed-in production audit before Phase 2 found one remaining shopper-
+facing failure state. If the Club Shop membership or catalog request never
+settled, the five-second safety timer cleared only its busy flag. Because the
+load was still unverified, the render branch continued to show “Loading Club
+Shop...” indefinitely and the abandoned request could later race a retry.
+
+The shopper loader now owns a bounded request identity and timer for foreground
+and silent refreshes. A timed-out foreground load terminates in a visible,
+retryable error; a superseded request cannot overwrite a newer result; database
+membership errors fail closed instead of masquerading as “No Club Found”; and
+unmount cleanup invalidates pending work. The mandatory Marketplace gate now
+contains 190 contracts, including this terminal-state and latest-request-wins
+regression.

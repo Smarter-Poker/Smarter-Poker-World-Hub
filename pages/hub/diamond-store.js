@@ -494,6 +494,11 @@ export default function DiamondStorePage({ initialTab }) {
   const [clubShopDeleteTarget, setClubShopDeleteTarget] = useState(null);
   const [clubShopAdminActionId, setClubShopAdminActionId] = useState(null);
   const clubShopLoadingRef = useRef(false);
+  // The storefront loader can be invalidated by its timeout or a later retry.
+  // A superseded request must never clear or overwrite the newer request's
+  // terminal state when its network work eventually settles.
+  const clubShopLoadRequestRef = useRef(0);
+  const clubShopLoadTimerRef = useRef(null);
   const clubShopProcessingRef = useRef(false);
   const clubShopAdminLoadingRef = useRef(false);
   const clubShopAdminAbortRef = useRef(null);
@@ -704,6 +709,9 @@ export default function DiamondStorePage({ initialTab }) {
   useEffect(
     () => () => {
       if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
+      if (clubShopLoadTimerRef.current) clearTimeout(clubShopLoadTimerRef.current);
+      clubShopLoadRequestRef.current += 1;
+      clubShopLoadingRef.current = false;
     },
     []
   );
@@ -1196,9 +1204,21 @@ export default function DiamondStorePage({ initialTab }) {
   const loadClubShop = useCallback(
     async (silent = false) => {
       if (clubShopLoadingRef.current) return;
+      const requestId = ++clubShopLoadRequestRef.current;
       clubShopLoadingRef.current = true;
       if (!silent) setClubShopLoading(true);
       if (!silent) setClubShopError(null);
+      const loadTimer = setTimeout(() => {
+        if (requestId !== clubShopLoadRequestRef.current) return;
+        clubShopLoadRequestRef.current += 1;
+        clubShopLoadingRef.current = false;
+        if (!silent) {
+          setClubShopLoading(false);
+          setClubShopLoaded(true);
+          setClubShopError('The Club Shop Timed Out. Please Try Again.');
+        }
+      }, 5000);
+      clubShopLoadTimerRef.current = loadTimer;
       try {
         const token = getAccessToken();
         if (!token) {
@@ -1218,12 +1238,14 @@ export default function DiamondStorePage({ initialTab }) {
         // Find user's club
         let targetClub = clubShopClubId;
         if (!targetClub) {
-          const { data: mem } = await supabase
+          const { data: mem, error: membershipError } = await supabase
             .from('club_members')
             .select('club_id')
             .eq('user_id', authUser.id)
             .limit(1)
             .maybeSingle();
+          if (requestId !== clubShopLoadRequestRef.current) return;
+          if (membershipError) throw membershipError;
           targetClub = mem?.club_id || null;
           if (targetClub) setClubShopClubId(targetClub);
         }
@@ -1237,10 +1259,13 @@ export default function DiamondStorePage({ initialTab }) {
         const response = await fetch(`/api/club-arena/marketplace-items?clubId=${targetClub}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (requestId !== clubShopLoadRequestRef.current) return;
         if (!response.ok) throw new Error(`Failed to load club shop (${response.status})`);
         const data = await response.json();
+        if (requestId !== clubShopLoadRequestRef.current) return;
         if (!data?.success) throw new Error(data?.error || 'Failed to load club shop');
 
+        setClubShopError(null);
         setClubShopItems(
           (data.items || []).map((i) => ({
             ...i,
@@ -1255,6 +1280,7 @@ export default function DiamondStorePage({ initialTab }) {
         if (data.role) setClubShopRole(data.role);
         setClubShopLoaded(true);
       } catch (err) {
+        if (requestId !== clubShopLoadRequestRef.current) return;
         console.warn('[Club Shop]', err);
         if (!silent) {
           setClubShopError('The Club Shop Could Not Be Loaded. Please Try Again.');
@@ -1262,8 +1288,12 @@ export default function DiamondStorePage({ initialTab }) {
           showStoreToast('error', 'Failed to load the club shop. Please try again.');
         }
       } finally {
-        clubShopLoadingRef.current = false;
-        setClubShopLoading(false);
+        clearTimeout(loadTimer);
+        if (clubShopLoadTimerRef.current === loadTimer) clubShopLoadTimerRef.current = null;
+        if (requestId === clubShopLoadRequestRef.current) {
+          clubShopLoadingRef.current = false;
+          setClubShopLoading(false);
+        }
       }
     },
     [clubShopClubId]
@@ -1522,16 +1552,6 @@ export default function DiamondStorePage({ initialTab }) {
       loadClubShop();
     }
   }, [activeTab, clubShopLoaded, loadClubShop, user?.id]);
-
-  // ═══ Club Shop: 5-second loading timeout safety ═══
-  useEffect(() => {
-    if (!clubShopLoading) return;
-    const timeout = setTimeout(() => {
-      clubShopLoadingRef.current = false;
-      setClubShopLoading(false);
-    }, 5000);
-    return () => clearTimeout(timeout);
-  }, [clubShopLoading]);
 
   // ═══ Club Shop: Real-time Supabase subscriptions ═══
   useEffect(() => {
