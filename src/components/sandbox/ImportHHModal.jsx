@@ -4,7 +4,7 @@
  * Paste a raw hand history and hydrate the sandbox from it.
  *
  * Changes that matter on a phone:
- *   • bottom sheet with a sticky action row — the old centred dialog put the
+ *   • bottom sheet with a sticky action row · the old centred dialog put the
  *     textarea and the button under the on-screen keyboard
  *   • 16px textarea (anything smaller triggers the iOS zoom that never undoes)
  *   • the parse result is previewed and applied on an explicit tap, replacing
@@ -89,7 +89,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
 
     const pasteFromClipboard = useCallback(async () => {
         if (typeof navigator?.clipboard?.readText !== 'function') {
-            setStatus({ type: 'error', msg: 'This browser will not let a page read the clipboard — paste with a long-press instead.' });
+            setStatus({ type: 'error', msg: 'This browser will not let a page read the clipboard · paste with a long-press instead.' });
             return;
         }
         try {
@@ -102,7 +102,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
             reset();
         } catch (e) {
             console.warn('[ImportHHModal] clipboard read blocked:', e?.message || e);
-            setStatus({ type: 'error', msg: 'Clipboard access was denied — paste with a long-press instead.' });
+            setStatus({ type: 'error', msg: 'Clipboard access was denied · paste with a long-press instead.' });
         }
     }, [reset]);
 
@@ -152,7 +152,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
                         }}>
                             {[
-                                ['Hero hand', parsed.heroHand ? `${parsed.heroHand.card1 || ''} ${parsed.heroHand.card2 || ''}`.trim() : '—'],
+                                ['Hero hand', parsed.heroHand ? `${parsed.heroHand.card1 || ''} ${parsed.heroHand.card2 || ''}`.trim() : 'Not Available'],
                                 ['Position', parsed.heroPosition || 'not detected'],
                                 ['Stack', parsed.heroStack != null ? `${parsed.heroStack} BB` : 'defaulting to 100 BB'],
                                 ['Board', boardPreview || 'preflop'],

@@ -4,7 +4,7 @@
  *
  * The API returns prose insights plus the raw aggregates (streetErrors,
  * biggestStreet, biggestPos, totalEvLost). We derive RANKED, ACTIONABLE cards
- * from the aggregates — each with a "Practice this" deep link — and fall back
+ * from the aggregates · each with a "Practice this" deep link · and fall back
  * to the prose list when only that is available.
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -53,7 +53,7 @@ function deriveLeaks(data) {
             share,
             evLost: evLost * share,
             title: `${street.charAt(0).toUpperCase()}${street.slice(1)} decisions`,
-            text: `${errs} mistake${errs === 1 ? '' : 's'} on the ${street} — ${Math.round(share * 100)}% of everything you got wrong.`,
+            text: `${errs} mistake${errs === 1 ? '' : 's'} on the ${street} · ${Math.round(share * 100)}% of everything you got wrong.`,
         });
     });
 
@@ -208,7 +208,7 @@ export default function MacroLeakDetector() {
     } else if (leaks.length === 0 && proseInsights.length === 0) {
         body = (
             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                No systemic leak stands out across your sample — your errors are spread evenly. Keep
+                No systemic leak stands out across your sample · your errors are spread evenly. Keep
                 logging hands and check back.
             </p>
         );

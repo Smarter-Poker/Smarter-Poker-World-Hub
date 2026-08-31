@@ -69,12 +69,18 @@ function actionName(action) {
   return raw || null;
 }
 
-function positionedPlayers(rawPlayers, buttonSeat) {
+function positionedPlayers(rawPlayers, buttonSeat, bigBlind) {
   const players = (rawPlayers || []).map((player, index) => ({
     id: playerId(player),
     name: player.displayName || player.username || player.name || `Seat ${index + 1}`,
     seat: Number(player.seatIndex ?? player.seat ?? index),
-    stack: Number(player.stack ?? player.stackBB ?? player.chips) || null,
+    stack: Number.isFinite(Number(player.stackBB)) && Number(player.stackBB) > 0
+      ? Number(player.stackBB)
+      : (Number.isFinite(Number(player.startStack ?? player.stack ?? player.chips))
+          && Number(player.startStack ?? player.stack ?? player.chips) > 0
+          && Number.isFinite(Number(bigBlind)) && Number(bigBlind) > 0
+        ? Number(player.startStack ?? player.stack ?? player.chips) / Number(bigBlind)
+        : null),
     position: '',
     holeCards: cards(player.holeCards || player.heroCards || player.cards),
   }));
@@ -104,6 +110,7 @@ export function normalizeClubArenaHand(row, userId) {
   const players = positionedPlayers(
     rawPlayers,
     summary.buttonSeat ?? summary.button_seat ?? row?.button_seat,
+    summary.bigBlind ?? summary.big_blind ?? row?.big_blind,
   );
   const heroPlayer = players.find(player => String(player.id) === String(userId));
   // The Hetzner Club Arena recorder stores showdown holdings in the
@@ -158,10 +165,15 @@ export function normalizeClubArenaHand(row, userId) {
   const turn = turnCards[0] || fallbackBoard[3] || '';
   const river = riverCards[0] || fallbackBoard[4] || '';
 
+  const rawFormat = String(summary.format || row?.format || '').trim().toLowerCase();
+  const format = ['tournament', 'mtt'].includes(rawFormat)
+    ? 'tournament'
+    : (['cash', 'ring'].includes(rawFormat) ? 'cash' : null);
+
   return {
     id: `club-arena:${row.id || summary.id || summary.handId || row.hand_number}`,
     site: 'smarter-poker-club-arena',
-    format: summary.format || row?.format || 'unknown',
+    format,
     gameType: ['nlh', 'nlhe'].includes(gameType) ? 'nlhe' : 'no-limit-holdem',
     tableSize: players.length,
     buttonSeat: summary.buttonSeat ?? summary.button_seat ?? row?.button_seat ?? null,
@@ -171,7 +183,7 @@ export function normalizeClubArenaHand(row, userId) {
       name: heroPlayer?.name || heroRaw.displayName || heroRaw.username || 'Hero',
       position: heroPlayer?.position || heroRaw.position || '',
       holeCards: heroCards,
-      stack: heroPlayer?.stack || Number(heroRaw.stack ?? heroRaw.stackBB ?? heroRaw.chips) || null,
+      stack: heroPlayer?.stack || null,
     },
     streets: {
       preflop: { actions: streetActions('preflop') },
@@ -307,7 +319,11 @@ function nodeCompatible(question, point) {
     preflop_open: ['preflop_open', 'rfi'],
     preflop_4bet: ['preflop_4bet', '4bet'],
     preflop_squeeze: ['preflop_squeeze', 'squeeze'],
-    preflop_facing_raise: ['preflop_facing_raise', 'preflop_3bet', '3bet', 'preflop_bb_defense', 'bb_defense', 'preflop_cold_call', 'cold_call'],
+    // The parser can prove that hero faced a raise, but not whether the exact
+    // cached node was a 3-bet, blind defence, or cold-call branch. Never merge
+    // those solver ranges; only a cache row carrying the same generic node is
+    // eligible until villain position and wager context are persisted.
+    preflop_facing_raise: ['preflop_facing_raise'],
     hero_faces_bet: ['hero_faces_bet'],
     hero_bets_or_checks: ['hero_bets_or_checks'],
   };
@@ -345,7 +361,8 @@ function exactIdentityCompatible(question, hand, point) {
 
 async function findQuestion(db, hand, point) {
   const notation = handNotation(point.holeCards);
-  if (!point.position || !notation || !isSupportedHoldemHand(hand)) return null;
+  if (!point.position || !notation || !isSupportedHoldemHand(hand)
+    || !['cash', 'tournament'].includes(hand.format)) return null;
   const prefix = hand.format === 'tournament' ? 'mtt-%' : 'cash-%';
   const { data, error } = await db
     .from('training_question_cache')

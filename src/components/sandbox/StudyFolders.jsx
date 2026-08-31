@@ -4,10 +4,10 @@
  * Browses saved sandbox scenarios and reloads them into the table.
  *
  * Rebuilt for mobile:
- *   • single column bottom sheet — folders become a snap carousel, hand cards
+ *   • single column bottom sheet · folders become a snap carousel, hand cards
  *     stack (the old side-by-side row overflowed 375px)
  *   • three distinct failure states: sign-in (401), retry (network/5xx) and a
- *     genuine empty archive — the old code showed "Empty Archive" for all three
+ *     genuine empty archive · the old code showed "Empty Archive" for all three
  *   • delete is two-step and undoable (re-POSTs the hand for 6 seconds)
  *   • search + tag filter + 20-per-page paging, with state_json parsed once per
  *     hand id instead of on every render
@@ -172,7 +172,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
             });
             const result = await readPersistenceResponse(res);
             if (result.success && result.persisted) {
-                // The active folder can vanish with its last hand — the effect
+                // The active folder can vanish with its last hand · the effect
                 // below re-points it once `folders` recomputes.
                 setHands(prev => prev.filter(h => h.id !== id));
                 window.dispatchEvent(new CustomEvent('sandbox-hand-deleted', { detail: { id } }));
@@ -361,7 +361,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     )}
 
                     <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} in {activeFolder || '—'}
+                        {filtered.length} setup{filtered.length === 1 ? '' : 's'} in {activeFolder || 'Not Available'}
                     </div>
 
                     {filtered.length === 0 ? (

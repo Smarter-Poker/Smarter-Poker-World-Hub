@@ -8,7 +8,7 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { getTodayCST } from '../../../../src/lib/trivia/getTodayCST';
 import { CURATED_WEEKLY_SPOTS as CURATED_SPOTS } from '../../../../src/lib/personal-assistant/weeklySpotCatalog';
 
-// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// NOTE: Removed edge runtime · this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 let _supabase = null;
@@ -32,21 +32,21 @@ export default async function handler(req, res) {
       }
 
       // Rate limit before any DB work. The edge cache below only protects the
-      // DB for requests that actually hit the CDN — a unique query string per
+      // DB for requests that actually hit the CDN · a unique query string per
       // request busts it and reaches this handler every time, so the read
       // bucket is the real floor for an unauthenticated endpoint.
       if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
 
       const supabase = getSupabase();
 
-      // Weekly spot is static, refreshed once/day — cache 1 hour at edge
+      // Weekly spot is static, refreshed once/day · cache 1 hour at edge
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
 
       try {
-          // Try to fetch from DB first — getSupabase() already falls back to the
+          // Try to fetch from DB first · getSupabase() already falls back to the
           // anon key, so no env guard is needed (and referencing undefined env
           // consts here previously threw, killing the whole DB path).
-          const today = getTodayCST(); // Phase 77 — CST anchor: weekly spot rotation matches user's local week boundary
+          const today = getTodayCST(); // Phase 77 · CST anchor: weekly spot rotation matches user's local week boundary
 
           const { data, error } = await supabase
               .from('sandbox_weekly_spots')

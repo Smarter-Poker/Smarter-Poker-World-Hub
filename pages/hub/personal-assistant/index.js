@@ -1,5 +1,5 @@
 /**
- * PERSONAL ASSISTANT — Jarvis Strategy Hub
+ * PERSONAL ASSISTANT · Jarvis Strategy Hub
  * /hub/personal-assistant
  *
  * The page keeps the existing data, routes, access gates, and recovery flows,
@@ -236,7 +236,7 @@ export default function PersonalAssistantPage() {
   };
 
   const formatEv = (value) => (
-    typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} BB` : 'EV —'
+    typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} BB` : 'EV ·'
   );
 
   const sessionTypeLabel = (session) => (
@@ -607,7 +607,7 @@ export default function PersonalAssistantPage() {
           <section className={styles.section} aria-labelledby="dashboard-title">
             <SectionBar id="dashboard-title" title="Dashboard Overview" meta="Live Performance" />
             {(statsDemo || stats?.isDemo) && (
-              <p className={styles.demoNote}>Sample View — Sign In To See Your Own Sessions, Hands, And Leaks.</p>
+              <p className={styles.demoNote}>Sample View · Sign In To See Your Own Sessions, Hands, And Leaks.</p>
             )}
             <div className={styles.statGrid} aria-busy={statsLoading} aria-live="polite">
               {statCards.map(({ title, value, label, Icon, route }) => (
@@ -620,7 +620,7 @@ export default function PersonalAssistantPage() {
                 >
                   <span className={styles.statCardInner}>
                     <span className={styles.statTopline}><Icon size={17} aria-hidden="true" />{title}</span>
-                    <strong>{statsLoading ? '—' : Number(value).toLocaleString()}</strong>
+                    <strong>{statsLoading ? 'Not Available' : Number(value).toLocaleString()}</strong>
                     <span className={styles.statLabel}>{statsLoading ? 'Loading Live Data…' : label}</span>
                     <span className={styles.statAction}>View Details<ChevronRight size={13} aria-hidden="true" /></span>
                   </span>

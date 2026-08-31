@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60000 })) return;
     }
 
-    // HARDENED: March 7, 2026 — REMOVED req.query.userId fallback (IDOR vulnerability).
+    // HARDENED: March 7, 2026 · REMOVED req.query.userId fallback (IDOR vulnerability).
     // userId MUST come from JWT only. The global fetch interceptor auto-injects JWT.
     let userId = null;
     const { status } = req.query;
@@ -103,13 +103,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Unsupported leak status' });
     }
 
-    // Extract userId from JWT — this is the ONLY trusted source
+    // Extract userId from JWT · this is the ONLY trusted source
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
       if (authErr || !authUser) {
-        // A token was presented but is invalid/expired — tell the client to
+        // A token was presented but is invalid/expired · tell the client to
         // refresh instead of silently serving demo data
         return res.status(401).json({ success: false, error: 'Invalid or expired token' });
       }
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       if (!userId) {
-        // Genuinely anonymous request — demo showcase only
+        // Genuinely anonymous request · demo showcase only
         return res.status(200).json({
           success: true,
           leaks: getDemoLeaks('demo-account'),
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
 
         // No real leaks: return an explicit empty state. Demo leaks are
         // provided separately (clearly labeled) so the frontend can render
-        // an onboarding view — never presented as the user's own data.
+        // an onboarding view · never presented as the user's own data.
         if (allLeaks.length === 0) {
           return res.status(200).json({
             success: true,
@@ -258,7 +258,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = (req.body && typeof req.body === 'object') ? req.body : {};
 
-      // Build the row from a whitelist — ownership is forced from the JWT,
+      // Build the row from a whitelist · ownership is forced from the JWT,
       // client-supplied user_id / id are ignored
       const leak = { user_id: userId };
       try {
@@ -347,7 +347,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'id required' });
       }
 
-      // Whitelist updatable fields — never allow user_id/id reassignment
+      // Whitelist updatable fields · never allow user_id/id reassignment
       const updates = {};
       PATCH_ALLOWED_FIELDS.forEach(field => {
         if (body[field] !== undefined) updates[field] = body[field];
@@ -387,7 +387,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) {
-          // Invalid UUID (e.g. a demo/simulated id) — treat as not found
+          // Invalid UUID (e.g. a demo/simulated id) · treat as not found
           if (error.code === '22P02') {
             return res.status(404).json({ success: false, error: 'Leak not found' });
           }
@@ -478,7 +478,7 @@ export default async function handler(req, res) {
 
 // ─── Demo data helpers ────────────────────────────────────────────────────────────
 
-// Last `n` consecutive YYYY-MM month labels ending with the current month —
+// Last `n` consecutive YYYY-MM month labels ending with the current month ·
 // the exact format detect.js's updateTrendData writes
 function lastMonths(n) {
   const out = [];
@@ -493,7 +493,7 @@ function lastMonths(n) {
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
 
 // Demo leaks for users without real data (always served with isDemo/demoLeaks
-// labeling — never presented as the user's own play data)
+// labeling · never presented as the user's own play data)
 function getDemoLeaks(userId) {
   const m5 = lastMonths(5);
   const m4 = lastMonths(4);

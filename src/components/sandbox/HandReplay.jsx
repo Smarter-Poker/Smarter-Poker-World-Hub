@@ -4,21 +4,21 @@
  * Steps through the session log one hand at a time.
  *
  * The log mixes two kinds of entry, told apart by an explicit `source` tag
- * (never by the presence of a timestamp — local entries carry one too):
+ * (never by the presence of a timestamp · local entries carry one too):
  *   • live hands played this sitting (source 'live'/'local'). With coach mode
  *     off these still have isCorrect null but DO carry a stored GTO action.
  *   • archived hands hydrated from /api/sandbox/sessions (source 'server').
  *
  * PROVENANCE IS NOT A VERDICT. /api/sandbox/sessions now joins
  * sandbox_coach_results, so an archived row MAY carry a real
- * userPick/optimalAction/isCorrect/evDelta — and often does. The card therefore
+ * userPick/optimalAction/isCorrect/evDelta · and often does. The card therefore
  * branches on whether a verdict is actually present (`graded`), never on
  * `source`. `source` drives only the Archived provenance badge, the archived
  * filter tab and the date stamp. Keying the verdict block off provenance hid
  * real coach data and printed "no verdict exists" copy directly above an EV
  * delta row that rendered anyway.
  *
- * Navigation is a scrollable strip of 44px snap buttons plus swipe gestures —
+ * Navigation is a scrollable strip of 44px snap buttons plus swipe gestures ·
  * the old 8x8px dot field was neither tappable nor reachable.
  */
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -41,12 +41,12 @@ function tone(pct) {
 
 /**
  * PROVENANCE ONLY. Archived rows are the ones hydrated from
- * /api/sandbox/sessions — they are tagged `source: 'server'` by mergeSessions.
+ * /api/sandbox/sessions · they are tagged `source: 'server'` by mergeSessions.
  * Locally-created rows also carry a `createdAt`, so that field must NOT be used
  * to infer provenance: doing so mislabelled every uncoached hand from the
  * current sitting as archived and hid its stored GTO action.
  *
- * This says nothing about whether a verdict exists — use `isGraded()` for that.
+ * This says nothing about whether a verdict exists · use `isGraded()` for that.
  */
 function isArchived(entry) {
     if (!entry) return false;
@@ -58,7 +58,7 @@ function isArchived(entry) {
 
 /**
  * Does this row actually carry coach output? True for any entry with a verdict
- * (isCorrect) or a stored GTO action — regardless of where the row came from.
+ * (isCorrect) or a stored GTO action · regardless of where the row came from.
  * Archived rows joined to sandbox_coach_results satisfy this and must render
  * the full verdict block.
  */
@@ -105,7 +105,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
     const total = view.length;
     const entry = view[Math.min(currentIdx, Math.max(0, total - 1))];
 
-    // Entries logged before a coach verdict exists carry isCorrect == null —
+    // Entries logged before a coach verdict exists carry isCorrect == null ·
     // they are "unscored" and must not count as mistakes.
     const scored = log.filter(e => e && e.isCorrect != null);
     const scoredCount = scored.length;
@@ -113,7 +113,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
     const accuracy = scoredCount > 0 ? Math.round(100 * correctCount / scoredCount) : 0;
 
     const entryScored = !!entry && entry.isCorrect != null;
-    // Provenance badge only — never gate coach output on this.
+    // Provenance badge only · never gate coach output on this.
     const archived = isArchived(entry);
     // Whether there is any coach output to show, wherever the row came from.
     const graded = isGraded(entry);
@@ -249,7 +249,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                             icon={<Archive size={22} strokeWidth={2} />}
                             title="Nothing in this filter"
                             body={filter === 'mistakes'
-                                ? 'No coached mistakes in this session — that is a good problem to have.'
+                                ? 'No coached mistakes in this session · that is a good problem to have.'
                                 : 'No archived hands loaded for this account yet.'}
                             action={(
                                 <button type="button" className="pa-btn" onClick={() => setFilter('all')} style={btn('secondary')}>
@@ -309,18 +309,18 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md, marginBottom: S.md }}>
-                                    <Detail label="Hand" value={entry?.hand || '—'} colour={T.warn} big />
-                                    <Detail label="Position" value={(entry?.position || '—').toUpperCase()} colour={T.accent} />
+                                    <Detail label="Hand" value={entry?.hand || 'Not Available'} colour={T.warn} big />
+                                    <Detail label="Position" value={(entry?.position || 'Not Available').toUpperCase()} colour={T.accent} />
                                 </div>
 
                                 {graded && (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md, marginBottom: S.md }}>
                                         <Detail
                                             label="Your pick"
-                                            value={entry?.userPick || '—'}
+                                            value={entry?.userPick || 'Not Available'}
                                             colour={!entryScored ? T.textMuted : entry.isCorrect ? T.success : T.danger}
                                         />
-                                        <Detail label="GTO action" value={entry?.optimalAction || '—'} colour={T.success} />
+                                        <Detail label="GTO action" value={entry?.optimalAction || 'Not Available'} colour={T.success} />
                                     </div>
                                 )}
 
@@ -345,7 +345,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 {/* Only claim "no verdict" when the row genuinely has none. */}
                                 {archived && !graded && (
                                     <p style={{ fontSize: F.caption, color: T.textDim, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
-                                        No coach verdict was stored with this archived hand, so there is nothing to grade here —
+                                        No coach verdict was stored with this archived hand, so there is nothing to grade here ·
                                         load it back into the sandbox to play it again.
                                     </p>
                                 )}
@@ -356,7 +356,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 )}
                             </motion.div>
 
-                            {/* Scrubber — real buttons, 44px, snap scrolling */}
+                            {/* Scrubber · real buttons, 44px, snap scrolling */}
                             <div
                                 ref={stripRef}
                                 role="group"
@@ -397,7 +397,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                             <div style={{ display: 'flex', justifyContent: 'center', gap: S.lg, fontSize: F.caption, ...numeric }}>
                                 <span style={{ color: T.success }}>{correctCount} correct</span>
                                 <span style={{ color: T.danger }}>{scoredCount - correctCount} missed</span>
-                                <span style={{ color: tone(accuracy) }}>{scoredCount > 0 ? `${accuracy}%` : '—'}</span>
+                                <span style={{ color: tone(accuracy) }}>{scoredCount > 0 ? `${accuracy}%` : 'Not Available'}</span>
                                 {scoredCount < log.length && (
                                     <span style={{ color: T.textDim }}>{log.length - scoredCount} unscored</span>
                                 )}

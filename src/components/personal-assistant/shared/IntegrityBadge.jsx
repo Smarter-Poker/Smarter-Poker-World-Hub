@@ -1,5 +1,5 @@
 /**
- * IntegrityBadge — Shows the "Not Live Play" badge
+ * IntegrityBadge · Shows the "Not Live Play" badge
  * Per Masterplan: Must be visible at all times in sandbox/leak finder
  */
 
