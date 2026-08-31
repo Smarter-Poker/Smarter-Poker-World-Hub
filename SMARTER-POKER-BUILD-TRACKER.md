@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-08-31 — Phase 64 (Poker Near Me Phase 2 shared map foundation)
+**Last Updated:** 2026-08-31 — Phase 67 (Poker Near Me Phase 4 controller decomposition)
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1476,3 +1476,21 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Permanent regression gates | Leak-engine, API/security, durable-operation, push-identity, TypeScript, production-build, and desktop/mobile browser checks cover the phase. |
 
 **Release state:** Complete. PR #1112 merged the durable audit system; PR #1122 hardened every nested public receipt projection. Vercel production revision `b262cb2b` passed authenticated/anonymous/forged-worker API probes, 1,347-hand receipt restoration and reconciliation, duplicate-push endpoint/outbox checks, and the 23-pass desktop/mobile Personal Assistant browser matrix. Full evidence: `.agent/audits/2026-08-31-personal-assistant-phase-2-durable-audit-operations.md`.
+
+---
+
+## PHASE 67 — Poker Near Me Phase 4 Controller Decomposition (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Shared controller ownership | Route, tab, deep-link, filter, time, analytics, storage, crawl-graph, cache, batch, and GPS logic moved from the lobby and discovery pages into named pure modules. |
+| Interaction controllers | Lobby focus/Escape/share behavior and discovery swipe/pull-to-refresh behavior now live in dedicated reusable hooks with explicit lifecycle cleanup. |
+| Shared recovery | Tab/pod boundaries and live-favorite feedback use one reusable recovery component instead of page-local copies. |
+| Page-size reduction | Lobby dropped from 3,967 to 3,728 lines and discovery from 4,741 to 4,144, removing 836 controller lines from route components without changing data ownership. |
+| Real defect repair | The lobby modal now clears the fixed global header, the Commander root no longer enters a trailing-slash rewrite loop, and map/media/keyboard browser gates reflect supported user flows. |
+| Preserved behavior | Existing routes, handlers, APIs, Supabase/realtime data, maps/geolocation, filters, forms, venue data, permissions, navigation, responsive behavior, and deep-link aliases remain wired. |
+| Permanent regression gate | Phase 16 unit and desktop/mobile journeys cover controller delegation, canonical state, modal lifecycle, gestures, persistence, bounded analytics, and production rewrite order. |
+
+**Coverage:** The lobby plus 11 canonical discovery routes directly inherit the controller system; the 354 current directory/location URLs remain covered by their established shared systems and regression gates.
+
+**Release state:** Implementation and compiled-production verification are complete. Protected merge, Vercel production deployment, health, redirect, and live browser evidence remain the Phase 4 closeout gate. Full evidence: `.agent/audits/2026-08-31-poker-near-me-phase-4-controller-decomposition.md`.

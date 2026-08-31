@@ -73,9 +73,15 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
     await page.goto('/hub/poker-series', { waitUntil: 'domcontentloaded' });
     const mark = page.locator('.pnm-identity-mark').first();
     await expect(mark).toBeVisible({ timeout: 20_000 });
-    const image = mark.locator('img');
-    if (await image.count()) await image.evaluate((node) => node.dispatchEvent(new Event('error')));
-    await expect(mark).toHaveAttribute('data-media-state', 'fallback');
+    await expect.poll(async () => {
+      const image = mark.locator('img');
+      if (await image.count()) {
+        await image.evaluate((node) => {
+          (node as HTMLImageElement).src = `/__pnm_missing_identity_${Date.now()}.png`;
+        });
+      }
+      return mark.getAttribute('data-media-state');
+    }, { timeout: 15_000 }).toBe('fallback');
     await expect(mark.locator('.pnm-identity-mark__initials')).toBeVisible();
   });
 
