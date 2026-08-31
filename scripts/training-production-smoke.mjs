@@ -73,11 +73,57 @@ function assertCommon(state, label) {
   assert.doesNotMatch(state.bodyText, /Application Error|Arena Crash Detected|Connection Error|Sign In Required/i, `${label}: error state`);
 }
 
+async function verifyLiveAuthenticatedSession(page) {
+  const authVerification = await page.evaluate(async () => {
+    let session = null;
+    try {
+      session = JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null');
+    } catch {
+      return { tokenPresent: false, status: null, success: false };
+    }
+    if (!session?.access_token) return { tokenPresent: false, status: null, success: false };
+
+    const response = await fetch('/api/training/get-sessions?limit=1', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => null);
+    return {
+      tokenPresent: true,
+      status: response.status,
+      success: response.ok && payload?.success === true,
+    };
+  });
+
+  assert.equal(authVerification.tokenPresent, true, 'production auth: access token missing');
+  assert.equal(
+    authVerification.status,
+    200,
+    `production auth: live session probe returned HTTP ${authVerification.status ?? 'none'}`,
+  );
+  assert.equal(authVerification.success, true, 'production auth: session probe was not successful');
+  return { endpoint: '/api/training/get-sessions?limit=1', status: 200, verified: true };
+}
+
 async function auditHub(page, viewport, result) {
-  const response = await visit(page, '/hub/training?revision=phase1-production-smoke');
-  assert.ok((response?.status() || 0) < 400, `${viewport.name} hub: HTTP ${response?.status() || 0}`);
-  await page.locator('.sp-card').first().waitFor({ state: 'visible', timeout: 60_000 });
-  assert.equal(await page.locator('.sp-card').count(), 107, `${viewport.name} hub: card count`);
+  let response = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await visit(page, '/hub/training?revision=phase1-production-smoke');
+    assert.ok((response?.status() || 0) < 400, `${viewport.name} hub: HTTP ${response?.status() || 0}`);
+    await page.locator('.sp-card').first().waitFor({ state: 'visible', timeout: 60_000 });
+    const settled = await page.evaluate(() => ({
+      path: location.pathname,
+      cards: document.querySelectorAll('.sp-card').length,
+    }));
+    if (settled.path === '/hub/training') {
+      assert.equal(settled.cards, 107, `${viewport.name} hub: card count`);
+      break;
+    }
+    if (attempt === 2) {
+      assert.fail(`${viewport.name} hub: auth document replacement settled on ${settled.path}`);
+    }
+    await page.waitForLoadState('domcontentloaded', { timeout: 15_000 }).catch(() => undefined);
+  }
   assert.equal(await page.locator('.sp-card-scanline').count(), 0, `${viewport.name} hub: scanline count`);
   assert.equal(await page.locator('[data-global-bottom-nav="true"][data-footer-world="training"]').count(), 1);
 
@@ -276,6 +322,7 @@ const summary = {
   success: false,
   baseUrl: BASE_URL,
   authState: 'real test-account session',
+  authVerification: null,
   signedOutLogin: [],
   viewports: [],
 };
@@ -291,6 +338,8 @@ try {
     viewport: { width: VIEWPORTS[0].width, height: VIEWPORTS[0].height },
   });
   const page = await context.newPage();
+  await visit(page, '/hub/training?revision=phase2-production-auth-probe');
+  summary.authVerification = await verifyLiveAuthenticatedSession(page);
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const consoleErrors = [];
