@@ -1514,3 +1514,20 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Regression gate | Phase 17 is included in both `test:pnm` and repository prebuild, with compiled desktop/mobile navigation, semantics, reduced-motion, forced-colors, and overflow journeys. |
 
 **Pre-publication verification:** 89/89 Poker Near Me contracts, 553/553 repository prebuild checks, 14/14 compiled Chromium desktop/mobile Phase 16+17 journeys, and the exact webpack production build (403 static pages) passed. Preview WebKit and production evidence are tracked in `.agent/audits/2026-08-31-poker-near-me-phase-5-cross-engine-accessibility.md`.
+
+---
+
+## PHASE 69 — Marketplace Completion Phase 2 Of 8: Purchase Assurance (2026-08-31)
+
+| Deliverable | Detail |
+|---|---|
+| Trusted card returns | Stripe, the authenticated owner, and the exact server-owned purchase, order, or subscription record must agree before a return is complete. |
+| Exact cart reconciliation | Server-priced checkout snapshots remove only verified product, variant, and quantity lines while preserving later additions and unrelated cart contents. |
+| Cross-device correctness | Unsynced local snapshots remain authoritative, preference writes are serialized, and stale remote carts cannot restore purchased lines. |
+| Bounded recovery | Checkout, order-history, and receipt reads have explicit deadlines, truthful failed states, and accessible direct retry controls. |
+| Private same-surface receipts | Completed returns link to owner-scoped receipts and order history inside the Marketplace browser surface. |
+| Visual contract | Purchase-assurance controls use sharp cyan and steel casino hardware, 44-pixel targets, title-cased copy, and no green, purple, or banned long bars. |
+| Permanent regression gate | Phase 23 contracts are included in `test:marketplace` and the Vercel build context; desktop and mobile browser coverage includes a failed return, retry, receipt link, and exact cart decrement. |
+| Preserved economics | Prices, Diamond grants and burns, Stripe and webhook settlement, inventory, entitlements, Club ownership, database schema, and deferred Printful automation are unchanged. |
+
+**Verification before publication:** 209/209 canonical Marketplace contracts, 60 applicable compiled-production desktop/mobile browser checks, and the exact optimized production build with 403/403 static pages pass on the integrated branch. Live credentialed probes are run before Phase 2 is closed. Full evidence: `.agent/audits/2026-08-31-marketplace-completion-phase-2-purchase-assurance.md`.

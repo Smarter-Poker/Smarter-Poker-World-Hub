@@ -52,6 +52,8 @@ export default function ShoppingCart() {
   // on change.
   const cart = useCartStore((state) => state.items);
   const setCartItems = useCartStore((state) => state.setItems);
+  const replaceCartFromServer = useCartStore((state) => state.replaceFromServer);
+  const markCartSynced = useCartStore((state) => state.markSynced);
   const storeUpdateQuantity = useCartStore((state) => state.updateQuantity);
   const storeRemoveItem = useCartStore((state) => state.removeItem);
   const storeClearCart = useCartStore((state) => state.clearCart);
@@ -74,6 +76,9 @@ export default function ShoppingCart() {
   const lastLocalEditRef = useRef(0);
   const cartOwnerRef = useRef(null);
   const cartLoadRequestRef = useRef(0);
+  // Serialize preference writes so an older, slower request can never finish
+  // after a newer snapshot and leave the server with stale cart contents.
+  const cartWriteChainRef = useRef(Promise.resolve(true));
 
   const DIAMONDS_PER_DOLLAR = 100;
 
@@ -159,6 +164,7 @@ export default function ShoppingCart() {
 
   const applyRemoteCart = (remoteItems, ownerId, requestId) => {
     if (!isCurrentCartLoad(ownerId, requestId)) return;
+    if (useCartStore.getState().syncPending) return;
     const remoteJson = JSON.stringify(remoteItems);
     const currentItems = useCartStore.getState().items;
     if (remoteJson === JSON.stringify(currentItems)) {
@@ -170,7 +176,7 @@ export default function ShoppingCart() {
     // the mirror effect push them up rather than silently discarding them.
     if (!hydratedRef.current && currentItems.length > 0) return;
     lastSyncedRef.current = remoteJson;
-    setCartItems(remoteItems);
+    replaceCartFromServer(remoteItems);
   };
 
   const loadCart = async (signal, ownerId = user?.id || 'guest', requestId = cartLoadRequestRef.current) => {
@@ -178,15 +184,26 @@ export default function ShoppingCart() {
       // Cart contents come from the shared store; Supabase only hydrates it
       if (user?.id) {
         try {
-          const { data: prefData } = await supabase
+          const { data: prefData, error: preferenceError } = await supabase
             .from('user_preferences')
             .select('preferences')
             .eq('user_id', user.id)
             .maybeSingle();
+          if (preferenceError) throw preferenceError;
           const savedCart = prefData?.preferences?.diamond_cart;
           if (!isCurrentCartLoad(ownerId, requestId)) return;
           if (Array.isArray(savedCart)) {
-            applyRemoteCart(savedCart, ownerId, requestId);
+            if (useCartStore.getState().syncPending) {
+              const localItems = useCartStore.getState().items;
+              const saved = await saveCart(localItems);
+              if (!isCurrentCartLoad(ownerId, requestId)) return;
+              if (saved && JSON.stringify(useCartStore.getState().items) === JSON.stringify(localItems)) {
+                markCartSynced();
+                lastSyncedRef.current = JSON.stringify(localItems);
+              }
+            } else {
+              applyRemoteCart(savedCart, ownerId, requestId);
+            }
           } else if (!hydratedRef.current) {
             // No server cart yet: seed it from the shared store, or from
             // the legacy standalone cart if the store is empty.
@@ -198,6 +215,9 @@ export default function ShoppingCart() {
               const saved = await saveCart(seed);
               if (!isCurrentCartLoad(ownerId, requestId)) return;
               if (saved) {
+                if (JSON.stringify(useCartStore.getState().items) === JSON.stringify(seed)) {
+                  markCartSynced();
+                }
                 lastSyncedRef.current = JSON.stringify(seed);
                 localStorage.removeItem(LEGACY_CART_KEY);
               }
@@ -289,9 +309,15 @@ export default function ShoppingCart() {
     if (json === lastSyncedRef.current) return;
     lastSyncedRef.current = json;
     let cancelled = false;
+    const write = cartWriteChainRef.current
+      .catch(() => false)
+      .then(() => saveCart(cart));
+    cartWriteChainRef.current = write;
     (async () => {
-      const ok = await saveCart(cart);
-      if (!ok && !cancelled) {
+      const ok = await write;
+      if (ok && !cancelled && JSON.stringify(useCartStore.getState().items) === json) {
+        markCartSynced();
+      } else if (!ok && !cancelled) {
         // Let the next change retry instead of assuming the server matches
         lastSyncedRef.current = null;
         toast.error('Cart Could Not Be Saved On The Server');
@@ -300,7 +326,7 @@ export default function ShoppingCart() {
     return () => {
       cancelled = true;
     };
-  }, [cart, hydrated, user?.id]);
+  }, [cart, hydrated, markCartSynced, user?.id]);
 
   const updateQuantity = (itemId, newQuantity) => {
     lastLocalEditRef.current = Date.now();
