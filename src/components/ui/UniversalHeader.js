@@ -163,7 +163,7 @@ export default function UniversalHeader({
       return false;
     }
   });
-  const [vipShimmerVisible, setVipShimmerVisible] = useState(false);
+  const [iconShimmerVisible, setIconShimmerVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -267,27 +267,22 @@ export default function UniversalHeader({
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? notificationCount : 0;
 
-  // VIP members get one clearly visible pass after a newly selected random
-  // five-to-ten-second pause. Non-members never schedule the animation.
+  // One clearly visible pass crosses the complete right-side icon bank after
+  // each newly selected random fifteen-to-twenty-second pause.
   useEffect(() => {
-    if (!isVip) {
-      setVipShimmerVisible(false);
-      return;
-    }
-
     let pauseTimer;
     let shimmerTimer;
     let cancelled = false;
     const scheduleNextShimmer = () => {
-      const randomDelayMs = 5_000 + Math.floor(Math.random() * 5_001);
+      const randomDelayMs = 15_000 + Math.floor(Math.random() * 5_001);
       pauseTimer = window.setTimeout(() => {
         if (cancelled) return;
-        setVipShimmerVisible(true);
+        setIconShimmerVisible(true);
         shimmerTimer = window.setTimeout(() => {
           if (cancelled) return;
-          setVipShimmerVisible(false);
+          setIconShimmerVisible(false);
           scheduleNextShimmer();
-        }, 1_250);
+        }, 1_500);
       }, randomDelayMs);
     };
 
@@ -297,7 +292,7 @@ export default function UniversalHeader({
       if (pauseTimer !== undefined) window.clearTimeout(pauseTimer);
       if (shimmerTimer !== undefined) window.clearTimeout(shimmerTimer);
     };
-  }, [isVip]);
+  }, []);
 
   // Live Help state
   const liveHelp = useLiveHelp();
@@ -1332,12 +1327,15 @@ export default function UniversalHeader({
                 .approved-global-header__back { left: 8%; width: 12%; }
                 .approved-global-header__hub { left: 19.1%; width: 12.9%; }
                 .approved-global-header__profile {
-                    top: 13%;
+                    top: 15%;
                     left: 66.75%;
                     width: 7.15%;
-                    height: 75%;
+                    height: auto;
+                    aspect-ratio: 1;
                     position: absolute !important;
+                    box-sizing: border-box;
                     overflow: hidden;
+                    border: 1px solid rgba(0, 0, 0, .92);
                     border-radius: 0;
                     background: #000;
                     contain: layout paint;
@@ -1355,11 +1353,11 @@ export default function UniversalHeader({
 
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    inset: 0 !important;
+                    inset: 1px !important;
                     z-index: 1;
                     display: block;
-                    width: 100%;
-                    height: 100%;
+                    width: auto;
+                    height: auto;
                     aspect-ratio: auto;
                     transform: none !important;
                     overflow: hidden;
@@ -1396,14 +1394,26 @@ export default function UniversalHeader({
                     pointer-events: none;
                 }
 
-                .approved-global-header__vip--shimmer::after {
+                .approved-global-header__vip--active {
+                    border-radius: 12%;
+                    box-shadow:
+                        inset 0 0 0 1px rgba(255, 255, 255, .92),
+                        0 0 5px rgba(255, 255, 255, .75),
+                        0 0 10px rgba(210, 240, 255, .38);
+                }
+
+                .approved-global-header__controls--shimmer .approved-global-header__button {
+                    overflow: hidden;
+                }
+
+                .approved-global-header__controls--shimmer .approved-global-header__button::before {
                     content: '';
                     position: absolute;
-                    top: -25%;
-                    bottom: -25%;
-                    left: -55%;
-                    z-index: 2;
-                    width: 45%;
+                    z-index: 20;
+                    top: -15%;
+                    bottom: -15%;
+                    left: -45%;
+                    width: 34%;
                     transform: skewX(-18deg);
                     background: linear-gradient(
                         90deg,
@@ -1414,13 +1424,13 @@ export default function UniversalHeader({
                         transparent
                     );
                     box-shadow: 0 0 20px rgba(61, 171, 255, .8);
-                    animation: approvedGlobalVipShimmer 1.25s cubic-bezier(.2, .65, .35, 1) both;
+                    animation: approvedGlobalRightIconShimmer 1.5s cubic-bezier(.2, .65, .35, 1) both;
                     pointer-events: none;
                 }
 
-                @keyframes approvedGlobalVipShimmer {
-                    from { left: -55%; }
-                    to { left: 125%; }
+                @keyframes approvedGlobalRightIconShimmer {
+                    from { left: -45%; }
+                    to { left: 115%; }
                 }
 
                 .approved-global-header__badge {
@@ -1473,7 +1483,12 @@ export default function UniversalHeader({
           fetchpriority="high"
           decoding="sync"
         />
-        <div className="approved-global-header__controls">
+        <div
+          className={`approved-global-header__controls${
+            iconShimmerVisible ? ' approved-global-header__controls--shimmer' : ''
+          }`}
+          data-header-icons-shimmer={iconShimmerVisible ? 'active' : 'idle'}
+        >
           <button
             type="button"
             className="approved-global-header__button approved-global-header__menu"
@@ -1525,7 +1540,7 @@ export default function UniversalHeader({
             type="button"
             className={`approved-global-header__button approved-global-header__vip${
               isVip ? ' approved-global-header__vip--active' : ''
-            }${vipShimmerVisible ? ' approved-global-header__vip--shimmer' : ''}`}
+            }`}
             onClick={() => router.push('/hub/vip-membership')}
             aria-label={isVip ? 'VIP Membership active' : 'VIP Membership inactive'}
             data-vip-active={isVip ? 'true' : 'false'}

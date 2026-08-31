@@ -100,11 +100,11 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /aria-label=\{isVip \? 'VIP Membership active' : 'VIP Membership inactive'\}/);
 });
 
-test('World Hub hard-locks the selected profile photo with no ring or crop', () => {
+test('World Hub hard-locks the selected profile photo as a square with a thin black edge', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?height: 75%;[\s\S]*?background: #000;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100%;[\s\S]*?height: 100%;[\s\S]*?border-radius: 0;/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 1px solid rgba\(0, 0, 0, \.92\);[\s\S]*?border-radius: 0;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?inset: 1px !important;[\s\S]*?border-radius: 0;/);
   assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
   assert.match(header, /object-fit: contain !important/);
   assert.match(header, /resolveHeaderPortrait\([\s\S]*?user\?\.useAvatarAsProfilePic === true/);
@@ -125,16 +125,19 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
 
-test('VIP is dim when inactive and visibly shimmers every random 5-10 seconds when active', () => {
+test('all right icons shimmer every 15-20 seconds and active VIP has a neon-white outline', () => {
   for (const source of [header, commander]) {
-    assert.match(source, /5_000 \+ Math\.floor\(Math\.random\(\) \* 5_001\)/);
-    assert.match(source, /setVipShimmerVisible\(true\)/);
-    assert.match(source, /setVipShimmerVisible\(false\)/);
+    assert.match(source, /15_000 \+ Math\.floor\(Math\.random\(\) \* 5_001\)/);
+    assert.match(source, /setIconShimmerVisible\(true\)/);
+    assert.match(source, /setIconShimmerVisible\(false\)/);
     assert.match(source, /data-vip-active=/);
     assert.match(source, /vip--active/);
-    assert.match(source, /vip--shimmer/);
+    assert.match(source, /controls--shimmer/);
+    assert.match(source, /data-header-icons-shimmer=/);
     assert.match(source, /:not\([^)]*vip--active\)::after/);
-    assert.match(source, /animation:[^;]*VipShimmer 1\.25s/);
+    assert.match(source, /inset 0 0 0 1px rgba\(255, 255, 255, \.92\)/);
+    assert.match(source, /controls--shimmer[^\{]*\{[\s\S]*?overflow: hidden/);
+    assert.match(source, /animation:[^;]*RightIconShimmer 1\.5s/);
   }
 });
 
