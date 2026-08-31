@@ -47,6 +47,19 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     {
+      // Phase 5 keeps the PNM cross-engine gate intentionally narrow: only the
+      // dedicated route-family contract runs in Safari/WebKit, so the broader
+      // authenticated Chromium suite does not multiply in CI.
+      name: 'pnm-webkit',
+      testMatch: /015-poker-near-me-phase-17\.spec\.ts$/,
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'pnm-mobile-webkit',
+      testMatch: /015-poker-near-me-phase-17\.spec\.ts$/,
+      use: { ...devices['iPhone 13'] },
+    },
+    {
       name: 'footer-chromium',
       testMatch: /global-footer-visual\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'] },

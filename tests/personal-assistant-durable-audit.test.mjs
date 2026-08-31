@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { openAuditJobToken, sealAuditJobToken } from '../src/lib/personal-assistant/auditJobToken.mjs';
+import { getAuditWorkerOrigin, openAuditJobToken, sealAuditJobToken } from '../src/lib/personal-assistant/auditJobToken.mjs';
 import { mergeAuditJobProgress, publicAuditJob } from '../src/lib/personal-assistant/auditJobRuntime.mjs';
 
 const migration = readFileSync(new URL('../supabase/migrations/20260831143000_pa_durable_leak_audit_jobs.sql', import.meta.url), 'utf8');
@@ -94,13 +94,41 @@ test('durable jobs are owner-private, atomically claimed and restartable', () =>
   assert.doesNotMatch(migration, /GRANT SELECT ON TABLE public\.pa_leak_audit_jobs TO authenticated/);
 });
 
-test('server workers self-chain after the response and reconcile final evidence', () => {
+test('production workers use the public origin instead of an SSO-protected deployment URL', () => {
+  const prior = {
+    nodeEnv: process.env.NODE_ENV,
+    publicBase: process.env.PA_PUBLIC_BASE_URL,
+    internalBase: process.env.PA_INTERNAL_BASE_URL,
+    vercelUrl: process.env.VERCEL_URL,
+  };
+  process.env.NODE_ENV = 'production';
+  delete process.env.PA_PUBLIC_BASE_URL;
+  process.env.PA_INTERNAL_BASE_URL = 'http://internal.invalid';
+  process.env.VERCEL_URL = 'protected-preview.vercel.app';
+  assert.equal(getAuditWorkerOrigin(), 'https://smarter.poker');
+  process.env.PA_PUBLIC_BASE_URL = 'https://audit.smarter.poker/';
+  assert.equal(getAuditWorkerOrigin(), 'https://audit.smarter.poker');
+  for (const [key, value] of Object.entries({
+    NODE_ENV: prior.nodeEnv,
+    PA_PUBLIC_BASE_URL: prior.publicBase,
+    PA_INTERNAL_BASE_URL: prior.internalBase,
+    VERCEL_URL: prior.vercelUrl,
+  })) {
+    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
+});
+
+test('server workers finish detector pages in-process and reconcile final evidence', () => {
   assert.match(worker, /import \{ after \} from 'next\/server'/);
   assert.match(worker, /after\(async \(\) =>/);
-  assert.match(worker, /kickAuditWorker\(saved, \{ origin \}\)/);
+  assert.match(worker, /while \(activeJob.*MAX_BATCHES_PER_INVOCATION/s);
+  assert.match(worker, /status: 'running'.*auditCursor: nextCursor/s);
+  assert.doesNotMatch(worker, /kickAuditWorker/);
   assert.match(worker, /reconcileAuditEvidence/);
   assert.match(worker, /MAX_TRANSIENT_FAILURES = 3/);
-  assert.doesNotMatch(worker, /MAX_BATCHES/);
+  assert.match(worker, /MAX_BATCHES_PER_INVOCATION = 50/);
+  assert.match(worker, /WORKER_BUDGET_MS = 260_000/);
+  assert.match(worker, /response\.status === 508/);
   assert.match(worker, /nextCursorFingerprint === job\.progress\?\.cursorFingerprint/);
   assert.match(worker, /durableWorkRecorded/);
   assert.match(worker, /audit_cursor_stalled/);
