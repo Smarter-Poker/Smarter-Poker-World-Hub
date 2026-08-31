@@ -25,17 +25,19 @@ family and account subpage.
 - The in-page merchandise image inspector relied only on React `autoFocus`.
   It now establishes focus after the dialog commit and cancels the scheduled
   focus on cleanup.
+- A changed notification component exposed a pre-existing runtime import of a
+  deleted `lib/eventBus` path. It now resolves the canonical engine EventBus.
 - Protected cart and copy browser tests inherited external authentication
   state. They now seed isolated deterministic sessions and audit the intended
   pages rather than an authentication redirect.
 
 ## Repository-Wide Copy Contract
 
-- 289 modified files were proven case-only by comparing the prior and current
+- 288 modified files were proven case-only by comparing the prior and current
   file bodies after normalizing letter case.
-- Exactly five files contain non-case changes: the title gate, Marketplace
+- Exactly six runtime or contract files contain non-case changes: the title gate, Marketplace
   browser contract, Phase 22 regression contract, VIP status route, and shared
-  Marketplace detail experience.
+  Marketplace detail experience, plus the corrected notification EventBus path.
 - The AST gate reports that every scanned JSX text word begins with a capital.
 - The UI text gate scanned 3,110 files and found no banned em or en bar.
 - Numeric unit suffixes, authored acronyms, HTML entities, routes, class names,

@@ -84,7 +84,7 @@ export default function NotificationBell({ userId }) {
       // Fire global broadcasts so UniversalHeader and other tabs sync the badge drop
       try {
         const { broadcastSync } = require('../../lib/broadcastSync');
-        const { eventBus, EventType } = require('../../lib/eventBus');
+        const { eventBus, EventType } = require('../../engine/EventBus');
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: 'club-arena' });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationBell');
         // Clear local storage count assumption since we wiped social
