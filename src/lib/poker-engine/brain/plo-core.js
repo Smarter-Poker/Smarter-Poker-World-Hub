@@ -4365,7 +4365,7 @@ function calculatePLODirtyOuts(holeCards, boardCards, straightOuts, flushDraw, m
         reasons.push(`${dirtyFlush} flush outs are dirty (pair board)`);
     }
     if (dirtyDiscount > 15) {
-        reasons.push(`Total dirty discount: ${dirtyDiscount}% — outs are significantly tainted`);
+        reasons.push(`Total dirty discount: ${dirtyDiscount}% - outs are significantly tainted`);
     }
 
     return {
@@ -4658,21 +4658,21 @@ function getPLONutAdvantage(wasPreAggressor, boardCards, street, boardTexture, m
         nutAdvantage = 'hero';
         bettingFreqMod = 0.12; // Bet more often with nut advantage
         sizingMod = -0.10; // Smaller sizing (can use high frequency)
-        advice = 'Hero has nut advantage — bet frequently with smaller sizing. ' +
+        advice = 'Hero has nut advantage - bet frequently with smaller sizing. ' +
             'Range contains more nut combos than villain. Use high-frequency small bets ' +
             'to deny equity and build the pot with all strong hands.';
     } else if (heroScore <= 35) {
         nutAdvantage = 'villain';
         bettingFreqMod = -0.15; // Bet less often
         sizingMod = 0.10; // When we do bet, go bigger (polarized)
-        advice = 'Villain has nut advantage — check more often. ' +
+        advice = 'Villain has nut advantage - check more often. ' +
             'Villain range connects better with this board. When betting, use ' +
             'polarized sizing (bigger bets with strong hands and bluffs, check medium).';
     } else {
         nutAdvantage = 'neutral';
         bettingFreqMod = 0;
         sizingMod = 0;
-        advice = 'Neutral nut advantage — standard approach. ' +
+        advice = 'Neutral nut advantage - standard approach. ' +
             'Neither range has a clear nut edge on this board texture.';
     }
 
@@ -4800,7 +4800,7 @@ function getPLOProtectionBet(madeHand, totalOuts, boardTexture, street, numPlaye
         shouldPotIt = false;
         shouldProtect = false;
         reasoning = 'No protection needed: invulnerable hand (nut flush, full house+). ' +
-            'Can slow-play or trap — opponents cannot outdraw us.';
+            'Can slow-play or trap - opponents cannot outdraw us.';
     }
 
     // SPR override: at very low SPR, just pot-commit regardless
@@ -4808,7 +4808,7 @@ function getPLOProtectionBet(madeHand, totalOuts, boardTexture, street, numPlaye
         shouldProtect = true;
         shouldPotIt = true;
         protectionUrgency = 'critical';
-        reasoning += ' [SPR OVERRIDE: Shallow SPR — commit with any strong made hand.]';
+        reasoning += ' [SPR OVERRIDE: Shallow SPR - commit with any strong made hand.]';
     }
 
     return {
@@ -4968,7 +4968,7 @@ function getPLOMultiwayDynamics(numPlayers, madeHand, totalOuts, isNutDraw, isIP
         return {
             adjustedEquity: equityFinal, shouldContinue: true,
             multiwayAction: 'value-bet', equityPenalty: 0, nutRequirement: 50,
-            reasoning: 'Heads-up pot — no multiway adjustments needed.'
+            reasoning: 'Heads-up pot - no multiway adjustments needed.'
         };
     }
 
@@ -5000,7 +5000,7 @@ function getPLOMultiwayDynamics(numPlayers, madeHand, totalOuts, isNutDraw, isIP
         shouldContinue = true;
         multiwayAction = 'value-bet';
         reasoning = `Nut/premium hand in ${numPlayers}-way pot: bet for value. ` +
-            `In multiway PLO, value bet your monsters aggressively — someone likely has a draw ` +
+            `In multiway PLO, value bet your monsters aggressively - someone likely has a draw ` +
             `or second-best hand that will call. Pot-size bets are correct here.`;
     } else if (isNutDraw && totalOuts >= 12) {
         shouldContinue = true;
@@ -5078,7 +5078,7 @@ function getPLODeepStackNavigation(stackBB, spr, madeHand, totalOuts, isNutDraw,
     if (spr <= 6 && stackBB <= 100) {
         return {
             deepStackAction: 'standard', maxCommitFraction: 1.0,
-            sizingAdvice: 'Standard SPR — normal play.',
+            sizingAdvice: 'Standard SPR - normal play.',
             impliedOddsBonus: 0,
             reasoning: 'SPR <= 6 or stack <= 100BB: standard PLO decisions apply.'
         };
@@ -5140,7 +5140,7 @@ function getPLODeepStackNavigation(stackBB, spr, madeHand, totalOuts, isNutDraw,
             maxCommitFraction: 0.40, // Don't put more than 40% in without the nuts
             sizingAdvice: 'Deep-stack medium-strong hand: pot control. ' +
                 'Check-call or bet small. Your hand is good but not the nuts, and deep-stacked ' +
-                'you cannot win big pots with non-nut hands — only lose big ones. ' +
+                'you cannot win big pots with non-nut hands - only lose big ones. ' +
                 'Control pot size and take a cheap showdown.',
             impliedOddsBonus: 0,
             reasoning: `Strength ${strength} at SPR ${spr.toFixed(1)}: too weak to commit stack, ` +
@@ -5296,7 +5296,7 @@ function getPLOStreetPlanner(madeHand, totalOuts, boardTexture, street, isIP, st
         result.shouldBarrelTurn = false;
         result.commitLevel = 'minimal';
         result.reasoning = 'Aggressor with weak hand: plan to check turn and give up. ' +
-            'One barrel was enough — don\'t compound the bluff without equity.';
+            'One barrel was enough - don\'t compound the bluff without equity.';
     } else {
         result.turnPlan = 'evaluate';
         result.shouldBarrelTurn = false;
@@ -5402,7 +5402,7 @@ function getPLOPotGeometry(potSize, heroStack, street, betFraction) {
             'Only commit this much with nut hands or nut draws.';
     } else if (isOvercommitting && streetsLeft === 1) {
         geometryAdvice = `River: ${Math.round(frac * 100)}% pot bet commits most of remaining stack. ` +
-            'This is fine with value hands — be prepared to call a raise or fold medium hands.';
+            'This is fine with value hands - be prepared to call a raise or fold medium hands.';
     } else {
         geometryAdvice = `Healthy pot geometry: ${Math.round(frac * 100)}% pot bets over ${streetsLeft} streets ` +
             `commits ${Math.round(totalCommit / heroStack * 100)}% of stack. Room to maneuver.`;
@@ -6978,7 +6978,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             const hasBigCombo = exactOuts >= 15; // huge combo draw
             const hasStrongHigh = madeHand.strength >= 65;
             if (hasNutHighDraw || hasBigCombo || hasStrongHigh) {
-                console.debug(`[HorseBrain] PLO8 FREEROLL: nut low + ${hasStrongHigh ? 'strong high' : 'nut high draw'} — raising aggressively (guaranteed half)`);
+                console.debug(`[HorseBrain] PLO8 FREEROLL: nut low + ${hasStrongHigh ? 'strong high' : 'nut high draw'} - raising aggressively (guaranteed half)`);
                 return { type: raiseAction.type, amount: clampedPotRaise };
             }
         }
@@ -6992,7 +6992,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 // When only moderate scoop chance, use 60% pot to manage risk.
                 const scoopSize = madeHand.strength >= 70 ? adaptiveBetSize
                     : clamp(Math.round(potSize * 0.60));
-                console.debug(`[HorseBrain] PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
+                console.debug(`[HorseBrain] PLO8 SCOOP: low + strong high (${madeHand.strength}) - building pot`);
                 return { type: raiseAction.type, amount: scoopSize };
             }
         }
@@ -7003,7 +7003,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (isHiLo && lo8?.hasNutLow && madeHand.strength < 55) {
             // Bug #209: Exception — if counterfeited, we might not even have a good low anymore.
             // Still check but for a different reason (our low is degraded).
-            console.debug(`[HorseBrain] PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
+            console.debug(`[HorseBrain] PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) - checking`);
             return { type: 'check' };
         }
 
@@ -7150,11 +7150,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const stack = stackBB * bb;
         const callFraction = stack > 0 ? toCall / stack : 0;
         if (callFraction >= 0.60) {
-            console.debug(`[HorseBrain]  BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — pot-raising with nut straight.`);
+            console.debug(`[HorseBrain]  BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack - pot-raising with nut straight.`);
             return ploPotCommit();
         }
         if (canCall) {
-            console.debug('[HorseBrain]  BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
+            console.debug('[HorseBrain]  BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop - flatting to avoid freeroll.');
             return { type: 'call' };
         }
     }
@@ -7168,7 +7168,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         for (const r of boardCards.map(c => c.rank)) boardRankFreq[r] = (boardRankFreq[r] || 0) + 1;
         const boardPaired = Object.values(boardRankFreq || {}).some(c => c >= 2);
         if (!flushPossible && !boardPaired) {
-            console.debug('[HorseBrain]  BUG #118 PLO SAFE TURN: naked nut straight on safe turn — raising now.');
+            console.debug('[HorseBrain]  BUG #118 PLO SAFE TURN: naked nut straight on safe turn - raising now.');
             return { type: raiseAction.type, amount: clampedPotRaise };
         }
         // Unsafe turn (flush possible or board paired): still just call
@@ -7254,7 +7254,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             }
             // Large bet + quartering risk → non-nut low doesn't justify calling
         }
-        console.debug(`[HorseBrain]  MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
+        console.debug(`[HorseBrain]  MODULE 27 RIO VETO: folding draw - ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 

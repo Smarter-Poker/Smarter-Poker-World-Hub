@@ -46,7 +46,7 @@ export function reportClientCrash({ boundary, section, error, componentStack, us
 
     try {
         console.warn(
-            `[${boundary === 'hub' ? 'HubErrorBoundary' : 'PageErrorBoundary'}] "${section || 'page'}" crashed —`,
+            `[${boundary === 'hub' ? 'HubErrorBoundary' : 'PageErrorBoundary'}] "${section || 'page'}" crashed -`,
             payload.message,
             componentStack
         );

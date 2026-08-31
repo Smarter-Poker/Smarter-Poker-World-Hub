@@ -159,7 +159,7 @@ export function buildSeriesDirectorySchema(series = [], totalCount = 0) {
     '@type': 'CollectionPage',
     '@id': `${canonical}#directory`,
     url: canonical,
-    name: 'Poker Series — Live Tournament Series Directory',
+    name: 'Poker Series - Live Tournament Series Directory',
     description: 'Browse live and upcoming poker tournament series by tour, date, buy-in, and location.',
     mainEntity: {
       '@type': 'ItemList',

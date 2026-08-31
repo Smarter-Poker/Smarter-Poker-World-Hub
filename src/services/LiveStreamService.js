@@ -343,7 +343,7 @@ class LiveStreamService {
     } catch (connectErr) {
       // ── ROLLBACK ──────────────────────────────────────────────────────────
       console.warn(
-        '[LiveStream] _connectRoom failed — rolling back stream row:',
+        '[LiveStream] _connectRoom failed - rolling back stream row:',
         connectErr?.message || connectErr
       );
       try {
@@ -924,7 +924,7 @@ class LiveStreamService {
     // own stream card (or the PiP "return" arrow) silently killed their live
     // video for every viewer while the DB row stayed 'live' (zombie).
     if (this.isBroadcaster && this.room) {
-      throw new Error('You are currently broadcasting — end your stream before joining another.');
+      throw new Error('You are currently broadcasting - end your stream before joining another.');
     }
     if (this.room) {
       await this.leaveStream();
@@ -1687,7 +1687,7 @@ class LiveStreamService {
     // Production has the RPC; this branch only fires in mismatched envs.
     if (rpcErr && (rpcErr.code === 'PGRST202' || rpcErr.message?.includes('not exist'))) {
       console.warn(
-        '[LiveStreamService] get_visible_live_streams RPC missing — falling back to unfiltered SELECT'
+        '[LiveStreamService] get_visible_live_streams RPC missing - falling back to unfiltered SELECT'
       );
       const { data, error } = await supabase
         .from('live_streams')

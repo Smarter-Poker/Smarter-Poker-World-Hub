@@ -118,7 +118,7 @@ async function loadHorseIds() {
     }
     const sb = getSupabase();
     if (!sb) {
-        console.warn('[HorseBrain] No Supabase client — cannot load horse IDs');
+        console.warn('[HorseBrain] No Supabase client - cannot load horse IDs');
         return new Set();
     }
     try {

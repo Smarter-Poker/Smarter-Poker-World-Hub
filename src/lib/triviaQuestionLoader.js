@@ -181,7 +181,7 @@ export async function getSeenHistory(supabase, userId, opts = {}) {
         // We hit the ceiling without exhausting the window.
         truncated = true;
         console.warn(
-            `[triviaQuestionLoader] seen-history truncated at ${maxRows} rows for user ${userId} — ` +
+            `[triviaQuestionLoader] seen-history truncated at ${maxRows} rows for user ${userId} - ` +
             'pool depth may be insufficient for the 60-day guarantee.'
         );
     } catch (e) {
