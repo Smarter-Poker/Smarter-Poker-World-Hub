@@ -47,7 +47,7 @@ test('recent-place personalization stays on-device and excludes precise location
   const activity = read('src/lib/poker-near-me/activity.js');
   assert.match(activity, /localStorage/);
   assert.doesNotMatch(activity, /latitude|longitude|\blat\b|\blng\b/);
-  assert.match(read('src/components/poker-near-me/PokerNearMeRecentRail.jsx'), /Private on this device/);
+  assert.match(read('src/components/poker-near-me/PokerNearMeRecentRail.jsx'), /Private On This Device/);
 });
 
 test('map surfaces expose keyboard and assistive-technology contracts', () => {
