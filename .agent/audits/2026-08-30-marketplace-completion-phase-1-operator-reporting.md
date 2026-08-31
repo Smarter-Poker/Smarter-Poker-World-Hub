@@ -141,3 +141,17 @@ The exact product-detail add-to-cart and reload journey passes with normal
 pointer input in desktop Chromium and mobile Chrome. The complete optimized
 build, all 120 marketplace contracts, the footer contract across all 14
 worlds, and all 402 static pages pass after these fixes.
+
+The authenticated CI matrix then proved that deferring the owner effect alone
+was insufficient: a purchase control could become clickable before that effect
+committed. The final implementation disables cart insertion until auth is
+resolved and synchronously assigns the resolved owner in the same transaction
+as `addItem`. The regression now installs a deterministic signed-in owner even
+in focused local runs, so it cannot silently exercise only the guest path.
+
+The same matrix found that the footer's near-integer-maximum stacking layer let
+its six legitimate link zones cover an open VIP confirmation dialog. The
+footer now occupies navigation layer 900, below the platform modal layer, and
+the route audit dismisses page-owned onboarding before intentionally testing
+footer links. Exact signed-in cart reload and VIP confirmation flows pass in
+desktop Chromium and mobile Chrome after these final changes.

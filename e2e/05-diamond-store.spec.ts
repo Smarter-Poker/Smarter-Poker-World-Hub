@@ -80,19 +80,35 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
   }
 
-  test('global header markup is identical across all five storefront routes', async ({ page }) => {
-    const headerMarkup: string[] = [];
+  test('global header structure is identical across all five storefront routes', async ({ page }) => {
+    const headerStructures: string[] = [];
     for (const route of ROUTES) {
       await page.goto(route.path, { waitUntil: 'domcontentloaded' });
       const header = page.locator('header').first();
       await expect(header).toBeVisible();
-      headerMarkup.push(await header.evaluate((element) => {
-        const clone = element.cloneNode(true) as HTMLElement;
-        clone.querySelectorAll('[style]').forEach((node) => node.removeAttribute('style'));
-        return clone.outerHTML.replace(/\s+/g, ' ').trim();
+      headerStructures.push(await header.evaluate((element) => {
+        // Profile, wallet and notification text hydrate asynchronously and are
+        // supposed to change. Compare the actual navigation/control contract,
+        // not volatile account copy captured at different network moments.
+        const controls = Array.from(element.querySelectorAll('a, button, img')).map((node) => ({
+          tag: node.tagName,
+          href: node.getAttribute('href'),
+          target: node.getAttribute('target'),
+          type: node.getAttribute('type'),
+          ariaLabel: node.getAttribute('aria-label'),
+          title: node.getAttribute('title'),
+          src: node.getAttribute('src'),
+          alt: node.getAttribute('alt'),
+        }));
+        return JSON.stringify({
+          tag: element.tagName,
+          className: element.className,
+          artwork: element.getAttribute('data-artwork'),
+          controls,
+        });
       }));
     }
-    expect(new Set(headerMarkup).size).toBe(1);
+    expect(new Set(headerStructures).size).toBe(1);
   });
 
   test('marketplace canvases have no serious automated WCAG A or AA violations', async ({ page }) => {
@@ -179,6 +195,20 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   });
 
   test('product detail owns one focused purchase console and shared cart flow', async ({ page }) => {
+    // Exercise the account-owned persistence path explicitly. The shared
+    // suite is authenticated in CI, while focused local runs may not have the
+    // saved account origin; a deterministic owner keeps this regression test
+    // from silently falling back to the simpler guest-cart path.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
+        access_token: 'marketplace-cart-owner-test-token',
+        user: {
+          id: '00000000-0000-4000-8000-000000000021',
+          email: 'marketplace-cart-owner@example.test',
+          role: 'authenticated',
+        },
+      }));
+    });
     let catalogRequestUrl = '';
     await page.route('**/api/store/merch-catalog*', async (route) => {
       catalogRequestUrl = route.request().url();

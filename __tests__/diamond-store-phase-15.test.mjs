@@ -116,6 +116,8 @@ test('cart ownership, current variant price, and balance broadcasts survive relo
   assert.match(cartPage, /isCurrentCartLoad/);
   assert.match(merchStore, /variant\?\.priceUsd, product\.priceUsd/);
   assert.match(merchStore, /if \(!authResolved\) return;[\s\S]*setCartOwner\(user\?\.id \|\| 'guest'\)/);
+  assert.match(merchStore, /if \(!authResolved\) return;[\s\S]*setCartOwner\(user\?\.id \|\| 'guest'\);[\s\S]*addCartItem\(/);
+  assert.match(merchStore, /disabled=\{!cartReady \|\| soldOut \|\| busy\}/);
   assert.match(detailPage, /authResolved=\{!authLoading\}/);
   assert.match(storePage, /<MerchStore user=\{user\} authResolved=\{authResolved\} \/>/);
   assert.match(cartPage, /broadcastSync\('smarter_poker_diamond_sync', 'refresh'\)/);
