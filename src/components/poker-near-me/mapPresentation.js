@@ -35,6 +35,33 @@ const SIGNATURE_FIELDS = Object.freeze([
   'stop_name', 'stop_venue', 'dates', 'host_venue_name', 'host_venue_logo_url', 'social_page_id',
 ]);
 
+// Marker signatures gate expensive Leaflet rebuilds. JSON.stringify alone is
+// insertion-order sensitive, while String(object) collapses every structured
+// value to "[object Object]". Normalize recursively so realtime payloads with
+// equivalent key order remain stable and genuine nested changes invalidate the
+// popup/icon cache. The cycle guard keeps unexpected client-enriched records
+// from taking the whole map down.
+function stableSignatureValue(value, seen = new WeakSet()) {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') {
+    if (typeof value === 'number' && !Number.isFinite(value)) return JSON.stringify(String(value));
+    return JSON.stringify(value);
+  }
+  if (seen.has(value)) return '"[Circular]"';
+  seen.add(value);
+  let normalized;
+  if (Array.isArray(value)) {
+    normalized = `[${value.map((item) => stableSignatureValue(item, seen)).join(',')}]`;
+  } else {
+    const entries = Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableSignatureValue(value[key], seen)}`);
+    normalized = `{${entries.join(',')}}`;
+  }
+  seen.delete(value);
+  return normalized;
+}
+
 export function pokerVenueTheme(venueType, overrideColor) {
   const safeOverride = typeof overrideColor === 'string' && /^#[0-9a-f]{6}$/i.test(overrideColor.trim())
     ? overrideColor.trim()
@@ -255,9 +282,9 @@ export function createPokerVenueGeographySignature(venues, { userLocation, radiu
 
 export function createPokerVenueContentSignature(venues, options = {}) {
   const rows = (venues || []).map((venue) => {
-    const values = SIGNATURE_FIELDS.map((field) => venue?.[field] ?? '');
-    values.push(JSON.stringify(venue?.games_offered || []));
-    values.push(JSON.stringify(venue?.live_data || {}));
+    const values = SIGNATURE_FIELDS.map((field) => stableSignatureValue(venue?.[field]));
+    values.push(stableSignatureValue(venue?.games_offered || []));
+    values.push(stableSignatureValue(venue?.live_data || {}));
     values.push(options.isFavorited?.('venue', venue?.id) ? 1 : 0);
     return values.join(':');
   }).sort().join('|');
