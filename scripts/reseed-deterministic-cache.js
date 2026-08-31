@@ -13,8 +13,8 @@
  *   node scripts/reseed-deterministic-cache.js --verify --game=cash-001 # Verify a game in DB
  *
  * Coverage:
- *   79 PioSOLVER/CHART games → DETERMINISTIC_SOLVER questions
- *   21 SCENARIO/psychology games → SKIPPED (no solver equivalent)
+ *   84 PioSOLVER + 2 CHART games → DETERMINISTIC_SOLVER questions
+ *   21 SCENARIO games + 2 local-range preflop games → SKIPPED
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -36,6 +36,7 @@ const IS_LIVE = args.includes('--live');
 const IS_VERIFY = args.includes('--verify');
 const SINGLE_GAME = args.find(a => a.startsWith('--game='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose');
+let enforceTrainingQuestionContract;
 
 if (!IS_DRY_RUN && !IS_LIVE && !IS_VERIFY) {
     console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--live|--verify] [--game=cash-001]');
@@ -188,18 +189,18 @@ function matchesHandClass(hand, handClass) {
 
 // ─── GAME CONFIG (from PIOQueryService) ──────────────────────────────────
 const GAME_CONFIGS = {
-    'cash-001': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
+    'cash-001': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop' },
     'cash-002': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-003': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-004': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-005': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-006': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-007': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
-    'cash-008': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
+    'cash-008': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100, pioStreet: 'preflop', pioSpotTypes: ['4bet'] },
     'cash-009': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 200 },
-    'cash-010': { sourceOfTruth: 'ICMIZER', pioStackDepth: 40 },
+    'cash-010': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 40 },
     'cash-011': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
-    'cash-012': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    'cash-012': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100, pioStreet: 'river' },
     'cash-013': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-014': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
     'cash-015': { sourceOfTruth: 'PioSOLVER', pioGameType: 'hu_cash', pioStackDepth: 100 },
@@ -280,6 +281,16 @@ const GAME_CONFIGS = {
     'adv-018': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
     'adv-019': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
     'adv-020': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    // Special games are part of the canonical 107-game catalog too. Keeping
+    // them out of this map made the reseeder silently incapable of producing
+    // cache rows for every secondary Training surface.
+    'tournament-prep': { sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 40 },
+    'final-table-sim': { sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 },
+    'quiz-gauntlet': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    'hand-lab': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    'bluff-catcher': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    'mixed-strategy-lab': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
+    'study-group': { sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 },
 };
 
 // ─── QUESTION GENERATORS ──────────────────────────────────────────────────
@@ -303,7 +314,9 @@ function getEngineType(gameId, config) {
  * This is the core deterministic logic — mirrors DeterministicGTOEngine.buildQuestionFromScenario
  */
 function buildQuestionFromScenario(scenario, config, level, questionIndex) {
-    const sm = scenario.strategy_matrix || {};
+    // The Windows farm writes the accuracy-gated v2 payload. Legacy rows are
+    // still readable, but never prefer them over a verified v2 export.
+    const sm = scenario.strategy_matrix_v2 || scenario.strategy_matrix || {};
     const actions = sm.actions || [];
     const frequencies = sm.frequencies || {};
     const handEVs = sm.hand_evs || {};
@@ -455,58 +468,17 @@ function buildQuestionFromScenario(scenario, config, level, questionIndex) {
  * Generate questions from solved_spots_gold for a PIO game at a given level
  */
 async function generatePIOBatch(gameId, config, level, count = 25) {
-    const street = getStreetForLevel(level);
-    const isRiver = street === 'river';
+    const street = config.pioStreet || getStreetForLevel(level);
 
     // Fetch a pool of scenarios
     const poolSize = Math.min(count * 4, 100);
     let scenarios;
-
-    // River data is sparse for some game_types — use flexible stack depth fallback
-    const tryFetch = async (extraFilter = '') => {
-        return supabaseQuery('solved_spots_gold',
-            `?game_type=eq.${config.pioGameType}&stack_depth=eq.${config.pioStackDepth}&street=eq.${street}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix${extraFilter}&limit=${poolSize}`
-        );
-    };
-
     try {
-        const data = await tryFetch();
-        if (!data || data.length === 0) throw new Error('empty');
-        scenarios = data;
-    } catch {
-        // Fallback 1: try without stack depth constraint (especially needed for river)
-        try {
-            const data = await supabaseQuery('solved_spots_gold',
-                `?game_type=eq.${config.pioGameType}&street=eq.${street}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix&limit=${poolSize}`
-            );
-            if (!data || data.length === 0) throw new Error('empty');
-            scenarios = data;
-        } catch {
-            // Fallback 2: for river-level games, use turn data (still postflop, still valid GTO training)
-            // River data may not exist for all game_types
-            if (isRiver) {
-                try {
-                    const data = await supabaseQuery('solved_spots_gold',
-                        `?game_type=eq.${config.pioGameType}&street=eq.turn&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix&limit=${poolSize}`
-                    );
-                    if (!data || data.length === 0) throw new Error('empty');
-                    scenarios = data;
-                } catch (e3) {
-                    // Final fallback: try postflop_complete for any street
-                    try {
-                        const data = await supabaseQuery('solved_spots_gold',
-                            `?game_type=eq.postflop_complete&street=eq.river&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix&limit=${poolSize}`
-                        );
-                        if (!data || data.length === 0) return { questions: [], error: `No river data for ${config.pioGameType}` };
-                        scenarios = data;
-                    } catch (e4) {
-                        return { questions: [], error: e4.message };
-                    }
-                }
-            } else {
-                return { questions: [], error: `No scenarios for ${config.pioGameType} ${street}` };
-            }
-        }
+        scenarios = await supabaseQuery('solved_spots_gold',
+            `?game_type=eq.${config.pioGameType}&stack_depth=eq.${config.pioStackDepth}&street=eq.${street}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2&limit=${poolSize}`
+        );
+    } catch (error) {
+        return { questions: [], error: error.message };
     }
 
     if (!scenarios || scenarios.length === 0) {
@@ -699,7 +671,7 @@ function buildCacheRow(gameId, config, level, question) {
 // ─── MAIN SEEDER LOGIC ────────────────────────────────────────────────────
 
 const QUESTIONS_PER_LEVEL = 25;
-const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 async function seedGame(gameId, config, options = {}) {
     const { dryRun = true } = options;
@@ -707,6 +679,9 @@ async function seedGame(gameId, config, options = {}) {
 
     if (engineType === 'SCENARIO') {
         return { gameId, skipped: true, reason: 'SCENARIO game (psychology) — no solver data' };
+    }
+    if (config.pioStreet === 'preflop') {
+        return { gameId, skipped: true, reason: 'Preflop game — served by the audited local range engine, not the postflop PioSOLVER warehouse' };
     }
 
     const gameResult = { gameId, engineType, levelResults: [], totalGenerated: 0, totalFailed: 0, errors: [] };
@@ -730,8 +705,12 @@ async function seedGame(gameId, config, options = {}) {
         const passedQuestions = [];
         const levelErrors = [];
 
-        for (const q of batchResult.questions) {
+        for (const rawQuestion of batchResult.questions) {
+            const q = enforceTrainingQuestionContract(rawQuestion);
             const validationErrors = validateQuestion(q, gameId, level);
+            if (q?.questionContract?.valid === false) {
+                validationErrors.push(...q.questionContract.issues);
+            }
             if (validationErrors.length === 0) {
                 passedQuestions.push(q);
             } else {
@@ -793,6 +772,7 @@ async function verifyGame(gameId) {
 
 async function main() {
     const startTime = Date.now();
+    ({ enforceTrainingQuestionContract } = await import('../src/lib/training/questionContract.mjs'));
 
     console.log('\n═══════════════════════════════════════════════════════════════');
     console.log(`🎯 DETERMINISTIC CACHE RE-SEEDER`);
@@ -896,7 +876,7 @@ async function main() {
     console.log('\n═══════════════════════════════════════════════════════════════');
     console.log(`📊 SUMMARY (${elapsed}s)`);
     console.log(`   Games processed:   ${summary.totalGames}`);
-    console.log(`   Games skipped:     ${summary.skipped} (SCENARIO/psychology)`);
+    console.log(`   Games skipped:     ${summary.skipped} (SCENARIO or local-range preflop)`);
     console.log(`   Games succeeded:   ${summary.success}`);
     console.log(`   Games failed:      ${summary.failed}`);
     console.log(`   Total questions:   ${summary.totalQuestions} ${IS_DRY_RUN ? '(would be written)' : 'written to DB'}`);
