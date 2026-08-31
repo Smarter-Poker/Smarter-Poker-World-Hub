@@ -269,7 +269,13 @@ async function handler(req, res) {
                             // status is NOT NULL with no default — omitting it
                             // makes the insert fail and the catch swallow it,
                             // which is exactly how this table ended up empty.
-                            status: 'stale',
+                            // 2026-08-31: 'stale' violated
+                            // probe_heartbeats_status_check (ok/failed/partial
+                            // only) and the catch swallowed THAT too. 'partial'
+                            // is the sanctioned degraded value — see
+                            // club-stats-maintenance.js for the precedent; the
+                            // staleness itself lives in details.
+                            status: 'partial',
                             details: libraryHealth,
                         });
                     } catch (_) { /* non-fatal */ }
@@ -287,7 +293,12 @@ async function handler(req, res) {
                 // months while writing zero heartbeats. Every other cron in
                 // pages/api/cron/ passes status; this file was the only one that
                 // did not.
-                status: 'success',
+                // 2026-08-31: ...and the 2026-08-15 fix traded 23502 for 23514:
+                // 'success' violates probe_heartbeats_status_check
+                // (ok/failed/partial only), so it STILL never wrote a heartbeat
+                // — 216 constraint errors in one day of postgres logs. 'ok' is
+                // the value every healthy probe writes.
+                status: 'ok',
                 details: { requeued, scanned, permanentlyHidden, duration_ms: Date.now() - started },
             });
         } catch (_) { /* heartbeats table may not exist on all envs */ }
