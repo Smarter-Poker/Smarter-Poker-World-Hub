@@ -401,6 +401,18 @@ function closureFor(entry, edges) {
   return [...visited].sort();
 }
 
+function followUpPhaseForRouteState(route, state) {
+  if (route.includes('/pvp')) return 10;
+  if (/study-group|training-feed|community-leaderboard/.test(route)) return 11;
+  if (/coach-mode|reports|progress|performance|weakness|session-dashboard|aggregate/.test(route)) return 12;
+  if (/live-hud-sync|hand-history-upload|replay-theater/.test(route)) return 13;
+  if (/challenge|tournament|final-table/.test(route)) return 9;
+  if (/\/(?:play|arena)\//.test(route)) return state === 'authExpiry' || state === 'stale' ? 8 : 5;
+  if (state === 'authExpiry' || state === 'stale') return 8;
+  if (state === 'offline' || state === 'retry' || state === 'error') return 15;
+  return 7;
+}
+
 function dynamicPattern(route) {
   return new RegExp(`^${route.split('/').map((part) => (
     /^\[[^\]]+\]$/.test(part) ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -527,6 +539,7 @@ function main() {
         status: evidence.length ? 'implemented-or-detected' : 'coverage-gap',
         evidence: [...new Set(evidence)].sort(),
         tests: matchingTests,
+        ...(evidence.length ? {} : { followUpPhase: followUpPhaseForRouteState(route.template, state) }),
       }];
     }));
     return {
@@ -600,6 +613,7 @@ function main() {
       possibleUnwiredFunctions: possibleUnwiredFunctions.length,
       routeStateCells: routeCoverage.length * stateNames.length,
       routeStateCoverageGaps: routeCoverage.reduce((sum, route) => sum + route.uncoveredStates.length, 0),
+      routeStateUnassignedGaps: routeCoverage.reduce((sum, route) => sum + route.uncoveredStates.filter((state) => !route.states[state].followUpPhase).length, 0),
       ctaWiringGaps: ctaLedger.filter((cta) => cta.wiring === 'unwired-static-control').length,
       markerPhaseReview: markers.filter((marker) => marker.review === 'phase-review').length,
       markerDocumentedFollowUp: markers.filter((marker) => marker.review === 'documented-follow-up').length,
@@ -628,7 +642,10 @@ function main() {
       missingApiDefinitions,
       markerCandidates: markers,
       possibleUnwiredFunctions,
-      routeStates: routeCoverage.filter((route) => route.uncoveredStates.length).map((route) => ({ route: route.route, states: route.uncoveredStates })),
+      routeStates: routeCoverage.filter((route) => route.uncoveredStates.length).map((route) => ({
+        route: route.route,
+        states: route.uncoveredStates.map((state) => ({ state, followUpPhase: route.states[state].followUpPhase })),
+      })),
       ctas: ctaLedger.filter((cta) => cta.wiring === 'unwired-static-control').map((cta) => ({ id: cta.id, file: cta.file, line: cta.line, name: cta.name })),
     },
   };

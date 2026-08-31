@@ -27,6 +27,7 @@ test('Phase 2 Training surface inventory is exhaustive and current', () => {
   assert.equal(manifest.counts.ctaWiringGaps, 0);
   assert.equal(manifest.counts.functionPhaseReview, 0);
   assert.equal(manifest.counts.markerPhaseReview, 0);
+  assert.equal(manifest.counts.routeStateUnassignedGaps, 0);
   assert.equal(manifest.classifications.markers.length, manifest.counts.markerCandidates);
   assert.equal(manifest.classifications.possibleUnwiredFunctions.length, manifest.counts.possibleUnwiredFunctions);
   assert.ok(manifest.classifications.markers.every((entry) => entry.disposition && entry.review && entry.rationale));

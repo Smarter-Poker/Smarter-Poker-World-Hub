@@ -17,11 +17,12 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 8,
-    "tests": 23,
+    "tests": 24,
     "markerCandidates": 315,
     "possibleUnwiredFunctions": 342,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 236,
+    "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
     "markerDocumentedFollowUp": 105,
@@ -4881,7 +4882,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -4950,7 +4952,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -4966,21 +4969,24 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 8
         }
       },
       "existingTests": [
@@ -6577,22 +6583,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -6604,17 +6614,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -6645,22 +6658,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -6672,17 +6689,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -7285,7 +7305,8 @@
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 12
         },
         "error": {
           "status": "coverage-gap",
@@ -7294,7 +7315,8 @@
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 12
         },
         "retry": {
           "status": "coverage-gap",
@@ -7303,7 +7325,8 @@
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 12
         },
         "success": {
           "status": "implemented-or-detected",
@@ -7336,7 +7359,8 @@
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 12
         },
         "authExpiry": {
           "status": "coverage-gap",
@@ -7345,7 +7369,8 @@
             "__tests__/training-community-phase-11.test.mjs",
             "__tests__/training-phase-2-adversarial.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 12
         }
       },
       "existingTests": [
@@ -7482,7 +7507,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -7528,7 +7554,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -7629,7 +7656,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-runtime-wiring.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -7796,7 +7824,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -7872,7 +7901,8 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -7891,7 +7921,8 @@
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -7903,7 +7934,8 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -7915,7 +7947,8 @@
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -7993,7 +8026,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -8025,22 +8059,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8052,17 +8090,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -8093,22 +8134,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8120,17 +8165,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -8175,7 +8223,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -8411,7 +8460,8 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -8424,7 +8474,8 @@
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -8451,12 +8502,14 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -8483,22 +8536,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8517,12 +8574,14 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -8552,22 +8611,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -8579,17 +8642,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -8623,7 +8689,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -8640,7 +8707,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -8675,14 +8743,16 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 8
         }
       },
       "existingTests": [
@@ -8756,12 +8826,14 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -9009,22 +9081,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -9036,17 +9112,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -9076,22 +9155,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -9103,17 +9186,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -9151,17 +9237,20 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -9180,12 +9269,14 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -9301,7 +9392,8 @@
           "evidence": [],
           "tests": [
             "__tests__/leak-engine-wiring.test.mjs"
-          ]
+          ],
+          "followUpPhase": 13
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -9519,7 +9611,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -9566,7 +9659,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -9604,22 +9698,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "success": {
           "status": "implemented-or-detected",
@@ -9631,17 +9729,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 9
         }
       },
       "existingTests": [],
@@ -9681,7 +9782,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -9718,7 +9820,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -10483,22 +10586,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -10510,17 +10617,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -11153,22 +11263,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -11180,17 +11294,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -11234,7 +11351,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -11273,7 +11391,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -11374,7 +11493,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-runtime-wiring.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -11410,22 +11530,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -11437,17 +11561,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -11478,22 +11605,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "success": {
           "status": "implemented-or-detected",
@@ -11505,17 +11636,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 12
         }
       },
       "existingTests": [],
@@ -11546,22 +11680,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -11573,17 +11711,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -11832,22 +11973,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -11859,17 +12004,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -11915,7 +12063,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-runtime-wiring.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -11963,7 +12112,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-runtime-wiring.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -12001,22 +12151,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -12028,17 +12182,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -12069,22 +12226,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -12096,17 +12257,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -12659,12 +12823,14 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -12676,7 +12842,8 @@
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -12688,17 +12855,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -13402,7 +13572,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -13456,7 +13627,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -13504,7 +13676,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -13541,22 +13714,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -13568,17 +13745,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -13609,22 +13789,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -13636,17 +13820,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -13691,7 +13878,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-specialty-pages-phase-7.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -13777,22 +13965,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -13804,17 +13996,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -14065,28 +14260,32 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -14102,7 +14301,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -14118,7 +14318,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs"
-          ]
+          ],
+          "followUpPhase": 8
         }
       },
       "existingTests": [
@@ -14166,7 +14367,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -14205,7 +14407,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -14431,22 +14634,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -14465,12 +14672,14 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -14516,7 +14725,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -14555,7 +14765,8 @@
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -14609,7 +14820,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-learning-journey-phase-9.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -14905,7 +15117,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
-          ]
+          ],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -14942,22 +15155,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -14969,17 +15186,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -15452,7 +15672,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs"
-          ]
+          ],
+          "followUpPhase": 11
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -15754,22 +15975,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -15781,17 +16006,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -15838,7 +16066,8 @@
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -16486,7 +16715,8 @@
           "evidence": [],
           "tests": [
             "__tests__/training-learning-journey-phase-9.test.mjs"
-          ]
+          ],
+          "followUpPhase": 7
         },
         "error": {
           "status": "implemented-or-detected",
@@ -16693,22 +16923,26 @@
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "empty": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 7
         },
         "error": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "retry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "success": {
           "status": "implemented-or-detected",
@@ -16720,17 +16954,20 @@
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         },
         "offline": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 15
         },
         "authExpiry": {
           "status": "coverage-gap",
           "evidence": [],
-          "tests": []
+          "tests": [],
+          "followUpPhase": 8
         }
       },
       "existingTests": [],
@@ -76501,6 +76738,7 @@
     "__tests__/training-phase-3-adversarial.test.mjs",
     "__tests__/training-phase-4-adversarial.test.mjs",
     "__tests__/training-question-integrity.test.mjs",
+    "__tests__/training-route-runtime-inventory.test.mjs",
     "__tests__/training-runtime-wiring.test.mjs",
     "__tests__/training-secondary-surfaces-phase-6.test.mjs",
     "__tests__/training-specialty-pages-phase-7.test.mjs",
@@ -121600,512 +121838,1220 @@
       {
         "route": "/hub/training/aggregate",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 12
+          }
         ]
       },
       {
         "route": "/hub/training/analyzer",
         "states": [
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/bluff-catcher",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/bounty-trainer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/coach-mode",
         "states": [
-          "empty",
-          "error",
-          "retry",
-          "offline",
-          "authExpiry"
+          {
+            "state": "empty",
+            "followUpPhase": 12
+          },
+          {
+            "state": "error",
+            "followUpPhase": 12
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 12
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 12
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 12
+          }
         ]
       },
       {
         "route": "/hub/training/custom-rake",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/custom-solve",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/daily-goals",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/drill-builder",
         "states": [
-          "loading",
-          "retry",
-          "stale",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/equity-calculator",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/ev-heatmap",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/ev-trainer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/famous-finals",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/flashcards",
         "states": [
-          "loading",
-          "error",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/focus-timer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/frequency-locking",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/glossary",
         "states": [
-          "loading",
-          "error",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/gto-news",
         "states": [
-          "offline",
-          "authExpiry"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/gto-scorecard",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/gto-vs-exploitative",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/hand-comparison",
         "states": [
-          "empty",
-          "error",
-          "retry",
-          "offline",
-          "authExpiry"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/hand-history-upload",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 13
+          }
         ]
       },
       {
         "route": "/hub/training/icm-calculator",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/icm-final-table",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 9
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 9
+          },
+          {
+            "state": "error",
+            "followUpPhase": 9
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 9
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 9
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 9
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 9
+          }
         ]
       },
       {
         "route": "/hub/training/icm-simulator",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/mixed-strategy-lab",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/multiway-postflop",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/multiway-preflop",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/my-playbook",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/nodelocking",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/performance-heatmap",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 12
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 12
+          },
+          {
+            "state": "error",
+            "followUpPhase": 12
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 12
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 12
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 12
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 12
+          }
         ]
       },
       {
         "route": "/hub/training/play-mode",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/player-profiles",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/position-mastery",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/pot-geometry",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/preflop-advisor",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/qre-explorer",
         "states": [
-          "loading",
-          "empty",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/quiz-builder",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/quiz-gauntlet",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/rake-solutions",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/range-advisor",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/range-builder",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/range-explorer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/risk-analyzer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/scenario-demo",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/session-warmup",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/short-deck-trainer",
         "states": [
-          "empty",
-          "offline"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/skill-tree",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/spot-trainer",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          }
         ]
       },
       {
         "route": "/hub/training/spr-trainer",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/study-group-finder",
         "states": [
-          "offline"
+          {
+            "state": "offline",
+            "followUpPhase": 11
+          }
         ]
       },
       {
         "route": "/hub/training/three-way-postflop",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       },
       {
         "route": "/hub/training/tilt-guard",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/training-calendar",
         "states": [
-          "empty"
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          }
         ]
       },
       {
         "route": "/hub/training/villain-range",
         "states": [
-          "loading",
-          "empty",
-          "error",
-          "retry",
-          "stale",
-          "offline",
-          "authExpiry"
+          {
+            "state": "loading",
+            "followUpPhase": 7
+          },
+          {
+            "state": "empty",
+            "followUpPhase": 7
+          },
+          {
+            "state": "error",
+            "followUpPhase": 15
+          },
+          {
+            "state": "retry",
+            "followUpPhase": 15
+          },
+          {
+            "state": "stale",
+            "followUpPhase": 8
+          },
+          {
+            "state": "offline",
+            "followUpPhase": 15
+          },
+          {
+            "state": "authExpiry",
+            "followUpPhase": 8
+          }
         ]
       }
     ],
