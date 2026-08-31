@@ -179,6 +179,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(artwork).toBeVisible();
       await expect(artwork).toHaveCSS('object-fit', 'contain');
       await expect(artwork).toHaveCSS('filter', 'none');
+      await artwork.evaluate(async (image: HTMLImageElement) => {
+        if (!image.complete || image.naturalWidth === 0) await image.decode();
+      });
 
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();
