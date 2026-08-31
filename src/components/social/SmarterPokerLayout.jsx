@@ -86,10 +86,6 @@ const SPNavBar = ({
                     <span className="tab-icon">&#x1F3AE;</span>
                 </button>
 
-                {/* Mobile Menu (Hidden on Desktop) */}
-                <button className="sp-nav-tab mobile-menu">
-                    <span className="tab-icon">&#x2630;</span>
-                </button>
             </div>
 
             {/* right: User Actions */}
@@ -260,8 +256,6 @@ const SPNavBar = ({
                     border-radius: 2px 2px 0 0;
                 }
 
-                .mobile-menu { display: none; }
-
                 .sp-nav-right {
                     display: flex;
                     align-items: center;
@@ -314,8 +308,7 @@ const SPNavBar = ({
                 }
 
                 @media (max-width: 768px) {
-                    .sp-nav-center .sp-nav-tab:not(.active):not(.mobile-menu) { display: none; }
-                    .mobile-menu { display: block; }
+                    .sp-nav-center .sp-nav-tab:not(.active) { display: none; }
                 }
             `}</style>
         </nav>

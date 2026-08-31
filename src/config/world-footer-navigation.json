@@ -107,7 +107,7 @@
         { "href": "/hub/diamond-arena/leaderboard", "label": "Ranks", "title": "Arena Leaderboard", "icon": "trophy" },
         { "href": "/hub/diamond-arena/stats", "label": "Stats", "title": "My Arena Statistics", "icon": "chart" },
         { "href": "/hub/diamond-arena/history", "label": "History", "title": "Arena Hand History", "icon": "history" },
-        { "href": "/hub/diamond-store?category=diamonds", "label": "Store", "title": "Buy Diamonds", "icon": "shopping" }
+        { "href": "/hub/diamond-store", "label": "Store", "title": "Buy Diamonds", "icon": "shopping" }
       ]
     },
     {
@@ -166,7 +166,7 @@
       "artwork": { "src": "/images/footers/world-hub/footer-bankroll-manager.png", "width": 2172, "height": 724, "sha256": "3e7420876d97e767bcfd3a4c153aabd33d8d9a96025752b4cf8458ab6004f261", "cropToContentBounds": true, "contentBounds": { "x": 0, "y": 188, "width": 2172, "height": 348 } },
       "routePrefixes": ["/hub/bankroll-manager", "/hub/bankroll"],
       "items": [
-        { "href": "/hub/bankroll-manager?view=dashboard", "label": "Summary", "title": "Bankroll Dashboard", "icon": "wallet" },
+        { "href": "/hub/bankroll-manager?view=dashboard", "label": "Summary", "title": "Bankroll Dashboard", "icon": "wallet", "defaultForPath": true },
         { "href": "/hub/bankroll-manager?view=log-session", "label": "Log", "title": "Log A Session", "icon": "plus" },
         { "href": "/hub/bankroll-manager?view=trips", "label": "Trips", "title": "Trip Tracker", "icon": "route" },
         { "href": "/hub/bankroll-manager?view=reports", "label": "Reports", "title": "Bankroll Reports", "icon": "chart" },

@@ -236,7 +236,13 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     if (!router.isReady) return;
     if (router.query.view) {
-      setActiveSection(router.query.view);
+      const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
+      if (requestedView === 'log-session') {
+        setActiveSection('dashboard');
+        setShowLogModal(true);
+      } else {
+        setActiveSection(requestedView);
+      }
     }
     if (router.query.type) {
       // Map URL type to DB category

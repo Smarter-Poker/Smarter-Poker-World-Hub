@@ -13,6 +13,7 @@ const menuSource = readFileSync(join(ROOT, 'src/config/hamburgerMenus.js'), 'utf
 const menuRegistrySource = readFileSync(join(ROOT, 'src/config/worldMenuNavigation.js'), 'utf8');
 const dockSource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandDock.jsx'), 'utf8');
 const drawerSource = readFileSync(join(ROOT, 'src/components/ui/HamburgerMenu.jsx'), 'utf8');
+const recoverySource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandMenuBoundary.jsx'), 'utf8');
 const headerSource = readFileSync(join(ROOT, 'src/components/ui/UniversalHeader.js'), 'utf8');
 const appSource = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
 const socialSource = readFileSync(join(ROOT, 'pages/hub/social-media/index.js'), 'utf8');
@@ -84,6 +85,12 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(drawerSource, /role="dialog"/);
   assert.match(drawerSource, /aria-modal="true"/);
   assert.match(drawerSource, /data-world-primary-commands/);
+  assert.match(drawerSource, /getActiveWorldMenuHref/);
+  assert.match(drawerSource, /data-command-pending/);
+  assert.match(drawerSource, /WorldCommandMenuBoundary/);
+  assert.match(recoverySource, /data-world-command-recovery/);
+  assert.match(recoverySource, /Safe Navigation/);
+  assert.match(recoverySource, /sp:world-command-menu-error/);
   assert.match(drawerSource, /prev\?\.isConnected/);
   assert.match(drawerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(drawerSource, /e\.key === 'Escape'/);
@@ -118,12 +125,13 @@ test('horizontal menu-bar artwork cannot return to World Hub source assets', () 
     .filter((file) => /(?:hamburger|menu[-_ ]?bar|m[-_ ]?bar)/i.test(file));
   assert.deepEqual(forbiddenNames, []);
 
+  const forbiddenMenuMark = /<\s*(?:Menu|MenuIcon|AlignJustify)\b|\b(?:Menu|MenuIcon|AlignJustify)\s*[,}]\s*from\s*['"]lucide-react|[☰≡]|&#(?:9776|8801|x2630|x2261);|data-menu-symbol=['"]three-bars['"]/i;
   const menuBarSource = [join(ROOT, 'pages/hub'), join(ROOT, 'src/components')]
     .flatMap((root) => walk(root))
     .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file))
     .filter((file) => !file.includes('/src/components/club-arena/'))
     .map((file) => readFileSync(file, 'utf8'))
-    .filter((sourceText) => /<Menu\b|\bMenu\s*}\s*from\s*['"]lucide-react/.test(sourceText));
+    .filter((sourceText) => forbiddenMenuMark.test(sourceText));
   assert.deepEqual(menuBarSource, []);
 
   const header = join(ROOT, 'public/images/global-header/global-header-desktop.png');
