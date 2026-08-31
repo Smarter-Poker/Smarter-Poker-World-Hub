@@ -116,8 +116,8 @@ const staticPages = [
 ];
 
 // ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
-// Pulled from social_pages at request time. The sitemap is cached for 24h
-// (s-maxage=86400) with 12h SWR, so this query runs at most once per day.
+// Pulled from social_pages at request time. The complete sitemap shares the
+// five-minute freshness window declared below, with a 30-minute SWR cushion.
 async function buildHomeGameUrls() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -218,49 +218,43 @@ async function buildHomeGameUrls() {
   }
 }
 
-// Physical venue + state/city discovery URLs. This is intentionally sourced
-// from the same poker_venues table as /api/poker/venues so the sitemap cannot
-// advertise synthetic location combinations.
+// Physical venue + state/city discovery URLs. Use the exact resilient public
+// directory projection consumed by discovery and location pages so sitemap
+// routes cannot drift from integrity filtering or the checked fallback data.
 async function buildPokerVenueUrls() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return [];
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const { US_STATES_BY_CODE, cityTitleToSlug } = await import('../src/lib/home-games/locationUtils');
-    const supabase = createClient(url, key);
-    const { data, error } = await supabase
-      .from('poker_venues')
-      .select('id, city, state, venue_type, is_active, is_suppressed')
-      .eq('is_active', true)
-      .or('is_suppressed.is.null,is_suppressed.eq.false')
-      .limit(5000);
-    if (error || !Array.isArray(data)) return [];
+    const [
+      { createClient },
+      { buildSnapshotVenueDirectory, fetchVenueDirectoryResilient },
+      { buildPokerVenueSitemapUrls },
+      snapshotModule,
+    ] = await Promise.all([
+      import('@supabase/supabase-js'),
+      import('../src/lib/poker-near-me/venueDirectoryServer'),
+      import('../src/lib/poker-near-me/sitemapRoutes'),
+      import('../data/poker-venue-directory-snapshot.json'),
+    ]);
+    const snapshotData = snapshotModule.default || snapshotModule;
+    const fallbackVenues = snapshotData.venues || [];
+    const fallbackMetadata = snapshotData.metadata || {};
+    const params = { limit: 1000 };
+    const directory = url && key
+      ? await fetchVenueDirectoryResilient({
+          supabase: createClient(url, key),
+          params,
+          fallbackVenues,
+          fallbackMetadata,
+          onFallback: (error) => console.warn('[sitemap] using checked venue snapshot:', error.message),
+        })
+      : buildSnapshotVenueDirectory({
+          params,
+          venues: fallbackVenues,
+          metadata: fallbackMetadata,
+        });
 
-    const urls = [];
-    const states = new Set();
-    const cities = new Set();
-    data.forEach((venue) => {
-      // Match the public location-page normalizer. Tours, series, and home
-      // games own dedicated route families and must not create venue/location
-      // URLs that the physical-room directory cannot surface.
-      if (['series', 'tour', 'home_game'].includes(venue.venue_type)) return;
-      if (venue.id) urls.push({ path: `/hub/venues/${venue.id}`, priority: '0.7', changefreq: 'daily' });
-      const state = String(venue.state || '').toUpperCase();
-      if (!US_STATES_BY_CODE[state]) return;
-      const stateSlug = state.toLowerCase();
-      if (!states.has(stateSlug)) {
-        states.add(stateSlug);
-        urls.push({ path: `/hub/poker-near-me/in/${stateSlug}`, priority: '0.7', changefreq: 'daily' });
-      }
-      const citySlug = cityTitleToSlug(venue.city);
-      const cityKey = `${stateSlug}/${citySlug}`;
-      if (citySlug && !cities.has(cityKey)) {
-        cities.add(cityKey);
-        urls.push({ path: `/hub/poker-near-me/in/${cityKey}`, priority: '0.6', changefreq: 'daily' });
-      }
-    });
-    return urls;
+    return buildPokerVenueSitemapUrls(directory.data);
   } catch (err) {
     console.warn('[sitemap] poker venue URL build failed:', err.message);
     return [];
@@ -291,7 +285,7 @@ export async function getServerSideProps({ res }) {
   const sitemap = generateSitemapXml([...staticPages, ...homeGameUrls, ...pokerVenueUrls]);
 
   res.setHeader('Content-Type', 'text/xml');
-  res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=43200');
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
   res.write(sitemap);
   res.end();
 
