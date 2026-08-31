@@ -170,26 +170,6 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
  * Returns EV loss in big blinds (BB).
  * Used as FALLBACK when real PIO EV data is unavailable.
  */
-export function simulateEVLoss(classification, pot = 10) {
-    const potFactor = Math.max(1, pot / 10); // Scale with pot size
-
-    // BUG-L FIX: Use deterministic midpoint values instead of Math.random()
-    // This ensures consistent EV loss display for the same classification
-    switch (classification) {
-        case MOVE_CLASSIFICATIONS.BEST:
-            return 0;
-        case MOVE_CLASSIFICATIONS.CORRECT:
-            return 0; // Correct moves lose 0 EV (they're part of GTO)
-        case MOVE_CLASSIFICATIONS.INACCURACY:
-            return Math.round(0.15 * potFactor * 100) / 100;  // midpoint of 0.05-0.25
-        case MOVE_CLASSIFICATIONS.WRONG:
-            return Math.round(0.65 * potFactor * 100) / 100;  // midpoint of 0.3-1.0
-        case MOVE_CLASSIFICATIONS.BLUNDER:
-            return Math.round(2.0 * potFactor * 100) / 100;   // midpoint of 1.0-3.0
-        default:
-            return 0;
-    }
-}
 
 /**
  * Calculate REAL EV loss using PIO solver hand_evs data.

@@ -225,30 +225,3 @@ export const LEVEL_REGISTRY: Record<number, LevelDefinition> = {
 export function getLevel(levelId: number): LevelDefinition | null {
     return LEVEL_REGISTRY[levelId] || null;
 }
-
-export function getAllLevels(): LevelDefinition[] {
-    return Object.values(LEVEL_REGISTRY || {}).sort((a, b) => a.id - b.id);
-}
-
-export function getLevelsByTier(tier: DifficultyTier): LevelDefinition[] {
-    return getAllLevels().filter(l => l.tier === tier);
-}
-
-export function isBossMode(levelId: number): boolean {
-    return levelId === 12;
-}
-
-export function getDrillConfig(levelId: number): DrillConfiguration {
-    const level = getLevel(levelId);
-    if (!level) throw new Error(`Level ${levelId} not found in registry`);
-
-    return {
-        levelId,
-        questionsPerSession: level.tier === 'BOSS' ? 30 : 20,
-        streakBonusEnabled: levelId >= 3,
-        leakFocusEnabled: levelId >= 4,
-        gtoBenchmarkEnabled: levelId >= 5,
-        showAlternateLines: true,
-        showEvExplanation: levelId >= 2,
-    };
-}

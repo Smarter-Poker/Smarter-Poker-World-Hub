@@ -55,6 +55,49 @@ function importsFor(file, source) {
   return [...new Set(specifiers.map((specifier) => resolveImport(file, specifier)).filter(Boolean))].sort();
 }
 
+function importBindingsFor(file, source) {
+  const bindings = [];
+  for (const match of source.matchAll(/\bimport\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
+    const target = resolveImport(file, match[2]);
+    if (!target) continue;
+    const clause = match[1].trim();
+    const named = clause.match(/\{([\s\S]*?)\}/)?.[1] || '';
+    for (const entry of named.split(',').map((value) => value.trim()).filter(Boolean)) {
+      const imported = entry.replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim();
+      if (imported) bindings.push({ from: rel(file), to: rel(target), imported });
+    }
+    const defaultBinding = clause.split(',')[0].trim();
+    if (defaultBinding && !defaultBinding.startsWith('{') && !defaultBinding.startsWith('*')) {
+      bindings.push({ from: rel(file), to: rel(target), imported: 'default' });
+    }
+    if (/^\*\s+as\s+/.test(clause)) bindings.push({ from: rel(file), to: rel(target), imported: '*' });
+  }
+  for (const match of source.matchAll(/\bexport\s*\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+    const target = resolveImport(file, match[2]);
+    if (!target) continue;
+    for (const entry of match[1].split(',').map((value) => value.trim()).filter(Boolean)) {
+      const imported = entry.split(/\s+as\s+/)[0].trim();
+      if (imported) bindings.push({ from: rel(file), to: rel(target), imported });
+    }
+  }
+  for (const match of source.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    const target = resolveImport(file, match[1]);
+    if (target) bindings.push({ from: rel(file), to: rel(target), imported: 'default' });
+  }
+  for (const match of source.matchAll(/\bconst\s+(\{[\s\S]*?\}|[A-Za-z_$][\w$]*)\s*=\s*require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    const target = resolveImport(file, match[2]);
+    if (!target) continue;
+    if (match[1].startsWith('{')) {
+      for (const entry of match[1].slice(1, -1).split(',').map((value) => value.trim()).filter(Boolean)) {
+        bindings.push({ from: rel(file), to: rel(target), imported: entry.split(/\s*:\s*/)[0].trim() });
+      }
+    } else {
+      bindings.push({ from: rel(file), to: rel(target), imported: '*' });
+    }
+  }
+  return bindings;
+}
+
 function dependencyGraph(entryFiles) {
   const pending = [...entryFiles];
   const visited = new Set();
@@ -205,12 +248,14 @@ function functionCandidates(source) {
     const name = declaration[1];
     if (unique.has(name)) continue;
     const prefix = source.slice(Math.max(0, declaration.index - 40), declaration.index);
+    const namedFunctionExpression = declaration[0].startsWith('function') && /(?:=|return)\s*(?:async\s*)?$/.test(prefix);
     unique.set(name, {
       name,
       line: lineNumber(source, declaration.index),
       references: (source.match(new RegExp(`\\b${name.replace(/[$]/g, '\\$&')}\\b`, 'g')) || []).length,
-      exported: /export\s+(?:default\s+)?$/.test(prefix),
-      defaultExport: /export\s+default\s+$/.test(prefix),
+      exported: /export\s+(?:default\s+)?(?:async\s+)?$/.test(prefix),
+      defaultExport: /export\s+default\s+(?:async\s+)?$/.test(prefix),
+      namedFunctionExpression,
     });
   }
   return [...unique.values()];
@@ -218,11 +263,28 @@ function functionCandidates(source) {
 
 function classifyMarker(file, marker) {
   const testOnly = /^(?:__tests__|e2e)\//.test(file) || /(?:^|\/)test(?:s)?\//i.test(file);
+  const frozenHeader = ['src/components/ui/UniversalHeader.js', 'src/components/ui/HamburgerMenu.jsx'].includes(file);
   const commentOnly = /^(?:\/\/|\/\*|\*|\{?\/\*)/.test(marker.excerpt);
   const kind = marker.kind;
   if (testOnly) return { disposition: 'test-fixture', review: 'accepted', rationale: 'Marker is confined to automated test code.' };
+  if (frozenHeader) return { disposition: 'frozen-global-header-dependency', review: 'accepted', rationale: 'Global header behavior is explicitly frozen and outside Training redesign scope.' };
+  if (file === 'src/components/store/DiamondWalletModal.jsx' && kind === 'PLACEHOLDER') {
+    return { disposition: 'frozen-global-header-dependency', review: 'accepted', rationale: 'Wallet balance authority belongs to the frozen global header dependency, not Training.' };
+  }
+  if (file === 'src/lib/supabase.js' && kind === 'STUB') {
+    return { disposition: 'build-alias-sentinel', review: 'accepted', rationale: 'Fail-loud compatibility sentinel documents and enforces the webpack alias to the real TypeScript Supabase client.' };
+  }
   if (kind === 'PLACEHOLDER' && /\bplaceholder\s*=/.test(marker.excerpt)) {
     return { disposition: 'ui-input-copy', review: 'accepted', rationale: 'JSX placeholder attribute, not placeholder implementation.' };
+  }
+  if (kind === 'PLACEHOLDER' && /(?:styles?\.placeholder|placeholder\s*:|Skeleton|loading state)/i.test(marker.excerpt)) {
+    return { disposition: 'visible-ui-state', review: 'accepted', rationale: 'Visible empty/loading UI presentation, not fabricated product data.' };
+  }
+  if (kind === 'PLACEHOLDER' && /(?:was an explicit sample-data placeholder|plausible-looking placeholder values)/i.test(marker.excerpt)) {
+    return { disposition: 'historical-defect-comment', review: 'accepted', rationale: 'Comment documents removed fabricated data and preserves the regression rationale.' };
+  }
+  if (kind === 'PLACEHOLDER' && /(?:placeholder suits|dealing placeholder)/i.test(marker.excerpt)) {
+    return { disposition: 'poker-normalization-or-ui-state', review: 'accepted', rationale: 'Suit normalization or visible deal-state placeholder; it does not fabricate solver output.' };
   }
   if (commentOnly && /\b(?:former|removed|no |never |without |instead of|used to|dead-link fix)\b/i.test(marker.excerpt)) {
     return { disposition: 'historical-or-prohibition-comment', review: 'accepted', rationale: 'Comment documents removed behavior or explicitly prohibits a fallback/stub.' };
@@ -231,7 +293,22 @@ function classifyMarker(file, marker) {
     return { disposition: 'domain-simulation', review: 'accepted', rationale: 'Poker/training simulation is an intentional product capability; solver provenance is audited separately.' };
   }
   if (kind === 'FALLBACK') {
-    return { disposition: 'resilience-fallback', review: 'phase-review', rationale: 'Runtime resilience path; later phases must prove it is visible, deterministic, and not a silent data-quality downgrade.' };
+    if (commentOnly && /(?:\bwas\b|\bold\b|\bformer\b|\bremoved\b|\bunreachable\b|could never|not as a fallback|no .*fallback|prevents? .*fallback|replaces? .*fallback)/i.test(marker.excerpt)) {
+      return { disposition: 'historical-or-prohibition-comment', review: 'accepted', rationale: 'Comment records a removed fallback or a guard that prevents fallback behavior.' };
+    }
+    if (/(?:\bfallback\s*=|\(.*fallback|return .*fallback|\bfallback\s*\|\||\? .*: fallback)/i.test(marker.excerpt)) {
+      return { disposition: 'input-normalization-default', review: 'accepted', rationale: 'Explicit function default used to normalize missing display/input values.' };
+    }
+    if (/auth|supabase|session|localStorage|cached header|publishable|legacy sb-|JWT/i.test(`${file} ${marker.excerpt}`)) {
+      return { disposition: 'identity-or-persistence-resilience', review: 'documented-follow-up', followUpPhase: 8, rationale: 'Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification.' };
+    }
+    if (/solver|question|range|strategy|frequency|PIO|engine|grading|personality|psychology|hand|cards?|ICM|postflop|preflop/i.test(`${file} ${marker.excerpt}`)) {
+      return { disposition: 'training-data-provenance-fallback', review: 'documented-follow-up', followUpPhase: 4, rationale: 'Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence.' };
+    }
+    if (/icon|SVG|clipboard|download|older browsers|reload|error state|renderable|empty classification|image/i.test(marker.excerpt)) {
+      return { disposition: 'visible-ui-resilience', review: 'documented-follow-up', followUpPhase: 14, rationale: 'Visible UI/browser resilience path is assigned to responsive, accessibility, and cross-browser certification.' };
+    }
+    return { disposition: 'runtime-resilience-fallback', review: 'documented-follow-up', followUpPhase: 15, rationale: 'Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing.' };
   }
   if (commentOnly && ['TODO', 'FIXME', 'HACK', 'STUB', 'MOCK', 'DUMMY', 'PLACEHOLDER'].includes(kind)) {
     return { disposition: 'implementation-marker', review: 'phase-review', rationale: 'Explicit implementation marker in reachable Training dependency.' };
@@ -324,10 +401,6 @@ function closureFor(entry, edges) {
   return [...visited].sort();
 }
 
-function hasReference(source, name) {
-  return new RegExp(`\\b${name.replace(/[$]/g, '\\$&')}\\b`).test(source);
-}
-
 function dynamicPattern(route) {
   return new RegExp(`^${route.split('/').map((part) => (
     /^\[[^\]]+\]$/.test(part) ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -349,7 +422,14 @@ function main() {
   const graph = dependencyGraph([...pageFiles, ...apiFiles]);
   const sourceFiles = graph.files.map((file) => join(ROOT, file));
   const sourceRows = sourceFiles.map(sourceInventory);
-  const sourceText = new Map(sourceFiles.map((file) => [rel(file), read(file)]));
+  const repositorySourceFiles = [...new Set([
+    ...walk(join(ROOT, 'pages')),
+    ...walk(join(ROOT, 'src')),
+    ...walk(join(ROOT, 'scripts')),
+    ...walk(join(ROOT, '__tests__')),
+    ...walk(join(ROOT, 'e2e')),
+  ])].sort();
+  const repositoryImportBindings = repositorySourceFiles.flatMap((file) => importBindingsFor(file, read(file)));
   const tests = [...walk(join(ROOT, '__tests__')), ...walk(join(ROOT, 'e2e'))]
     .filter((file) => /training/i.test(rel(file)) || /\/hub\/training|src\/components\/training|TRAINING_LIBRARY/.test(read(file)))
     .sort()
@@ -394,9 +474,9 @@ function main() {
   const possibleUnwiredFunctions = sourceRows.flatMap((row) => row.functions
     .filter((entry) => entry.references === 1)
     .map((entry) => {
-      const externalReferenceFiles = sourceRows
-        .filter((candidate) => candidate.file !== row.file && hasReference(sourceText.get(candidate.file) || '', entry.name))
-        .map((candidate) => candidate.file);
+      const externalReferenceFiles = repositoryImportBindings
+        .filter((binding) => binding.to === row.file && (binding.imported === (entry.defaultExport ? 'default' : entry.name) || binding.imported === '*'))
+        .map((binding) => binding.from);
       let disposition = 'unwired-local-review';
       let review = 'phase-review';
       let rationale = 'Local function has no second lexical reference in its declaring file.';
@@ -412,16 +492,22 @@ function main() {
         disposition = 'api-entrypoint';
         review = 'accepted';
         rationale = 'Next.js API default export is invoked by the router.';
+      } else if (entry.namedFunctionExpression) {
+        disposition = 'assigned-or-returned-function-expression';
+        review = 'accepted';
+        rationale = 'Named function expression is invoked through its assigned property, variable, or returned closure.';
+      } else if (entry.defaultExport && externalReferenceFiles.length) {
+        disposition = 'imported-default-entrypoint';
+        review = 'accepted';
+        rationale = 'Default export is imported by another repository source file.';
+      } else if (entry.exported && externalReferenceFiles.length) {
+        disposition = 'imported-entrypoint';
+        review = 'accepted';
+        rationale = 'Named export is imported by another repository source file.';
       } else if (entry.exported) {
-        disposition = 'exported-entrypoint';
+        disposition = 'unused-export-review';
         review = externalReferenceFiles.length ? 'accepted' : 'phase-review';
-        rationale = externalReferenceFiles.length
-          ? 'Exported function is referenced by another reachable dependency.'
-          : 'Exported function is public but no lexical reference exists inside the reachable Training graph.';
-      } else if (externalReferenceFiles.length) {
-        disposition = 'cross-file-name-reference';
-        review = 'phase-review';
-        rationale = 'Name appears in another dependency; import/export binding needs semantic confirmation.';
+        rationale = 'Named export has no static importer anywhere in pages, src, scripts, or the automated-test trees.';
       }
       return { file: row.file, ...entry, disposition, review, rationale, externalReferenceFiles };
     }));
@@ -516,6 +602,7 @@ function main() {
       routeStateCoverageGaps: routeCoverage.reduce((sum, route) => sum + route.uncoveredStates.length, 0),
       ctaWiringGaps: ctaLedger.filter((cta) => cta.wiring === 'unwired-static-control').length,
       markerPhaseReview: markers.filter((marker) => marker.review === 'phase-review').length,
+      markerDocumentedFollowUp: markers.filter((marker) => marker.review === 'documented-follow-up').length,
       functionPhaseReview: possibleUnwiredFunctions.filter((entry) => entry.review === 'phase-review').length,
     },
     games,

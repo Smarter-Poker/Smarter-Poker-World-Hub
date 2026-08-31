@@ -43,13 +43,6 @@ export function gridHandNotation(row, col) {
 /**
  * Every hand notation on the grid, in row-major order.
  */
-export function allGridHands() {
-    const hands = [];
-    for (let r = 0; r < 13; r++) {
-        for (let c = 0; c < 13; c++) hands.push(gridHandNotation(r, c));
-    }
-    return hands;
-}
 
 /**
  * Solver matrices are inconsistent about scale: the deterministic engine

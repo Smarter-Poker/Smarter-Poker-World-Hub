@@ -55,7 +55,6 @@ function TrophySvg({ size })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 
 function StarSvg({ size })     { return <_Svg size={size}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></_Svg>; }
 function ChartSvg({ size })    { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
 function UserSvg({ size })     { return <_Svg size={size}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></_Svg>; }
-function AntennaSvg({ size })  { return <_Svg size={size}><path d="M5 10a7 7 0 0 1 14 0"/><path d="M9 13a3 3 0 0 1 6 0"/><line x1="12" y1="3" x2="12" y2="21"/></_Svg>; }
 function BackArrowSvg({ size }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function EventIcon({ kind, size=10 }) {
   switch (kind) {

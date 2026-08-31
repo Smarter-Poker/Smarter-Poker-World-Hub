@@ -91,10 +91,6 @@ export function handToCards(hand) {
 }
 
 /** Get display string for a card */
-export function cardDisplay(card) {
-    const parsed = parseCard(card);
-    return parsed ? parsed.display : card;
-}
 
 // ●● Deck Engine Class ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 

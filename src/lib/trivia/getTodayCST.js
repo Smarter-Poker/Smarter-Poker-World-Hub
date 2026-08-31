@@ -93,11 +93,5 @@ export function getTodayStartCST(dateStr) {
  * @param {string} [dateStr]
  * @returns {string} offset-qualified ISO timestamp
  */
-export function getDayStartCSTDaysAgo(daysAgo, dateStr) {
-    const base = new Date(`${dateStr || getTodayCST()}T12:00:00Z`);
-    base.setUTCDate(base.getUTCDate() - (Number.isFinite(daysAgo) ? daysAgo : 0));
-    const day = getTodayCST(base);
-    return `${day}T00:00:00${getCSTOffsetForDate(day)}`;
-}
 
 export default getTodayCST;

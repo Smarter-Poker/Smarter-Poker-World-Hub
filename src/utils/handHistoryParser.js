@@ -6,24 +6,6 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const POSITION_NAMES = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-
-// Map seat names to standard positions based on player count
-function mapSeatToPosition(seatName, totalPlayers) {
-    const name = seatName?.toUpperCase()?.trim();
-    if (POSITION_NAMES.includes(name)) return name;
-
-    // Common aliases
-    const aliases = {
-        'SMALL BLIND': 'SB', 'BIG BLIND': 'BB', 'BUTTON': 'BTN',
-        'DEALER': 'BTN', 'CUTOFF': 'CO', 'HIJACK': 'HJ',
-        'UNDER THE GUN': 'UTG', 'LOJACK': 'HJ',
-    };
-    if (aliases[name]) return aliases[name];
-
-    return name || 'UNK';
-}
-
 // Parse a PokerStars hand history
 function parsePokerStarsHand(text) {
     const hand = {

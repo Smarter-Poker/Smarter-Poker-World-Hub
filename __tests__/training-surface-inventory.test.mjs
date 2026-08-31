@@ -25,10 +25,15 @@ test('Phase 2 Training surface inventory is exhaustive and current', () => {
   assert.equal(manifest.dialogLedger.length, manifest.counts.dialogs);
   assert.equal(manifest.gaps.ctas.length, 0);
   assert.equal(manifest.counts.ctaWiringGaps, 0);
+  assert.equal(manifest.counts.functionPhaseReview, 0);
+  assert.equal(manifest.counts.markerPhaseReview, 0);
   assert.equal(manifest.classifications.markers.length, manifest.counts.markerCandidates);
   assert.equal(manifest.classifications.possibleUnwiredFunctions.length, manifest.counts.possibleUnwiredFunctions);
   assert.ok(manifest.classifications.markers.every((entry) => entry.disposition && entry.review && entry.rationale));
+  assert.ok(manifest.classifications.markers.every((entry) => ['accepted', 'documented-follow-up'].includes(entry.review)));
+  assert.ok(manifest.classifications.markers.filter((entry) => entry.review === 'documented-follow-up').every((entry) => Number.isInteger(entry.followUpPhase)));
   assert.ok(manifest.classifications.possibleUnwiredFunctions.every((entry) => entry.disposition && entry.review && entry.rationale));
+  assert.ok(manifest.classifications.possibleUnwiredFunctions.every((entry) => entry.review === 'accepted'));
   assert.ok(manifest.routes.every((route) => route.sample?.path));
   assert.deepEqual(manifest.gaps.missingLinks, []);
   assert.deepEqual(manifest.gaps.missingApiDefinitions, []);

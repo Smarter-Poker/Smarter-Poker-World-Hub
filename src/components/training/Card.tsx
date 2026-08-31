@@ -132,10 +132,6 @@ export function cardIntToProps(cardInt: number): { rank: string; suit: string } 
     };
 }
 
-export function cardIntToImagePath(cardInt: number, optimized: boolean = false): string {
-    const { rank, suit } = cardIntToProps(cardInt);
-    return getCardImagePath(rank, suit, optimized);
-}
 
 // ============================================================================
 // ANIMATIONS
@@ -304,22 +300,6 @@ export const EngineCard: React.FC<EngineCardProps> = ({ cardInt, ...props }) => 
 // PRELOAD HELPER — Call when player sits at table
 // ============================================================================
 
-export function preloadCardDeck(optimized: boolean = true): void {
-    const dir = optimized ? '/cards/optimized' : '/cards';
-    const suits = ['clubs', 'diamonds', 'hearts', 'spades'];
-    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a'];
-
-    suits.forEach(suit => {
-        ranks.forEach(rank => {
-            const img = new Image();
-            img.src = `${dir}/${suit}_${rank}.png`;
-        });
-    });
-
-    // Preload default card back
-    const back = new Image();
-    back.src = '/images/card-backs/blue.jpg';
-}
 
 // ============================================================================
 // HELPER: Parse cards from string

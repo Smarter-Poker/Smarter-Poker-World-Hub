@@ -202,11 +202,5 @@ export function getGameScenarioConfig(gameId: string): GameScenarioConfig | unde
 }
 
 /** Get all games that use a specific scenario level */
-export function getGamesByScenarioLevel(level: number): GameScenarioConfig[] {
-    return GAME_SCENARIO_MAP.filter(g => g.scenarioLevels.includes(level));
-}
 
 /** Get all games that use a specific spot type */
-export function getGamesBySpotType(spotType: string): GameScenarioConfig[] {
-    return GAME_SCENARIO_MAP.filter(g => g.spotTypes.includes(spotType));
-}

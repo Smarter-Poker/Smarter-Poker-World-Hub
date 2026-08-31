@@ -164,16 +164,6 @@ const _WK_ICON_PROPS = {
   strokeLinejoin: 'round',
   'aria-hidden': true,
 };
-function WeaknessChartIcon({ size=32 }) {
-  return (
-    <svg {..._WK_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="3" y1="21" x2="21" y2="21"/>
-      <rect x="5" y="13" width="3" height="7"/>
-      <rect x="10" y="8" width="3" height="12"/>
-      <rect x="15" y="4" width="3" height="16"/>
-    </svg>
-  );
-}
 function WeaknessBackArrowIcon({ size=18 }) {
   return (
     <svg {..._WK_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">

@@ -1133,7 +1133,6 @@ export default function useGTOTrainer(
         multiStreetHandRef.current &&
         !multiStreetHandRef.current.isComplete &&
         (multiStreetHandRef.current.streetActions?.length || 0) > 0;
-      let currentStreakCount = (prevStreak) => prevStreak; // fallback
       if (isCorrect) {
         if (!isStreetContinuation) {
           setCorrectCount((prev) => prev + 1);

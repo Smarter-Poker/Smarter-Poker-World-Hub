@@ -74,8 +74,6 @@ function SpadeIcon({ size=20 })    { return <_Svg size={size}><path d="M12 2c-2 
 function TrophyIcon({ size=20 })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
 function BrainIcon({ size=40 })    { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
 function CelebrateIcon({ size=32 }){ return <_Svg size={size}><polyline points="3 21 5 13 16 2 22 8 11 19 3 21"/><line x1="7" y1="17" x2="15" y2="9"/></_Svg>; }
-function ChartIcon({ size=40 })    { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
-function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function SpotIcon({ kind, size=20 }) {
   switch (kind) {
     case 'shield':    return <ShieldIcon size={size}/>;

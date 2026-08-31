@@ -25,7 +25,7 @@ The first deterministic inventory pass is checked into
 | Reachable dependency files | 588 |
 | Reachable component files | 337 |
 | Reachable hooks | 15 |
-| Static CTA instances | 767 |
+| Static CTA instances | 765 |
 | Dialog/modal instances | 12 |
 | Files with persistence writes | 77 |
 | Files with realtime transports | 8 |
@@ -44,7 +44,7 @@ The schema 2 inventory adds the first complete machine-readable coverage ledger:
   for every dynamic route;
 - 752 route-state cells covering loading, empty, error, retry, success,
   stale-client, offline, and auth-expiry behavior;
-- 767 AST-parsed CTAs mapped to their handler, destination, form submission, or
+- 765 AST-parsed CTAs mapped to their handler, destination, form submission, or
   intentionally disabled status state;
 - zero static CTA wiring gaps after distinguishing the disabled Offline Pack
   status control from an interactive action;
@@ -71,9 +71,36 @@ These queues include comments, exported entry points, legitimate explicit
 fallbacks, and generated helpers. Every item now has a machine-readable
 disposition, review status, rationale, and file/line evidence. The classification
 pass accepted route/API entry points, test helpers, intentional input copy,
-historical prohibition comments, and product-domain simulations. It leaves 200
-runtime/fallback markers and 130 possible function-wiring candidates explicitly
-flagged for phase review instead of silently treating them as valid.
+historical prohibition comments, and product-domain simulations. The remaining
+fallbacks are assigned to the exact later phase that must prove their behavior,
+instead of being silently treated as valid.
+
+The current regenerated inventory contains 315 marker candidates and 342
+one-reference function candidates. Both unclassified review queues are now zero.
+Of the marker candidates, 210 are accepted as intentional UI copy, input
+normalization, domain simulation, frozen-header behavior, historical regression
+documentation, or fail-loud build sentinels. The other 105 remain visible as
+documented later-phase obligations: 41 Training-data/provenance paths in Phase 4,
+28 identity/persistence paths in Phase 8, 3 browser/UI resilience paths in Phase
+14, and 33 runtime resilience/observability paths in Phase 15.
+
+## Dead And Unwired Function Cleanup
+
+The function pass now resolves import bindings across the repository, including
+named, default, namespace, CommonJS, and dynamic imports. It also distinguishes
+route/API entry points and assigned or returned named function expressions from
+genuinely unreferenced declarations.
+
+That deeper pass removed 65 dead local functions or exported functions with no
+repository importer. The cleanup includes obsolete icon helpers, superseded
+fabricated range visualizers, stale card helpers, unused configuration/catalog
+selectors, inactive engine helpers, and dormant analytics widgets. The former
+ICM percentage-derived range panel was not wired back in; its live tab continues
+to route to the authored, graded Club Arena drill through `VerifiedToolGateway`.
+
+After regeneration, all 342 remaining one-reference function candidates have an
+accepted, machine-checkable disposition. The function phase-review queue is now
+zero. TypeScript and the focused inventory contract pass after the removals.
 
 ## CI Baseline Observation
 
@@ -88,9 +115,7 @@ Phase 2 will separately prove the Training slice instead of hiding that signal.
 
 ## Remaining Phase 2 Work
 
-1. Review and resolve the 200 fallback/runtime marker dispositions and 130
-   possible function-wiring dispositions still labelled `phase-review`.
-2. Close or evidence the 236 route-state coverage gaps.
-3. Run the complete fixed and dynamic route inventory on desktop and mobile.
-4. Publish through the protected pipeline and verify the production manifest
+1. Close or evidence the 236 route-state coverage gaps.
+2. Run the complete fixed and dynamic route inventory on desktop and mobile.
+3. Publish through the protected pipeline and verify the production manifest
    baseline before marking Phase 2 complete.
