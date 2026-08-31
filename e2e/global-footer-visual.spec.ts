@@ -93,8 +93,9 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
     return [{ sourceRoute, reachableRoute, world }];
   });
 
+// Mirrors Club Arena's shipped `clamp(44px, 13.72vw, 132px)` navigation token.
 const expectedClubFooterHeight = (viewportWidth: number) =>
-  Math.min(263, Math.max(44, viewportWidth * 0.1372));
+  Math.min(132, Math.max(44, viewportWidth * 0.1372));
 
 const visit = async (page: Page, route: string) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
