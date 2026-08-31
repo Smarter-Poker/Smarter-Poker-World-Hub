@@ -19,6 +19,8 @@ import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
+import { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
+export { gradeAction, parseActionLabel, sizeBucketFromPercent } from '../../lib/sandbox/actionGrading';
 // react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
 // `../../stores/toastStore` import rendered nowhere on this page.
 import toast from 'react-hot-toast';
@@ -159,64 +161,6 @@ const BET_ACTIONS = [
 // correct against "Bet Pot". Buckets: small <=40%, medium 41-75%, large 76-99%,
 // pot >=100%.
 // ═══════════════════════════════════════════════════════════════════════════
-const WORD_BUCKETS = { small: 'small', third: 'small', half: 'medium', medium: 'medium', large: 'large', big: 'large', pot: 'pot', overbet: 'pot' };
-
-export function sizeBucketFromPercent(pct) {
-    if (pct == null || !Number.isFinite(pct)) return null;
-    if (pct >= 100) return 'pot';
-    if (pct > 75) return 'large';
-    if (pct > 40) return 'medium';
-    return 'small';
-}
-
-/**
- * Parse an action label ('Bet 66%', 'bet_150', 'Bet Small', 'All-In', 'Check')
- * into { type, size } where size is a bucket string or null when unknown.
- */
-export function parseActionLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
-    if (!raw) return { type: null, size: null };
-
-    let type = null;
-    if (raw.includes('all-in') || raw.includes('all in') || raw.includes('allin') || raw.includes('shove')) type = 'allin';
-    else if (raw.includes('fold')) type = 'fold';
-    else if (raw.includes('check')) type = 'check';
-    else if (raw.includes('raise') || raw.includes('3bet') || raw.includes('3-bet')) type = 'raise';
-    else if (raw.includes('call')) type = 'call';
-    else if (raw.includes('bet')) type = 'bet';
-    else type = raw.split(/[\s_]/)[0] || null;
-
-    let size = null;
-    if (type === 'bet' || type === 'raise') {
-        // Percent form ('Bet 66%') or solver id form ('bet_150'). Deliberately
-        // NOT a bare \d+ so '3-Bet' is not read as a 3% sizing.
-        const numMatch = raw.match(/(\d+(?:\.\d+)?)\s*%/) || raw.match(/^(?:bet|raise)[_\s-](\d+(?:\.\d+)?)$/);
-        if (numMatch) {
-            size = sizeBucketFromPercent(parseFloat(numMatch[1]));
-        } else {
-            for (const word of Object.keys(WORD_BUCKETS)) {
-                if (raw.includes(word)) { size = WORD_BUCKETS[word]; break; }
-            }
-        }
-    }
-    return { type, size };
-}
-
-/**
- * Grade a user's action label against the GTO label.
- * Returns true only when the action type matches AND — when both labels carry a
- * usable sizing — the size buckets match too.
- */
-export function gradeAction(userLabel, gtoLabel) {
-    const a = parseActionLabel(userLabel);
-    const b = parseActionLabel(gtoLabel);
-    if (!a.type || !b.type) return false;
-    if (a.type !== b.type) return false;
-    // Only enforce sizing discipline when BOTH sides expose a size
-    if (a.size && b.size) return a.size === b.size;
-    return true;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // LEGAL-ACTION ENGINE + POT MATH
 // A tiny two-player state machine over actionHistory. It knows whose turn it
@@ -751,7 +695,7 @@ export function ActionHistoryBuilder({
                 </div>
             ) : (
                 <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
-                    No actions yet — tap an action below to build the betting line.
+                    No Actions Yet — Tap An Action Below To Build The Betting Line.
                 </p>
             )}
 
@@ -1445,7 +1389,7 @@ export function RunoutChart({ runoutData }) {
     );
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
-            <div style={sectionHeader}><p style={sectionTitle}>Runout simulator</p></div>
+            <div style={sectionHeader}><p style={sectionTitle}>Runout Simulator</p></div>
             <div style={{ display: 'flex', gap: S.md, marginBottom: S.md }}>
                 {stat(runoutData.improveRate, 'Improve', T.success)}
                 {stat(runoutData.worsenRate, 'Worsen', T.danger)}

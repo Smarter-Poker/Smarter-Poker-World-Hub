@@ -18,7 +18,8 @@ import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/l
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
 import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 
-import { applyRateLimit } from '../../../../src/lib/apiRateLimit';
+import { applyRateLimit, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 
 export const config = { maxDuration: 60 };
 
@@ -892,11 +893,16 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LEAK_AUDIT_LIMIT)) return;
 
     // Require JWT auth for write operations
+    let authenticatedUser = null;
     if (req.method !== 'GET') {
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
       const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
       if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      authenticatedUser = _authUser;
+      if (!await applyDurableRateLimit(getSupabase(), res, {
+        key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
+      })) return;
       // Rebuild the body so an empty/non-JSON body still carries the JWT userId
       req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
     }
@@ -908,6 +914,16 @@ export default async function handler(req, res) {
 
     if (!userId) {
       return res.status(400).json({ success: false, error: 'userId required' });
+    }
+
+    const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
+    if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess.contextState,
+        error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
+      });
     }
 
     let auditCursor = null;
@@ -976,7 +992,24 @@ export default async function handler(req, res) {
         clubArena: clubArenaSync.available === true,
       };
 
+      // Record the completed signed-snapshot hand total even when the account
+      // has not yet accumulated enough evidence to produce a leak. This total
+      // spans every continuation page, not merely the final batch.
+      const auditedHandTotal = Math.max(liveHands, clubArenaSync.cumulativeHandsFound || clubArenaSync.handsFound || 0);
+      const syncAuditedHandTotal = async () => {
+        const { data: current, error: readError } = await getSupabase()
+          .from('user_assistant_stats').select('total_hands_analyzed').eq('user_id', userId).maybeSingle();
+        if (readError) return false;
+        const { error: writeError } = await getSupabase().from('user_assistant_stats').upsert({
+          user_id: userId,
+          total_hands_analyzed: Math.max(Number(current?.total_hands_analyzed) || 0, auditedHandTotal),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+        return !writeError;
+      };
+
       if (liveHands < 100 && solverDecisions < 8) {
+        const statsPersisted = await syncAuditedHandTotal();
         return res.status(200).json({
           success: true,
           message: 'Need more evidence to detect leaks (100 live hands or 8 server-verified solver decisions)',
@@ -987,6 +1020,8 @@ export default async function handler(req, res) {
           evidenceCoverage,
           leaksDetected: 0,
           leaks: [],
+          persisted: statsPersisted,
+          partial: !statsPersisted,
         });
       }
 
@@ -1270,7 +1305,7 @@ export default async function handler(req, res) {
             .from('user_assistant_stats')
             .upsert({
               user_id: userId,
-              total_hands_analyzed: Math.max(currentHands, liveHands, clubArenaSync.handsFound || 0),
+              total_hands_analyzed: Math.max(currentHands, auditedHandTotal),
               active_leaks_count: activeLeaks,
               resolved_leaks_count: resolvedLeaksCount,
               updated_at: new Date().toISOString()

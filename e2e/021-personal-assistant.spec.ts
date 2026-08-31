@@ -37,6 +37,20 @@ async function expectAccessibleMain(page: Page) {
 }
 
 test.describe('Personal Assistant primary and secondary surfaces', () => {
+  test.beforeEach(async ({ page }) => {
+    // This suite validates PA controls, not the unrelated one-time push opt-in.
+    // Spend that prompt for the authenticated fixture before React schedules
+    // its 20-second modal, otherwise longer interaction cases are randomly
+    // covered halfway through a click.
+    await page.addInitScript(() => {
+      try {
+        const auth = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
+        const userId = auth?.user?.id;
+        if (userId) window.localStorage.setItem(`sp_firstrun_notif_v2_${userId}`, String(Date.now()));
+      } catch { /* a malformed fixture should fail auth setup, not this guard */ }
+    });
+  });
+
   test('strategy hub exposes both systems without layout regression', async ({ page }) => {
     const response = await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
@@ -187,6 +201,14 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.locator('#run-analysis')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open setup' })).toBeVisible();
     await expect(page.locator('#sandbox-table')).toBeVisible();
+    await page.getByRole('button', { name: 'Deal a random flop' }).click();
+    const removers = page.getByRole('button', { name: /^Remove / });
+    await expect(removers).toHaveCount(3);
+    for (const button of await removers.all()) {
+      const box = await button.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
     await expectHealthyLayout(page);
   });
 
@@ -201,7 +223,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect(page.getByRole('heading', { name: 'Leak Finder' })).toBeVisible();
     await page.getByRole('button', { name: 'Insights' }).click();
     await expect(page.locator('#leak-insights')).toBeVisible();
-    await expect(page.getByText('Worst coach-mode spots')).toBeVisible();
+    await expect(page.getByText('Worst Coach-Mode Spots')).toBeVisible();
     await expect(page.getByText('Weekly Leaderboard')).toBeVisible();
     await expect(page.getByText('Macro Leak Detector')).toBeVisible();
     await expect(page.getByText('Position Leak Map')).toBeVisible();

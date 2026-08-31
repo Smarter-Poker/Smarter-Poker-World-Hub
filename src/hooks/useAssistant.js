@@ -9,6 +9,7 @@ import { getAuthUser, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
 import { runLeakAuditBatches } from '../lib/personal-assistant/leakAuditRunner';
+import { gradeAction } from '../lib/sandbox/actionGrading';
 
 // Use the platform's lock-free token helper. It reads the canonical stored
 // session, coalesces concurrent refreshes, and refreshes expiring JWTs through
@@ -57,6 +58,7 @@ export function useAssistantStats(authState) {
     try {
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return;
+      if (authUserId && !token) throw new Error('Your account session could not be verified. Please retry.');
 
       const response = await fetch('/api/assistant/stats', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
@@ -142,6 +144,7 @@ export function useLeaks(statusFilter = null, authState) {
       if (!authReady) return;
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return;
+      if (authUserId && !token) throw new Error('Your account session could not be verified. Please retry.');
 
       let url = '/api/assistant/leaks';
       if (statusFilter) {
@@ -359,9 +362,7 @@ function coachPickWasCorrect(params, data) {
   const pick = params?.socratic?.userPick;
   const optimal = data?.optimalAction?.label;
   if (!pick || !optimal) return false;
-  const a = actionVerb(pick);
-  const b = actionVerb(optimal);
-  return !!a && a === b;
+  return gradeAction(pick, optimal);
 }
 
 export function useSandboxAnalysis() {
@@ -384,6 +385,11 @@ export function useSandboxAnalysis() {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const token = await getAuthToken();
       if (requestId !== requestIdRef.current) return superseded();
+      if (!token) {
+        const message = 'Your account session could not be verified. Please sign in again.';
+        setError(message);
+        return { success: false, error: message };
+      }
 
       const doFetch = async () => {
         const response = await fetch('/api/assistant/sandbox/analyze', {
@@ -1107,49 +1113,36 @@ export function useLeakHandExamples(leakId) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const activeAbortRef = useRef(null);
 
   const fetchExamples = useCallback(async () => {
     if (!leakId) return;
+    activeAbortRef.current?.abort();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeAbortRef.current = controller;
     const requestId = ++requestIdRef.current;
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const user = getAuthUser();
-      if (!user) return;
+      const token = await getAuthToken();
+      if (requestId !== requestIdRef.current) return;
+      if (!token) throw new Error('Your account session could not be verified. Please retry.');
 
-      const { data, error: fetchError } = await supabase
-        .from('leak_hand_examples')
-        .select(`
-          id,
-          situation_snapshot:hand_data,
-          ev_loss_bb:ev_loss,
-          created_at,
-          hand_history_id
-        `)
-        .eq('leak_id', leakId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (fetchError) {
-        if (requestId !== requestIdRef.current) return;
-        console.warn('Error fetching leak examples:', fetchError);
-        setError(fetchError.message);
-        return;
+      const response = await fetch(`/api/assistant/leaks/examples?leakId=${encodeURIComponent(leakId)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        ...(controller ? { signal: controller.signal } : {}),
+      });
+      const data = await response.json().catch(() => null);
+      if (requestId !== requestIdRef.current) return;
+      if (!response.ok || data?.success !== true) {
+        throw new Error(data?.error || `Request failed (${response.status})`);
       }
 
-      const formatted = (data || []).map(ex => ({
-        id: ex.id,
-        snapshot: ex.situation_snapshot,
-        evLoss: ex.ev_loss_bb,
-        date: ex.created_at,
-        handId: ex.hand_history_id,
-      }));
-
-      if (requestId === requestIdRef.current) setExamples(formatted);
+      setExamples(Array.isArray(data.examples) ? data.examples : []);
     } catch (err) {
+      if (err?.name === 'AbortError') return;
       if (requestId !== requestIdRef.current) return;
       console.warn('Fetch examples error:', err);
       setError(err.message);
@@ -1162,7 +1155,11 @@ export function useLeakHandExamples(leakId) {
     if (leakId) {
       fetchExamples();
     }
-    return () => { requestIdRef.current += 1; };
+    return () => {
+      requestIdRef.current += 1;
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
+    };
   }, [leakId, fetchExamples]);
 
   return { examples, isLoading, error, refetch: fetchExamples };

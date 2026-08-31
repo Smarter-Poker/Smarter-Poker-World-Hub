@@ -412,7 +412,7 @@ function CardSlot({ card, onTap, onRemove, label, w = 52, h = 72 }) {
             type="button" className="pa-btn" onClick={onRemove}
             aria-label={`Remove ${card}`}
             style={{
-              position: 'absolute', top: -8, right: -8, width: 24, height: 24,
+              position: 'absolute', top: -18, right: -18, width: 44, height: 44,
               borderRadius: '50%', background: T.danger, border: '2px solid #020609',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', padding: 0, touchAction: 'manipulation',
@@ -629,7 +629,7 @@ function SetupSheet({
   return (
     <BottomSheet
       isOpen={isOpen} onClose={onClose} title="Setup"
-      subtitle="Table, hero and opponents"
+      subtitle="Table, Hero And Opponents"
       labelledBy="pa-setup-title"
       footer={(
         <button type="button" className="pa-btn" onClick={onClose} style={btn('primary', { block: true })}>
@@ -701,8 +701,8 @@ function SetupSheet({
         {/* ── Tournament ICM ── */}
         {gameType === 'tournament' && (
           <section>
-            <h4 style={{ ...sectionTitle, marginBottom: S.md }}>ICM pressure</h4>
-            <label style={FIELD_LABEL} htmlFor="setup-bubble">Bubble factor</label>
+            <h4 style={{ ...sectionTitle, marginBottom: S.md }}>ICM Pressure</h4>
+            <label style={FIELD_LABEL} htmlFor="setup-bubble">Bubble Factor</label>
             <input
               id="setup-bubble" type="range" min="1" max="3" step="0.1" value={bubbleFactor}
               onChange={e => setBubbleFactor(parseFloat(e.target.value))}
@@ -813,7 +813,7 @@ function SetupSheet({
 
         {/* ── Equity model ── */}
         <section>
-          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Equity model</h4>
+          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Equity Model</h4>
           <div style={{ display: 'flex', gap: S.sm }}>
             {[
               { id: true, label: "vs villain's range" },
@@ -834,7 +834,7 @@ function SetupSheet({
 
         {/* ── Table ── */}
         <section>
-          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Felt colour</h4>
+          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Felt Colour</h4>
           <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
             {FELT_COLORS.map(f => (
               <button
@@ -864,7 +864,7 @@ function SetupSheet({
 
         {/* ── Input helpers ── */}
         <section>
-          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Load a scenario</h4>
+          <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Load A Scenario</h4>
           <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
             <button type="button" className="pa-btn" onClick={onImportHH} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
               <Upload size={18} strokeWidth={2} aria-hidden="true" />Import hand
@@ -922,7 +922,7 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboar
   const refetch = tab === 'sessions' ? refetchSessions : refetchBookmarks;
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="History" subtitle="Sessions and saved spots" labelledBy="pa-history-title">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="History" subtitle="Sessions And Saved Spots" labelledBy="pa-history-title">
       <div style={{ display: 'flex', gap: S.sm, marginBottom: S.lg }} role="tablist" aria-label="History type">
         {[['sessions', 'Sessions'], ['bookmarks', 'Bookmarks']].map(([id, label]) => (
           <button
@@ -980,7 +980,7 @@ function SessionsSheet({ isOpen, onClose, onLoad, leaderboardEntries, leaderboar
           type="button" className="pa-btn" onClick={() => { onLeakStats(); onClose(); }}
           style={{ ...btn('secondary', { block: true }), color: T.purple, marginTop: S.md }}
         >
-          <Trophy size={18} strokeWidth={2} aria-hidden="true" />Study analytics
+          <Trophy size={18} strokeWidth={2} aria-hidden="true" />Study Analytics
         </button>
       )}
 
@@ -1020,7 +1020,7 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="My templates" subtitle="Reusable scenarios" labelledBy="pa-templates-title">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="My Templates" subtitle="Reusable Scenarios" labelledBy="pa-templates-title">
       <div style={{ display: 'flex', gap: S.sm, marginBottom: S.lg, flexWrap: 'wrap' }}>
         <input
           type="text" value={name} placeholder="Template name (optional)"
@@ -1041,18 +1041,18 @@ function TemplatesSheet({ isOpen, onClose, templates, status, error, onReload, o
       {status === 'loading' ? (
         <SkeletonRows rows={3} height={56} />
       ) : status === 'error' ? (
-        <ErrorState title="Could not load templates" body={error || 'The request failed.'} onRetry={onReload} />
+        <ErrorState title="Could Not Load Templates" body={error || 'The request failed.'} onRetry={onReload} />
       ) : status === 'signed-out' ? (
         <EmptyState
           icon={<BookOpen size={24} strokeWidth={2} aria-hidden="true" />}
-          title="Sign in to save templates"
+          title="Sign In To Save Templates"
           body="Templates are tied to your account so they follow you across devices."
           action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
       ) : templates.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={24} strokeWidth={2} aria-hidden="true" />}
-          title="No templates yet"
+          title="No Templates Yet"
           body="Save the scenario you are on and it becomes a one-tap starting point."
         />
       ) : (
@@ -1093,17 +1093,17 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
   const maxCount = Math.max(1, ...Object.values(positions).map(n => Number(n) || 0));
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Study analytics" subtitle="Where your reps are going" labelledBy="pa-analytics-title">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Study Analytics" subtitle="Where Your Reps Are Going" labelledBy="pa-analytics-title">
       {status === 'loading' && <SkeletonRows rows={4} height={56} />}
 
       {status === 'error' && (
-        <ErrorState title="Could not load your stats" body={error || 'The request failed.'} onRetry={onRetry} />
+        <ErrorState title="Could Not Load Your Stats" body={error || 'The request failed.'} onRetry={onRetry} />
       )}
 
       {status === 'signed-out' && (
         <EmptyState
           icon={<Trophy size={24} strokeWidth={2} aria-hidden="true" />}
-          title="Sign in to track your study stats"
+          title="Sign In To Track Your Study Stats"
           body="Accuracy, position distribution and insights are tied to your account."
           action={<a className="pa-btn" href="/auth/login" style={{ ...btn('primary'), textDecoration: 'none' }}>Sign in</a>}
         />
@@ -1112,7 +1112,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
       {status === 'ready' && !(Number(stats?.totalAnalyses) > 0) && (
         <EmptyState
           icon={<Target size={24} strokeWidth={2} aria-hidden="true" />}
-          title="No hands tracked yet"
+          title="No Hands Tracked Yet"
           body="Run an analysis and your accuracy by position and street starts building here."
         />
       )}
@@ -1134,7 +1134,7 @@ function AnalyticsSheet({ isOpen, onClose, status, stats, error, onRetry }) {
 
           {Object.keys(positions).length > 0 && (
             <div style={{ marginBottom: S.lg }}>
-              <h4 style={{ ...sectionTitle, marginBottom: S.sm }}>Position distribution</h4>
+              <h4 style={{ ...sectionTitle, marginBottom: S.sm }}>Position Distribution</h4>
               {Object.entries(positions).sort((a, b) => b[1] - a[1]).map(([pos, count]) => (
                 <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: 6 }}>
                   <span style={{ fontSize: F.label, fontWeight: 700, color: T.text, width: 38 }}>{pos}</span>
@@ -1170,14 +1170,14 @@ function DueSheet({ isOpen, onClose, due, onReview, onDismiss }) {
   return (
     <BottomSheet
       isOpen={isOpen} onClose={onClose}
-      title="Due for review"
+      title="Due For Review"
       subtitle={`${due.length} spot${due.length === 1 ? '' : 's'} you have missed`}
       labelledBy="pa-due-title"
     >
       {due.length === 0 ? (
         <EmptyState
           icon={<GraduationCap size={24} strokeWidth={2} aria-hidden="true" />}
-          title="Nothing due right now"
+          title="Nothing Due Right Now"
           body="Miss a coach question and the spot comes back here on a spaced schedule until you get it right."
         />
       ) : due.map(item => (
@@ -2555,12 +2555,11 @@ export default function VirtualSandbox() {
     try {
       const token = getAccessToken();
       if (!token) return;
-      const hash = activeSpot?.id
-        || `${heroHand.card1}${heroHand.card2}_${heroPosition}_${board.flop.join('')}${board.turn || ''}${board.river || ''}`;
+      if (!activeSpot?.id) return;
       fetch('/api/assistant/sandbox/sandbox-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect, spotId: activeSpot?.id || null }),
+        body: JSON.stringify({ spotId: activeSpot.id, userAction: guess }),
       }).then(readPersistenceResponse).then(result => {
         if (!result.success || !result.persisted) {
           console.warn('[Sandbox] quiz result not persisted:', result.error || result.reason);
@@ -3179,7 +3178,7 @@ export default function VirtualSandbox() {
         {/* ── First-run: three one-tap starts instead of two dashed rectangles ── */}
         {!heroHand.card1 && !heroHand.card2 && communityCards.length === 0 && (
           <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, display: 'flex', flexDirection: 'column', gap: S.sm }}>
-            <h3 style={{ fontSize: F.h3, fontWeight: 700, margin: 0, color: T.text }}>Start a spot</h3>
+            <h3 style={{ fontSize: F.h3, fontWeight: 700, margin: 0, color: T.text }}>Start A Spot</h3>
             <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
               Pick a hand and a board, or let the sandbox deal you one.
             </p>
@@ -3351,7 +3350,7 @@ export default function VirtualSandbox() {
               aria-expanded={showRunouts}
               style={{ ...btn(showRunouts ? 'primary' : 'secondary', { block: true }), justifyContent: 'space-between' }}
             >
-              <span>Runout simulator</span>
+              <span>Runout Simulator</span>
               {showRunouts ? <ChevronUp size={18} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />}
             </button>
             {showRunouts && <div style={{ marginTop: S.sm }}><RunoutChart runoutData={runoutData} /></div>}
@@ -3361,7 +3360,7 @@ export default function VirtualSandbox() {
         {/* ── Analysis error ── */}
         {error && !resultsOverride && (
           <ErrorState
-            title="Analysis failed"
+            title="Analysis Failed"
             body={String(error)}
             onRetry={() => runAnalysis(true, coachUserPick)}
           />
@@ -3376,7 +3375,7 @@ export default function VirtualSandbox() {
         className="sandbox-command-bar"
         style={{
           position: 'fixed', left: 0, right: 0,
-          bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          bottom: 'calc(var(--active-world-footer-height, 56px) + env(safe-area-inset-bottom, 0px))',
           zIndex: Z.sticky,
           display: 'flex', alignItems: 'center', gap: S.sm,
           paddingTop: S.sm, paddingBottom: S.sm,
@@ -3864,7 +3863,7 @@ export default function VirtualSandbox() {
                 )}
 
                 <div style={{ ...cardCompact, background: T.surface2 }}>
-                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>GTO frequencies</h4>
+                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>GTO Frequencies</h4>
                   {displayResults.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
                 </div>
 
@@ -4011,7 +4010,7 @@ export default function VirtualSandbox() {
 
                 {/* Compare position — lives here so it is never full-bleed */}
                 <div style={{ ...cardCompact, background: T.surface2 }}>
-                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Compare position</h4>
+                  <h4 style={{ ...sectionTitle, marginBottom: S.md }}>Compare Position</h4>
                   <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                     {POSITIONS.map(p => {
                       const on = comparePosition ? comparePosition === p : heroPosition === p;
@@ -4089,7 +4088,7 @@ export default function VirtualSandbox() {
                   }}
                   style={{ ...btn('success', { block: true }) }}
                 >
-                  <Layers size={18} strokeWidth={2} aria-hidden="true" />Train this spot
+                  <Layers size={18} strokeWidth={2} aria-hidden="true" />Train This Spot
                 </button>
 
                 <button type="button" className="pa-btn" onClick={() => { setShowResults(false); setShowSessionReport(true); }} style={btn('secondary', { block: true })}>
@@ -4125,8 +4124,8 @@ export default function VirtualSandbox() {
       <BottomSheet
         isOpen={!!ttsOverlay}
         onClose={() => setTtsOverlay(null)}
-        title="Train this spot"
-        subtitle="Drills matched to your hand"
+        title="Train This Spot"
+        subtitle="Drills Matched To Your Hand"
         labelledBy="pa-tts-title"
         footer={(
           <button type="button" className="pa-btn" onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={btn('secondary', { block: true })}>
@@ -4151,7 +4150,7 @@ export default function VirtualSandbox() {
             {ttsOverlay.games.length === 0 ? (
               <EmptyState
                 icon={<Target size={24} strokeWidth={2} aria-hidden="true" />}
-                title="No matching drill yet"
+                title="No Matching Drill Yet"
                 body="We could not match this spot to a training game. Browse the full library instead."
               />
             ) : ttsOverlay.games.map((game, idx) => (
@@ -4250,7 +4249,8 @@ export default function VirtualSandbox() {
           }
           .sandbox-command-bar {
             left: 50% !important; right: auto !important; width: min(1120px, calc(100% - 48px));
-            transform: translateX(-50%); bottom: 72px !important;
+            transform: translateX(-50%);
+            bottom: calc(var(--active-world-footer-height, 56px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
             border: 1px solid ${T.borderHi}; border-radius: 4px;
             box-shadow: inset 0 1px 0 rgba(216,251,255,.14), 0 14px 30px rgba(0,0,0,.56);
           }

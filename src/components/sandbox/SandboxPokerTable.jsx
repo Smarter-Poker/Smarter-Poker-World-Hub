@@ -200,8 +200,8 @@ function DeleteBadge({ size, onRemove, label }) {
             aria-label={label}
             onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
             style={{
-                position: 'absolute', top: -8, right: -8, zIndex: 2,
-                width: Math.max(22, size), height: Math.max(22, size), borderRadius: '50%',
+                position: 'absolute', top: -18, right: -18, zIndex: 2,
+                width: Math.max(44, size), height: Math.max(44, size), borderRadius: '50%',
                 background: T.danger, border: '2px solid #020609', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0, touchAction: 'manipulation',
