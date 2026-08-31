@@ -22,7 +22,7 @@ import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
-import { ensureAuthReady, getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { ensureAuthReady, getAccessToken, getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import { captureStoreEvent } from '../../src/lib/store/storeAnalytics';
@@ -495,6 +495,7 @@ export default function DiamondStorePage({ initialTab }) {
   const clubShopLoadingRef = useRef(false);
   const clubShopProcessingRef = useRef(false);
   const clubShopAdminLoadingRef = useRef(false);
+  const clubShopAdminAbortRef = useRef(null);
   const clubShopAdminActionRef = useRef(null);
   const clubShopSuccessTimerRef = useRef(null);
   const pendingSpendDialogRef = useRef(null);
@@ -1376,21 +1377,43 @@ export default function DiamondStorePage({ initialTab }) {
   // ═══ Club Shop: Admin — load all items (active + hidden) ═══
   const loadClubShopAdmin = useCallback(async () => {
     if (!clubShopClubId || clubShopAdminLoadingRef.current) return false;
+    const requestClubId = clubShopClubId;
+    const controller = new AbortController();
+    let timedOut = false;
+    clubShopAdminAbortRef.current?.abort();
+    clubShopAdminAbortRef.current = controller;
     clubShopAdminLoadingRef.current = true;
     setClubShopAdminLoading(true);
     setClubShopAdminError(null);
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12000);
     try {
-      const token = getAccessToken();
+      const token = await getFreshAccessToken();
       if (!token) throw new Error('Please sign in again to manage the Club Shop.');
+      if (controller.signal.aborted) return false;
       const response = await fetch(
-        `/api/club-arena/manage-shop?clubId=${encodeURIComponent(clubShopClubId)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/api/club-arena/manage-shop?clubId=${encodeURIComponent(requestClubId)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        }
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) {
         throw new Error(data.error || `The operator report failed (${response.status}).`);
       }
-      const itemsWithCounts = (data.items || []).map((i) => ({
+      if (
+        !Array.isArray(data.items) ||
+        !data.report ||
+        typeof data.report.complete !== 'boolean' ||
+        !data.report.diamondTotals ||
+        !data.report.legacyChipTotals
+      ) {
+        throw new Error('The operator report returned an invalid response. Please retry.');
+      }
+      const itemsWithCounts = data.items.map((i) => ({
         ...i,
         price: Number(i.price) || 0,
         purchase_count: Number(i.purchase_count) || 0,
@@ -1403,24 +1426,44 @@ export default function DiamondStorePage({ initialTab }) {
       setClubShopAdminLoaded(true);
       return true;
     } catch (err) {
+      if (controller.signal.aborted && !timedOut) return false;
       console.warn('[Club Shop Admin]', err);
+      setClubShopAdminItems([]);
+      setClubShopAdminReport(null);
       setClubShopAdminError(
-        err.message || 'The verified Club Shop sales report could not be loaded.'
+        timedOut
+          ? 'The verified sales ledger timed out. Check your connection and retry.'
+          : err.message || 'The verified Club Shop sales report could not be loaded.'
       );
       setClubShopAdminLoaded(true);
       return false;
     } finally {
-      clubShopAdminLoadingRef.current = false;
-      setClubShopAdminLoading(false);
+      clearTimeout(timeout);
+      if (clubShopAdminAbortRef.current === controller) {
+        clubShopAdminAbortRef.current = null;
+        clubShopAdminLoadingRef.current = false;
+        setClubShopAdminLoading(false);
+      }
     }
   }, [clubShopClubId]);
 
   useEffect(() => {
+    clubShopAdminAbortRef.current?.abort();
+    clubShopAdminAbortRef.current = null;
+    clubShopAdminLoadingRef.current = false;
+    setClubShopAdminLoading(false);
     setClubShopAdminLoaded(false);
     setClubShopAdminItems([]);
     setClubShopAdminReport(null);
     setClubShopAdminError(null);
   }, [clubShopClubId]);
+
+  useEffect(
+    () => () => {
+      clubShopAdminAbortRef.current?.abort();
+    },
+    []
+  );
 
   const handleClubShopAdminAction = useCallback(
     async (action, item) => {
@@ -1510,6 +1553,7 @@ export default function DiamondStorePage({ initialTab }) {
         () => {
           clubShopLoadingRef.current = false;
           loadClubShop(true);
+          if (clubShopAdminLoaded) loadClubShopAdmin();
         }
       )
       .subscribe((status) => {
@@ -4002,12 +4046,15 @@ export default function DiamondStorePage({ initialTab }) {
                               }}
                             >
                               Report Is Partial: {fmt(clubShopAdminReport.processedRows)} Of{' '}
-                              {fmt(clubShopAdminReport.totalRows)} Ledger Rows Were Processed.
+                              {clubShopAdminReport.totalRowsExact
+                                ? fmt(clubShopAdminReport.totalRows)
+                                : `At Least ${fmt(clubShopAdminReport.totalRows)}`}{' '}
+                              Ledger Rows Were Processed.
                             </div>
                           )}
 
                           {/* Admin Stats */}
-                          {(() => {
+                          {clubShopAdminReport && !clubShopAdminError && (() => {
                             const total = clubShopAdminItems.length;
                             const active = clubShopAdminItems.filter((i) => i.is_active).length;
                             const diamondTotals = clubShopAdminReport?.diamondTotals || {};
@@ -4299,7 +4346,7 @@ export default function DiamondStorePage({ initialTab }) {
                           </div>
 
                           {/* Admin Item List */}
-                          {clubShopAdminItems.length === 0 ? (
+                          {clubShopAdminReport && !clubShopAdminError && (clubShopAdminItems.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40 }}>
                               <div style={{ marginBottom: 12 }}>
                                 <Wrench size={48} color="rgba(255,255,255,0.3)" />
@@ -4432,7 +4479,7 @@ export default function DiamondStorePage({ initialTab }) {
                                 </div>
                               ))}
                             </div>
-                          )}
+                          ))}
 
                           {clubShopDeleteTarget && (
                             <div

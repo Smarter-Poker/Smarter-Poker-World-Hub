@@ -1408,8 +1408,10 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Operator recovery | Database/auth failures render a named alert and 44-pixel retry control instead of plausible zero totals. |
 | Platform economics copy | The UI explicitly identifies Club Shop sales as platform-owned Diamond burns with no club, owner, agent, affiliate, or commission credit. |
 | Regression gate | Phase 21 reporting contracts are included in `test:marketplace` and the Vercel source allowlist. |
+| Closure hardening | Verified data is withheld on failed/malformed requests; operator reads are abortable, fresh-token, UUID-validated, private/no-store, snapshot-bound, and realtime-refreshed. |
+| Analytics reconciliation | Primary day/item/buyer/total counts are Diamond-only, legacy currencies stay separate, refunds reconcile to net values, and requested day windows are exact. |
 
-**Verification:** 4/4 Phase 21 contracts, 33/33 focused Club Shop contracts, 118/118 marketplace contracts, JSX parsing, strict lint, TypeScript, and the optimized Next.js webpack production build (402 static pages) passed. The server-owned operator fixture and guarded delete journey also pass against production in desktop Chromium and mobile Chrome; the live marketplace route/capability/private-boundary verifier is green. Full evidence: `.agent/audits/2026-08-30-marketplace-completion-phase-1-operator-reporting.md`.
+**Verification:** The original 4/4 Phase 21 contracts and 118/118 marketplace contracts remain covered. The 2026-08-31 closure audit expanded Phase 21 to 6/6 contracts and the complete marketplace suite to 120/120, passed Babel parsing, `git diff --check`, the full optimized Next.js webpack build (402 static pages), and the compiled-production recovery/delete journey in desktop Chromium and mobile Chrome. Full evidence: `.agent/audits/2026-08-30-marketplace-completion-phase-1-operator-reporting.md`.
 
 ---
 

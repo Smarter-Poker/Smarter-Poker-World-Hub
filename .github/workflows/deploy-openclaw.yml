@@ -9,8 +9,9 @@ name: Deploy Open Claw Cron Dispatcher
 # the env file, then starts the service. Subsequent runs only scp the
 # dispatcher and restart.
 #
-# Uses the SAME repo secrets as deploy-yt-worker.yml — HETZNER_SSH_PRIVATE_KEY
-# / HETZNER_HOST / HETZNER_SSH_USER. No new secrets required.
+# OPENCLAW_HOST is deliberately separate from HETZNER_HOST. The latter belongs
+# to the PepNation/worker host and must never receive the cron dispatcher.
+# OPENCLAW_SSH_PRIVATE_KEY is likewise scoped to the scheduler host.
 #
 # Note: `on: push`, NOT `schedule:`, so it does not violate
 # the cron-governance rule in CLAUDE.md §11.5.
@@ -39,16 +40,21 @@ jobs:
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
+
+      - name: Require the canonical Open Claw host
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+        run: test -n "$HOST"
 
       - name: Trust Hetzner host key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.OPENCLAW_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Bootstrap (idempotent — installs python3 + apscheduler + dirs)
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
           ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
@@ -70,7 +76,7 @@ jobs:
 
       - name: Merge managed dispatcher secrets into the canonical env file
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET || secrets.HENDON_AUTO_SYNC_SECRET || '' }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
@@ -110,7 +116,7 @@ jobs:
 
       - name: Sync dispatcher.py + systemd unit
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
           scp scripts/openclaw-cron-dispatcher.py \
@@ -128,7 +134,7 @@ jobs:
 
       - name: Enable + (re)start openclaw.service and verify
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
           expected_dispatcher=$(sha256sum scripts/openclaw-cron-dispatcher.py | cut -d' ' -f1)

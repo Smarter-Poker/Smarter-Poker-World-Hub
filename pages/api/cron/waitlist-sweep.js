@@ -16,15 +16,20 @@
  *   1. THE LOBBY OVERSTATES THE QUEUE. "Waiting 6" counts `waiting` rows, so a
  *      table quiet for a week advertises a line made entirely of people who
  *      have long since gone. Players choose a game off that number.
- *   2. AN OFFER LAPSES IN SILENCE, POSSIBLY FOREVER. The player whose three
- *      minutes ran out is only told when the NEXT seat opens at that table. If
- *      none ever does, they are never told at all — they simply stop being in
- *      the line, with no idea why. That is the same class of complaint as
+ *   2. AN OFFER LAPSES IN SILENCE, POSSIBLY FOREVER, AND THE QUEUE STALLS
+ *      BEHIND IT. The player whose sixty seconds ran out is only told when the
+ *      NEXT seat opens at that table. If none ever does, they are never told
+ *      at all — they simply stop being in the line, with no idea why. Worse,
+ *      until 2026-08-31 nothing then offered that seat to the next player
+ *      either, so the notification's own promise ("went to the next player in
+ *      line") was false and the seat sat open above a motionless queue. That is the same class of complaint as
  *      "the seat open push should only occur if you are on a list waiting for
  *      a seat" (Dan 2026-08-29), seen from the other end.
  *
- * This calls `fn_sweep_stale_waitlists`, which is the SAME two rules rather
- * than a second opinion about them — it shares the notification text and the
+ * This calls `fn_sweep_stale_waitlists`, which is the SAME rules rather
+ * than a second opinion about them — and which, since 2026-08-31, also calls
+ * `fn_offer_open_seat` for every table it touched, so the seat actually moves
+ * to the next player instead of merely being marked lapsed — it shares the notification text and the
  * bell-only `_push` marker with the offer path, so a sweep and an offer can
  * never disagree about what an expiry looks like. All this route adds is
  * reach: the tables the offer path never visits.
@@ -42,10 +47,14 @@
  * backlog or something upstream stopped retiring rows — both worth seeing, and
  * neither visible from a bare "ok".
  *
- * Cadence: every 10 minutes, via Open Claw (CLAUDE.md section 11 — NOT
- * vercel.json). The three-minute offer TTL means a lapsed offer is announced
- * within about ten minutes at worst, which is soon enough for a player to
- * rejoin a queue and far cheaper than running it every minute.
+ * Cadence: every minute, via Open Claw (CLAUDE.md section 11 — NOT
+ * vercel.json). It was every ten while the offer lasted three minutes and the
+ * sweep only announced a lapse. Dan's 2026-08-31 rule makes the offer a
+ * SIXTY-SECOND exclusive hold and this sweep the thing that advances the
+ * queue, so a ten-minute tick would leave a seat held-then-abandoned and the
+ * next player waiting for up to ten minutes. The scan is bounded (200 tables)
+ * and only visits tables with a live queue, so an empty waitlist costs one
+ * cheap RPC a minute.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -96,6 +105,11 @@ async function handler(req, res) {
             offers_expired: Number(data?.offers_expired || 0),
             entries_expired: Number(data?.entries_expired || 0),
             seated_retired: Number(data?.seated_retired || 0),
+            // The number that says the queue actually MOVED. offers_expired
+            // without seats_reoffered is the exact failure this sweep existed
+            // to hide: a lapsed hold closed, and nobody handed the seat on.
+            seats_reoffered: Number(data?.seats_reoffered || 0),
+            tables_scanned: Number(data?.tables_scanned || 0),
             duration_ms: Date.now() - started,
         });
     } catch (e) {
