@@ -286,9 +286,43 @@ export function useRequireAuth(redirectPath) {
     // Cross-tab auth sync: auto-redirect if auth is cleared in another tab (#1)
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const handleStorage = (e) => {
+        let cancelled = false;
+        // Fix/auth-refresh-race-client: do NOT treat the disappearance of the
+        // shared 'smarter-poker-auth' key as proof of a logout. The Supabase
+        // SDK transiently REMOVES and then REWRITES that key while performing
+        // a token refresh, and the `storage` event fires on every other tab
+        // during that gap with `newValue === null`. Reacting to the removal
+        // instantly turned a single refresh blip into a full cross-tab
+        // logout: every open tab bounced to /auth/login?redirect=... while
+        // the session was in fact perfectly valid a few hundred ms later.
+        //
+        // Instead we RE-VERIFY before acting: wait ~400ms for the SDK to
+        // finish rewriting the key, re-read getAuthUser(), and if it is still
+        // absent try restoreSessionBackup() (defined below in this same file)
+        // and re-read once more. Only when the user is STILL gone after all
+        // of that do we consider it a real cross-tab logout and redirect.
+        // The `cancelled` flag lets the effect cleanup abort a pending
+        // re-verify so an unmounted component never navigates.
+        const handleStorage = async (e) => {
             if (e.key === 'smarter-poker-auth' && !e.newValue) {
-                // Auth was cleared in another tab — redirect to login
+                // Possible transient clear during SDK token refresh — re-verify
+                await new Promise(r => setTimeout(r, 400));
+                if (cancelled) return;
+
+                let stillThere = getAuthUser();
+                if (!stillThere?.id) {
+                    try { restoreSessionBackup(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                    if (cancelled) return;
+                    stillThere = getAuthUser();
+                }
+
+                if (stillThere?.id) {
+                    // Refresh blip, not a logout — leave this tab alone
+                    console.debug('[useRequireAuth] transient auth clear ignored (session still valid after re-verify)');
+                    return;
+                }
+
+                // Auth really was cleared in another tab — redirect to login
                 setUser(null);
                 sessionStorage.removeItem('sp_auth_confirmed');
                 const target = redirectPath || router.asPath;
@@ -296,7 +330,10 @@ export function useRequireAuth(redirectPath) {
             }
         };
         window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('storage', handleStorage);
+        };
     }, [redirectPath, router]);
 
     return { user, checking };
