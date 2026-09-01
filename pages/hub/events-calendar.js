@@ -33,6 +33,7 @@ import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveCityCoords } from '../../src/data/city-coordinates';
 import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
+import { fetchJsonWithDeadline } from '../../src/lib/server/fetchJsonWithDeadline';
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
 // -- COMPONENT DOM VIRTUALIZATION ENGINE --
@@ -476,8 +477,7 @@ export async function getServerSideProps(context) {
     const host = context.req.headers.host || 'localhost:3000';
     // [B3 FIX] Match server-side default (week) to client useState default ('week') to prevent layout shift
     const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=week&limit=200&sort=date`;
-    const res = await fetch(url);
-    const data = await res.json();
+    const data = await fetchJsonWithDeadline(url, { timeoutMs: 5_000 });
     return { props: { fallbackData: data?.success ? data : null } };
   } catch (err) {
     return { props: { fallbackData: null } };

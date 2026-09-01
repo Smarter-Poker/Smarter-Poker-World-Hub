@@ -357,7 +357,28 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
       const links = nav.getByRole('link');
       for (let index = 0; index < definition.items.length; index += 1) {
-        await links.nth(index).click();
+        const expectedHref = definition.items[index].href;
+        let capturedHref: string | undefined;
+
+        // WebKit can replace the first production document while the app
+        // updater settles. A locator click that began against that retired
+        // document may complete without reaching its capture listener. Retry
+        // only when no click was observed; a captured wrong destination still
+        // fails immediately below, and the final aggregate assertion remains
+        // an exact one-for-one check of all 84 destinations.
+        for (let attempt = 0; attempt < 3 && capturedHref === undefined; attempt += 1) {
+          await links.nth(index).click();
+          capturedHref = await page.evaluate(
+            (capturedIndex) =>
+              (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.[
+                capturedIndex
+              ],
+            index
+          );
+          if (capturedHref === undefined) await page.waitForTimeout(100);
+        }
+
+        expect(capturedHref).toBe(expectedHref);
       }
 
       expect(
