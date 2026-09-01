@@ -1470,7 +1470,7 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
-            data-menu-symbol="hamburger"
+            data-menu-symbol="command-grid"
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()
