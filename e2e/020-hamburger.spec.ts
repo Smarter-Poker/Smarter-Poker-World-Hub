@@ -202,7 +202,7 @@ const WORLDS: WorldCase[] = [
     id: 'poker-near-me',
     label: 'Poker Near Me',
     path: '/hub/poker-near-me',
-    accent: '#f4f7fb',
+    accent: '#38bdf8',
     expectedActiveHref: '/hub/poker-near-me/lobby',
     primary: items([
       ['/hub/poker-near-me/lobby', 'Nearby'],
@@ -249,6 +249,33 @@ async function visitWorld(page: Page, world: WorldCase): Promise<void> {
   await page.goto(world.path, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Unhandled Runtime Error', { exact: true })).toHaveCount(0);
+  await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', world.id);
+
+  const copyContract = await page.evaluate(() => {
+    const scope = document.querySelector('.world-copy-scope');
+    const visibleCopy = document.body.innerText || '';
+    const accessibleCopy = Array.from(document.querySelectorAll('*')).flatMap((element) =>
+      ['aria-label', 'aria-description', 'placeholder', 'title', 'alt', 'data-tooltip']
+        .map((name) => element.getAttribute(name) || '')
+    ).join('\n');
+    return {
+      scopeCapitalization: scope ? getComputedStyle(scope).textTransform : '',
+      hasLongBar: /[\u2013\u2014]/u.test(`${visibleCopy}\n${accessibleCopy}`),
+    };
+  });
+  expect(copyContract.scopeCapitalization).toBe('capitalize');
+  expect(copyContract.hasLongBar).toBe(false);
+
+  await page.evaluate(() => {
+    const fixture = document.createElement('div');
+    fixture.id = 'world-copy-policy-fixture';
+    fixture.textContent = 'dynamic poker copy — ready';
+    fixture.setAttribute('aria-label', 'dynamic poker control – ready');
+    document.body.appendChild(fixture);
+  });
+  const fixture = page.locator('#world-copy-policy-fixture');
+  await expect(fixture).toHaveText('Dynamic Poker Copy: Ready');
+  await expect(fixture).toHaveAttribute('aria-label', 'Dynamic Poker Control: Ready');
 }
 
 async function openWorldMenu(
@@ -263,6 +290,9 @@ async function openWorldMenu(
     'aria-label',
     new RegExp(`Open ${world.label} Command Menu`, 'i')
   );
+  await expect
+    .poll(async () => trigger.evaluate((element) => element.getBoundingClientRect().width))
+    .toBeGreaterThanOrEqual(24);
 
   await trigger.click();
   const dialog = page.locator(`[data-world-command-menu="${world.id}"]`);
@@ -308,9 +338,37 @@ for (const world of WORLDS) {
       0
     );
     await expect(page.locator('svg[data-lucide="menu"], [data-menu-symbol="three-bars"]')).toHaveCount(0);
+    const interactiveBarViolations = await page.evaluate(() => {
+      const violations: string[] = [];
+      document.querySelectorAll('button, a, [role="button"], [role="menuitem"]').forEach((control) => {
+        if (/[☰≡]/u.test(control.textContent || '')) violations.push('glyph');
+        control.querySelectorAll('svg').forEach((svg) => {
+          const lucide = (svg.getAttribute('data-lucide') || '').toLowerCase();
+          if (['menu', 'align-justify', 'list', 'list-checks'].includes(lucide)) {
+            violations.push(`lucide:${lucide}`);
+          }
+          const paths = Array.from(svg.querySelectorAll('path'))
+            .map((path) => (path.getAttribute('d') || '').replace(/\s+/g, ''));
+          if (paths.some((path) => /M4(?:\.0)?6h16M4(?:\.0)?12h16M4(?:\.0)?18h16/i.test(path))) {
+            violations.push('three-paths');
+          }
+          const wideRects = Array.from(svg.querySelectorAll('rect')).filter((rect) => {
+            const width = Number(rect.getAttribute('width'));
+            const height = Number(rect.getAttribute('height'));
+            return Number.isFinite(width) && Number.isFinite(height) && width >= height * 3;
+          });
+          if (wideRects.length === 3) violations.push('three-rectangles');
+        });
+      });
+      return violations;
+    });
+    expect(interactiveBarViolations).toEqual([]);
 
     await expect
-      .poll(async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)))
+      .poll(
+        async () => dialog.evaluate((element) => Math.abs(element.getBoundingClientRect().x)),
+        { timeout: 15_000 },
+      )
       .toBeLessThanOrEqual(1);
 
     const metrics = await dialog.evaluate((element) => {
@@ -373,3 +431,35 @@ for (const world of WORLDS) {
     await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   });
 }
+
+test('Bankroll Log deep links preserve the visible authorization gate and clean their URL', async ({ page }) => {
+  await page.goto('/hub/bankroll-manager?view=log-session', { waitUntil: 'domcontentloaded' });
+  const dialog = page.getByRole('dialog', { name: 'Sign In Required' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page).not.toHaveURL(/view=log-session/);
+});
+
+test('Toke Taxes opens for an empty account and closes without stale deep-link state', async ({ page }) => {
+  await page.goto('/hub/toke-tracker/vault?tab=tax', { waitUntil: 'domcontentloaded' });
+  const dialog = page.getByRole('dialog', { name: 'Annual Tax Summary' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/No Completed Events In \d{4}/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close Tax Summary' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page).not.toHaveURL(/tab=tax/);
+});
+
+test('Diamond Arena content never hides beneath its fixed world footer', async ({ page }) => {
+  await page.goto('/hub/diamond-arena', { waitUntil: 'domcontentloaded' });
+  const arena = page.locator('[data-diamond-arena-page="true"]');
+  const footer = page.locator('[data-global-bottom-nav="true"]');
+  await expect(arena).toBeVisible();
+  await expect(footer).toBeVisible();
+  await expect.poll(async () => {
+    const [arenaBox, footerBox] = await Promise.all([arena.boundingBox(), footer.boundingBox()]);
+    if (!arenaBox || !footerBox) return Number.POSITIVE_INFINITY;
+    return arenaBox.y + arenaBox.height - footerBox.y;
+  }).toBeLessThanOrEqual(1);
+});

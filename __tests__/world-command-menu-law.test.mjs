@@ -91,6 +91,8 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(recoverySource, /data-world-command-recovery/);
   assert.match(recoverySource, /Safe Navigation/);
   assert.match(recoverySource, /sp:world-command-menu-error/);
+  assert.match(recoverySource, /event\.key !== 'Tab'/);
+  assert.match(recoverySource, /dialogRef\.current\?\.querySelectorAll/);
   assert.match(drawerSource, /prev\?\.isConnected/);
   assert.match(drawerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(drawerSource, /e\.key === 'Escape'/);
@@ -106,6 +108,7 @@ test('the command-grid trigger covers routes without duplicating an approved hea
   assert.match(headerSource, /z-index: 10050;/);
   assert.match(headerSource, /resolvedHeaderWorld\?\.id === 'social-media'/);
   assert.match(headerSource, /onMenuClick && !ownsCanonicalMenu/);
+  assert.match(headerSource, /\.approved-global-header__menu[\s\S]*min-width: 24px/);
   assert.match(socialSource, /canonical command menu is the only global navigation surface/);
   assert.match(socialSource, /setSidebarOpen\(false\)/);
   assert.match(socialSource, /commandMenuOpen=\{commandMenuOpen\}/);
@@ -121,18 +124,17 @@ test('the command-grid trigger covers routes without duplicating an approved hea
 test('horizontal menu-bar artwork cannot return to World Hub source assets', () => {
   const forbiddenNames = walk(join(ROOT, 'public'))
     .map((file) => relative(ROOT, file).split('\\').join('/'))
-    .filter((file) => !file.startsWith('public/hub/club-arena/'))
-    .filter((file) => /(?:hamburger|menu[-_ ]?bar|m[-_ ]?bar)/i.test(file));
+    .filter((file) => /\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(file))
+    .filter((file) => /(?:btn[-_ ]?hamburger|menu[-_ ]?bar|m[-_ ]?bar|global-header\/menu\.)/i.test(file));
   assert.deepEqual(forbiddenNames, []);
 
-  const forbiddenMenuMark = /<\s*(?:Menu|MenuIcon|AlignJustify)\b|\b(?:Menu|MenuIcon|AlignJustify)\s*[,}]\s*from\s*['"]lucide-react|[☰≡]|&#(?:9776|8801|x2630|x2261);|data-menu-symbol=['"]three-bars['"]/i;
-  const menuBarSource = [join(ROOT, 'pages/hub'), join(ROOT, 'src/components')]
+  const forbiddenMenuMark = /import\s*{[^}]*\b(?:Menu|MenuIcon|AlignJustify|List|ListChecks)\b[^}]*}\s*from\s*['"]lucide-react|[☰≡]|&#(?:9776|8801|x2630|x2261);|data-menu-symbol=['"]three-bars['"]|M4\s*6h16M4\s*12h16M4\s*18h16/i;
+  const menuBarFiles = [join(ROOT, 'pages'), join(ROOT, 'src'), join(ROOT, 'public/hub/club-arena/assets')]
     .flatMap((root) => walk(root))
     .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file))
-    .filter((file) => !file.includes('/src/components/club-arena/'))
-    .map((file) => readFileSync(file, 'utf8'))
-    .filter((sourceText) => forbiddenMenuMark.test(sourceText));
-  assert.deepEqual(menuBarSource, []);
+    .filter((file) => forbiddenMenuMark.test(readFileSync(file, 'utf8')))
+    .map((file) => relative(ROOT, file).split('\\').join('/'));
+  assert.deepEqual(menuBarFiles, []);
 
   const header = join(ROOT, 'public/images/global-header/global-header-desktop.png');
   const source = join(ROOT, 'public/images/global-header/global-header-approved-source.png');

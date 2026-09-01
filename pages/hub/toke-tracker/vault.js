@@ -27,12 +27,23 @@ export default function DealerVaultPage() {
     const [tokePrefs, setTokePrefs] = useState({});
     const [showTaxSummary, setShowTaxSummary] = useState(false);
 
-    // Handle ?tab=tax query param — auto-open Tax Summary modal
+    // The Taxes command remains useful for a new dealer with no completed
+    // gigs: TaxSummaryModal owns the empty state and guidance.
     useEffect(() => {
-        if (router.query.tab === 'tax' && completedGigs.length > 0) {
-            setShowTaxSummary(true);
-        }
-    }, [router.query.tab, completedGigs]);
+        setShowTaxSummary(router.query.tab === 'tax');
+    }, [router.query.tab]);
+
+    const closeTaxSummary = useCallback(() => {
+        setShowTaxSummary(false);
+        if (router.query.tab !== 'tax') return;
+        const nextQuery = { ...router.query };
+        delete nextQuery.tab;
+        void router.replace(
+            { pathname: router.pathname, query: nextQuery },
+            undefined,
+            { shallow: true, scroll: false },
+        );
+    }, [router]);
 
     // SSR-safe: hydrate prefs + mount flag on client only
     useEffect(() => {
@@ -162,7 +173,7 @@ export default function DealerVaultPage() {
                     {showTaxSummary && (
                         <TaxSummaryModal
                             completedGigs={completedGigs}
-                            onClose={() => setShowTaxSummary(false)}
+                            onClose={closeTaxSummary}
                         />
                     )}
                 </div>

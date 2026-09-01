@@ -71,3 +71,40 @@ test('defaults and hard navigations are explicitly declared', () => {
   assert.deepEqual(defaults.map(({ href }) => href), ['/hub/bankroll-manager?view=dashboard']);
   assert.equal(commands.find((command) => command.href === '/hub/club-arena')?.worldId, 'my-clubs');
 });
+
+test('query commands preserve authorization gates and meaningful empty states', () => {
+  const bankroll = readFileSync(join(ROOT, 'pages/hub/bankroll-manager.js'), 'utf8');
+  const tokeVault = readFileSync(join(ROOT, 'pages/hub/toke-tracker/vault.js'), 'utf8');
+  const taxModal = readFileSync(join(ROOT, 'src/components/bankroll/TaxSummaryModal.jsx'), 'utf8');
+
+  assert.match(bankroll, /requestedView === 'log-session'[\s\S]*void handleLogClick\(\)/);
+  assert.match(bankroll, /if \(!guardAction\(\)\) return/);
+  assert.match(bankroll, /bankrollInitialized === false[\s\S]*setShowStartingBankroll\(true\)/);
+  assert.match(bankroll, /const closeLogModal = useCallback/);
+  assert.match(bankroll, /delete nextQuery\.view/);
+  assert.doesNotMatch(
+    bankroll,
+    /requestedView === 'log-session'\)\s*{\s*setShowLogModal\(true\)/
+  );
+
+  assert.match(tokeVault, /setShowTaxSummary\(router\.query\.tab === 'tax'\)/);
+  assert.match(tokeVault, /const closeTaxSummary = useCallback/);
+  assert.match(tokeVault, /delete nextQuery\.tab/);
+  assert.doesNotMatch(tokeVault, /router\.query\.tab === 'tax'\s*&&\s*completedGigs\.length/);
+  assert.match(taxModal, /role="dialog"/);
+  assert.match(taxModal, /aria-modal="true"/);
+  assert.match(taxModal, /event\.key === 'Escape'/);
+  assert.match(taxModal, /aria-label="Close Tax Summary"/);
+});
+
+test('Diamond Arena reserves shared chrome and fails closed when the remote room is unavailable', () => {
+  const source = readFileSync(join(ROOT, 'pages/hub/diamond-arena.js'), 'utf8');
+  assert.match(source, /export async function getServerSideProps/);
+  assert.match(source, /response\.status >= 200 && response\.status < 400/);
+  assert.match(source, /setArenaAvailable\(false\)/);
+  assert.match(source, /Diamond Arena Is Temporarily Unavailable/);
+  assert.match(source, /bottom: 'var\(--active-world-footer-height, 70px\)'/);
+  assert.match(source, /flex: '1 1 auto'/);
+  assert.match(source, /title="Diamond Arena Live Poker Room"/);
+  assert.doesNotMatch(source, /title="Diamond Arena [\u2013\u2014]/u);
+});

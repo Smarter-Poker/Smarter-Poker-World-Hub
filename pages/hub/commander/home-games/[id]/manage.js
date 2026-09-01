@@ -15,7 +15,7 @@ function makeIdemKey() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare, Trophy } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, Megaphone, MessageSquare, Trophy } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import HomeGamesSeatReservation from '../../../../../src/components/home-games/HomeGamesSeatReservation';
 import HostRosterPickerModal from '../../../../../src/components/home-games/HostRosterPickerModal';
@@ -1348,7 +1348,7 @@ export default function ManageHomeGamePage() {
                   onClick={() => router.push(`/hub/commander/home-games/${id}/roster`)}
                   className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
                 >
-                  <List className="w-6 h-6 text-[#22D3EE]" />
+                  <Users className="w-6 h-6 text-[#22D3EE]" />
                   <span className="text-sm font-semibold text-white">Database Of Players</span>
                   <span className="text-xs text-[#64748B]">View And Manage Full Roster</span>
                 </button>
@@ -1722,4 +1722,3 @@ export default function ManageHomeGamePage() {
 export async function getServerSideProps() {
   return { props: {} };
 }
-

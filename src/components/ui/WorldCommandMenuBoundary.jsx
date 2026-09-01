@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 function CommandMenuRecovery({ onClose, onRetry, world }) {
   const closeRef = useRef(null);
+  const dialogRef = useRef(null);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -10,6 +11,20 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
     closeRef.current?.focus();
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onClose?.();
+      if (event.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
@@ -26,6 +41,7 @@ function CommandMenuRecovery({ onClose, onRetry, world }) {
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose?.(); }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sp-command-recovery-title"

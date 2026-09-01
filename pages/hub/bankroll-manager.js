@@ -239,7 +239,6 @@ export default function BankrollManagerPage() {
       const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
       if (requestedView === 'log-session') {
         setActiveSection('dashboard');
-        setShowLogModal(true);
       } else {
         setActiveSection(requestedView);
       }
@@ -262,6 +261,27 @@ export default function BankrollManagerPage() {
   const [showStartingBankroll, setShowStartingBankroll] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [bankrollInitialized, setBankrollInitialized] = useState(null); // null = loading, true/false
+
+  const clearLogSessionView = useCallback(() => {
+    const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
+    if (requestedView !== 'log-session') return;
+    const nextQuery = { ...router.query };
+    delete nextQuery.view;
+    void router.replace(
+      { pathname: router.pathname, query: nextQuery },
+      undefined,
+      { shallow: true, scroll: false },
+    );
+  }, [router]);
+
+  const closeLogModal = useCallback(() => {
+    setShowLogModal(false);
+    setEditEntry(null);
+    setDefaultReceiptCategory(null);
+    setDefaultReceiptMedia(null);
+    setDefaultReceiptData(null);
+    clearLogSessionView();
+  }, [clearLogSessionView]);
 
   // Hamburger menu preferences
   const [preferences, setPreferences] = useState({
@@ -535,6 +555,7 @@ export default function BankrollManagerPage() {
   const handleLogSubmit = async () => {
     setShowLogModal(false);
     setEditEntry(null);
+    clearLogSessionView();
     setRefreshTrigger(prev => prev + 1);
     await loadData();
 
@@ -613,6 +634,19 @@ export default function BankrollManagerPage() {
     }
     setShowLogModal(true);
   }, [userId, bankrollInitialized, guardAction]);
+
+  // A deep link must use the exact same authorization and initialization gates
+  // as the visible Log button. Navigating away also closes stale modal state.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
+    if (requestedView === 'log-session') {
+      setActiveSection('dashboard');
+      void handleLogClick();
+      return;
+    }
+    setShowLogModal(false);
+  }, [router.asPath, router.isReady]);
 
   // Check starting bankroll on mount
   useEffect(() => {
@@ -1919,11 +1953,12 @@ export default function BankrollManagerPage() {
               defaultCategory={defaultReceiptCategory}
               defaultMediaUrls={defaultReceiptMedia}
               defaultPrefillData={defaultReceiptData}
-              onClose={() => { setShowLogModal(false); setEditEntry(null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null); }}
+              onClose={closeLogModal}
               onSubmit={() => { handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null); }}
             />
           ) : (
             <motion.div
+              role="presentation"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1939,9 +1974,13 @@ export default function BankrollManagerPage() {
                 justifyContent: 'center',
                 zIndex: 50,
               }}
-              onClick={() => setShowLogModal(false)}
+              onClick={closeLogModal}
             >
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="bankroll-sign-in-title"
+                aria-describedby="bankroll-sign-in-description"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
@@ -1956,8 +1995,8 @@ export default function BankrollManagerPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div style={{ marginBottom: 16, color: '#65676b', fontSize: 32 }}>Sign In</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
-                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
+                <h2 id="bankroll-sign-in-title" style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
+                <p id="bankroll-sign-in-description" style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
                   Please Sign In To Log Your Poker Sessions And Track Your Bankroll.
                 </p>
                 <button
@@ -1977,7 +2016,7 @@ export default function BankrollManagerPage() {
                   Sign In
                 </button>
                 <button
-                  onClick={() => setShowLogModal(false)}
+                  onClick={closeLogModal}
                   style={{
                     padding: '14px 24px',
                     background: 'transparent',

@@ -1641,7 +1641,10 @@ export default function NewsHub() {
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                                     </button>
                                     <button className={viewMode === 'list' ? 'active' : ''} onClick={() => handleViewModeChange('list')} title="List View" aria-label="Show list view" aria-pressed={viewMode === 'list'}>
-                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                            <path d="M4 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                                            <path d="M8 2h6v4H8V2Zm0 5h6v4H8V7Zm0 5h6v4H8v-4Z" opacity="0.72" />
+                                        </svg>
                                     </button>
                                     {bookmarks.length > 0 && (
                                         <span className="bookmark-counter"><BookmarkCheck size={12} /> {bookmarks.length}</span>

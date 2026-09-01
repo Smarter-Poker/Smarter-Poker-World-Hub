@@ -96,6 +96,7 @@ import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
+import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
 import {
@@ -109,6 +110,7 @@ import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
+import { WORLD_COPY_SCOPE_CLASS } from '../src/lib/world-copy-policy.mjs';
 import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
 import {
   advanceScrollLockGeneration,
@@ -817,6 +819,7 @@ export default function App({ Component, pageProps }) {
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
   const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
+  const worldCopyWorldId = worldFooterConfig?.id || null;
   const bottomNavConfig =
     worldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
@@ -867,7 +870,7 @@ export default function App({ Component, pageProps }) {
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
       <div
-        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`}
+        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
         style={{ minHeight: '100vh' }}
       >
         <>
@@ -980,6 +983,7 @@ export default function App({ Component, pageProps }) {
             )}
           </Head>
           <AntiGravityProvider>
+            <WorldCopyPolicy worldId={worldCopyWorldId} />
             <ThemeProvider>
               <UnreadProvider>
                 <AvatarProvider>

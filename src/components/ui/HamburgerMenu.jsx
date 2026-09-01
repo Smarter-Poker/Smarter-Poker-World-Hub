@@ -949,7 +949,7 @@ function HamburgerMenuContent({
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <button
             type="button"
-            className="sp-icon-btn"
+            className="sp-command-utility-button"
             onClick={() => setEditFavs((v) => !v)}
             aria-pressed={editFavs}
             aria-label={editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'}
@@ -965,7 +965,7 @@ function HamburgerMenuContent({
           <button
             ref={closeBtnRef}
             type="button"
-            className="sp-icon-btn"
+            className="sp-command-utility-button"
             onClick={onClose}
             aria-label="Close menu"
             style={{
