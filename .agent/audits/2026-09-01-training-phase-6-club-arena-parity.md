@@ -162,8 +162,14 @@ The product exposes twelve levels while several Training tables retained legacy
 one-through-ten checks. Migration
 `20260901130000_training_levels_one_through_twelve.sql` expands the guarded
 Training, history, daily-challenge, and arena constraints to the product's exact
-1-12 contract. Production level 11/12 writes remain a release requirement; no
-database was manually changed during local certification.
+1-12 contract. A read-only live-schema preflight caught that current
+`training_progress` uses `level`, while an archived schema used
+`current_level/highest_level_completed`; the migration now guards both shapes
+by real column presence. All existing rows passed the 1-12 precondition, the
+transactional migration was recorded as `20260901130000`, and the five live
+constraints now report 1-12. Authenticated Level 11 and Level 12 batch and
+record probes both returned HTTP 200, with canonical cache rows persisted at
+each exact level.
 
 ### Desktop Feedback Collapsed The Club Arena Canvas
 
