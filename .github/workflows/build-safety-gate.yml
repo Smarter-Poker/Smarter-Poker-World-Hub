@@ -222,6 +222,18 @@ jobs:
           fi
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 18: A new money route must know about the platform freeze
+      # (Dan 2026-09-01, club-arena to-do #2563 item 11). Every route in this
+      # repo uses the service key, which is EXEMPT from the :55 platform-
+      # freeze triggers - so a money-moving club-arena route written after the
+      # freeze shipped would inherit the exemption silently and move chips
+      # during the announced break. New routes must consult
+      # fn_platform_frozen or carry a visible freeze-exempt marker; existing
+      # routes are grandfathered in a baseline that only shrinks. Pure node,
+      # no deps, so it runs before install like CHECK 7.
+      - name: "CHECK 18: New money routes are freeze-aware"
+        run: node scripts/check-frozen-aware-money-routes.mjs
+
       # CHECK 7: Storage bucket file_size_limit guard (RUNS FIRST)
       # Positioned before npm install so it runs even if install fails.
       # The social-media bucket file_size_limit was silently set to NULL on
