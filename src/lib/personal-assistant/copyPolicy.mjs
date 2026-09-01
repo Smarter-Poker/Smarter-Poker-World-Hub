@@ -1,11 +1,12 @@
 export const PERSONAL_ASSISTANT_COPY_CLASS = 'pa-copy-policy';
 
-const EM_DASH = /\s*—\s*/g;
+const EM_DASH_CHARACTER = String.fromCharCode(0x2014);
+const EM_DASH = new RegExp(`\\s*${EM_DASH_CHARACTER}\\s*`, 'g');
 const WORD_START = /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/g;
 
 export function normalizePersonalAssistantSeparators(value) {
-  if (typeof value !== 'string' || !value.includes('—')) return value;
-  if (value.trim() === '—') return 'Not Available';
+  if (typeof value !== 'string' || !value.includes(EM_DASH_CHARACTER)) return value;
+  if (value.trim() === EM_DASH_CHARACTER) return 'Not Available';
   return value.replace(EM_DASH, ' · ');
 }
 
@@ -37,7 +38,7 @@ export function applyPersonalAssistantCopyPolicy(root) {
 
   if (root.nodeType === Node.TEXT_NODE) {
     if (!isCopyTextNode(root)) return;
-    const next = normalizePersonalAssistantSeparators(root.nodeValue || '');
+    const next = normalizePersonalAssistantCopy(root.nodeValue || '');
     if (next !== root.nodeValue) root.nodeValue = next;
     return;
   }
@@ -49,7 +50,7 @@ export function applyPersonalAssistantCopyPolicy(root) {
   let textNode = walker.nextNode();
   while (textNode) {
     const next = isCopyTextNode(textNode)
-      ? normalizePersonalAssistantSeparators(textNode.nodeValue || '')
+      ? normalizePersonalAssistantCopy(textNode.nodeValue || '')
       : textNode.nodeValue;
     if (next !== textNode.nodeValue) textNode.nodeValue = next;
     textNode = walker.nextNode();

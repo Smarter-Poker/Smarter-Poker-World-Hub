@@ -47,6 +47,13 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
     const sentenceCaseAttributes = [...document.querySelectorAll('*')].filter(element =>
       attributes.some(name => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(element.getAttribute(name) || ''))
     ).length;
+    const sentenceCaseText = [...document.querySelectorAll('body *')]
+      .filter(element => !['SCRIPT', 'STYLE', 'TEXTAREA', 'TEMPLATE'].includes(element.tagName))
+      .reduce((count, element) => (
+        count + [...element.childNodes]
+          .filter(node => node.nodeType === Node.TEXT_NODE)
+          .filter(node => /(^|[\s·/|:;,.!?()[\]{}"+\-–])([a-z])/.test(node.textContent || '')).length
+      ), 0);
     const transformViolations = [...document.querySelectorAll('main *')].filter(element => {
       const directText = [...element.childNodes]
         .filter(node => node.nodeType === Node.TEXT_NODE)
@@ -59,10 +66,11 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
       textViolations: (document.body.innerText.match(new RegExp(mark, 'g')) || []).length,
       attributeViolations,
       sentenceCaseAttributes,
+      sentenceCaseText,
       transformViolations,
     };
   });
-  expect(audit).toEqual({ bodyTransform: 'capitalize', titleViolations: 0, textViolations: 0, attributeViolations: 0, sentenceCaseAttributes: 0, transformViolations: 0 });
+  expect(audit).toEqual({ bodyTransform: 'capitalize', titleViolations: 0, textViolations: 0, attributeViolations: 0, sentenceCaseAttributes: 0, sentenceCaseText: 0, transformViolations: 0 });
 }
 
 test.describe('Personal Assistant primary and secondary surfaces', () => {

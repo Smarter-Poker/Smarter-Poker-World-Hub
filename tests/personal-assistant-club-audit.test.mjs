@@ -28,6 +28,19 @@ async function test(name, fn) {
 
 const userId = '00000000-0000-4000-8000-000000000001';
 const villainId = '00000000-0000-4000-8000-000000000002';
+const solverProvenance = Object.freeze({
+  verified: true,
+  scenarioHash: 'club-audit-fixture',
+  solverVersion: 'fixture-1',
+  solverBinaryChecksum: 'a'.repeat(64),
+  machineId: 'M1',
+  pipelineCommit: 'b'.repeat(40),
+  manifestVersion: 'fixture-1',
+  manifestChecksum: 'c'.repeat(64),
+  sourceArtifactChecksum: 'd'.repeat(64),
+  qualityStatus: 'validated',
+  auditedAt: '2026-08-31T12:00:00.000Z',
+});
 const clubRow = {
   id: 'hand-42',
   hand_number: 42,
@@ -125,6 +138,7 @@ await test('uses only the authenticated hero private fact to recover a folded ha
           limit: async () => ({ data: [{
             question_id: 'private-fact-q', game_id: 'cash-rfi', question_data: {
               source: 'DETERMINISTIC_SOLVER',
+              solverProvenance,
               scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
               options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
             },
@@ -147,6 +161,7 @@ await test('uses the shared training question and persists an exact audit decisi
   const upserts = [];
   const question = {
     source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
     scenario: {
       street: 'preflop',
       heroPosition: 'BTN',
@@ -207,6 +222,7 @@ await test('bounds and parallelizes independent solver-cache lookups', async () 
     game_id: 'cash-rfi',
     question_data: {
       source: 'DETERMINISTIC_SOLVER',
+      solverProvenance,
       scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: hand, nodeType: 'preflop_open', boardCards: [] },
       options: [{ id: 'raise', text: 'Raise' }],
       correctAnswer: 'raise',
@@ -256,6 +272,7 @@ await test('batches atomic replacement at the database hand-id ceiling', async (
   const rpcBatches = [];
   const question = {
     source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
     scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
     options: [{ id: 'raise', text: 'Raise' }], correctAnswer: 'raise', gtoFrequencies: { raise: 100 },
   };
@@ -302,6 +319,7 @@ await test('syncs a Club Arena row through normalization, solver grading, and id
   const sourceFilters = [];
   const question = {
     source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
     scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
     options: [{ id: 'raise', text: 'Raise' }, { id: 'fold', text: 'Fold' }],
     correctAnswer: 'raise',
@@ -597,6 +615,7 @@ await test('retries a stale unpriced Club Arena audit after the solver refresh w
   let solverQueries = 0;
   const question = {
     source: 'DETERMINISTIC_SOLVER',
+    solverProvenance,
     scenario: { street: 'preflop', heroPosition: 'BTN', heroHand: 'AKo', nodeType: 'preflop_open', boardCards: [] },
     options: [{ id: 'raise', text: 'Raise' }],
     correctAnswer: 'raise',

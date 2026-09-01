@@ -497,7 +497,7 @@ export function applyNodeLockModel(analysis, locks, { facingBet = false } = {}) 
     actions,
     optimalAction: { ...actions[0] },
     isMixed: actions.filter(action => action.frequency >= 5).length > 1,
-    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    ev: { hero: 0, heroDisplay: 'Not Available', max: 0, min: 0, avg: 0, evLoss: 0 },
     rangeHeatmap: null,
     nodeLockApplied: true,
     nodeLocks: active,

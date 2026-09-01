@@ -273,7 +273,7 @@ test('node-lock model changes the recommendation but removes unmeasured EV claim
 
   assert.equal(adjusted.nodeLockApplied, true);
   assert.equal(adjusted.truthLevel, 'model_approx');
-  assert.equal(adjusted.ev.heroDisplay, '—');
+  assert.equal(adjusted.ev.heroDisplay, 'Not Available');
   assert.equal(adjusted.rangeHeatmap, null);
   assert.equal(adjusted.actions.some(action => Object.hasOwn(action, 'ev')), false);
   assert.notDeepEqual(

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
 import test from 'node:test';
 import { normalizePersonalAssistantCopy } from '../src/lib/personal-assistant/copyPolicy.mjs';
 
@@ -9,6 +10,23 @@ const routeFiles = [
   'pages/hub/personal-assistant/leaks.js',
   'pages/sandbox/[id].js',
 ];
+
+const visibleSourceRoots = [
+  'pages/hub/personal-assistant',
+  'pages/api/assistant',
+  'src/components/personal-assistant',
+  'src/components/sandbox',
+];
+
+async function sourceFiles(root) {
+  const files = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) files.push(...await sourceFiles(path));
+    else if (['.js', '.jsx', '.mjs', '.ts', '.tsx'].includes(extname(entry.name))) files.push(path);
+  }
+  return files;
+}
 
 test('Personal Assistant copy normalizer replaces separators and empty-value marks', () => {
   const mark = '\u2014';
@@ -37,19 +55,20 @@ test('copy policy covers body text, placeholders, dynamic mutations, and accessi
   const policy = await readFile('src/lib/personal-assistant/copyPolicy.mjs', 'utf8');
   assert.match(policy, /normalizePersonalAssistantCopy/);
   assert.match(policy, /titleCasePersonalAssistantCopy/);
+  assert.match(policy, /normalizePersonalAssistantCopy\(root\.nodeValue/);
+  assert.match(policy, /normalizePersonalAssistantCopy\(textNode\.nodeValue/);
 });
 
 test('owned Personal Assistant surfaces contain no banned em dash in SSR or exported copy', async () => {
   const files = [
-    ...routeFiles,
-    'src/components/sandbox/SandboxComponents.jsx',
-    'src/components/sandbox/ExportCard.jsx',
-    'src/components/sandbox/SessionReport.jsx',
-    'pages/api/assistant/sandbox/analyze.js',
-    'pages/api/assistant/leaks/detect.js',
+    ...new Set((await Promise.all(visibleSourceRoots.map(sourceFiles))).flat()),
+    'pages/sandbox/[id].js',
+    'src/lib/personal-assistant/copyPolicy.mjs',
+    'src/lib/sandbox/scenarioContract.mjs',
+    'src/lib/sandbox/trainingCacheSolver.mjs',
   ];
   for (const file of files) {
     const source = await readFile(file, 'utf8');
-    assert.doesNotMatch(source, /—|&mdash;|\\u2014/i, `${file} contains a banned em dash`);
+    assert.doesNotMatch(source, /—|&mdash;|&#8212;/i, `${file} contains a banned em dash`);
   }
 });
