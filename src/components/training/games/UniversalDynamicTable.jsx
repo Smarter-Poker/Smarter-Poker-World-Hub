@@ -1852,7 +1852,11 @@ function UniversalDynamicTable({
 
     // ═══ CARD PARSING (moved up — must be before handStrength useMemo) ═══
     const scenario = question?.scenario || {};
-    const board = scenario.board || '';
+    // Curated and solver-backed Training contracts publish canonical board
+    // cards at the question level. The Club Arena surface previously read only
+    // scenario.board, leaving valid Flop/Turn/River concept questions on an
+    // empty felt. Preserve both legacy scenario shapes after the canonical one.
+    const board = question?.boardCards || scenario.boardCards || scenario.board || '';
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
     const heroCards = useMemo(() => {
         if (Array.isArray(rawHeroCards)) return rawHeroCards;
@@ -3124,6 +3128,7 @@ function UniversalDynamicTable({
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
             data-training-visual-state={showFeedback ? 'verdict' : 'action'}
+            data-training-selected-action={selectedAnswer || ''}
             data-training-street={streetLabel.toLowerCase()}
             data-training-player-count={playerCount}
             data-training-board-count={visibleBoard.length}

@@ -25,6 +25,7 @@ const CASES = [
   { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
   { gameId: 'spins-001', family: 'spins', expectedPlayers: 3 },
   { gameId: 'mtt-002', family: 'mtt', expectedPlayers: 9 },
+  { gameId: 'mtt-021', family: 'multi-street', expectsFlopTurn: true },
   { gameId: 'mtt-001', family: 'push-fold', expectsAllIn: true },
 ];
 
@@ -54,6 +55,7 @@ async function snapshot(page, label) {
       label: snapshotLabel,
       pathname: location.pathname,
       visualState: root?.getAttribute('data-training-visual-state') || null,
+      selectedAction: root?.getAttribute('data-training-selected-action') || null,
       street: root?.getAttribute('data-training-street') || null,
       playerCount: Number(root?.getAttribute('data-training-player-count') || 0),
       boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
@@ -106,6 +108,18 @@ async function snapshot(page, label) {
   return state;
 }
 
+async function waitForVisualBoard(page) {
+  await page.waitForFunction(() => {
+    const root = document.querySelector('[data-training-ui="club-arena-table"]');
+    if (!root) return false;
+    const expectedByStreet = { preflop: 0, flop: 3, turn: 4, river: 5 };
+    const street = root.getAttribute('data-training-street');
+    const expected = expectedByStreet[street];
+    return Number.isInteger(expected)
+      && Number(root.getAttribute('data-training-board-count') || 0) === expected;
+  }, undefined, { timeout: 15_000 });
+}
+
 async function openArena(page, viewport, testCase) {
   const session = `phase6-${viewport.name}-${testCase.gameId}-${Date.now()}`;
   const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
@@ -137,6 +151,7 @@ async function openArena(page, viewport, testCase) {
   }, undefined, { timeout: 60_000 });
   await start.click();
   await page.locator('[data-training-ui="club-arena-table"]').waitFor({ state: 'visible', timeout: 60_000 });
+  await waitForVisualBoard(page);
   await page.waitForFunction(() => [...document.images]
     .filter((image) => image.getBoundingClientRect().width > 0)
     .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
@@ -149,15 +164,52 @@ async function openArena(page, viewport, testCase) {
   }
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-action.png`), fullPage: false });
 
-  await page.locator('.sp-club-gto-actions [data-action]').first().click();
+  const answerButton = testCase.expectsAllIn
+    ? page.locator('.sp-club-gto-actions [data-action="allin"]').first()
+    : testCase.expectsFlopTurn
+      ? page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first()
+      : page.locator('.sp-club-gto-actions [data-action]').first();
+  await answerButton.click();
   await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
   await page.getByText(/Next Question/).first().waitFor({ state: 'visible', timeout: 30_000 });
   const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
   assert.equal(verdict.feedbackPanels, 1);
+  if (testCase.expectsAllIn) {
+    assert.match(verdict.selectedAction || '', /all.?in|push/i, `${testCase.gameId}: all-in selection was not retained`);
+  }
   await page.waitForTimeout(1_000);
   assert.equal(await page.locator('[data-training-feedback="verdict"]').isVisible(), true, `${testCase.gameId}: verdict did not persist`);
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-verdict.png`), fullPage: false });
+
+  let progression = null;
+  if (testCase.expectsFlopTurn) {
+    let currentStreet = action.street;
+    for (let guard = 0; guard < 20 && !progression; guard += 1) {
+      const next = page.getByText(/Next - Continue Hand|Next Question/).first();
+      await next.click();
+      await page.waitForFunction(() => document.querySelector('[data-training-ui="club-arena-table"]')
+        ?.getAttribute('data-training-visual-state') === 'action', undefined, { timeout: 30_000 });
+      await waitForVisualBoard(page);
+      const nextAction = await snapshot(page, `${viewport.name}-${testCase.gameId}-progression-${guard + 1}`);
+      if (currentStreet === 'flop') {
+        assert.equal(nextAction.street, 'turn', `${testCase.gameId}: flop did not advance to turn`);
+        assert.equal(nextAction.boardCount, 4, `${testCase.gameId}: turn board count`);
+        progression = nextAction;
+        await page.screenshot({
+          path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-flop-to-turn-action.png`),
+          fullPage: false,
+        });
+        break;
+      }
+
+      currentStreet = nextAction.street;
+      const nonFold = page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first();
+      await nonFold.click();
+      await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+    }
+    assert.ok(progression, `${testCase.gameId}: no real flop-to-turn transition was observed`);
+  }
 
   let completion = null;
   if (testCase.expectsCompletion) {
@@ -220,7 +272,7 @@ async function openArena(page, viewport, testCase) {
     await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-completion.png`), fullPage: false });
   }
 
-  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict, completion };
+  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict, progression, completion };
 }
 
 const browser = await chromium.launch({ headless: true });

@@ -21,6 +21,7 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
 
   for (const contract of [
     'data-training-visual-state',
+    'data-training-selected-action',
     'data-training-street',
     'data-training-player-count',
     'data-training-board-count',
@@ -37,6 +38,7 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
     assert.match(table, new RegExp(contract), `${contract} must remain measurable`);
   }
   assert.match(table, /className="sp-club-gto-hero-card"/);
+  assert.match(table, /question\?\.boardCards \|\| scenario\.boardCards \|\| scenario\.board/);
   assert.match(table, /COMPLETE CLUB ARENA RING/);
   assert.doesNotMatch(table, /if \(!isHero && !isActiveVillain\) return null/);
   assert.match(table, /sp-club-gto-mode-bar:not\(\.is-feedback\)/);
@@ -45,7 +47,12 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
 
 test('God Mode Arena exposes a stable nonvisual completion-state anchor', async () => {
   const arena = await readFile('src/components/training/GodModeArena.jsx', 'utf8');
+  const parityAudit = await readFile('scripts/training-phase6-parity-audit.mjs', 'utf8');
 
   assert.match(arena, /data-training-ui="club-arena-completion"/);
   assert.match(arena, /data-training-visual-state="completion"/);
+  assert.match(parityAudit, /gameId: 'mtt-021'.*expectsFlopTurn: true/);
+  assert.match(parityAudit, /flop did not advance to turn/);
+  assert.match(parityAudit, /data-action="allin"/);
+  assert.match(parityAudit, /expectsCompletion: true/);
 });

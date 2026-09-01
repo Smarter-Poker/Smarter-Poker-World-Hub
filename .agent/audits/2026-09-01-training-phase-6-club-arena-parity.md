@@ -75,7 +75,8 @@ geometry from source text.
 
 `scripts/training-phase6-parity-audit.mjs` exercises the setup-to-gameplay
 boundary and action/verdict states for 6-max preflop, 6-max postflop, declared
-river, heads-up, three-player Spins, nine-player MTT, and push/fold families on
+river, heads-up, three-player Spins, nine-player MTT, deterministic flop-to-turn
+play, and an actually selected all-in/push decision on
 390x844 and 1440x1000. It asserts the approved header, footer ownership, scroll
 origin, 605x1000 Club Arena table aspect, seat/player agreement, hero cards,
 dealer, pot, all-in availability, loaded images, horizontal containment, and
@@ -104,6 +105,16 @@ active decision even though Range and Strategy are unavailable before an
 answer. On phones it is now hidden during the action state and returns for the
 verdict, freeing vertical space for the 605x1000 Club Arena table without
 removing post-answer study tools.
+
+### Authored Postflop Questions Lost Their Board On The Felt
+
+A fresh authenticated production probe of `mtt-021` found valid curated Turn
+and River questions rendering zero community cards. The question contract
+correctly carried `boardCards`, but the table only read the legacy
+`scenario.board` shape. The renderer now consumes canonical question-level
+cards first, then the two legacy scenario shapes. The runtime ledger waits for
+the exact zero/three/four/five-card street contract and fails if a postflop
+question ever reaches the player with an incomplete board.
 
 ## Remaining Phase 6 Work
 
