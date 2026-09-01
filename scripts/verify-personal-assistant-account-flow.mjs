@@ -78,6 +78,12 @@ async function runDetection(token) {
   let decisionsAnalyzed = 0;
   let privateCardsRecovered = 0;
   let handsMissingPrivateCards = 0;
+  let handsRejectedBeforeAudit = 0;
+  let handsEligible = 0;
+  let handsAlreadyCurrent = 0;
+  let handsSkippedNoHeroDecisions = 0;
+  let solverVerified = 0;
+  let unpriced = 0;
   let retriedRateLimit = false;
   let retriedTransient = false;
 
@@ -111,6 +117,12 @@ async function runDetection(token) {
     decisionsAnalyzed += Number(sync.decisionsAnalyzed) || 0;
     privateCardsRecovered += Number(sync.privateCardsRecovered) || 0;
     handsMissingPrivateCards += Number(sync.handsMissingPrivateCards) || 0;
+    handsRejectedBeforeAudit += Number(sync.handsRejectedBeforeAudit) || 0;
+    handsEligible += Number(sync.handsEligible) || 0;
+    handsAlreadyCurrent += Number(sync.handsAlreadyCurrent) || 0;
+    handsSkippedNoHeroDecisions += Number(sync.handsSkippedNoHeroDecisions) || 0;
+    solverVerified += Number(sync.solverVerified) || 0;
+    unpriced += Number(sync.unpriced) || 0;
     cursor = sync.auditCursor || null;
     if (!cursor) {
       return {
@@ -120,6 +132,12 @@ async function runDetection(token) {
         decisionsAnalyzed,
         privateCardsRecovered,
         handsMissingPrivateCards,
+        handsRejectedBeforeAudit,
+        handsEligible,
+        handsAlreadyCurrent,
+        handsSkippedNoHeroDecisions,
+        solverVerified,
+        unpriced,
         leaksDetected: Number(result.data?.leaksDetected) || 0,
         persisted: result.data?.persisted === true,
       };

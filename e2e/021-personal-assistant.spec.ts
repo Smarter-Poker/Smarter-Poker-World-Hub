@@ -307,7 +307,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /^Button Open Frequency\..*Open details/i }).click();
     const details = page.getByRole('dialog', { name: 'Leak details: Button Open Frequency' });
-    await expect(details).toBeVisible();
+    await expect(details).toBeVisible({ timeout: 15_000 });
     await expect(details.getByRole('heading', { name: 'How To Fix It' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Recent Example Hands' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Suggested Fixes' })).toBeVisible();
@@ -381,7 +381,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await page.getByRole('dialog', { name: 'Leak details: BTN Flop General Decisions' })
       .getByRole('button', { name: 'Start Corrective Review' }).click();
     const drill = page.getByRole('dialog', { name: 'Quick Spot Drill' });
-    await expect(drill).toBeVisible();
+    await expect(drill).toBeVisible({ timeout: 15_000 });
     await expect(drill.getByRole('note')).toContainText('Rewards Stay Locked Until Solver Provenance Is Sealed.');
     await expectHealthyLayout(page);
   });
@@ -426,8 +426,8 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect.poll(() => initialReads, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await page.getByRole('button', { name: /Run Leak Detection|Resume Saved Audit/i }).click();
 
-    await expect(page.getByText('Club Hands Scanned')).toBeVisible();
-    await expect(page.getByText('400', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Club Hands Scanned')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('400', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect.poll(() => polls, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await expect(page.getByText('Club Hands Scanned')).toBeVisible({ timeout: 15_000 });

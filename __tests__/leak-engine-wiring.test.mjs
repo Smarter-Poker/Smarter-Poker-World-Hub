@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { auditParsedHands, normalizeClubArenaHand, syncClubArenaHandsForAudit } from '../src/lib/training/handAuditEngine.js';
+import { auditParsedHands, clubArenaHandRejectionReason, normalizeClubArenaHand, syncClubArenaHandsForAudit } from '../src/lib/training/handAuditEngine.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const detect = read('pages/api/assistant/leaks/detect.js');
@@ -219,6 +219,17 @@ test('Club Arena live rows normalize stages, board, button and revealed hero car
   assert.equal(hand.streets.preflop.actions.length, 2);
   assert.equal(hand.streets.flop.actions.length, 1);
   assert.equal(hand.streets.preflop.actions[1].isHero, true);
+});
+
+test('Club Arena audit receipts distinguish missing cards from unsupported hand data', () => {
+  const base = {
+    game_variant: 'nlh',
+    players: [{ userId: 'hero', cards: [null, null] }],
+  };
+  assert.equal(clubArenaHandRejectionReason(base, 'hero'), 'missing_private_cards');
+  assert.equal(clubArenaHandRejectionReason({ ...base, game_variant: 'plo', hero_private_cards: ['As', 'Kh'] }, 'hero'), 'unsupported_variant');
+  assert.equal(clubArenaHandRejectionReason({ ...base, players: [], hero_private_cards: ['As', 'Kh'] }, 'hero'), 'missing_hero_identity');
+  assert.equal(clubArenaHandRejectionReason({ ...base, hero_private_cards: ['As', 'Kh'] }, 'hero'), null);
 });
 
 test('Club Arena solver identity uses starting stacks in big blinds and explicit format only', () => {

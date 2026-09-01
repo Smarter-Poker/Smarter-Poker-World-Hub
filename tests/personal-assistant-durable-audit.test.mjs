@@ -33,6 +33,7 @@ test('audit progress is cumulative and exposes the complete coverage funnel', ()
     clubArenaSync: {
       auditCursor: 'next', handsFound: 200, handsEligible: 170,
       privateCardsRecovered: 80, handsMissingPrivateCards: 30,
+      handsRejectedBeforeAudit: 12,
       handsSkippedNoHeroDecisions: 10, handsAudited: 120,
       handsAlreadyCurrent: 40, handsQueuedForRetry: 5,
       decisionsAnalyzed: 240, solverVerified: 180, unpriced: 60,
@@ -45,6 +46,7 @@ test('audit progress is cumulative and exposes the complete coverage funnel', ()
   assert.equal(final.batchesCompleted, 2);
   assert.equal(final.handsScanned, 250);
   assert.equal(final.decisionsAnalyzed, 300);
+  assert.equal(final.handsRejectedBeforeAudit, 12);
   assert.equal(final.totalProcessingMs, 2000);
   assert.equal(final.coverage.exactSolverMatches, 225);
   assert.equal(final.coverage.leaks, 6);
