@@ -31,8 +31,20 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
     : null;
 
+const CANCELLATION_REASONS = new Set([
+    'not_using',
+    'too_expensive',
+    'found_alternative',
+    'missing_features',
+    'technical_issues',
+    'other',
+]);
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
+
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Vary', 'Authorization');
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
@@ -50,7 +62,26 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { reason, reasonText } = req.body || {};
+      const clientKey = req.headers['x-idempotency-key'];
+      if (typeof clientKey !== 'string' || !IDEMPOTENCY_KEY_PATTERN.test(clientKey.trim())) {
+          return res.status(400).json({ success: false, error: 'A valid X-Idempotency-Key header is required' });
+      }
+      const body = req.body || {};
+      if (JSON.stringify(body).length > 1_024) {
+          return res.status(413).json({ success: false, error: 'Request body too large' });
+      }
+      const unknownFields = Object.keys(body).filter((key) => !['reason', 'reasonText'].includes(key));
+      if (unknownFields.length) {
+          return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
+      }
+      const reason = String(body.reason || 'unspecified').trim();
+      const reasonText = String(body.reasonText || '').trim();
+      if (reason !== 'unspecified' && !CANCELLATION_REASONS.has(reason)) {
+          return res.status(400).json({ success: false, error: 'Choose a valid cancellation reason' });
+      }
+      if (reasonText.length > 500) {
+          return res.status(400).json({ success: false, error: 'Cancellation details must be 500 characters or fewer' });
+      }
 
       try {
           // 1. Get the user's active VIP subscription
@@ -86,10 +117,10 @@ export default async function handler(req, res) {
               await stripe.subscriptions.update(sub.stripe_subscription_id, {
                   cancel_at_period_end: true,
                   metadata: {
-                      cancel_reason: reason || 'unspecified',
-                      cancel_reason_text: reasonText || '',
+                      cancel_reason: reason,
+                      cancel_reason_text: reasonText,
                   }
-              });
+              }, { idempotencyKey: `vip-cancel:${userId}:${clientKey.trim()}` });
 
           }
 
@@ -107,30 +138,37 @@ export default async function handler(req, res) {
               ? coreUpdate.eq('stripe_subscription_id', sub.stripe_subscription_id)
               : coreUpdate.in('status', ['active', 'trialing']);
           const { error: err_vip_subscriptions_werdq } = await coreUpdate;
+          let reconciliationPending = false;
           if (err_vip_subscriptions_werdq) {
               console.warn('[Supabase] vip_subscriptions cancel update failed:', err_vip_subscriptions_werdq.message);
-              return res.status(500).json({ success: false, error: 'Failed to cancel subscription' });
+              try { reportApiError(err_vip_subscriptions_werdq, req); } catch (_reportError) { /* billing result remains authoritative */ }
+              reconciliationPending = true;
           }
 
           // 4. Store cancellation reason (columns may not exist if migration not run)
-          try {
-              let reasonUpdate = getSupabase()
-                .from('vip_subscriptions')
-                .update({
-                      cancel_reason: reason || 'unspecified',
-                      cancel_reason_text: reasonText || '',
-                  })
-                  .eq('user_id', userId);
-              reasonUpdate = sub.stripe_subscription_id
-                  ? reasonUpdate.eq('stripe_subscription_id', sub.stripe_subscription_id)
-                  : reasonUpdate.in('status', ['active', 'trialing']);
-              const { error: err_vip_subscriptions_w3v1u } = await reasonUpdate;
-              if (err_vip_subscriptions_w3v1u) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_w3v1u.message);
-          } catch (reasonErr) { console.warn('[App] Handled exception:', reasonErr?.message || reasonErr); }
+          if (!reconciliationPending) {
+              try {
+                  let reasonUpdate = getSupabase()
+                    .from('vip_subscriptions')
+                    .update({
+                          cancel_reason: reason,
+                          cancel_reason_text: reasonText,
+                      })
+                      .eq('user_id', userId);
+                  reasonUpdate = sub.stripe_subscription_id
+                      ? reasonUpdate.eq('stripe_subscription_id', sub.stripe_subscription_id)
+                      : reasonUpdate.in('status', ['active', 'trialing']);
+                  const { error: err_vip_subscriptions_w3v1u } = await reasonUpdate;
+                  if (err_vip_subscriptions_w3v1u) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_w3v1u.message);
+              } catch (reasonErr) { console.warn('[App] Handled exception:', reasonErr?.message || reasonErr); }
+          }
 
           return res.status(200).json({
               success: true,
-              message: 'Subscription will cancel at the end of your billing period'
+              reconciliationPending,
+              message: reconciliationPending
+                  ? 'Billing Cancellation Is Scheduled. Membership Telemetry Is Refreshing.'
+                  : 'Subscription Will Cancel At The End Of Your Billing Period'
           });
       } catch (err) {
           console.warn('Cancel VIP error:', err);

@@ -77,6 +77,8 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
     : null;
 
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
+
 /**
  * Kept in step with VIP_SUBSCRIPTION_PLANS in create-checkout-session.js.
  * Same amounts, same env vars, same reasoning: the price is resolved SERVER
@@ -102,6 +104,8 @@ const VIP_PLANS = {
 
 export default async function handler(req, res) {
     try {
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        res.setHeader('Vary', 'Authorization');
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
             if (!applyRateLimit(req, res, LIMITS.write)) return;
         }
@@ -116,7 +120,20 @@ export default async function handler(req, res) {
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
         const userId = user.id;
 
-        const requested = String(req.body?.plan || '').toLowerCase();
+        const clientKey = req.headers['x-idempotency-key'];
+        if (typeof clientKey !== 'string' || !IDEMPOTENCY_KEY_PATTERN.test(clientKey.trim())) {
+            return res.status(400).json({ success: false, error: 'A valid X-Idempotency-Key header is required' });
+        }
+
+        const body = req.body || {};
+        if (JSON.stringify(body).length > 512) {
+            return res.status(413).json({ success: false, error: 'Request body too large' });
+        }
+        const unknownFields = Object.keys(body).filter((key) => key !== 'plan');
+        if (unknownFields.length) {
+            return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
+        }
+        const requested = String(body.plan || '').toLowerCase();
         const target = VIP_PLANS[requested];
         if (!target) {
             return res.status(400).json({
@@ -178,6 +195,19 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Could not read your plan details' });
         }
 
+        const currentInterval = item.price?.recurring?.interval;
+        if (currentInterval === target.interval) {
+            return res.status(200).json({
+                success: true,
+                idempotent: true,
+                tier: target.tier,
+                status: live.status,
+                nextInvoiceTotalCents: null,
+                nextInvoiceDate: null,
+                message: `You Are Already On The ${target.tier === 'annual' ? 'Annual' : 'Monthly'} Plan.`,
+            });
+        }
+
         // ── 3. The new price: a managed price object if one is configured,
         //       otherwise an inline one built from server constants. Same
         //       fallback create-checkout-session.js uses, and for the same
@@ -210,7 +240,7 @@ export default async function handler(req, res) {
                 plan_switched_at: new Date().toISOString(),
                 plan_switched_from: sub.tier || 'unknown',
             },
-        });
+        }, { idempotencyKey: `vip-switch:${userId}:${clientKey.trim()}` });
 
         // ── 5. Tell the member what actually happens, in their terms ──
         //       The upcoming invoice is the truth about the credit. If it

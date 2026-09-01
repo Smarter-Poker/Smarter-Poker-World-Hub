@@ -519,8 +519,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     let requestedPlan = '';
     let cancellationReason = '';
+    let planIdempotencyKey = '';
+    let cancellationIdempotencyKey = '';
     await page.route('**/api/store/switch-vip-plan', async (route) => {
       requestedPlan = (await route.request().postDataJSON()).plan;
+      planIdempotencyKey = route.request().headers()['x-idempotency-key'] || '';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -529,6 +532,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
     await page.route('**/api/store/cancel-vip', async (route) => {
       cancellationReason = (await route.request().postDataJSON()).reason;
+      cancellationIdempotencyKey = route.request().headers()['x-idempotency-key'] || '';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -543,6 +547,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await planDialog.getByRole('button', { name: /Confirm Annual Plan/i }).click();
     await expect(page.getByText('Annual plan verified.')).toBeVisible();
     expect(requestedPlan).toBe('annual');
+    expect(planIdempotencyKey).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
 
     await page.getByRole('button', { name: 'Schedule End Of Membership' }).click();
     const dialog = page.getByRole('dialog', { name: 'Confirm End Of Membership' });
@@ -551,6 +556,8 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     await dialog.getByRole('button', { name: 'Confirm End At Renewal' }).click();
     await expect(page.getByText('Cancellation scheduled at renewal.')).toBeVisible();
     expect(cancellationReason).toBe('missing_features');
+    expect(cancellationIdempotencyKey).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
+    expect(cancellationIdempotencyKey).not.toBe(planIdempotencyKey);
     await expect(page).toHaveURL('/hub/vip-membership/manage');
   });
 

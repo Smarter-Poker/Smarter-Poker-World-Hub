@@ -739,17 +739,59 @@ export function getAuthToken() {
     return getAccessToken();
 }
 
-/**
- * getFreshAccessToken — attempts to refresh token via Supabase REST if expired.
- * Falls back to getAccessToken() if refresh fails.
- */
+// ═══════════════════════════════════════════════════════════════════════════
+// getFreshAccessToken — fresh token for long-lived flows
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── 2026-09-01: THIS FUNCTION NO LONGER REFRESHES BY HAND. ────────────────
+//
+// It used to POST directly to
+//     ${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token
+// with the stored refresh_token, then write the response back into the shared
+// 'smarter-poker-auth' key as a hand-assembled six-field session object.
+//
+// PR #1198 removed exactly this code from the sibling module
+// src/lib/authUtils.ts, but missed this copy. It was the worst of the five
+// concurrent refreshers in the estate, for two independent reasons:
+//
+//   1. IT BYPASSED THE WEB LOCK. The Supabase SDK serialises refreshes across
+//      tabs and across the Hub/Club-Arena split with navigator.locks. A raw
+//      fetch() acquires nothing. Supabase refresh tokens ROTATE — the stored
+//      value dies the instant any refresh succeeds — so this POST regularly
+//      presented a token another refresher had already spent, producing
+//      `Invalid Refresh Token: Refresh Token Not Found`.
+//
+//   2. IT PERSISTED A PARTIAL SESSION. It reconstructed the session from six
+//      hand-picked fields and clobbered whatever the SDK had written. Anything
+//      the SDK expected but that shape omitted was silently dropped, and a
+//      truncated/absent refresh_token in the shared key is the likely source
+//      of `crypto: refresh token length is not valid`.
+//
+// next.config.js aliases authUtils.js -> authUtils.ts, so under webpack this
+// module is shadowed. That alias is not a safety guarantee: it has already
+// been observed hiding the opposite problem (see the ensureAuthReady note in
+// authUtils.ts, where the .ts stub shadowed the working .js implementation),
+// and anything resolving outside webpack — node, jest, ts-node, an explicit
+// `./authUtils.js` import — lands here.
+//
+// ALL REFRESHING NOW GOES THROUGH THE SDK. `supabase.auth.getSession()`
+// refreshes when the token is near expiry, does it under the Web Lock, and
+// persists the FULL session itself. Do not hand-roll this again — a second
+// refresher sharing one rotating token is a race, not a fallback.
+//
+// Strategy (identical to authUtils.ts):
+//   1. Decode the current JWT's exp claim. If exp > now + 60s buffer,
+//      return the existing token (no refresh, no network call at all).
+//   2. Otherwise ask the SDK for the session and hand back its access_token.
+//   3. Return null if the SDK cannot produce one — caller decides what to do.
 let _inFlightRefresh = null;
 export async function getFreshAccessToken() {
     if (typeof window === 'undefined') return null;
     const current = getAccessToken();
     if (!current) return null;
 
-    // Decode JWT exp claim
+    // Decode JWT exp claim — 60-second safety buffer so we don't hand out a
+    // token that is about to expire mid-request.
     try {
         const parts = current.split('.');
         if (parts.length === 3) {
@@ -759,24 +801,21 @@ export async function getFreshAccessToken() {
         }
     } catch (_) { /* ignore decode errors */ }
 
+    // BUG-HUNT-10: coalesce concurrent callers. The SDK's Web Lock serialises
+    // across tabs — this collapses the in-tab burst before it reaches the lock.
     if (_inFlightRefresh) return _inFlightRefresh;
     _inFlightRefresh = (async () => {
         try {
-            const authData = localStorage.getItem('smarter-poker-auth');
-            const refreshToken = authData ? JSON.parse(authData)?.refresh_token : null;
-            if (!refreshToken) return current;
-            const resp = await fetch(
-                `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-                { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refreshToken }) }
-            );
-            if (!resp.ok) return current;
-            const session = await resp.json();
-            if (session?.access_token) {
-                localStorage.setItem('smarter-poker-auth', JSON.stringify({ ...JSON.parse(authData), access_token: session.access_token, refresh_token: session.refresh_token || refreshToken, expires_at: session.expires_at, user: session.user }));
-                return session.access_token;
-            }
-        } catch (_) { console.warn('[authUtils] getFreshAccessToken failed:', _?.message || _); }
-        return current;
+            // getSession() refreshes when near expiry, under the Web Lock, and
+            // writes the complete session back to storage itself. This is the
+            // ONLY sanctioned refresh path in this module.
+            const { supabase: sb } = await import('./supabase');
+            const { data } = await sb.auth.getSession();
+            return data?.session?.access_token ?? null;
+        } catch (_) {
+            console.warn('[authUtils] getFreshAccessToken failed:', _?.message || _);
+            return null;
+        }
     })().finally(() => { _inFlightRefresh = null; });
     return _inFlightRefresh;
 }

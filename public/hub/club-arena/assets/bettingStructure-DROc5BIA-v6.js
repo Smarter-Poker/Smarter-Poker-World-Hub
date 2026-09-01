@@ -1,0 +1,2 @@
+const n=new Set(["plo4","plo5","plo6","plo8"]),s=new Set(["flh","flo8"]);function f(e){const t=(e||"").toLowerCase();return s.has(t)?"fixed_limit":n.has(t)||t.startsWith("plo")?"pot_limit":"no_limit"}function u(e){return f(e)==="fixed_limit"}function a(e,t){const r=(t||"preflop").toLowerCase();return r==="turn"||r==="river"||r==="showdown"?e*2:e}function c(e,t,r){const i=o=>Number.isInteger(o)?String(o):o.toFixed(2);return u(r)?`${i(t)}/${i(t*2)}`:`${i(e)}/${i(t)}`}export{f as b,a as f,u as i,c as s};
+//# sourceMappingURL=bettingStructure-DROc5BIA-v6.js.map

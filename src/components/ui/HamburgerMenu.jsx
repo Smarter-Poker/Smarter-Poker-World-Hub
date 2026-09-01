@@ -144,6 +144,7 @@ function HamburgerMenuContent({
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
   const restoreFocusRef = useRef(null);
+  const wasOpenRef = useRef(false);
   const navigationLockRef = useRef(null);
   const navigationTimerRef = useRef(null);
 
@@ -256,6 +257,7 @@ function HamburgerMenuContent({
   // ── Focus management ──────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
+      wasOpenRef.current = true;
       if (typeof document !== 'undefined') {
         const activeElement = document.activeElement;
         restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
@@ -265,6 +267,11 @@ function HamburgerMenuContent({
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
     }
+    // A closed drawer also renders on initial page load. Do not treat that
+    // first render as a close event: focusing the menu trigger here steals
+    // focus from route-owned status messages, dialogs, and form controls.
+    if (!wasOpenRef.current) return undefined;
+    wasOpenRef.current = false;
     const prev = restoreFocusRef.current;
     restoreFocusRef.current = null;
     const focusTarget = prev?.isConnected
