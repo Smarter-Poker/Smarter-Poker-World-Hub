@@ -14,6 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { useState } from 'react';
+import { Menu } from 'lucide-react';
 import HamburgerMenu from '../ui/HamburgerMenu';
 
 export default function CommanderPageShell({ children }) {
@@ -52,30 +53,7 @@ export default function CommanderPageShell({ children }) {
                     e.currentTarget.style.background = 'rgba(10, 30, 60, 0.85)';
                 }}
             >
-                <span
-                    aria-hidden="true"
-                    data-menu-symbol="command-grid"
-                    style={{
-                        width: 20,
-                        height: 20,
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gridTemplateRows: 'repeat(3, 1fr)',
-                        gap: 2,
-                    }}
-                >
-                    {Array.from({ length: 6 }, (_, index) => (
-                        <i
-                            key={index}
-                            style={{
-                                display: 'block',
-                                borderRadius: 2,
-                                background: '#22D3EE',
-                                boxShadow: '0 0 4px rgba(34, 211, 238, .72)',
-                            }}
-                        />
-                    ))}
-                </span>
+                <Menu size={20} color="#22D3EE" aria-hidden="true" />
             </button>
 
             {/* Universal HamburgerMenu - contains ReportBugWidget + Geeves AI */}
