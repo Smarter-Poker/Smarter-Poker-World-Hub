@@ -113,6 +113,12 @@ waiting for the deliberately absent global footer. Follow-up PR 1218 publishes
 that permanent smoke correction and regression contract through protected
 checks.
 
+The broad workflow on PR 1218 subsequently exposed stale Poker Near Me recovery
+and Diamond Wallet route tests. Protected follow-up PR 1231 makes the outage
+transition deterministic and opens the canonical Wallet modal; its focused
+Chromium/mobile reproduction passed all 17 affected tests without changing the
+global header or product behavior.
+
 ### Phase 7: Every Game's Secondary Pages
 
 Audit and optimize the setup, campaign, level selection, lobby, resume, review,
