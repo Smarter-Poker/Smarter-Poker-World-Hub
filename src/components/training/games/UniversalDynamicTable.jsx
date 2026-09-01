@@ -3350,11 +3350,20 @@ function UniversalDynamicTable({
                     scrollbar-color: rgba(83, 242, 160, .6) rgba(0, 0, 0, .28);
                     scrollbar-width: thin;
                 }
+                .gto-trainer-container[data-training-visual-state='verdict'] {
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+                }
+                .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
+                    /* Feedback is a review state, not a replacement for the
+                       live table. Preserve the same complete 605:1000 Club
+                       Arena canvas used while answering and scroll the review
+                       below it. Without an explicit basis the flex column
+                       shrank this area to zero on desktop. */
+                    flex: 0 0 540px !important;
+                    min-height: 540px !important;
+                }
                 @media (max-width: 640px) {
-                    .gto-trainer-container[data-training-visual-state='verdict'] {
-                        overflow-x: hidden !important;
-                        overflow-y: auto !important;
-                    }
                     .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
                         /* Feedback is a scrollable review state. It must not
                            steal the felt's flex height and collapse a complete

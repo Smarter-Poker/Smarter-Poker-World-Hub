@@ -44,6 +44,8 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
   assert.match(table, /sp-club-gto-mode-bar:not\(\.is-feedback\)/);
   assert.match(table, /showFeedback \? ' is-feedback' : ''/);
   assert.match(table, /data-training-visual-state='verdict'/);
+  assert.match(table, /flex: 0 0 540px/);
+  assert.match(table, /min-height: 540px/);
   assert.match(table, /flex: 0 0 min\(397px, 102vw\)/);
 });
 
@@ -53,8 +55,8 @@ test('God Mode Arena exposes a stable nonvisual completion-state anchor', async 
 
   assert.match(arena, /data-training-ui="club-arena-completion"/);
   assert.match(arena, /data-training-visual-state="completion"/);
-  assert.match(parityAudit, /gameId: 'mtt-021'.*expectsFlopTurn: true/);
-  assert.match(parityAudit, /flop did not advance to turn/);
+  assert.match(parityAudit, /gameId: 'mtt-021'.*family: 'postflop-mtt'/);
+  assert.match(parityAudit, /Club Arena board\/street mismatch/);
   assert.match(parityAudit, /data-action="allin"/);
   assert.match(parityAudit, /expectsCompletion: true/);
   assert.match(parityAudit, /page\.on\('pageerror'/);

@@ -14,20 +14,32 @@ assert.ok(existsSync(AUTH_STATE), `Authenticated storage state is missing: ${AUT
 mkdirSync(dirname(OUT), { recursive: true });
 mkdirSync(SHOTS, { recursive: true });
 
-const VIEWPORTS = [
+const ALL_VIEWPORTS = [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'desktop', width: 1440, height: 1000 },
 ];
-const CASES = [
+const ALL_CASES = [
   { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0, expectsCompletion: true },
   { gameId: 'cash-002', family: '6max-postflop' },
   { gameId: 'cash-012', family: 'river', expectedStreet: 'river', expectedBoard: 5 },
   { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
   { gameId: 'spins-001', family: 'spins', expectedPlayers: 3 },
   { gameId: 'mtt-002', family: 'mtt', expectedPlayers: 9 },
-  { gameId: 'mtt-021', family: 'multi-street', expectsFlopTurn: true },
+  { gameId: 'mtt-021', family: 'postflop-mtt' },
   { gameId: 'mtt-001', family: 'push-fold', expectsAllIn: true },
 ];
+const requestedViewports = new Set(String(process.env.TRAINING_PHASE6_VIEWPORTS || '')
+  .split(',').map((value) => value.trim()).filter(Boolean));
+const requestedGames = new Set(String(process.env.TRAINING_PHASE6_GAMES || '')
+  .split(',').map((value) => value.trim()).filter(Boolean));
+const VIEWPORTS = requestedViewports.size > 0
+  ? ALL_VIEWPORTS.filter(({ name }) => requestedViewports.has(name))
+  : ALL_VIEWPORTS;
+const CASES = requestedGames.size > 0
+  ? ALL_CASES.filter(({ gameId }) => requestedGames.has(gameId))
+  : ALL_CASES;
+assert.ok(VIEWPORTS.length > 0, 'Phase 6 viewport filter matched no canonical viewport');
+assert.ok(CASES.length > 0, 'Phase 6 game filter matched no canonical case');
 
 async function snapshot(page, label) {
   await page.waitForTimeout(500);
@@ -109,15 +121,38 @@ async function snapshot(page, label) {
 }
 
 async function waitForVisualBoard(page) {
-  await page.waitForFunction(() => {
-    const root = document.querySelector('[data-training-ui="club-arena-table"]');
-    if (!root) return false;
-    const expectedByStreet = { preflop: 0, flop: 3, turn: 4, river: 5 };
-    const street = root.getAttribute('data-training-street');
-    const expected = expectedByStreet[street];
-    return Number.isInteger(expected)
-      && Number(root.getAttribute('data-training-board-count') || 0) === expected;
-  }, undefined, { timeout: 15_000 });
+  try {
+    await page.waitForFunction(() => {
+      const root = document.querySelector('[data-training-ui="club-arena-table"]');
+      if (!root) return false;
+      const expectedByStreet = { preflop: 0, flop: 3, turn: 4, river: 5 };
+      const street = root.getAttribute('data-training-street');
+      const expected = expectedByStreet[street];
+      return Number.isInteger(expected)
+        && Number(root.getAttribute('data-training-board-count') || 0) === expected;
+    }, undefined, { timeout: 15_000 });
+  } catch (error) {
+    const state = await page.evaluate(() => {
+      const root = document.querySelector('[data-training-ui="club-arena-table"]');
+      return {
+        street: root?.getAttribute('data-training-street') || null,
+        boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
+        visualState: root?.getAttribute('data-training-visual-state') || null,
+        text: root?.textContent?.slice(0, 500) || null,
+      };
+    });
+    throw new Error(`Club Arena board/street mismatch: ${JSON.stringify(state)}`, { cause: error });
+  }
+}
+
+async function activateManualNext(page) {
+  const next = page.getByText(/Next Question|Next - Continue Hand/).first();
+  await next.waitFor({ state: 'visible', timeout: 30_000 });
+  await next.evaluate((button) => {
+    if (!(button instanceof HTMLButtonElement)) throw new Error('Manual Next control is not a button');
+    if (button.disabled) throw new Error('Manual Next control is disabled');
+    button.click();
+  });
 }
 
 async function openArena(page, viewport, testCase, diagnostics) {
@@ -171,8 +206,16 @@ async function openArena(page, viewport, testCase, diagnostics) {
     : testCase.expectsFlopTurn
       ? page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first()
       : page.locator('.sp-club-gto-actions [data-action]').first();
+  const recordResponsePromise = page.waitForResponse(
+    (candidate) => candidate.url().includes('/api/training/record-question'),
+    { timeout: 30_000 },
+  );
   await answerButton.click();
   await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+  const recordResponse = await recordResponsePromise;
+  const recordBody = await recordResponse.json().catch(() => null);
+  assert.ok(recordResponse.status() < 400,
+    `${testCase.gameId}: record-question ${recordResponse.status()} ${JSON.stringify(recordBody)}`);
   await page.getByText(/Next Question/).first().waitFor({ state: 'visible', timeout: 30_000 });
   const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
@@ -188,10 +231,28 @@ async function openArena(page, viewport, testCase, diagnostics) {
   if (testCase.expectsFlopTurn) {
     let currentStreet = action.street;
     for (let guard = 0; guard < 20 && !progression; guard += 1) {
-      const next = page.getByText(/Next - Continue Hand|Next Question/).first();
-      await next.click();
-      await page.waitForFunction(() => document.querySelector('[data-training-ui="club-arena-table"]')
-        ?.getAttribute('data-training-visual-state') === 'action', undefined, { timeout: 30_000 });
+      await activateManualNext(page);
+      try {
+        await page.waitForFunction((previousStreet) => {
+          const root = document.querySelector('[data-training-ui="club-arena-table"]');
+          if (root?.getAttribute('data-training-visual-state') !== 'action') return false;
+          if (previousStreet !== 'flop') return true;
+          return root.getAttribute('data-training-street') === 'turn'
+            && Number(root.getAttribute('data-training-board-count') || 0) === 4;
+        }, currentStreet, { timeout: 30_000 });
+      } catch (error) {
+        const state = await page.evaluate(() => {
+          const root = document.querySelector('[data-training-ui="club-arena-table"]');
+          return {
+            visualState: root?.getAttribute('data-training-visual-state') || null,
+            street: root?.getAttribute('data-training-street') || null,
+            boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
+          };
+        });
+        throw new Error(`Manual Next did not return to action: ${JSON.stringify({
+          state,
+        })}`, { cause: error });
+      }
       await waitForVisualBoard(page);
       const nextAction = await snapshot(page, `${viewport.name}-${testCase.gameId}-progression-${guard + 1}`);
       if (currentStreet === 'flop') {
@@ -222,9 +283,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
       const complete = page.locator('[data-training-ui="club-arena-completion"]');
       if (await complete.isVisible().catch(() => false)) break;
 
-      const next = page.getByText(/Next Question|Next - Continue Hand/).first();
-      await next.waitFor({ state: 'visible', timeout: 30_000 });
-      await next.click();
+      await activateManualNext(page);
       await page.waitForFunction(() => {
         const completion = document.querySelector('[data-training-ui="club-arena-completion"]');
         const table = document.querySelector('[data-training-ui="club-arena-table"]');

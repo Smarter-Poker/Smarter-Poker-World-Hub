@@ -1747,6 +1747,16 @@ export default function useGTOTrainer(
     } else {
       // Only clear hand summary when starting a fresh hand (not when finishing multi-street)
       setHandSummary(null);
+      // A continuation-free or off-tree answer marks MultiStreetHand complete
+      // inside recordAction(). That completed hand used to miss the cleanup
+      // branch above, leaving isMultiStreetActive true while the next authored
+      // question loaded. A River question was then labelled River but its five
+      // cards were clamped through the stale Flop state to three. Completed
+      // hands never own the next decision.
+      if (isMultiStreetActive || multiStreetHandRef.current) {
+        setIsMultiStreetActive(false);
+        multiStreetHandRef.current = null;
+      }
     }
 
     // Reset street state for new hand
@@ -1791,7 +1801,10 @@ export default function useGTOTrainer(
         // start; previously ANY flop/turn question began one regardless.
         const gameMode = trainerConfig?.gameMode || 'full';
         // Removed 'DETERMINISTIC_SOLVER' source restriction to enable multi-street for all 100+ games
-        if (gameMode === 'full' && (street === 'flop' || street === 'turn')) {
+        const continuationAction = scenario.nextStreetContinuationAction || null;
+        if (gameMode === 'full'
+          && continuationAction
+          && (street === 'flop' || street === 'turn')) {
           try {
             const { MultiStreetHand } = await import('../engines/MultiStreetHandManager');
             multiStreetHandRef.current = new MultiStreetHand(nextQ);

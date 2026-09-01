@@ -167,6 +167,10 @@ export default async function handler(req, res) {
                   deterministicEngine.setSupabaseClient(getSupabase());
                   try {
                       const needed = questionCount - cachedQuestions.length;
+                      const generationSeenIds = Array.from(new Set([
+                          ...seenIds,
+                          ...cachedQuestions.flatMap((row) => [row?.id, row?.question_data?.id]).filter(Boolean),
+                      ]));
                       const batch = await deterministicEngine.generateBatch({
                           gameId,
                           level: gameLevel,
@@ -181,6 +185,7 @@ export default async function handler(req, res) {
                           scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
                           spotTypes: scenarioConfig?.spotTypes || undefined,
                           stackDepths: scenarioConfig?.stackDepths || undefined,
+                          seenIds: generationSeenIds,
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => ({ question_data: q }));
@@ -265,8 +270,11 @@ export default async function handler(req, res) {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
 
-              if (String(q.engine_type || '').toUpperCase() === 'CHART'
-                  && String(qData.type || '').toUpperCase() === 'CHART') {
+              // The payload type is authoritative here. Some historical chart
+              // rows were stored under the generic PIO engine label, so
+              // requiring both labels let valid Push/Fold charts bypass the
+              // lossless preflop canonicalizer and then fail server grading.
+              if (String(qData.type || '').toUpperCase() === 'CHART') {
                   normalizeAuditedChartQuestion(qData);
               }
 
@@ -468,15 +476,18 @@ export default async function handler(req, res) {
               });
           }
 
-          // A live deterministic question must become canonical before it can
-          // be answered. record-question regrades against this server-side row;
-          // without this write, cache-miss questions could only produce
-          // browser-asserted telemetry and the Leak Finder could not trust them.
-          if (solverQuestions.length > 0) {
-              const generatedIds = new Set(solverQuestions.map(q => q?.question_data?.id).filter(Boolean));
-              const generatedRows = enrichedBatch
-                  .filter(q => generatedIds.has(q.id))
-                  .map(q => ({
+          // Every served question must be persisted in the exact post-contract
+          // envelope the player received. This includes legacy cache hits: the
+          // reader sanitizes and discloses them in memory, so leaving the old
+          // unsanitized row untouched made record-question reject the answer as
+          // expired even though this endpoint had just served it.
+          const generatedIds = new Set(solverQuestions
+              .map(q => q?.question_data?.id)
+              .filter(Boolean)
+              .map(id => String(id).slice(0, 180)));
+          const canonicalRows = Array.from(new Map(enrichedBatch
+                  .filter(q => q?.id)
+                  .map(q => [String(q.id).slice(0, 180), {
                       question_id: String(q.id).slice(0, 180),
                       game_id: gameId,
                       engine_type: String(gameId).startsWith('psy-') ? 'SCENARIO'
@@ -485,19 +496,27 @@ export default async function handler(req, res) {
                           : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
                       level: gameLevel,
                       question_data: q,
-                      times_used: 1,
-                  }));
-              if (generatedRows.length > 0) {
-                  const { error: cacheWriteErr } = await getSupabase()
-                      .from('training_question_cache')
-                      .upsert(generatedRows, { onConflict: 'question_id', ignoreDuplicates: true });
+                  }])).values());
+              const cachedCanonicalRows = canonicalRows.filter(row => !generatedIds.has(row.question_id));
+              const generatedCanonicalRows = canonicalRows
+                  .filter(row => generatedIds.has(row.question_id))
+                  .map(row => ({ ...row, times_used: 1 }));
+              if (canonicalRows.length > 0) {
+                  const canonicalWrites = await Promise.all([
+                      cachedCanonicalRows.length > 0
+                          ? getSupabase().from('training_question_cache')
+                              .upsert(cachedCanonicalRows, { onConflict: 'question_id' })
+                          : Promise.resolve({ error: null }),
+                      generatedCanonicalRows.length > 0
+                          ? getSupabase().from('training_question_cache')
+                              .upsert(generatedCanonicalRows, { onConflict: 'question_id' })
+                          : Promise.resolve({ error: null }),
+                  ]);
+                  const cacheWriteErr = canonicalWrites.find(result => result?.error)?.error;
                   if (cacheWriteErr) {
-                      // Serving still succeeds, but record-question will mark
-                      // the answer unverified rather than laundering it.
-                      console.warn('[BatchPreload] Could not canonicalize generated questions:', cacheWriteErr.message);
+                      console.warn('[BatchPreload] Could not canonicalize served questions:', cacheWriteErr.message);
                   }
               }
-          }
 
 
           return res.status(200).json({
