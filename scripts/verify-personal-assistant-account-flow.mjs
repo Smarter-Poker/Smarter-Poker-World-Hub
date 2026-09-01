@@ -128,8 +128,9 @@ async function runDetection(token) {
   throw new Error('Deterministic audit exceeded its bounded continuation budget.');
 }
 
-async function findVerifiedDrill(token, leaks) {
-  const diagnostics = { candidates: 0, verified: 0, insufficient: 0, unmapped: 0, missing: 0, other: 0, scopes: [] };
+async function auditDrillCoverage(token, leaks) {
+  const diagnostics = { candidates: 0, verified: 0, practice: 0, empty: 0, unmapped: 0, missing: 0, other: 0, scopes: [] };
+  let verifiedDrill = null;
   const orderedLeaks = [...leaks].sort((a, b) => {
     const solverRank = leak => leak?.source_system === 'solver_engine' && /^solver_(training|club_arena)_/.test(String(leak?.leak_type || '')) ? 0 : 1;
     return solverRank(a) - solverRank(b);
@@ -139,13 +140,12 @@ async function findVerifiedDrill(token, leaks) {
     diagnostics.candidates += 1;
     const result = await requestJson(`/api/sandbox/custom-drill?leak=${encodeURIComponent(leak.id)}`, token);
     if (result.response.status === 422) {
-      const reason = result.data?.reason === 'insufficient_verified_questions' ? 'insufficient' : 'unmapped';
+      const reason = result.data?.reason === 'no_practice_questions' ? 'empty' : 'unmapped';
       diagnostics[reason] += 1;
       diagnostics.scopes.push({
         type: leak.leak_type || 'unknown',
         source: leak.source_system || 'unknown',
         reason,
-        ...(reason === 'insufficient' ? { available: Number(result.data?.available) || 0 } : {}),
       });
       continue;
     }
@@ -167,11 +167,39 @@ async function findVerifiedDrill(token, leaks) {
         && question.options.length >= 2
       ));
       if (!answerKeysHidden) throw new Error('Verified drill exposed private grading data.');
-      return { leak, questions, drillToken: result.data.drillToken };
+      if (!verifiedDrill) verifiedDrill = { leak, questions, drillToken: result.data.drillToken };
+      continue;
     }
-    diagnostics.scopes.push({ type: leak.leak_type || 'unknown', source: leak.source_system || 'unknown', reason: 'practice_only' });
+    const practiceSafe = result.data?.practiceOnly === true
+      && result.data?.serverVerified === false
+      && !result.data?.drillToken
+      && typeof result.data?.evidenceDisclosure === 'string'
+      && result.data.evidenceDisclosure.length > 0
+      && questions.length > 0
+      && questions.every(question => (
+        question?.answer_locked !== true
+        && typeof question?.correct_answer === 'string'
+        && Array.isArray(question?.options)
+        && question.options.length >= 2
+      ));
+    if (!practiceSafe) {
+      diagnostics.other += 1;
+      diagnostics.scopes.push({ type: leak.leak_type || leak.leak_category || 'unknown', source: leak.source_system || 'unknown', reason: 'invalid_practice_contract' });
+      continue;
+    }
+    diagnostics.practice += 1;
+    diagnostics.scopes.push({
+      type: leak.leak_type || leak.leak_category || 'unknown',
+      source: leak.source_system || 'unknown',
+      reason: result.data?.verificationReason || 'practice_only',
+      questions: questions.length,
+    });
   }
-  throw new Error(`No active leak produced a server-verified corrective drill (${JSON.stringify(diagnostics)}).`);
+  const covered = diagnostics.verified + diagnostics.practice;
+  if (covered !== diagnostics.candidates || diagnostics.empty || diagnostics.unmapped || diagnostics.missing || diagnostics.other) {
+    throw new Error(`Corrective drill coverage is incomplete (${JSON.stringify(diagnostics)}).`);
+  }
+  return { diagnostics, verifiedDrill };
 }
 
 async function completeVerifiedDrill(token, drill) {
@@ -235,18 +263,22 @@ try {
   const after = await requestJson('/api/assistant/leaks', token);
   assertSuccess(after, 'Leak history read after audit');
   const afterLeaks = Array.isArray(after.data?.leaks) ? after.data.leaks : [];
-  const drill = await findVerifiedDrill(token, afterLeaks);
-  const drillResult = completeDrill ? await completeVerifiedDrill(token, drill) : null;
+  const drillCoverage = await auditDrillCoverage(token, afterLeaks);
+  if (completeDrill && !drillCoverage.verifiedDrill) {
+    throw new Error('No provenance-sealed corrective drill is available for completion testing.');
+  }
+  const drillResult = completeDrill ? await completeVerifiedDrill(token, drillCoverage.verifiedDrill) : null;
 
   console.log(JSON.stringify({
     success: true,
     baseUrl,
     leakHistory: { before: beforeLeaks.length, after: afterLeaks.length },
     deterministicAudit: audit,
+    correctiveDrillCoverage: drillCoverage.diagnostics,
     verifiedDrill: {
-      available: true,
-      questions: drill.questions.length,
-      answerKeysHidden: true,
+      available: Boolean(drillCoverage.verifiedDrill),
+      questions: drillCoverage.verifiedDrill?.questions.length || 0,
+      answerKeysHidden: Boolean(drillCoverage.verifiedDrill),
       ...(drillResult || {}),
     },
   }, null, 2));

@@ -241,6 +241,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
     // { status: 'saving' | 'done' | 'skipped' | 'error', intervalDays, persisted }
     const [review, setReview] = useState(null);
     const [drillToken, setDrillToken] = useState(null);
+    const [practiceDisclosure, setPracticeDisclosure] = useState(null);
     const [answerError, setAnswerError] = useState(null);
 
     const deadlineRef = useRef(DURATION * 1000);
@@ -304,6 +305,9 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
                 : Math.max(1, Math.min(Number(activeParams?.limit) || 10, 20));
             setQuestions(shuffle(mapped).slice(0, cap));
             setDrillToken(typeof json?.drillToken === 'string' ? json.drillToken : null);
+            setPracticeDisclosure(json?.practiceOnly === true && typeof json?.evidenceDisclosure === 'string'
+                ? json.evidenceDisclosure
+                : null);
             setCurrentIdx(0);
             setAnswer(null);
             setRevealed(false);
@@ -318,11 +322,12 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         } catch (e) {
             if (e?.name === 'AbortError') return;
             console.warn('[QuickSpotDrill] Load error:', e?.message || e);
-            setLoadError(e?.reason === 'insufficient_verified_questions'
+            setLoadError(['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason)
                 ? e.message
                 : 'Could not load drills. Check your connection and try again.');
-            setLoadErrorPermanent(e?.reason === 'insufficient_verified_questions');
+            setLoadErrorPermanent(['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason));
             setQuestions([]);
+            setPracticeDisclosure(null);
         } finally {
             setLoading(false);
         }
@@ -755,6 +760,22 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
             <PAStyles />
             <span className="pa-vh" role="status" aria-live="polite">{announcement}</span>
 
+            {practiceDisclosure && !loading && !loadError && (
+                <div
+                    role="note"
+                    style={{
+                        display: 'flex', alignItems: 'flex-start', gap: S.sm,
+                        marginBottom: S.md, padding: S.sm,
+                        background: T.warnSoft, border: `1px solid ${T.warn}`,
+                        borderRadius: R.sm, color: T.textMuted,
+                        fontSize: F.caption, lineHeight: 1.45,
+                    }}
+                >
+                    <AlertTriangle size={16} strokeWidth={2} color={T.warn} aria-hidden="true" />
+                    <span>{practiceDisclosure}</span>
+                </div>
+            )}
+
             {/* ── quit confirmation ─────────────────────────────────────── */}
             {confirmQuit ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
@@ -793,7 +814,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
                 </div>
             ) : loadError ? (
                 <ErrorState
-                    title={loadErrorPermanent ? 'Verified Drill Not Available Yet' : 'Could Not Load Drills'}
+                    title={loadErrorPermanent ? 'Corrective Drill Not Available Yet' : 'Could Not Load Drills'}
                     body={loadError}
                     onRetry={loadErrorPermanent ? undefined : load}
                 />

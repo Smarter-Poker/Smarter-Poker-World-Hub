@@ -3,7 +3,7 @@
  * W6-3: Fetches drill questions filtered by custom parameters (street, position).
  *
  * Source of truth is `training_question_cache` (27k+ rows in production), NOT
- * `training_questions` (0 rows — querying it made every custom drill empty and
+ * `training_questions` (0 rows; querying it made every custom drill empty and
  * broke the spaced-repetition review loop). The payload lives in the
  * `question_data` jsonb: street/position under `question_data->scenario`,
  * options as [{ id, text }], and `correctAnswer` holding an option *id* while
@@ -12,7 +12,7 @@
  * server-side into the mapped pool shape the client already understands.
  *
  * Response contract (QuickSpotDrill.jsx):
- *   { success: true, pool: [...], questions: [...] }  — both keys hold the same rows.
+ *   { success: true, pool: [...], questions: [...] } with both keys holding the same rows.
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -20,7 +20,7 @@ import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { MIN_VERIFIED_QUESTIONS, sealDrillBatch } from '../../../../src/lib/personal-assistant/drillTelemetry';
 import { leakToDrill } from '../../../../src/lib/sandbox/leakReview';
-import { isVerifiedSolverQuestion, solverDecisionGroupKey } from '../../../../src/lib/training/solverDecisionEvidence';
+import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, solverDecisionGroupKey } from '../../../../src/lib/training/solverDecisionEvidence';
 
 let _supabase = null;
 function getSupabase() {
@@ -34,8 +34,8 @@ function getSupabase() {
 
 /**
  * Largest drill a caller may request. This is deliberately the same 20 the two
- * clients enforce — CustomDrillBuilder's HAND_COUNTS tops out at 20 and
- * QuickSpotDrill clamps the pool it keeps to 20 — so the server cap is not a
+ * clients enforce. CustomDrillBuilder's HAND_COUNTS tops out at 20 and
+ * QuickSpotDrill clamps the pool it keeps to 20, so the server cap is not a
  * silent lie about what a caller can actually receive. Raising it here alone is
  * inert: raise all three together or not at all.
  * Over-limit requests are clamped rather than rejected so an over-eager client
@@ -48,11 +48,12 @@ async function loadOwnedLeak(supabase, userId, leakId) {
     const sources = [
         {
             table: 'user_leaks',
-            columns: 'id, leak_category, leak_type, situation_class, source_system, recommended_drill, avg_ev_loss_bb, occurrence_count, detector_managed, status, is_active',
+            columns: 'id, leak_category, leak_type, leak_name, situation_class, source_system, recommended_drill, avg_ev_loss_bb, occurrence_count, detector_managed, status, is_active',
             map: (row) => ({
                 leakCategory: row.leak_category,
                 leakType: row.leak_type,
-                situationClass: row.situation_class,
+                situationClass: row.situation_class || row.leak_name,
+                leakName: row.leak_name,
                 sourceSystem: row.source_system,
                 recommendedDrill: row.recommended_drill,
                 avgEvLoss: row.avg_ev_loss_bb,
@@ -102,7 +103,6 @@ function isRewardEligibleLeak(owned) {
 }
 
 function matchesExactSolverScope(question, leak) {
-    if (!isVerifiedSolverQuestion(question)) return false;
     const type = String(leak?.leakType || '');
     const evidenceScope = type.startsWith('solver_club_arena_') ? 'club_arena' : 'training';
     const scenario = question?.scenario || {};
@@ -115,6 +115,18 @@ function matchesExactSolverScope(question, leak) {
     }) === type;
 }
 
+function honestPracticeQuestion(question) {
+    if (!question || typeof question !== 'object') return null;
+    const copy = {
+        ...question,
+        scenario: question.scenario && typeof question.scenario === 'object' ? { ...question.scenario } : question.scenario,
+        solverProvenance: question.solverProvenance && typeof question.solverProvenance === 'object'
+            ? { ...question.solverProvenance }
+            : question.solverProvenance,
+    };
+    return enforceSolverClaimHonesty(copy);
+}
+
 // Historical Training Arena rows use both `cash_002` and `cash-002`. Solver
 // grouping deliberately slug-normalizes those into the same evidence scope,
 // but an exact PostgREST equality check does not. Query both storage aliases,
@@ -125,7 +137,7 @@ function gameIdAliases(value) {
     return [...new Set([raw, raw.replace(/-/g, '_'), raw.replace(/_/g, '-')])];
 }
 
-/** Unbiased shuffle — sort(() => 0.5 - Math.random()) is not uniform. */
+/** Unbiased shuffle because sort(() => 0.5 - Math.random()) is not uniform. */
 function shuffle(arr) {
     const out = [...arr];
     for (let i = out.length - 1; i > 0; i--) {
@@ -142,7 +154,7 @@ function shuffle(arr) {
  * Options arrive as [{ id, text, frequency? }] and `correctAnswer` is the
  * option id (e.g. "b16" or "d"). The client repairs any question whose
  * correct_answer isn't among its option texts by splicing the raw value in as
- * a new option — so resolving id → text here is correctness, not cosmetics.
+ * a new option, so resolving id to text here is correctness, not cosmetics.
  * Returns null for rows that can't produce an answerable question; the caller
  * filters those out rather than shipping a guaranteed-wrong drill.
  */
@@ -169,7 +181,7 @@ function mapCacheRow(row) {
 
     return {
         id: row.id ?? null,
-        scenario_text: qd.question || scen.context || scen.title || 'What is the GTO play here?',
+        scenario_text: qd.question || scen.context || scen.title || 'Which Action Fits This Recorded Decision?',
         hero_hand: qd.heroHand || scen.heroHand || null,
         hero_position: scen.heroPosition || null,
         street: scen.street || null,
@@ -209,7 +221,7 @@ export default async function handler(req, res) {
               ownedDrillParams.leak = ownedLeak.drill;
           }
 
-          // parseInt('abc') is NaN — slice(0, NaN) silently returns [].
+          // parseInt('abc') is NaN; slice(0, NaN) silently returns [].
           // Upper bound is 50 (the drill builder's longest set); the 200-row
           // candidate window below still comfortably covers it.
           const n = Math.min(Math.max(parseInt(ownedDrillParams?.limit ?? limit, 10) || 10, 1), MAX_DRILL_LIMIT);
@@ -218,7 +230,7 @@ export default async function handler(req, res) {
           const effectiveGame = ownedDrillParams?.game ?? game;
 
           // Apply filters. Stored values are lowercase ("flop", "BTN") while
-          // the builder sends "Flop"/"BTN" — ilike is case-insensitive.
+          // the builder sends "Flop"/"BTN"; ilike is case-insensitive.
           // A solver leak knows which Training Arena game produced it. Keep
           // that identity through the review handoff instead of serving an
           // unrelated question that only shares street and position.
@@ -240,6 +252,8 @@ export default async function handler(req, res) {
           // Page deterministically until the exact shared solver scope has
           // enough rows or the documented 2,000-candidate safety bound ends.
           const mappedRows = [];
+          const exactPracticeRows = [];
+          const scopedPracticeRows = [];
           const PAGE_SIZE = 200;
           for (let from = 0; from < 2000 && mappedRows.length < n; from += PAGE_SIZE) {
               const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
@@ -250,33 +264,52 @@ export default async function handler(req, res) {
                   throw error;
               }
               const page = data || [];
-              mappedRows.push(...page
-                  .filter((row) => (
-                      !ownedDrillParams?.rewardEligible || matchesExactSolverScope(row.question_data, ownedDrillParams.leak)
-                  ))
-                  .map(mapCacheRow)
-                  .filter(Boolean));
+              if (ownedDrillParams?.rewardEligible) {
+                  for (const row of page) {
+                      const exactScope = matchesExactSolverScope(row.question_data, ownedDrillParams.leak);
+                      const honestQuestion = honestPracticeQuestion(row.question_data);
+                      const mapped = mapCacheRow(honestQuestion ? {
+                          ...row,
+                          question_data: honestQuestion,
+                      } : row);
+                      if (!mapped) continue;
+                      scopedPracticeRows.push(mapped);
+                      if (exactScope) exactPracticeRows.push(mapped);
+                      if (exactScope && isVerifiedSolverQuestion(row.question_data)) mappedRows.push(mapCacheRow(row));
+                  }
+              } else {
+                  mappedRows.push(...page.map((row) => ({
+                      ...row,
+                      question_data: honestPracticeQuestion(row.question_data),
+                  })).map(mapCacheRow).filter(Boolean));
+              }
               if (page.length < PAGE_SIZE) break;
           }
 
-          const pool = shuffle(mappedRows).slice(0, n);
+          const verifiedPool = shuffle(mappedRows.filter(Boolean)).slice(0, n);
+          const verifiedReady = ownedDrillParams?.rewardEligible
+              && verifiedPool.length >= MIN_VERIFIED_QUESTIONS;
+          const practiceCandidates = exactPracticeRows.length >= Math.min(n, MIN_VERIFIED_QUESTIONS)
+              ? exactPracticeRows
+              : scopedPracticeRows;
+          const pool = ownedDrillParams?.rewardEligible && !verifiedReady
+              ? shuffle(practiceCandidates).slice(0, n)
+              : verifiedPool;
 
-          if (ownedDrillParams?.rewardEligible && pool.length < MIN_VERIFIED_QUESTIONS) {
+          if (ownedDrillParams?.rewardEligible && pool.length === 0) {
               return res.status(422).json({
                   success: false,
-                  error: 'This solver leak does not yet have enough exact verified spots for a corrective attempt.',
-                  reason: 'insufficient_verified_questions',
-                  required: MIN_VERIFIED_QUESTIONS,
-                  available: pool.length,
+                  error: 'No Relevant Practice Spots Are Available For This Leak Yet.',
+                  reason: 'no_practice_questions',
               });
           }
 
           // `pool` is what QuickSpotDrill reads; `questions` kept for parity with
           // the training route's response shape.
-          const drillToken = drillUserId && ownedDrillParams?.rewardEligible
+          const drillToken = drillUserId && verifiedReady
               ? sealDrillBatch({ leakId, questionIds: pool.map((row) => row.id) }, drillUserId)
               : null;
-          if (ownedDrillParams?.rewardEligible && !drillToken) {
+          if (verifiedReady && !drillToken) {
               throw new Error('Verified drill signing is unavailable');
           }
           // Verified question keys remain private until an answer is atomically
@@ -285,12 +318,22 @@ export default async function handler(req, res) {
           const publicPool = drillToken
               ? pool.map(({ correct_answer: _answer, gto_explanation: _explanation, ...row }) => ({ ...row, answer_locked: true }))
               : pool;
+          const practiceOnly = Boolean(drillUserId && !drillToken);
           return res.status(200).json({
               success: true,
               pool: publicPool,
               questions: publicPool,
               drillToken,
               serverVerified: Boolean(drillToken),
+              practiceOnly,
+              verificationReason: practiceOnly
+                  ? (ownedDrillParams?.rewardEligible ? 'solver_provenance_pending' : 'practice_only')
+                  : null,
+              evidenceDisclosure: practiceOnly
+                  ? (ownedDrillParams?.rewardEligible
+                      ? 'Practice Mode Uses Relevant Archived Strategy Data. Rewards Stay Locked Until Solver Provenance Is Sealed.'
+                      : 'Practice Mode Does Not Change Leak Mastery Or Unlock Rewards. A Verified Corrective Drill Requires A Signed Solver Batch.')
+                  : null,
           });
       } catch (err) {
           console.warn('[custom-drill] Error:', err);

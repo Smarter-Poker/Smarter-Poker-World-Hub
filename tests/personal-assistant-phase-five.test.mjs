@@ -81,12 +81,23 @@ test('initial verified payload hides keys and exact solver provenance gates sign
   assert.match(drillApi, /matchesExactSolverScope/);
   assert.match(drillApi, /detectorManaged === true/);
   assert.match(drillApi, /sourceSystem === 'solver_engine'/);
-  assert.match(drillApi, /pool\.length < MIN_VERIFIED_QUESTIONS/);
+  assert.match(drillApi, /verifiedPool\.length >= MIN_VERIFIED_QUESTIONS/);
   assert.match(drillApi, /correct_answer: _answer, gto_explanation: _explanation/);
   assert.match(drillApi, /answer_locked: true/);
   assert.doesNotMatch(drillApi, /start_verified_leak_drill/);
   assert.match(answerApi, /Session creation is deliberately deferred until the first locked answer/);
   assert.match(answerApi, /start_verified_leak_drill/);
+});
+
+test('unsealed solver rows remain practice-only and disclose their evidence limit', () => {
+  assert.match(drillApi, /enforceSolverClaimHonesty/);
+  assert.match(drillApi, /verifiedPool\.length >= MIN_VERIFIED_QUESTIONS/);
+  assert.match(drillApi, /const practiceOnly = Boolean\(drillUserId && !drillToken\)/);
+  assert.match(drillApi, /verificationReason:[\s\S]*solver_provenance_pending/);
+  assert.match(drillApi, /Rewards Stay Locked Until Solver Provenance Is Sealed/);
+  assert.doesNotMatch(drillApi, /What is the GTO play here/);
+  assert.match(drillUi, /role="note"/);
+  assert.match(drillUi, /practiceDisclosure/);
 });
 
 test('corrective drills resolve hyphen and underscore aliases without weakening exact solver scope', () => {
