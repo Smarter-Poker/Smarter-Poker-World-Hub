@@ -206,8 +206,8 @@ test('the authenticated E2E gate can finish and report without masking test resu
 
     assert.match(
         workflow,
-        /PLAYWRIGHT_WORKERS:\s*4/,
-        'the workflow must explicitly budget enough workers for the authenticated desktop/mobile matrix'
+        /PLAYWRIGHT_WORKERS:\s*2/,
+        'the workflow must explicitly bound the authenticated desktop/mobile matrix to the measured two-worker server capacity'
     );
     assert.match(
         workflow,

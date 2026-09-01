@@ -622,6 +622,17 @@ ALL_CRONS = [
     ('/api/cron/tournament-bounty-detect',         dict(minute='*/10')),      # every 10 min during MTT runs
     ('/api/cron/player-stats-refresh',             dict(minute=15)),          # hourly @ :15 — leaderboard refresh
     ('/api/cron/rakeback-period-settle',           dict(day_of_week='mon', hour=10, minute=30)),
+    # ── 2026-09-01 — per-job silence detector ────────────────────────────
+    # The 2026-08-31 CRON_SECRET skew 401'd 62 workers-routed jobs for 25
+    # hours and no guard could see it: a 401 is rejected before the
+    # cron_execution_log middleware runs, so the log does not go red, it goes
+    # SILENT. check-cron-liveness.mjs counts failures (there were none to
+    # count) and check-cron-fleet-alive.mjs asks only whether ANY job is
+    # alive. This asks the per-job question - has THIS job succeeded within
+    # twice its own observed p90 cadence - and appends one engine_alerts row
+    # per state change. Every 15 minutes: cheap (one view read), and well
+    # inside the 45-minute floor the detector uses.
+    ('/api/cron/cron-staleness-watchdog',          dict(minute='*/15')),
     ('/api/cron/anti-cheat-multi-account',         dict(minute='*/30')),      # every 30 min — shared-IP detection (R67)
     ('/api/cron/anti-cheat-bot-timing',            dict(minute=0)),           # hourly — intra-hand delta std-dev (x67-1)
     ('/api/cron/anti-cheat-chip-dump',             dict(minute='*/30')),      # every 30 min — giver→receiver pair pattern (x69)
@@ -890,6 +901,7 @@ WORKERS_PREFERRED = {
     # them to the workers VM via WORKERS_BASE_URL instead of Vercel.
     '/api/cron/bbj-detect':                    '/cron/bbj-detect',
     '/api/cron/tournament-bounty-detect':      '/cron/tournament-bounty-detect',
+    '/api/cron/cron-staleness-watchdog':       '/cron/cron-staleness-watchdog',
     # player-stats-refresh and rakeback-period-settle were REMOVED from this
     # map on 2026-08-31: both now have real handlers in this repo
     # (pages/api/cron/), so routing them to the workers VM sends them to a
