@@ -22,8 +22,10 @@ jobs:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
     # A clean install + production build consumes ~7 minutes. The authenticated
-    # desktop/mobile matrix runs on four bounded workers; keep enough room for
-    # retries without allowing a stalled suite to run indefinitely.
+    # desktop/mobile matrix uses two bounded workers. Four workers repeatedly
+    # saturated the single local Next.js server and produced changing health,
+    # navigation, and hydration failures across otherwise unrelated surfaces.
+    # Two preserves parallel coverage while keeping the server responsive.
     timeout-minutes: 90
 
     steps:
@@ -140,7 +142,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
           NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
-          PLAYWRIGHT_WORKERS: 4
+          PLAYWRIGHT_WORKERS: 2
 
       - name: Stop Next.js server + surface log
         if: always()
