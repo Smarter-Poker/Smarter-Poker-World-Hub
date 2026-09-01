@@ -76,6 +76,7 @@ const MiniCard = memo(({ card }) => {
         </span>
     );
 });
+MiniCard.displayName = 'MiniCard';
 
 // ●● Board Texture Row ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -198,6 +199,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
         </motion.div>
     );
 });
+TextureRow.displayName = 'TextureRow';
 
 // ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 

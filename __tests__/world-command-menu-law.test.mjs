@@ -13,6 +13,10 @@ const menuSource = readFileSync(join(ROOT, 'src/config/hamburgerMenus.js'), 'utf
 const menuRegistrySource = readFileSync(join(ROOT, 'src/config/worldMenuNavigation.js'), 'utf8');
 const dockSource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandDock.jsx'), 'utf8');
 const drawerSource = readFileSync(join(ROOT, 'src/components/ui/HamburgerMenu.jsx'), 'utf8');
+const fallbackSafetySource = readFileSync(
+  join(ROOT, 'src/config/fallbackMenuSafety.mjs'),
+  'utf8'
+);
 const recoverySource = readFileSync(join(ROOT, 'src/components/ui/WorldCommandMenuBoundary.jsx'), 'utf8');
 const headerSource = readFileSync(join(ROOT, 'src/components/ui/UniversalHeader.js'), 'utf8');
 const appSource = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
@@ -82,6 +86,9 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(drawerSource, /data-world-primary-commands/);
   assert.match(drawerSource, /getActiveWorldMenuHref/);
   assert.match(drawerSource, /data-command-pending/);
+  assert.match(drawerSource, /sanitizeFallbackMenuConfig/);
+  assert.match(fallbackSafetySource, /item\.type === 'toggle'/);
+  assert.match(fallbackSafetySource, /item\.type === 'action'/);
   assert.match(drawerSource, /WorldCommandMenuBoundary/);
   assert.match(recoverySource, /data-world-command-recovery/);
   assert.match(recoverySource, /Safe Navigation/);

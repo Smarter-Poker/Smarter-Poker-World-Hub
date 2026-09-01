@@ -230,36 +230,6 @@ export default function HomeGamesSeatReservation({
     });
   }, [onOpenRosterPicker, tables]);
 
-  // ───────────────────────────── rendering ────────────────────────────────
-  if (loading) {
-    return (
-      <div className="py-12 flex items-center justify-center text-[#94A3B8]">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading Tables…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 p-4 flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
-        <div className="flex-1">
-          <div className="text-[#F59E0B] font-medium">Can't Show The Seat List</div>
-          <div className="text-sm text-[#F59E0B]/80 mt-1">{error.message}</div>
-        </div>
-        <button onClick={() => load()} className="text-[#F59E0B] hover:text-[#FBBF24]">
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  }
-
-  if (tables.length === 0) {
-    return (
-      <div className="text-center py-8 text-[#94A3B8]">No Tables Yet For This Event.</div>
-    );
-  }
-
   // ───────────────────────── host: start a table ──────────────────────────
   // POST /api/home-games/tables/[tableId]/start existed with ZERO callers, so
   // open_for_rsvp -> running could never happen from the product and
@@ -306,6 +276,36 @@ export default function HomeGamesSeatReservation({
       setBusy(null);
     }
   }, [tables, load]);
+
+  // ───────────────────────────── rendering ────────────────────────────────
+  if (loading) {
+    return (
+      <div className="py-12 flex items-center justify-center text-[#94A3B8]">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading Tables…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 p-4 flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
+        <div className="flex-1">
+          <div className="text-[#F59E0B] font-medium">Can't Show The Seat List</div>
+          <div className="text-sm text-[#F59E0B]/80 mt-1">{error.message}</div>
+        </div>
+        <button onClick={() => load()} className="text-[#F59E0B] hover:text-[#FBBF24]">
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (tables.length === 0) {
+    return (
+      <div className="text-center py-8 text-[#94A3B8]">No Tables Yet For This Event.</div>
+    );
+  }
 
   return (
     <div className="space-y-6">

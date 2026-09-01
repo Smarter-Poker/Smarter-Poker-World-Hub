@@ -457,23 +457,21 @@ export function MessageBubble({
     currentUserId,
     theme: C = defaultTheme 
 }) {
-    if (!message) return null;
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [reactions, setReactions] = useState(message.reactions || []);
+    const [reactions, setReactions] = useState(message?.reactions || []);
 
     // Reactions used to exist only as optimistic local state, because
     // /api/messenger/get-messages never returned them. It does now, so the
     // bubble has to adopt what the server says - otherwise a reload would
     // still show nothing. Keyed on the serialised value so a fresh array
     // identity from the API mapping does not loop.
-    const reactionsKey = JSON.stringify(message.reactions || []);
+    const reactionsKey = JSON.stringify(message?.reactions || []);
     useEffect(() => {
-        setReactions(message.reactions || []);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        setReactions(message?.reactions || []);
     }, [reactionsKey]);
-    const status = message.status || 'sent';
+    const status = message?.status || 'sent';
     const longPressTimer = useRef(null);
     const touchMoved = useRef(false);
 
@@ -508,6 +506,8 @@ export function MessageBubble({
         const t = setTimeout(() => document.addEventListener('click', dismiss), 50);
         return () => { clearTimeout(t); document.removeEventListener('click', dismiss); };
     }, [showReactions, showMenu]);
+
+    if (!message) return null;
 
     const StatusIcon = () => {
         if (!isOwn) return null;

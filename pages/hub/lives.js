@@ -633,7 +633,7 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
-                            void tick; // eslint-disable-line no-unused-expressions — LV-AUDIT-3 restore
+                            void tick;
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;

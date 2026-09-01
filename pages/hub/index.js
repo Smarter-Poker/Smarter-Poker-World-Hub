@@ -23,7 +23,7 @@ const WorldHub = dynamic(
         console.warn('[HubPage] WorldHub module failed to load:', err);
         // Return a safe fallback module when the import itself throws
         return {
-            default: () => {
+            default: function WorldHubReloadFallback() {
                 useEffect(() => {
                     const timer = setTimeout(() => window.location.reload(), 3000);
                     return () => clearTimeout(timer);
