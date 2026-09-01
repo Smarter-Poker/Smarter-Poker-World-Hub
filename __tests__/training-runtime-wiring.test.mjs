@@ -455,7 +455,7 @@ test('runtime matrix workers claim a game before yielding to page creation', () 
   assert.doesNotMatch(audit, /auditGame\(page, queue\.shift\(\)/);
 });
 
-test('mobile arena launch remains tappable above global overlays', () => {
+test('mobile arena launch remains tappable on the footerless safe-area edge', () => {
   const trainingCss = fs.readFileSync(path.join(ROOT, 'src/styles/worlds/training.css'), 'utf8');
   const notificationPrompt = fs.readFileSync(
     path.join(ROOT, 'src/components/notifications/FirstRunNotificationPrompt.jsx'),
@@ -464,7 +464,7 @@ test('mobile arena launch remains tappable above global overlays', () => {
 
   assert.match(
     trainingCss,
-    /sp-arena-lobby__launch[\s\S]*bottom:\s*calc\(56px \+ 10px \+ env\(safe-area-inset-bottom, 0px\)\)/
+    /sp-arena-lobby__launch[\s\S]*bottom:\s*calc\(10px \+ env\(safe-area-inset-bottom, 0px\)\)/
   );
   assert.match(notificationPrompt, /'\/hub\/training\/arena'/);
   assert.match(notificationPrompt, /'\/hub\/club-arena'/);

@@ -156,7 +156,9 @@ async function waitForVisualBoard(page) {
 }
 
 async function activateManualNext(page) {
-  const next = page.getByText(/Next Question|Next - Continue Hand/).first();
+  const next = page.locator('.sp-training-next-button:visible')
+    .filter({ hasText: /Next Question|Next - Continue Hand/ })
+    .first();
   await next.waitFor({ state: 'visible', timeout: 30_000 });
   await next.evaluate((button) => {
     if (!(button instanceof HTMLButtonElement)) throw new Error('Manual Next control is not a button');
@@ -246,7 +248,36 @@ async function openArena(page, viewport, testCase, diagnostics) {
   const recordBody = await recordResponse.json().catch(() => null);
   assert.ok(recordResponse.status() < 400,
     `${testCase.gameId}: record-question ${recordResponse.status()} ${JSON.stringify(recordBody)}`);
-  await page.getByText(/Next Question/).first().waitFor({ state: 'visible', timeout: 30_000 });
+  const persistentNext = page.locator('.sp-training-next-button:visible')
+    .filter({ hasText: /Next Question|Next - Continue Hand/ })
+    .first();
+  const persistentNextVisible = await persistentNext.isVisible().catch(() => false);
+  if (!persistentNextVisible) {
+    const missingNext = await page.evaluate(() => ({
+      href: location.href,
+      visibility: document.visibilityState,
+      visualState: document.querySelector('[data-training-ui="club-arena-table"]')
+        ?.getAttribute('data-training-visual-state') || null,
+      feedbackPanels: document.querySelectorAll('[data-training-feedback="verdict"]').length,
+      buttons: [...document.querySelectorAll('button')].map((button) => ({
+        text: button.textContent?.trim().slice(0, 160) || '',
+        className: button.className,
+        disabled: button.disabled,
+        rect: button.getBoundingClientRect().toJSON(),
+      })).filter((button) => /next|continue/i.test(button.text)),
+    }));
+    process.stderr.write(`[phase6-parity] manual Next missing ${JSON.stringify({
+      gameId: testCase.gameId,
+      viewport: viewport.name,
+      missingNext,
+      diagnostics,
+    })}\n`);
+    await page.screenshot({
+      path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-manual-next-missing.png`),
+      fullPage: false,
+    });
+    assert.fail(`${testCase.gameId}: visible persistent manual Next control missing`);
+  }
   const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
   assert.equal(verdict.feedbackPanels, 1);

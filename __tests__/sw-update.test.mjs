@@ -64,6 +64,14 @@ test('control change triggers exactly one reload, never a loop', () => {
     assert.match(fn.slice(0, 400), /catch\s*\{[\s\S]*?return true/, 'a storage failure must not enable an unguarded reload');
 });
 
+test('a worker update never reloads a live Training gameplay session', () => {
+    assert.match(UPDATER, /\/hub\\\/training\\\/\(\?:arena\|play\)/, 'Training gameplay routes are not identified');
+    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
+    const gameplayGuard = controllerHandler.indexOf('isLiveGameplaySession()');
+    const reload = controllerHandler.indexOf('window.location.reload()');
+    assert.ok(gameplayGuard >= 0 && reload > gameplayGuard, 'gameplay must be guarded before the reload');
+});
+
 test('the updater is mounted app-wide, not on one page', () => {
     assert.match(APP, /import ServiceWorkerUpdater/, 'not imported in _app');
     assert.match(APP, /<ServiceWorkerUpdater\s*\/>/, 'not rendered in _app');
