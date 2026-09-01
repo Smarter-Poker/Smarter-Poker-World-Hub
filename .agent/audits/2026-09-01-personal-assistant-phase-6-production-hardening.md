@@ -35,4 +35,13 @@ Phase 6 adds permanent, bounded production checks around the existing Personal A
 
 ## Publication Evidence
 
-Pending protected merge, production deployment, and post-deployment verification. This section must be replaced with exact pull-request, revision, deployment, and live verification evidence before Phase 6 is closed.
+- Pull request #1201 squash-merged as `16b9297819ea540ac17cc4a8ea749f45a1bbc901`.
+- Vercel deployment `6205362915` completed successfully and promoted the exact merge revision to `smarter.poker`; `/api/health` reported version `16b92978`.
+- The event-driven Personal Assistant Production Watchdog ran automatically from that production deployment and completed successfully in GitHub Actions run `33530546190`.
+- The deployed read-only watchdog returned HTTP 200 for all four public routes and all three protected account APIs.
+- The deployed bounded load probe completed sixteen requests at concurrency four with observed peak four, p95 694 ms, and maximum 694 ms.
+- The deployed RLS probe rejected direct job-table reads and returned zero foreign or anonymous rows from hand decisions, review state, and leak history.
+- The complete live desktop Safari and iPhone Safari matrix passed all 25 applicable journeys with two intentional desktop-only mobile-view checks skipped.
+- The live iPhone journey proved the revised mobile hero command remains fully inside its hero bay and above the persistent footer.
+
+Phase 6 is complete, published, and production-verified.
