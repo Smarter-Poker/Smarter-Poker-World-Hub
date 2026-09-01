@@ -125,6 +125,13 @@ intercept unrelated long-running tests. The focused Chromium/mobile
 reproduction passed 15/15; notification-specific coverage, product behavior,
 and the frozen global header remain unchanged.
 
+Protected follow-up PR 1235 repairs the remaining browser-accurate Poker Near
+Me skip-link focus and overlapping-marker selection contracts. The final Phase
+6 closeout descendant combines PRs 1218, 1231, 1234, and 1235, and a permanent
+release-harness test pins configured health routing, shared-auth prompt
+isolation, canonical Wallet navigation, keyboard focus, and footerless mobile
+arena geometry together so one repair cannot regress while the others pass.
+
 ### Phase 7: Every Game's Secondary Pages
 
 Audit and optimize the setup, campaign, level selection, lobby, resume, review,

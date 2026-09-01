@@ -305,6 +305,17 @@ handled only in the shared authenticated E2E fixture; notification-specific
 coverage remains independent. The affected Phase 13/14 Chromium/mobile slice
 passed 15/15, and no product or global-header code changed.
 
+The next broad run proved the remaining Poker Near Me keyboard failure was a
+real focus-order race rather than a Training defect. PR 1235 resets inherited
+focus, advances through the browser's actual tab order, and still requires the
+visible skip link to own focus. Its marker contract now selects the same
+topmost overlapping result that the browser receives. The focused keyboard
+contract passed; the later workflow failure was a transient production health
+503, and a direct health probe returned HTTP 200 after recovery. The final
+closeout descendant combines PRs 1218, 1231, 1234, and 1235 and adds a static
+release-harness contract so none of these suite repairs can disappear while
+the others remain green.
+
 ## Remaining Phase 6 Work
 
 None. Phase 7 begins from the published Phase 6 production baseline.
