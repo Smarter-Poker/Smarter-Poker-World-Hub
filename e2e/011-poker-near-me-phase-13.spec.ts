@@ -82,6 +82,10 @@ test.describe('Poker Near Me phase 13 closeout', () => {
     await page.getByRole('textbox', { name: 'Trip origin' }).fill('Dallas, TX');
     await page.getByRole('textbox', { name: 'Trip destination' }).fill('Las Vegas, NV');
     await page.getByLabel('Trip start date').fill('2026-09-10');
+    const notificationPrompt = page.getByRole('dialog', { name: 'Enable notifications' });
+    if (await notificationPrompt.isVisible()) {
+      await notificationPrompt.getByRole('button', { name: 'Got It' }).click();
+    }
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
     test.skip(
       await page.getByRole('dialog', { name: 'Poker Near Me Pro access options' }).isVisible(),
