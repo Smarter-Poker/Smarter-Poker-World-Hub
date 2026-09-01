@@ -60,6 +60,13 @@ echo "[agent-push] origin/main: $ORIGIN_TIP"
 git worktree add -b "$BRANCH" "$WT" "$ORIGIN_TIP" >/dev/null
 trap 'cd "$REPO_ROOT" 2>/dev/null; git worktree remove --force "$WT" 2>/dev/null || true; rm -rf "$SNAP_DIR" "$WT_PARENT"' EXIT
 
+# The repository's pre-push hooks execute TypeScript-backed source checks.
+# Fresh worktrees intentionally do not contain ignored dependencies, so share
+# the caller's already-installed dependency tree without copying or staging it.
+if [[ -d "$REPO_ROOT/node_modules" && ! -e "$WT/node_modules" ]]; then
+  ln -s "$REPO_ROOT/node_modules" "$WT/node_modules"
+fi
+
 cd "$WT"
 for f in "${FILES[@]}"; do
   mkdir -p "$(dirname "$f")"

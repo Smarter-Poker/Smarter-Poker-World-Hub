@@ -140,6 +140,7 @@ function HamburgerMenuContent({
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
   const restoreFocusRef = useRef(null);
+  const wasOpenRef = useRef(false);
   const navigationLockRef = useRef(null);
   const navigationTimerRef = useRef(null);
 
@@ -248,6 +249,7 @@ function HamburgerMenuContent({
   // ── Focus management ──────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
+      wasOpenRef.current = true;
       if (typeof document !== 'undefined') {
         const activeElement = document.activeElement;
         restoreFocusRef.current = activeElement?.matches?.('[data-world-menu-trigger]')
@@ -257,6 +259,11 @@ function HamburgerMenuContent({
       const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
       return () => clearTimeout(t);
     }
+    // A closed drawer also renders on initial page load. Do not treat that
+    // first render as a close event: focusing the menu trigger here steals
+    // focus from route-owned status messages, dialogs, and form controls.
+    if (!wasOpenRef.current) return undefined;
+    wasOpenRef.current = false;
     const prev = restoreFocusRef.current;
     restoreFocusRef.current = null;
     const focusTarget = prev?.isConnected
@@ -935,7 +942,7 @@ function HamburgerMenuContent({
         }}
       >
         {/* World command identity and utilities. The symbol is a six-node
-            command grid. Horizontal menu bars are prohibited by design. */}
+            command grid. The approved header hamburger remains the menu trigger. */}
         <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
           <div className="sp-command-brand">
             <span className="sp-command-grid-mark" aria-hidden="true">

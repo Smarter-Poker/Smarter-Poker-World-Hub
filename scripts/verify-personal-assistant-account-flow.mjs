@@ -25,6 +25,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const completeDrill = process.argv.includes('--complete-drill');
 const skipAudit = process.argv.includes('--skip-audit');
 const MAX_AUDIT_BATCHES = 12;
+const MAX_TRANSIENT_RETRIES = 3;
 
 if (!password || !supabaseUrl || !anonKey) {
   throw new Error('Missing TEST_USER_PASSWORD or public Supabase environment variables.');
@@ -78,8 +79,14 @@ async function runDetection(token) {
   let decisionsAnalyzed = 0;
   let privateCardsRecovered = 0;
   let handsMissingPrivateCards = 0;
+  let handsRejectedBeforeAudit = 0;
+  let handsEligible = 0;
+  let handsAlreadyCurrent = 0;
+  let handsSkippedNoHeroDecisions = 0;
+  let solverVerified = 0;
+  let unpriced = 0;
   let retriedRateLimit = false;
-  let retriedTransient = false;
+  let transientRetries = 0;
 
   while (batches < MAX_AUDIT_BATCHES) {
     const result = await requestJson('/api/assistant/leaks/detect', token, {
@@ -95,14 +102,17 @@ async function runDetection(token) {
     retriedRateLimit = false;
     if ([502, 503, 504].includes(result.response.status)
       && result.data?.retryable === true
-      && !retriedTransient) {
-      retriedTransient = true;
-      const retrySeconds = Math.min(60, Math.max(1, Number(result.response.headers.get('retry-after') || 1)));
+      && transientRetries < MAX_TRANSIENT_RETRIES) {
+      transientRetries += 1;
+      const retrySeconds = Math.min(60, Math.max(
+        transientRetries,
+        Number(result.response.headers.get('retry-after') || 1),
+      ));
       await sleep(retrySeconds * 1000);
       continue;
     }
-    retriedTransient = false;
     assertSuccess(result, 'Deterministic audit');
+    transientRetries = 0;
 
     batches += 1;
     const sync = result.data?.clubArenaSync || {};
@@ -111,6 +121,12 @@ async function runDetection(token) {
     decisionsAnalyzed += Number(sync.decisionsAnalyzed) || 0;
     privateCardsRecovered += Number(sync.privateCardsRecovered) || 0;
     handsMissingPrivateCards += Number(sync.handsMissingPrivateCards) || 0;
+    handsRejectedBeforeAudit += Number(sync.handsRejectedBeforeAudit) || 0;
+    handsEligible += Number(sync.handsEligible) || 0;
+    handsAlreadyCurrent += Number(sync.handsAlreadyCurrent) || 0;
+    handsSkippedNoHeroDecisions += Number(sync.handsSkippedNoHeroDecisions) || 0;
+    solverVerified += Number(sync.solverVerified) || 0;
+    unpriced += Number(sync.unpriced) || 0;
     cursor = sync.auditCursor || null;
     if (!cursor) {
       return {
@@ -120,6 +136,12 @@ async function runDetection(token) {
         decisionsAnalyzed,
         privateCardsRecovered,
         handsMissingPrivateCards,
+        handsRejectedBeforeAudit,
+        handsEligible,
+        handsAlreadyCurrent,
+        handsSkippedNoHeroDecisions,
+        solverVerified,
+        unpriced,
         leaksDetected: Number(result.data?.leaksDetected) || 0,
         persisted: result.data?.persisted === true,
       };

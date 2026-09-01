@@ -2464,8 +2464,26 @@ class GameController {
     return;
   }
 
-  /** @private */
+  /**
+   * RETIRED 2026-09-01. This process owns no felt.
+   *
+   * Its 30-second interval was removed earlier, but the method survived and is
+   * still awaited on shutdown, where it writes `tables.status` for every table
+   * in the LEGACY lobby map. That column is the one that ended four tournaments
+   * without a hand being dealt: `trg_on_table_status_change` releases seats when
+   * it moves. The map is empty today only because `_recoverTables` is a no-op -
+   * that is luck, not a guarantee, and shutdown is exactly when nobody is
+   * watching.
+   *
+   * Hetzner owns table state. Nothing here should ever write it.
+   * @private
+   */
   async _saveAllSnapshots() {
+    return;
+  }
+
+  /** @private */
+  async _saveAllSnapshotsRetired_DO_NOT_CALL() {
     if (!this.supabase || !this.lobby) return;
 
     for (const [tableId, entry] of this.lobby.tables) {
@@ -2501,8 +2519,23 @@ class GameController {
     }
   }
 
-  /** @private */
+  /**
+   * RETIRED 2026-09-01. Already unreachable - nothing has called it since its
+   * 60-second interval was removed - but it is left here as a no-op rather than
+   * as a loaded method waiting for someone to wire it back up.
+   *
+   * What it did: counted seats on the LEGACY in-memory Table object, found zero
+   * because the real players were never in it, and closed the table as "stale
+   * and empty" ten minutes after creation. That is the mechanism behind the
+   * zero-hand tournaments of 2026-08-28 to 08-30.
+   * @private
+   */
   async _cleanupStaleTables() {
+    return;
+  }
+
+  /** @private */
+  async _cleanupStaleTablesRetired_DO_NOT_CALL() {
     if (!this.lobby) return;
 
     const now = Date.now();

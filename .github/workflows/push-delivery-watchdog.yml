@@ -71,7 +71,11 @@ jobs:
         continue-on-error: true
         env:
           PLAYWRIGHT_BASE_URL: https://smarter.poker
-        run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-webkit --reporter=line --retries=1
+        # Match the blocking footer workflow's controlled concurrency. Four
+        # parallel WebKit workers can overload live route hydration and report
+        # a healthy fixed footer as hidden; one worker verifies the same full
+        # contract deterministically without changing product behavior.
+        run: npx playwright test e2e/global-footer-visual.spec.ts --project=footer-webkit --workers=1 --reporter=line --retries=1
 
       - name: Probe production push delivery
         id: probe

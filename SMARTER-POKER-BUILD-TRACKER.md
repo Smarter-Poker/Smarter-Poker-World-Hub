@@ -1571,3 +1571,48 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 | Permanent regression gate | Functional Python-backed tests cover exact-release matching, duplicate rows, returned writes, malformed ranges/vectors, river paths, and legacy fail-closed behavior. |
 
 **Current external boundary:** M1 is current but idle at zero solves/exports; M2 remains stale; the legacy manifest covers 17/25 Training solver contracts and omits 43 games. Supervised host maintenance, approved range/state artifacts, an ICM-aware objective path, and one canary export per host remain prerequisites for opening the solver gate. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-4-certified-solver-writer.md`.
+
+**Release state:** Complete and published. Pull request #1182 squash-merged as `9c78f1fc0c`; production health reported main version `741f4aee`, which contains the Phase 4 merge. The live desktop/mobile Personal Assistant matrix passed 25 applicable journeys with two expected viewport skips. Authenticated production verification preserved 24 leak-history rows, covered 19 corrective-drill candidates with no empty, unmapped, missing, or other failures, and returned an eight-question verified drill with hidden answer keys. The solver-farm activation boundary remains intentionally closed until the documented external prerequisites and supervised host canaries exist.
+
+**Closure audit correction:** A renewed seven-batch protected-account audit scanned 1,347 Club Arena records and exposed a receipt-only classification bug: unsupported variants and missing trusted hero identities were being counted as missing private cards. Phase 4 now separates missing private cards from unsupported or incomplete hand data through the audit engine, durable checkpoint, UI receipt, and protected verifier. The verifier additionally reports eligible, already-current, skipped, verified, and unpriced work, mirrors the durable worker's three bounded transient retries, and uses the existing 15-second async browser contract for load-sensitive panels. Focused contracts, all 25 applicable desktop/mobile journeys, and the 403-page optimized production build passed before publication. The corrected protected-account rerun then completed all seven production batches, scanned 1,347 records, confirmed 422 eligible hands were current, persisted 19 findings, advanced leak history from 36 to 37, resolved all 32 corrective candidates without a broken drill target, and kept verified answer keys hidden.
+
+**Post-closure authentication correction:** A renewed protected-account run proved that current ES256 access tokens bypassed the legacy HS256-only local verifier and exhausted the remote Auth user endpoint during a complete 32-drill coverage pass. The World Hub bridge now uses Supabase's signature-verified, cached JWKS claims path for asymmetric tokens, fails invalid claims closed without a second network attempt, and retains the legacy fallback for older clients. This removes false mid-workflow 401 responses without weakening identity checks.
+
+---
+
+## PHASE 72 — Personal Assistant Phase 5 Of 8: Refactor And Performance (2026-09-01)
+
+| Deliverable | Detail |
+|---|---|
+| Route decomposition | Durable audit cursor security and review-queue presentation ownership moved out of the detection and Leak Finder route monoliths. |
+| Security preservation | Cursor HMAC integrity, owner binding, seven-day expiry, future-snapshot rejection, and stable progress fingerprints retain dedicated functional coverage. |
+| Latency observability | Sandbox analysis and Leak Finder detection emit end-to-end server timing plus explicit within-budget or over-budget state on every JSON response. |
+| Client bundle budgets | Hub, Sandbox, and Leak Finder gzip ceilings are measured from the exact Next.js build manifest. Missing artifacts and regressions fail the gate. |
+| Server function budgets | Compiled Sandbox analysis and deterministic detection functions have enforced byte ceilings. |
+| Automatic release gate | The normal production build lifecycle runs the Personal Assistant performance budget verifier after compilation. |
+| Preserved behavior | Routes, data, persistence semantics, Club Arena import, deterministic leak detection, solver provenance, drills, responsive layouts, and copy policy remain unchanged. |
+
+**Verification before publication:** 122/122 Leak Engine contracts, 23/23 focused architecture/API/persistence contracts, TypeScript, the exact optimized 403-page webpack build, and all five compiled-artifact budgets passed. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-5-refactor-performance.md`.
+
+**Release state:** Complete and published. Pull request #1195 squash-merged as `c07529e599`; exact Vercel deployment `dpl_CA4gNYVoUppZLGvdGscvtDMHSJPQ` reached Ready and production health reported `c07529e5`. The live desktop/mobile matrix passed 25 applicable journeys with two intentional skips. The protected account completed seven audit batches over 1,347 hands, retained 37 leak-history records, persisted 19 findings, resolved all 32 corrective candidates without a broken destination, and kept verified answer keys hidden. Live Sandbox and authenticated Leak Finder responses emitted within-budget performance telemetry.
+
+---
+
+## PHASE 73 — Personal Assistant Phase 6 Of 8: Production Hardening (2026-09-01)
+
+| Deliverable | Detail |
+|---|---|
+| Hostile-input resilience | Deterministic fuzz suites exercise 1,500 Sandbox scenarios and 1,500 signed audit cursors without accepting unsafe state or leaking ownership. |
+| Outage behavior | 429, 502, 503, and 504 storms remain bounded, preserve signed continuation, and never claim persistence after a failed write. |
+| Bounded production load | A dependency-free verifier clamps traffic, measures p95 latency, and fails on any non-success response or an eight-second p95 regression. |
+| RLS integration | The protected account and anonymous role are probed against jobs, decisions, review state, and leak history without performing writes. |
+| Safari device matrix | Dedicated desktop Safari and iPhone Safari projects cover every Personal Assistant primary and secondary journey with real pointer/touch activation. |
+| Mobile-first viewport | The strategy-hub command remains inside its artwork bay and above the persistent mobile footer at the iPhone viewport. |
+| Monitored rollout | Successful production deployments trigger a read-only watchdog and retain a fourteen-day JSON receipt; manual dispatch remains available. |
+| Preserved behavior | Existing routes, data, Club Arena imports, deterministic detection, solver evidence boundaries, persistence, drills, copy policy, and responsive layouts remain wired. |
+
+**Verification before publication:** 128/128 Leak Engine contracts, the exact optimized webpack production build with 403 static pages, all five Personal Assistant performance budgets, and 25/25 applicable compiled desktop/iPhone Safari journeys with two intentional desktop-only skips passed. The live read-only hardening probe passed four public routes, sixteen bounded requests, three protected account API reads, and four RLS isolation probes. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-6-production-hardening.md`.
+
+**Release state:** Complete and published. Pull request #1201 squash-merged as `16b9297819`; exact Vercel production deployment `6205362915` completed successfully and `/api/health` reported `16b92978`. Deployment-triggered watchdog run `33530546190` passed automatically. The live read-only probe returned HTTP 200 for all four public routes and three protected APIs, completed sixteen bounded requests at concurrency four with a 694 ms p95, and preserved all four RLS isolation boundaries. The complete live desktop Safari and iPhone Safari matrix passed 25 applicable journeys with two intentional desktop-only skips, including the mobile hero viewport contract.
+
+**Renewed closure audit before Phase 7:** Thirteen connected Personal Assistant and Sandbox handlers now share the cached asymmetric-token verifier instead of repeatedly calling the remote Auth user endpoint. The permanent route contract blocks direct `auth.getUser` regressions, the durable App Router worker owns a JSON 503 boundary, all three formerly orphaned Personal Assistant contract suites are part of the engine release gate, and the production watchdog now verifies twelve authenticated read-only APIs across the Assistant and Sandbox. Verification passed 152/152 engine contracts, 20/20 focused hardening contracts, strict TypeScript, the exact 403-page production build and all five performance budgets, 49 applicable compiled desktop/mobile Chromium/Safari journeys with four intentional viewport skips, all twelve authenticated production reads, all four owner-isolation probes, and a complete seven-batch protected-account reconciliation across 1,347 Club Arena hands and 32 corrective candidates. Two repeated broad CI runs then proved that four browser workers saturated the one local Next.js server and produced changing cross-surface failures, including intermittent local health failures; the unchanged desktop/mobile suite and its release contract now enforce two bounded workers for stable server capacity. The first bounded run exposed and corrected a backward skip-link traversal check and an undersized degraded-map bootstrap allowance; the latest mainline wallet flow already uses its canonical header dialog. Exact republication and deployment evidence remains in the Phase 6 audit file.

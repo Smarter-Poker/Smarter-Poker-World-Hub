@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-5 Complete; Phase 6 In Progress
+Status: Phases 1-6 Complete; Phase 7 In Progress
 
 ## Objective
 
@@ -89,6 +89,41 @@ semantic visible locators that observed it appear, and Club Arena current and
 retained compatibility generations are measured independently without raising
 the 9 MB current-code ratchet. Detailed evidence is recorded in
 `2026-09-01-training-phase-6-club-arena-parity.md`.
+
+Phase 6 implementation PR 1177 merged as `10c62c39df7`; production-hardening
+PR 1202 merged as `ccf12df912`. Immutable production deployment
+`dpl_9MxEg12t87P5egh9zbFwrcNXzvdd` passed the 16-case mobile/desktop Club Arena
+ledger, both real 20-hand manual-Next completions, Level 11 and 12 serving and
+grading, and direct login hydration. The ledger recorded 50 captures with zero
+page errors, console errors, broken images, overflow, or seat/player drift.
+Worker activation can no longer reload a live Training decision, and the
+footerless mobile lobby no longer reserves a phantom footer row. The approved
+global header remained untouched.
+
+Protected closeout PR 1208 merged as `c70dda95fd`; its complete local
+Chromium/mobile matrix passed 689 tests with 24 intentional skips and no
+failures or flaky results. The protected broad E2E rerun and the exact
+Chromium/WebKit Global Footer rerun both passed. Production then passed the
+authenticated mobile/desktop smoke across the 107-card Hub, login, three
+representative 12-level campaigns, four representative arenas, four-option
+contracts, explicit feedback, persistent manual Next, footerless mobile launch
+geometry, and zero page, console, image, scanline, or overflow defects. The
+permanent smoke now asserts the immersive footerless arena contract instead of
+waiting for the deliberately absent global footer. Follow-up PR 1218 publishes
+that permanent smoke correction and regression contract through protected
+checks.
+
+The broad workflow on PR 1218 subsequently exposed stale Poker Near Me recovery
+and Diamond Wallet route tests. Protected follow-up PR 1231 makes the outage
+transition deterministic and opens the canonical Wallet modal; its focused
+Chromium/mobile reproduction passed all 17 affected tests without changing the
+global header or product behavior.
+
+Protected follow-up PR 1234 isolates the account-scoped first-run notification
+sheet in the authenticated E2E fixture after its 20-second timer was proven to
+intercept unrelated long-running tests. The focused Chromium/mobile
+reproduction passed 15/15; notification-specific coverage, product behavior,
+and the frozen global header remain unchanged.
 
 ### Phase 7: Every Game's Secondary Pages
 

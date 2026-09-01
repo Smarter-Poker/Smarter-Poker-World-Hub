@@ -44,7 +44,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const status = page.locator('.pnm-directory-source');
     await expect(page.getByRole('main', { name: 'Poker Near Me discovery results' })).toBeVisible();
     await expect(status).toHaveAttribute('data-directory-source', 'static_snapshot');
-    await expect(status).toContainText('published venue snapshot');
+    await expect(status).toContainText('Published Venue Snapshot');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
     await expectNoOverflow(page, route);
   });
@@ -63,11 +63,14 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const skipLink = page.getByRole('link', { name: 'Skip to Poker Near Me choices' });
     await expect(skipLink).toBeAttached();
     if (!testInfo.project.name.includes('mobile')) {
-      // Next/Chromium can preserve focus on the remounted header menu trigger.
-      // Reverse traversal still has to reach the preceding skip link without
-      // using a pointer, so allow the retained trigger to be crossed first.
+      // Start from the document, then traverse in the same forward direction
+      // a keyboard user enters the page. Reverse traversal from body jumps to
+      // the final control and never exercises the first-in-DOM skip link.
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
       for (let index = 0; index < 3 && !(await skipLink.evaluate((node) => node === document.activeElement)); index += 1) {
-        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Tab');
       }
       await expect(skipLink).toBeFocused();
     }

@@ -36,6 +36,7 @@ import {
 import { getGrokClient } from '../../../../src/lib/grokClient';
 import { rateLimit, LIMITS, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { attachPersonalAssistantTiming } from '../../../../src/lib/personal-assistant/serverTiming.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -1225,6 +1226,7 @@ async function persistSandboxAnalysis({
 // ═══════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+  attachPersonalAssistantTiming(res, 'sandbox_analysis');
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });

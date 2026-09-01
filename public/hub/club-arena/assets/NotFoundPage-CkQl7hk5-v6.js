@@ -1,2 +1,0 @@
-import{b as t,u as a,j as n}from"./vendor-react-DHxzjcZP-v6.js";import{aE as i}from"./index-DrOLvJ8--v6.js";import"./vendor-supabase-BLlQ2fJ4-v6.js";function u(){const o=t(),e=a();return n.jsx(i,{icon:"404",eyebrow:"Route Not Found",title:"This Arena Door Is Closed",description:`No Current Page Matches ${o.pathname}. The Destination May Have Moved, Or The Link May Be Incomplete.`,action:{label:"Return To Club Arena",onClick:()=>e("/",{replace:!0})},secondaryAction:{label:"Go Back",onClick:()=>e(-1)}})}export{u as default};
-//# sourceMappingURL=NotFoundPage-CkQl7hk5-v6.js.map

@@ -49,10 +49,13 @@ import PersonalAssistantCopyPolicy from '../../../src/components/personal-assist
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
 import {
   dueQueueAll, reviewStats, leakToDrill, leakToTrainingGame, migrateRecord, resolutionProgress,
-  MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
+  MAX_QUEUE as REVIEW_MAX_QUEUE,
   MAX_INTERVAL_DAYS as REVIEW_MAX_INTERVAL_DAYS,
   RETIRE_AFTER_STRONG as REVIEW_RETIRE_AFTER_STRONG,
 } from '../../../src/lib/sandbox/leakReview';
+import {
+  definedOnly, dueInLabel, fromServerReviewRecord, queueReason, readLocalReviewRecords,
+} from '../../../src/lib/personal-assistant/reviewQueuePresentation.mjs';
 
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
@@ -326,92 +329,6 @@ function DrillSheetSkeleton() {
 //   • localStorage, written by QuickSpotDrill after a review run.
 // Read-through merges the two with the SERVER WINNING, so a device copy can
 // never resurrect a schedule the account has already moved on from.
-
-const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
-const LEGACY_REVIEW_STORE_KEYS = ['pa-leak-review-v2', 'pa-leak-review-v1']
-  .filter(key => key !== REVIEW_STORE_KEY);
-
-/** Local records as an array. Never throws; a corrupt blob reads as empty. */
-function readLocalReviewRecords() {
-  const map = {};
-  for (const key of [...LEGACY_REVIEW_STORE_KEYS].reverse().concat(REVIEW_STORE_KEY)) {
-    try {
-      const raw = safeStorage.get(key, null);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
-      const records = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
-        ? parsed.records
-        : parsed;
-      if (records && typeof records === 'object' && !Array.isArray(records)) Object.assign(map, records);
-    } catch (e) {
-      console.warn(`[LeakFinder] local review store ${key} unreadable:`, e?.message || e);
-    }
-  }
-  return Object.keys(map)
-    .map((key) => {
-      const value = map[key];
-      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-      return value.leakId ? value : { ...value, leakId: key };
-    })
-    .filter(Boolean);
-}
-
-/**
- * Copy of `obj` without undefined/null values, so spreading a server row over a
- * local record cannot blank a field the row never mentioned.
- * (`{ ...a, ...{ x: undefined } }` sets x to undefined · silently losing a.x.)
- */
-function definedOnly(obj) {
-  const out = {};
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out;
-  try {
-    for (const key of Object.keys(obj)) {
-      const value = obj[key];
-      if (value !== undefined && value !== null) out[key] = value;
-    }
-  } catch (e) {
-    return out;
-  }
-  return out;
-}
-
-/**
- * The API row shape uses updatedAt where the scheduler expects lastReviewedAt.
- * Mapping it keeps the streak and re-detection logic honest for server rows.
- */
-function fromServerReviewRecord(row) {
-  if (!row || typeof row !== 'object') return null;
-  return {
-    ...row,
-    lastReviewedAt: row.updatedAt || row.createdAt || null,
-  };
-}
-
-/** 'in 3 days' / 'tomorrow' / 'on 12 Sep' · never a countdown that lies. */
-function dueInLabel(iso, nowMs) {
-  const t = new Date(iso || '').getTime();
-  if (!Number.isFinite(t) || !Number.isFinite(nowMs) || nowMs <= 0) return null;
-  const days = Math.ceil((t - nowMs) / 86400000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  if (days < 7) return `in ${days} days`;
-  try {
-    return `on ${new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
-  } catch (e) {
-    return `in ${days} days`;
-  }
-}
-
-/** Why this leak is at the top of the queue · stated plainly, never inflated. */
-function queueReason(entry) {
-  if (!entry) return '';
-  if (entry.isNew) return 'Not drilled yet';
-  if (entry.revived) return 'Detected again since your last review';
-  const overdue = Math.floor(num(entry.overdueDays));
-  if (overdue >= 1) return `${overdue} day${overdue === 1 ? '' : 's'} overdue`;
-  return 'Due today';
-}
 
 function ReviewSkeletonCard() {
   return (
@@ -869,6 +786,7 @@ function AuditReceipt({ result }) {
     ['Eligible Hands', num(progress.handsEligible ?? sync.handsEligible).toLocaleString()],
     ['Private Hands Recovered', num(progress.privateCardsRecovered ?? sync.privateCardsRecovered).toLocaleString()],
     ['Missing Private Cards', num(progress.handsMissingPrivateCards ?? sync.handsMissingPrivateCards).toLocaleString()],
+    ['Unsupported Or Incomplete Hands', num(progress.handsRejectedBeforeAudit ?? sync.handsRejectedBeforeAudit).toLocaleString()],
     ['No Hero Decision', num(progress.handsSkippedNoHeroDecisions ?? sync.handsSkippedNoHeroDecisions).toLocaleString()],
     ['Audited This Run', num(progress.handsAudited ?? sync.handsAudited).toLocaleString()],
     ['Already Current', num(progress.handsAlreadyCurrent ?? sync.handsAlreadyCurrent).toLocaleString()],

@@ -351,20 +351,39 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const dismissInstall = page.getByRole('button', { name: 'Later' });
       if (await dismissInstall.isVisible().catch(() => false)) await dismissInstall.click();
 
-      await page.evaluate(() => {
-        (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
-      });
-
       const links = nav.getByRole('link');
+      const capturedWorldHrefs: string[] = [];
       for (let index = 0; index < definition.items.length; index += 1) {
-        await links.nth(index).click();
+        const expectedHref = definition.items[index].href;
+        let capturedHref: string | undefined;
+
+        // WebKit can replace the first production document while the app
+        // updater settles. A locator click that began against that retired
+        // document may complete without reaching its capture listener. Keep
+        // each click's browser audit isolated so a replacement cannot erase a
+        // prior click and shift every later array index. Retry only when no
+        // click was observed; a captured wrong destination still fails
+        // immediately below, and the Node-owned aggregate remains an exact
+        // one-for-one check of all 84 destinations.
+        for (let attempt = 0; attempt < 3 && capturedHref === undefined; attempt += 1) {
+          await page.evaluate(() => {
+            (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
+          });
+          await links.nth(index).click();
+          capturedHref = await page.evaluate(
+            () => (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.[0]
+          );
+          if (capturedHref === undefined) await page.waitForTimeout(100);
+        }
+
+        if (capturedHref === undefined) {
+          throw new Error(`Footer click ${index + 1} for ${definition.id} was not captured.`);
+        }
+        expect(capturedHref).toBe(expectedHref);
+        capturedWorldHrefs.push(capturedHref);
       }
 
-      expect(
-        await page.evaluate(
-          () => (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit
-        )
-      ).toEqual(definition.items.map((item) => item.href));
+      expect(capturedWorldHrefs).toEqual(definition.items.map((item) => item.href));
     }
   });
 

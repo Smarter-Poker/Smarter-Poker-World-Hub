@@ -3328,6 +3328,8 @@ function UniversalDynamicTable({
                 .sp-club-gto-actions [data-action] {
                     border: 0 !important;
                     border-radius: 13px !important;
+                    height: auto !important;
+                    min-height: 64px !important;
                     box-shadow: inset 0 2px rgba(255,255,255,.24), inset 0 -5px rgba(0,0,0,.28), 0 8px 15px rgba(0,0,0,.5) !important;
                     text-shadow: 0 2px 2px rgba(0,0,0,.75) !important;
                 }
@@ -3350,11 +3352,20 @@ function UniversalDynamicTable({
                     scrollbar-color: rgba(83, 242, 160, .6) rgba(0, 0, 0, .28);
                     scrollbar-width: thin;
                 }
+                .gto-trainer-container[data-training-visual-state='verdict'] {
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+                }
+                .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
+                    /* Feedback is a review state, not a replacement for the
+                       live table. Preserve the same complete 605:1000 Club
+                       Arena canvas used while answering and scroll the review
+                       below it. Without an explicit basis the flex column
+                       shrank this area to zero on desktop. */
+                    flex: 0 0 540px !important;
+                    min-height: 540px !important;
+                }
                 @media (max-width: 640px) {
-                    .gto-trainer-container[data-training-visual-state='verdict'] {
-                        overflow-x: hidden !important;
-                        overflow-y: auto !important;
-                    }
                     .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
                         /* Feedback is a scrollable review state. It must not
                            steal the felt's flex height and collapse a complete
@@ -3382,7 +3393,16 @@ function UniversalDynamicTable({
                         box-shadow: 0 -10px 25px rgba(0,0,0,.65);
                     }
                     .sp-club-gto-actions [data-action] {
-                        min-height: 62px !important;
+                        height: auto !important;
+                        min-height: 88px !important;
+                        padding: 10px 12px 8px !important;
+                    }
+                    .sp-club-gto-actions [data-action] > span:first-child {
+                        max-width: 100%;
+                        white-space: normal;
+                        overflow-wrap: anywhere;
+                        font-size: clamp(9px, 2.65vw, 11px) !important;
+                        line-height: 1.08 !important;
                     }
                     .sp-club-gto-mode-bar:not(.is-feedback) {
                         display: none !important;

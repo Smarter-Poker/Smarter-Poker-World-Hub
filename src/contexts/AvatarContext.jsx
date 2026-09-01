@@ -208,23 +208,25 @@ export function AvatarProvider({ children }) {
                     fetchVipStatus(session.user.id)
                         .catch(e => console.warn('[AvatarContext] fetchVipStatus error:', e?.message || e));
 
-                    // Background refresh — non-blocking, won't affect UI if it fails
-                    supabase.auth.refreshSession().then(({ data, error }) => {
-                        if (data?.session?.user && !error) {
-                            console.debug('[AvatarContext] Background refresh succeeded');
-                            setUser(data.session.user);
-                        } else if (error) {
-                            // Only clear session on permanent auth death (invalid_grant)
-                            const isPermanent = error.message?.includes('invalid_grant') ||
-                                error.message?.includes('Invalid Refresh Token');
-                            if (isPermanent) {
-                                console.warn('[AvatarContext] Permanent auth failure:', error.message);
-                                setUser(null);
-                                try { localStorage.removeItem('smarter-poker-auth'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                            }
-                            // Transient errors (timeout, network) — keep existing session
-                        }
-                    }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+                    // AUTH (2026-09-01): a background `supabase.auth.refreshSession()`
+                    // used to run here, and it is deliberately gone.
+                    //   1. It fired unconditionally on every INITIAL_SESSION — once per
+                    //      tab per page load — against the SDK's own rotating refresh
+                    //      token. The client is already constructed with
+                    //      autoRefreshToken: true, which is the ONE refresher; a second
+                    //      caller just races it and can burn a rotated token, taking the
+                    //      whole session down with it. Do not reintroduce an automatic
+                    //      refresh here.
+                    //   2. Its failure path called
+                    //      localStorage.removeItem('smarter-poker-auth') on
+                    //      invalid_grant / Invalid Refresh Token. Club Arena and the Hub
+                    //      SHARE that storage key, so the removal fired a cross-tab
+                    //      `storage` event and bounced every other open tab to
+                    //      /auth/login?redirect= . A context provider must NEVER
+                    //      hand-clear the shared auth key. A real sign-out goes through
+                    //      the SDK's own signOut(), which tears down every client
+                    //      consistently.
+                    // Explicit, user-triggered refresh still lives in refreshUser().
                 } else {
                     // No session from Supabase — try direct localStorage fallback
                     // This catches the case where navigator.locks AbortError killed session restoration

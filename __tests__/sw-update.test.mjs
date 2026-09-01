@@ -64,6 +64,45 @@ test('control change triggers exactly one reload, never a loop', () => {
     assert.match(fn.slice(0, 400), /catch\s*\{[\s\S]*?return true/, 'a storage failure must not enable an unguarded reload');
 });
 
+test('the first worker to claim an uncontrolled page never reloads it', () => {
+    // Dan, 2026-09-01: "the world hub page is doing this weird glitch where it
+    // loads, then glitches and 'reloads' a 2nd time." Reproduced by
+    // unregistering the root worker, clearing sessionStorage and navigating to
+    // /hub once: the resulting document reported
+    // performance.getEntriesByType('navigation')[0].type === 'reload' and
+    // sp_sw_reloaded_at had just been written. next-pwa builds the worker with
+    // skipWaiting + clientsClaim, so on a page that loaded WITHOUT a controller
+    // the worker claims immediately and controllerchange fires even though the
+    // page's HTML and chunks came straight off the network. Nothing is stale;
+    // the reload is pure flicker, and the sessionStorage cooldown cannot
+    // suppress it because a fresh session starts with empty sessionStorage.
+    assert.match(
+        UPDATER,
+        /const hadControllerAtLoad = Boolean\(navigator\.serviceWorker\.controller\)/,
+        'the updater must record whether the document loaded already controlled'
+    );
+    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
+    const firstClaimGuard = controllerHandler.indexOf('if (!hadControllerAtLoad) return;');
+    const reload = controllerHandler.indexOf('window.location.reload()');
+    assert.ok(firstClaimGuard >= 0, 'the first-claim transition is not guarded');
+    assert.ok(reload > firstClaimGuard, 'the first-claim guard must precede the reload');
+    // The flag has to be read at mount, before anything promotes a waiting
+    // worker. Sampling it inside the handler would always see the NEW
+    // controller and the guard would never fire.
+    assert.ok(
+        UPDATER.indexOf('const hadControllerAtLoad') < UPDATER.indexOf('const onControllerChange'),
+        'the controller must be sampled before the handler is defined'
+    );
+});
+
+test('a worker update never reloads a live Training gameplay session', () => {
+    assert.match(UPDATER, /\/hub\\\/training\\\/\(\?:arena\|play\)/, 'Training gameplay routes are not identified');
+    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
+    const gameplayGuard = controllerHandler.indexOf('isLiveGameplaySession()');
+    const reload = controllerHandler.indexOf('window.location.reload()');
+    assert.ok(gameplayGuard >= 0 && reload > gameplayGuard, 'gameplay must be guarded before the reload');
+});
+
 test('the updater is mounted app-wide, not on one page', () => {
     assert.match(APP, /import ServiceWorkerUpdater/, 'not imported in _app');
     assert.match(APP, /<ServiceWorkerUpdater\s*\/>/, 'not rendered in _app');

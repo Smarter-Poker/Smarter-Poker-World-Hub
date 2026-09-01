@@ -148,7 +148,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     expect(Number.parseFloat(colors.outlineWidth)).toBeGreaterThanOrEqual(3);
   });
 
-  test('mobile header and command selectors keep continuous contained borders', async ({ page }) => {
+  test('mobile header focus and command selectors remain visible without detached borders', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
     await waitForDiscovery(page);
@@ -157,22 +157,15 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await trigger.focus();
     const triggerFocus = await trigger.evaluate((element) => {
       const style = getComputedStyle(element);
-      const ring = getComputedStyle(element, '::before');
-      const triggerBox = element.getBoundingClientRect();
       return {
         outline: style.outlineStyle,
-        ringContent: ring.content,
-        ringBorder: ring.borderTopWidth,
-        ringColor: ring.borderTopColor,
-        visualBottom: triggerBox.bottom - Number.parseFloat(ring.bottom),
-        headerBottom: document.querySelector('.approved-global-header')?.getBoundingClientRect().bottom || 0,
+        boxShadow: style.boxShadow,
+        focusGlow: style.backgroundImage,
       };
     });
     expect(triggerFocus.outline).toBe('none');
-    expect(triggerFocus.ringContent).not.toBe('none');
-    expect(triggerFocus.ringBorder).toBe('2px');
-    expect(triggerFocus.ringColor).toBe('rgb(54, 186, 255)');
-    expect(triggerFocus.visualBottom).toBeLessThanOrEqual(triggerFocus.headerBottom + 0.5);
+    expect(triggerFocus.boxShadow).toBe('none');
+    expect(triggerFocus.focusGlow).toContain('radial-gradient');
 
     await trigger.click();
     const drawer = page.getByRole('dialog', { name: 'Poker Near Me Command Menu' });

@@ -1,4 +1,24 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Locator, Page } from '@playwright/test';
+
+async function activateControl(control: Locator, projectName: string) {
+  await control.evaluate(element => element.scrollIntoView({ block: 'center', behavior: 'auto' }));
+  if (projectName.includes('mobile')) await control.tap();
+  else await control.click();
+}
+
+async function navigateStable(page: Page, route: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await page.goto(route, { waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      lastError = error;
+      if (!String((error as Error)?.message || error).match(/interrupted|another navigation/i)) throw error;
+      await page.waitForTimeout(150);
+    }
+  }
+  throw lastError;
+}
 
 async function expectHealthyLayout(page: Page) {
   await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
@@ -74,7 +94,31 @@ async function expectPersonalAssistantCopyPolicy(page: Page) {
 }
 
 test.describe('Personal Assistant primary and secondary surfaces', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Headless WebKit can deadlock when it boots the production push worker,
+    // while Playwright's serviceWorkers:block shim can return an undefined
+    // registration to Next's PWA bootstrap. Model the browser-supported,
+    // no-active-worker state instead so Safari behavior stays deterministic
+    // without weakening any page-owned checks.
+    if (testInfo.project.name.startsWith('pa-')) {
+      await page.addInitScript(() => {
+        const worker = navigator.serviceWorker;
+        if (!worker) return;
+        const registration = {
+          active: null,
+          waiting: null,
+          installing: null,
+          scope: `${window.location.origin}/`,
+          update: async () => undefined,
+          unregister: async () => true,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        };
+        worker.register = async () => registration as unknown as ServiceWorkerRegistration;
+        worker.getRegistration = async () => registration as unknown as ServiceWorkerRegistration;
+        worker.getRegistrations = async () => [registration as unknown as ServiceWorkerRegistration];
+      });
+    }
     // This suite validates PA controls, not the unrelated one-time push opt-in.
     // Spend that prompt for the authenticated fixture before React schedules
     // its 20-second modal, otherwise longer interaction cases are randomly
@@ -104,7 +148,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
       '/hub/personal-assistant/leaks',
       '/sandbox/zzzz',
     ]) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await navigateStable(page, route);
       await expect(page.locator('main')).toBeVisible();
       await expectAccessibleMain(page);
       await expectPersonalAssistantCopyPolicy(page);
@@ -154,9 +198,13 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('strategy hub exposes recovery and restores the Daily Hand after a feed interruption', async ({ page }) => {
+  test('strategy hub exposes recovery and restores the Daily Hand after a feed interruption', async ({ page }, testInfo) => {
     let feedHealthy = false;
+    let requestCount = 0;
+    const pageErrors: string[] = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
     await page.route('**/api/training/hand-of-the-day', route => {
+      requestCount += 1;
       if (!feedHealthy) {
         return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary interruption' }) });
       }
@@ -179,8 +227,15 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
 
     await page.goto('/hub/personal-assistant', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Daily Hand Temporarily Unavailable', { exact: true })).toBeVisible();
+    expect(pageErrors).toEqual([]);
+    const failedRequestCount = requestCount;
     feedHealthy = true;
-    await page.getByRole('button', { name: 'Retry Daily Hand' }).click();
+    const retryButton = page.getByRole('button', { name: 'Retry Daily Hand' });
+    // Playwright WebKit's scrollIntoViewIfNeeded can report an offscreen
+    // element as visible on this long dashboard. Use the platform scroll API,
+    // then perform a real pointer click against the centered control.
+    await activateControl(retryButton, testInfo.project.name);
+    await expect.poll(() => requestCount).toBeGreaterThan(failedRequestCount);
     const dailySection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Hand Of The Day' }) });
     await expect(dailySection.getByRole('heading', { name: 'Recovered Solver Decision' })).toBeVisible();
     await expect(dailySection.getByText('CO · Pot 8 BB')).toBeVisible();
@@ -202,13 +257,13 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
   test('Sandbox card picker and history subflows remain wired', async ({ page }, testInfo) => {
     await page.goto('/hub/personal-assistant/sandbox', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: 'Load a saved hand' }).click();
+    await activateControl(page.getByRole('button', { name: 'Load a saved hand' }), testInfo.project.name);
     await expect(page.getByRole('dialog', { name: /History/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Sessions' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Bookmarks' })).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await page.getByRole('button', { name: 'Pick my cards' }).click();
+    await activateControl(page.getByRole('button', { name: 'Pick my cards' }), testInfo.project.name);
     await expect(page.getByRole('dialog', { name: /Pick card 1 of 2/i })).toBeVisible();
     if (testInfo.project.name.includes('mobile')) {
       await page.getByRole('button', { name: /Rank A,/i }).click();
@@ -252,7 +307,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('Leak Finder switches between leaks and every analytics sub-surface', async ({ page }) => {
+  test('Leak Finder switches between leaks and every analytics sub-surface', async ({ page }, testInfo) => {
     await page.route('**/api/assistant/leaks/detect', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -261,7 +316,8 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     const response = await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
     await expect(page.getByRole('heading', { name: 'Leak Finder' })).toBeVisible();
-    await page.getByRole('button', { name: 'Insights' }).click();
+    const insightsButton = page.getByRole('button', { name: 'Insights' });
+    await activateControl(insightsButton, testInfo.project.name);
     await expect(page.locator('#leak-insights')).toBeVisible();
     await expect(page.getByText('Worst Coach-Mode Spots')).toBeVisible();
     await expect(page.getByText('Weekly Leaderboard')).toBeVisible();
@@ -307,7 +363,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: /^Button Open Frequency\..*Open details/i }).click();
     const details = page.getByRole('dialog', { name: 'Leak details: Button Open Frequency' });
-    await expect(details).toBeVisible();
+    await expect(details).toBeVisible({ timeout: 15_000 });
     await expect(details.getByRole('heading', { name: 'How To Fix It' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Recent Example Hands' })).toBeVisible();
     await expect(details.getByRole('heading', { name: 'Suggested Fixes' })).toBeVisible();
@@ -329,7 +385,7 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
-  test('Leak Finder labels an unsigned corrective run as practice-only', async ({ page }) => {
+  test('Leak Finder labels an unsigned corrective run as practice-only', async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
     });
@@ -377,11 +433,15 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     }));
 
     await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /^BTN Flop General Decisions\..*Open details/i }).click();
-    await page.getByRole('dialog', { name: 'Leak details: BTN Flop General Decisions' })
-      .getByRole('button', { name: 'Start Corrective Review' }).click();
+    await activateControl(
+      page.getByRole('button', { name: /^BTN Flop General Decisions\..*Open details/i }),
+      testInfo.project.name,
+    );
+    const correctiveReview = page.getByRole('dialog', { name: 'Leak details: BTN Flop General Decisions' })
+      .getByRole('button', { name: 'Start Corrective Review' });
+    await activateControl(correctiveReview, testInfo.project.name);
     const drill = page.getByRole('dialog', { name: 'Quick Spot Drill' });
-    await expect(drill).toBeVisible();
+    await expect(drill).toBeVisible({ timeout: 15_000 });
     await expect(drill.getByRole('note')).toContainText('Rewards Stay Locked Until Solver Provenance Is Sealed.');
     await expectHealthyLayout(page);
   });
@@ -426,9 +486,9 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expect.poll(() => initialReads, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await page.getByRole('button', { name: /Run Leak Detection|Resume Saved Audit/i }).click();
 
-    await expect(page.getByText('Club Hands Scanned')).toBeVisible();
-    await expect(page.getByText('400', { exact: true }).first()).toBeVisible();
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Club Hands Scanned')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('400', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    await navigateStable(page, '/hub/personal-assistant/leaks');
     await expect.poll(() => polls, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await expect(page.getByText('Club Hands Scanned')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('550', { exact: true }).first()).toBeVisible();

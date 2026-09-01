@@ -3580,7 +3580,6 @@ function SocialMediaPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [deletePostId, setDeletePostId] = useState(null);
-  const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [horseProfileIds, setHorseProfileIds] = useState(new Set());
   const [blockedUserIds, setBlockedUserIds] = useState(new Set());
@@ -3636,7 +3635,6 @@ function SocialMediaPage() {
   const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
   const searchTimeout = useRef(null);
   const globalSearchTimeout = useRef(null);
-  const lastScrollY = useRef(0); // BUG-01 FIX: was null, caused wrong comparison on first scroll (0 > null)
   // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
   const loadFeedRef = useRef(null);
 
@@ -3803,19 +3801,14 @@ function SocialMediaPage() {
   // already skipped. Without this guard, a buffered onPlay event fired
   // post-skip would re-unmute and the queued audio would play.
 
-  // Bottom nav visibility - hide when scrolling down, show when scrolling up
+  // Scroll-to-top FAB visibility. The page no longer owns a bottom navigation
+  // bar, so nothing here moves the footer: pages/_app.js mounts the single
+  // global world footer and it stays welded to the viewport bottom.
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // Hide nav when scrolling down, show when scrolling up or at top
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setBottomNavVisible(false);
-      } else {
-        setBottomNavVisible(true);
-      }
       // Scroll-to-top FAB: show after scrolling down 500px
       setShowScrollTop(currentScrollY > 500);
-      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -7850,238 +7843,6 @@ function SocialMediaPage() {
             </>
           )}
         </main>
-
-        {/* Bottom Navigation Bar - SmarterPoker Style with SVG Icons */}
-        <nav
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 56,
-            background: '#ffffff',
-            borderTop: '1px solid #dddfe2',
-            display: 'flex',
-            justifyContent: 'space-around',
-            alignItems: 'stretch',
-            zIndex: 100,
-            transform: bottomNavVisible ? 'translateY(0)' : 'translateY(100%)',
-            transition: 'transform 0.3s ease',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
-        >
-          {/* Home - Outline house */}
-          <Link
-            href="/hub/social-media"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#65676b',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" />
-            </svg>
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Home</span>
-          </Link>
-          {/* Reels - Rounded rect with play triangle */}
-          <Link
-            href="/hub/reels"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#65676b',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="3" />
-              <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
-            </svg>
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Reels</span>
-          </Link>
-          {/* Friends - Connected people icon */}
-          <Link
-            href="/hub/friends"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#65676b',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-              position: 'relative',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="8" cy="8" r="3" />
-              <circle cx="16" cy="8" r="3" />
-              <path d="M8 11a4 4 0 00-4 4v2h8v-2a4 4 0 00-4-4z" />
-              <path d="M16 11c1.5 0 2.8.8 3.5 2 .4.8.5 1.3.5 2v2h-6" />
-            </svg>
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
-          </Link>
-          {/* Clubs - Star in rounded box (Events-style) */}
-          <Link
-            href="/hub/social-media?view=club-pages"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#65676b',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="4" y="4" width="16" height="16" rx="2" />
-              <path
-                d="M12 8l1.5 3 3.5.5-2.5 2.5.5 3.5L12 16l-3 1.5.5-3.5-2.5-2.5 3.5-.5z"
-                fill="currentColor"
-              />
-            </svg>
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Clubs</span>
-          </Link>
-          {/* Notifications - Filled bell (blue when active) */}
-          <div
-            onClick={() => setShowNotifications(true)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#1877f2',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-              position: 'relative',
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2a7 7 0 00-7 7c0 3.5-1.5 5.5-2.5 7-.3.4-.5.8-.5 1.2 0 .5.5.8 1 .8h18c.5 0 1-.3 1-.8 0-.4-.2-.8-.5-1.2-1-1.5-2.5-3.5-2.5-7a7 7 0 00-7-7z" />
-              <path d="M10 20a2 2 0 004 0" />
-            </svg>
-            {notifications.filter((n) => !n.read).length > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 'calc(50% - 18px)',
-                  background: '#f02849',
-                  color: 'white',
-                  borderRadius: 10,
-                  minWidth: 18,
-                  height: 18,
-                  fontSize: 11,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 600,
-                  padding: '0 5px',
-                }}
-              >
-                {notifications.filter((n) => !n.read).length}
-              </div>
-            )}
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 600, color: '#1877f2' }}>
-              Notifications
-            </span>
-          </div>
-          {/* Profile - Avatar or person icon */}
-          <Link
-            href="/hub/profile"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: '#65676b',
-              flex: 1,
-              padding: '6px 4px',
-              minWidth: 50,
-            }}
-          >
-            {user ? (
-              <Avatar
-                src={user.avatar}
-                name={user.name}
-                size={28}
-                style={{ border: '2px solid #e4e6eb', borderRadius: '50%' }}
-              />
-            ) : (
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20v-1a6 6 0 016-6h4a6 6 0 016 6v1" />
-              </svg>
-            )}
-            <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Profile</span>
-          </Link>
-        </nav>
 
         {/* Go Live Modal */}
         <GoLiveModal

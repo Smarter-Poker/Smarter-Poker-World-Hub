@@ -48,6 +48,27 @@ async function getCanonicalQuestion(questionId, gameId) {
   if (!byPayloadId.error && byPayloadId.data?.question_data) return byPayloadId.data;
   return null;
 }
+
+async function getEligibleCanonicalQuestion(questionId, gameId) {
+  const gameConfig = pioQueryService.getGameConfig(String(gameId));
+  // Batch preload writes the sanitized envelope before it returns, but the
+  // first read through Supabase can briefly observe the pre-update row (or no
+  // row) while the PostgREST/read-replica path catches up. Re-read only the
+  // server-owned canonical row; never fall back to the browser's answer key.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const canonicalRow = await getCanonicalQuestion(String(questionId), String(gameId));
+    const [eligibleCanonical] = canonicalRow
+      ? filterCachedRowsForGame(
+          [canonicalRow],
+          gameConfig,
+          { allowSanitizedLegacyArchive: true },
+        )
+      : [];
+    if (eligibleCanonical?.question_data) return eligibleCanonical.question_data;
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 100 * (2 ** attempt)));
+  }
+  return null;
+}
 export default async function handler(req, res) {
   try {
     withTiming(res);
@@ -93,15 +114,8 @@ export default async function handler(req, res) {
     }
 
     try {
-      const canonicalRow = await getCanonicalQuestion(String(questionId), String(gameId));
-      const [eligibleCanonical] = canonicalRow
-        ? filterCachedRowsForGame(
-            [canonicalRow],
-            pioQueryService.getGameConfig(String(gameId)),
-            { allowSanitizedLegacyArchive: true },
-          )
-        : [];
-      if (!eligibleCanonical?.question_data) {
+      const canonicalQuestion = await getEligibleCanonicalQuestion(questionId, gameId);
+      if (!canonicalQuestion) {
         // This includes old offline packs whose unsealed PIO rows are no longer
         // safe to grade. Do not accept the browser's answer key; make the
         // client fetch a freshly sanitized canonical question.
@@ -111,8 +125,6 @@ export default async function handler(req, res) {
           code: 'TRAINING_QUESTION_REFRESH_REQUIRED',
         });
       }
-      const canonicalQuestion = eligibleCanonical.question_data;
-
       // Record the seen question (for no-repeat)
       const seenResult = await withRetry(
         () =>

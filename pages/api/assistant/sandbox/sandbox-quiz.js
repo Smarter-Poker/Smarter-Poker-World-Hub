@@ -4,6 +4,7 @@
  * GET: Fetch user's quiz stats
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -33,8 +34,7 @@ export default async function handler(req, res) {
       // Auth guard
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-      const authUser = authData?.user;
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, supabase);
       if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
       const userId = authUser.id; // Trust JWT, not client-supplied value
 

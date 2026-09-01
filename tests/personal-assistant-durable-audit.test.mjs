@@ -8,9 +8,11 @@ const migration = readFileSync(new URL('../supabase/migrations/20260831143000_pa
 const jobsApi = readFileSync(new URL('../pages/api/assistant/leaks/audit-jobs.js', import.meta.url), 'utf8');
 const worker = readFileSync(new URL('../app/api/assistant/leaks/audit-worker/route.js', import.meta.url), 'utf8');
 const detect = readFileSync(new URL('../pages/api/assistant/leaks/detect.js', import.meta.url), 'utf8');
+const auditCursor = readFileSync(new URL('../src/lib/personal-assistant/auditCursor.mjs', import.meta.url), 'utf8');
 const hooks = readFileSync(new URL('../src/hooks/useAssistant.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
 const middleware = readFileSync(new URL('../middleware.ts', import.meta.url), 'utf8');
+const accountVerifier = readFileSync(new URL('../scripts/verify-personal-assistant-account-flow.mjs', import.meta.url), 'utf8');
 
 test('worker tokens are owner, purpose and expiry bound', () => {
   const prior = process.env.NEXTAUTH_SECRET;
@@ -33,6 +35,7 @@ test('audit progress is cumulative and exposes the complete coverage funnel', ()
     clubArenaSync: {
       auditCursor: 'next', handsFound: 200, handsEligible: 170,
       privateCardsRecovered: 80, handsMissingPrivateCards: 30,
+      handsRejectedBeforeAudit: 12,
       handsSkippedNoHeroDecisions: 10, handsAudited: 120,
       handsAlreadyCurrent: 40, handsQueuedForRetry: 5,
       decisionsAnalyzed: 240, solverVerified: 180, unpriced: 60,
@@ -45,6 +48,7 @@ test('audit progress is cumulative and exposes the complete coverage funnel', ()
   assert.equal(final.batchesCompleted, 2);
   assert.equal(final.handsScanned, 250);
   assert.equal(final.decisionsAnalyzed, 300);
+  assert.equal(final.handsRejectedBeforeAudit, 12);
   assert.equal(final.totalProcessingMs, 2000);
   assert.equal(final.coverage.exactSolverMatches, 225);
   assert.equal(final.coverage.leaks, 6);
@@ -140,6 +144,13 @@ test('production workers use the public origin instead of an SSO-protected deplo
   }
 });
 
+test('protected account verification tolerates the same bounded transient source failures as the durable worker', () => {
+  assert.match(accountVerifier, /const MAX_TRANSIENT_RETRIES = 3/);
+  assert.match(accountVerifier, /transientRetries < MAX_TRANSIENT_RETRIES/);
+  assert.match(accountVerifier, /transientRetries \+= 1/);
+  assert.match(accountVerifier, /assertSuccess\(result, 'Deterministic audit'\);\s*transientRetries = 0/s);
+});
+
 test('server workers finish detector pages in-process and reconcile final evidence', () => {
   assert.match(worker, /import \{ after \} from 'next\/server'/);
   assert.match(worker, /after\(async \(\) =>/);
@@ -169,7 +180,8 @@ test('server workers finish detector pages in-process and reconcile final eviden
 test('internal detection is job-bound and the UI restores server checkpoints', () => {
   assert.match(detect, /openAuditJobToken\(req\.headers\['x-pa-audit-worker'\], 'detect'\)/);
   assert.match(detect, /pa_leak_audit_jobs.*status.*running/s);
-  assert.match(detect, /7 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(detect, /personal-assistant\/auditCursor\.mjs/);
+  assert.match(auditCursor, /7 \* 24 \* 60 \* 60 \* 1000/);
   assert.match(detect, /cursorFingerprint = fingerprintAuditCursor/);
   assert.match(detect, /club_arena_audit_partial/);
   assert.match(middleware, /pathname === '\/api\/assistant\/leaks\/audit-worker'/);

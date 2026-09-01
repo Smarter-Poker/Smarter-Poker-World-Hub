@@ -208,6 +208,23 @@ test('pages and feature shells cannot mount or size the shared footer independen
   assert.deepEqual(offenders, [], `independent footer wiring returned:\n${offenders.join('\n')}`);
 });
 
+// The import guard above only sees pages that reach for the SHARED footer. It
+// was blind to a page that hand-rolls its OWN fixed bottom bar, which is how
+// /hub/social-media kept a second, opaque 56px navigation welded under the
+// world artwork footer: invisible at rest, and exposed as a white bar the
+// moment the page was rubber-banded downward. One viewport bottom, one footer.
+test('no page or feature shell hand-rolls a second fixed bottom navigation bar', () => {
+  const handRolled = /<nav\b[\s\S]{0,600}?position:\s*['"]fixed['"][\s\S]{0,400}?bottom:\s*0\b/;
+  const offenders = [];
+  const roots = [path.join(ROOT, 'pages'), path.join(ROOT, 'src', 'components')];
+  for (const file of roots.flatMap(walk).filter((name) => /\.(?:js|jsx|ts|tsx)$/.test(name))) {
+    if (file.endsWith(`${path.sep}BottomNavBar.jsx`)) continue;
+    if (file.includes(`${path.sep}api${path.sep}`)) continue;
+    if (handRolled.test(fs.readFileSync(file, 'utf8'))) offenders.push(path.relative(ROOT, file));
+  }
+  assert.deepEqual(offenders, [], `duplicate bottom navigation found in:\n${offenders.join('\n')}`);
+});
+
 test('the app shell resolves a world footer, one spacer, and the Club Arena boundary', () => {
   const app = fs.readFileSync(path.join(ROOT, 'pages/_app.js'), 'utf8');
   const nav = fs.readFileSync(path.join(ROOT, 'src/components/ui/BottomNavBar.jsx'), 'utf8');

@@ -17,7 +17,8 @@ test('opponent seats render a Club Arena card fan with explicit spread geometry'
 test('mobile arena keeps the primary action reachable without horizontal overflow', () => {
   assert.match(arena, /className="sp-arena-lobby__launch"/);
   assert.match(trainingCss, /\.sp-arena-lobby__launch\s*\{[\s\S]*?position: fixed;/);
-  assert.match(trainingCss, /padding: 16px 12px 108px !important;/);
+  assert.match(trainingCss, /padding: 16px 12px calc\(108px \+ env\(safe-area-inset-bottom, 0px\)\) !important;/);
+  assert.match(trainingCss, /bottom: calc\(10px \+ env\(safe-area-inset-bottom, 0px\)\);/);
 });
 
 test('the remaining lobby tier value is normalized before title casing', () => {

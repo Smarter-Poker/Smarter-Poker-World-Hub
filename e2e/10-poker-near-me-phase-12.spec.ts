@@ -84,7 +84,7 @@ test.describe('Poker Near Me phase 12 parity, performance, and regional surfaces
     await page.goto(route, { waitUntil: 'domcontentloaded' });
     const status = page.locator('.pnm-directory-source');
     await expect(status).toHaveAttribute('data-directory-source', 'partial_live', { timeout: 20_000 });
-    await expect(status).toContainText('Existing results remain available');
+    await expect(status).toContainText('Existing Results Remain Available');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
     const map = page.locator('[data-map-ready]').first();
     await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });

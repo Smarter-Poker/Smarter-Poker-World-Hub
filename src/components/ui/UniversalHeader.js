@@ -1246,7 +1246,15 @@ export default function UniversalHeader({
                     box-sizing: border-box;
                     padding-top: env(safe-area-inset-top, 0px);
                     overflow: hidden;
-                    background: #000;
+                    /* NO BACKGROUND (Dan, 2026-09-01: "on mobile, the global header needs
+                       the background removed on all pages inside smarter.poker, club
+                       arena, and club commander"). The approved artwork is opaque across
+                       its whole canvas, so this fill was only ever visible where the
+                       artwork is NOT: the safe-area band this rule pads by, the standalone
+                       band below, and the left/right insets. All three are phones - a
+                       desktop has no insets - so its only observable effect was an opaque
+                       black block above and around the header on mobile. */
+                    background: transparent;
                     line-height: 0;
                     isolation: isolate;
                 }
@@ -1327,9 +1335,10 @@ export default function UniversalHeader({
                     position: absolute !important;
                     box-sizing: border-box;
                     overflow: hidden;
-                    border: 0;
-                    border-radius: 50%;
-                    background: #000;
+                    /* Paints nothing. This was an opaque black disc 117.8 artwork-units
+                       across, over an ornament that measures 94, so the approved chrome
+                       ring and its blue glow were painted out and all that reached the
+                       screen was a flat black circle with a photo in it. */
                     contain: layout paint;
                     isolation: isolate;
                 }
@@ -1344,7 +1353,7 @@ export default function UniversalHeader({
                 .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
 
                 @media (max-width: 430px) {
-                    /* Keep the command-grid target at the WCAG 2.2 minimum on
+                    /* Keep the approved hamburger target at the WCAG 2.2 minimum on
                        narrow phones without covering the adjacent Back zone. */
                     .approved-global-header__menu {
                         left: .75%;
@@ -1359,17 +1368,26 @@ export default function UniversalHeader({
 
                 .approved-global-header__avatar-slot {
                     position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
+                    /* MEASURED off images/global-header/global-header-desktop.png
+                       (1648x168, the file this header renders): the profile ornament is a
+                       circle centred at (1159.75, 80.5), 94-unit outer diameter, ~6-unit
+                       chrome band, leaving an 81-unit aperture. Against this button box
+                       (plane x 1100.04-1217.87, y 25.2-143.03) that is a circle of 68.7%
+                       width centred at 50.7% / 46.9%. It was 72% at 50%/50% - 84.8 units
+                       sitting 3.6 units low, wider than the aperture and nearly as wide as
+                       the outer edge of the ring, so the photo covered the chrome band on
+                       three sides and hung past it at the bottom. */
+                    top: 46.9% !important;
+                    left: 50.7% !important;
                     z-index: 1;
                     display: block;
-                    width: 72%;
+                    width: 68.7%;
                     height: auto;
                     aspect-ratio: 1;
                     transform: translate(-50%, -50%) !important;
                     overflow: hidden;
                     box-sizing: border-box;
-                    border: 0.5px solid rgba(0, 0, 0, .94);
+                    border: 0;
                     border-radius: 50%;
                     background: transparent;
                     pointer-events: none;
@@ -1470,7 +1488,7 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
-            data-menu-symbol="command-grid"
+            data-menu-symbol="hamburger"
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()
