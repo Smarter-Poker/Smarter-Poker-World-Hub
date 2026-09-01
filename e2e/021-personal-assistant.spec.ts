@@ -329,6 +329,63 @@ test.describe('Personal Assistant primary and secondary surfaces', () => {
     await expectHealthyLayout(page);
   });
 
+  test('Leak Finder labels an unsigned corrective run as practice-only', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
+    });
+    await page.route(/\/api\/assistant\/leaks(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        leaks: [{
+          id: 'e2e-practice-leak',
+          leak_type: 'solver_training_cash_001_flop_btn_general',
+          leak_name: 'Button Flop Decisions',
+          situation_class: 'BTN Flop General Decisions',
+          status: 'emerging',
+          confidence: 'high',
+          source_system: 'solver_engine',
+          leak_category: 'flop',
+          recommended_drill: 'cash-001',
+          occurrence_count: 8,
+        }],
+        demoLeaks: [],
+      }),
+    }));
+    await page.route('**/api/sandbox/custom-drill**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        serverVerified: false,
+        practiceOnly: true,
+        verificationReason: 'solver_provenance_pending',
+        evidenceDisclosure: 'Practice Mode Uses Relevant Archived Strategy Data. Rewards Stay Locked Until Solver Provenance Is Sealed.',
+        drillToken: null,
+        pool: [{
+          id: 'practice-spot-1',
+          scenario_text: 'Which Action Has The Highest Recorded Frequency?',
+          hero_hand: 'As Ks',
+          hero_position: 'BTN',
+          street: 'flop',
+          options: ['Check', 'Bet 33%'],
+          correct_answer: 'Check',
+          gto_explanation: 'This Is Archived Strategy Data.',
+        }],
+      }),
+    }));
+
+    await page.goto('/hub/personal-assistant/leaks', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /^BTN Flop General Decisions\..*Open details/i }).click();
+    await page.getByRole('dialog', { name: 'Leak details: BTN Flop General Decisions' })
+      .getByRole('button', { name: 'Start Corrective Review' }).click();
+    const drill = page.getByRole('dialog', { name: 'Quick Spot Drill' });
+    await expect(drill).toBeVisible();
+    await expect(drill.getByRole('note')).toContainText('Rewards Stay Locked Until Solver Provenance Is Sealed.');
+    await expectHealthyLayout(page);
+  });
+
   test('one Leak Finder action persists server checkpoints and restores after reload', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('pa-auto-detect-last', String(Date.now()));
