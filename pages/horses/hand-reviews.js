@@ -424,9 +424,17 @@ export default function HorseHandReviews() {
           )}
           {/* ── Brain Layer Fires: proof the deployed logic executes ── */}
           <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
-            <div
+            {/* A real <button>, for the same reason the audit rows are one:
+                a div with onClick answers to neither Enter nor Space and
+                reports no state to a screen reader. Three of these were left
+                as divs when the audit expander was fixed. */}
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={telemetryOpen}
+              aria-controls="telemetry-panel"
               onClick={() => setTelemetryOpen(!telemetryOpen)}
-              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>Brain Layer Fires</span>
               <span style={{ color: MUTED, fontSize: '0.8rem' }}>
@@ -435,9 +443,9 @@ export default function HorseHandReviews() {
               <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
                 {telemetryError ? 'Read Failed' : telemetry.length > 0 ? `${telemetry.length} rows` : 'No Data Yet'}
               </span>
-            </div>
+            </button>
             {telemetryOpen && (
-              <div style={{ overflowX: 'auto', marginTop: 6 }}>
+              <div id="telemetry-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ color: MUTED, textAlign: 'left' }}>
@@ -474,9 +482,17 @@ export default function HorseHandReviews() {
           {/* 2026-08-28: League Card - the nightly A/B card, the referee for
               every strategy change. Significant = |bb100| > 2*stderr. */}
           <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
-            <div
+            {/* A real <button>, for the same reason the audit rows are one:
+                a div with onClick answers to neither Enter nor Space and
+                reports no state to a screen reader. Three of these were left
+                as divs when the audit expander was fixed. */}
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={leagueOpen}
+              aria-controls="league-panel"
               onClick={() => setLeagueOpen(!leagueOpen)}
-              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>League Card</span>
               <span style={{ color: MUTED, fontSize: '0.8rem' }}>
@@ -485,9 +501,48 @@ export default function HorseHandReviews() {
               <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
                 {leagueError ? 'Read Failed' : league.length > 0 ? `${league.length} rows` : 'No Data Yet'}
               </span>
-            </div>
+            </button>
             {leagueOpen && (
-              <div style={{ overflowX: 'auto', marginTop: 6 }}>
+              <div id="league-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
+                {/* HOW OLD IS THIS CARD (2026-09-01). The league lost three
+                    days in four at the end of August - a claim row written,
+                    zero result rows - and this table rendered the surviving
+                    run with nothing to say it was stale. Every layer verdict
+                    read here during those days came from one measurement. The
+                    daily audit raises league_card_stale, but this is where the
+                    numbers are actually read, so it has to say so here too. */}
+                {(() => {
+                  const newest = league.reduce(
+                    (acc, m) => (!acc || String(m.run_date) > acc ? String(m.run_date) : acc),
+                    null
+                  );
+                  if (!newest) return null;
+                  const days = Math.round(
+                    (Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(newest)) / 86400000
+                  );
+                  if (days < 1) return null;
+                  return (
+                    <div
+                      role="alert"
+                      style={{
+                        background: INSET,
+                        border: `1px solid ${days >= 2 ? RED : AMBER}`,
+                        borderRadius: 6,
+                        padding: '0.5rem 0.75rem',
+                        marginBottom: 8,
+                        fontSize: '0.8rem',
+                        color: days >= 2 ? RED : AMBER,
+                      }}
+                    >
+                      {`Stale Card: The Newest Run Is ${newest}, ${days} Day${days === 1 ? '' : 's'} Old. `}
+                      <span style={{ color: MUTED }}>
+                        These Verdicts Are Not Current. A Three Run Gate Cannot Be Satisfied By One
+                        Surviving Run, So Do Not Ship A Default Flip On This Card Until The Runner
+                        Is Healthy.
+                      </span>
+                    </div>
+                  );
+                })()}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ color: MUTED, textAlign: 'left' }}>
@@ -501,18 +556,40 @@ export default function HorseHandReviews() {
                   </thead>
                   <tbody>
                     {league.map((m) => {
-                      const sig = Math.abs(Number(m.bb100)) > 2 * Number(m.stderr);
-                      const pos = Number(m.bb100) > 0;
+                      const bb = Number(m.bb100);
+                      const se = Number(m.stderr);
+                      /* An INERT matchup is not an unresolved one. bb/100 of
+                         exactly 0 with a stderr of exactly 0 over a full
+                         sample does not mean "too close to call" - it means
+                         the two arms played IDENTICALLY, so the flag under
+                         test never changed a decision. That is how
+                         v18_squeeze_response read for six days while the
+                         layer it measures had never once fired, and it
+                         rendered here as an unremarkable "Not Resolved".
+                         Reading it as inert is what makes it visible. */
+                      const inert = bb === 0 && se === 0;
+                      /* A zero stderr with a non-zero edge is also not
+                         certainty - it is a degenerate sample. Requiring a
+                         positive stderr keeps "Significant" meaning what the
+                         house rule says it means. */
+                      const sig = !inert && se > 0 && Math.abs(bb) > 2 * se;
+                      const pos = bb > 0;
                       return (
                         <tr key={`${m.run_date}-${m.matchup}`} style={{ borderTop: `1px solid ${BORDER}` }}>
                           <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{m.run_date}</td>
                           <td style={{ padding: '0.3rem', fontFamily: 'monospace' }}>{m.matchup}</td>
-                          <td style={{ padding: '0.3rem', fontWeight: 600, color: sig ? (pos ? POSITIVE : RED) : TEXT }}>
+                          <td style={{ padding: '0.3rem', fontWeight: 600, color: inert ? AMBER : sig ? (pos ? POSITIVE : RED) : TEXT }}>
                             {m.bb100}
                           </td>
                           <td style={{ padding: '0.3rem', color: MUTED }}>{m.stderr}</td>
-                          <td style={{ padding: '0.3rem', color: sig ? (pos ? POSITIVE : RED) : MUTED }}>
-                            {sig ? (pos ? 'Significant Positive' : 'Significant Negative') : 'Not Resolved'}
+                          <td style={{ padding: '0.3rem', color: inert ? AMBER : sig ? (pos ? POSITIVE : RED) : MUTED }}>
+                            {inert
+                              ? 'Inert - Both Arms Identical'
+                              : sig
+                                ? pos
+                                  ? 'Significant Positive'
+                                  : 'Significant Negative'
+                                : 'Not Resolved'}
                           </td>
                           <td style={{ padding: '0.3rem', color: Number(m.illegal_actions) > 0 ? RED : MUTED }}>
                             {m.illegal_actions}
@@ -538,9 +615,17 @@ export default function HorseHandReviews() {
           {/* 2026-08-28: Leak-Tag Rates - per 1,000 captured hands, so fleet
               growth cannot masquerade as a regression. */}
           <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
-            <div
+            {/* A real <button>, for the same reason the audit rows are one:
+                a div with onClick answers to neither Enter nor Space and
+                reports no state to a screen reader. Three of these were left
+                as divs when the audit expander was fixed. */}
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={trendsOpen}
+              aria-controls="trends-panel"
               onClick={() => setTrendsOpen(!trendsOpen)}
-              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center' }}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
             >
               <span style={{ fontWeight: 700 }}>Leak-Tag Rates</span>
               <span style={{ color: MUTED, fontSize: '0.8rem' }}>
@@ -549,7 +634,7 @@ export default function HorseHandReviews() {
               <span style={{ marginLeft: 'auto', color: POSITIVE, fontSize: '0.8rem' }}>
                 {tagTrendsError ? 'Read Failed' : tagTrends.length > 0 ? 'Loaded' : 'No Data Yet'}
               </span>
-            </div>
+            </button>
             {trendsOpen && (() => {
               const daysList = [...new Set(tagTrends.map((t) => t.day))].sort();
               const byTag = {};
@@ -561,7 +646,7 @@ export default function HorseHandReviews() {
                 .map(([tag, byDay]) => ({ tag, byDay, latest: byDay[daysList[daysList.length - 1]] || 0 }))
                 .sort((a, b) => b.latest - a.latest);
               return (
-                <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                <div id="trends-panel" style={{ overflowX: 'auto', marginTop: 6 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
                       <tr style={{ color: MUTED, textAlign: 'left' }}>
@@ -599,9 +684,36 @@ export default function HorseHandReviews() {
           </div>
 
           {audits.map((a) => {
-            const findings = Array.isArray(a.findings) ? a.findings : [];
-            const crit = findings.filter((f) => f.severity === 'critical').length;
-            const warn = findings.filter((f) => f.severity === 'warn').length;
+            const rawFindings = Array.isArray(a.findings) ? a.findings : [];
+            const crit = rawFindings.filter((f) => f.severity === 'critical').length;
+            const warn = rawFindings.filter((f) => f.severity === 'warn').length;
+            const info = rawFindings.length - crit - warn;
+            /* ORDER AND GROUPING (2026-09-01).
+               2026-08-31 produced 30 findings. They rendered in whatever
+               order the audit built them, so a critical could sit below an
+               info, and 18 of the 30 were just two codes repeating per event
+               (10 tournament_overlay, 8 freeroll_started_empty). The reader
+               had to scroll a wall of duplicates to find the three that were
+               different. Sort by severity, then fold repeats of one code into
+               a single card that keeps every title. */
+            const rank = { critical: 0, warn: 1, info: 2 };
+            const groups = [];
+            const byCode = new Map();
+            for (const f of rawFindings) {
+              const key = `${f.severity}|${f.code}`;
+              const seen = byCode.get(key);
+              if (seen) {
+                seen.items.push(f);
+              } else {
+                const g = { severity: f.severity, code: f.code, category: f.category, items: [f] };
+                byCode.set(key, g);
+                groups.push(g);
+              }
+            }
+            groups.sort(
+              (x, y) =>
+                (rank[x.severity] ?? 3) - (rank[y.severity] ?? 3) || y.items.length - x.items.length
+            );
             const open = auditOpen === a.day;
             return (
               <div key={a.day} style={{ borderTop: `1px solid ${BORDER}` }}>
@@ -620,6 +732,7 @@ export default function HorseHandReviews() {
                   <span style={{ fontWeight: 700, minWidth: 100 }}>{a.day}</span>
                   <span style={{ color: crit > 0 ? RED : POSITIVE, fontWeight: 600 }}>{crit} Critical</span>
                   <span style={{ color: warn > 0 ? AMBER : MUTED }}>{warn} Warn</span>
+                  <span style={{ color: MUTED }}>{info} Info</span>
                   <span style={{ color: MUTED, fontSize: '0.8rem' }}>
                     {a.stats?.flagged_hands ?? 0} Flagged Hands / Net {a.stats?.net_bb_sum ?? 0} BB
                   </span>
@@ -629,21 +742,44 @@ export default function HorseHandReviews() {
                 </button>
                 {open && (
                   <div id={`audit-panel-${a.day}`} style={{ padding: '0.25rem 0.25rem 0.75rem' }}>
-                    {findings.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Findings. A Clean Day.</div>}
-                    {findings.map((f, i) => (
-                      <div key={i} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${f.severity === 'critical' ? RED : f.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700 }}>{f.title}</span>
-                          <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{f.category} / {f.code}</span>
+                    {groups.length === 0 && <div style={{ color: MUTED, fontSize: '0.85rem' }}>No Findings. A Clean Day.</div>}
+                    {groups.map((g, i) => {
+                      const head = g.items[0];
+                      const many = g.items.length > 1;
+                      return (
+                        <div key={`${g.severity}-${g.code}-${i}`} style={{ background: INSET, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${g.severity === 'critical' ? RED : g.severity === 'warn' ? AMBER : BORDER}`, borderRadius: 6, padding: '0.6rem 0.8rem', marginBottom: 6 }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700 }}>{head.title}</span>
+                            {many && (
+                              <span style={{ color: g.severity === 'critical' ? RED : AMBER, fontSize: '0.75rem', fontWeight: 700 }}>
+                                {`x${g.items.length}`}
+                              </span>
+                            )}
+                            <span style={{ color: MUTED, fontSize: '0.75rem', textTransform: 'uppercase' }}>{g.category} / {g.code}</span>
+                          </div>
+                          <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{head.recommendation}</div>
+                          {/* The repeats keep their own titles. Folding them
+                              must never hide which events were affected. */}
+                          {many && (
+                            <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem', fontSize: '0.78rem', color: TEXT }}>
+                              {g.items.map((f, j) => (
+                                <li key={j} style={{ marginBottom: 2 }}>
+                                  {f.title}
+                                  {f.evidence && (
+                                    <span style={{ color: MUTED }}> {JSON.stringify(f.evidence)}</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {!many && head.evidence && (
+                            <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: MUTED, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                              {JSON.stringify(head.evidence)}
+                            </pre>
+                          )}
                         </div>
-                        <div style={{ color: MUTED, fontSize: '0.8rem', marginTop: 4 }}>{f.recommendation}</div>
-                        {f.evidence && (
-                          <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: MUTED, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                            {JSON.stringify(f.evidence)}
-                          </pre>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                     {a.agent_analysis && (
                       <div style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_LINE}`, borderRadius: 6, padding: '0.75rem 1rem', marginTop: 8 }}>
                         <div style={{ fontWeight: 700, marginBottom: 6, color: POSITIVE }}>
@@ -663,8 +799,18 @@ export default function HorseHandReviews() {
                             </div>
                           ))}
                         {Array.isArray(a.agent_analysis?.shipped) && a.agent_analysis.shipped.length > 0 && (
-                          <div style={{ fontSize: '0.8rem', color: MUTED, marginTop: 4 }}>
-                            Shipped: {a.agent_analysis.shipped.join(', ')}
+                          <div style={{ fontSize: '0.8rem', color: MUTED, marginTop: 8 }}>
+                            {/* join(', ') ran seven pull-request entries into
+                                one unreadable paragraph the first day this
+                                panel had more than one thing to report. */}
+                            <div style={{ fontWeight: 700, color: TEXT, marginBottom: 4 }}>
+                              {`Shipped (${a.agent_analysis.shipped.length})`}
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                              {a.agent_analysis.shipped.map((sh, i) => (
+                                <li key={i} style={{ marginBottom: 3 }}>{sh}</li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                       </div>
