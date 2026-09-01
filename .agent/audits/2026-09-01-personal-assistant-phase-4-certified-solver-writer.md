@@ -163,3 +163,18 @@ detected 19 leaks, persisted the audit, and advanced leak history from 36 to
 37. All 32 corrective candidates resolved to verified or practice drills with
 zero empty, unmapped, missing, or other failures. The verified drill returned
 five questions and did not expose answer keys.
+
+## Post-Closure Authentication Correction
+
+A renewed protected-account run exposed a fast-path authentication regression
+after 11 consecutive corrective-drill reads. Production access tokens are
+currently ES256 with a signing-key ID, but the shared local verifier only
+supports HS256. Each request therefore fell back to the remote Auth user
+endpoint until its request ceiling turned the remaining valid requests into
+false 401 responses.
+
+The World Hub server-auth bridge now verifies asymmetric tokens through
+Supabase's cached JWKS claims path. Invalid claims fail closed without a second
+network authentication attempt, while older clients retain the existing
+authenticated fallback. Functional regression tests permanently require the
+claims path to avoid the Auth user endpoint and reject invalid claims.
