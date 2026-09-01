@@ -193,6 +193,32 @@ function isPlainRecordish(value) {
 export const DRILL_STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
 export const DRILL_POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
+// Historical coach laws and the original statistical detector predate the
+// canonical Training Library handoff. Give those known leak types a bounded,
+// indexed game target instead of scanning the entire JSON question archive.
+// These mappings only choose relevant practice content; they never make a
+// solver-verification or reward claim.
+const LEGACY_LEAK_DRILLS = Object.freeze({
+    law_01: { game: 'cash-006', street: 'Flop' },
+    position_is_power: { game: 'cash-006', street: 'Flop' },
+    law_03: { game: 'cash-001', street: 'Preflop' },
+    defend_your_blind: { game: 'cash-001', street: 'Preflop' },
+    law_06: { game: 'cash-004', street: 'Flop' },
+    bet_for_value: { game: 'cash-004', street: 'Flop' },
+    three_bet_too_loose: { game: 'cash-001', street: 'Preflop' },
+    three_bet_too_tight: { game: 'cash-001', street: 'Preflop' },
+});
+
+function legacyTrainingDrill(leak) {
+    const hints = [leak?.leakType, leak?.leak_type, leak?.leakCategory, leak?.leak_category,
+        leak?.situationClass, leak?.leakName, leak?.leak_name, leak?.name];
+    for (const hint of hints) {
+        const key = str(hint).trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (LEGACY_LEAK_DRILLS[key]) return LEGACY_LEAK_DRILLS[key];
+    }
+    return null;
+}
+
 const STREET_HINTS = [
     // Order matters: 'preflop' contains 'flop', so preflop is tested first.
     ['Preflop', /pre[\s_-]?flop|preflop|3[\s_-]?bet|three[\s_-]?bet|4[\s_-]?bet|four[\s_-]?bet|open[\s_-]?rais|limp|vpip|cold[\s_-]?call|steal|squeeze|blind[\s_-]?defen|rfi/i],
@@ -309,12 +335,14 @@ export function drillLength(leak) {
 export function leakToDrill(leak) {
     if (!isPlainRecordish(leak)) return null;
 
+    const legacyDrill = legacyTrainingDrill(leak);
     let street = null;
     const sources = [leak.recommendedDrill, leak.leakCategory, leak.leakType, leak.situationClass];
     for (const source of sources) {
         street = streetFromHint(source);
         if (street) break;
     }
+    if (!street) street = legacyDrill?.street || null;
     if (!street) return null;
 
     const position = positionFromHint(leak.situationClass)
@@ -334,6 +362,8 @@ export function leakToDrill(leak) {
     if (['solver_engine', 'training_solver'].includes(source)
         && /^[a-z0-9][a-z0-9_-]{1,64}$/.test(game)) {
         drill.game = game;
+    } else {
+        if (legacyDrill?.game) drill.game = legacyDrill.game;
     }
     return drill;
 }

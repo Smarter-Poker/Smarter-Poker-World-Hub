@@ -55,6 +55,21 @@ test('solver leak drill handoff preserves its exact Training Arena game', () => 
   assert.equal(spins.game, 'spins-003');
 });
 
+test('legacy coach laws and statistical leaks use bounded canonical games', () => {
+  assert.equal(leakToDrill({
+    sourceSystem: 'live', leakCategory: 'LAW_01', leakName: 'Position Is Power',
+  }).game, 'cash-006');
+  assert.equal(leakToDrill({
+    sourceSystem: 'live', leakCategory: 'LAW_03', leakName: 'Defend Your Blind',
+  }).game, 'cash-001');
+  assert.equal(leakToDrill({
+    sourceSystem: 'live', leakCategory: 'LAW_06', leakName: 'Bet For Value',
+  }).game, 'cash-004');
+  assert.equal(leakToDrill({
+    sourceSystem: 'live_play', leakType: 'three_bet_too_loose', leakCategory: 'preflop',
+  }).game, 'cash-001');
+});
+
 test('training handoff launches only a real canonical library game', () => {
   const catalog = ['cash-001', 'cash-002', 'mtt-001'];
   assert.equal(leakToTrainingGame({
@@ -87,6 +102,10 @@ test('review and drill routes carry idempotency and exact-game contracts', () =>
   assert.match(drillApi, /const gameIds = gameIdAliases\(gameId\)/);
   assert.match(drillApi, /query = query\.in\('game_id', gameIds\)/);
   assert.match(drillApi, /matchesExactSolverScope/);
+  assert.match(drillApi, /enforceSolverClaimHonesty/);
+  assert.match(drillApi, /const practiceOnly = Boolean/);
+  assert.match(drillApi, /solver_provenance_pending/);
+  assert.match(drillUi, /practiceDisclosure/);
   assert.match(drillUi, /outcome = \{ correct, total, reviewId \}/);
   assert.match(drillUi, /pa-leak-review-v2/);
   assert.match(leaksUi, /pa-leak-review-v2/);
