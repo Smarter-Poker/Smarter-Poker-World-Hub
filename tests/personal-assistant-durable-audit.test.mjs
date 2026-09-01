@@ -11,6 +11,7 @@ const detect = readFileSync(new URL('../pages/api/assistant/leaks/detect.js', im
 const hooks = readFileSync(new URL('../src/hooks/useAssistant.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
 const middleware = readFileSync(new URL('../middleware.ts', import.meta.url), 'utf8');
+const accountVerifier = readFileSync(new URL('../scripts/verify-personal-assistant-account-flow.mjs', import.meta.url), 'utf8');
 
 test('worker tokens are owner, purpose and expiry bound', () => {
   const prior = process.env.NEXTAUTH_SECRET;
@@ -140,6 +141,13 @@ test('production workers use the public origin instead of an SSO-protected deplo
   })) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   }
+});
+
+test('protected account verification tolerates the same bounded transient source failures as the durable worker', () => {
+  assert.match(accountVerifier, /const MAX_TRANSIENT_RETRIES = 3/);
+  assert.match(accountVerifier, /transientRetries < MAX_TRANSIENT_RETRIES/);
+  assert.match(accountVerifier, /transientRetries \+= 1/);
+  assert.match(accountVerifier, /assertSuccess\(result, 'Deterministic audit'\);\s*transientRetries = 0/s);
 });
 
 test('server workers finish detector pages in-process and reconcile final evidence', () => {

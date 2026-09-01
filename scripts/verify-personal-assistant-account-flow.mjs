@@ -25,6 +25,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const completeDrill = process.argv.includes('--complete-drill');
 const skipAudit = process.argv.includes('--skip-audit');
 const MAX_AUDIT_BATCHES = 12;
+const MAX_TRANSIENT_RETRIES = 3;
 
 if (!password || !supabaseUrl || !anonKey) {
   throw new Error('Missing TEST_USER_PASSWORD or public Supabase environment variables.');
@@ -85,7 +86,7 @@ async function runDetection(token) {
   let solverVerified = 0;
   let unpriced = 0;
   let retriedRateLimit = false;
-  let retriedTransient = false;
+  let transientRetries = 0;
 
   while (batches < MAX_AUDIT_BATCHES) {
     const result = await requestJson('/api/assistant/leaks/detect', token, {
@@ -101,14 +102,17 @@ async function runDetection(token) {
     retriedRateLimit = false;
     if ([502, 503, 504].includes(result.response.status)
       && result.data?.retryable === true
-      && !retriedTransient) {
-      retriedTransient = true;
-      const retrySeconds = Math.min(60, Math.max(1, Number(result.response.headers.get('retry-after') || 1)));
+      && transientRetries < MAX_TRANSIENT_RETRIES) {
+      transientRetries += 1;
+      const retrySeconds = Math.min(60, Math.max(
+        transientRetries,
+        Number(result.response.headers.get('retry-after') || 1),
+      ));
       await sleep(retrySeconds * 1000);
       continue;
     }
-    retriedTransient = false;
     assertSuccess(result, 'Deterministic audit');
+    transientRetries = 0;
 
     batches += 1;
     const sync = result.data?.clubArenaSync || {};
