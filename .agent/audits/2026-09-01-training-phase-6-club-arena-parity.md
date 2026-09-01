@@ -37,8 +37,9 @@ semantic locators for verdict, Your Answer, Correct Answer, and Next Question.
 Club Arena intentionally retains the immediately previous hashed generation so
 a client holding stale HTML can complete a lazy navigation. The current sync
 contains 379 manifest-authoritative JS/CSS chunks totaling 7.981 MB, inside the
-unchanged 9 MB ratchet. Another 185 compatibility chunks total 4.161 MB. The old
-gate added them together and reported 12.143 MB as current code.
+unchanged 9 MB ratchet. The latest protected-main sync retains 186 compatibility
+chunks totaling 4.51 MB. The old gate added both generations together and
+misreported compatibility code as current code.
 
 The corrected gate measures:
 
@@ -48,8 +49,9 @@ The corrected gate measures:
 - the complete deployed payload against 110 MB.
 
 The gate also fails if the runtime manifest is absent, malformed, or references
-a missing current JS/CSS asset. The shipped evidence is 1.22 MB initial, 7.98 MB
-current code, 4.16 MB retained code, 58.77 MB payload, and zero exceeded budgets.
+a missing current JS/CSS asset. The current protected-branch evidence is 1.22 MB
+initial, 7.98 MB current code, 4.51 MB retained code, 59.12 MB payload, and zero
+exceeded budgets.
 
 ### Gameplay Launched Under The Setup Scroll Position And Library Footer
 
@@ -60,6 +62,25 @@ library footer. Training now scrolls to its visual origin when the playing phase
 mounts and suppresses only the world footer on `/hub/training/arena/*`. Browse,
 setup, progress, review, and every other Training route retain their footer.
 The approved global header is unchanged and remains present during gameplay.
+
+### State And Geometry Evidence Is Machine Addressable
+
+The Club Arena table now exposes stable, non-visual measurement anchors for the
+active action/verdict state, street, player count, board count, table, every
+seat, hero cards, dealer button, committed-chip stacks, pot, and feedback layer.
+These attributes do not style or alter gameplay. They let the Phase 6 browser
+ledger measure the pixels the player actually receives instead of inferring
+geometry from source text.
+
+`scripts/training-phase6-parity-audit.mjs` exercises the setup-to-gameplay
+boundary and action/verdict states for 6-max preflop, 6-max postflop, declared
+river, heads-up, three-player Spins, nine-player MTT, and push/fold families on
+390x844 and 1440x1000. It asserts the approved header, footer ownership, scroll
+origin, 605x1000 Club Arena table aspect, seat/player agreement, hero cards,
+dealer, pot, all-in availability, loaded images, horizontal containment, and
+persistent manual feedback, while saving the pixel captures and a JSON ledger.
+The protected preview and exact production descendant still need to run this
+ledger before Phase 6 can close.
 
 ## Remaining Phase 6 Work
 
