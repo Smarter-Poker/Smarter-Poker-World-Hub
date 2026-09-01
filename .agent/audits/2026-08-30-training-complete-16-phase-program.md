@@ -119,6 +119,12 @@ transition deterministic and opens the canonical Wallet modal; its focused
 Chromium/mobile reproduction passed all 17 affected tests without changing the
 global header or product behavior.
 
+Protected follow-up PR 1234 isolates the account-scoped first-run notification
+sheet in the authenticated E2E fixture after its 20-second timer was proven to
+intercept unrelated long-running tests. The focused Chromium/mobile
+reproduction passed 15/15; notification-specific coverage, product behavior,
+and the frozen global header remain unchanged.
+
 ### Phase 7: Every Game's Secondary Pages
 
 Audit and optimize the setup, campaign, level selection, lobby, resume, review,
