@@ -168,8 +168,15 @@ async function activateManualNext(page) {
 }
 
 async function openArena(page, viewport, testCase, diagnostics) {
+  const startedAt = Date.now();
+  const stage = (name) => {
+    const entry = { name, elapsedMs: Date.now() - startedAt, at: new Date().toISOString() };
+    diagnostics.stages.push(entry);
+    process.stderr.write(`[phase6-parity] ${viewport.name}/${testCase.gameId} ${name} ${entry.elapsedMs}ms\n`);
+  };
   diagnostics.pageErrors.length = 0;
   diagnostics.consoleErrors.length = 0;
+  stage('begin');
   if (testCase.targetStreet) {
     await page.route('**/api/training/batch-preload?**', async (route) => {
       const url = new URL(route.request().url());
@@ -181,10 +188,12 @@ async function openArena(page, viewport, testCase, diagnostics) {
   const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
     waitUntil: 'domcontentloaded', timeout: 60_000,
   });
+  stage('document-loaded');
   assert.ok((response?.status() || 0) < 400, `${testCase.gameId}: HTTP ${response?.status() || 0}`);
   const start = page.locator('.sp-arena-lobby__start');
   try {
     await start.waitFor({ state: 'visible', timeout: 60_000 });
+    stage('lobby-visible');
   } catch (error) {
     const lobbyFailure = await page.evaluate(() => ({
       url: location.href,
@@ -218,12 +227,14 @@ async function openArena(page, viewport, testCase, diagnostics) {
     const button = document.querySelector('.sp-arena-lobby__start');
     return button instanceof HTMLButtonElement && !button.disabled;
   }, undefined, { timeout: 60_000 });
+  stage('lobby-ready');
   await start.click();
   await page.locator('[data-training-ui="club-arena-table"]').waitFor({ state: 'visible', timeout: 60_000 });
   await waitForVisualBoard(page);
   await page.waitForFunction(() => [...document.images]
     .filter((image) => image.getBoundingClientRect().width > 0)
     .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
+  stage('action-ready');
   const action = await snapshot(page, `${viewport.name}-${testCase.gameId}-action`);
   if (testCase.expectedStreet) assert.equal(action.street, testCase.expectedStreet, `${testCase.gameId}: street`);
   if (Number.isInteger(testCase.expectedBoard)) assert.equal(action.boardCount, testCase.expectedBoard, `${testCase.gameId}: board count`);
@@ -244,15 +255,23 @@ async function openArena(page, viewport, testCase, diagnostics) {
   );
   await answerButton.click();
   await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+  stage('verdict-visible');
   const recordResponse = await recordResponsePromise;
-  const recordBody = await recordResponse.json().catch(() => null);
+  stage('record-response');
+  // The player runtime uses response.ok and intentionally does not consume the
+  // success body. Certify that same public contract. Reading a service-worker
+  // intercepted response body through Playwright can wait on the browser's
+  // stream even after Vercel has logged the authoritative HTTP 200.
   assert.ok(recordResponse.status() < 400,
-    `${testCase.gameId}: record-question ${recordResponse.status()} ${JSON.stringify(recordBody)}`);
+    `${testCase.gameId}: record-question HTTP ${recordResponse.status()}`);
   const persistentNext = page.locator('.sp-training-next-button:visible')
     .filter({ hasText: /Next Question|Next - Continue Hand/ })
     .first();
   const persistentNextVisible = await persistentNext.isVisible().catch(() => false);
   if (!persistentNextVisible) {
+    if (page.isClosed()) {
+      throw new Error(`${testCase.gameId}: page closed before persistent manual Next could be verified: ${JSON.stringify(diagnostics)}`);
+    }
     const missingNext = await page.evaluate(() => ({
       href: location.href,
       visibility: document.visibilityState,
@@ -278,6 +297,7 @@ async function openArena(page, viewport, testCase, diagnostics) {
     });
     assert.fail(`${testCase.gameId}: visible persistent manual Next control missing`);
   }
+  stage('manual-next-visible');
   const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
   assert.equal(verdict.feedbackPanels, 1);
@@ -448,7 +468,7 @@ try {
       // browser-error ledger.
       const page = await context.newPage();
       await page.setViewportSize(viewport);
-      const diagnostics = { pageErrors: [], consoleErrors: [] };
+      const diagnostics = { pageErrors: [], consoleErrors: [], lifecycle: [], stages: [] };
       page.on('pageerror', (error) => {
         diagnostics.pageErrors.push({
           message: error.message,
@@ -461,6 +481,13 @@ try {
           text: message.text(),
           location: message.location(),
         });
+      });
+      page.on('crash', () => diagnostics.lifecycle.push({ type: 'crash', at: new Date().toISOString() }));
+      page.on('close', () => diagnostics.lifecycle.push({ type: 'close', at: new Date().toISOString() }));
+      page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame()) {
+          diagnostics.lifecycle.push({ type: 'navigate', at: new Date().toISOString(), url: frame.url() });
+        }
       });
       try {
         entry.cases.push(await openArena(page, viewport, testCase, diagnostics));

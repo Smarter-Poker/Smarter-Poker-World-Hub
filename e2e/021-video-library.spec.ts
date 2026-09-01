@@ -188,7 +188,7 @@ test.describe('21. Video Library command system', () => {
     });
     await page.goto('/hub/video-library', { waitUntil: 'commit' });
     await expect(page.locator('.vl-card-title').first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: /Playlists, 0 playlists/ }).click();
+    await page.getByRole('button', { name: /Playlists, 0 Playlists/ }).click();
     await expect(page.getByRole('button', { name: /Sign In To Sync/ })).toBeVisible();
     await page.getByRole('button', { name: /Sign In To Sync/ }).click();
     await expect(page).toHaveURL(/\/auth\/login\?redirect=%2Fhub%2Fvideo-library/);

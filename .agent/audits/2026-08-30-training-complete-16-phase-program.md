@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-5 Complete; Phase 6 In Progress
+Status: Phases 1-6 Complete; Phase 7 In Progress
 
 ## Objective
 
@@ -89,6 +89,16 @@ semantic visible locators that observed it appear, and Club Arena current and
 retained compatibility generations are measured independently without raising
 the 9 MB current-code ratchet. Detailed evidence is recorded in
 `2026-09-01-training-phase-6-club-arena-parity.md`.
+
+Phase 6 implementation PR 1177 merged as `10c62c39df7`; production-hardening
+PR 1202 merged as `ccf12df912`. Immutable production deployment
+`dpl_9MxEg12t87P5egh9zbFwrcNXzvdd` passed the 16-case mobile/desktop Club Arena
+ledger, both real 20-hand manual-Next completions, Level 11 and 12 serving and
+grading, and direct login hydration. The ledger recorded 50 captures with zero
+page errors, console errors, broken images, overflow, or seat/player drift.
+Worker activation can no longer reload a live Training decision, and the
+footerless mobile lobby no longer reserves a phantom footer row. The approved
+global header remained untouched.
 
 ### Phase 7: Every Game's Secondary Pages
 
