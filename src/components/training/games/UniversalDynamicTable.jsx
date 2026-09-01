@@ -3123,6 +3123,10 @@ function UniversalDynamicTable({
             className="gto-trainer-container"
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
+            data-training-visual-state={showFeedback ? 'verdict' : 'action'}
+            data-training-street={streetLabel.toLowerCase()}
+            data-training-player-count={playerCount}
+            data-training-board-count={visibleBoard.length}
             style={styles.container}
         >
             {/* ═══ THE QUESTION — first element on the page, pinned to the top ═══
@@ -3782,7 +3786,12 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div ref={tableRef} className="sp-club-gto-table" style={{ ...styles.basicTable, width: clubTableWidth, aspectRatio: '605 / 1000' }}>
+                <div
+                    ref={tableRef}
+                    className="sp-club-gto-table"
+                    data-training-table="true"
+                    style={{ ...styles.basicTable, width: clubTableWidth, aspectRatio: '605 / 1000' }}
+                >
 
                 {/* THE FELT — inset into the rail above. Purely decorative and
                     pointer-transparent; every seat, chip and card is drawn on
@@ -3920,6 +3929,9 @@ function UniversalDynamicTable({
                         return (
                             <motion.div
                                 className={`sp-club-gto-seat ${isHero ? 'is-hero' : 'is-villain'}`}
+                                data-training-seat={isHero ? 'hero' : 'villain'}
+                                data-training-seat-index={index}
+                                data-training-seat-position={seat.name}
                                 key={seat.id}
                                 initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
                                 animate={{ opacity: villainFolded ? 0.42 : 1, scale: 1 }}
@@ -4055,6 +4067,7 @@ function UniversalDynamicTable({
 
                                                 return (
                                                     <motion.img
+                                                        className="sp-club-gto-hero-card"
                                                         key={`hero-seat-${cardIndex}-${questionNumber}-${card}`}
                                                         src={getCardPath(card)}
                                                         alt={card}
@@ -4198,7 +4211,7 @@ function UniversalDynamicTable({
                     if (!lawKey) return null;
                     const btnPos = DEALER_BUTTON_POSITIONS[lawKey] || DEALER_BUTTON_POSITIONS.hero;
                     return (
-                        <div style={{
+                        <div className="sp-club-gto-dealer-button" data-training-dealer-button="true" style={{
                             ...styles.dealerButton,
                             // BUTTONS ARE PART OF THE THEME too (Dan 2026-08-30). The dealer
                             // marker is the only real button on this surface, so it is the
@@ -4266,6 +4279,9 @@ function UniversalDynamicTable({
                         const srcLeft = ringSeat.x;
                         return (
                             <motion.div
+                                className="sp-club-gto-chip-stack"
+                                data-training-chip-seat-index={index}
+                                data-training-chip-amount={amount}
                                 key={`chip-${index}-${amount}`}
                                 initial={reduceMotion
                                     ? false
@@ -4424,6 +4440,8 @@ function UniversalDynamicTable({
                     Preflop scenarios without an explicit pot default to the blinds (1.5bb). */}
                 {displayPot > 0 && (
                     <motion.div
+                        className="sp-club-gto-pot"
+                        data-training-pot={displayPot}
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         style={{
@@ -5107,6 +5125,7 @@ function UniversalDynamicTable({
             {showFeedback && (
                 <motion.div
                     className="sp-training-feedback"
+                    data-training-feedback="verdict"
                     initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 22, stiffness: 300 }}
