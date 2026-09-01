@@ -19,7 +19,7 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 1000 },
 ];
 const CASES = [
-  { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0 },
+  { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0, expectsCompletion: true },
   { gameId: 'cash-002', family: '6max-postflop' },
   { gameId: 'cash-012', family: 'river', expectedStreet: 'river', expectedBoard: 5 },
   { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
@@ -158,7 +158,69 @@ async function openArena(page, viewport, testCase) {
   await page.waitForTimeout(1_000);
   assert.equal(await page.locator('[data-training-feedback="verdict"]').isVisible(), true, `${testCase.gameId}: verdict did not persist`);
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-verdict.png`), fullPage: false });
-  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict };
+
+  let completion = null;
+  if (testCase.expectsCompletion) {
+    // Exercise every real manual-Next transition in the canonical 20-hand
+    // level. Do not mutate engine state or use a test-only shortcut: this is
+    // the same completion and persistence path a player reaches.
+    for (let guard = 0; guard < 30; guard += 1) {
+      const complete = page.locator('[data-training-ui="club-arena-completion"]');
+      if (await complete.isVisible().catch(() => false)) break;
+
+      const next = page.getByText(/Next Question|Next - Continue Hand/).first();
+      await next.waitFor({ state: 'visible', timeout: 30_000 });
+      await next.click();
+      if (await complete.isVisible().catch(() => false)) break;
+
+      const actionButton = page.locator('.sp-club-gto-actions [data-action]').first();
+      await actionButton.waitFor({ state: 'visible', timeout: 30_000 });
+      await actionButton.click();
+      await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+    }
+
+    const complete = page.locator('[data-training-ui="club-arena-completion"]');
+    await complete.waitFor({ state: 'visible', timeout: 30_000 });
+    await page.waitForFunction(() => [...document.images]
+      .filter((image) => image.getBoundingClientRect().width > 0)
+      .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
+    completion = await page.evaluate(() => {
+      const visible = (node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const box = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return box.width > 0 && box.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      };
+      const root = document.querySelector('[data-training-ui="club-arena-completion"]');
+      const box = root?.getBoundingClientRect();
+      const images = [...document.images].filter(visible);
+      return {
+        visualState: root?.getAttribute('data-training-visual-state') || null,
+        approvedHeaders: document.querySelectorAll('.approved-global-header').length,
+        trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+        overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        root: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
+        title: root?.querySelector('.sp-arena-review__title')?.textContent?.trim() || null,
+        backButtons: [...(root?.querySelectorAll('button') || [])]
+          .filter(visible)
+          .filter((button) => /Back(?: To Training)?/i.test(button.textContent || '')).length,
+        brokenVisibleImages: images.filter((image) => !image.complete || image.naturalWidth === 0)
+          .map((image) => image.currentSrc || image.src),
+      };
+    });
+    assert.equal(completion.visualState, 'completion', `${testCase.gameId}: completion state`);
+    assert.equal(completion.approvedHeaders, 1, `${testCase.gameId}: completion approved header count`);
+    assert.equal(completion.trainingFooters, 0, `${testCase.gameId}: completion must preserve immersive route ownership`);
+    assert.ok(completion.root && completion.root.x >= -1 && completion.root.right <= viewport.width + 1,
+      `${testCase.gameId}: completion escaped the viewport`);
+    assert.ok(completion.overflow <= 1, `${testCase.gameId}: completion horizontal overflow ${completion.overflow}px`);
+    assert.equal(completion.title, 'Session Review', `${testCase.gameId}: completion title`);
+    assert.equal(completion.backButtons >= 1, true, `${testCase.gameId}: completion exit missing`);
+    assert.deepEqual(completion.brokenVisibleImages, [], `${testCase.gameId}: completion broken visible images`);
+    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-completion.png`), fullPage: false });
+  }
+
+  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict, completion };
 }
 
 const browser = await chromium.launch({ headless: true });

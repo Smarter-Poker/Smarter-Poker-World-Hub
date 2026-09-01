@@ -42,3 +42,10 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
   assert.match(table, /sp-club-gto-mode-bar:not\(\.is-feedback\)/);
   assert.match(table, /showFeedback \? ' is-feedback' : ''/);
 });
+
+test('God Mode Arena exposes a stable nonvisual completion-state anchor', async () => {
+  const arena = await readFile('src/components/training/GodModeArena.jsx', 'utf8');
+
+  assert.match(arena, /data-training-ui="club-arena-completion"/);
+  assert.match(arena, /data-training-visual-state="completion"/);
+});

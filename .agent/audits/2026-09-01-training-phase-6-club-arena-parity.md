@@ -80,8 +80,12 @@ river, heads-up, three-player Spins, nine-player MTT, and push/fold families on
 origin, 605x1000 Club Arena table aspect, seat/player agreement, hero cards,
 dealer, pot, all-in availability, loaded images, horizontal containment, and
 persistent manual feedback, while saving the pixel captures and a JSON ledger.
-The protected preview and exact production descendant still need to run this
-ledger before Phase 6 can close.
+For `cash-001`, it also advances the complete canonical 20-hand level through
+every real manual-Next transition on both viewports, then verifies and captures
+the real Session Review surface. A stable nonvisual completion anchor makes
+that end state measurable without changing its design. The protected preview
+and exact production descendant still need to run this ledger before Phase 6
+can close.
 
 ### Production Pixel Audit Found An Incomplete Seat Ring
 
