@@ -1,7 +1,7 @@
 # Training Phase 4 Poker Truth And Question Contract Audit
 
 Date: 2026-08-31
-Status: In Progress
+Status: Complete
 Scope: 107 canonical games, 12 levels per game, compatible production cache, deterministic engine fallbacks, static Training questions, and shared serving contracts.
 
 ## Current Evidence
@@ -46,6 +46,31 @@ Scope: 107 canonical games, 12 levels per game, compatible production cache, det
   games through both `/play` and `/arena` on desktop and mobile. This includes
   174 Club Arena poker surfaces, 40 psychology surfaces, and persistent explicit
   Correct/Incorrect feedback with manual Next for `cash-001` and `psy-001`.
+- The protected Phase 4 implementation shipped in PR #1065 as
+  `932e62a503ac5e1a3f2318555ca12382682b2b00`. The truth, provenance, runtime,
+  and release-gate closeout shipped in PR #1151 as merge commit
+  `12720a8152472cf4868936cd52caa4fe89b281f6`, without changing the approved
+  global header.
+- Production served healthy descendant build `e16e5e73` with a successful live
+  database health probe. Fresh, independently authenticated desktop and mobile
+  audits each passed direct `/auth/login`, the 107-card Training Hub, all three
+  representative 12-level campaigns, and `cash-001`, `adv-011`,
+  `quiz-gauntlet`, and `psy-001` gameplay. Both viewports had zero hydration,
+  console, page, horizontal-overflow, scanline, or broken-image failures. All
+  four gameplay samples exposed four meaningful answers; mobile `cash-001` and
+  `psy-001` retained explicit verdict, Your Answer, Correct Answer, rationale,
+  and manual Next feedback.
+- The production smoke runner now permits one viewport per fresh authenticated
+  session. This preserves Supabase's one-time refresh-token contract and avoids
+  contaminating a desktop result with state from an earlier mobile traversal.
+- Captured desktop and 390x844 mobile Hub frames were visually inspected. Both
+  retained the approved global header and footer, unique casino-realism hero
+  artwork, readable foreground contrast, and unobstructed primary actions.
+- The final read-only production recheck still reports 516,973 audited solver
+  rows, 409,307 structurally reusable matrices, 107,666 replacements, and zero
+  provenance-complete exact-runtime rows. River remains 189,679 total,
+  169,401 structurally reusable, and 20,278 requiring replacement. No legacy
+  row is falsely promoted to solver-exact.
 
 ## Defects Found And Repaired
 
@@ -85,11 +110,21 @@ Scope: 107 canonical games, 12 levels per game, compatible production cache, det
    the current worktree. It now accepts an explicit local auth-state path, so
    credentials remain outside the branch while the guarded authenticated UI is
    still exercised.
+9. A combined mobile-then-desktop production smoke reused one authenticated
+   browser context and left a later arena traversal in stale client state. The
+   harness now supports `TRAINING_PRODUCTION_VIEWPORT=mobile|desktop`, and each
+   viewport passed independently after a fresh supported auth setup.
 
-## Publication Exit Items
+## Publication Evidence
 
-- Publish through the protected pull-request pipeline without altering the
-  approved global header.
-- Verify the exact merged production build and affected gameplay paths.
-- Record the protected PR, merge SHA, production SHA, screenshots, and final
-  browser evidence before reporting Phase 4 complete and opening Phase 5.
+- Protected implementation PR: #1065,
+  `932e62a503ac5e1a3f2318555ca12382682b2b00`.
+- Protected truth and release-gate PR: #1151,
+  `12720a8152472cf4868936cd52caa4fe89b281f6`.
+- Verified production descendant: `e16e5e73`.
+- Production screenshots: `/tmp/training-phase1-production-desktop.png` and
+  `/tmp/training-phase1-production-mobile.png` on the certification host.
+- Phase 4 closes with zero false solver-exact claims. M1 remains alive but idle
+  on the exhausted legacy manifest; M2 remains offline on revoked credentials.
+  Neither machine is safe to restart or retarget until Phase 5's canonical
+  runtime contract and supervised restoration gates explicitly authorize it.
