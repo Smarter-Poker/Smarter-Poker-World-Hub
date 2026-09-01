@@ -40,6 +40,21 @@ import { useEffect } from 'react';
 const RELOAD_GUARD = 'sp_sw_reloaded_at';
 const RELOAD_COOLDOWN_MS = 60_000;
 
+/**
+ * Never destroy a live decision by reloading underneath the player. The new
+ * worker already controls the next navigation after `controllerchange`; the
+ * current document can safely finish its session on the assets it loaded.
+ */
+function isLiveGameplaySession() {
+    try {
+        return /^\/hub\/training\/(?:arena|play)\//.test(window.location.pathname);
+    } catch {
+        // If location is unavailable, preserving the current document is the
+        // only fail-closed choice.
+        return true;
+    }
+}
+
 function recentlyReloaded() {
     try {
         const at = Number(sessionStorage.getItem(RELOAD_GUARD) || 0);
@@ -70,6 +85,7 @@ export default function ServiceWorkerUpdater() {
 
         const onControllerChange = () => {
             if (cancelled) return;
+            if (isLiveGameplaySession()) return;
             // A different worker is now in charge, so the HTML and chunks this
             // page is running came from the OLD one. Reload to pick up the new
             // build. Once per minute at most.
