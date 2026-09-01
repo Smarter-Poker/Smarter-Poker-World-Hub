@@ -583,6 +583,66 @@ export default function LoginPage() {
           }}
         />
 
+        {/* The artwork contains the signed-in account card because it was
+            generated as one flat image. Showing that card before auth has
+            resolved tells a signed-out visitor that an account is active and
+            advertises two buttons that do not exist in the DOM. Cover only
+            that conditional region with real signed-out content. When a live
+            session is confirmed, this cover comes down and the real Continue
+            and Switch Account controls below become available. */}
+        {!existingUser && (
+          <div
+            data-testid="signed-out-account-card"
+            role="status"
+            aria-label="Secure Sign In"
+            style={{
+              position: 'absolute',
+              top: '39.7%',
+              left: '24.5%',
+              width: '51%',
+              height: '11.8%',
+              zIndex: 11,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4%',
+              padding: '2.2% 5%',
+              border: '1px solid rgba(0, 212, 255, 0.58)',
+              borderRadius: '10px',
+              background:
+                'radial-gradient(circle at 50% 0%, rgba(0, 111, 181, 0.24), transparent 58%), rgba(5, 13, 27, 0.98)',
+              boxShadow: 'inset 0 0 20px rgba(0, 117, 197, 0.18)',
+              color: '#fff',
+              textAlign: 'center',
+              pointerEvents: 'none',
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: '14%',
+                aspectRatio: '1',
+                border: '1px solid rgba(0, 212, 255, 0.72)',
+                borderRadius: '50%',
+                boxShadow: '0 0 14px rgba(0, 212, 255, 0.28)',
+              }}
+            />
+            <strong style={{ fontSize: 'clamp(12px, 2.3vw, 17px)', lineHeight: 1.05 }}>
+              Secure Sign In
+            </strong>
+            <span
+              style={{
+                color: 'rgba(221, 236, 252, 0.74)',
+                fontSize: 'clamp(8px, 1.65vw, 12px)',
+                lineHeight: 1.15,
+              }}
+            >
+              Enter Your Account Details Below
+            </span>
+          </div>
+        )}
+
         {/* ── Already-signed-in button row ── */}
         {existingUser && (
           <div
