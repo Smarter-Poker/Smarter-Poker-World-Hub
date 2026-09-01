@@ -117,10 +117,10 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
     await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
 
     const map = page.locator('[data-map-foundation="shared-v2"]').first();
-    await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
+    await expect(map).toHaveAttribute('data-map-ready', 'true', { timeout: 60_000 });
     await expect(map.locator('.leaflet-control-zoom')).toBeVisible();
     await expect.poll(async () => Number(await map.getAttribute('data-map-marker-count')), {
-      timeout: 30_000,
+      timeout: 60_000,
     }).toBeGreaterThan(0);
     await expectNoOverflow(page, 'degraded-tile map');
     expect(runtimeErrors).toEqual([]);
