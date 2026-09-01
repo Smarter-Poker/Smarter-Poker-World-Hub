@@ -74,6 +74,32 @@ def _load_cron_secret():
     return ''
 
 CRON_SECRET  = _load_cron_secret()
+
+# The workers VM authenticates against ITS OWN copy of CRON_SECRET, held in
+# /opt/workers/.env inside the container's compose env. It is a SEPARATE
+# credential from Vercel's, on a separate host, with a separate rotation
+# cadence, and treating the two as one value caused a 24-hour outage:
+#
+#   2026-08-31 08:59:01 UTC  last successful workers fire
+#   2026-08-31 09:00:00 UTC  first `workers 401 {"error":"unauthorized"}`
+#   ...and every workers-routed job 401'd continuously from then on.
+#
+# What happened: deploy-openclaw.yml stamped GitHub's two-week-stale
+# CRON_SECRET onto /etc/openclaw.env, all 89 routes began 401ing, and the
+# hand-repair that followed replaced it with VERCEL's current value. That
+# restored every Vercel-routed job and permanently broke every workers-routed
+# one, because the workers VM had never been rotated and still expects the
+# older value. Nothing detected it: the workers healthcheck pings the
+# UNAUTHENTICATED /health (200 the whole time) and the auth-drift watchdog
+# only ever probed Vercel. 58 distinct jobs were dead, including every horse
+# social post and story, hard-stop, ledger-reconcile and the anti-cheat sweeps.
+#
+# So: one env var per hop. WORKERS_CRON_SECRET is host-local (it lives in
+# /opt/openclaw/.env, which deploy-openclaw.yml seeds into /etc/openclaw.env
+# and never overwrites), and falls back to CRON_SECRET when unset so a box
+# where the two genuinely agree needs no configuration at all.
+WORKERS_CRON_SECRET = os.environ.get('WORKERS_CRON_SECRET', '').strip() or CRON_SECRET
+
 LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
@@ -888,11 +914,13 @@ def fire_cron(path: str):
     if _workers_dispatch(path):
         url = f'{WORKERS_BASE_URL}{WORKERS_PREFERRED[path]}'
         target_label = 'workers'
+        secret = WORKERS_CRON_SECRET
     else:
         url = f'{BASE_URL}{path}'
         target_label = 'vercel'
+        secret = CRON_SECRET
     headers = {
-        'Authorization': f'Bearer {CRON_SECRET}',
+        'Authorization': f'Bearer {secret}',
         'User-Agent':    'OpenClaw-CronDispatcher/1.4',
         'Accept':        'application/json',
     }
@@ -1078,6 +1106,47 @@ def _auth_drift_watchdog_job():
                 verified.append('SUPABASE_SERVICE_ROLE_KEY')
         except Exception as e:
             log.warning(f'[auth-drift] supabase probe inconclusive: {type(e).__name__}: {e}')
+
+    # ── The workers hop (added 2026-09-01) ─────────────────────────────────
+    #
+    # This watchdog was written for exactly this failure and did not cover it.
+    # It proved CRON_SECRET against Vercel and stopped, so when the dispatcher
+    # was authenticated to Vercel and rejected by the workers VM it reported
+    # "OK - verified: CRON_SECRET" for a full day while 58 jobs 401'd, horses
+    # posted nothing and the stories row emptied. The workers healthcheck could
+    # not catch it either: /health takes no Authorization header, so it stayed
+    # green throughout.
+    #
+    # The probe needs a boundary on workers that runs auth and then does no
+    # work. Every real /cron/* route does work on success, so we deliberately
+    # request a path that does not exist: the Bearer middleware is mounted on
+    # /cron/* ahead of routing, so a REJECTED secret answers 401 and an
+    # ACCEPTED one falls through to 404. 404 is therefore the pass condition,
+    # and nothing is executed either way.
+    if WORKERS_BASE_URL and WORKERS_PREFERRED:
+        if not WORKERS_CRON_SECRET:
+            failures.append('WORKERS_CRON_SECRET is empty and CRON_SECRET is too - workers routes cannot authenticate')
+        else:
+            probe_headers = {'Authorization': f'Bearer {WORKERS_CRON_SECRET}'}
+            if DISPATCHER_PRIVATE_IP:
+                probe_headers['X-Forwarded-For'] = DISPATCHER_PRIVATE_IP
+            try:
+                r = requests.get(f'{WORKERS_BASE_URL}/cron/__auth_probe_no_such_route__',
+                                 headers=probe_headers, timeout=10)
+                if r.status_code == 401:
+                    failures.append(
+                        f'workers secret rejected (401) by {WORKERS_BASE_URL} - '
+                        f'all {len(WORKERS_PREFERRED)} workers-routed jobs are dead')
+                elif r.status_code == 404:
+                    verified.append('WORKERS_CRON_SECRET')
+                else:
+                    # Unexpected shape. Say so rather than counting it as proof.
+                    absent.append(f'workers auth probe inconclusive (HTTP {r.status_code})')
+                    log.warning(f'[auth-drift] workers probe returned HTTP {r.status_code}, expected 401 or 404')
+            except Exception as e:
+                log.warning(f'[auth-drift] workers probe inconclusive: {type(e).__name__}: {e}')
+    else:
+        absent.append('WORKERS_CRON_SECRET (no workers routing configured on this host)')
 
     if not failures:
         if state['alert_sent']:

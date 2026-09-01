@@ -85,6 +85,25 @@ jobs:
           ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
         run: |
           umask 077
+          # ── WORKERS_CRON_SECRET is deliberately NOT managed here ──────────────
+          #
+          # The workers VM (WORKERS_BASE_URL, private 10.0.0.x) has its own copy
+          # of CRON_SECRET in its compose env and its own rotation cadence. This
+          # runner cannot reach that private address, so it cannot prove a
+          # candidate before writing one, and the rule below — never write an
+          # unproven secret — applies with more force, not less.
+          #
+          # So the workers secret is HOST-LOCAL: it lives in /opt/openclaw/.env,
+          # which the merge step at the bottom of this job seeds into
+          # /etc/openclaw.env only when the key is absent, and which nothing here
+          # ever overwrites. The dispatcher falls back to CRON_SECRET when
+          # WORKERS_CRON_SECRET is unset, so a box where the two agree needs no
+          # configuration.
+          #
+          # Added 2026-09-01 after the two values diverged silently for a day and
+          # every workers-routed job 401'd. See
+          # .agent/audits/2026-09-01-workers-cron-secret-split.md.
+          #
           # ── Never overwrite a WORKING credential with one production rejects ──
           #
           # This step used to stamp secrets.CRON_SECRET onto /etc/openclaw.env
