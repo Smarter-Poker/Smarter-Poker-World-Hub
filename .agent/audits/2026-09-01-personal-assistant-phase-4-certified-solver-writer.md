@@ -153,5 +153,13 @@ Closeout verification passed the 24-test solver-writer suite, the 113-test Leak
 Engine suite, focused rejection and durable-job contracts, the complete
 desktop/mobile Personal Assistant matrix with 25 passes and two intentional
 viewport skips, and the exact optimized production build with 403 static
-pages. Final merge and deployed-account evidence are recorded in the release
-state below once the correction reaches production.
+pages.
+
+The corrected protected-account verifier then completed against production in
+seven batches. It scanned 1,347 Club Arena records, recovered 787 private-card
+facts, classified 298 records as missing private cards and 626 as unsupported
+or incomplete, and confirmed all 422 eligible hands were already current. It
+detected 19 leaks, persisted the audit, and advanced leak history from 36 to
+37. All 32 corrective candidates resolved to verified or practice drills with
+zero empty, unmapped, missing, or other failures. The verified drill returned
+five questions and did not expose answer keys.
