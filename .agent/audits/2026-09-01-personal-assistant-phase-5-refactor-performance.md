@@ -45,5 +45,20 @@ evidence boundary, durable audit behavior, or corrective-training contracts.
 - Exact optimized webpack production build passed with 403/403 pages.
 - Post-build bundle and server-function budget gate passed.
 
-Publication and post-deployment production evidence are appended after the
-protected merge and exact-revision verification complete.
+## Publication And Production Evidence
+
+- Pull request #1195 passed the protected repository checks and squash-merged
+  as `c07529e599a8a869027e49c9416eafb6ce9a1e3d`.
+- Vercel deployment `dpl_CA4gNYVoUppZLGvdGscvtDMHSJPQ` reached Ready with the
+  exact merge SHA. Production health reported `ok` at version `c07529e5`.
+- Live response telemetry reported Sandbox analysis within its 25-second budget
+  and authenticated Leak Finder detection within its 60-second budget.
+- The deployed desktop/mobile Personal Assistant matrix passed 25 applicable
+  journeys with two intentional viewport-specific skips.
+- The protected-account verifier completed seven signed audit batches over
+  1,347 Club Arena hands, recovered 787 private-card facts, confirmed all 422
+  eligible hands current, and persisted 19 deterministic findings.
+- Leak history remained stable at 37 on the idempotent rerun. All 32 corrective
+  candidates opened a verified or practice drill with zero empty, unmapped,
+  missing, or other failures. The verified drill returned five questions with
+  every answer key hidden.
