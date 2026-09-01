@@ -2,7 +2,7 @@
  * GET /api/notifications/list — Fetch user's social notifications (service role, bypasses RLS)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser, getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -24,8 +24,12 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      // Auth: try local HMAC first (fast, no network), fall back to GoTrue
-      // if SUPABASE_JWT_SECRET is not configured in the environment.
+      // Auth: local ES256 verification against the project's cached JWKS
+      // first (no network call), then the SDK/GoTrue fallback. There is no
+      // SUPABASE_JWT_SECRET involved — this comment used to say "local HMAC
+      // ... if SUPABASE_JWT_SECRET is not configured", which described the
+      // pre-2026-09-01 symmetric design. No symmetric key exists on this
+      // project. See src/lib/serverAuth.js.
       const supabase = getSupabase();
       const { user: serverUser } = await getServerUserWithFallback(req, supabase);
       if (!serverUser) {
