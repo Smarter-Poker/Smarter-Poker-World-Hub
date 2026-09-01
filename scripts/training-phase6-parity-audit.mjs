@@ -92,8 +92,16 @@ async function snapshot(page, label) {
   assert.equal(state.dealerButtons, 1, `${label}: dealer button count`);
   assert.equal(state.pots, 1, `${label}: pot count`);
   assert.equal(state.heroCards.length >= 2, true, `${label}: hero cards missing`);
+  if (state.seats.length !== state.playerCount) {
+    process.stderr.write(`[phase6-parity] seat mismatch ${JSON.stringify(state)}\n`);
+    await page.screenshot({ path: resolve(SHOTS, `${label}-seat-mismatch.png`), fullPage: false });
+  }
   assert.equal(state.seats.length, state.playerCount, `${label}: seat/player count mismatch`);
   assert.ok(state.table.x >= state.root.x - 1 && state.table.right <= state.root.right + 1, `${label}: table escaped root horizontally`);
+  if (Math.abs((state.table.height / state.table.width) - (1000 / 605)) >= 0.025) {
+    process.stderr.write(`[phase6-parity] table aspect mismatch ${JSON.stringify(state)}\n`);
+    await page.screenshot({ path: resolve(SHOTS, `${label}-aspect-mismatch.png`), fullPage: false });
+  }
   assert.ok(Math.abs((state.table.height / state.table.width) - (1000 / 605)) < 0.025, `${label}: Club Arena table aspect drifted`);
   return state;
 }
@@ -106,8 +114,23 @@ async function openArena(page, viewport, testCase) {
   assert.ok((response?.status() || 0) < 400, `${testCase.gameId}: HTTP ${response?.status() || 0}`);
   const start = page.locator('.sp-arena-lobby__start');
   await start.waitFor({ state: 'visible', timeout: 60_000 });
-  assert.equal(await page.locator('[data-global-bottom-nav="true"][data-footer-world="training"]').count(), 1,
-    `${testCase.gameId}: setup should retain the Training footer`);
+  const idle = await page.evaluate(() => {
+    const startButton = document.querySelector('.sp-arena-lobby__start');
+    const box = startButton?.getBoundingClientRect();
+    return {
+      approvedHeaders: document.querySelectorAll('.approved-global-header').length,
+      trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+      overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      start: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
+      viewport: { width: innerWidth, height: innerHeight },
+    };
+  });
+  assert.equal(idle.approvedHeaders, 1, `${testCase.gameId}: setup approved header count`);
+  assert.equal(idle.trainingFooters, 0, `${testCase.gameId}: arena setup must preserve immersive route ownership`);
+  assert.ok(idle.overflow <= 1, `${testCase.gameId}: setup horizontal overflow ${idle.overflow}px`);
+  assert.ok(idle.start && idle.start.x >= 0 && idle.start.right <= idle.viewport.width + 1,
+    `${testCase.gameId}: setup Start escaped the viewport`);
+  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-idle.png`), fullPage: false });
   await page.waitForFunction(() => {
     const button = document.querySelector('.sp-arena-lobby__start');
     return button instanceof HTMLButtonElement && !button.disabled;
@@ -135,7 +158,7 @@ async function openArena(page, viewport, testCase) {
   await page.waitForTimeout(1_000);
   assert.equal(await page.locator('[data-training-feedback="verdict"]').isVisible(), true, `${testCase.gameId}: verdict did not persist`);
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-verdict.png`), fullPage: false });
-  return { gameId: testCase.gameId, family: testCase.family, action, verdict };
+  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict };
 }
 
 const browser = await chromium.launch({ headless: true });

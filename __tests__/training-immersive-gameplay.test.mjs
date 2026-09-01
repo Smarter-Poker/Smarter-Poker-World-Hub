@@ -37,4 +37,8 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
     assert.match(table, new RegExp(contract), `${contract} must remain measurable`);
   }
   assert.match(table, /className="sp-club-gto-hero-card"/);
+  assert.match(table, /COMPLETE CLUB ARENA RING/);
+  assert.doesNotMatch(table, /if \(!isHero && !isActiveVillain\) return null/);
+  assert.match(table, /sp-club-gto-mode-bar:not\(\.is-feedback\)/);
+  assert.match(table, /showFeedback \? ' is-feedback' : ''/);
 });
