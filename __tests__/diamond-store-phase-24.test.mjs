@@ -45,6 +45,15 @@ test('VIP lifecycle requests terminate and safely replay the same intent', async
   assert.match(manage, /actionControllerRef\.current\?\.abort\(\)/);
 });
 
+test('the global drawer restores focus only after a real open and close cycle', async () => {
+  const drawer = await read('src/components/ui/HamburgerMenu.jsx');
+
+  assert.match(drawer, /const wasOpenRef = useRef\(false\)/);
+  assert.match(drawer, /if \(!wasOpenRef\.current\) return undefined/);
+  assert.match(drawer, /wasOpenRef\.current = true/);
+  assert.match(drawer, /wasOpenRef\.current = false/);
+});
+
 test('card membership mutations are private, bounded, and Stripe-idempotent', async () => {
   const [cancel, plan] = await Promise.all([
     read('pages/api/store/cancel-vip.js'),
