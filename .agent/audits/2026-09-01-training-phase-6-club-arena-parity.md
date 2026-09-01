@@ -232,6 +232,10 @@ manual Next and reached the measurable Session Review state.
   `ccf12df91247483fe7e46d049ddd3be083a9fbca`. Build Safety, Supabase
   invariants, Chromium/WebKit footer geometry, audit-marker, conflict,
   silent-write, undefined-identifier, and Vercel gates passed.
+- Closeout PR 1208 merged through protected auto-merge as
+  `c70dda95fd5744de6e0045b72175b4b56e220135`. Its broad E2E workflow passed,
+  and the exact cancelled-at-merge Global Footer workflow was rerun and passed
+  both Chromium and WebKit projects.
 - Exact immutable production deployment
   `dpl_9MxEg12t87P5egh9zbFwrcNXzvdd` reached READY and serves a descendant of
   both protected Phase 6 commits.
@@ -273,6 +277,16 @@ on both viewports, and the keyboard contract passed ten consecutive
 desktop/mobile repetitions. The final complete local Chromium/mobile matrix
 passed 689 with 24 intentional environment skips, zero failures, and zero
 flaky tests across all 713 scheduled entries.
+
+The final production smoke exposed one remaining harness-only mismatch: its
+mobile arena check still waited for the global footer that Phase 6 deliberately
+removed. The smoke now enforces the real contract—zero arena footers, a visible
+launch rail and Start control fully inside the viewport, containment of the
+button within its rail, and an 8–48 px safe-area bottom gap. The renewed
+authenticated production run passed the 107-card Hub, both login viewports,
+three 12-level campaigns and four representative arenas on mobile and desktop,
+with zero page errors, console errors, broken images, scanlines, or horizontal
+overflow.
 
 ## Remaining Phase 6 Work
 
