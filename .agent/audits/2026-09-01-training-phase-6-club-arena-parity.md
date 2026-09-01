@@ -286,7 +286,8 @@ button within its rail, and an 8–48 px safe-area bottom gap. The renewed
 authenticated production run passed the 107-card Hub, both login viewports,
 three 12-level campaigns and four representative arenas on mobile and desktop,
 with zero page errors, console errors, broken images, scanlines, or horizontal
-overflow.
+overflow. Follow-up PR 1218 publishes the corrected permanent smoke and its
+regression contract through the protected pipeline.
 
 ## Remaining Phase 6 Work
 

@@ -109,7 +109,9 @@ representative 12-level campaigns, four representative arenas, four-option
 contracts, explicit feedback, persistent manual Next, footerless mobile launch
 geometry, and zero page, console, image, scanline, or overflow defects. The
 permanent smoke now asserts the immersive footerless arena contract instead of
-waiting for the deliberately absent global footer.
+waiting for the deliberately absent global footer. Follow-up PR 1218 publishes
+that permanent smoke correction and regression contract through protected
+checks.
 
 ### Phase 7: Every Game's Secondary Pages
 
