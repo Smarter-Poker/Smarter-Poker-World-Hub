@@ -270,7 +270,7 @@ export function mapTrainingQuestionToAnalysis(question, { facingBet = false } = 
     isMixed: actions.filter(action => action.frequency >= 5).length > 1,
     ev: {
       hero: +displayEV.toFixed(3),
-      heroDisplay: heroEV === null ? '—' : `${heroEV >= 0 ? '+' : ''}${heroEV.toFixed(2)} BB`,
+      heroDisplay: heroEV === null ? 'Not Available' : `${heroEV >= 0 ? '+' : ''}${heroEV.toFixed(2)} BB`,
       max: +maxEV.toFixed(3),
       min: +minEV.toFixed(3),
       avg: +avgEV.toFixed(3),
