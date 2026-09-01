@@ -3351,6 +3351,19 @@ function UniversalDynamicTable({
                     scrollbar-width: thin;
                 }
                 @media (max-width: 640px) {
+                    .gto-trainer-container[data-training-visual-state='verdict'] {
+                        overflow-x: hidden !important;
+                        overflow-y: auto !important;
+                    }
+                    .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
+                        /* Feedback is a scrollable review state. It must not
+                           steal the felt's flex height and collapse a complete
+                           Club Arena table to a zero-height strip. Keep the
+                           same phone-scale table geometry as action state and
+                           let the explanation continue below it. */
+                        flex: 0 0 min(397px, 102vw) !important;
+                        min-height: min(397px, 102vw) !important;
+                    }
                     .sp-club-gto-question {
                         margin: 4px 6px 3px !important;
                         padding: 7px 9px !important;
