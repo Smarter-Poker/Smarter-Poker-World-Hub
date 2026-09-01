@@ -3,6 +3,7 @@
  * W6-1: Retrieves all saved hands for a user, grouped by folder.
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
@@ -27,15 +28,8 @@ export default async function handler(req, res) {
           const supabase = getSupabase();
 
           let userId = null;
-          const authHeader = req.headers.authorization;
-          if (authHeader?.startsWith('Bearer ')) {
-              const token = authHeader.replace('Bearer ', '');
-              try {
-                  const { data: authData } = await supabase.auth.getUser(token);
-                  const user = authData?.user;
-                  if (user) userId = user.id;
-              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-          }
+          const { user: authUser } = await getServerUserWithFallback(req, supabase);
+          if (authUser) userId = authUser.id;
 
           if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 

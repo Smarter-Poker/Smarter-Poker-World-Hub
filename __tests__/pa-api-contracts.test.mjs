@@ -45,12 +45,15 @@ import { fileURLToPath } from 'node:url';
 import { normalizePersonalAssistantCopy } from '../src/lib/personal-assistant/copyPolicy.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const API_ROOTS = ['pages/api/assistant', 'pages/api/sandbox'];
+const API_ROOTS = ['pages/api/assistant', 'pages/api/sandbox', 'app/api/assistant'];
 
 /** Routes exempt from a specific rule, each with the reason it is exempt. */
 const EXEMPT = {
     // Retired endpoint: a bare 410, touches nothing.
     'pages/api/assistant/setup-database.js': ['rateLimit', 'tryCatch'],
+    // Internal worker: only a short-lived, purpose-bound HMAC token reaches
+    // database work. Invalid public traffic is rejected before db() runs.
+    'app/api/assistant/leaks/audit-worker/route.js': ['rateLimit'],
     // Pure dispatcher: it owns no DB work and every _routes/* target rate
     // limits itself. Adding a second limiter here would double-count callers.
     // It is NOT exempt from tryCatch — it is the last boundary where an
@@ -142,10 +145,18 @@ test('RULE 4: no raw @supabase/supabase-js import in API routes', () => {
         `import from src/lib/supabaseServerClient instead:\n  ${offenders.join('\n  ')}`);
 });
 
+test('RULE 4b: authenticated PA routes use the asymmetric-token verifier', () => {
+    const offenders = ROUTES
+        .filter(({ src }) => /\.auth\.getUser\s*\(/.test(src))
+        .map(r => r.rel);
+    assert.deepEqual(offenders, [],
+        `use getServerUserWithFallback so ES256 tokens do not exhaust the remote Auth endpoint:\n  ${offenders.join('\n  ')}`);
+});
+
 test('RULE 5: every handler has a top-level try/catch', () => {
     const offenders = ROUTES.filter(({ rel, src }) => {
         if (exempt(rel, 'tryCatch')) return false;
-        const handlerAt = src.indexOf('export default');
+        const handlerAt = src.search(/export\s+(?:default|async\s+function\s+(?:GET|POST|PUT|PATCH|DELETE))/);
         if (handlerAt === -1) return false;
         const body = src.slice(handlerAt);
         return !/\btry\s*\{/.test(body) || !/\bcatch\s*\(/.test(body);

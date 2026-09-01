@@ -1297,7 +1297,8 @@ export default async function handler(req, res) {
         }
       }
 
-      // 🚀 NEW BUG #11 FIX: Update Global PA Stats
+      // Update the global Personal Assistant statistics only after the
+      // authoritative leak totals have been read successfully.
       // Recalculate active/resolved leaks
       const { data: leakStats, error: updatedLeaksErr } = await readLeakStatsAggregate(getSupabase(), userId);
 
