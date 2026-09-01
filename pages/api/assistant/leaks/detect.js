@@ -1,5 +1,4 @@
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
-import { createHmac, timingSafeEqual } from 'node:crypto';
 /**
  * POST /api/assistant/leaks/detect
  * Runs leak detection analysis on user's hand history
@@ -21,6 +20,8 @@ import { toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant
 import { applyRateLimit, applyDurableRateLimit } from '../../../../src/lib/apiRateLimit';
 import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { openAuditJobToken } from '../../../../src/lib/personal-assistant/auditJobToken.mjs';
+import { fingerprintAuditCursor, openAuditCursor, sealAuditCursor } from '../../../../src/lib/personal-assistant/auditCursor.mjs';
+import { attachPersonalAssistantTiming } from '../../../../src/lib/personal-assistant/serverTiming.mjs';
 
 export const config = { maxDuration: 60 };
 
@@ -37,64 +38,6 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
-}
-
-// Durable jobs can survive deploys and multi-day infrastructure outages. The
-// cursor remains owner-bound and HMAC-signed, so extending its recovery window
-// does not turn it into a bearer credential for another account.
-const AUDIT_CURSOR_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-function auditCursorSecret() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET || '';
-}
-
-function sealAuditCursor(state, userId) {
-  const secret = auditCursorSecret();
-  if (!secret || !state) return null;
-  const payload = Buffer.from(JSON.stringify({
-    ...state,
-    userId,
-    expiresAt: Date.now() + AUDIT_CURSOR_MAX_AGE_MS,
-  })).toString('base64url');
-  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
-  return `${payload}.${signature}`;
-}
-
-function fingerprintAuditCursor(state, userId) {
-  const secret = auditCursorSecret();
-  if (!secret || !state) return null;
-  const stableState = {
-    snapshotAt: state.snapshotAt || null,
-    modern: state.modern || null,
-    legacy: state.legacy || null,
-    modernDone: state.modernDone === true,
-    legacyDone: state.legacyDone === true,
-    cumulativeHandsFound: Math.max(0, Number(state.cumulativeHandsFound) || 0),
-  };
-  return createHmac('sha256', secret)
-    .update(`${userId}:${JSON.stringify(stableState)}`)
-    .digest('base64url');
-}
-
-function openAuditCursor(token, userId) {
-  if (!token) return null;
-  if (typeof token !== 'string' || token.length > 4096) throw new Error('invalid_cursor');
-  const [payload, suppliedSignature, extra] = token.split('.');
-  const secret = auditCursorSecret();
-  if (!payload || !suppliedSignature || extra || !secret) throw new Error('invalid_cursor');
-  const expectedSignature = createHmac('sha256', secret).update(payload).digest('base64url');
-  const supplied = Buffer.from(suppliedSignature);
-  const expected = Buffer.from(expectedSignature);
-  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) throw new Error('invalid_cursor');
-  let decoded;
-  try { decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')); }
-  catch (_) { throw new Error('invalid_cursor'); }
-  if (decoded?.userId !== userId || !Number.isFinite(decoded?.expiresAt) || decoded.expiresAt < Date.now()) {
-    throw new Error('invalid_cursor');
-  }
-  const snapshotMs = new Date(decoded.snapshotAt).getTime();
-  if (!Number.isFinite(snapshotMs) || snapshotMs > Date.now() + 60_000) throw new Error('invalid_cursor');
-  return decoded;
 }
 
 /**
@@ -925,6 +868,7 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 // ═══════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+  attachPersonalAssistantTiming(res, 'leak_detection');
   try {
     const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.

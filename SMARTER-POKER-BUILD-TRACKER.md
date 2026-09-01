@@ -1577,3 +1577,19 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Closure audit correction:** A renewed seven-batch protected-account audit scanned 1,347 Club Arena records and exposed a receipt-only classification bug: unsupported variants and missing trusted hero identities were being counted as missing private cards. Phase 4 now separates missing private cards from unsupported or incomplete hand data through the audit engine, durable checkpoint, UI receipt, and protected verifier. The verifier additionally reports eligible, already-current, skipped, verified, and unpriced work, mirrors the durable worker's three bounded transient retries, and uses the existing 15-second async browser contract for load-sensitive panels. Focused contracts, all 25 applicable desktop/mobile journeys, and the 403-page optimized production build passed before publication. The corrected protected-account rerun then completed all seven production batches, scanned 1,347 records, confirmed 422 eligible hands were current, persisted 19 findings, advanced leak history from 36 to 37, resolved all 32 corrective candidates without a broken drill target, and kept verified answer keys hidden.
 
 **Post-closure authentication correction:** A renewed protected-account run proved that current ES256 access tokens bypassed the legacy HS256-only local verifier and exhausted the remote Auth user endpoint during a complete 32-drill coverage pass. The World Hub bridge now uses Supabase's signature-verified, cached JWKS claims path for asymmetric tokens, fails invalid claims closed without a second network attempt, and retains the legacy fallback for older clients. This removes false mid-workflow 401 responses without weakening identity checks.
+
+---
+
+## PHASE 72 — Personal Assistant Phase 5 Of 8: Refactor And Performance (2026-09-01)
+
+| Deliverable | Detail |
+|---|---|
+| Route decomposition | Durable audit cursor security and review-queue presentation ownership moved out of the detection and Leak Finder route monoliths. |
+| Security preservation | Cursor HMAC integrity, owner binding, seven-day expiry, future-snapshot rejection, and stable progress fingerprints retain dedicated functional coverage. |
+| Latency observability | Sandbox analysis and Leak Finder detection emit end-to-end server timing plus explicit within-budget or over-budget state on every JSON response. |
+| Client bundle budgets | Hub, Sandbox, and Leak Finder gzip ceilings are measured from the exact Next.js build manifest. Missing artifacts and regressions fail the gate. |
+| Server function budgets | Compiled Sandbox analysis and deterministic detection functions have enforced byte ceilings. |
+| Automatic release gate | The normal production build lifecycle runs the Personal Assistant performance budget verifier after compilation. |
+| Preserved behavior | Routes, data, persistence semantics, Club Arena import, deterministic leak detection, solver provenance, drills, responsive layouts, and copy policy remain unchanged. |
+
+**Verification before publication:** 122/122 Leak Engine contracts, 23/23 focused architecture/API/persistence contracts, TypeScript, the exact optimized 403-page webpack build, and all five compiled-artifact budgets passed. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-5-refactor-performance.md`.
