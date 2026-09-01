@@ -290,10 +290,14 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let gameInfo: any = null;
 
             try {
-                const gameRes = await withLevelDataDeadline((signal) => (
-                    fetch(`/api/games/${gameId}`, { signal })
-                ));
-                const game = await gameRes.json();
+                // Consume the response body before the deadline helper aborts
+                // its controller in `finally`. Returning the bare Response and
+                // parsing it afterward caused the just-completed fetch to be
+                // aborted between headers and JSON, silently forcing fallback.
+                const game = await withLevelDataDeadline(async (signal) => {
+                    const gameRes = await fetch(`/api/games/${gameId}`, { signal });
+                    return gameRes.json();
+                });
                 if (!game.error) {
                     gameInfo = game;
                 }
@@ -340,10 +344,10 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             let levelProgress: any = {};
             let highestUnlocked = 1;
             try {
-                const progressRes = await withLevelDataDeadline((signal) => (
-                    authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, { signal })
-                ));
-                const progressData = await progressRes.json();
+                const progressData = await withLevelDataDeadline(async (signal) => {
+                    const progressRes = await authedFetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, { signal });
+                    return progressRes.json();
+                });
                 levelProgress = progressData?.levels || {};
                 highestUnlocked = progressData?.levels?.highestUnlocked
                     ?? progressData?.highest_level_unlocked

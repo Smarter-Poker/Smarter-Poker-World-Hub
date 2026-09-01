@@ -1,0 +1,106 @@
+{
+  "success": false,
+  "baseUrl": "http://localhost:3031",
+  "games": 107,
+  "viewports": [
+    "mobile",
+    "desktop"
+  ],
+  "batchSize": 8,
+  "lifecycleAudit": true,
+  "questionsPerSession": 20,
+  "surfaceChecks": 637,
+  "playChecks": 214,
+  "arenaChecks": 214,
+  "clubArenaChecks": 174,
+  "psychologyChecks": 40,
+  "lifecycleChecks": 209,
+  "lifecycleStateChecks": {
+    "loadRecovery": 209,
+    "correctFeedback": 209,
+    "incorrectFeedback": 209,
+    "manualNext": 209,
+    "completion": 209,
+    "retry": 209,
+    "levelTransition": 209
+  },
+  "feedbackChecks": [
+    {
+      "gameId": "cash-001",
+      "verdict": "INCORRECT",
+      "manualNext": true,
+      "persisted": true
+    },
+    {
+      "gameId": "psy-001",
+      "verdict": "CORRECT",
+      "manualNext": true,
+      "persisted": true
+    }
+  ],
+  "failures": [
+    {
+      "gameId": "cash-001",
+      "viewport": "mobile",
+      "surface": "arena",
+      "lobbyReady": true,
+      "runtimeUi": "club-arena-table",
+      "optionCount": 4,
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/social_conversation_participants?select=conversation_id%2Clast_read_at&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765]"
+      ]
+    },
+    {
+      "gameId": "cash-002",
+      "viewport": "mobile",
+      "surface": "arena",
+      "lobbyReady": true,
+      "runtimeUi": "club-arena-table",
+      "optionCount": 4,
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765]"
+      ]
+    },
+    {
+      "gameId": "final-table-sim",
+      "viewport": "mobile",
+      "surface": "arena",
+      "lobbyReady": true,
+      "runtimeUi": "club-arena-table",
+      "optionCount": 4,
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765]"
+      ]
+    },
+    {
+      "gameId": "final-table-sim",
+      "viewport": "mobile",
+      "surface": "play",
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/social_conversation_participants?select=conversation_id%2Clast_read_at&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765]"
+      ]
+    },
+    {
+      "gameId": "mtt-025",
+      "viewport": "mobile",
+      "surface": "arena",
+      "lobbyReady": true,
+      "runtimeUi": "club-arena-table",
+      "optionCount": 4,
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/user_avatars?select=*&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765&is_active=eq.true]"
+      ]
+    },
+    {
+      "gameId": "tournament-prep",
+      "viewport": "mobile",
+      "surface": "arena",
+      "lobbyReady": true,
+      "runtimeUi": "club-arena-table",
+      "optionCount": 4,
+      "failures": [
+        "console errors: Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/social_conversation_participants?select=conversation_id%2Clast_read_at&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/user_avatars?select=*&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765&is_active=eq.true] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/user_avatars?select=*&user_id=eq.47965354-0e56-43ef-931c-ddaab82af765&is_active=eq.true] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=id%2Cusername%2Cfull_name%2Cdisplay_name%2Cavatar_url%2Crole%2Cis_vip&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765] | Failed to load resource: the server responded with a status of 503 () [source: https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?select=app_settings&id=eq.47965354-0e56-43ef-931c-ddaab82af765]"
+      ]
+    }
+  ]
+}
