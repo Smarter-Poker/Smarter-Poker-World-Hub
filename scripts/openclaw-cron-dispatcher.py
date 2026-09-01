@@ -625,6 +625,19 @@ ALL_CRONS = [
     ('/api/cron/anti-cheat-multi-account',         dict(minute='*/30')),      # every 30 min — shared-IP detection (R67)
     ('/api/cron/anti-cheat-bot-timing',            dict(minute=0)),           # hourly — intra-hand delta std-dev (x67-1)
     ('/api/cron/anti-cheat-chip-dump',             dict(minute='*/30')),      # every 30 min — giver→receiver pair pattern (x69)
+    # ─── Cron staleness watchdog (2026-09-01) ─────────────────────────────
+    # One CRON_SECRET was serving two hosts that validate it independently.
+    # Vercel's copy was rotated, the workers VM's was not, and from
+    # 2026-08-31 08:59:01 to 2026-09-01 17:21:17 UTC every workers-routed cron
+    # returned 401. The four anti-cheat sweeps went dark for a full day of play
+    # and NOTHING SAID ANYTHING - it was noticed only because a human observed
+    # that the horses had stopped posting.
+    #
+    # This job groups cron_execution_log by job, derives each job's own normal
+    # cadence from its recent history, and writes a cron_health_log row for any
+    # job well past it. It covers EVERY job on this dispatcher, money jobs
+    # included, so nothing else should add a second per-area version.
+    ('/api/cron/cron-staleness-watchdog',          dict(minute='*/15')),
 
     # ══ YT PIPELINE — auto-recovery for failed transcode jobs (2026-05-12) ═════
     # Re-queues video_transcode_jobs that failed with cookie-auth or transient
@@ -901,6 +914,7 @@ WORKERS_PREFERRED = {
     '/api/cron/anti-cheat-multi-account':      '/cron/anti-cheat-multi-account',
     '/api/cron/anti-cheat-bot-timing':         '/cron/anti-cheat-bot-timing',
     '/api/cron/anti-cheat-chip-dump':          '/cron/anti-cheat-chip-dump',
+    '/api/cron/cron-staleness-watchdog':       '/cron/cron-staleness-watchdog',
 }
 
 
