@@ -64,7 +64,7 @@ test.describe('Poker Near Me phase 4 public route matrix', () => {
     const venueTitle = page.locator('.pnm-deep-deck h1');
     await expect(venueTitle).toBeVisible({ timeout: 20_000 });
     expect((await venueTitle.innerText()).toLocaleLowerCase()).toContain(String(venue.name).toLocaleLowerCase());
-    await expect(page.getByRole('button', { name: /Save venue|Saved/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Save Venue|Saved/ })).toBeVisible();
   });
 
   test('a real public home game inherits the shared chassis when available', async ({ page, request }) => {

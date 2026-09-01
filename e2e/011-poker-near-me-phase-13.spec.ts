@@ -57,6 +57,10 @@ test.describe('Poker Near Me phase 13 closeout', () => {
     await expect(destination).toHaveValue('Las Vegas, NV');
     await expect(page.getByRole('textbox', { name: 'Trip waypoint 1' })).toHaveValue('Denver, CO');
 
+    const notificationPrompt = page.getByRole('dialog', { name: 'Enable notifications' });
+    if (await notificationPrompt.isVisible()) {
+      await notificationPrompt.getByRole('button', { name: 'Got It' }).click();
+    }
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
     await expect(page.locator('.rtp-stats-bar')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('region', { name: 'Poker road trip route map' })).toBeVisible();
@@ -91,9 +95,9 @@ test.describe('Poker Near Me phase 13 closeout', () => {
       await page.getByRole('dialog', { name: 'Poker Near Me Pro access options' }).isVisible(),
       'Road-trip validation requires an authenticated VIP or day-pass session'
     );
-    await expect(page.locator('.rtp-error')).toContainText('both a start date and an end date');
+    await expect(page.locator('.rtp-error')).toContainText('Both A Start Date And An End Date');
     await page.getByLabel('Trip end date').fill('2026-09-01');
     await page.getByRole('button', { name: 'Plan My Trip' }).click();
-    await expect(page.locator('.rtp-error')).toContainText('on or after the start date');
+    await expect(page.locator('.rtp-error')).toContainText('On Or After The Start Date');
   });
 });

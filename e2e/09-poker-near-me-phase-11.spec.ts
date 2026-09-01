@@ -44,7 +44,7 @@ test.describe('Poker Near Me phase 11 resilience and accessibility', () => {
     const status = page.locator('.pnm-directory-source');
     await expect(page.getByRole('main', { name: 'Poker Near Me discovery results' })).toBeVisible();
     await expect(status).toHaveAttribute('data-directory-source', 'static_snapshot');
-    await expect(status).toContainText('published venue snapshot');
+    await expect(status).toContainText('Published Venue Snapshot');
     await expect(page.getByRole('button', { name: 'Retry live registry' })).toBeVisible();
     await expectNoOverflow(page, route);
   });
