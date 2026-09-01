@@ -22,6 +22,15 @@ const EMPTY_MEMBERSHIP = {
   partial: false,
 };
 
+const MEMBERSHIP_ACTION_TIMEOUT_MS = 20_000;
+
+function createMembershipActionKey() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `vip-action-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function formatDate(value) {
   if (!value) return 'No expiration recorded';
   const date = new Date(value);
@@ -48,6 +57,8 @@ export default function VipManagePage() {
   const cancelTriggerRef = useRef(null);
   const dialogReturnFocusRef = useRef(null);
   const actionBusyRef = useRef(false);
+  const actionControllerRef = useRef(null);
+  const actionIntentRef = useRef({ intent: null, key: null });
   const membershipRequestRef = useRef(0);
 
   const loadMembership = useCallback(async () => {
@@ -75,6 +86,11 @@ export default function VipManagePage() {
   }, []);
 
   useEffect(() => { void loadMembership(); }, [loadMembership]);
+
+  useEffect(() => () => {
+    membershipRequestRef.current += 1;
+    actionControllerRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (!confirmOpen && !pendingPlan) return undefined;
@@ -112,21 +128,41 @@ export default function VipManagePage() {
     if (actionBusyRef.current) return;
     actionBusyRef.current = true;
     setAction({ status: 'busy', message: '' });
+    const intent = `${endpoint}:${JSON.stringify(body)}`;
+    if (actionIntentRef.current.intent !== intent || !actionIntentRef.current.key) {
+      actionIntentRef.current = { intent, key: createMembershipActionKey() };
+    }
+    const controller = new AbortController();
+    actionControllerRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), MEMBERSHIP_ACTION_TIMEOUT_MS);
     try {
       const response = await authedFetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Idempotency-Key': actionIntentRef.current.key,
+        },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'The membership change could not be completed.');
       setView((current) => ({ ...current, membership: { ...current.membership, ...successUpdate } }));
       setAction({ status: 'success', message: payload.message || 'Your membership record was updated.' });
+      actionIntentRef.current = { intent: null, key: null };
       setConfirmOpen(false);
       setPendingPlan(null);
     } catch (error) {
-      setAction({ status: 'error', message: error?.message || 'The membership change could not be completed.' });
+      setAction({
+        status: 'error',
+        message: error?.name === 'AbortError'
+          ? 'Membership Change Timed Out. No Result Was Assumed. Retry To Safely Verify The Same Request.'
+          : error?.message || 'The membership change could not be completed.',
+      });
     } finally {
+      clearTimeout(timeout);
+      if (actionControllerRef.current === controller) actionControllerRef.current = null;
       actionBusyRef.current = false;
     }
   };

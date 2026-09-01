@@ -101,7 +101,6 @@ function Select({ value, onChange, options, label }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN SETTINGS PAGE
-const CancelVipModal = dynamic(() => import('../../src/components/settings/modals/CancelVipModal'), { ssr: false });
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     /*
@@ -149,12 +148,6 @@ export default function SettingsPage() {
     const [customAvatars, setCustomAvatars] = useState([]);
     const [loadingAvatars, setLoadingAvatars] = useState(true);
 
-    // VIP Cancellation State
-    const [showCancelModal, setShowCancelModal] = useState(false);
-    const [cancelStep, setCancelStep] = useState('reason'); // 'reason' | 'offer' | 'confirmed' | 'retained'
-    const [cancelReason, setCancelReason] = useState('');
-    const [cancelOtherText, setCancelOtherText] = useState('');
-    const [cancelLoading, setCancelLoading] = useState(false);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
@@ -180,8 +173,6 @@ export default function SettingsPage() {
     const [devicesLoading, setDevicesLoading] = useState(false);
     // Phase 2: MFA inline feedback (replaces remaining alert() calls)
     const [mfaFeedback, setMfaFeedback] = useState(null); // { type: 'success'|'error', message }
-    // Phase 2: VIP cancel inline feedback
-    const [cancelFeedback, setCancelFeedback] = useState(null); // { type: 'success'|'error', message }
     // Phase 2: Data export inline feedback
     const [exportFeedback, setExportFeedback] = useState(null); // { type: 'success'|'error', message }
     // Phase 2: Promo history dedup guard
@@ -1746,13 +1737,7 @@ export default function SettingsPage() {
 
                                                     {billingVipSub?.can_cancel && !billingVipSub?.cancel_at_period_end && (
                                                         <button
-                                                            onClick={() => {
-                                                                setShowCancelModal(true);
-                                                                setCancelStep('reason');
-                                                                setCancelReason('');
-                                                                setCancelOtherText('');
-                                                                setCancelFeedback(null);
-                                                            }}
+                                                            onClick={() => router.push('/hub/vip-membership/manage')}
                                                             style={{
                                                                 marginTop: 20, padding: '10px 20px',
                                                                 background: 'transparent',
@@ -1762,7 +1747,7 @@ export default function SettingsPage() {
                                                                 cursor: 'pointer', transition: 'all 0.2s ease',
                                                             }}
                                                         >
-                                                            Cancel Membership
+                                                            Manage Membership
                                                         </button>
                                                     )}
                                                 </>
@@ -1932,14 +1917,13 @@ export default function SettingsPage() {
                                                                     </div>
                                                                 </div>
                                                                 {order.stripe_receipt_url && (
-                                                                    <a
-                                                                        href={order.stripe_receipt_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        style={{ display: 'inline-block', marginTop: 12, color: '#2374e1', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => router.push(`/hub/diamond-store/orders/${encodeURIComponent(order.id)}?source=merchandise`)}
+                                                                        style={{ display: 'inline-block', marginTop: 12, padding: 0, border: 0, background: 'transparent', color: '#2374e1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                                                                     >
-                                                                        View Receipt →
-                                                                    </a>
+                                                                        View Verified Receipt →
+                                                                    </button>
                                                                 )}
                                                             </div>
                                                         );
@@ -2489,25 +2473,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-
-            {/* VIP Cancellation Modal */}
-            {showCancelModal && (
-                <CancelVipModal
-                    showCancelModal={showCancelModal}
-                    setShowCancelModal={setShowCancelModal}
-                    cancelStep={cancelStep}
-                    setCancelStep={setCancelStep}
-                    cancelReason={cancelReason}
-                    setCancelReason={setCancelReason}
-                    cancelOtherText={cancelOtherText}
-                    setCancelOtherText={setCancelOtherText}
-                    cancelLoading={cancelLoading}
-                    setCancelLoading={setCancelLoading}
-                    cancelFeedback={cancelFeedback}
-                    setCancelFeedback={setCancelFeedback}
-                    user={user}
-                />
-            )}
 
             {/* Custom Avatar Builder Modal */}
             {showAvatarBuilder && (
