@@ -142,6 +142,13 @@ production load, so the product path was not failing. Those assertions now use
 the existing 15-second bounded async contract rather than becoming false
 negatives when the 700-plus-test job saturates its runner.
 
+The first deployed protected-account rerun received two consecutive retryable
+`club_arena_audit_partial` responses. The durable in-app worker already permits
+three bounded transient retries, while the standalone verifier permitted only
+one. The verifier now follows the same three-retry contract with bounded delay,
+so a normal identity-source or gateway recovery is tested as the product
+handles it rather than being reported as an immediate audit failure.
+
 Closeout verification passed the 24-test solver-writer suite, the 113-test Leak
 Engine suite, focused rejection and durable-job contracts, the complete
 desktop/mobile Personal Assistant matrix with 25 passes and two intentional
