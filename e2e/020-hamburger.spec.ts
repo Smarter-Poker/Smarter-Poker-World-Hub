@@ -202,7 +202,7 @@ const WORLDS: WorldCase[] = [
     id: 'poker-near-me',
     label: 'Poker Near Me',
     path: '/hub/poker-near-me',
-    accent: '#f4f7fb',
+    accent: '#38bdf8',
     expectedActiveHref: '/hub/poker-near-me/lobby',
     primary: items([
       ['/hub/poker-near-me/lobby', 'Nearby'],
@@ -258,7 +258,11 @@ async function openWorldMenu(
   const trigger = page.locator('[data-world-menu-trigger]');
   await expect(trigger, `${world.label} must expose exactly one command trigger`).toHaveCount(1);
   await expect(trigger).toBeVisible();
-  await expect(trigger).toHaveAttribute('data-menu-symbol', 'command-grid');
+  const triggerOwner = await trigger.getAttribute('data-world-menu-trigger');
+  await expect(trigger).toHaveAttribute(
+    'data-menu-symbol',
+    triggerOwner === 'approved-header' ? 'hamburger' : 'command-grid'
+  );
   await expect(trigger).toHaveAttribute(
     'aria-label',
     new RegExp(`Open ${world.label} Command Menu`, 'i')

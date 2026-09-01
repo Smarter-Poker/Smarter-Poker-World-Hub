@@ -191,6 +191,15 @@ test.describe('Auth — Callback Route', () => {
   });
 
   test('GET /auth/callback with no session redirects to /auth/login', async ({ page }) => {
+    // The shared setup may provide an authenticated storage state. Explicitly
+    // clear it so this test genuinely exercises a cold callback.
+    await page.context().clearCookies();
+    await page.goto('/auth/login', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
     // Cold hit with no code, token, or session — should land on login.
     await page.goto('/auth/callback', { waitUntil: 'domcontentloaded' });
     await page.waitForURL(/\/auth\/login/, { timeout: 8000 });
