@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-09-01 — Personal Assistant Phase 3 Final Closure Audit
+**Last Updated:** 2026-09-01 — Personal Assistant Phase 4 Certified Solver Writer
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -1554,3 +1554,20 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Final closure audit:** The 2026-09-01 release pass upgraded the copy policy from CSS-only visual capitalization to real DOM and accessible-attribute normalization, replaced the last two solver fallback long bars with `Not Available`, expanded source scanning to every owned Personal Assistant component/API subtree, and corrected Club Arena audit fixtures to satisfy the same sealed solver-provenance boundary as production. Local verification passed 242/242 Personal Assistant contracts, the exact 403-page optimized webpack build, and all 23 applicable desktop/mobile compiled-production journeys with two expected viewport skips. Publication evidence is recorded in `.agent/audits/2026-09-01-personal-assistant-phase-3-final-closure.md`.
 
 **Corrective drill closure correction:** A renewed protected-account audit after Training provenance hardening invalidated the older verified-drill statement: the historical postflop cache rows carry solver labels but no complete writer provenance. Phase 3 now fails closed honestly. Verified rows alone can produce a signed, reward-eligible batch; unsealed archive rows are sanitized and visibly labeled practice-only. Canonical game mappings remove the broad-cache query that timed out for 3-bet and legacy Coach Law leaks. Pull request #1174 auto-merged as `e70fa7506e`; deployed main revision `8b6a28e1` contains that merge and reports healthy database status. The production account verifier covered all 14 active leaks with 10 usable spots each and zero empty, unmapped, missing, error, or timeout results. The live production Personal Assistant matrix passed 25 desktop/mobile checks with two intentional viewport skips. Exact publication evidence remains in the Phase 3 final closure audit.
+
+---
+
+## PHASE 71 — Personal Assistant Phase 4 Of 8: Certified Solver Writer (2026-09-01)
+
+| Deliverable | Detail |
+|---|---|
+| Exact release identity | Current certification requires the exact solver, binary, pipeline, manifest version, and manifest checksum rather than shape-valid historical metadata. |
+| Single-row export | Duplicate scenario hashes fail closed; writes target row ID plus scenario hash and count only after one matching representation is returned. |
+| Verified pipeline bundle | Manifest bytes and the complete pipeline bundle are checksum-verified before atomically installing or importing downloaded Python. |
+| Deterministic input gate | Canonical boards, safe manifest tokens, exact roots, unique targets, finite ranges, explicit rake, and complete self-test contracts are mandatory. |
+| Exact solver output | Short/infinite strategy and EV vectors fail; missing exploitability is unavailable rather than fabricated as zero. |
+| Durable artifact | Local evidence is fsynced and atomically renamed; its SHA-256 binds scenario identity and matrix content. |
+| Honest availability | The legacy manifest remains closed and unsealed rows remain practice-only; the phase does not manufacture solver provenance. |
+| Permanent regression gate | Functional Python-backed tests cover exact-release matching, duplicate rows, returned writes, malformed ranges/vectors, river paths, and legacy fail-closed behavior. |
+
+**Current external boundary:** M1 is current but idle at zero solves/exports; M2 remains stale; the legacy manifest covers 17/25 Training solver contracts and omits 43 games. Supervised host maintenance, approved range/state artifacts, an ICM-aware objective path, and one canary export per host remain prerequisites for opening the solver gate. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-4-certified-solver-writer.md`.

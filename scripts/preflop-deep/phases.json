@@ -1,5 +1,6 @@
 {
   "version": 4,
+  "pipeline_bundle_checksum": "1d1f44b7974f333d46bd170b07dfeaee7cfbb40b60188769220bf5e4fda39b6b",
   "updated": "2026-07-24",
   "note": "Phase 4 safety hold. This file cannot authorize either solver host until every exact range, game-state, objective, and target input has passed the protected review and carries immutable checksums.",
   "release_gate": {

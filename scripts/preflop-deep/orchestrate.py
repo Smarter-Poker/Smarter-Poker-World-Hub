@@ -14,7 +14,7 @@ UPI transport and range-weighted EV reader, then calls main(). The range files
 must be independently approved 1326-combo artifacts in RANGE_DIRECTORY; the
 research-only make_ranges.py output is not accepted.
 """
-import sys, os, json, time, datetime, hashlib, urllib.request
+import sys, os, json, time, datetime, hashlib, math, re, tempfile, urllib.request
 import pio_harvest as h
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
@@ -39,6 +39,10 @@ RAW = "https://raw.githubusercontent.com/Smarter-Poker/Smarter-Poker-World-Hub/%
 MID = sys.argv[1] if len(sys.argv) > 1 else "M1"
 NUM = int(sys.argv[2]) if len(sys.argv) > 2 else 2
 IDX = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+if MID not in ("M1", "M2"):
+    raise SystemExit("machine id must be M1 or M2")
+if NUM < 1 or IDX < 0 or IDX >= NUM:
+    raise SystemExit("worker partition must satisfy NUM >= 1 and 0 <= IDX < NUM")
 
 # Injected only by the pinned run_machine.py launcher. Direct execution fails
 # before any solve or write, which prevents an ad-hoc transport from bypassing
@@ -51,15 +55,27 @@ def read_results():
 # ===================================================
 
 
-def _rest(method, path, body=None):
+def _rest(method, path, body=None, extra_headers=None):
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(URL + "/rest/v1/" + path, data=data, headers=HEAD, method=method)
+    headers = dict(HEAD)
+    headers.update(extra_headers or {})
+    req = urllib.request.Request(URL + "/rest/v1/" + path, data=data, headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=90) as r:
         return r.status, r.read().decode()
 
 def fetch_text(name):
     with urllib.request.urlopen(RAW + "/" + name, timeout=60) as r:
         return r.read().decode()
+
+SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_]+$")
+CARD = re.compile(r"^[AKQJT98765432][cdhs]$")
+
+def validate_board(board, expected_cards):
+    cards = [board[index:index + 2] for index in range(0, len(board), 2)]
+    if (len(board) != expected_cards * 2 or len(cards) != expected_cards
+            or len(set(cards)) != expected_cards or any(not CARD.match(card) for card in cards)):
+        raise ValueError("board must contain %d unique canonical cards" % expected_cards)
+    return cards
 
 def validate_manifest(manifest_text):
     checksum = hashlib.sha256(manifest_text.encode()).hexdigest()
@@ -71,6 +87,10 @@ def validate_manifest(manifest_text):
         raise SystemExit("manifest release gate is closed: %s" % gate.get("reason", "unspecified"))
     if int(manifest.get("version", 0)) < 4 or not manifest.get("phases"):
         raise SystemExit("manifest must be version 4+ with at least one approved phase")
+    bundle_checksum = str(manifest.get("pipeline_bundle_checksum") or "").lower()
+    if len(bundle_checksum) != 64 or any(c not in "0123456789abcdef" for c in bundle_checksum):
+        raise SystemExit("manifest must pin the approved pipeline bundle checksum")
+    phase_ids = set()
     for ph in manifest["phases"]:
         required = ("id", "game_type", "stack", "street", "streets", "objective",
                     "pot_chips", "eff_chips", "rake",
@@ -79,12 +99,67 @@ def validate_manifest(manifest_text):
         missing = [field for field in required if ph.get(field) in (None, "", [])]
         if missing:
             raise SystemExit("phase %s missing approved inputs: %s" % (ph.get("id", "<unknown>"), ",".join(missing)))
+        if ph["id"] in phase_ids:
+            raise SystemExit("manifest contains duplicate phase id %s" % ph["id"])
+        phase_ids.add(ph["id"])
+        if not SAFE_TOKEN.match(str(ph["id"])) or not SAFE_TOKEN.match(str(ph["game_type"])):
+            raise SystemExit("phase id and game type must be safe canonical tokens")
+        if not isinstance(ph["stack"], int) or ph["stack"] <= 0:
+            raise SystemExit("phase %s has an invalid stack" % ph["id"])
+        if not isinstance(ph["pot_chips"], int) or ph["pot_chips"] <= 0:
+            raise SystemExit("phase %s has an invalid pot" % ph["id"])
+        if not isinstance(ph["eff_chips"], int) or ph["eff_chips"] <= 0:
+            raise SystemExit("phase %s has an invalid effective stack" % ph["id"])
+        if not isinstance(ph["streets"], list) or len(set(ph["streets"])) != len(ph["streets"]):
+            raise SystemExit("phase %s must declare a unique ordered street list" % ph["id"])
         if any(street not in ("flop", "turn", "river") for street in ph["streets"]):
             raise SystemExit("phase %s contains an unsupported street" % ph["id"])
+        if ph["street"] != "flop":
+            raise SystemExit("phase %s must discover canonical flop parents" % ph["id"])
         if ph["objective"] != "chip_ev":
             raise SystemExit("PioSOLVER worker only accepts the explicit chip_ev objective")
         if "_icm" in ph["game_type"]:
             raise SystemExit("PioSOLVER chip-EV worker cannot certify ICM phases; use an approved ICM objective engine")
+        rake_parts = str(ph["rake"]).split()
+        try:
+            rake_values = [float(value) for value in rake_parts]
+        except ValueError:
+            raise SystemExit("phase %s has an invalid rake contract" % ph["id"])
+        if len(rake_values) != 4 or any(not math.isfinite(value) or value < 0 for value in rake_values):
+            raise SystemExit("phase %s has an invalid rake contract" % ph["id"])
+        for checksum_field in ("ip_range_checksum", "oop_range_checksum"):
+            checksum = str(ph[checksum_field]).lower()
+            if len(checksum) != 64 or any(c not in "0123456789abcdef" for c in checksum):
+                raise SystemExit("phase %s has an invalid %s" % (ph["id"], checksum_field))
+        if not isinstance(ph["harvest"], list) or not ph["harvest"]:
+            raise SystemExit("phase %s has no harvest targets" % ph["id"])
+        target_keys = set()
+        for target in ph["harvest"]:
+            if (target.get("hero") not in ("OOP", "IP")
+                    or not SAFE_TOKEN.match(str(target.get("position") or ""))):
+                raise SystemExit("phase %s has an invalid harvest target" % ph["id"])
+            expected_node = "r:0" if target["hero"] == "OOP" else "r:0:c"
+            if target.get("node") != expected_node:
+                raise SystemExit("phase %s harvest node does not match its declared actor" % ph["id"])
+            target_key = (target["hero"], target["position"])
+            if target_key in target_keys:
+                raise SystemExit("phase %s contains a duplicate harvest target" % ph["id"])
+            target_keys.add(target_key)
+    self_test = manifest.get("self_test")
+    if not isinstance(self_test, dict):
+        raise SystemExit("approved manifest is missing its solver self-test contract")
+    self_test_required = (
+        "board", "pot_chips", "eff_chips", "rake", "oop_range", "oop_range_checksum",
+        "ip_range", "ip_range_checksum", "oop_player", "ip_player", "ev_oop_min_bb", "ev_oop_max_bb")
+    missing = [field for field in self_test_required if self_test.get(field) in (None, "")]
+    if missing:
+        raise SystemExit("solver self-test is missing approved inputs: %s" % ",".join(missing))
+    try:
+        validate_board(str(self_test["board"]), 3)
+    except ValueError as error:
+        raise SystemExit("solver self-test %s" % error)
+    if float(self_test["ev_oop_min_bb"]) > float(self_test["ev_oop_max_bb"]):
+        raise SystemExit("solver self-test EV bounds are reversed")
     return manifest, checksum
 
 def load_range(name, expected_checksum):
@@ -100,18 +175,24 @@ def load_range(name, expected_checksum):
         raise SystemExit("range checksum mismatch for %s" % name)
     text = payload.decode().strip()
     values = text.split()
-    if len(values) != 1326 or any(float(value) < 0 or float(value) > 1 for value in values):
+    try:
+        weights = [float(value) for value in values]
+    except ValueError:
+        raise SystemExit("range %s contains a non-numeric weight" % name)
+    if (len(weights) != 1326
+            or any(not math.isfinite(value) or value < 0 or value > 1 for value in weights)
+            or not any(value > 0 for value in weights)):
         raise SystemExit("range %s is not a valid 1326-combo weight vector" % name)
     return text
 
 DECK = [r + s for r in "AKQJT98765432" for s in "cdhs"]
 
 def turn_cards(flop):
-    on = {flop[i:i+2] for i in range(0, len(flop), 2)}
+    on = set(validate_board(flop, 3))
     return [c for c in DECK if c not in on]
 
 def river_cards(board4):
-    on = {board4[i:i+2] for i in range(0, len(board4), 2)}
+    on = set(validate_board(board4, 4))
     return [c for c in DECK if c not in on]
 
 def node_templates(pot):
@@ -151,24 +232,24 @@ def expand_targets(ph, flop):
                                     "river_%s_%s_%dbb_%s" % (gt, pos, stack, b5)))
     return out
 
-ROW_STATE_FIELDS = ("scenario_hash,solved_v2_at,quality_status,solver_version,"
+ROW_STATE_FIELDS = ("id,scenario_hash,solved_v2_at,quality_status,solver_version,"
                     "solver_binary_checksum,machine_id,pipeline_commit,manifest_version,"
                     "manifest_checksum,source_artifact_checksum,audited_at")
 
-def certified_row(r):
+def certified_row(r, manifest_version, manifest_checksum):
     return (r.get("solved_v2_at") and r.get("quality_status") == "validated"
-            and r.get("solver_version")
+            and r.get("solver_version") == PIO_SOLVER_VERSION
             and r.get("solver_binary_checksum") == PIO_BINARY_CHECKSUM
             and r.get("machine_id") in ("M1", "M2")
-            and len(r.get("pipeline_commit") or "") == 40
-            and r.get("manifest_version")
-            and len(r.get("manifest_checksum") or "") == 64
+            and r.get("pipeline_commit") == PIPELINE_COMMIT
+            and str(r.get("manifest_version") or "") == str(manifest_version)
+            and r.get("manifest_checksum") == manifest_checksum
             and len(r.get("source_artifact_checksum") or "") == 64
             and r.get("audited_at"))
 
-def row_states(hashes):
-    """Read existence/certification in bounded batches, not one HTTP call per river."""
-    states = {sh: [False, False] for sh in hashes}
+def row_states(hashes, manifest_version, manifest_checksum):
+    """Read exact row identity and active-release certification in bounded batches."""
+    states = {sh: {"row_ids": [], "certified": False} for sh in hashes}
     unique = sorted(set(hashes))
     for start in range(0, len(unique), 75):
         chunk = unique[start:start + 75]
@@ -179,16 +260,25 @@ def row_states(hashes):
             sh = row.get("scenario_hash")
             if sh not in states:
                 continue
-            states[sh][0] = True
-            states[sh][1] = states[sh][1] or bool(certified_row(row))
-    return {sh: tuple(state) for sh, state in states.items()}
+            states[sh]["row_ids"].append(row.get("id"))
+            states[sh]["certified"] = states[sh]["certified"] or bool(
+                certified_row(row, manifest_version, manifest_checksum))
+    return {
+        sh: {
+            "count": len(state["row_ids"]),
+            "row_id": state["row_ids"][0] if len(state["row_ids"]) == 1 else None,
+            "certified": state["certified"] if len(state["row_ids"]) == 1 else False,
+        }
+        for sh, state in states.items()
+    }
 
-def row_state(sh):
-    return row_states([sh])[sh]
+def row_state(sh, manifest_version, manifest_checksum):
+    return row_states([sh], manifest_version, manifest_checksum)[sh]
 
-def patch_v2(sh, sm, manifest_version, manifest_checksum):
+def patch_v2(row_id, sh, sm, manifest_version, manifest_checksum):
     now = datetime.datetime.utcnow().isoformat() + "Z"
-    artifact = json.dumps(sm, sort_keys=True, separators=(",", ":")).encode()
+    artifact_envelope = {"scenario_hash": sh, "strategy_matrix_v2": sm}
+    artifact = json.dumps(artifact_envelope, sort_keys=True, separators=(",", ":")).encode()
     body = {
         "strategy_matrix_v2": sm,
         "solved_v2_at": now,
@@ -202,8 +292,21 @@ def patch_v2(sh, sm, manifest_version, manifest_checksum):
         "quality_status": "validated",
         "audited_at": now,
     }
-    st, _ = _rest("PATCH", "solved_spots_gold?scenario_hash=eq.%s" % sh, body)
-    return 200 <= st < 300
+    st, response = _rest(
+        "PATCH",
+        "solved_spots_gold?id=eq.%s&scenario_hash=eq.%s&select=id,scenario_hash,source_artifact_checksum,manifest_checksum,pipeline_commit" % (row_id, sh),
+        body,
+        {"Prefer": "return=representation"},
+    )
+    if not 200 <= st < 300:
+        return False
+    rows = json.loads(response or "[]")
+    return (len(rows) == 1
+            and str(rows[0].get("id")) == str(row_id)
+            and rows[0].get("scenario_hash") == sh
+            and rows[0].get("source_artifact_checksum") == body["source_artifact_checksum"]
+            and rows[0].get("manifest_checksum") == manifest_checksum
+            and rows[0].get("pipeline_commit") == PIPELINE_COMMIT)
 
 def heartbeat(phase, board, done, wrote, bad, note):
     try:
@@ -218,12 +321,21 @@ def boards_for(gt, stack, street, positions):
     boards = set()
     for pos in positions:
         like = "%s_%s_%dbb_%%" % (gt, pos, stack)
-        path = ("solved_spots_gold?game_type=eq.%s&stack_depth=eq.%d&street=eq.%s"
-                "&scenario_hash=like.%s&select=scenario_hash&limit=50000"
-                % (gt, stack, street, like))
-        _, txt = _rest("GET", path)
-        for r in json.loads(txt):
-            boards.add(r["scenario_hash"].rsplit("_", 1)[-1])
+        page_size = 5000
+        for offset in range(0, 5000000, page_size):
+            path = ("solved_spots_gold?game_type=eq.%s&stack_depth=eq.%d&street=eq.%s"
+                    "&scenario_hash=like.%s&select=scenario_hash&order=id.asc&limit=%d&offset=%d"
+                    % (gt, stack, street, like, page_size, offset))
+            _, txt = _rest("GET", path)
+            rows = json.loads(txt)
+            for r in rows:
+                board = r["scenario_hash"].rsplit("_", 1)[-1]
+                validate_board(board, 3)
+                boards.add(board)
+            if len(rows) < page_size:
+                break
+        else:
+            raise RuntimeError("board discovery exceeded the bounded pagination ceiling")
     return sorted(boards)
 
 def solve(board, oop_w, ip_w, pot=550, eff=9750, rake="0 0 0 0"):
@@ -279,9 +391,13 @@ def main():
             pot = ph.get("pot_chips", 550); eff = ph.get("eff_chips", 9750); rake = ph.get("rake", "0 0 0 0")
             for board in mine:  # board == flop
                 targets = expand_targets(ph, board)
-                states = row_states([target[4] for target in targets])
+                states = row_states(
+                    [target[4] for target in targets], manifest_version, manifest_checksum)
+                ambiguous = [target[4] for target in targets if states[target[4]]["count"] > 1]
+                if ambiguous:
+                    print("[integrity] skipped %d duplicate scenario hashes; canonical cleanup required" % len(ambiguous))
                 todo = [target for target in targets
-                        if states[target[4]][0] and not states[target[4]][1]]
+                        if states[target[4]]["count"] == 1 and not states[target[4]]["certified"]]
                 if not todo:
                     continue
                 try:
@@ -297,10 +413,16 @@ def main():
                                                {6: "flop", 8: "turn", 10: "river"}[len(full)],
                                                gt, stack)
                         v = h.validate_row(sm)
-                        json.dump({"scenario_hash": sh, "strategy_matrix_v2": sm, "_qc": v},
-                                  open("backup/%s.json" % sh, "w"))
+                        backup_path = os.path.join("backup", "%s.json" % sh)
+                        with tempfile.NamedTemporaryFile(
+                                "w", delete=False, dir="backup", prefix=sh + ".", suffix=".tmp") as backup:
+                            json.dump({"scenario_hash": sh, "strategy_matrix_v2": sm, "_qc": v}, backup)
+                            backup.flush()
+                            os.fsync(backup.fileno())
+                            temporary_path = backup.name
+                        os.replace(temporary_path, backup_path)
                         if v["frac_ok"] >= 0.98 and v["ev_ok"] and patch_v2(
-                                sh, sm, manifest_version, manifest_checksum):
+                                states[sh]["row_id"], sh, sm, manifest_version, manifest_checksum):
                             wrote += 1
                         else:
                             bad += 1; print("   ! %s frac_ok=%.4f not written" % (sh, v["frac_ok"]))

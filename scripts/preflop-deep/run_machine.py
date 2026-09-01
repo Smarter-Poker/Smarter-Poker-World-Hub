@@ -31,7 +31,12 @@ RUN:
 Safety: if the transport or engine is off in any way, the startup self-test
 FAILS LOUDLY and aborts before a single row is written — it never guesses.
 """
-import sys, os, urllib.request, hashlib
+import sys, os, json, urllib.request, hashlib, math, tempfile
+
+BASE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+os.chdir(BASE_DIRECTORY)
+if BASE_DIRECTORY not in sys.path:
+    sys.path.insert(0, BASE_DIRECTORY)
 
 REPO = "Smarter-Poker/Smarter-Poker-World-Hub"
 commit = os.environ.get("PIPELINE_COMMIT", "").strip()
@@ -43,11 +48,37 @@ os.environ["PIPELINE_COMMIT"] = commit.lower()
 RAW = "https://raw.githubusercontent.com/%s/%s/scripts/preflop-deep" % (REPO, commit)
 print("[pipeline] pinned commit: %s" % commit)
 
-# ---- 1. pull the live pipeline next to this launcher ----------------------
-for f in ("tree_gen.py", "pio_harvest.py", "orchestrate.py"):
-    data = urllib.request.urlopen(RAW + "/" + f, timeout=60).read()
-    open(f, "wb").write(data)
-    print("[fetch] %s (%d bytes)" % (f, len(data)))
+# ---- 1. verify and atomically install the approved pipeline ---------------
+approved_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "").strip().lower()
+if len(approved_manifest) != 64 or any(c not in "0123456789abcdef" for c in approved_manifest):
+    raise SystemExit("APPROVED_MANIFEST_CHECKSUM is required before any pipeline code is installed")
+manifest_bytes = urllib.request.urlopen(RAW + "/phases.json", timeout=60).read()
+if hashlib.sha256(manifest_bytes).hexdigest() != approved_manifest:
+    raise SystemExit("pinned manifest bytes do not match APPROVED_MANIFEST_CHECKSUM")
+manifest = json.loads(manifest_bytes.decode())
+approved_bundle = str(manifest.get("pipeline_bundle_checksum") or "").lower()
+if len(approved_bundle) != 64 or any(c not in "0123456789abcdef" for c in approved_bundle):
+    raise SystemExit("approved manifest is missing pipeline_bundle_checksum")
+
+pipeline_files = ("tree_gen.py", "pio_harvest.py", "orchestrate.py")
+payloads = {}
+bundle_digest = hashlib.sha256()
+for filename in pipeline_files:
+    payload = urllib.request.urlopen(RAW + "/" + filename, timeout=60).read()
+    payloads[filename] = payload
+    bundle_digest.update(filename.encode() + b"\0" + payload + b"\0")
+if bundle_digest.hexdigest() != approved_bundle:
+    raise SystemExit("pinned pipeline bundle does not match the approved manifest")
+for filename in pipeline_files:
+    destination = os.path.abspath(filename)
+    with tempfile.NamedTemporaryFile("wb", delete=False, dir=os.path.dirname(destination),
+                                     prefix=filename + ".", suffix=".tmp") as temporary:
+        temporary.write(payloads[filename])
+        temporary.flush()
+        os.fsync(temporary.fileno())
+        temporary_path = temporary.name
+    os.replace(temporary_path, destination)
+    print("[fetch] %s (%d bytes, verified)" % (filename, len(payloads[filename])))
 
 import subprocess, time
 import pio_harvest as _ph
@@ -66,9 +97,6 @@ actual_binary = binary_digest.hexdigest()
 if actual_binary != approved_binary:
     raise SystemExit("PioSOLVER binary checksum does not match APPROVED_PIO_BINARY_CHECKSUM")
 os.environ["PIO_BINARY_CHECKSUM"] = actual_binary
-approved_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "").strip().lower()
-if len(approved_manifest) != 64 or any(c not in "0123456789abcdef" for c in approved_manifest):
-    raise SystemExit("APPROVED_MANIFEST_CHECKSUM is required before PioSOLVER launches")
 if not os.environ.get("RANGE_DIRECTORY", "").strip():
     raise SystemExit("RANGE_DIRECTORY is required before PioSOLVER launches")
 print("[pio] approved console solver checksum: %s" % actual_binary)
@@ -119,33 +147,41 @@ def pio(cmd):
 def _wavg_bb(ev_chips, weights):
     """Range-weighted average of a per-combo chip-EV array, in big blinds.
     Skips board-blocked combos (Pio returns nan) and zero-weight hands."""
+    if len(ev_chips) != 1326 or not weights or len(weights) != 1326:
+        raise RuntimeError("solver EV and range vectors must contain exactly 1326 combos")
     num = den = 0.0
     for ev, w in zip(ev_chips, weights):
-        if w and ev == ev:            # ev==ev filters nan
+        if not isinstance(w, (int, float)) or not 0 <= w <= 1 or not math.isfinite(w):
+            raise RuntimeError("solver range contains an invalid weight")
+        if w and math.isfinite(ev):
             num += w * ev
             den += w
-    return (num / den / 100.0) if den else float("nan")
+    if not den:
+        raise RuntimeError("solver range has no live combos for this board")
+    result = num / den / 100.0
+    if not math.isfinite(result):
+        raise RuntimeError("range-weighted solver EV is not finite")
+    return result
 
 
 def _parse_expl(raw):
-    """Best-effort exploitability (informational; not a gate). Returns a float."""
+    """Parse one finite exploitability value; missing output is not exact evidence."""
     nums = []
     for tok in raw.replace("%", " ").split():
         try:
             nums.append(float(tok))
         except ValueError:
             pass
-    return nums[-1] if nums else 0.0
+    if not nums or not math.isfinite(nums[-1]):
+        raise RuntimeError("solver did not return finite exploitability")
+    return nums[-1]
 
 
 def read_results():
     """(ev_oop_bb, ev_ip_bb, exploit_pct) for the just-solved tree root."""
     ev_oop = _wavg_bb(_ph.parse_ev_array0(pio("calc_ev OOP r:0")), _last["OOP"])
     ev_ip = _wavg_bb(_ph.parse_ev_array0(pio("calc_ev IP r:0")), _last["IP"])
-    try:
-        expl = _parse_expl(pio("calc_exploitability"))
-    except Exception:
-        expl = 0.0
+    expl = _parse_expl(pio("calc_exploitability"))
     return ev_oop, ev_ip, expl
 
 
