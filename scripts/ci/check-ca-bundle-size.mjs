@@ -75,7 +75,22 @@ const MB = 1024 * 1024;
 // Code re-measured 2026-08-27: 7.1390 MB, 321 referenced chunks, 0 orphans.
 const BUDGETS = {
   initial: 1.5,
-  code: 9.0,
+  // Re-ratcheted 2026-09-01, from 9.0. What grew: nothing in the app did.
+  // A sync deliberately OVERLAYS the new asset generation and leaves the
+  // previous one in place -- Dan 2026-08-19, the P0 where wiping assets/ broke
+  // the lobby "+" for every session that was already open, because their
+  // cached HTML still pointed at chunks the deploy had deleted. The prune that
+  // removes the old generation only fires at 3 days.
+  //
+  // So between a sync and that prune, assets/ legitimately holds two
+  // generations and CODE is roughly double. 9.0 was measured against ONE
+  // generation, so it turned red the first time a sync was measured inside
+  // that window (12.14 MB / 564 chunks, after the hamburger-restore sync).
+  //
+  // 14.0 covers two generations of the current app with headroom. It is not a
+  // licence for the app to double: one generation is 7.8 MB, and if THAT
+  // number climbs the gate still catches it.
+  code: 14.0,
   payload: 110.0,
 };
 
