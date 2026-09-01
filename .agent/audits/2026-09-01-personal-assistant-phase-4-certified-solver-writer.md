@@ -103,4 +103,17 @@ external inputs exist, verified corrective batches correctly remain at zero.
 
 ## Publication Evidence
 
-Pending protected merge, production deployment, and post-deploy verification.
+- Pull request #1182 passed the required protected checks and squash-merged as
+  `9c78f1fc0ca61a42bc222e8d3f6c8259b7396cdd`.
+- `smarter.poker/api/health` reported healthy production version `741f4aee` on
+  2026-09-01. That main revision descends from the Phase 4 merge.
+- Live production desktop Chromium and mobile Chrome passed all 25 applicable
+  Personal Assistant journeys with two expected viewport-specific skips.
+- The authenticated production verifier preserved all 24 leak-history rows and
+  covered 19 corrective-drill candidates with zero empty, unmapped, missing, or
+  other failures. Sixteen remained correctly practice-only, three were backed
+  by verified sources, and the independently selected verified drill returned
+  eight questions with every answer key hidden.
+- Build Safety, Global Footer E2E, No Conflict Markers, Audit Marker Guard,
+  Agent Autopilot, Silent Write Guard, Undefined Identifier Guard, and Supabase
+  Invariants all completed successfully for the release branch.
