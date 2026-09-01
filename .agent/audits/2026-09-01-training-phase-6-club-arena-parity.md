@@ -289,6 +289,15 @@ with zero page errors, console errors, broken images, scanlines, or horizontal
 overflow. Follow-up PR 1218 publishes the corrected permanent smoke and its
 regression contract through the protected pipeline.
 
+The full workflow attached to PR 1218 then exposed six unrelated permanent
+failures after 678 passes and five recovered retries. Focused reproduction
+proved two stale E2E contracts: the Poker Near Me recovery test raced the live
+999-row refresh, and the Wallet check navigated to a nonexistent
+`/hub/wallet` route even though the canonical Wallet is a header-owned modal.
+PR 1231 controls the successful directory seed before the synthetic outage and
+opens the real Diamond Wallet control. The exact affected Chromium/mobile
+slice passed 17/17 without changing application or global-header code.
+
 ## Remaining Phase 6 Work
 
 None. Phase 7 begins from the published Phase 6 production baseline.

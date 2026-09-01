@@ -30,17 +30,35 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
     await assertNoOverflow(page, `/hub/series/${series.id}`);
   });
 
-  test('series API failure preserves the ranked cached directory and offers retry', async ({ page }) => {
+  test('series API failure preserves the ranked cached directory and offers retry', async ({ page, request }) => {
+    const seedResponse = await request.get('/api/poker/series?limit=20');
+    expect(seedResponse.status()).toBeLessThan(500);
+    const seedPayload = await seedResponse.json();
+    expect(Array.isArray(seedPayload?.data)).toBeTruthy();
+    expect(seedPayload.data.length).toBeGreaterThan(0);
+
+    let failRefresh = false;
+    await page.route('**/api/poker/series?limit=999', (route) => {
+      if (failRefresh) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: 'Synthetic audit outage' }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(seedPayload),
+      });
+    });
+
     const response = await page.goto('/hub/poker-series', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
     await expect(page.locator('.tour-card-premium').first()).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('[data-source-state="live"], [data-source-state="degraded"]')).toBeVisible({ timeout: 20_000 });
 
-    await page.route('**/api/poker/series?limit=999', (route) => route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: false, error: 'Synthetic audit outage' }),
-    }));
+    failRefresh = true;
     const refresh = page.getByRole('button', { name: 'Refresh' });
     await expect(refresh).toBeVisible({ timeout: 20_000 });
     await refresh.click();

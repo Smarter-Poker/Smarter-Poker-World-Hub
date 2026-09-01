@@ -10,7 +10,7 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
     test.skip(!testUserPassword, 'TEST_USER_PASSWORD is required for the authenticated wallet check');
     // 1. Navigate to the login page on localhost
     console.log('[Test] Navigating to login...');
-    await page.goto('/login', { waitUntil: 'networkidle' });
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
     // 2. Perform authentic login
     console.log('[Test] Performing authentication...');
@@ -22,9 +22,12 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
     console.log('[Test] Waiting for login redirection...');
     await expect(page).toHaveURL(/.*\/hub/, { timeout: 15000 });
 
-    // 4. Navigate to Diamond Wallet
-    console.log('[Test] Navigating to Diamond Wallet...');
-    await page.goto('/hub/wallet', { waitUntil: 'networkidle' });
+    // 4. Open the Diamond Wallet from its canonical global-header control.
+    // The wallet is a modal, not a standalone /hub/wallet route.
+    console.log('[Test] Opening Diamond Wallet...');
+    await page.getByRole('button', { name: 'Diamond Wallet' }).click();
+    const wallet = page.getByRole('dialog', { name: 'Diamond Wallet' });
+    await expect(wallet).toBeVisible({ timeout: 15_000 });
 
     // 5. Take desktop visual screenshot for human-in-the-loop review
     console.log('[Test] Taking desktop screenshot...');
@@ -35,7 +38,7 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
 
     // 6. Test search input focus behavior (No blue box focus-ring)
     console.log('[Test] Verifying search input focus style...');
-    const searchBar = page.locator('input[placeholder="Search Transactions..."]');
+    const searchBar = wallet.locator('input[placeholder="Search Transactions..."]');
     if (await searchBar.isVisible()) {
       await searchBar.focus();
       // Ensure no outline or ring is visible on focus
@@ -56,7 +59,7 @@ test.describe('Diamond Wallet Premium Visual & Functional Verification', () => {
 
     // 7. Verify recipient search input focus behavior
     console.log('[Test] Verifying recipient search input focus style...');
-    const recipientInput = page.locator('input[placeholder*="Type Friend"]');
+    const recipientInput = wallet.locator('input[placeholder*="Type Friend"]');
     if (await recipientInput.isVisible()) {
       await recipientInput.focus();
       const focusStyles = await recipientInput.evaluate((el) => {
