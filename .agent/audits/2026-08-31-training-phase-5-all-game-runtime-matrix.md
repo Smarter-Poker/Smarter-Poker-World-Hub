@@ -1,7 +1,7 @@
 # Training Phase 5 All-Game Runtime Gameplay Matrix
 
 Date: 2026-08-31
-Status: Implementation published and live production verification complete; documentation closeout pending
+Status: Complete; Phase 6 in progress
 Scope: 107 canonical games through campaign and arena routes on mobile and desktop
 
 ## Outcome
@@ -90,10 +90,8 @@ Machine-checkable artifacts:
 
 ## Publication Exit Items
 
-- Merge this evidence closeout through the protected pull-request pipeline and
-  verify production continues to serve a descendant of the Phase 5 release.
-- Record the final closeout merge SHA before declaring Phase 5 complete and
-  opening Phase 6.
+None. This closeout is the protected publication record; after it merges,
+Phase 6 begins from the verified Phase 5 production baseline.
 
 Phase 6 is Club Arena one-to-one gameplay parity: table geometry, avatars, hero
 cards, seat markers, pot, community cards, HUD, action rail, feedback layers,

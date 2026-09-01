@@ -12,10 +12,19 @@ const AUTH_STATE = resolve(
 
 assert.ok(existsSync(AUTH_STATE), `Authenticated storage state is missing: ${AUTH_STATE}`);
 
-const VIEWPORTS = [
+const ALL_VIEWPORTS = [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'desktop', width: 1440, height: 1000 },
 ];
+const requestedViewport = String(process.env.TRAINING_PRODUCTION_VIEWPORT || 'all').toLowerCase();
+const VIEWPORTS = requestedViewport === 'all'
+  ? ALL_VIEWPORTS
+  : ALL_VIEWPORTS.filter((viewport) => viewport.name === requestedViewport);
+
+assert.ok(
+  VIEWPORTS.length > 0,
+  `Unknown TRAINING_PRODUCTION_VIEWPORT "${requestedViewport}"; expected all, mobile, or desktop`,
+);
 const CAMPAIGNS = ['cash-001', 'adv-011', 'quiz-gauntlet'];
 const ARENAS = [
   { gameId: 'cash-001', expectedUi: 'club-arena-table', verifyFeedback: true },
