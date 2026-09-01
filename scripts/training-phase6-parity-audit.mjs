@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -142,6 +142,19 @@ const browser = await chromium.launch({ headless: true });
 const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), baseUrl: BASE_URL, success: false, viewports: [] };
 try {
   const context = await browser.newContext({ storageState: AUTH_STATE, viewport: VIEWPORTS[0] });
+  // Playwright applies saved localStorage only to its original production
+  // origin. Protected previews use another hostname, while the authenticated
+  // Training APIs still require the same bearer session. Copy only the saved
+  // Smarter.Poker localStorage entries onto the explicitly requested audit
+  // hostname so the preview is tested as the same real account.
+  const savedState = JSON.parse(readFileSync(AUTH_STATE, 'utf8'));
+  const savedLocalStorage = (savedState.origins || [])
+    .find((origin) => new URL(origin.origin).hostname === 'smarter.poker')?.localStorage || [];
+  const auditHost = new URL(BASE_URL).hostname;
+  await context.addInitScript(({ host, entries }) => {
+    if (location.hostname !== host) return;
+    for (const entry of entries) localStorage.setItem(entry.name, entry.value);
+  }, { host: auditHost, entries: savedLocalStorage });
   const page = await context.newPage();
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
