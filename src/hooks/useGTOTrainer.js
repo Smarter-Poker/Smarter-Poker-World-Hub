@@ -557,7 +557,17 @@ export default function useGTOTrainer(
       }
 
       if (!data) {
-        response = await authedFetch(apiUrl);
+        // A short upstream interruption must not demote a full session to the
+        // single-question fallback. That fallback intentionally requests one
+        // hand at a time and cannot preserve the batch's bounded completion
+        // target. Retry only transient responses; auth/contract failures still
+        // fail closed immediately and use the existing recovery path below.
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          response = await authedFetch(apiUrl);
+          const retryable = response.status === 429 || response.status >= 500;
+          if (response.ok || !retryable || attempt === 2) break;
+          await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)));
+        }
 
         // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
         const textResponse = await response.text();

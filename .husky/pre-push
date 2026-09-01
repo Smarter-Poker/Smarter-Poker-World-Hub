@@ -21,4 +21,11 @@ sh "$ROOT/scripts/hooks/pre-push-club-arena.sh"  "$@" || FAIL=1
 # this only ever speaks about text a person can actually read.
 node "$ROOT/scripts/ci/check-ui-text.mjs" || FAIL=1
 
+# The other half of the same instruction, and until now the asymmetric half.
+# check-title-case has run in CI since it landed, but not here - so the em dash
+# rule was answered before a push and the capitalization rule only after one.
+# Both gates are cheap and both read the same files; there is no reason for a
+# developer to learn about one of them a minute later than the other.
+node "$ROOT/scripts/ci/check-title-case.mjs" || FAIL=1
+
 exit $FAIL
