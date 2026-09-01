@@ -74,11 +74,14 @@ test.describe('Poker Near Me phase 5 data and detail surfaces', () => {
     const mark = page.locator('.pnm-identity-mark').first();
     await expect(mark).toBeVisible({ timeout: 20_000 });
     await expect.poll(async () => {
+      const state = await mark.getAttribute('data-media-state');
       const image = mark.locator('img');
-      if (await image.count()) {
-        await image.evaluate((node) => {
-          (node as HTMLImageElement).src = `/__pnm_missing_identity_${Date.now()}.png`;
-        });
+      if (state === 'image' && await image.count()) {
+        // The live series list can replace its first card while data settles.
+        // Dispatch the browser failure signal against whichever first card is
+        // current instead of repeatedly changing an image URL and racing that
+        // replacement render.
+        await image.dispatchEvent('error');
       }
       return mark.getAttribute('data-media-state');
     }, { timeout: 15_000 }).toBe('fallback');
