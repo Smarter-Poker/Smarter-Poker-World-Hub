@@ -12,8 +12,9 @@ test.beforeEach(() => test.setTimeout(60_000));
  * The old hamburger test covered three legacy drawers and preference toggles.
  * World Hub navigation now has one route-aware command system for fourteen
  * worlds. This suite intentionally owns the product law at the browser layer:
- * one six-node trigger, one full-height dialog, and exactly six world-specific
- * primary destinations. Horizontal three-bar menu marks are forbidden.
+ * one approved trigger, one full-height dialog, and exactly six world-specific
+ * primary destinations. Hamburger icon identity is pinned and gear/settings
+ * substitutions are forbidden.
  */
 
 type WorldCase = {
@@ -285,7 +286,11 @@ async function openWorldMenu(
   const trigger = page.locator('[data-world-menu-trigger]');
   await expect(trigger, `${world.label} must expose exactly one command trigger`).toHaveCount(1);
   await expect(trigger).toBeVisible();
-  await expect(trigger).toHaveAttribute('data-menu-symbol', 'command-grid');
+  const triggerOwner = await trigger.getAttribute('data-world-menu-trigger');
+  await expect(trigger).toHaveAttribute(
+    'data-menu-symbol',
+    triggerOwner === 'approved-header' ? 'hamburger' : 'command-grid'
+  );
   await expect(trigger).toHaveAttribute(
     'aria-label',
     new RegExp(`Open ${world.label} Command Menu`, 'i')
@@ -328,41 +333,27 @@ for (const world of WORLDS) {
       'page'
     );
 
-    // The trigger and drawer use a six-node command grid. The legacy three-bar
-    // mark and its retired image assets must never appear in the live DOM.
+    // The drawer keeps its existing six-node command mark. The approved global
+    // header keeps its hamburger artwork. Neither trigger may regress to a
+    // gear or settings icon.
     if ((await trigger.getAttribute('data-world-menu-trigger')) === 'route-fallback') {
       await expect(trigger.locator('i')).toHaveCount(6);
     }
     await expect(dialog.locator('.sp-command-grid-mark i')).toHaveCount(6);
-    await expect(page.locator('img[src*="hamburger" i], img[src*="btn-hamburger" i]')).toHaveCount(
-      0
-    );
-    await expect(page.locator('svg[data-lucide="menu"], [data-menu-symbol="three-bars"]')).toHaveCount(0);
-    const interactiveBarViolations = await page.evaluate(() => {
+    const settingsIconViolations = await trigger.evaluate((control) => {
       const violations: string[] = [];
-      document.querySelectorAll('button, a, [role="button"], [role="menuitem"]').forEach((control) => {
-        if (/[☰≡]/u.test(control.textContent || '')) violations.push('glyph');
-        control.querySelectorAll('svg').forEach((svg) => {
-          const lucide = (svg.getAttribute('data-lucide') || '').toLowerCase();
-          if (['menu', 'align-justify', 'list', 'list-checks'].includes(lucide)) {
-            violations.push(`lucide:${lucide}`);
-          }
-          const paths = Array.from(svg.querySelectorAll('path'))
-            .map((path) => (path.getAttribute('d') || '').replace(/\s+/g, ''));
-          if (paths.some((path) => /M4(?:\.0)?6h16M4(?:\.0)?12h16M4(?:\.0)?18h16/i.test(path))) {
-            violations.push('three-paths');
-          }
-          const wideRects = Array.from(svg.querySelectorAll('rect')).filter((rect) => {
-            const width = Number(rect.getAttribute('width'));
-            const height = Number(rect.getAttribute('height'));
-            return Number.isFinite(width) && Number.isFinite(height) && width >= height * 3;
-          });
-          if (wideRects.length === 3) violations.push('three-rectangles');
-        });
+      if (/^(?:gear|settings)$/i.test(control.getAttribute('data-menu-symbol') || '')) {
+        violations.push('data-menu-symbol');
+      }
+      control.querySelectorAll('svg').forEach((svg) => {
+        const lucide = (svg.getAttribute('data-lucide') || '').toLowerCase();
+        if (['settings', 'settings-2', 'cog'].includes(lucide)) {
+          violations.push(`lucide:${lucide}`);
+        }
       });
       return violations;
     });
-    expect(interactiveBarViolations).toEqual([]);
+    expect(settingsIconViolations).toEqual([]);
 
     await expect
       .poll(
