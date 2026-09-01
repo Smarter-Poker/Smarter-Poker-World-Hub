@@ -21,7 +21,7 @@ const sw = self;
 // DEPLOY VERSION — updated by CI/build to bust the service worker cache.
 // When this changes, the browser detects a new SW → install → activate → clears old caches.
 // Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260901003551';
+const DEPLOY_TS = '20260901004721';
 // PERF PASS 2026-08-22: two caches instead of one.
 // - CHUNK_CACHE is versioned by deploy: hashed JS/CSS filenames change every
 //   build, so old entries are dead weight the moment a new SW activates.
@@ -87,7 +87,7 @@ async function purgeDecommissionedThreeBarArtwork() {
 // DEPLOY_TS above with the build time. With this, a returning player gets the
 // whole shell from cache even if HTTP cache was evicted, and the new SW
 // pre-fetches the new hashed chunks the moment a deploy lands.
-const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-2d4eda7dd6.css","/hub/club-arena/assets/index-Czway475-v6.js","/hub/club-arena/assets/vendor-react-C6BNlpfB-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-CuBENTLJ-v6.css"];
+const PRECACHE_URLS = ["/hub/club-arena/fonts/fonts-2d4eda7dd6.css","/hub/club-arena/assets/index-VYdIFVvp-v6.js","/hub/club-arena/assets/vendor-react-C6BNlpfB-v6.js","/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js","/hub/club-arena/assets/index-CuBENTLJ-v6.css"];
 
 // The canonical cache key for the SPA shell document. Every /hub/club-arena/*
 // navigation serves the same index.html (SPA fallback rewrite), so all of
