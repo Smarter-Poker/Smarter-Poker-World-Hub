@@ -21,9 +21,17 @@ export const isClubArenaOwnedRoute = (value) => {
   return path === '/hub/club-arena' || path.startsWith('/hub/club-arena/');
 };
 
+export const isImmersiveTrainingRoute = (value) => {
+  const path = cleanPath(value);
+  return path.startsWith('/hub/training/arena/');
+};
+
 export const resolveWorldFooter = (value) => {
   const path = cleanPath(value);
-  if (isClubArenaOwnedRoute(path)) return null;
+  // Live gameplay owns the complete action dock at the viewport bottom, just
+  // like Club Arena's table route. The library footer remains on every browse,
+  // setup, progress, and review surface, but must never cover the felt.
+  if (isClubArenaOwnedRoute(path) || isImmersiveTrainingRoute(path)) return null;
 
   return (
     footerRegistry.worlds.find((world) =>

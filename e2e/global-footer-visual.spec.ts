@@ -81,6 +81,10 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
   })
   .filter((route) => !/^\/(?:_|404$|500$)/.test(route))
   .flatMap((sourceRoute) => {
+    // Live Training gameplay owns the Club Arena action dock at the viewport
+    // bottom. Browse, setup, progress, and review remain in this footer matrix;
+    // only the dynamic arena table is deliberately immersive.
+    if (sourceRoute.startsWith('/hub/training/arena/')) return [];
     const world = footerRegistry.worlds.find((candidate) =>
       candidate.routePrefixes.some(
         (prefix) => sourceRoute === prefix || sourceRoute.startsWith(`${prefix}/`)
@@ -116,9 +120,9 @@ const visit = async (page: Page, route: string) => {
 };
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
-  test('all 203 applicable routes server-render exactly one correct artwork footer', async ({ request }) => {
+  test('all 202 applicable routes server-render exactly one correct artwork footer', async ({ request }) => {
     test.setTimeout(300_000);
-    expect(routeMatrix).toHaveLength(203);
+    expect(routeMatrix).toHaveLength(202);
 
     for (let offset = 0; offset < routeMatrix.length; offset += 8) {
       const batch = routeMatrix.slice(offset, offset + 8);
