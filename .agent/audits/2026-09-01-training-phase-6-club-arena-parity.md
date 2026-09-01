@@ -51,6 +51,16 @@ The gate also fails if the runtime manifest is absent, malformed, or references
 a missing current JS/CSS asset. The shipped evidence is 1.22 MB initial, 7.98 MB
 current code, 4.16 MB retained code, 58.77 MB payload, and zero exceeded budgets.
 
+### Gameplay Launched Under The Setup Scroll Position And Library Footer
+
+The first matched live capture found the table root starting 156 pixels above
+the viewport and the fixed Training library artwork covering the complete lower
+action area. Club Arena's table routes are immersive and do not mount their
+library footer. Training now scrolls to its visual origin when the playing phase
+mounts and suppresses only the world footer on `/hub/training/arena/*`. Browse,
+setup, progress, review, and every other Training route retain their footer.
+The approved global header is unchanged and remains present during gameplay.
+
 ## Remaining Phase 6 Work
 
 Build and verify the state-by-state geometry and pixel ledger for idle,

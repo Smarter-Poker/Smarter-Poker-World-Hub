@@ -3157,6 +3157,15 @@ function GodModeArenaInner({
     }
   }, [gamePhase, currentQuestion, loading]);
 
+  // The setup surface is taller than the gameplay viewport. Preserve its
+  // selection state, but never preserve its scroll position: doing so launched
+  // the Club Arena table with the header/question region already above the
+  // viewport. Club Arena table routes always begin at their visual origin.
+  useEffect(() => {
+    if (gamePhase !== 'playing' || typeof window === 'undefined') return;
+    window.scrollTo(0, 0);
+  }, [gamePhase]);
+
   const handleStartTraining = useCallback(() => {
     // 2026-07-26 VERIFIED IN PRODUCTION: "Start Training" did nothing on the
     // /hub/training/arena/[gameId] route. The button rendered enabled and its
