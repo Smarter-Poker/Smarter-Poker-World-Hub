@@ -1595,3 +1595,22 @@ Shipped this session: Phase 49 (trivia timer hook), Phase 50 (10 notification/so
 **Verification before publication:** 122/122 Leak Engine contracts, 23/23 focused architecture/API/persistence contracts, TypeScript, the exact optimized 403-page webpack build, and all five compiled-artifact budgets passed. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-5-refactor-performance.md`.
 
 **Release state:** Complete and published. Pull request #1195 squash-merged as `c07529e599`; exact Vercel deployment `dpl_CA4gNYVoUppZLGvdGscvtDMHSJPQ` reached Ready and production health reported `c07529e5`. The live desktop/mobile matrix passed 25 applicable journeys with two intentional skips. The protected account completed seven audit batches over 1,347 hands, retained 37 leak-history records, persisted 19 findings, resolved all 32 corrective candidates without a broken destination, and kept verified answer keys hidden. Live Sandbox and authenticated Leak Finder responses emitted within-budget performance telemetry.
+
+---
+
+## PHASE 73 — Personal Assistant Phase 6 Of 8: Production Hardening (2026-09-01)
+
+| Deliverable | Detail |
+|---|---|
+| Hostile-input resilience | Deterministic fuzz suites exercise 1,500 Sandbox scenarios and 1,500 signed audit cursors without accepting unsafe state or leaking ownership. |
+| Outage behavior | 429, 502, 503, and 504 storms remain bounded, preserve signed continuation, and never claim persistence after a failed write. |
+| Bounded production load | A dependency-free verifier clamps traffic, measures p95 latency, and fails on any non-success response or an eight-second p95 regression. |
+| RLS integration | The protected account and anonymous role are probed against jobs, decisions, review state, and leak history without performing writes. |
+| Safari device matrix | Dedicated desktop Safari and iPhone Safari projects cover every Personal Assistant primary and secondary journey with real pointer/touch activation. |
+| Mobile-first viewport | The strategy-hub command remains inside its artwork bay and above the persistent mobile footer at the iPhone viewport. |
+| Monitored rollout | Successful production deployments trigger a read-only watchdog and retain a fourteen-day JSON receipt; manual dispatch remains available. |
+| Preserved behavior | Existing routes, data, Club Arena imports, deterministic detection, solver evidence boundaries, persistence, drills, copy policy, and responsive layouts remain wired. |
+
+**Verification before publication:** 128/128 Leak Engine contracts, the exact optimized webpack production build with 403 static pages, all five Personal Assistant performance budgets, and 25/25 applicable compiled desktop/iPhone Safari journeys with two intentional desktop-only skips passed. The live read-only hardening probe passed four public routes, sixteen bounded requests, three protected account API reads, and four RLS isolation probes. Full evidence: `.agent/audits/2026-09-01-personal-assistant-phase-6-production-hardening.md`.
+
+**Release state:** Pending protected merge and exact production verification.
