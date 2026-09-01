@@ -79,7 +79,17 @@ const BUDGETS = {
   code: 9.0,
   retainedCode: 6.0,
   retainedChunks: 400,
-  payload: 110.0,
+  // Re-ratcheted 2026-09-01, from 110.0. What grew: assets/club-buttons went
+  // from 14.8 MB across 91 files to 56 MB. That is shipped Club Arena button
+  // and skin artwork which had accumulated in the CA repo since the previous
+  // sync; the hamburger-restore sync is simply the first sync to carry it
+  // across, so it is not that change's growth and any sync run today meets the
+  // same wall. Measured at 115.87 MB with sourcemaps stripped, ~7% headroom.
+  //
+  // Worth actually fixing rather than raising again: club-buttons is exactly
+  // the image pack U5.3 moves to R2, and it is now the single largest thing in
+  // the directory by a wide margin.
+  payload: 125.0,
 };
 
 function fail(msg, code = 2) {
