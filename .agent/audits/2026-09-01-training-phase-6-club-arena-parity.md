@@ -1,8 +1,10 @@
 # Training Phase 6: Club Arena One-To-One Gameplay Parity
 
-Date: 2026-09-01  
-Status: In Progress  
+Date: 2026-09-01
+Status: Complete
 Protected Baseline: `d8d3b1468ebc21b85eeb11f7ae6bf54c3f3d86a1`
+Protected Release: `10c62c39df7bbc2847ae5ac5139cafba56240557`
+Production Hardening: `ccf12df91247483fe7e46d049ddd3be083a9fbca`
 
 ## Entry Certification
 
@@ -88,9 +90,8 @@ four-card Turn geometry.
 For `cash-001`, it also advances the complete canonical 20-hand level through
 every real manual-Next transition on both viewports, then verifies and captures
 the real Session Review surface. A stable nonvisual completion anchor makes
-that end state measurable without changing its design. The protected preview
-and exact production descendant still need to run this ledger before Phase 6
-can close.
+that end state measurable without changing its design. The final immutable
+production deployment ran this ledger before Phase 6 closed.
 
 ### Production Pixel Audit Found An Incomplete Seat Ring
 
@@ -185,6 +186,34 @@ overflowing fixed-height controls. Mobile actions now use a taller metallic
 whose rendered content exceeds its button height, so meaningful answers remain
 fully readable instead of overlapping the next row.
 
+### Worker Activation Reloaded A Live Decision
+
+The first production closeout repeatedly lost the page while a verdict was
+being held for the manual-Next persistence proof. A fresh immutable-preview
+probe showed that the PWA worker legitimately changed controller during a live
+Training hand. The app-wide updater previously reloaded every route on that
+event, destroying the decision or feedback state. It now promotes the worker
+but defers reload on `/hub/training/arena/*` and `/hub/training/play/*`; the new
+worker owns the next navigation while the current hand finishes on its loaded
+assets. A fresh mobile probe observed the controller change, zero post-start
+navigations, and zero page errors.
+
+The same audit found that the footerless mobile launch lobby still reserved a
+phantom 56-pixel footer row. Its fixed Start rail now anchors ten pixels above
+the device safe area and the content reserves only the actual rail clearance.
+Both independent geometry contracts enforce the footerless value.
+
+### The Ledger Consumed A Response Body The Client Does Not Consume
+
+The final browser trace reached the visible verdict in 5.5 seconds and Vercel
+recorded `record-question` HTTP 200, but Playwright waited on the intercepted
+success body until its page disappeared. The real client contract checks
+`response.ok` and intentionally never reads that success body. The permanent
+ledger now verifies the same authoritative HTTP status, targets only the
+visible manual-Next button, and records stage plus page lifecycle diagnostics.
+The corrected complete `cash-001` campaign reached Session Review in 18.5
+seconds instead of hanging on test-only response consumption.
+
 ## Local Release-Candidate Evidence
 
 The rebuilt release candidate passed 56/56 focused contracts and a clean Next
@@ -195,9 +224,56 @@ seat/player mismatches, table-aspect drift, board/street mismatches, or grading
 write failures. Both `cash-001` runs completed all twenty hands through explicit
 manual Next and reached the measurable Session Review state.
 
+## Protected Publication And Production Evidence
+
+- Phase 6 implementation PR 1177 merged through the protected pipeline as
+  `10c62c39df7bbc2847ae5ac5139cafba56240557`.
+- Production-hardening PR 1202 merged through protected auto-merge as
+  `ccf12df91247483fe7e46d049ddd3be083a9fbca`. Build Safety, Supabase
+  invariants, Chromium/WebKit footer geometry, audit-marker, conflict,
+  silent-write, undefined-identifier, and Vercel gates passed.
+- Exact immutable production deployment
+  `dpl_9MxEg12t87P5egh9zbFwrcNXzvdd` reached READY and serves a descendant of
+  both protected Phase 6 commits.
+- The authenticated production ledger passed 16/16 representative cases:
+  eight gameplay families on 390x844 and 1440x1000. It saved 50 captures and
+  recorded zero page errors, console errors, broken visible images,
+  horizontal overflow, action-label overflow, seat/player mismatches, or
+  board/street mismatches.
+- Both mobile and desktop `cash-001` sessions completed all twenty hands by
+  explicit manual Next and reached the real Session Review state. River,
+  heads-up, Spins, nine-player MTT, four-card Turn, and selected Push/Fold
+  contracts all passed with HTTP 200 answer persistence.
+- Authenticated Level 11 and Level 12 probes each returned two canonical
+  four-option questions at the requested level and recorded an answer with
+  HTTP 200 and `success: true`.
+- Direct production `/auth/login` returned HTTP 200, rendered the visible Sign
+  In control, and recorded zero hydration or page errors.
+- The approved global header has no Phase 6 implementation or closeout diff.
+
+### Broad-Suite Closeout
+
+The first broad workflow on production-hardening PR 1202 reported 664 passed,
+5 flaky, 24 skipped, and 20 failed. The failure evidence showed that the broad
+suite's live-only infrastructure spec ignored the configured localhost target.
+After sustained parallel traffic, `smarter.poker` returned Vercel's security
+checkpoint (HTTP 403) to the mobile project; health, manifest, seven unrelated
+core pages, Video Library, and Poker Near Me then failed together. That was an
+audit-harness routing defect, not a Training runtime failure. The spec now uses
+`NEXT_PUBLIC_BASE_URL` when CI provides it and retains the live production
+default for explicit production watchdog runs.
+
+The same closeout found two independent false-negative selectors without
+weakening their behavioral contracts. Video Library expected `0 playlists`
+while the accessible control correctly exposed `0 Playlists`. News keyboard
+navigation compared animated article text, which can be temporarily empty; it
+now proves movement by comparing the actual focused card's structural index.
+The corrected affected slice passed 102/102, the signed-out return path passed
+on both viewports, and the keyboard contract passed ten consecutive
+desktop/mobile repetitions. The final complete local Chromium/mobile matrix
+passed 689 with 24 intentional environment skips, zero failures, and zero
+flaky tests across all 713 scheduled entries.
+
 ## Remaining Phase 6 Work
 
-Rebase the release candidate onto exact protected main, rerun focused and broad
-checks, publish through the protected PR, verify the migration and exact healthy
-deployment lineage, then rerun this same authenticated ledger against
-production. Phase 6 remains in progress until that evidence passes.
+None. Phase 7 begins from the published Phase 6 production baseline.
