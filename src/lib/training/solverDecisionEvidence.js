@@ -30,6 +30,19 @@ export function normalizeAuditedChartQuestion(question) {
   question.dataQuality = 'CHART_EXACT';
   question.gtoFrequencies = Object.fromEntries(entries);
   question.evidenceDisclosure = 'Audited local push/fold chart corpus.';
+  // Push/fold charts are preflop decisions. Historical cache writers stamped
+  // some of these rows as Flop even though they contained no board and only
+  // Push/Fold actions; the Arena then fabricated a board while the grader
+  // correctly rejected the row. Canonicalize the lossless chart state here,
+  // before either serving endpoint persists it.
+  question.scenario = {
+    ...(question.scenario || {}),
+    street: 'preflop',
+    board: '',
+    boardCards: [],
+  };
+  question.street = 'preflop';
+  question.boardCards = [];
   return question;
 }
 

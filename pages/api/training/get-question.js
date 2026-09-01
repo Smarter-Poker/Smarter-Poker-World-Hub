@@ -234,33 +234,41 @@ export default async function handler(req, res) {
         });
       }
 
-      // Cache-miss engine output is persisted before serving so the answer API
-      // can independently regrade it from the same solver question. Existing
-      // canonical rows are never overwritten.
+      // Persist the exact post-contract envelope before serving so the answer
+      // API can independently regrade the same question. Existing legacy rows
+      // must be refreshed too: their in-memory sanitized envelope is the only
+      // grade-eligible representation and cannot be discarded after serving.
       if (question?.id) {
         const { data: existingCanonical } = await getSupabase()
           .from('training_question_cache')
           .select('question_id')
           .eq('question_id', String(question.id))
           .maybeSingle();
-        if (!existingCanonical) {
-          const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
-          const { error: canonicalizeErr } = await getSupabase()
+        const sourceOfTruth = pioQueryService.getGameConfig(gameId)?.sourceOfTruth;
+        const canonicalPayload = {
+          game_id: gameId,
+          engine_type: preferredEngine === 'SCENARIO' ? 'SCENARIO'
+            : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
+          game_type: String(gameId).startsWith('mtt-') ? 'tournament'
+            : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
+          level: Math.min(12, Math.max(1, parseInt(level, 10) || 1)),
+          question_data: question,
+        };
+        const canonicalizeResult = existingCanonical
+          ? await getSupabase()
+              .from('training_question_cache')
+              .update(canonicalPayload)
+              .eq('question_id', String(question.id))
+          : await getSupabase()
             .from('training_question_cache')
             .insert({
               question_id: String(question.id).slice(0, 180),
-              game_id: gameId,
-              engine_type: preferredEngine === 'SCENARIO' ? 'SCENARIO'
-                : sourceOfTruth === 'ICMIZER' ? 'CHART' : 'PIO',
-              game_type: String(gameId).startsWith('mtt-') ? 'tournament'
-                : String(gameId).startsWith('spins-') ? 'sng' : 'cash',
-              level: Math.min(12, Math.max(1, parseInt(level, 10) || 1)),
-              question_data: question,
+              ...canonicalPayload,
               times_used: 1,
             });
-          if (canonicalizeErr && canonicalizeErr.code !== '23505') {
-            console.warn('[Training] Could not canonicalize generated question:', canonicalizeErr.message);
-          }
+        const canonicalizeErr = canonicalizeResult?.error;
+        if (canonicalizeErr && canonicalizeErr.code !== '23505') {
+          console.warn('[Training] Could not canonicalize served question:', canonicalizeErr.message);
         }
       }
 

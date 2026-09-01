@@ -1203,8 +1203,15 @@ export class DeterministicGTOEngine {
             count,
             gameConfig,
             spotTypes,
-            stackDepths,
+            // A game config is one exact solver contract. Scenario-map stack
+            // hints may describe a wider family, but serving one of those
+            // depths under this game id makes the grader correctly reject it.
+            stackDepths: Number.isFinite(Number(gameConfig?.pioStackDepth))
+                ? [Number(gameConfig.pioStackDepth)]
+                : stackDepths,
             positions: targetPositions,
+            targetStreet,
+            seenIds,
         });
 
         if (!scenarios || scenarios.length === 0) return curatedFallback();

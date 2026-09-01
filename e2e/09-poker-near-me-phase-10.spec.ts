@@ -26,7 +26,7 @@ test.describe('Poker Near Me phase 10 directory operations', () => {
     await expect(page.getByRole('heading', { name: 'Featured poker rooms' })).toBeVisible();
     await expect(page.locator('.pnm-ssr-venue')).toHaveCount(8);
     const html = await response?.text();
-    expect(html).toContain('National room registry');
+    expect(html).toContain('National Room Registry');
     expect(html).toMatch(/\/hub\/venues\/\d+/);
     await expectNoOverflow(page, route);
   });

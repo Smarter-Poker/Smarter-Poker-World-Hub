@@ -75,12 +75,16 @@ geometry from source text.
 
 `scripts/training-phase6-parity-audit.mjs` exercises the setup-to-gameplay
 boundary and action/verdict states for 6-max preflop, 6-max postflop, declared
-river, heads-up, three-player Spins, nine-player MTT, deterministic flop-to-turn
-play, and an actually selected all-in/push decision on
+river, heads-up, three-player Spins, nine-player postflop MTT, and an actually
+selected all-in/push decision on
 390x844 and 1440x1000. It asserts the approved header, footer ownership, scroll
 origin, 605x1000 Club Arena table aspect, seat/player agreement, hero cards,
 dealer, pot, all-in availability, loaded images, horizontal containment, and
 persistent manual feedback, while saving the pixel captures and a JSON ledger.
+The postflop MTT case requests Turn explicitly. The batch reader applies that
+target to warm cache rows as well as generation, so a cached mixed-street pool
+cannot silently defeat a selected street and the ledger always proves the
+four-card Turn geometry.
 For `cash-001`, it also advances the complete canonical 20-hand level through
 every real manual-Next transition on both viewports, then verifies and captures
 the real Session Review surface. A stable nonvisual completion anchor makes
@@ -116,11 +120,84 @@ cards first, then the two legacy scenario shapes. The runtime ledger waits for
 the exact zero/three/four/five-card street contract and fails if a postflop
 question ever reaches the player with an incomplete board.
 
+### Served Questions And Server Grading Could Disagree
+
+The batch endpoint sanitized cached and generated questions in memory but did
+not always persist the exact post-contract envelope returned to the player.
+`record-question` then reread an older canonical row and correctly rejected the
+answer with HTTP 409. Both question endpoints now persist the exact served
+envelope. The grader performs a bounded reread of only that server-owned row to
+cover immediate PostgREST visibility delay; it never accepts a browser answer
+key.
+
+Cold generation also mixed broad scenario-map stacks into games with an exact
+stack contract and could repeat identities already supplied by cache. The
+curated fallback now honors the exact game stack and excludes both previously
+seen and already-batched identities. A cold `spins-001` proof returned 25/25
+unique questions at exactly 20 BB and recorded 25/25 answers successfully.
+
+### Historical Push/Fold Rows Carried A False Flop Stamp
+
+Ten of twenty sampled `mtt-001` chart rows were valid two-action Push/Fold
+distributions stored under a generic engine label but stamped as Flop. The
+shared chart normalizer now keys from the payload type, verifies the lossless
+two-frequency distribution, and canonicalizes these decisions to Preflop with
+no board before persistence or delivery. The exact runtime probe now returns
+20/20 unique canonical chart rows and records 20/20 answers successfully.
+
+### Uncertified Multi-Street State Could Leak Into The Next Hand
+
+The current Training cache has independent Flop, Turn, and River questions but
+no certified `nextStreetContinuationAction` for `mtt-021`. The old client could
+leave a continuation flag active after a completed independent hand, causing a
+later River label to render against a stale three-card board. Training now
+starts or continues a hand only when the exported question contains the exact
+continuation action. Otherwise it clears the hand state and advances to the
+next canonical question. Phase 6 therefore certifies all street geometries
+without pretending independent solver rows are one continuous solve.
+
+### Mastery Levels Eleven And Twelve Were Blocked By Database Constraints
+
+The product exposes twelve levels while several Training tables retained legacy
+one-through-ten checks. Migration
+`20260901130000_training_levels_one_through_twelve.sql` expands the guarded
+Training, history, daily-challenge, and arena constraints to the product's exact
+1-12 contract. A read-only live-schema preflight caught that current
+`training_progress` uses `level`, while an archived schema used
+`current_level/highest_level_completed`; the migration now guards both shapes
+by real column presence. All existing rows passed the 1-12 precondition, the
+transactional migration was recorded as `20260901130000`, and the five live
+constraints now report 1-12. Authenticated Level 11 and Level 12 batch and
+record probes both returned HTTP 200, with canonical cache rows persisted at
+each exact level.
+
+### Desktop Feedback Collapsed The Club Arena Canvas
+
+The first complete desktop matrix found the verdict state's flex column
+shrinking the 605:1000 table surface to zero height while avatars and cards
+continued painting outside it. Verdict is now a scrollable review state that
+preserves the same complete table geometry as action state on desktop and
+mobile, with feedback below it and manual Next still required.
+
+The final mobile Turn capture also exposed long four-option concept answers
+overflowing fixed-height controls. Mobile actions now use a taller metallic
+2x2 rail with responsive wrapped labels. The browser ledger rejects any action
+whose rendered content exceeds its button height, so meaningful answers remain
+fully readable instead of overlapping the next row.
+
+## Local Release-Candidate Evidence
+
+The rebuilt release candidate passed 56/56 focused contracts and a clean Next
+production build. The final local browser ledger passed all 16 combinations:
+eight representative gameplay families on 390x844 and 1440x1000. It recorded
+zero page errors, console errors, broken visible images, horizontal overflow,
+seat/player mismatches, table-aspect drift, board/street mismatches, or grading
+write failures. Both `cash-001` runs completed all twenty hands through explicit
+manual Next and reached the measurable Session Review state.
+
 ## Remaining Phase 6 Work
 
-Build and verify the state-by-state geometry and pixel ledger for idle,
-preflop, flop, turn, river, action, verdict, all-in, and completion across
-mobile and desktop. Compare seats, avatars, hero-card fan, dealer/blind markers,
-chip positions, pot, board, HUD, action rail, and feedback layers to the current
-Club Arena authority. Close every defect, publish through a protected PR, and
-certify the exact production lineage before marking Phase 6 complete.
+Rebase the release candidate onto exact protected main, rerun focused and broad
+checks, publish through the protected PR, verify the migration and exact healthy
+deployment lineage, then rerun this same authenticated ledger against
+production. Phase 6 remains in progress until that evidence passes.

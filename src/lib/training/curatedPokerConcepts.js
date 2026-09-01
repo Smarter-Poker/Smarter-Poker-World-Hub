@@ -195,9 +195,14 @@ export function generateCuratedPokerConceptBatch({
   spotTypes = [],
   stackDepths = [],
   positions = [],
+  targetStreet = null,
+  seenIds = [],
 }) {
   const family = String(gameConfig?.pioGameType || 'unknown');
-  const forcedStreet = String(gameConfig?.pioStreet || '').toLowerCase();
+  const requestedStreet = String(targetStreet || '').toLowerCase();
+  const forcedStreet = ['preflop', 'flop', 'turn', 'river'].includes(requestedStreet)
+    ? requestedStreet
+    : String(gameConfig?.pioStreet || '').toLowerCase();
   const requested = family.includes('_icm')
     ? ['icm']
     : (spotTypes.length > 0 ? spotTypes.map(normalizedTopic) : ['rfi']);
@@ -211,7 +216,9 @@ export function generateCuratedPokerConceptBatch({
 
   const questions = [];
   const wanted = Math.max(1, Math.min(Number(count) || 1, 25));
-  for (let index = 0; index < wanted; index += 1) {
+  const excludedIds = new Set((seenIds || []).map(String));
+  const maxCandidates = wanted + excludedIds.size + 100;
+  for (let index = 0; index < maxCandidates && questions.length < wanted; index += 1) {
     const topic = topics[index % topics.length];
     const fact = FACTS[topic];
     const style = Math.floor(index / topics.length) % 4;
@@ -227,8 +234,10 @@ export function generateCuratedPokerConceptBatch({
     const pot = street === 'preflop' ? (['rfi', 'icm'].includes(topic) ? 1.5 : 4.5)
       : street === 'flop' ? 6 : street === 'turn' ? 14 : 30;
 
+    const id = `curated_${gameId}_L${level}_${topic}_${style}_${index}`;
+    if (excludedIds.has(id)) continue;
     questions.push({
-      id: `curated_${gameId}_L${level}_${topic}_${style}_${index}`,
+      id,
       type: 'PIO',
       source: 'CURATED_SCENARIO',
       dataQuality: 'CURATED',
