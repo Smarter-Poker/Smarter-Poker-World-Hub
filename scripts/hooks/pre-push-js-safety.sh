@@ -550,7 +550,21 @@ if [ -n "$TS_FILES" ]; then
 
         # Get the baseline error count from the remote HEAD (pre-push state)
         # by stashing the working state and checking out the remote HEAD
-        REMOTE_HEAD=$(git rev-parse "@{u}" 2>/dev/null || git rev-parse HEAD~1 2>/dev/null)
+        # --verify --quiet, and not a bare rev-parse. Without it, `git rev-parse
+        # "@{u}"` on a branch with NO UPSTREAM prints the literal string "@{u}"
+        # to stdout, writes its error to stderr and exits non-zero - so the
+        # fallback appends the real SHA and REMOTE_HEAD becomes TWO LINES:
+        #
+        #     @{u}
+        #     7f4c79e8...
+        #
+        # `git worktree add --detach "$DIR" "$REMOTE_HEAD"` then dies with
+        # "fatal: invalid reference: @{u}", this check reports "Could not create
+        # an isolated remote baseline", and the push is BLOCKED - for a branch
+        # whose only sin is not having been pushed yet. Which is every new branch
+        # whose first push failed for any other reason, and every push made
+        # without -u. Found 2026-09-01 when it blocked exactly that.
+        REMOTE_HEAD=$(git rev-parse --verify --quiet "@{u}" || git rev-parse --verify --quiet "HEAD~1")
 
         # Run tsc on the CURRENT state (with our changes)
         CURRENT_ERRORS=$("$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort)

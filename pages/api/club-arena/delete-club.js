@@ -136,7 +136,7 @@ export default async function handler(req, res) {
         'chip_transactions',
         'cashout_requests',
         // PHASE 7 (2026-09-01): commission_records and commission_history were
-        // here. Both are dropped in club-arena migration 20260902070000; they
+        // here. Both are dropped in club-arena migration 20260901133348; they
         // never held a row. This loop discards its errors, so naming a table
         // that no longer exists would not have failed loudly - it would just
         // have been a line that did nothing, forever.

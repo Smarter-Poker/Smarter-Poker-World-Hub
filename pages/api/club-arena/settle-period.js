@@ -356,7 +356,7 @@ export default async function handler(req, res) {
       // It never fired — commission_records and commission_history held ZERO
       // rows on the day they were dropped, because every historical close either
       // 401'd or stalled — which is the only reason this is a removal and not an
-      // incident. Both tables are dropped in club-arena migration 20260902070000.
+      // incident. Both tables are dropped in club-arena migration 20260901133348.
       //
       // The period still closes, the union hold is still taken, and the agents
       // are paid the way Dan said they are paid: "AGENTS HANDLE THEIR OWN
@@ -598,6 +598,13 @@ export default async function handler(req, res) {
           status: 'closed',
           settled_at: new Date().toISOString(),
           settled_by: user.id,
+          // PHASE 7 audit (2026-09-01): total_commissions_paid was NEVER
+          // written by anything - before this phase or after it - so every row
+          // in settlement_periods reads 0.00 for a column named after the one
+          // number a closed period is supposed to record. The close already
+          // computes it above (commission claimed inside the window, from the
+          // ledger); it just threw it away.
+          total_commissions_paid: totalCommissions,
         })
         .eq('id', pid)
         .select('id');

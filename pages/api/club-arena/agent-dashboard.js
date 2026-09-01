@@ -133,7 +133,7 @@ export default async function handler(req, res) {
       // so this list was empty for every club and every agent since the day it
       // was written - onto agent_commissions, the ledger the engine writes as
       // hands settle. It is keyed by the agent's auth user_id, not agents.id.
-      // commission_history is dropped in club-arena migration 20260902070000.
+      // commission_history is dropped in club-arena migration 20260901133348.
       let commHistQuery = getSupabase()
         .from('agent_commissions')
         .select('id, user_id, club_id, amount, source_type, created_at, settled_at')
