@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-4 Complete; Phase 5 Release Live With Protected Closeout Pending
+Status: Phases 1-5 Complete; Phase 6 In Progress
 
 ## Objective
 
@@ -67,9 +67,11 @@ Exercise every game through both play and arena routes on desktop and mobile.
 Validate load, answer, feedback, Next, completion, retry, level transition,
 resume, and failure recovery for all 107 games.
 
-Phase 5 local implementation evidence is recorded in
-`2026-08-31-training-phase-5-all-game-runtime-matrix.md`. The protected release
-and production verification remain required before this phase is complete.
+Phase 5 implementation PR 1164 merged normally as `9fe70d5dc9`; production
+serves verified healthy descendant `63b33a60fb`. Full local and production
+evidence is recorded in
+`2026-08-31-training-phase-5-all-game-runtime-matrix.md`. The protected
+documentation closeout remains required before this phase is complete.
 
 ### Phase 6: Club Arena One-To-One Gameplay Parity
 
@@ -287,3 +289,24 @@ None. Phase 3 begins from the published `9bee6d20` production baseline.
 ## Phase 4 Remaining Exit Items
 
 None. Phase 5 begins with the published Phase 4 truth and provenance baseline.
+
+## Phase 5 Evidence
+
+- Runtime implementation PR 1164 merged through the protected pipeline as
+  `9fe70d5dc9f0d544bcab6e0ed60622e9d3bc120a`.
+- The exhaustive production-build matrix passed all 107 games on mobile and
+  desktop: 214 game/viewport pairs, 642 campaign/arena/lifecycle surfaces, and
+  8,560 graded answer interactions with zero remaining failures.
+- Every pair passed transient preload recovery, explicit Correct and Incorrect
+  verdicts, persistent manual Next, completion, retry, Level 2 transition, and
+  authenticated campaign-resume state.
+- Production serves deployed descendant `63b33a60fb392e4fc1be10feee6d8a8677cc1446`.
+  A fresh authenticated production certification passed the 107-card Hub,
+  three campaign families, four gameplay families, both viewports, four-answer
+  contracts, persistent feedback, signed-out login hydration, and all image,
+  scanline, overflow, console, and page-error guards.
+- The approved global header was not changed.
+
+## Phase 5 Remaining Exit Items
+
+None. Phase 6 begins with the published all-game runtime baseline.

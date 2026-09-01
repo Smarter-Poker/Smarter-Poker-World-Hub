@@ -202,9 +202,23 @@ async function auditSignedOutLogin(browser, viewport) {
 }
 
 async function auditCampaign(page, viewport, gameId) {
+  process.stderr.write(`[production-smoke] ${viewport.name} campaign ${gameId}\n`);
   const response = await visit(page, `/hub/training/play/${gameId}?level=1&revision=phase1-production-smoke`);
   assert.ok((response?.status() || 0) < 400, `${viewport.name} ${gameId} campaign: HTTP ${response?.status() || 0}`);
-  await page.locator('.sp-level-card').first().waitFor({ state: 'visible', timeout: 60_000 });
+  try {
+    await page.locator('.sp-level-card').first().waitFor({ state: 'visible', timeout: 60_000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      path: location.pathname,
+      href: location.href,
+      bodyText: (document.body?.innerText || '').slice(0, 4_000),
+      levelCards: document.querySelectorAll('.sp-level-card').length,
+    })).catch((evaluateError) => ({ evaluateError: String(evaluateError) }));
+    throw new Error(
+      `${viewport.name} ${gameId}: campaign levels did not render: ${JSON.stringify(diagnostic)}`,
+      { cause: error },
+    );
+  }
   assert.equal(await page.locator('.sp-level-card').count(), 12, `${viewport.name} ${gameId}: level count`);
   const state = await pageState(page);
   assert.equal(state.path, `/hub/training/play/${gameId}`);
@@ -213,6 +227,7 @@ async function auditCampaign(page, viewport, gameId) {
 }
 
 async function auditArena(page, viewport, arena) {
+  process.stderr.write(`[production-smoke] ${viewport.name} arena ${arena.gameId}\n`);
   const session = `phase1-production-${viewport.name}-${arena.gameId}-${Date.now()}`;
   const response = await visit(page, `/hub/training/arena/${arena.gameId}?level=1&session=${session}`);
   assert.ok((response?.status() || 0) < 400, `${viewport.name} ${arena.gameId} arena: HTTP ${response?.status() || 0}`);

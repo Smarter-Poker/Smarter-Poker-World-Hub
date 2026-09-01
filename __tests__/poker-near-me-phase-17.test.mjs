@@ -54,9 +54,21 @@ test('mobile command controls use continuous contained frames', async () => {
     source('src/styles/worlds/poker-near-me.css'),
   ]);
 
-  assert.match(header, /\.approved-global-header__button:focus-visible\s*\{[\s\S]*?outline:\s*0;/);
-  assert.match(header, /\.approved-global-header__button:focus-visible::before\s*\{[\s\S]*?border:\s*2px solid #36baff/);
-  assert.match(header, /bottom:\s*max\(2px, calc\(44px - 8\.87vw\)\)/);
+  // The approved chrome deliberately replaced the old rectangular cyan
+  // pseudo-element with a soft, edge-free glow. Preserve keyboard visibility
+  // without reintroducing a box over the baked header artwork.
+  assert.match(
+    header,
+    /\.approved-global-header__button:focus,\s*\.approved-global-header__button:focus-visible\s*\{[\s\S]*?outline:\s*none;[\s\S]*?box-shadow:\s*none;/
+  );
+  assert.match(
+    header,
+    /\.approved-global-header__button:focus-visible\s*\{[\s\S]*?background:\s*radial-gradient\(/
+  );
+  assert.doesNotMatch(
+    header,
+    /\.approved-global-header__button:focus-visible::(?:before|after)\s*\{[\s\S]*?border:/
+  );
   assert.match(world, /:where\(:not\([\s\S]*?\.approved-global-header__button[\s\S]*?\.sp-grid-tile/);
   assert.match(navigation, /'poker-near-me':[\s\S]*?scheme:\s*'casino-realism'[\s\S]*?accent:\s*'#38bdf8'/);
   assert.match(menu, /data-world-command-menu='poker-near-me'[\s\S]*?border-style:\s*solid !important/);
