@@ -1,7 +1,7 @@
 # Training Phase 5 All-Game Runtime Gameplay Matrix
 
 Date: 2026-08-31
-Status: Local implementation and production-build verification complete; protected publication and live production verification pending
+Status: Implementation published and live production verification complete; documentation closeout pending
 Scope: 107 canonical games through campaign and arena routes on mobile and desktop
 
 ## Outcome
@@ -58,6 +58,28 @@ psychology scenario surface.
 - Combined certificate: 107 games, 214 game/viewport pairs, 642 surfaces,
   8,560 answer interactions, and zero remaining failures.
 - Approved global header source and styling were not changed.
+- Protected implementation PR 1164 merged normally as
+  `9fe70d5dc9f0d544bcab6e0ed60622e9d3bc120a`. No administrative merge,
+  skipped check, weakened assertion, or `--no-verify` path was used.
+- Production deployed healthy descendant `63b33a60fb392e4fc1be10feee6d8a8677cc1446`,
+  with Vercel reporting a completed deployment; Git ancestry proves the Phase
+  5 merge is included.
+- A fresh real test-account production session passed mobile and desktop Hub,
+  campaign, and arena checks. Both viewports rendered 107 cards, zero
+  scanlines, 107/107 loaded images, and zero overflow, console errors, or page
+  errors.
+- `cash-001`, `adv-011`, and `quiz-gauntlet` each rendered all 12 campaign
+  levels on both viewports. Their arenas rendered the Club Arena table with
+  four actions; `psy-001` rendered the psychology surface with four answers.
+- Mobile Cash and psychology questions displayed an explicit verdict, Your
+  Answer, Correct Answer, and a persistent manual Next control after a one
+  second hold. Direct signed-out login checks passed on both viewports with
+  zero hydration errors.
+- The first production attempt correctly rejected a previously rotated test
+  refresh session after the campaign route redirected to login. A fresh login
+  was established through the real login form, its authenticated Training API
+  probe returned HTTP 200, and the complete certification then passed. The
+  expired credential was not misreported as an application defect.
 
 Machine-checkable artifacts:
 
@@ -68,13 +90,10 @@ Machine-checkable artifacts:
 
 ## Publication Exit Items
 
-- Publish the implementation and evidence through the protected pull-request
-  pipeline without bypassing required checks.
-- Verify production serves the merged commit.
-- Run the affected campaign-resume and transient-recovery paths on production,
-  plus representative poker and psychology lifecycle checks.
-- Record the PR, merge SHA, production SHA, and live evidence before declaring
-  Phase 5 complete and opening Phase 6.
+- Merge this evidence closeout through the protected pull-request pipeline and
+  verify production continues to serve a descendant of the Phase 5 release.
+- Record the final closeout merge SHA before declaring Phase 5 complete and
+  opening Phase 6.
 
 Phase 6 is Club Arena one-to-one gameplay parity: table geometry, avatars, hero
 cards, seat markers, pot, community cards, HUD, action rail, feedback layers,
