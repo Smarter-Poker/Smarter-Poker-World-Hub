@@ -524,20 +524,26 @@ test.describe('10. News Hub — Keyboard Navigation', () => {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
 
     const focused = page.locator('.keyboard-focused');
+    const focusedIndex = () => focused.evaluate((element) => {
+      const navigableArticles = Array.from(
+        document.querySelectorAll('.news-card-wrap, .news-list-item'),
+      );
+      return navigableArticles.indexOf(element);
+    });
 
     await page.keyboard.press('j');
     await expect(focused).toHaveCount(1, { timeout: 10_000 });
-    const first = (await focused.first().innerText()).replace(/\s+/g, ' ').trim();
+    await expect.poll(focusedIndex).toBe(0);
 
     await page.keyboard.press('j');
-    await expect(focused).toHaveCount(1);
-    const second = (await focused.first().innerText()).replace(/\s+/g, ' ').trim();
-    expect(second, 'j did not advance the keyboard focus').not.toBe(first);
+    await expect.poll(focusedIndex, {
+      message: 'j did not advance the keyboard focus',
+    }).toBe(1);
 
     await page.keyboard.press('k');
-    await expect(focused).toHaveCount(1);
-    const back = (await focused.first().innerText()).replace(/\s+/g, ' ').trim();
-    expect(back, 'k did not step the keyboard focus back').toBe(first);
+    await expect.poll(focusedIndex, {
+      message: 'k did not step the keyboard focus back',
+    }).toBe(0);
 
     // Enter opens the focused article: the page records the view before showing
     // the reader, so the POST is the behavioural signal that survives any change
