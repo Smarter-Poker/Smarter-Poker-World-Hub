@@ -63,6 +63,23 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: bash .github/scripts/publish-watchdog.sh
 
+      # Dan 2026-09-01: "no work ever gets lost, orphaned or not published...
+      # EVER." The step above asks whether MERGED work reached production;
+      # this one asks the question upstream of it: does work exist in this
+      # repo that never became a merge at all - a branch pushed with no PR, a
+      # PR with a conflict autopilot cannot land, a forgotten draft? Same
+      # script as club-arena's (kept byte-identical the way AGENT-PLAYBOOK
+      # is); it files ONE self-updating, self-closing issue naming each piece
+      # and its remedy, and never merges or deletes anything itself.
+      # if: always() - stranded work must be reported even when the publish
+      # comparison above failed; the failure domains are independent.
+      - name: Find work that nothing will ever publish
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash .github/scripts/orphan-work-watchdog.sh
+
       # ─────────────────────────────────────────────────────────────────────
       # The root service worker must be able to INSTALL.
       #
