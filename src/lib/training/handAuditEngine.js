@@ -34,6 +34,25 @@ function playerId(player) {
   return player?.userId ?? player?.id ?? player?.playerId ?? player?.player_id ?? null;
 }
 
+export function clubArenaHandRejectionReason(row, userId) {
+  const summary = parseJson(row?.summary) || {};
+  const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
+  if (!['nlh', 'nlhe', 'no-limit-holdem', 'holdem'].includes(gameType)) return 'unsupported_variant';
+  const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
+    ? summary.players
+    : (Array.isArray(row?.players) ? row.players : []);
+  const heroRaw = rawPlayers.find(player => String(playerId(player)) === String(userId));
+  if (!heroRaw) return 'missing_hero_identity';
+  const heroCards = [
+    row?.hero_private_cards,
+    heroRaw.holeCards,
+    heroRaw.heroCards,
+    heroRaw.cards,
+    row?.hole_cards?.[userId],
+  ].map(cards).find(candidate => candidate.length >= 2) || [];
+  return heroCards.length >= 2 ? null : 'missing_private_cards';
+}
+
 export function cardCode(card) {
   if (typeof card === 'number' && Number.isInteger(card) && card >= 0 && card < 52) {
     return `${RANKS[Math.floor(card / 4)]}${SUITS[card % 4]}`;
@@ -725,14 +744,17 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     if (!hadPublicCards) privateCardsRecovered += 1;
     return { ...row, hero_private_cards: privateCards };
   });
+  const rejectionReasons = rowsWithPrivateCards.map(row => clubArenaHandRejectionReason(row, userId));
   const normalized = rowsWithPrivateCards.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);
-  const handsMissingPrivateCards = Math.max(0, handRows.length - normalized.length);
+  const handsMissingPrivateCards = rejectionReasons.filter(reason => reason === 'missing_private_cards').length;
+  const handsRejectedBeforeAudit = rejectionReasons.filter(reason => reason && reason !== 'missing_private_cards').length;
   if (!privateFacts.available && handsMissingPrivateCards > 0) {
     return {
       available: false,
       privateFactsAvailable: false,
       privateCardsRecovered,
       handsMissingPrivateCards,
+      handsRejectedBeforeAudit,
       handsFound: handRows.length,
       cumulativeHandsFound: requestedCursor.cumulativeHandsFound,
       handsEligible: normalized.length,
@@ -756,6 +778,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       privateFactsAvailable: privateFacts.available,
       privateCardsRecovered,
       handsMissingPrivateCards,
+      handsRejectedBeforeAudit,
       handsAudited: 0,
       handsAlreadyCurrent: 0,
       handsQueuedForRetry: 0,
@@ -841,6 +864,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     privateFactsAvailable: privateFacts.available,
     privateCardsRecovered,
     handsMissingPrivateCards,
+    handsRejectedBeforeAudit,
     handsSkippedNoHeroDecisions,
     handsAudited: result.handsParsed,
     handsAlreadyCurrent,

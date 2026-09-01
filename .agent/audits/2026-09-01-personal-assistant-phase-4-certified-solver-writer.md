@@ -117,3 +117,34 @@ external inputs exist, verified corrective batches correctly remain at zero.
 - Build Safety, Global Footer E2E, No Conflict Markers, Audit Marker Guard,
   Agent Autopilot, Silent Write Guard, Undefined Identifier Guard, and Supabase
   Invariants all completed successfully for the release branch.
+
+## Closure Audit Correction
+
+A fresh protected-account audit on 2026-09-01 followed seven signed
+continuation batches and scanned 1,347 Club Arena records. It recovered 787
+private-card facts, persisted 18 deterministic findings, retained complete
+corrective-drill coverage, and exposed a receipt-labeling defect: the audit
+engine counted every hand rejected before normalization as `Missing Private
+Cards`, even when the real reason was an unsupported game variant or a missing
+trusted hero identity.
+
+The closeout correction now classifies missing private cards independently
+from unsupported or incomplete hand data. That distinction is carried through
+the durable job accumulator, visible audit receipt, and protected production
+verifier. The verifier also reports eligible hands, already-current hands,
+hands without hero decisions, newly verified decisions, and unpriced decisions
+so an idempotent rerun cannot be mistaken for an audit that did no useful work.
+
+The broad Playwright run also revealed three Personal Assistant assertions that
+used the framework's five-second default for asynchronous detail, drill, and
+checkpoint panels. The same complete surface passed under focused four-worker
+production load, so the product path was not failing. Those assertions now use
+the existing 15-second bounded async contract rather than becoming false
+negatives when the 700-plus-test job saturates its runner.
+
+Closeout verification passed the 24-test solver-writer suite, the 113-test Leak
+Engine suite, focused rejection and durable-job contracts, the complete
+desktop/mobile Personal Assistant matrix with 25 passes and two intentional
+viewport skips, and the exact optimized production build with 403 static
+pages. Final merge and deployed-account evidence are recorded in the release
+state below once the correction reaches production.
