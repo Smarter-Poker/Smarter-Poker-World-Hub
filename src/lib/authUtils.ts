@@ -250,6 +250,11 @@ export function clearAuth(force = false) {
 
 /**
  * Save auth session to localStorage (for when login succeeds).
+ *
+ * ONLY login flows may call this. It is NOT a refresh helper: writing a
+ * partially-shaped session here (see the 2026-09-01 note on
+ * getFreshAccessToken below) is what produced
+ * `crypto: refresh token length is not valid` in production.
  */
 export function saveAuthSession(session: any) {
     if (typeof window === 'undefined' || !session) return;
@@ -268,20 +273,42 @@ export function saveAuthSession(session: any) {
 // Problem: getAccessToken() reads from localStorage. If the token has
 // expired since the user last interacted (say, mid-way through a long
 // stream), the server will 401 on subsequent API calls — exactly the
-// "Streamer Unauthorized on Post" symptom Dan reported. supabase.auth
-// .refreshSession() is blocked (safeSupabase) because it's prone to
-// AbortError, so we refresh by direct fetch against the Supabase auth
-// endpoint.
+// "Streamer Unauthorized on Post" symptom Dan reported.
 //
-// Strategy:
+// ── 2026-09-01: THIS FUNCTION NO LONGER REFRESHES BY HAND. ────────────────
+//
+// It used to POST directly to
+//     ${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token
+// with the stored refresh_token, then write the response back into the shared
+// 'smarter-poker-auth' key via saveAuthSession({ ...six fields... }).
+//
+// That was refresh path #2 of FIVE concurrent refreshers in this estate, and
+// it was the worst of them, for two independent reasons:
+//
+//   1. IT BYPASSED THE WEB LOCK. The Supabase SDK serialises refreshes across
+//      tabs and across the Hub/Club-Arena split with navigator.locks. A raw
+//      fetch() acquires nothing. Supabase refresh tokens ROTATE — the stored
+//      value dies the instant any refresh succeeds — so this POST regularly
+//      presented a token another refresher had already spent, producing
+//      `Invalid Refresh Token: Refresh Token Not Found` (4,016 in 24h).
+//
+//   2. IT PERSISTED A PARTIAL SESSION. The saveAuthSession() call reconstructed
+//      the session object from six hand-picked fields and clobbered whatever
+//      the SDK had written. Anything the SDK expected but this shape omitted
+//      was silently dropped, and a truncated/absent refresh_token in the shared
+//      key is the likely source of `crypto: refresh token length is not valid`
+//      (1,040 in 24h).
+//
+// ALL REFRESHING NOW GOES THROUGH THE SDK. `supabase.auth.getSession()`
+// refreshes when the token is near expiry, does it under the Web Lock, and
+// persists the FULL session itself. Do not hand-roll this again — a second
+// refresher sharing one rotating token is a race, not a fallback.
+//
+// Strategy retained:
 //   1. Decode the current JWT's exp claim. If exp > now + 60s buffer,
-//      return the existing token (no refresh needed).
-//   2. Otherwise POST to /auth/v1/token?grant_type=refresh_token with
-//      the stored refresh_token.
-//   3. Save the new session to the same localStorage key the SDK reads
-//      from. Subsequent getAccessToken() calls see the fresh token.
-//   4. Return the new access_token. On refresh failure (refresh expired,
-//      network down) returns null — caller decides what to do.
+//      return the existing token (no refresh, no network call at all).
+//   2. Otherwise ask the SDK for the session and hand back its access_token.
+//   3. Return null if the SDK cannot produce one — caller decides what to do.
 function decodeJwtExp(token: string): number | null {
     try {
         const parts = token.split('.');
@@ -297,8 +324,9 @@ function decodeJwtExp(token: string): number | null {
 
 // BUG-HUNT-10: Coalesce concurrent refresh calls. Two parallel awaiters
 // (e.g. uploadVideo + callEndStream firing in quick succession) would
-// otherwise both POST to /auth/v1/token; the second sees a rotated
-// refresh_token and 4xx's.
+// otherwise both drive a refresh; the second sees a rotated refresh_token
+// and 4xx's. The SDK's Web Lock now serialises across tabs — this wrapper
+// still collapses the in-tab burst before it ever reaches the lock.
 let inFlightRefresh: Promise<string | null> | null = null;
 
 export async function getFreshAccessToken(): Promise<string | null> {
@@ -310,48 +338,21 @@ export async function getFreshAccessToken(): Promise<string | null> {
     // 60-second safety buffer so we don't hand out a token about to expire
     const exp = decodeJwtExp(current);
     if (exp && exp * 1000 > Date.now() + 60_000) {
-        return current; // still valid
+        return current; // still valid — no SDK call, no network
     }
 
     if (inFlightRefresh) return inFlightRefresh;
 
     inFlightRefresh = (async () => {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) return null;
-
-        // Module-level SUPABASE_URL / SUPABASE_ANON_KEY are pre-trimmed.
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-
         try {
-            const resp = await fetch(
-                `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-                {
-                    method: 'POST',
-                    headers: {
-                        apikey: SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ refresh_token: refreshToken }),
-                }
-            );
-            if (!resp.ok) {
-                console.warn('[authUtils] refresh failed:', resp.status);
-                return null;
-            }
-            const session = await resp.json();
-            if (!session?.access_token) return null;
-            // Persist with the same shape the SDK uses
-            saveAuthSession({
-                access_token: session.access_token,
-                refresh_token: session.refresh_token || refreshToken,
-                expires_at: session.expires_at,
-                expires_in: session.expires_in,
-                user: session.user,
-                token_type: session.token_type || 'bearer',
-            });
-            return session.access_token;
+            // getSession() refreshes when near expiry, under the Web Lock, and
+            // writes the complete session back to storage itself. This is the
+            // ONLY sanctioned refresh path in this module.
+            const { supabase: sb } = await import('./supabase');
+            const { data } = await sb.auth.getSession();
+            return data?.session?.access_token ?? null;
         } catch (e) {
-            console.warn('[authUtils] refresh threw:', (e as any)?.message || e);
+            console.warn('[authUtils] getFreshAccessToken failed:', (e as any)?.message || e);
             return null;
         } finally {
             inFlightRefresh = null;
@@ -380,22 +381,65 @@ export function getSafeUser() {
  * Returns { user, checking } — checking is true while verifying auth.
  * Redirects to login with ?redirect= param when unauthenticated.
  * SSG-safe: all side-effects run in useEffect (client-only).
+ *
+ * ── 2026-09-01 ────────────────────────────────────────────────────────────
+ * This hook used to do ONE synchronous getAuthUser() read and, if it came
+ * back empty, immediately `window.location.replace()` to /auth/login.
+ *
+ * That single read races the SDK's token refresh. During a refresh the shared
+ * 'smarter-poker-auth' key is briefly absent, so a page mounting in that
+ * window saw "no user" for a perfectly valid session — and a hard
+ * location.replace() is unrecoverable: it tears down the tab before the
+ * session can settle, taking any in-progress UI state with it. With five
+ * concurrent refreshers racing one rotating token, that window was open far
+ * more often than it should have been, and every open tab bounced to
+ * /auth/login?redirect= .
+ *
+ * It now goes through ensureAuthReady() (defined below in this same file),
+ * which layers: immediate read -> supabase getSession() -> 300ms wait +
+ * retry -> session-backup restore. We redirect ONLY when that whole chain
+ * resolves null, i.e. when the user really is signed out.
  */
 export function useRequireAuth(redirectPath?: string): { user: any; checking: boolean } {
     const [user, setUser] = useState<any>(null);
     const [checking, setChecking] = useState(true);
 
     useEffect(() => {
-        const currentUser = getAuthUser();
-        if (!currentUser && typeof window !== 'undefined') {
-            const loginUrl = redirectPath
-                ? `/auth/login?redirect=${encodeURIComponent(redirectPath)}`
-                : '/auth/login';
-            window.location.replace(loginUrl);
-        } else {
-            setUser(currentUser);
-        }
-        setChecking(false);
+        let cancelled = false;
+
+        (async () => {
+            try {
+                // Pass the Supabase client so ensureAuthReady can use its
+                // getSession() layer. A failed dynamic import must not crash
+                // the guard — fall back to the synchronous-only layers.
+                let resolved: any = null;
+                try {
+                    const { supabase: sb } = await import('./supabase');
+                    resolved = await ensureAuthReady(sb);
+                } catch (err: any) {
+                    console.warn('[useRequireAuth] supabase import failed, degrading to local-only check:', err?.message || err);
+                    resolved = await ensureAuthReady();
+                }
+
+                if (cancelled) return;
+
+                if (resolved?.id) {
+                    setUser(resolved);
+                } else if (typeof window !== 'undefined') {
+                    // Every recovery layer came back empty — genuinely signed out.
+                    const loginUrl = redirectPath
+                        ? `/auth/login?redirect=${encodeURIComponent(redirectPath)}`
+                        : '/auth/login';
+                    window.location.replace(loginUrl);
+                }
+            } finally {
+                // `checking` stays true for the whole async check so consumers
+                // keep showing their skeleton instead of flashing signed-out UI.
+                if (!cancelled) setChecking(false);
+            }
+        })();
+
+        return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
