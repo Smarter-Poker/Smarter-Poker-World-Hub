@@ -1,5 +1,5 @@
 /**
- * SUPABASE SERVER CLIENT PATCH - Phase 4.1d ESM port (2026-04-25)
+ * SUPABASE SERVER CLIENT PATCH - Phase 4.2 (ES256/JWKS, 2026-09-01)
  *
  * Patches the Supabase client's auth.getUser method to verify the JWT
  * LOCALLY first and only call GoTrue over the network when that is not
@@ -10,15 +10,25 @@
  * supabase.auth.getUser(token) makes a network call to GoTrue which
  * intermittently fails on Vercel (timeout/AbortError), causing ALL API
  * routes to return 401 "Invalid token", and costs a round-trip on every
- * request of every route. Local HMAC verification is the same check without
- * the network or database cost, so it is the primary path and GoTrue is the
- * fallback.
+ * request of every route. Local signature verification is the same check
+ * without the network or database cost, so it is the primary path and
+ * GoTrue is the fallback.
  *
  * Phase 4.1d port:
- *   - require/module.exports → ESM import/export
+ *   - require/module.exports -> ESM import/export
  *   - decodeSupabaseJWT() now async (depends on async verifySupabaseJwt)
  *   - patched getUser still resolves the full call asynchronously, so
  *     no caller signature change.
+ *
+ * Phase 4.2 (2026-09-01):
+ *   - Removed the SUPABASE_JWT_SECRET guard from decodeSupabaseJWT. The
+ *     project migrated to asymmetric signing keys; that env var is absent
+ *     from .env.example and the symmetric secret no longer exists. The
+ *     guard therefore fired on every request and returned null BEFORE
+ *     reaching the verifier, which silently defeated the ES256 migration
+ *     in serverAuth.js for all 635 files that import this module.
+ *   - verifySupabaseJwt() now resolves keys from the project JWKS and
+ *     ignores its legacy `secret` argument, so nothing here needs it.
  */
 
 import { createClient as originalCreateClient } from '@supabase/supabase-js';
@@ -27,18 +37,19 @@ import { verifySupabaseJwt } from './serverAuth.js';
 /**
  * Decode a Supabase JWT locally without network call.
  * Returns a user-like object or null. Async.
+ *
+ * Verification (signature over the project JWKS, plus exp/nbf/iss/aud)
+ * lives entirely in serverAuth.js verifySupabaseJwt. Do NOT add an env-var
+ * precondition in front of it again - JWKS is fetched from
+ * NEXT_PUBLIC_SUPABASE_URL and cached, there is no secret to configure.
+ * An env guard here is indistinguishable from a total auth outage in the
+ * logs, because both look like "GoTrue is serving every request".
  */
 async function decodeSupabaseJWT(token) {
   try {
     if (!token || token.length < 10) return null;
 
-    const secret = process.env.SUPABASE_JWT_SECRET;
-    if (!secret) {
-      console.warn('[supabase-patch] SUPABASE_JWT_SECRET not configured, refusing to locally verify token.');
-      return null;
-    }
-
-    const decoded = await verifySupabaseJwt(token, secret);
+    const decoded = await verifySupabaseJwt(token);
     if (!decoded) return null;
     if (!decoded.sub) return null;
 
@@ -129,19 +140,34 @@ export function createClient(url, key, options) {
     // decoded locally when that call threw. ~78 API routes call getUser on
     // every single request, so every request paid a full HTTPS round-trip to
     // GoTrue - which in turn loads the same Postgres instance that is already
-    // at ~180% CPU. Local HMAC verification is the identical security check
-    // (HS256 over SUPABASE_JWT_SECRET: signature + exp + nbf, see
+    // at ~180% CPU. Local verification is the identical security check
+    // (ES256 signature over the project JWKS, plus exp/nbf/iss/aud - see
     // serverAuth.js verifySupabaseJwt) done in microseconds with zero network
-    // and zero database load.
+    // and zero database load, against a JWKS fetched once and cached.
+    //
+    // 2026-09-01 POST-MORTEM: this fast path was DEAD for months, for two
+    // independent reasons stacked on each other. (1) decodeSupabaseJWT
+    // required SUPABASE_JWT_SECRET before it would call the verifier, and
+    // that var was never set in any environment. (2) The verifier itself
+    // still demanded alg=HS256 after the project moved to ES256 signing
+    // keys. Either alone was sufficient to kill it. Every request therefore
+    // took the "fallback" branch below: ~20M edge requests/24h, which
+    // saturated the project-wide GoTrue rate limit and cascaded into a
+    // site-wide auth redirect loop (every open tab bounced to /auth/login).
+    //
+    // Both causes are fixed. Keep them fixed. The failure mode is silent -
+    // nothing errors, the site just gets slower and then falls over - so
+    // the regression test in the shared package is the only thing standing
+    // between this comment and a repeat.
     //
     // Error semantics are unchanged: a malformed, tampered or expired token
     // fails local verification, then still falls through to GoTrue, and if
     // GoTrue also rejects it the caller gets the same
     // { data: { user: null }, error: { message } } shape it got before.
     // The network path is also still taken whenever local verification is
-    // IMPOSSIBLE - no SUPABASE_JWT_SECRET configured, or a secret-rotation
-    // window where the deployed secret no longer matches the signing key -
-    // so this keeps the operational resilience the patch was written for.
+    // IMPOSSIBLE - JWKS unreachable on a cold start, or a signing-key
+    // rotation window before the cached key set refreshes - so this keeps
+    // the operational resilience the patch was written for.
     //
     // Accepted trade-off: a token that is cryptographically valid but whose
     // user was deleted or banned inside GoTrue mid-token-lifetime is now
@@ -149,7 +175,7 @@ export function createClient(url, key, options) {
     // short-lived; the alternative is a network call on every request of
     // every route.
 
-    // 1. Fast path: local HMAC verify + decode. No network, no DB.
+    // 1. Fast path: local ES256 verify + decode. No network, no DB.
     if (token) {
       const localUser = await decodeSupabaseJWT(token);
       if (localUser) {
