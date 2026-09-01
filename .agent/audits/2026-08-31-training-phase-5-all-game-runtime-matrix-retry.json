@@ -1,0 +1,48 @@
+{
+  "success": true,
+  "baseUrl": "http://localhost:3031",
+  "games": 5,
+  "gameIds": [
+    "tournament-prep",
+    "final-table-sim",
+    "mtt-025",
+    "cash-001",
+    "cash-002"
+  ],
+  "viewports": [
+    "mobile"
+  ],
+  "batchSize": 5,
+  "lifecycleAudit": true,
+  "questionsPerSession": 20,
+  "surfaceChecks": 15,
+  "playChecks": 5,
+  "arenaChecks": 5,
+  "clubArenaChecks": 5,
+  "psychologyChecks": 0,
+  "lifecycleChecks": 5,
+  "lifecycleStateChecks": {
+    "loadRecovery": 5,
+    "correctFeedback": 5,
+    "incorrectFeedback": 5,
+    "manualNext": 5,
+    "completion": 5,
+    "retry": 5,
+    "levelTransition": 5
+  },
+  "feedbackChecks": [
+    {
+      "gameId": "cash-001",
+      "verdict": "INCORRECT",
+      "manualNext": true,
+      "persisted": true
+    },
+    {
+      "gameId": "psy-001",
+      "verdict": "CORRECT",
+      "manualNext": true,
+      "persisted": true
+    }
+  ],
+  "failures": []
+}

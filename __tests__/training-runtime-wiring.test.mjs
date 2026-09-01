@@ -395,6 +395,21 @@ test('campaign level maps fail open when remote enrichment stalls', () => {
   assert.match(levelSelector, /finally \{\s*setLoading\(false\)/);
 });
 
+test('campaign resume consumes game and progress bodies before aborting deadlines', () => {
+  const selector = fs.readFileSync(path.join(ROOT, 'src/components/training/LevelSelector.tsx'), 'utf8');
+  assert.match(selector, /withLevelDataDeadline\(async \(signal\) => \{[\s\S]*return gameRes\.json\(\);/);
+  assert.match(selector, /withLevelDataDeadline\(async \(signal\) => \{[\s\S]*return progressRes\.json\(\);/);
+  assert.doesNotMatch(selector, /const progressRes = await withLevelDataDeadline[\s\S]{0,180}progressRes\.json/);
+});
+
+test('batch preload retries transient upstream failures before single-question fallback', () => {
+  const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');
+  assert.match(trainer, /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/);
+  assert.match(trainer, /response\.status === 429 \|\| response\.status >= 500/);
+  assert.match(trainer, /if \(response\.ok \|\| !retryable \|\| attempt === 2\) break/);
+  assert.match(trainer, /return fetchSingleQuestion\(effectiveLevel\)/);
+});
+
 test('offline packs cache real questions and are consumed by the arena', () => {
   const preloader = fs.readFileSync(path.join(ROOT, 'pages/hub/training/gto-preloader.js'), 'utf8');
   const trainer = fs.readFileSync(path.join(ROOT, 'src/hooks/useGTOTrainer.js'), 'utf8');
