@@ -184,7 +184,7 @@ async function processClaimedJob(job, workerToken, origin) {
   return null;
 }
 
-export async function POST(request) {
+async function handlePost(request) {
   const token = openAuditJobToken(request.headers.get('x-pa-audit-worker'), 'kick');
   if (!token) return Response.json({ success: false, error: 'Invalid worker token' }, { status: 401 });
   const workerToken = newWorkerToken();
@@ -236,4 +236,17 @@ export async function POST(request) {
     }
   });
   return Response.json({ success: true, accepted: true, jobId: job.id }, { status: 202 });
+}
+
+export async function POST(request) {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    console.warn('[PA Audit Worker] Request failed:', error?.message || error);
+    return Response.json({
+      success: false,
+      retryable: true,
+      error: 'The Audit Worker Could Not Accept This Checkpoint.',
+    }, { status: 503 });
+  }
 }

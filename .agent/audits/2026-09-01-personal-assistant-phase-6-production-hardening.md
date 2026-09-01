@@ -45,3 +45,27 @@ Phase 6 adds permanent, bounded production checks around the existing Personal A
 - The live iPhone journey proved the revised mobile hero command remains fully inside its hero bay and above the persistent footer.
 
 Phase 6 is complete, published, and production-verified.
+
+## Renewed Closure Audit Before Phase 7
+
+A renewed route-by-route audit found that thirteen connected Personal Assistant and Sandbox handlers still authenticated through Supabase's remote `auth.getUser` endpoint directly. Those handlers now share the cached, signature-verified asymmetric-token path used by the rest of the Personal Assistant. This prevents a long session across quiz, history, analytics, session, sharing, coach-result, equity, social-export, and saved-hand operations from exhausting the remote Auth endpoint and producing false 401 responses.
+
+The closure also:
+
+- adds the App Router audit worker to the permanent route contract and gives its exported POST handler a top-level JSON 503 failure boundary;
+- prevents any Personal Assistant data handler from reintroducing direct `auth.getUser` calls;
+- expands the read-only production watchdog from three protected reads to twelve connected Personal Assistant and Sandbox reads;
+- moves the three previously orphaned analysis, Club Arena audit, and completion contract suites into `test:leak-engine`;
+- repairs a strict TypeScript narrowing defect in the newly merged global-footer click audit so a missing capture fails with a precise error instead of weakening the type gate.
+
+### Renewed Verification Before Republication
+
+- Expanded `npm run test:leak-engine`: 152/152 passed.
+- Focused asymmetric-auth, API-contract, and Phase 6 hardening suites: 20/20 passed.
+- Strict `npx tsc --noEmit`: passed.
+- Exact `npm run build`: passed with all 403 static pages and all five Personal Assistant performance budgets within limits.
+- Compiled production-server matrix across desktop Chromium, mobile Chrome, desktop Safari/WebKit, and iPhone Safari/WebKit: 49 applicable journeys passed with four intentional desktop-only mobile checks skipped.
+- Authenticated read-only production hardening: four public routes, sixteen bounded requests at concurrency four, all twelve protected reads, and all four owner-isolation probes passed.
+- Protected account audit: seven batches scanned 1,347 Club Arena hands, recovered 787 private-card records, classified 422 eligible hands as already current, persisted 19 findings, and covered all 32 active corrective candidates with eight verified and twenty-four honest practice-only mappings; no candidate was empty, unmapped, missing, or errored.
+
+Republication and exact deployed-revision evidence are recorded after the closure pull request reaches production.
