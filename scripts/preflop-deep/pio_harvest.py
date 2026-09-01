@@ -50,6 +50,8 @@ def parse_children(raw, parent="r:0"):
     for tok in raw.split():
         if tok.startswith(pref) and tok.count(":") == parent.count(":") + 1:
             codes.append(tok[len(pref):])
+    if len(codes) < 2 or len(codes) != len(set(codes)):
+        raise ValueError("decision node must expose at least two unique actions")
     return codes
 
 
@@ -59,7 +61,10 @@ def parse_strategy(raw, action_codes):
     for ln in raw.splitlines():
         parts = ln.split()
         if len(parts) >= 1000:
-            numeric.append([float(x) for x in parts])
+            values = [float(x) for x in parts]
+            if len(values) != 1326 or any(not math.isfinite(value) for value in values):
+                raise ValueError("strategy action vector must contain 1326 finite values")
+            numeric.append(values)
     if len(numeric) != len(action_codes):
         raise ValueError("strategy lines %d != actions %d" % (len(numeric), len(action_codes)))
     return {code: numeric[i] for i, code in enumerate(action_codes)}
@@ -70,7 +75,12 @@ def parse_ev_array0(raw):
     for ln in raw.splitlines():
         parts = ln.split()
         if len(parts) >= 1000:
-            return [float(x) for x in parts]
+            values = [float(x) for x in parts]
+            if len(values) != 1326:
+                raise ValueError("EV vector must contain exactly 1326 values")
+            if any(not math.isfinite(value) and not math.isnan(value) for value in values):
+                raise ValueError("EV vector contains an infinite value")
+            return values
     raise ValueError("no 1326-length EV array found in calc_ev output")
 
 
@@ -130,12 +140,26 @@ def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_b
 def validate_row(sm):
     """Acceptance gate: normalized frequencies and a finite EV for every live combo."""
     codes = list(sm["frequencies"].keys())
+    if len(codes) < 2:
+        return {"live_hands": 0, "bad_sum_hands": 0, "frac_ok": 0,
+                "missing_live_evs": 0, "ev_ok": False}
     n = len(sm["frequencies"][codes[0]])
     bad = 0
     live = 0
     missing_live_evs = 0
     evs = sm.get("hand_evs_bb")
+    strategy_shape_ok = n == 1326 and all(
+        isinstance(sm["frequencies"].get(code), list)
+        and len(sm["frequencies"][code]) == n
+        for code in codes)
+    summary_ev_ok = all(
+        isinstance(sm.get(field), (int, float)) and math.isfinite(sm[field])
+        for field in ("ev_oop_bb", "ev_ip_bb", "exploitability_pct")) \
+        and sm["exploitability_pct"] >= 0
     ev_shape_ok = isinstance(evs, list) and len(evs) == n
+    if not strategy_shape_ok:
+        return {"live_hands": 0, "bad_sum_hands": 0, "frac_ok": 0,
+                "missing_live_evs": 0, "ev_ok": False}
     for i in range(n):
         s = sum(sm["frequencies"][c][i] for c in codes)
         if s > 0.001:
@@ -151,5 +175,5 @@ def validate_row(sm):
         "bad_sum_hands": bad,
         "frac_ok": round(frac_ok, 4),
         "missing_live_evs": missing_live_evs,
-        "ev_ok": ev_shape_ok and missing_live_evs == 0,
+        "ev_ok": strategy_shape_ok and summary_ev_ok and ev_shape_ok and missing_live_evs == 0,
     }

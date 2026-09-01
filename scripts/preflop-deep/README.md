@@ -25,13 +25,27 @@ not make the output ICM-aware, so the worker rejects ICM-labelled phases until
 an approved objective engine with explicit payout and stack inputs exists.
 
 The supervised launcher also requires `APPROVED_PIO_BINARY_CHECKSUM` and
-hashes the executable before it starts. Every accepted export records that
+hashes the executable before it starts. Before importing any downloaded Python,
+it verifies the approved manifest bytes, verifies the manifest-pinned checksum
+of the complete pipeline bundle, and installs the files atomically in the
+launcher's own directory. Every accepted export records that
 checksum, the protected pipeline commit, manifest version/checksum, source
-artifact checksum, canonical machine ID, solver version, and audit timestamp.
+artifact checksum bound to both the scenario hash and matrix, canonical machine
+ID, solver version, and audit timestamp.
 The harvester writes the phase's actual pot, effective stack, rake, street,
 family, and stack; no 100 BB/flop constants may leak into another contract.
 Flop, turn, and river target paths are supported, while the closed manifest
 prevents their use until the exact approved inputs exist.
+
+The writer treats release identity as exact, not merely well-formed. A row is
+complete only when its solver version, binary checksum, pipeline commit,
+manifest version, and manifest checksum match the active supervised run. It
+patches one database row by both immutable row ID and scenario hash, requires
+PostgREST to return exactly that row, and refuses duplicate scenario hashes.
+Board discovery is stable and paged, range weights must be finite, solver
+vectors must contain exactly 1,326 combos, and missing exploitability can no
+longer be replaced by a plausible zero. Local artifacts are written through an
+fsync-and-rename checkpoint before any database certification is attempted.
 
 ## Division of labor
 - **Short-stack (<=25bb, all-in preflop):** fully solved in-house by the Nash
