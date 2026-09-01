@@ -218,38 +218,28 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false })
                   .limit(limit);
 
-              // BUG-12 FIX: Batch-query all commissions for all period IDs at once
-              // (was N+1: one query per period in a for loop)
-              const periodIds = (periods || []).map(p => p.id);
-              let allCommissions = [];
-              if (periodIds.length > 0) {
-                  const { data: comms } = await getSupabase()
-                      .from('commission_history')
-                      .select('period_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
-                      .in('period_id', periodIds);
-                  allCommissions = comms || [];
-              }
-
-              // Group commissions by period_id
-              const commsByPeriod = {};
-              for (const c of allCommissions) {
-                  if (!commsByPeriod[c.period_id]) commsByPeriod[c.period_id] = [];
-                  commsByPeriod[c.period_id].push(c);
-              }
-
-              const enriched = (periods || []).map(p => {
-                  const comms = commsByPeriod[p.id] || [];
-                  const totalCommissions = comms.reduce((s, c) => s + (c.commission_earned || 0), 0);
-                  const paidCount = comms.filter(c => c.status === 'paid').length;
-                  const pendingCount = comms.filter(c => c.status !== 'paid').length;
+              // PHASE 7 (2026-09-01): off commission_history - zero rows since
+              // the day it was created, so every period in this history read
+              // "0 commission, 0 agents" - onto agent_commissions.
+              //
+              // Commission is not period-scoped: it accrues per hand and is
+              // claimed by the agent whenever they choose, so what a period can
+              // honestly report is what ACCRUED inside its window. That is one
+              // aggregate per period through a definer function, because RLS on
+              // agent_commissions is per-agent and this is a club-wide figure.
+              const enriched = await Promise.all((periods || []).map(async (p) => {
+                  const { data: accrued, error: accruedErr } = await getSupabase().rpc(
+                      'fn_club_commission_accrued',
+                      { p_club_id: clubId, p_since: p.start_at, p_until: p.end_at }
+                  );
+                  if (accruedErr) {
+                      console.warn('[settlement-history] commission accrued read failed:', accruedErr.message);
+                  }
                   return {
                       ...p,
-                      totalCommissions,
-                      paidCount,
-                      pendingCount,
-                      agentCount: comms.length,
+                      totalCommissions: Number(accrued ?? 0) || 0,
                   };
-              });
+              }));
 
               // Get auto-schedule status
               const { data: club } = await getSupabase()
@@ -312,14 +302,32 @@ export default async function handler(req, res) {
               // BUG-04 FIX: Validate periodId UUID
               if (!isUUID(batchPeriodId)) return res.status(400).json({ error: 'Invalid periodId format' });
 
-              const { data: commissions } = await getSupabase()
-                  .from('commission_history')
-                  .select('id, agent_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
-                  .eq('period_id', batchPeriodId)
-                  .neq('status', 'paid');
+              // PHASE 7 (2026-09-01). This previewed a batch that staff would
+              // then pay through settle-period's 'pay_all' - an action that is
+              // gone, because agents claim their own commission (Dan, phase 6).
+              // The preview survives as a preview: what this club still owes,
+              // per agent, from agent_commissions. Nothing downstream of it
+              // pays anybody.
+              const { data: period } = await getSupabase()
+                  .from('settlement_periods')
+                  .select('club_id')
+                  .eq('id', batchPeriodId)
+                  .maybeSingle();
+              if (!period) return res.status(404).json({ error: 'Period not found' });
 
-              // Enrich with agent display names
-              const agentIds = [...new Set((commissions || []).map(c => c.agent_id))];
+              const { data: owedRows } = await getSupabase()
+                  .from('agent_commissions')
+                  .select('user_id, amount')
+                  .eq('club_id', period.club_id)
+                  .is('settled_at', null)
+                  .limit(50000);
+
+              const owedByAgent = new Map();
+              for (const row of owedRows || []) {
+                  owedByAgent.set(row.user_id, (owedByAgent.get(row.user_id) || 0) + (Number(row.amount) || 0));
+              }
+
+              const agentIds = [...owedByAgent.keys()];
               let profileMap = {};
               if (agentIds.length > 0) {
                   const { data: profiles } = await getSupabase()
@@ -329,13 +337,12 @@ export default async function handler(req, res) {
                   for (const p of (profiles || [])) profileMap[p.id] = p.display_name || p.username || p.id.substring(0, 8);
               }
 
-              const preview = (commissions || []).map(c => ({
-                  commissionId: c.id,
-                  agentId: c.agent_id,
-                  agentName: profileMap[c.agent_id] || c.agent_id.substring(0, 8),
-                  amount: c.commission_earned || 0,  // BUG-08 FIX: was c.amount
-                  status: c.status,
-              }));
+              const preview = agentIds.map(agentUserId => ({
+                  agentId: agentUserId,
+                  agentName: profileMap[agentUserId] || agentUserId.substring(0, 8),
+                  amount: Math.round((owedByAgent.get(agentUserId) || 0) * 100) / 100,
+                  status: 'unclaimed',
+              })).sort((a, b) => b.amount - a.amount);
 
               const totalPayout = preview.reduce((s, c) => s + c.amount, 0);
 

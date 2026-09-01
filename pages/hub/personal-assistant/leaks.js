@@ -869,6 +869,7 @@ function AuditReceipt({ result }) {
     ['Eligible Hands', num(progress.handsEligible ?? sync.handsEligible).toLocaleString()],
     ['Private Hands Recovered', num(progress.privateCardsRecovered ?? sync.privateCardsRecovered).toLocaleString()],
     ['Missing Private Cards', num(progress.handsMissingPrivateCards ?? sync.handsMissingPrivateCards).toLocaleString()],
+    ['Unsupported Or Incomplete Hands', num(progress.handsRejectedBeforeAudit ?? sync.handsRejectedBeforeAudit).toLocaleString()],
     ['No Hero Decision', num(progress.handsSkippedNoHeroDecisions ?? sync.handsSkippedNoHeroDecisions).toLocaleString()],
     ['Audited This Run', num(progress.handsAudited ?? sync.handsAudited).toLocaleString()],
     ['Already Current', num(progress.handsAlreadyCurrent ?? sync.handsAlreadyCurrent).toLocaleString()],

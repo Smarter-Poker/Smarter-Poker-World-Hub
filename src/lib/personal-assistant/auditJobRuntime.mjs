@@ -6,6 +6,7 @@ const METRIC_MAP = {
   handsEligible: 'handsEligible',
   privateCardsRecovered: 'privateCardsRecovered',
   handsMissingPrivateCards: 'handsMissingPrivateCards',
+  handsRejectedBeforeAudit: 'handsRejectedBeforeAudit',
   handsSkippedNoHeroDecisions: 'handsSkippedNoHeroDecisions',
   handsAudited: 'handsAudited',
   handsAlreadyCurrent: 'handsAlreadyCurrent',

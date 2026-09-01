@@ -103,4 +103,63 @@ external inputs exist, verified corrective batches correctly remain at zero.
 
 ## Publication Evidence
 
-Pending protected merge, production deployment, and post-deploy verification.
+- Pull request #1182 passed the required protected checks and squash-merged as
+  `9c78f1fc0ca61a42bc222e8d3f6c8259b7396cdd`.
+- `smarter.poker/api/health` reported healthy production version `741f4aee` on
+  2026-09-01. That main revision descends from the Phase 4 merge.
+- Live production desktop Chromium and mobile Chrome passed all 25 applicable
+  Personal Assistant journeys with two expected viewport-specific skips.
+- The authenticated production verifier preserved all 24 leak-history rows and
+  covered 19 corrective-drill candidates with zero empty, unmapped, missing, or
+  other failures. Sixteen remained correctly practice-only, three were backed
+  by verified sources, and the independently selected verified drill returned
+  eight questions with every answer key hidden.
+- Build Safety, Global Footer E2E, No Conflict Markers, Audit Marker Guard,
+  Agent Autopilot, Silent Write Guard, Undefined Identifier Guard, and Supabase
+  Invariants all completed successfully for the release branch.
+
+## Closure Audit Correction
+
+A fresh protected-account audit on 2026-09-01 followed seven signed
+continuation batches and scanned 1,347 Club Arena records. It recovered 787
+private-card facts, persisted 18 deterministic findings, retained complete
+corrective-drill coverage, and exposed a receipt-labeling defect: the audit
+engine counted every hand rejected before normalization as `Missing Private
+Cards`, even when the real reason was an unsupported game variant or a missing
+trusted hero identity.
+
+The closeout correction now classifies missing private cards independently
+from unsupported or incomplete hand data. That distinction is carried through
+the durable job accumulator, visible audit receipt, and protected production
+verifier. The verifier also reports eligible hands, already-current hands,
+hands without hero decisions, newly verified decisions, and unpriced decisions
+so an idempotent rerun cannot be mistaken for an audit that did no useful work.
+
+The broad Playwright run also revealed three Personal Assistant assertions that
+used the framework's five-second default for asynchronous detail, drill, and
+checkpoint panels. The same complete surface passed under focused four-worker
+production load, so the product path was not failing. Those assertions now use
+the existing 15-second bounded async contract rather than becoming false
+negatives when the 700-plus-test job saturates its runner.
+
+The first deployed protected-account rerun received two consecutive retryable
+`club_arena_audit_partial` responses. The durable in-app worker already permits
+three bounded transient retries, while the standalone verifier permitted only
+one. The verifier now follows the same three-retry contract with bounded delay,
+so a normal identity-source or gateway recovery is tested as the product
+handles it rather than being reported as an immediate audit failure.
+
+Closeout verification passed the 24-test solver-writer suite, the 113-test Leak
+Engine suite, focused rejection and durable-job contracts, the complete
+desktop/mobile Personal Assistant matrix with 25 passes and two intentional
+viewport skips, and the exact optimized production build with 403 static
+pages.
+
+The corrected protected-account verifier then completed against production in
+seven batches. It scanned 1,347 Club Arena records, recovered 787 private-card
+facts, classified 298 records as missing private cards and 626 as unsupported
+or incomplete, and confirmed all 422 eligible hands were already current. It
+detected 19 leaks, persisted the audit, and advanced leak history from 36 to
+37. All 32 corrective candidates resolved to verified or practice drills with
+zero empty, unmapped, missing, or other failures. The verified drill returned
+five questions and did not expose answer keys.
