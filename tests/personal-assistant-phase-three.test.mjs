@@ -94,6 +94,7 @@ test('review and drill routes carry idempotency and exact-game contracts', () =>
   const drillApi = fs.readFileSync(new URL('../pages/api/sandbox/_routes/custom-drill.js', import.meta.url), 'utf8');
   const drillUi = fs.readFileSync(new URL('../src/components/sandbox/QuickSpotDrill.jsx', import.meta.url), 'utf8');
   const leaksUi = fs.readFileSync(new URL('../pages/hub/personal-assistant/leaks.js', import.meta.url), 'utf8');
+  const reviewPresentation = fs.readFileSync(new URL('../src/lib/personal-assistant/reviewQueuePresentation.mjs', import.meta.url), 'utf8');
 
   assert.match(reviewApi, /commit_leak_review_state/);
   assert.match(reviewApi, /reason: 'review_id_required'/);
@@ -108,7 +109,8 @@ test('review and drill routes carry idempotency and exact-game contracts', () =>
   assert.match(drillUi, /practiceDisclosure/);
   assert.match(drillUi, /outcome = \{ correct, total, reviewId \}/);
   assert.match(drillUi, /pa-leak-review-v2/);
-  assert.match(leaksUi, /pa-leak-review-v2/);
+  assert.match(leaksUi, /reviewQueuePresentation\.mjs/);
+  assert.match(reviewPresentation, /pa-leak-review-v2/);
   assert.match(drillUi, /LEGACY_REVIEW_STORE_KEYS\.forEach\(key => safeStorage\.remove\(key\)\)/);
 });
 
