@@ -225,9 +225,15 @@ async function openArena(page, viewport, testCase, diagnostics) {
       const next = page.getByText(/Next Question|Next - Continue Hand/).first();
       await next.waitFor({ state: 'visible', timeout: 30_000 });
       await next.click();
+      await page.waitForFunction(() => {
+        const completion = document.querySelector('[data-training-ui="club-arena-completion"]');
+        const table = document.querySelector('[data-training-ui="club-arena-table"]');
+        return Boolean(completion)
+          || table?.getAttribute('data-training-visual-state') === 'action';
+      }, undefined, { timeout: 30_000 });
       if (await complete.isVisible().catch(() => false)) break;
 
-      const actionButton = page.locator('.sp-club-gto-actions [data-action]').first();
+      const actionButton = page.locator('.sp-club-gto-actions [data-action]:not([disabled])').first();
       await actionButton.waitFor({ state: 'visible', timeout: 30_000 });
       await actionButton.click();
       await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
@@ -311,25 +317,34 @@ try {
     if (location.hostname !== host) return;
     for (const entry of entries) localStorage.setItem(entry.name, entry.value);
   }, { host: auditHost, entries: savedLocalStorage });
-  const page = await context.newPage();
-  const diagnostics = { pageErrors: [], consoleErrors: [] };
-  page.on('pageerror', (error) => {
-    diagnostics.pageErrors.push({
-      message: error.message,
-      stack: error.stack || null,
-    });
-  });
-  page.on('console', (message) => {
-    if (message.type() !== 'error') return;
-    diagnostics.consoleErrors.push({
-      text: message.text(),
-      location: message.location(),
-    });
-  });
   for (const viewport of VIEWPORTS) {
-    await page.setViewportSize(viewport);
     const entry = { viewport, cases: [] };
-    for (const testCase of CASES) entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
+    for (const testCase of CASES) {
+      // A fresh page per canonical family prevents an in-flight persistence
+      // response from the previous game being charged to the next game's
+      // browser-error ledger.
+      const page = await context.newPage();
+      await page.setViewportSize(viewport);
+      const diagnostics = { pageErrors: [], consoleErrors: [] };
+      page.on('pageerror', (error) => {
+        diagnostics.pageErrors.push({
+          message: error.message,
+          stack: error.stack || null,
+        });
+      });
+      page.on('console', (message) => {
+        if (message.type() !== 'error') return;
+        diagnostics.consoleErrors.push({
+          text: message.text(),
+          location: message.location(),
+        });
+      });
+      try {
+        entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
+      } finally {
+        await page.close();
+      }
+    }
     result.viewports.push(entry);
   }
   result.success = true;

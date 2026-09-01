@@ -91,7 +91,7 @@ async function loadNews(page: Page, query = ''): Promise<FeedPayload> {
 
   await page.goto(`${NEWS_PATH}${query}`, { waitUntil: 'commit' });
 
-  const heading = page.getByRole('heading', { name: /SMARTER\.POKER/i });
+  const heading = page.getByRole('heading', { name: /Live Intelligence Wire/i });
   try {
     await expect(heading).toBeVisible({ timeout: 25_000 });
   } catch (err) {
@@ -386,7 +386,7 @@ test.describe('10. News Hub — Saving Articles', () => {
     await expect(bookmark).toHaveAttribute('aria-pressed', String(!wasPressed), { timeout: 15_000 });
 
     await page.reload({ waitUntil: 'commit' });
-    await expect(page.getByRole('heading', { name: /SMARTER\.POKER/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /Live Intelligence Wire/i })).toBeVisible({
       timeout: 25_000,
     });
 
@@ -421,6 +421,16 @@ test.describe('10. News Hub — Saving Articles', () => {
   });
 
   test('Read Later saves the article itself, not the read history', async ({ page }) => {
+    // This is specifically the guest/localStorage contract. The shared setup
+    // may provide an authenticated storage state, so clear it before the News
+    // app mounts instead of accidentally exercising the database-backed path.
+    await page.context().clearCookies();
+    await page.goto('/auth/login', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
     const crashes = watchForCrashes(page);
     const payload = await loadNews(page);
     await requireArticles(page, payload);

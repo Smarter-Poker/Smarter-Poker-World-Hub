@@ -38,11 +38,21 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });
       }
+
+      // Authentication is a stable part of this endpoint's public contract.
+      // Reject anonymous traffic before the shared write limiter so unrelated
+      // unauthenticated probes cannot turn a missing token into a misleading
+      // 429 response for a caller that has not attempted an authenticated write.
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Auth token required' });
+      }
+
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       let { email } = req.body;
       const { user_id, full_name, username, avatar_url, metadata } = req.body;
@@ -66,10 +76,6 @@ export default async function handler(req, res) {
 
       // BUG #240 FIX: Require JWT auth and verify caller is the same user
       // Without this, anyone can create/update profiles for arbitrary user IDs
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-          return res.status(401).json({ error: 'Auth token required' });
-      }
       const token = authHeader.replace('Bearer ', '');
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };

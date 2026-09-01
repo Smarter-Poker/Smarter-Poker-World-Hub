@@ -1161,7 +1161,7 @@ export default function SignUpPage() {
                 <div className="auth-field-group">
                   <label className="auth-label">Password</label>
                   <input
-                    type="text"
+                    type="password"
                     className="auth-input-styled"
                     placeholder=""
                     value={formData.password}
