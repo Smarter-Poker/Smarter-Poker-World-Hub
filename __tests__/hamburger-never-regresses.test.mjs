@@ -1,19 +1,14 @@
 /**
- * THE HAMBURGER IS THE MENU (Dan, 2026-09-01, BINDING)
+ * THE COMMAND GRID IS THE MENU (Dan, 2026-09-01, BINDING)
  *
- * Dan: "The hamburger menu regressed again. Fix it and prevent it from ever
- * breaking or regressing again."
- *
- * This has been hand-fixed here before -- 4da58d09f7 "fix(header): restore
- * hamburger and offset mobile badge" -- and in Club Arena four more times. Each
- * fix restored the icon and left the door open behind it. A menu trigger is
- * three bars; a gear says "settings" and sends players hunting for a
- * preferences screen that is not there.
+ * Three-bar artwork is prohibited globally. The menu trigger is the approved
+ * premium six-tile command grid; a gear still says "settings" and sends players
+ * hunting for a preferences screen that is not there.
  *
  * This file is the door. It runs in `prebuild`, so a build cannot ship a
  * regressed menu trigger or a box painted over a chrome icon.
  *
- * The sibling law lives at club-arena/tests/hamburger-never-regresses.law.test.ts.
+ * The sibling law lives at club-arena/tests/unit/noThreeBarArtwork.law.test.ts.
  * Change one, look at the other.
  */
 
@@ -25,7 +20,8 @@ import test from 'node:test';
 
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
-const md5 = (file) => createHash('md5').update(readFileSync(join(ROOT, file))).digest('hex');
+const sha256 = (file) =>
+  createHash('sha256').update(readFileSync(join(ROOT, file))).digest('hex');
 
 /** Strip comments so prose about a gear cannot fail the build. */
 const maskComments = (src) =>
@@ -45,38 +41,41 @@ const BOTTOM_NAV = 'src/components/ui/BottomNavBar.jsx';
  * which is exactly the failure that took longest to find last time.
  */
 const APPROVED_ART = {
-  'public/images/global-header/global-header-desktop.png': '14f45811636809658cb37970f245019f',
+  'public/images/global-header/global-header-approved-source.png':
+    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f',
+  'public/images/global-header/global-header-desktop.png':
+    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771',
 };
 
-test('the global header still has a menu button over the hamburger slot', () => {
+test('the global header still has a menu button over the command-grid slot', () => {
   const header = read(HEADER);
   assert.match(header, /approved-global-header__menu/);
   // The accessible name is world-dependent ("Open Social Command Menu"), so it
   // is not the contract. `data-menu-symbol` is: it names which baked glyph the
-  // button sits on, and it must stay the hamburger.
-  assert.match(header, /data-menu-symbol="hamburger"/);
-  // The slot geometry is what puts the button on the hamburger rather than on
+  // button sits on, and it must stay the command grid.
+  assert.match(header, /data-menu-symbol="command-grid"/);
+  // The slot geometry is what puts the button on the command grid rather than on
   // Back. If this moves, the button is over the wrong icon.
   assert.match(header, /\.approved-global-header__menu \{ left: 1\.7%; width: 7%; \}/);
 });
 
 test('the approved header artwork is byte-for-byte the approved artwork', () => {
   for (const [file, hash] of Object.entries(APPROVED_ART)) {
-    assert.equal(md5(file), hash, `${file} was replaced -- open it and look at it`);
+    assert.equal(sha256(file), hash, `${file} was replaced -- open it and look at it`);
   }
 });
 
-test('Commander subpages open the menu with a hamburger, not a gear', () => {
+test('Commander subpages open the menu with a six-tile command grid, not three bars or a gear', () => {
   const shell = maskComments(read(COMMANDER));
-  assert.match(shell, /import \{ Menu \} from 'lucide-react'/);
-  assert.match(shell, /<Menu size=\{20\}/);
+  assert.match(shell, /data-menu-symbol="command-grid"/);
+  assert.match(shell, /Array\.from\(\{ length: 6 \}/);
+  assert.match(shell, /gridTemplateColumns: 'repeat\(2, 1fr\)'/);
+  assert.match(shell, /gridTemplateRows: 'repeat\(3, 1fr\)'/);
   assert.doesNotMatch(shell, GEAR);
-  // main regressed this to lucide's Grid3X3 -- a 3x3 of squares, which is not a
-  // hamburger and is what this law was written after finding.
   assert.doesNotMatch(
     shell,
-    /Grid3X3|LayoutGrid|MoreVertical|MoreHorizontal|EllipsisVertical/,
-    'the Commander menu trigger must be a hamburger, not a grid or an ellipsis'
+    /import\s*\{[^}]*\b(?:Menu|AlignJustify|List|ListChecks)\b[^}]*\}\s*from\s*['"]lucide-react['"]|[☰≡≣]|MoreVertical|MoreHorizontal|EllipsisVertical/,
+    'the Commander menu trigger must remain the approved command grid'
   );
 });
 
