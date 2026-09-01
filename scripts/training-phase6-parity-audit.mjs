@@ -19,12 +19,13 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 1000 },
 ];
 const CASES = [
-  { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0 },
+  { gameId: 'cash-001', family: '6max', expectedStreet: 'preflop', expectedBoard: 0, expectsCompletion: true },
   { gameId: 'cash-002', family: '6max-postflop' },
   { gameId: 'cash-012', family: 'river', expectedStreet: 'river', expectedBoard: 5 },
   { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
   { gameId: 'spins-001', family: 'spins', expectedPlayers: 3 },
   { gameId: 'mtt-002', family: 'mtt', expectedPlayers: 9 },
+  { gameId: 'mtt-021', family: 'multi-street', expectsFlopTurn: true },
   { gameId: 'mtt-001', family: 'push-fold', expectsAllIn: true },
 ];
 
@@ -54,6 +55,7 @@ async function snapshot(page, label) {
       label: snapshotLabel,
       pathname: location.pathname,
       visualState: root?.getAttribute('data-training-visual-state') || null,
+      selectedAction: root?.getAttribute('data-training-selected-action') || null,
       street: root?.getAttribute('data-training-street') || null,
       playerCount: Number(root?.getAttribute('data-training-player-count') || 0),
       boardCount: Number(root?.getAttribute('data-training-board-count') || 0),
@@ -92,13 +94,35 @@ async function snapshot(page, label) {
   assert.equal(state.dealerButtons, 1, `${label}: dealer button count`);
   assert.equal(state.pots, 1, `${label}: pot count`);
   assert.equal(state.heroCards.length >= 2, true, `${label}: hero cards missing`);
+  if (state.seats.length !== state.playerCount) {
+    process.stderr.write(`[phase6-parity] seat mismatch ${JSON.stringify(state)}\n`);
+    await page.screenshot({ path: resolve(SHOTS, `${label}-seat-mismatch.png`), fullPage: false });
+  }
   assert.equal(state.seats.length, state.playerCount, `${label}: seat/player count mismatch`);
   assert.ok(state.table.x >= state.root.x - 1 && state.table.right <= state.root.right + 1, `${label}: table escaped root horizontally`);
+  if (Math.abs((state.table.height / state.table.width) - (1000 / 605)) >= 0.025) {
+    process.stderr.write(`[phase6-parity] table aspect mismatch ${JSON.stringify(state)}\n`);
+    await page.screenshot({ path: resolve(SHOTS, `${label}-aspect-mismatch.png`), fullPage: false });
+  }
   assert.ok(Math.abs((state.table.height / state.table.width) - (1000 / 605)) < 0.025, `${label}: Club Arena table aspect drifted`);
   return state;
 }
 
-async function openArena(page, viewport, testCase) {
+async function waitForVisualBoard(page) {
+  await page.waitForFunction(() => {
+    const root = document.querySelector('[data-training-ui="club-arena-table"]');
+    if (!root) return false;
+    const expectedByStreet = { preflop: 0, flop: 3, turn: 4, river: 5 };
+    const street = root.getAttribute('data-training-street');
+    const expected = expectedByStreet[street];
+    return Number.isInteger(expected)
+      && Number(root.getAttribute('data-training-board-count') || 0) === expected;
+  }, undefined, { timeout: 15_000 });
+}
+
+async function openArena(page, viewport, testCase, diagnostics) {
+  diagnostics.pageErrors.length = 0;
+  diagnostics.consoleErrors.length = 0;
   const session = `phase6-${viewport.name}-${testCase.gameId}-${Date.now()}`;
   const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
     waitUntil: 'domcontentloaded', timeout: 60_000,
@@ -106,14 +130,30 @@ async function openArena(page, viewport, testCase) {
   assert.ok((response?.status() || 0) < 400, `${testCase.gameId}: HTTP ${response?.status() || 0}`);
   const start = page.locator('.sp-arena-lobby__start');
   await start.waitFor({ state: 'visible', timeout: 60_000 });
-  assert.equal(await page.locator('[data-global-bottom-nav="true"][data-footer-world="training"]').count(), 1,
-    `${testCase.gameId}: setup should retain the Training footer`);
+  const idle = await page.evaluate(() => {
+    const startButton = document.querySelector('.sp-arena-lobby__start');
+    const box = startButton?.getBoundingClientRect();
+    return {
+      approvedHeaders: document.querySelectorAll('.approved-global-header').length,
+      trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+      overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      start: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
+      viewport: { width: innerWidth, height: innerHeight },
+    };
+  });
+  assert.equal(idle.approvedHeaders, 1, `${testCase.gameId}: setup approved header count`);
+  assert.equal(idle.trainingFooters, 0, `${testCase.gameId}: arena setup must preserve immersive route ownership`);
+  assert.ok(idle.overflow <= 1, `${testCase.gameId}: setup horizontal overflow ${idle.overflow}px`);
+  assert.ok(idle.start && idle.start.x >= 0 && idle.start.right <= idle.viewport.width + 1,
+    `${testCase.gameId}: setup Start escaped the viewport`);
+  await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-idle.png`), fullPage: false });
   await page.waitForFunction(() => {
     const button = document.querySelector('.sp-arena-lobby__start');
     return button instanceof HTMLButtonElement && !button.disabled;
   }, undefined, { timeout: 60_000 });
   await start.click();
   await page.locator('[data-training-ui="club-arena-table"]').waitFor({ state: 'visible', timeout: 60_000 });
+  await waitForVisualBoard(page);
   await page.waitForFunction(() => [...document.images]
     .filter((image) => image.getBoundingClientRect().width > 0)
     .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
@@ -126,16 +166,132 @@ async function openArena(page, viewport, testCase) {
   }
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-action.png`), fullPage: false });
 
-  await page.locator('.sp-club-gto-actions [data-action]').first().click();
+  const answerButton = testCase.expectsAllIn
+    ? page.locator('.sp-club-gto-actions [data-action="allin"]').first()
+    : testCase.expectsFlopTurn
+      ? page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first()
+      : page.locator('.sp-club-gto-actions [data-action]').first();
+  await answerButton.click();
   await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
   await page.getByText(/Next Question/).first().waitFor({ state: 'visible', timeout: 30_000 });
   const verdict = await snapshot(page, `${viewport.name}-${testCase.gameId}-verdict`);
   assert.equal(verdict.visualState, 'verdict');
   assert.equal(verdict.feedbackPanels, 1);
+  if (testCase.expectsAllIn) {
+    assert.match(verdict.selectedAction || '', /all.?in|push/i, `${testCase.gameId}: all-in selection was not retained`);
+  }
   await page.waitForTimeout(1_000);
   assert.equal(await page.locator('[data-training-feedback="verdict"]').isVisible(), true, `${testCase.gameId}: verdict did not persist`);
   await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-verdict.png`), fullPage: false });
-  return { gameId: testCase.gameId, family: testCase.family, action, verdict };
+
+  let progression = null;
+  if (testCase.expectsFlopTurn) {
+    let currentStreet = action.street;
+    for (let guard = 0; guard < 20 && !progression; guard += 1) {
+      const next = page.getByText(/Next - Continue Hand|Next Question/).first();
+      await next.click();
+      await page.waitForFunction(() => document.querySelector('[data-training-ui="club-arena-table"]')
+        ?.getAttribute('data-training-visual-state') === 'action', undefined, { timeout: 30_000 });
+      await waitForVisualBoard(page);
+      const nextAction = await snapshot(page, `${viewport.name}-${testCase.gameId}-progression-${guard + 1}`);
+      if (currentStreet === 'flop') {
+        assert.equal(nextAction.street, 'turn', `${testCase.gameId}: flop did not advance to turn`);
+        assert.equal(nextAction.boardCount, 4, `${testCase.gameId}: turn board count`);
+        progression = nextAction;
+        await page.screenshot({
+          path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-flop-to-turn-action.png`),
+          fullPage: false,
+        });
+        break;
+      }
+
+      currentStreet = nextAction.street;
+      const nonFold = page.locator('.sp-club-gto-actions [data-action]:not([data-action="fold"])').first();
+      await nonFold.click();
+      await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+    }
+    assert.ok(progression, `${testCase.gameId}: no real flop-to-turn transition was observed`);
+  }
+
+  let completion = null;
+  if (testCase.expectsCompletion) {
+    // Exercise every real manual-Next transition in the canonical 20-hand
+    // level. Do not mutate engine state or use a test-only shortcut: this is
+    // the same completion and persistence path a player reaches.
+    for (let guard = 0; guard < 30; guard += 1) {
+      const complete = page.locator('[data-training-ui="club-arena-completion"]');
+      if (await complete.isVisible().catch(() => false)) break;
+
+      const next = page.getByText(/Next Question|Next - Continue Hand/).first();
+      await next.waitFor({ state: 'visible', timeout: 30_000 });
+      await next.click();
+      if (await complete.isVisible().catch(() => false)) break;
+
+      const actionButton = page.locator('.sp-club-gto-actions [data-action]').first();
+      await actionButton.waitFor({ state: 'visible', timeout: 30_000 });
+      await actionButton.click();
+      await page.locator('[data-training-feedback="verdict"]').waitFor({ state: 'visible', timeout: 30_000 });
+    }
+
+    const complete = page.locator('[data-training-ui="club-arena-completion"]');
+    await complete.waitFor({ state: 'visible', timeout: 30_000 });
+    await page.waitForFunction(() => [...document.images]
+      .filter((image) => image.getBoundingClientRect().width > 0)
+      .every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 15_000 });
+    completion = await page.evaluate(() => {
+      const visible = (node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const box = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return box.width > 0 && box.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      };
+      const root = document.querySelector('[data-training-ui="club-arena-completion"]');
+      const box = root?.getBoundingClientRect();
+      const images = [...document.images].filter(visible);
+      return {
+        visualState: root?.getAttribute('data-training-visual-state') || null,
+        approvedHeaders: document.querySelectorAll('.approved-global-header').length,
+        trainingFooters: document.querySelectorAll('[data-global-bottom-nav="true"][data-footer-world="training"]').length,
+        overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        root: box ? { x: box.x, y: box.y, width: box.width, height: box.height, right: box.right, bottom: box.bottom } : null,
+        title: root?.querySelector('.sp-arena-review__title')?.textContent?.trim() || null,
+        backButtons: [...(root?.querySelectorAll('button') || [])]
+          .filter(visible)
+          .filter((button) => /Back(?: To Training)?/i.test(button.textContent || '')).length,
+        brokenVisibleImages: images.filter((image) => !image.complete || image.naturalWidth === 0)
+          .map((image) => image.currentSrc || image.src),
+      };
+    });
+    assert.equal(completion.visualState, 'completion', `${testCase.gameId}: completion state`);
+    assert.equal(completion.approvedHeaders, 1, `${testCase.gameId}: completion approved header count`);
+    assert.equal(completion.trainingFooters, 0, `${testCase.gameId}: completion must preserve immersive route ownership`);
+    assert.ok(completion.root && completion.root.x >= -1 && completion.root.right <= viewport.width + 1,
+      `${testCase.gameId}: completion escaped the viewport`);
+    assert.ok(completion.overflow <= 1, `${testCase.gameId}: completion horizontal overflow ${completion.overflow}px`);
+    assert.equal(completion.title, 'Session Review', `${testCase.gameId}: completion title`);
+    assert.equal(completion.backButtons >= 1, true, `${testCase.gameId}: completion exit missing`);
+    assert.deepEqual(completion.brokenVisibleImages, [], `${testCase.gameId}: completion broken visible images`);
+    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-completion.png`), fullPage: false });
+  }
+
+  await page.waitForTimeout(500);
+  const browserErrors = {
+    pageErrors: [...diagnostics.pageErrors],
+    consoleErrors: [...diagnostics.consoleErrors],
+  };
+  assert.deepEqual(browserErrors.pageErrors, [], `${testCase.gameId}: browser page errors`);
+  assert.deepEqual(browserErrors.consoleErrors, [], `${testCase.gameId}: browser console errors`);
+
+  return {
+    gameId: testCase.gameId,
+    family: testCase.family,
+    idle,
+    action,
+    verdict,
+    progression,
+    completion,
+    browserErrors,
+  };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -156,10 +312,24 @@ try {
     for (const entry of entries) localStorage.setItem(entry.name, entry.value);
   }, { host: auditHost, entries: savedLocalStorage });
   const page = await context.newPage();
+  const diagnostics = { pageErrors: [], consoleErrors: [] };
+  page.on('pageerror', (error) => {
+    diagnostics.pageErrors.push({
+      message: error.message,
+      stack: error.stack || null,
+    });
+  });
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    diagnostics.consoleErrors.push({
+      text: message.text(),
+      location: message.location(),
+    });
+  });
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
     const entry = { viewport, cases: [] };
-    for (const testCase of CASES) entry.cases.push(await openArena(page, viewport, testCase));
+    for (const testCase of CASES) entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
     result.viewports.push(entry);
   }
   result.success = true;

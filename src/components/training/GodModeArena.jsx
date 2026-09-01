@@ -3701,7 +3701,12 @@ function GodModeArenaInner({
     const movesGraded = handHistory.length;
 
     return (
-      <div className="sp-arena-review" style={styles.reviewContainer}>
+      <div
+        className="sp-arena-review"
+        data-training-ui="club-arena-completion"
+        data-training-visual-state="completion"
+        style={styles.reviewContainer}
+      >
         {/* #10: confetti is a position:fixed full-viewport canvas, so an
             unfocused table in a multi-table grid would paint 400 pieces over
             every other table. Only the focused arena celebrates. */}

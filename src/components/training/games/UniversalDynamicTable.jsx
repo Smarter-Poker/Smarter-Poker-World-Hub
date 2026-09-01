@@ -1852,7 +1852,11 @@ function UniversalDynamicTable({
 
     // ═══ CARD PARSING (moved up — must be before handStrength useMemo) ═══
     const scenario = question?.scenario || {};
-    const board = scenario.board || '';
+    // Curated and solver-backed Training contracts publish canonical board
+    // cards at the question level. The Club Arena surface previously read only
+    // scenario.board, leaving valid Flop/Turn/River concept questions on an
+    // empty felt. Preserve both legacy scenario shapes after the canonical one.
+    const board = question?.boardCards || scenario.boardCards || scenario.board || '';
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
     const heroCards = useMemo(() => {
         if (Array.isArray(rawHeroCards)) return rawHeroCards;
@@ -3124,6 +3128,7 @@ function UniversalDynamicTable({
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
             data-training-visual-state={showFeedback ? 'verdict' : 'action'}
+            data-training-selected-action={selectedAnswer || ''}
             data-training-street={streetLabel.toLowerCase()}
             data-training-player-count={playerCount}
             data-training-board-count={visibleBoard.length}
@@ -3365,6 +3370,9 @@ function UniversalDynamicTable({
                     }
                     .sp-club-gto-actions [data-action] {
                         min-height: 62px !important;
+                    }
+                    .sp-club-gto-mode-bar:not(.is-feedback) {
+                        display: none !important;
                     }
                     .sp-training-next-bar {
                         align-items: stretch !important;
@@ -3834,7 +3842,7 @@ function UniversalDynamicTable({
                     </div>
                 </div>
 
-                {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
+                {/* COMPLETE CLUB ARENA RING — every occupied seat stays visible. */}
                 <div style={styles.seatsContainer}>
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
@@ -3865,13 +3873,6 @@ function UniversalDynamicTable({
                             actionHistory.find(entryMatchesSeat)
                             || (index === villainSeatIndex && villainAction ? { action: villainAction } : null)
                         ) : null;
-
-                        // GAP 1 FIX: Only show Hero + villain(s) who acted or are the named villain.
-                        // Alias-aware: the named villain resolves via villainSeatIndex (same
-                        // mapping as hero) so 'MP'/'SB'/'LJ' aliases don't make villains vanish.
-                        const isActiveVillain = index === villainSeatIndex
-                            || actionHistory.some(entryMatchesSeat);
-                        if (!isHero && !isActiveVillain) return null;
 
                         // ── SEAT GEOMETRY ────────────────────────────────
                         // SEAT_CONFIGS is HERO-RELATIVE by construction: entry 0
@@ -4885,7 +4886,7 @@ function UniversalDynamicTable({
             </div>
 
             {/* F4: MODE SWITCHING BAR — Bottom toolbar */}
-            <div style={styles.modeBar}>
+            <div className={`sp-club-gto-mode-bar${showFeedback ? ' is-feedback' : ''}`} style={styles.modeBar}>
                 {MODE_TABS.map(mode => (
                     <button
                         key={mode.id}
