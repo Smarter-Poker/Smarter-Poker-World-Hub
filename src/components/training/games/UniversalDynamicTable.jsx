@@ -3328,6 +3328,8 @@ function UniversalDynamicTable({
                 .sp-club-gto-actions [data-action] {
                     border: 0 !important;
                     border-radius: 13px !important;
+                    height: auto !important;
+                    min-height: 64px !important;
                     box-shadow: inset 0 2px rgba(255,255,255,.24), inset 0 -5px rgba(0,0,0,.28), 0 8px 15px rgba(0,0,0,.5) !important;
                     text-shadow: 0 2px 2px rgba(0,0,0,.75) !important;
                 }
@@ -3391,7 +3393,16 @@ function UniversalDynamicTable({
                         box-shadow: 0 -10px 25px rgba(0,0,0,.65);
                     }
                     .sp-club-gto-actions [data-action] {
-                        min-height: 62px !important;
+                        height: auto !important;
+                        min-height: 88px !important;
+                        padding: 10px 12px 8px !important;
+                    }
+                    .sp-club-gto-actions [data-action] > span:first-child {
+                        max-width: 100%;
+                        white-space: normal;
+                        overflow-wrap: anywhere;
+                        font-size: clamp(9px, 2.65vw, 11px) !important;
+                        line-height: 1.08 !important;
                     }
                     .sp-club-gto-mode-bar:not(.is-feedback) {
                         display: none !important;

@@ -18,6 +18,7 @@ test('Training arena gameplay owns an immersive footerless viewport', async () =
 
 test('Club Arena parity surfaces expose stable state and geometry anchors', async () => {
   const table = await readFile('src/components/training/games/UniversalDynamicTable.jsx', 'utf8');
+  const parityAudit = await readFile('scripts/training-phase6-parity-audit.mjs', 'utf8');
 
   for (const contract of [
     'data-training-visual-state',
@@ -47,6 +48,10 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
   assert.match(table, /flex: 0 0 540px/);
   assert.match(table, /min-height: 540px/);
   assert.match(table, /flex: 0 0 min\(397px, 102vw\)/);
+  assert.match(table, /min-height: 88px/);
+  assert.match(table, /min-height: 64px/);
+  assert.match(table, /overflow-wrap: anywhere/);
+  assert.match(parityAudit, /actionTextOverflows/);
 });
 
 test('God Mode Arena exposes a stable nonvisual completion-state anchor', async () => {
@@ -55,7 +60,7 @@ test('God Mode Arena exposes a stable nonvisual completion-state anchor', async 
 
   assert.match(arena, /data-training-ui="club-arena-completion"/);
   assert.match(arena, /data-training-visual-state="completion"/);
-  assert.match(parityAudit, /gameId: 'mtt-021'.*family: 'postflop-mtt'/);
+  assert.match(parityAudit, /gameId: 'mtt-021'.*family: 'postflop-mtt'.*targetStreet: 'turn'.*expectedStreet: 'turn'.*expectedBoard: 4/);
   assert.match(parityAudit, /Club Arena board\/street mismatch/);
   assert.match(parityAudit, /data-action="allin"/);
   assert.match(parityAudit, /expectsCompletion: true/);

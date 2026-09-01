@@ -195,10 +195,14 @@ export function generateCuratedPokerConceptBatch({
   spotTypes = [],
   stackDepths = [],
   positions = [],
+  targetStreet = null,
   seenIds = [],
 }) {
   const family = String(gameConfig?.pioGameType || 'unknown');
-  const forcedStreet = String(gameConfig?.pioStreet || '').toLowerCase();
+  const requestedStreet = String(targetStreet || '').toLowerCase();
+  const forcedStreet = ['preflop', 'flop', 'turn', 'river'].includes(requestedStreet)
+    ? requestedStreet
+    : String(gameConfig?.pioStreet || '').toLowerCase();
   const requested = family.includes('_icm')
     ? ['icm']
     : (spotTypes.length > 0 ? spotTypes.map(normalizedTopic) : ['rfi']);

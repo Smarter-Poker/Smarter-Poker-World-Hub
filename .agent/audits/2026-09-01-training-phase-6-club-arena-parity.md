@@ -81,6 +81,10 @@ selected all-in/push decision on
 origin, 605x1000 Club Arena table aspect, seat/player agreement, hero cards,
 dealer, pot, all-in availability, loaded images, horizontal containment, and
 persistent manual feedback, while saving the pixel captures and a JSON ledger.
+The postflop MTT case requests Turn explicitly. The batch reader applies that
+target to warm cache rows as well as generation, so a cached mixed-street pool
+cannot silently defeat a selected street and the ledger always proves the
+four-card Turn geometry.
 For `cash-001`, it also advances the complete canonical 20-hand level through
 every real manual-Next transition on both viewports, then verifies and captures
 the real Session Review surface. A stable nonvisual completion anchor makes
@@ -168,6 +172,12 @@ shrinking the 605:1000 table surface to zero height while avatars and cards
 continued painting outside it. Verdict is now a scrollable review state that
 preserves the same complete table geometry as action state on desktop and
 mobile, with feedback below it and manual Next still required.
+
+The final mobile Turn capture also exposed long four-option concept answers
+overflowing fixed-height controls. Mobile actions now use a taller metallic
+2x2 rail with responsive wrapped labels. The browser ledger rejects any action
+whose rendered content exceeds its button height, so meaningful answers remain
+fully readable instead of overlapping the next row.
 
 ## Local Release-Candidate Evidence
 

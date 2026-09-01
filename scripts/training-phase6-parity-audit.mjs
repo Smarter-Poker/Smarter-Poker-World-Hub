@@ -25,7 +25,7 @@ const ALL_CASES = [
   { gameId: 'cash-018', family: 'heads-up', expectedPlayers: 2 },
   { gameId: 'spins-001', family: 'spins', expectedPlayers: 3 },
   { gameId: 'mtt-002', family: 'mtt', expectedPlayers: 9 },
-  { gameId: 'mtt-021', family: 'postflop-mtt' },
+  { gameId: 'mtt-021', family: 'postflop-mtt', targetStreet: 'turn', expectedStreet: 'turn', expectedBoard: 4 },
   { gameId: 'mtt-001', family: 'push-fold', expectsAllIn: true },
 ];
 const requestedViewports = new Set(String(process.env.TRAINING_PHASE6_VIEWPORTS || '')
@@ -62,6 +62,7 @@ async function snapshot(page, label) {
     const hero = root?.querySelector('[data-training-seat="hero"]');
     const heroCards = [...(root?.querySelectorAll('.sp-club-gto-hero-card') || [])];
     const seats = [...(root?.querySelectorAll('[data-training-seat]') || [])];
+    const actionButtons = [...(root?.querySelectorAll('.sp-club-gto-actions [data-action]') || [])];
     const images = [...document.images].filter(visible);
     return {
       label: snapshotLabel,
@@ -91,6 +92,14 @@ async function snapshot(page, label) {
       pots: root?.querySelectorAll('.sp-club-gto-pot').length || 0,
       actionIds: [...(root?.querySelectorAll('.sp-club-gto-actions [data-action]') || [])]
         .map((button) => button.getAttribute('data-action')),
+      actionTextOverflows: actionButtons
+        .filter((button) => button.scrollHeight > button.clientHeight + 1)
+        .map((button) => ({
+          action: button.getAttribute('data-action'),
+          text: button.textContent?.trim().slice(0, 160) || '',
+          clientHeight: button.clientHeight,
+          scrollHeight: button.scrollHeight,
+        })),
       feedbackPanels: root?.querySelectorAll('[data-training-feedback="verdict"]')?.length || 0,
       brokenVisibleImages: images.filter((image) => !image.complete || image.naturalWidth === 0)
         .map((image) => image.currentSrc || image.src),
@@ -103,6 +112,7 @@ async function snapshot(page, label) {
   assert.ok(state.root.y >= -1, `${label}: gameplay inherited a negative setup scroll (${state.root.y}px)`);
   assert.ok(state.overflow <= 1, `${label}: horizontal overflow ${state.overflow}px`);
   assert.deepEqual(state.brokenVisibleImages, [], `${label}: broken visible images`);
+  assert.deepEqual(state.actionTextOverflows, [], `${label}: action text overflow`);
   assert.equal(state.dealerButtons, 1, `${label}: dealer button count`);
   assert.equal(state.pots, 1, `${label}: pot count`);
   assert.equal(state.heroCards.length >= 2, true, `${label}: hero cards missing`);
@@ -158,13 +168,33 @@ async function activateManualNext(page) {
 async function openArena(page, viewport, testCase, diagnostics) {
   diagnostics.pageErrors.length = 0;
   diagnostics.consoleErrors.length = 0;
+  if (testCase.targetStreet) {
+    await page.route('**/api/training/batch-preload?**', async (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set('targetStreet', testCase.targetStreet);
+      await route.continue({ url: url.toString() });
+    });
+  }
   const session = `phase6-${viewport.name}-${testCase.gameId}-${Date.now()}`;
   const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
     waitUntil: 'domcontentloaded', timeout: 60_000,
   });
   assert.ok((response?.status() || 0) < 400, `${testCase.gameId}: HTTP ${response?.status() || 0}`);
   const start = page.locator('.sp-arena-lobby__start');
-  await start.waitFor({ state: 'visible', timeout: 60_000 });
+  try {
+    await start.waitFor({ state: 'visible', timeout: 60_000 });
+  } catch (error) {
+    const lobbyFailure = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      body: document.body?.innerText?.slice(0, 1_000) || '',
+    }));
+    await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-lobby-failure.png`), fullPage: false });
+    throw new Error(`${testCase.gameId}: Arena lobby did not become available: ${JSON.stringify({
+      lobbyFailure,
+      diagnostics,
+    })}`, { cause: error });
+  }
   const idle = await page.evaluate(() => {
     const startButton = document.querySelector('.sp-arena-lobby__start');
     const box = startButton?.getBoundingClientRect();
@@ -369,8 +399,11 @@ try {
   // Smarter.Poker localStorage entries onto the explicitly requested audit
   // hostname so the preview is tested as the same real account.
   const savedState = JSON.parse(readFileSync(AUTH_STATE, 'utf8'));
+  const auditOrigin = new URL(BASE_URL).origin;
   const savedLocalStorage = (savedState.origins || [])
-    .find((origin) => new URL(origin.origin).hostname === 'smarter.poker')?.localStorage || [];
+    .find((origin) => origin.origin === auditOrigin)?.localStorage
+    || (savedState.origins || []).find((origin) => new URL(origin.origin).hostname === 'smarter.poker')?.localStorage
+    || [];
   const auditHost = new URL(BASE_URL).hostname;
   await context.addInitScript(({ host, entries }) => {
     if (location.hostname !== host) return;

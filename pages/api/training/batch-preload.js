@@ -18,6 +18,7 @@ import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
+import { streetOfCachedRow } from '../../../src/lib/training/declaredStreet';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { enforceSolverClaimHonesty, isVerifiedSolverQuestion, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import { handNotationToRepresentativeCards } from '../../../src/lib/training/representativeCards.mjs';
@@ -137,10 +138,17 @@ export default async function handler(req, res) {
           // rows per level, 25 > the 20 a session asks for, and the engine
           // branch below never ran. Games that declare no street are untouched.
           const declaredCfg = pioQueryService.getGameConfig(gameId);
-          const rows = filterCachedRowsForGame(
+          const contractedRows = filterCachedRowsForGame(
               (questions || []).slice(0, questionCount * 3),
               declaredCfg,
           );
+          // An explicit street target is a hard training contract, not a hint.
+          // Applying it only to generated rows meant a warm cache silently
+          // ignored the user's Turn/Flop/River selection whenever it already
+          // held enough mixed-street questions.
+          const rows = targetStreet
+              ? contractedRows.filter((row) => streetOfCachedRow(row) === targetStreet)
+              : contractedRows;
           const fresh = seenIds.size > 0
               ? rows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
               : rows;

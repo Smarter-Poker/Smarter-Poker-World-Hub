@@ -191,6 +191,12 @@ test('both question endpoints persist the exact post-contract envelope used for 
   assert.doesNotMatch(recorder, /req\.body\.(?:question|correctAnswer)/);
 });
 
+test('an explicit street target filters warm cache rows before generation', () => {
+  const batch = fs.readFileSync(path.join(ROOT, 'pages/api/training/batch-preload.js'), 'utf8');
+  assert.match(batch, /import \{ streetOfCachedRow \} from '[^']+declaredStreet'/);
+  assert.match(batch, /targetStreet\s*\? contractedRows\.filter\(\(row\) => streetOfCachedRow\(row\) === targetStreet\)/);
+});
+
 test('warehouse source labels are unverified without the complete export seal', () => {
   const legacy = {
     source: 'DETERMINISTIC_SOLVER',
@@ -285,11 +291,20 @@ test('curated fallback honors the exact game stack and excludes cached identitie
   assert.equal(second.length, 4);
   assert.deepEqual(new Set([...first, ...second].map((question) => question.id)).size, 8);
   assert.deepEqual([...first, ...second].every((question) => question.scenario.stackDepth === 20), true);
+  const turnOnly = generateCuratedPokerConceptBatch({
+    gameId: 'mtt-021', level: 1, count: 8,
+    gameConfig: { pioGameType: 'mtt_postflop', pioStackDepth: 100 },
+    spotTypes: ['cbet', 'turn_barrel', 'river_bluff'], targetStreet: 'turn',
+  });
+  assert.equal(turnOnly.length, 8);
+  assert.equal(turnOnly.every((question) => question.scenario.street === 'turn'), true);
+  assert.equal(turnOnly.every((question) => question.boardCards.length === 4), true);
 
   const engine = fs.readFileSync('src/engines/DeterministicGTOEngine.js', 'utf8');
   const batch = fs.readFileSync('pages/api/training/batch-preload.js', 'utf8');
   assert.match(engine, /stackDepths: Number\.isFinite\(Number\(gameConfig\?\.pioStackDepth\)\)/);
   assert.match(engine, /seenIds,/);
+  assert.match(engine, /positions: targetPositions,[\s\S]{0,80}targetStreet,/);
   assert.match(batch, /const generationSeenIds = Array\.from\(new Set/);
   assert.match(batch, /seenIds: generationSeenIds/);
 });

@@ -1210,6 +1210,7 @@ export class DeterministicGTOEngine {
                 ? [Number(gameConfig.pioStackDepth)]
                 : stackDepths,
             positions: targetPositions,
+            targetStreet,
             seenIds,
         });
 
