@@ -43,6 +43,8 @@ test('Club Arena parity surfaces expose stable state and geometry anchors', asyn
   assert.doesNotMatch(table, /if \(!isHero && !isActiveVillain\) return null/);
   assert.match(table, /sp-club-gto-mode-bar:not\(\.is-feedback\)/);
   assert.match(table, /showFeedback \? ' is-feedback' : ''/);
+  assert.match(table, /data-training-visual-state='verdict'/);
+  assert.match(table, /flex: 0 0 min\(397px, 102vw\)/);
 });
 
 test('God Mode Arena exposes a stable nonvisual completion-state anchor', async () => {
@@ -55,4 +57,8 @@ test('God Mode Arena exposes a stable nonvisual completion-state anchor', async 
   assert.match(parityAudit, /flop did not advance to turn/);
   assert.match(parityAudit, /data-action="allin"/);
   assert.match(parityAudit, /expectsCompletion: true/);
+  assert.match(parityAudit, /page\.on\('pageerror'/);
+  assert.match(parityAudit, /page\.on\('console'/);
+  assert.match(parityAudit, /browser page errors/);
+  assert.match(parityAudit, /browser console errors/);
 });
