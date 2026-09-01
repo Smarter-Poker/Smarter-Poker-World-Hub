@@ -64,6 +64,25 @@ setup('authenticate', async ({ page }) => {
   // Allow enough time for local storage/cookies to populate and propagate
   await page.waitForTimeout(1000); 
 
+  // The product intentionally offers notifications once, 20 seconds after a
+  // signed-in user lands. A shared authenticated E2E state must record that
+  // this cross-route prompt has already been handled; otherwise it appears in
+  // the middle of unrelated long-running specs and intercepts their clicks.
+  // Notification-specific contracts use their own isolated state and are not
+  // weakened by this suite-level fixture.
+  const notificationPromptHandled = await page.evaluate(() => {
+    try {
+      const session = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      const userId = session?.user?.id;
+      if (!userId) return false;
+      localStorage.setItem(`sp_firstrun_notif_v2_${userId}`, String(Date.now()));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  expect(notificationPromptHandled, 'authenticated E2E state could not suppress the cross-route notification prompt').toBe(true);
+
   // Save authentication state to persist across all remaining Playwright worker nodes
   await page.context().storageState({ path: authFile });
 });

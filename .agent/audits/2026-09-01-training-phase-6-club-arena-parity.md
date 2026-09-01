@@ -298,6 +298,13 @@ PR 1231 controls the successful directory seed before the synthetic outage and
 opens the real Diamond Wallet control. The exact affected Chromium/mobile
 slice passed 17/17 without changing application or global-header code.
 
+The renewed broad run then proved a second suite-wide isolation defect: the
+account-scoped first-run notification sheet appeared on its 20-second timer and
+intercepted unrelated long-running clicks. PR 1234 records that prompt as
+handled only in the shared authenticated E2E fixture; notification-specific
+coverage remains independent. The affected Phase 13/14 Chromium/mobile slice
+passed 15/15, and no product or global-header code changed.
+
 ## Remaining Phase 6 Work
 
 None. Phase 7 begins from the published Phase 6 production baseline.
