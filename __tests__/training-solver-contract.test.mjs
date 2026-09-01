@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 
@@ -49,6 +50,7 @@ test('canonical solver exports carry complete machine and artifact provenance', 
   assert.match(orchestrator, /hashlib\.sha256\(manifest_text\.encode\(\)\)\.hexdigest\(\)/);
   assert.match(orchestrator, /"quality_status": "validated"/);
   assert.match(orchestrator, /"solver_binary_checksum": PIO_BINARY_CHECKSUM/);
+  assert.match(orchestrator, /artifact_envelope = \{"scenario_hash": sh, "strategy_matrix_v2": sm\}/);
   assert.match(migration, /solved_spots_gold_v2_provenance_check/);
   assert.match(migration, /coalesce\(pipeline_commit, ''\) ~ '\^\[0-9a-f\]\{40\}\$'/);
   assert.match(migration, /coalesce\(new\.solver_binary_checksum, ''\) !~ '\^\[0-9a-f\]\{64\}\$'/);
@@ -63,7 +65,7 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   assert.equal(manifest.release_gate.solver_ready, false);
   assert.match(launcher, /PIPELINE_COMMIT is required; solver hosts may not follow a moving main branch/);
   assert.doesNotMatch(launcher, /repos\/%s\/commits\/main/);
-  assert.match(launcher, /APPROVED_MANIFEST_CHECKSUM is required before PioSOLVER launches/);
+  assert.match(launcher, /APPROVED_MANIFEST_CHECKSUM is required before any pipeline code is installed/);
   assert.match(launcher, /APPROVED_PIO_BINARY_CHECKSUM is required before PioSOLVER launches/);
   assert.match(launcher, /RANGE_DIRECTORY is required before PioSOLVER launches/);
   assert.match(orchestrator, /manifest checksum does not match APPROVED_MANIFEST_CHECKSUM/);
@@ -74,7 +76,32 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   assert.match(orchestrator, /"river": river_oop/);
   assert.match(orchestrator, /for rc in river_cards\(b4\)/);
   assert.match(orchestrator, /for start in range\(0, len\(unique\), 75\)/);
-  assert.match(orchestrator, /states = row_states\(\[target\[4\] for target in targets\]\)/);
+  assert.match(orchestrator, /states = row_states\(/);
+  assert.match(orchestrator, /states\[target\[4\]\]\["count"\] == 1/);
+  assert.match(orchestrator, /"Prefer": "return=representation"/);
+  assert.match(orchestrator, /rows\[0\]\.get\("pipeline_commit"\) == PIPELINE_COMMIT/);
+  assert.match(orchestrator, /not math\.isfinite\(value\)/);
+  assert.match(orchestrator, /os\.replace\(temporary_path, backup_path\)/);
+  assert.match(launcher, /pinned manifest bytes do not match APPROVED_MANIFEST_CHECKSUM/);
+  assert.match(launcher, /pinned pipeline bundle does not match the approved manifest/);
+  assert.match(launcher, /os\.replace\(temporary_path, destination\)/);
+  assert.match(launcher, /BASE_DIRECTORY = os\.path\.dirname\(os\.path\.abspath\(__file__\)\)/);
+  assert.match(launcher, /os\.chdir\(BASE_DIRECTORY\)/);
+  assert.match(launcher, /solver did not return finite exploitability/);
+  assert.doesNotMatch(launcher, /except Exception:\s*expl = 0\.0/);
+  assert.match(orchestrator, /manifest must pin the approved pipeline bundle checksum/);
+  assert.match(orchestrator, /phase id and game type must be safe canonical tokens/);
+  assert.match(orchestrator, /must discover canonical flop parents/);
+  assert.match(orchestrator, /solver self-test is missing approved inputs/);
+  assert.match(orchestrator, /board must contain %d unique canonical cards/);
+  assert.match(manifest.pipeline_bundle_checksum, /^[0-9a-f]{64}$/);
+  const bundleDigest = createHash('sha256');
+  for (const filename of ['tree_gen.py', 'pio_harvest.py', 'orchestrate.py']) {
+    bundleDigest.update(`${filename}\0`);
+    bundleDigest.update(fs.readFileSync(`scripts/preflop-deep/${filename}`));
+    bundleDigest.update('\0');
+  }
+  assert.equal(bundleDigest.digest('hex'), manifest.pipeline_bundle_checksum);
   assert.doesNotMatch(orchestrator, /def ensure_ranges/);
   assert.match(orchestrator, /quality_status.*validated/s);
   assert.match(migration, /solved_spots_gold_require_provenance/);
@@ -105,8 +132,87 @@ test('solver replacement discovery includes legacy validated rows until full pro
     orchestrator.indexOf('def solve(', orchestrator.indexOf('def boards_for(')),
   );
   assert.doesNotMatch(boardDiscovery, /quality_status\.neq\.validated/);
-  assert.match(orchestrator, /not states\[target\[4\]\]\[1\]/);
-  assert.match(orchestrator, /def certified_row\(r\):/);
+  assert.match(orchestrator, /not states\[target\[4\]\]\["certified"\]/);
+  assert.match(orchestrator, /def certified_row\(r,/);
+});
+
+test('solver writer functionally binds certification to one exact active release and one row', () => {
+  const code = String.raw`
+import hashlib, json, os, sys, tempfile
+sys.path.insert(0, '.')
+os.environ.update({
+    'SUPABASE_URL': 'https://example.supabase.co',
+    'SUPABASE_SERVICE_ROLE_KEY': 'test',
+    'PIPELINE_COMMIT': 'a' * 40,
+    'PIO_SOLVER_VERSION': 'Pio-3.0-approved',
+    'PIO_BINARY_CHECKSUM': 'b' * 64,
+    'APPROVED_MANIFEST_CHECKSUM': 'c' * 64,
+    'RANGE_DIRECTORY': '.',
+})
+import orchestrate as o
+
+row = {
+    'id': 7,
+    'scenario_hash': '6max_cash_BB_100bb_AsKdQc',
+    'solved_v2_at': '2026-09-01T00:00:00Z',
+    'quality_status': 'validated',
+    'solver_version': 'Pio-3.0-approved',
+    'solver_binary_checksum': 'b' * 64,
+    'machine_id': 'M1',
+    'pipeline_commit': 'a' * 40,
+    'manifest_version': '5',
+    'manifest_checksum': 'd' * 64,
+    'source_artifact_checksum': 'e' * 64,
+    'audited_at': '2026-09-01T00:00:00Z',
+}
+assert o.certified_row(row, 5, 'd' * 64)
+assert not o.certified_row({**row, 'pipeline_commit': 'f' * 40}, 5, 'd' * 64)
+assert not o.certified_row({**row, 'manifest_checksum': 'f' * 64}, 5, 'd' * 64)
+assert not o.certified_row({**row, 'solver_version': 'different'}, 5, 'd' * 64)
+
+def duplicate_rest(method, path, body=None, extra_headers=None):
+    assert method == 'GET'
+    return 200, json.dumps([row, {**row, 'id': 8}])
+o._rest = duplicate_rest
+state = o.row_state(row['scenario_hash'], 5, 'd' * 64)
+assert state == {'count': 2, 'row_id': None, 'certified': False}
+
+matrix = {'node': 'r:0', 'frequencies': {'c': [1.0]}, 'hand_evs_bb': [1.0]}
+def exact_patch(method, path, body=None, extra_headers=None):
+    assert method == 'PATCH'
+    assert 'id=eq.7' in path
+    assert extra_headers == {'Prefer': 'return=representation'}
+    return 200, json.dumps([{
+        'id': 7,
+        'scenario_hash': row['scenario_hash'],
+        'source_artifact_checksum': body['source_artifact_checksum'],
+        'manifest_checksum': 'd' * 64,
+        'pipeline_commit': 'a' * 40,
+    }])
+o._rest = exact_patch
+assert o.patch_v2(7, row['scenario_hash'], matrix, 5, 'd' * 64)
+
+def duplicate_patch(method, path, body=None, extra_headers=None):
+    status, payload = exact_patch(method, path, body, extra_headers)
+    return status, json.dumps(json.loads(payload) * 2)
+o._rest = duplicate_patch
+assert not o.patch_v2(7, row['scenario_hash'], matrix, 5, 'd' * 64)
+
+with tempfile.TemporaryDirectory() as directory:
+    o.RANGE_DIRECTORY = directory
+    payload = ('nan ' * 1326).strip().encode()
+    path = os.path.join(directory, 'bad.txt')
+    open(path, 'wb').write(payload)
+    try:
+        o.load_range('bad.txt', hashlib.sha256(payload).hexdigest())
+        raise AssertionError('non-finite range was accepted')
+    except SystemExit as error:
+        assert 'not a valid 1326-combo weight vector' in str(error)
+`;
+  execFileSync('python3', ['-c', code], {
+    cwd: 'scripts/preflop-deep',
+    encoding: 'utf8',
+  });
 });
 
 test('Python solver pipeline functionally emits exact river state and parameterized metadata', () => {
@@ -134,6 +240,13 @@ assert matrix['rake'] == '5 10 3 1'
 assert matrix['actions'][1]['size_chips'] == 400
 assert matrix['actions'][1]['size_pct'] is None
 assert h.validate_row(matrix)['ev_ok'] is True
+assert h.validate_row({**matrix, 'exploitability_pct': float('inf')})['ev_ok'] is False
+assert h.validate_row({**matrix, 'frequencies': {'c': [1.0], 'b400': [0.0]}})['ev_ok'] is False
+try:
+    h.parse_strategy(('0.4 ' * 1325) + '\n' + ('0.6 ' * 1326), ['c', 'b400'])
+    raise AssertionError('short strategy vector was accepted')
+except ValueError as error:
+    assert '1326 finite values' in str(error)
 os.environ.update({
     'SUPABASE_URL': 'https://example.supabase.co',
     'SUPABASE_SERVICE_ROLE_KEY': 'test',

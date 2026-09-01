@@ -1344,7 +1344,7 @@ export default function UniversalHeader({
                 .approved-global-header__notifications { left: 92.3%; width: 6.2%; }
 
                 @media (max-width: 430px) {
-                    /* Keep the command-grid target at the WCAG 2.2 minimum on
+                    /* Keep the approved hamburger target at the WCAG 2.2 minimum on
                        narrow phones without covering the adjacent Back zone. */
                     .approved-global-header__menu {
                         left: .75%;
@@ -1470,7 +1470,7 @@ export default function UniversalHeader({
             type="button"
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
-            data-menu-symbol="command-grid"
+            data-menu-symbol="hamburger"
             onClick={() => (
               onMenuClick && !ownsCanonicalMenu
                 ? onMenuClick()

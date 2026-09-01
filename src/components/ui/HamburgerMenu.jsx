@@ -935,7 +935,7 @@ function HamburgerMenuContent({
         }}
       >
         {/* World command identity and utilities. The symbol is a six-node
-            command grid. Horizontal menu bars are prohibited by design. */}
+            command grid. The approved header hamburger remains the menu trigger. */}
         <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
           <div className="sp-command-brand">
             <span className="sp-command-grid-mark" aria-hidden="true">

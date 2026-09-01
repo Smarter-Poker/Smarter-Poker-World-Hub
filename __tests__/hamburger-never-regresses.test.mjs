@@ -1,14 +1,14 @@
 /**
- * THE COMMAND GRID IS THE MENU (Dan, 2026-09-01, BINDING)
+ * THE HAMBURGER IS THE MENU (Dan, 2026-09-01, BINDING)
  *
- * Three-bar artwork is prohibited globally. The menu trigger is the approved
- * premium six-tile command grid; a gear still says "settings" and sends players
- * hunting for a preferences screen that is not there.
+ * "M-bars" is a copy and layout rule. It does not refer to the approved
+ * hamburger menu icon. The hamburger must never be replaced with a gear,
+ * settings icon, command grid, or other substitute.
  *
  * This file is the door. It runs in `prebuild`, so a build cannot ship a
  * regressed menu trigger or a box painted over a chrome icon.
  *
- * The sibling law lives at club-arena/tests/unit/noThreeBarArtwork.law.test.ts.
+ * The sibling law lives at club-arena/tests/approvedHamburgerGearGuard.law.test.ts.
  * Change one, look at the other.
  */
 
@@ -42,19 +42,19 @@ const BOTTOM_NAV = 'src/components/ui/BottomNavBar.jsx';
  */
 const APPROVED_ART = {
   'public/images/global-header/global-header-approved-source.png':
-    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f',
+    '37f2dd1cf6bf264c20402a1a928fa053bcdde4866b231e6d9c5f7d158d01df2a',
   'public/images/global-header/global-header-desktop.png':
-    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771',
+    '7c5613a84a395abd6b9527785b46c99fb28b6264e2258bee366a04cac5500c7f',
 };
 
-test('the global header still has a menu button over the command-grid slot', () => {
+test('the global header still has a menu button over the approved hamburger slot', () => {
   const header = read(HEADER);
   assert.match(header, /approved-global-header__menu/);
   // The accessible name is world-dependent ("Open Social Command Menu"), so it
   // is not the contract. `data-menu-symbol` is: it names which baked glyph the
-  // button sits on, and it must stay the command grid.
-  assert.match(header, /data-menu-symbol="command-grid"/);
-  // The slot geometry is what puts the button on the command grid rather than on
+  // button sits on, and it must stay the hamburger.
+  assert.match(header, /data-menu-symbol="hamburger"/);
+  // The slot geometry is what puts the button on the hamburger rather than on
   // Back. If this moves, the button is over the wrong icon.
   assert.match(header, /\.approved-global-header__menu \{ left: 1\.7%; width: 7%; \}/);
 });
@@ -65,17 +65,15 @@ test('the approved header artwork is byte-for-byte the approved artwork', () => 
   }
 });
 
-test('Commander subpages open the menu with a six-tile command grid, not three bars or a gear', () => {
+test('Commander subpages open the menu with the approved hamburger, not a gear or grid', () => {
   const shell = maskComments(read(COMMANDER));
-  assert.match(shell, /data-menu-symbol="command-grid"/);
-  assert.match(shell, /Array\.from\(\{ length: 6 \}/);
-  assert.match(shell, /gridTemplateColumns: 'repeat\(2, 1fr\)'/);
-  assert.match(shell, /gridTemplateRows: 'repeat\(3, 1fr\)'/);
+  assert.match(shell, /import \{ Menu \} from 'lucide-react'/);
+  assert.match(shell, /<Menu size=\{20\}/);
   assert.doesNotMatch(shell, GEAR);
   assert.doesNotMatch(
     shell,
-    /import\s*\{[^}]*\b(?:Menu|AlignJustify|List|ListChecks)\b[^}]*\}\s*from\s*['"]lucide-react['"]|[☰≡≣]|MoreVertical|MoreHorizontal|EllipsisVertical/,
-    'the Commander menu trigger must remain the approved command grid'
+    /Grid3X3|LayoutGrid|MoreVertical|MoreHorizontal|EllipsisVertical|data-menu-symbol="command-grid"/,
+    'the Commander menu trigger must remain the approved hamburger'
   );
 });
 

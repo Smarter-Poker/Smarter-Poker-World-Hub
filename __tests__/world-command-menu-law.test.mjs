@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,11 +28,6 @@ const EXPECTED_WORLDS = [
   'bankroll-manager', 'toke-tracker', 'preflop-charts', 'poker-near-me',
   'marketplace',
 ];
-
-const walk = (directory) => readdirSync(directory).flatMap((name) => {
-  const file = join(directory, name);
-  return statSync(file).isDirectory() ? walk(file) : [file];
-});
 
 const isTitleCased = (value) => String(value).split(/\s+/).every((word) => {
   const normalized = word.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
@@ -99,11 +94,11 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(drawerSource, /minHeight: 44/);
 });
 
-test('the command-grid trigger covers routes without duplicating an approved header', () => {
+test('the approved hamburger trigger covers routes without duplicating the header', () => {
   assert.match(appSource, /<WorldCommandDock/);
   assert.match(appSource, /!isClubArenaRoute && <WorldCommandDock/);
   assert.match(headerSource, /data-world-menu-trigger="approved-header"/);
-  assert.match(headerSource, /data-menu-symbol="command-grid"/);
+  assert.match(headerSource, /data-menu-symbol="hamburger"/);
   assert.match(headerSource, /flex: 0 0 auto;/);
   assert.match(headerSource, /z-index: 10050;/);
   assert.match(headerSource, /resolvedHeaderWorld\?\.id === 'social-media'/);
@@ -121,34 +116,20 @@ test('the command-grid trigger covers routes without duplicating an approved hea
   assert.match(pokerNearMeLobbySource, /zIndex: 10050, pointerEvents: 'none'/);
 });
 
-test('horizontal menu-bar artwork cannot return to World Hub source assets', () => {
-  const forbiddenNames = walk(join(ROOT, 'public'))
-    .map((file) => relative(ROOT, file).split('\\').join('/'))
-    .filter((file) => /\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(file))
-    .filter((file) => /(?:btn[-_ ]?hamburger|menu[-_ ]?bar|m[-_ ]?bar|global-header\/menu\.)/i.test(file));
-  assert.deepEqual(forbiddenNames, []);
-
-  const forbiddenMenuMark = /import\s*{[^}]*\b(?:Menu|MenuIcon|AlignJustify|List|ListChecks)\b[^}]*}\s*from\s*['"]lucide-react|[☰≡]|&#(?:9776|8801|x2630|x2261);|data-menu-symbol=['"]three-bars['"]|M4\s*6h16M4\s*12h16M4\s*18h16/i;
-  const menuBarFiles = [join(ROOT, 'pages'), join(ROOT, 'src'), join(ROOT, 'public/hub/club-arena/assets')]
-    .flatMap((root) => walk(root))
-    .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file))
-    .filter((file) => forbiddenMenuMark.test(readFileSync(file, 'utf8')))
-    .map((file) => relative(ROOT, file).split('\\').join('/'));
-  assert.deepEqual(menuBarFiles, []);
-
+test('the approved hamburger artwork is pinned and cannot become a settings icon', () => {
   const header = join(ROOT, 'public/images/global-header/global-header-desktop.png');
   const source = join(ROOT, 'public/images/global-header/global-header-approved-source.png');
   assert.ok(existsSync(header));
   assert.ok(existsSync(source));
   assert.equal(
     createHash('sha256').update(readFileSync(header)).digest('hex'),
-    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771'
+    '7c5613a84a395abd6b9527785b46c99fb28b6264e2258bee366a04cac5500c7f'
   );
   assert.equal(
     createHash('sha256').update(readFileSync(source)).digest('hex'),
-    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f'
+    '37f2dd1cf6bf264c20402a1a928fa053bcdde4866b231e6d9c5f7d158d01df2a'
   );
-  assert.match(drawerSource, /Horizontal menu bars are prohibited by design/);
+  assert.doesNotMatch(headerSource, /data-menu-symbol="(?:gear|settings|command-grid)"/);
 });
 
 test('command drawer stacking and mobile containment stay above chrome without overflow', () => {

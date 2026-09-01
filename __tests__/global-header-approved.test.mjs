@@ -60,18 +60,18 @@ const moduleOwnsHeader = (entryFile, seen = new Set()) => {
   });
 };
 
-test('the approved command-grid source and desktop crop are pinned', () => {
+test('the approved hamburger source and desktop crop are pinned', () => {
   const source = join(root, 'public/images/global-header/global-header-approved-source.png');
   const crop = join(root, 'public/images/global-header/global-header-desktop.png');
   assert.ok(existsSync(source));
   assert.ok(existsSync(crop));
   assert.equal(
     createHash('sha256').update(readFileSync(source)).digest('hex'),
-    '94a4e8790bc67e42bbd290c3dc34caf6c482d8449ce6618952dbb8d433b3c39f'
+    '37f2dd1cf6bf264c20402a1a928fa053bcdde4866b231e6d9c5f7d158d01df2a'
   );
   assert.equal(
     createHash('sha256').update(readFileSync(crop)).digest('hex'),
-    '376ee8088b8c9a73cdfa2be24fbbcdd1b31a7a10acc48faafeeb85bc54278771'
+    '7c5613a84a395abd6b9527785b46c99fb28b6264e2258bee366a04cac5500c7f'
   );
 });
 
@@ -81,7 +81,7 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /approved-global-header__avatar/);
   assert.match(header, /src=\{displayAvatar \|\| '\/default-avatar\.png'\}/);
   assert.match(header, /setCommandMenuOpen\(true\)/);
-  assert.match(header, /data-menu-symbol="command-grid"/);
+  assert.match(header, /data-menu-symbol="hamburger"/);
   assert.match(header, /onCommandMenuOpenChange\?\.\(nextOpen\)/);
   assert.match(header, /isCommandMenuControlled/);
   assert.match(header, /setIsWalletOpen\(true\)/);

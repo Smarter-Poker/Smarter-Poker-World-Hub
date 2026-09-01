@@ -69,7 +69,13 @@ Production inspection found zero provenance-complete rows for the active postflo
 
 ## Publication Evidence
 
-Pending the final branch push, pull-request merge, production health SHA match, and repeated live production browser/account verification. This section must be updated with exact identifiers before the phase is reported complete.
+- Pull request [#1174](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/1174) auto-merged the closure patch as `e70fa7506e0a5d370334a2ac1807acac4ef1b082`.
+- Production reported healthy revision `8b6a28e1`; the exact closure merge is an ancestor of that deployed main revision.
+- The authenticated production account verifier found 19 persisted leak-history rows and covered all 14 active corrective candidates with 10 usable questions each. Empty, unmapped, missing, timeout, and other error counts were all zero.
+- All 14 active candidates correctly returned unsigned practice pools because production currently contains zero provenance-complete solver batches. No drill token, reward eligibility, or corrective mastery was fabricated.
+- The live production desktop Chromium and mobile Chrome Personal Assistant matrix passed 25 tests with two intentional viewport skips. This includes both Personal Assistant cases that were noisy in the concurrent 707-test repository matrix.
+- The required GitHub gates passed: Build Safety Gate, Global Footer E2E, Supabase Invariants, Silent Write Guard, Undefined Identifier Guard, Audit Marker Guard, No Conflict Markers, and Agent Autopilot.
+- The optional repository-wide 707-test matrix completed 603 passes, 17 skips, four flaky recoveries, and 79 failures across unrelated News, Poker Near Me, authentication-rate-limit, global-menu, storefront, and smoke contracts. It did not block this merge. Its two reported Personal Assistant failures were independently rerun against production and passed. Those cross-product failures are not represented here as Personal Assistant success.
 
 ## Forward Checks
 
