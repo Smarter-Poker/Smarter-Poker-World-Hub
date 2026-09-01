@@ -105,11 +105,28 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /aria-label=\{isVip \? 'VIP Membership active' : 'VIP Membership inactive'\}/);
 });
 
-test('World Hub removes the baked profile ornament and hard-locks one thin black-framed circle', () => {
+/*
+ * UPDATED 2026-09-01. This used to pin an opaque black disc over the baked
+ * ornament plus a 72% portrait centred at 50%/50%. Measured against the artwork
+ * the header actually renders (public/images/global-header/global-header-desktop.png,
+ * 1648x168) the ornament is a circle centred at (1159.75, 80.5) with a 94-unit
+ * outer diameter and an 81-unit aperture inside its chrome band. The disc was
+ * 117.8 units - wider than the whole ornament - so it painted out the ring and
+ * its blue glow; the 72% portrait was 84.8 units sitting 3.6 units low, so it
+ * covered the band. Dan, 2026-09-01: "the profile image needs to be fixed on
+ * most of them as well." The portrait now fills the measured aperture and the
+ * approved ring frames it. The header also no longer paints a background of its
+ * own, which was only ever visible on mobile in the safe-area/standalone bands.
+ */
+test('World Hub seats the portrait in the measured ornament aperture and paints no background', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
+  assert.match(header, /\.approved-global-header\s*\{[\s\S]*?background: transparent;/);
+  assert.doesNotMatch(header, /\.approved-global-header\s*\{[\s\S]*?background: #000;/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 0;[\s\S]*?border-radius: 50%;[\s\S]*?background: #000;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?transform: translate\(-50%, -50%\) !important;[\s\S]*?border: 0\.5px solid rgba\(0, 0, 0, \.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
+  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?left: 66\.75%;[\s\S]*?width: 7\.15%;[\s\S]*?aspect-ratio: 1;/);
+  // The hit region paints nothing: a shape drawn over approved artwork is a defect.
+  assert.doesNotMatch(header, /\.approved-global-header__profile\s*\{[^}]*background: #000;/);
+  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?top: 46\.9% !important;[\s\S]*?left: 50\.7% !important;[\s\S]*?width: 68\.7%;[\s\S]*?aspect-ratio: 1;[\s\S]*?transform: translate\(-50%, -50%\) !important;[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
   assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
   assert.match(header, /object-fit: cover !important/);
   assert.match(header, /resolveHeaderPortrait\([\s\S]*?user\?\.useAvatarAsProfilePic === true/);
@@ -126,7 +143,11 @@ test('Commander consumes the same approved row and live profile image', () => {
   assert.match(commander, /cmd-approved-header__avatar/);
   assert.match(commander, /src=\{profileAvatar\}/);
   assert.match(commander, /resolveHeaderPortrait\(profilePhotoUrl, arenaAvatarUrl, useAvatarAsProfilePic\)/);
-  assert.match(commander, /\.cmd-approved-header__avatar-slot\s*\{[\s\S]*?top: 50% !important;[\s\S]*?left: 50% !important;[\s\S]*?width: 72%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border: 0\.5px solid rgba\(0, 0, 0, \.94\);[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
+  // Same measured aperture as the World Hub header above, and the same removal
+  // of the header's own background. Club Commander renders the identical row.
+  assert.match(commander, /\.cmd-approved-header\s*\{[\s\S]*?background: transparent;/);
+  assert.doesNotMatch(commander, /\.cmd-approved-header__profile\s*\{[^}]*background: #000;/);
+  assert.match(commander, /\.cmd-approved-header__avatar-slot\s*\{[\s\S]*?top: 46\.9% !important;[\s\S]*?left: 50\.7% !important;[\s\S]*?width: 68\.7%;[\s\S]*?aspect-ratio: 1;[\s\S]*?border-radius: 50%;[\s\S]*?background: transparent;/);
   assert.match(commander, /object-fit: cover !important/);
   assert.match(commander, /router\.push\('\/hub\/vip-membership'\)/);
 });
