@@ -231,7 +231,7 @@ export default async function handler(req, res) {
               // the engine actually writes is agent_commissions, keyed by the
               // agent's auth user_id, and its column IS called amount.
               // commission_history is dropped in club-arena migration
-              // 20260902070000.
+              // 20260901133348.
               const { data: commissions } = await getSupabase()
                   .from('agent_commissions')
                   .select('user_id, amount')

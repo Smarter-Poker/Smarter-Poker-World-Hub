@@ -1,7 +1,7 @@
 # The Second Liability: settle-period Computed Commission A Second Time
 
 **2026-09-01. Phase 7 of 7 of the agent credit and promotion lifecycle.**
-Club Arena side: `supabase/migrations/20260902070000_the_agents_books_tell_the_truth.sql`.
+Club Arena side: `supabase/migrations/20260901133348_the_agents_books_tell_the_truth.sql`.
 
 ## What was here
 
