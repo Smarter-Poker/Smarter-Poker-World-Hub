@@ -23,8 +23,10 @@
  *
  *   INITIAL   what a user downloads before the app renders. Regressions here
  *             are felt directly. Fix by code-splitting.
- *   CODE      every JS/CSS chunk including lazy routes. Growth here means the
- *             app is getting heavier. Fix by trimming dependencies.
+ *   CODE      current-generation JS/CSS including lazy routes. Growth here
+ *             means the app is getting heavier. Fix by trimming dependencies.
+ *   RETAINED  the immediately previous generation kept for clients whose stale
+ *             HTML is still loading. Bytes and chunk count are both bounded.
  *   PAYLOAD   the whole directory including static media. 67 MB of the current
  *             88 MB is images (cards 26.4, images 25.9, game-card-icons 7.9,
  *             club-logos 4.0). That is what U5.3 moves to R2; until then this
@@ -43,14 +45,12 @@
  * note saying what grew. Never delete a budget to make CI green.
  *
  * A NOTE FOR WHOEVER LOOKS AT THE DUPLICATE CHUNK NAMES
- * assets/ holds 75 logical chunks with more than one hashed copy — three
- * `TournamentDetails`, two `TablePage`, and so on. That looks exactly like
- * stale residue from an incomplete wipe, and it is not: verified 2026-08-17 by
- * scanning index.html plus every emitted JS/CSS file for each filename. All
- * 261 are referenced, zero orphans. Deleting the "duplicates" would break
- * lazy-loaded routes. This check therefore does no orphan pruning, and this
- * note exists so the next person does not repeat the investigation and reach
- * the wrong conclusion faster.
+ * The sync deliberately retains the immediately previous generation for stale
+ * clients. runtime-asset-manifest.json names the current generation; other
+ * JS/CSS files are compatibility assets, not current application weight. The
+ * two sets are measured independently. Deleting retained chunks would break a
+ * client mid-navigation; counting both sets against the current-code ratchet
+ * would instead make every normal sync look like a code-size regression.
  *
  * USAGE
  *   node scripts/ci/check-ca-bundle-size.mjs [--warn-only] [--json]
@@ -65,6 +65,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const CA_DIR = path.join(REPO_ROOT, 'public', 'hub', 'club-arena');
 const ASSETS = path.join(CA_DIR, 'assets');
 const INDEX = path.join(CA_DIR, 'index.html');
+const RUNTIME_MANIFEST = path.join(CA_DIR, 'runtime-asset-manifest.json');
 
 const WARN_ONLY = process.argv.includes('--warn-only');
 const AS_JSON = process.argv.includes('--json');
@@ -76,6 +77,8 @@ const MB = 1024 * 1024;
 const BUDGETS = {
   initial: 1.5,
   code: 9.0,
+  retainedCode: 6.0,
+  retainedChunks: 400,
   payload: 110.0,
 };
 
@@ -97,9 +100,18 @@ async function main() {
   if (!fs.existsSync(CA_DIR)) fail(`Club Arena build not found at ${CA_DIR}`);
   if (!fs.existsSync(ASSETS)) fail(`assets/ not found at ${ASSETS} — was the build synced?`);
   if (!fs.existsSync(INDEX)) fail(`index.html not found at ${INDEX}`);
+  if (!fs.existsSync(RUNTIME_MANIFEST)) fail(`runtime asset manifest not found at ${RUNTIME_MANIFEST}`);
 
   const html = fs.readFileSync(INDEX, 'utf8');
   const assetFiles = fs.readdirSync(ASSETS).filter((f) => f.endsWith('.js') || f.endsWith('.css'));
+  const runtimeManifest = JSON.parse(fs.readFileSync(RUNTIME_MANIFEST, 'utf8'));
+  if (!Array.isArray(runtimeManifest.assets)) fail('runtime asset manifest must contain an assets array');
+  const currentNames = new Set(runtimeManifest.assets.filter((f) => f.endsWith('.js') || f.endsWith('.css')));
+  const missingCurrent = [...currentNames].filter((f) => !fs.existsSync(path.join(ASSETS, f)));
+  if (missingCurrent.length) {
+    fail(`runtime asset manifest references ${missingCurrent.length} missing JS/CSS file(s): ${missingCurrent.slice(0, 5).join(', ')}`);
+  }
+  const retainedNames = assetFiles.filter((f) => !currentNames.has(f));
 
   // Initial load = only what index.html itself pulls in. Everything else is a
   // lazy chunk fetched on navigation, which does not delay first paint.
@@ -108,15 +120,22 @@ async function main() {
     .filter((f) => fs.existsSync(path.join(ASSETS, f)))
     .reduce((n, f) => n + fs.statSync(path.join(ASSETS, f)).size, 0);
 
-  const code = assetFiles.reduce((n, f) => n + fs.statSync(path.join(ASSETS, f)).size, 0);
+  // The sync intentionally retains the immediately previous asset generation
+  // so a client with stale HTML can still finish loading. The runtime manifest
+  // is the authority for the current generation; everything else is retained
+  // compatibility code and has its own bounded budget below.
+  const code = [...currentNames].reduce((n, f) => n + fs.statSync(path.join(ASSETS, f)).size, 0);
+  const retainedCode = retainedNames.reduce((n, f) => n + fs.statSync(path.join(ASSETS, f)).size, 0);
   const payload = dirBytes(CA_DIR);
 
   const rows = [
     ['initial', initial / MB, BUDGETS.initial, 'downloaded before first paint'],
-    ['code', code / MB, BUDGETS.code, `all JS/CSS (${assetFiles.length} chunks)`],
+    ['code', code / MB, BUDGETS.code, `current JS/CSS (${currentNames.size} chunks)`],
+    ['retainedCode', retainedCode / MB, BUDGETS.retainedCode, `previous-generation JS/CSS (${retainedNames.length} chunks)`],
     ['payload', payload / MB, BUDGETS.payload, 'entire deployed directory'],
   ];
   const over = rows.filter(([, actual, budget]) => actual > budget);
+  if (retainedNames.length > BUDGETS.retainedChunks) over.push(['retainedChunks']);
 
   if (AS_JSON) {
     console.log(
@@ -124,9 +143,13 @@ async function main() {
         {
           initial_mb: +(initial / MB).toFixed(2),
           code_mb: +(code / MB).toFixed(2),
+          retained_code_mb: +(retainedCode / MB).toFixed(2),
+          total_code_mb: +((code + retainedCode) / MB).toFixed(2),
           payload_mb: +(payload / MB).toFixed(2),
           budgets: BUDGETS,
-          chunks: assetFiles.length,
+          chunks: currentNames.size,
+          retained_chunks: retainedNames.length,
+          total_chunks: assetFiles.length,
           over: over.map(([n]) => n),
         },
         null,

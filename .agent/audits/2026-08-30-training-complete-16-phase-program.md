@@ -70,8 +70,9 @@ resume, and failure recovery for all 107 games.
 Phase 5 implementation PR 1164 merged normally as `9fe70d5dc9`; production
 serves verified healthy descendant `63b33a60fb`. Full local and production
 evidence is recorded in
-`2026-08-31-training-phase-5-all-game-runtime-matrix.md`. The protected
-documentation closeout remains required before this phase is complete.
+`2026-08-31-training-phase-5-all-game-runtime-matrix.md`. Protected closeout
+PR 1166 merged normally as `d8d3b1468e`. A fresh real-account certification
+then passed the complete representative mobile/desktop production matrix.
 
 ### Phase 6: Club Arena One-To-One Gameplay Parity
 
@@ -79,6 +80,15 @@ Lock table geometry, avatars, hero cards, seats, dealer and blind markers, pot,
 community cards, HUD, action rail, feedback layers, and responsive states to the
 Club Arena reference. Add pixel baselines for idle, preflop, flop, turn, river,
 action, verdict, all-in, and completion states.
+
+Phase 6 started from exact protected main after Phase 5 closeout. Its first
+production cold-cache audit found two certification races and one false bundle
+budget regression. The visible-image check now waits for decoding before it
+classifies an image as broken, persistent feedback is checked through the same
+semantic visible locators that observed it appear, and Club Arena current and
+retained compatibility generations are measured independently without raising
+the 9 MB current-code ratchet. Detailed evidence is recorded in
+`2026-09-01-training-phase-6-club-arena-parity.md`.
 
 ### Phase 7: Every Game's Secondary Pages
 

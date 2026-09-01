@@ -75,6 +75,25 @@ async function pageState(page) {
   });
 }
 
+async function waitForVisibleImages(page, timeout = 10_000) {
+  await page.waitForFunction(() => {
+    const visibleInViewport = (element) => {
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return box.width > 0
+        && box.height > 0
+        && box.bottom > 0
+        && box.top < innerHeight
+        && style.display !== 'none'
+        && style.visibility !== 'hidden';
+    };
+
+    return [...document.images]
+      .filter(visibleInViewport)
+      .every((image) => image.complete && image.naturalWidth > 0);
+  }, undefined, { timeout });
+}
+
 function assertCommon(state, label) {
   assert.equal(state.approvedHeaders, 1, `${label}: approved global header count`);
   assert.ok(state.overflow <= 1, `${label}: horizontal overflow ${state.overflow}px`);
@@ -295,6 +314,7 @@ async function auditArena(page, viewport, arena) {
     ? Number(await page.locator('[data-training-question-card]').getAttribute('data-training-option-count'))
     : await page.locator('.sp-club-gto-actions [data-action]').count();
   assert.equal(optionCount, 4, `${arena.gameId}: answer option count`);
+  await waitForVisibleImages(page);
   const state = await pageState(page);
   assertCommon(state, `${viewport.name} ${arena.gameId} gameplay`);
 
@@ -311,28 +331,19 @@ async function auditArena(page, viewport, arena) {
     await verdict.waitFor({ state: 'visible', timeout: 30_000 });
     await next.waitFor({ state: 'visible', timeout: 30_000 });
     await page.waitForTimeout(1_000);
-    const feedbackVisibility = await page.evaluate(() => {
-      const visible = (element) => {
-        const box = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return box.width > 0 && box.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-      };
-      const labels = [...document.querySelectorAll('body *')]
-        .filter((element) => element.children.length === 0 && visible(element))
-        .map((element) => (element.textContent || '').trim());
-      return {
-        verdicts: labels.filter((text) => /^(?:Correct|Incorrect)$/.test(text)),
-        yourAnswer: labels.includes('Your Answer'),
-        correctAnswer: labels.includes('Correct Answer'),
-        next: labels.some((text) => /Next Question/.test(text)),
-      };
-    });
-    assert.ok(feedbackVisibility.verdicts.length > 0, `${arena.gameId}: verdict did not persist`);
+    const feedbackVisibility = {
+      verdict: await verdict.isVisible(),
+      verdictText: (await verdict.textContent())?.trim() || null,
+      yourAnswer: await page.getByText('Your Answer', { exact: true }).isVisible(),
+      correctAnswer: await page.getByText('Correct Answer', { exact: true }).isVisible(),
+      next: await next.isVisible(),
+    };
+    assert.equal(feedbackVisibility.verdict, true, `${arena.gameId}: verdict did not persist`);
     assert.equal(feedbackVisibility.yourAnswer, true, `${arena.gameId}: Your Answer did not persist`);
     assert.equal(feedbackVisibility.correctAnswer, true, `${arena.gameId}: Correct Answer did not persist`);
     assert.equal(feedbackVisibility.next, true, `${arena.gameId}: manual Next missing`);
     feedback = {
-      verdict: feedbackVisibility.verdicts[0],
+      verdict: feedbackVisibility.verdictText,
       manualNext: true,
       persisted: true,
     };

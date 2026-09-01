@@ -15,5 +15,11 @@ test('production certification proves the saved test-account session is live', a
   assert.match(source, /settled\.path === '\/hub\/training'/);
   assert.match(source, /assert\.equal\(settled\.cards, 107/);
   assert.match(source, /auth document replacement settled on/);
+  assert.match(source, /async function waitForVisibleImages/);
+  assert.match(source, /image\.complete && image\.naturalWidth > 0/);
+  assert.match(source, /await waitForVisibleImages\(page\)/);
+  assert.match(source, /verdict:\s*await verdict\.isVisible\(\)/);
+  assert.match(source, /next:\s*await next\.isVisible\(\)/);
+  assert.doesNotMatch(source, /element\.children\.length === 0 && visible\(element\)/);
   assert.doesNotMatch(source, /authState:\s*'real test-account session'[\s\S]*?success:\s*true[\s\S]*?without/i);
 });
