@@ -50,6 +50,8 @@
   <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
     <title>♠ Club Arena | Smarter.Poker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- PERF 2026-08-22: preconnect to Supabase — every boot's first real work is
        auth (getSession → token refresh) + data fetches against this origin.
        Warming DNS+TLS in parallel with JS download saves 100-300ms on mobile. -->
@@ -58,14 +60,14 @@
        trick) instead of render-blocking. display=swap already renders text in
        fallback fonts, so nothing waits on this fetch anymore. -->
     <link
-      href="/hub/club-arena/fonts/fonts-2d4eda7dd6.css"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&family=Roboto+Condensed:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
       media="print"
       onload="this.media = 'all'"
     />
     <noscript>
       <link
-        href="/hub/club-arena/fonts/fonts-2d4eda7dd6.css"
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&family=Roboto+Condensed:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
       />
     </noscript>
@@ -78,10 +80,10 @@
        fetching its SDK and pinging the vendor on every session for a feature
        it no longer provided. Full story: docs/changelog/2026-08-29-onesignal-was-still-loading.md
        Push enrolment is src/lib/pushClient.ts against the ROOT service worker. -->
-    <script type="module" crossorigin src="/hub/club-arena/assets/index-CGcwamDE-v6.js"></script>
-    <link rel="modulepreload" crossorigin href="/hub/club-arena/assets/vendor-react-C6BNlpfB-v6.js">
+    <script type="module" crossorigin src="/hub/club-arena/assets/index-DrOLvJ8--v6.js"></script>
+    <link rel="modulepreload" crossorigin href="/hub/club-arena/assets/vendor-react-DHxzjcZP-v6.js">
     <link rel="modulepreload" crossorigin href="/hub/club-arena/assets/vendor-supabase-BLlQ2fJ4-v6.js">
-    <link rel="stylesheet" crossorigin href="/hub/club-arena/assets/index-CnnWgGyd-v6.css">
+    <link rel="stylesheet" crossorigin href="/hub/club-arena/assets/index-jN312AxJ-v6.css">
   </head>
 
   <body>
