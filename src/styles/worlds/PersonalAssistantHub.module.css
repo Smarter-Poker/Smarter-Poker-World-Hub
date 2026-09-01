@@ -930,22 +930,22 @@
   /* Keep the complete command stack above the fixed mobile navigation on the
      initial viewport. The art remains the thesis, but uses a phone-proportioned
      cinematic crop rather than pushing the primary action below the fold. */
-  .heroInner { min-height: 520px; background: #03070a; }
+  .heroInner { min-height: 430px; background: #03070a; }
 
   .heroInner::before {
     inset: 0 0 auto;
-    height: 225px;
+    height: 150px;
     border-bottom: 1px solid #3f7896;
     background:
       linear-gradient(180deg, transparent 58%, #03070a 100%),
       url('/images/personal-assistant-v2/jarvis-hero.webp') 69% center / cover no-repeat;
   }
 
-  .heroCopy { width: 100%; padding: 245px 18px 16px; }
-  .heroCopy h1 { margin: 12px 0 15px; font-size: clamp(32px, 10vw, 40px); line-height: 1.02; }
-  .heroCopy p { font-size: 12px; line-height: 1.55; }
+  .heroCopy { width: 100%; padding: 164px 18px 14px; }
+  .heroCopy h1 { margin: 8px 0 10px; font-size: clamp(28px, 8.5vw, 36px); line-height: 1; }
+  .heroCopy p { font-size: 11px; line-height: 1.42; }
   .eyebrow { font-size: 8px; }
-  .statusBadge { width: 100%; justify-content: center; margin-top: 18px; padding: 10px; font-size: 8px; }
+  .statusBadge { width: 100%; justify-content: center; margin-top: 10px; padding: 8px; font-size: 8px; }
   .heroActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
   .heroActions :is(.primaryButton, .secondaryButton) {
     width: 100%;
@@ -1044,10 +1044,10 @@
 }
 
 @media (max-width: 380px) {
-  .heroInner { min-height: 510px; }
-  .heroInner::before { height: 218px; }
-  .heroCopy { padding-top: 238px; }
-  .heroCopy h1 { font-size: 31px; }
+  .heroInner { min-height: 420px; }
+  .heroInner::before { height: 142px; }
+  .heroCopy { padding-top: 156px; }
+  .heroCopy h1 { font-size: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

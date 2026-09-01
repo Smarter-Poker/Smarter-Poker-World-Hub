@@ -63,6 +63,26 @@ export default defineConfig({
       use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
     },
     {
+      name: 'pa-webkit',
+      testMatch: /021-personal-assistant\.spec\.ts$/,
+      fullyParallel: false,
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'pa-mobile-webkit',
+      testMatch: /021-personal-assistant\.spec\.ts$/,
+      fullyParallel: false,
+      use: {
+        ...devices['iPhone 13'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    {
       name: 'footer-chromium',
       testMatch: /global-footer-visual\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'] },

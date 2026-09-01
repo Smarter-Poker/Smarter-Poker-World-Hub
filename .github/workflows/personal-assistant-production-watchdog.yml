@@ -1,0 +1,46 @@
+name: Personal Assistant Production Watchdog
+
+# Production hardening gate for successful Vercel production deployments.
+# Deliberately event-driven: repository cron governance forbids a new schedule.
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-assistant-production-watchdog
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       contains(github.event.deployment_status.environment, 'Production'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Personal Assistant Production Boundaries
+        env:
+          PA_VERIFY_BASE_URL: https://smarter.poker
+          PA_PROBE_CONCURRENCY: '4'
+          PA_PROBE_REQUESTS: '16'
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: node scripts/verify-pa-production-hardening.mjs --require-auth | tee pa-hardening.json
+      - name: Upload Hardening Receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: personal-assistant-hardening-receipt
+          path: pa-hardening.json
+          if-no-files-found: error
+          retention-days: 14
