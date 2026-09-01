@@ -120,7 +120,9 @@ async function waitForVisualBoard(page) {
   }, undefined, { timeout: 15_000 });
 }
 
-async function openArena(page, viewport, testCase) {
+async function openArena(page, viewport, testCase, diagnostics) {
+  diagnostics.pageErrors.length = 0;
+  diagnostics.consoleErrors.length = 0;
   const session = `phase6-${viewport.name}-${testCase.gameId}-${Date.now()}`;
   const response = await page.goto(`${BASE_URL}/hub/training/arena/${testCase.gameId}?level=1&session=${session}`, {
     waitUntil: 'domcontentloaded', timeout: 60_000,
@@ -272,7 +274,24 @@ async function openArena(page, viewport, testCase) {
     await page.screenshot({ path: resolve(SHOTS, `${viewport.name}-${testCase.gameId}-completion.png`), fullPage: false });
   }
 
-  return { gameId: testCase.gameId, family: testCase.family, idle, action, verdict, progression, completion };
+  await page.waitForTimeout(500);
+  const browserErrors = {
+    pageErrors: [...diagnostics.pageErrors],
+    consoleErrors: [...diagnostics.consoleErrors],
+  };
+  assert.deepEqual(browserErrors.pageErrors, [], `${testCase.gameId}: browser page errors`);
+  assert.deepEqual(browserErrors.consoleErrors, [], `${testCase.gameId}: browser console errors`);
+
+  return {
+    gameId: testCase.gameId,
+    family: testCase.family,
+    idle,
+    action,
+    verdict,
+    progression,
+    completion,
+    browserErrors,
+  };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -293,10 +312,24 @@ try {
     for (const entry of entries) localStorage.setItem(entry.name, entry.value);
   }, { host: auditHost, entries: savedLocalStorage });
   const page = await context.newPage();
+  const diagnostics = { pageErrors: [], consoleErrors: [] };
+  page.on('pageerror', (error) => {
+    diagnostics.pageErrors.push({
+      message: error.message,
+      stack: error.stack || null,
+    });
+  });
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    diagnostics.consoleErrors.push({
+      text: message.text(),
+      location: message.location(),
+    });
+  });
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
     const entry = { viewport, cases: [] };
-    for (const testCase of CASES) entry.cases.push(await openArena(page, viewport, testCase));
+    for (const testCase of CASES) entry.cases.push(await openArena(page, viewport, testCase, diagnostics));
     result.viewports.push(entry);
   }
   result.success = true;
