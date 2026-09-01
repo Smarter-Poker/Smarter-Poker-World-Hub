@@ -144,7 +144,12 @@ async function main() {
           initial_mb: +(initial / MB).toFixed(2),
           code_mb: +(code / MB).toFixed(2),
           retained_code_mb: +(retainedCode / MB).toFixed(2),
-          total_code_mb: +((code + retainedCode) / MB).toFixed(2),
+          // Keep the displayed total arithmetically consistent with the two
+          // displayed generation values. Safety comparisons above still use
+          // the unrounded byte counts, so this changes reporting only.
+          total_code_mb: +(
+            +(code / MB).toFixed(2) + +(retainedCode / MB).toFixed(2)
+          ).toFixed(2),
           payload_mb: +(payload / MB).toFixed(2),
           budgets: BUDGETS,
           chunks: currentNames.size,
