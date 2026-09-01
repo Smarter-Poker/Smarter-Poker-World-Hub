@@ -542,10 +542,20 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
           transition: transform .12s ease, opacity .12s ease;
         }
         .bn-tab:active { opacity: .65; transform: scale(.94); }
+        /* NO BOXES OVER FOOTER ICONS (Dan, 2026-09-01, binding). Same law as
+           the global header: the icon is the control, an outline on top of it
+           is a rectangle on the artwork. Focus stays visible as a soft glow. */
+        .bn-tab:focus,
         .bn-tab:focus-visible {
-          outline: 2px solid var(--bn-active, #1877f2);
-          outline-offset: -2px;
-          border-radius: 8px;
+          outline: none;
+          box-shadow: none;
+        }
+        .bn-tab:focus-visible {
+          background: radial-gradient(
+            closest-side,
+            rgba(24, 119, 242, 0.26),
+            rgba(24, 119, 242, 0) 78%
+          );
         }
         .bn-icon {
           display: block;
