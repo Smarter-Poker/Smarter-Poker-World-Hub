@@ -1,10 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = process.cwd();
 const ESLINT_BIN = resolve(ROOT, 'node_modules/eslint/bin/eslint.js');
-const BATCH_SIZE = 20;
+const MAX_BATCH_FILES = 60;
+const MAX_BATCH_BYTES = 600_000;
 const SOURCE_EXTENSION = /\.(?:cjs|js|jsx|mjs|ts|tsx)$/;
 const EXCLUDED_PREFIXES = [
   '.cache/',
@@ -40,10 +41,28 @@ const files = inventory.stdout
   .filter((file) => SOURCE_EXTENSION.test(file))
   .filter((file) => !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)));
 
-console.log(`Linting ${files.length} source and test files in bounded batches.`);
+const batches = [];
+let batch = [];
+let batchBytes = 0;
 
-for (let index = 0; index < files.length; index += BATCH_SIZE) {
-  const batch = files.slice(index, index + BATCH_SIZE);
+for (const file of files) {
+  const fileBytes = statSync(resolve(ROOT, file)).size;
+  if (
+    batch.length > 0 &&
+    (batch.length >= MAX_BATCH_FILES || batchBytes + fileBytes > MAX_BATCH_BYTES)
+  ) {
+    batches.push(batch);
+    batch = [];
+    batchBytes = 0;
+  }
+  batch.push(file);
+  batchBytes += fileBytes;
+}
+if (batch.length > 0) batches.push(batch);
+
+console.log(`Linting ${files.length} source and test files in ${batches.length} bounded batches.`);
+
+for (const [index, lintBatch] of batches.entries()) {
   const result = spawnSync(
     process.execPath,
     [
@@ -52,7 +71,7 @@ for (let index = 0; index < files.length; index += BATCH_SIZE) {
       '--cache-location',
       '.cache/eslint',
       '--quiet',
-      ...batch,
+      ...lintBatch,
     ],
     {
       cwd: ROOT,
@@ -65,6 +84,9 @@ for (let index = 0; index < files.length; index += BATCH_SIZE) {
   );
 
   if (result.status !== 0) process.exit(result.status || 1);
+  if ((index + 1) % 25 === 0 || index === batches.length - 1) {
+    console.log(`Lint progress: ${index + 1}/${batches.length} batches.`);
+  }
 }
 
 console.log(`ESLint passed for ${files.length} files.`);
