@@ -37,6 +37,25 @@ const concurrency = Math.min(8, Math.max(1, Number.isFinite(configuredConcurrenc
 const requestCount = Math.min(40, Math.max(4, Number.isFinite(configuredRequests) ? configuredRequests : 16));
 const timeoutMs = 15_000;
 
+// Every authenticated, read-only API used by the Personal Assistant and its
+// connected Sandbox surfaces belongs in the post-deployment watchdog. Keeping
+// this list broad makes a shared-auth regression visible immediately without
+// mutating the protected account.
+export const protectedReadRoutes = [
+  '/api/assistant/stats',
+  '/api/assistant/leaks',
+  '/api/assistant/leaks/audit-jobs',
+  '/api/assistant/sandbox/sandbox-quiz',
+  '/api/sandbox/coach-accuracy',
+  '/api/sandbox/create-share',
+  '/api/sandbox/leaderboard',
+  '/api/sandbox/macro-analysis',
+  '/api/sandbox/quiz-leaderboard?limit=5',
+  '/api/sandbox/saved-hands',
+  '/api/sandbox/session-stats',
+  '/api/sandbox/sessions',
+];
+
 export function percentile(values, fraction) {
   if (!Array.isArray(values) || values.length === 0) return null;
   const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
@@ -132,7 +151,7 @@ export async function runProductionHardeningProbe() {
   let rlsChecks = [];
   if (session) {
     const authHeaders = { Authorization: `Bearer ${session.token}`, Accept: 'application/json' };
-    for (const route of ['/api/assistant/stats', '/api/assistant/leaks', '/api/assistant/leaks/audit-jobs']) {
+    for (const route of protectedReadRoutes) {
       const result = await request(`${baseUrl}${route}`, { headers: authHeaders });
       if (!result.ok) throw new Error(`${route} returned ${result.status} for the protected account.`);
       protectedChecks.push({ route, status: result.status, durationMs: result.durationMs });

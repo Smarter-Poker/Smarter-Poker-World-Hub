@@ -25,6 +25,7 @@
  * is a 404, i.e. a control that silently does nothing.
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
@@ -61,12 +62,9 @@ function generateShortId(length = 6) {
  * or the query string would let anyone revoke anyone else's link.
  */
 async function resolveUserId(supabase, req) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return null;
-    const token = authHeader.replace('Bearer ', '');
     try {
-        const { data: authData } = await supabase.auth.getUser(token);
-        return authData?.user?.id || null;
+        const { user } = await getServerUserWithFallback(req, supabase);
+        return user?.id || null;
     } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
         return null;

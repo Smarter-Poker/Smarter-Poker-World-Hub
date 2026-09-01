@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { validateAndNormalizeScenario, ScenarioValidationError } from '../src/lib/sandbox/scenarioContract.mjs';
 import { openAuditCursor, sealAuditCursor } from '../src/lib/personal-assistant/auditCursor.mjs';
 import { runLeakAuditBatches } from '../src/lib/personal-assistant/leakAuditRunner.js';
-import { boundedMap, percentile } from '../scripts/verify-pa-production-hardening.mjs';
+import { boundedMap, percentile, protectedReadRoutes } from '../scripts/verify-pa-production-hardening.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
@@ -130,4 +130,24 @@ test('Phase 6 is a permanent build, browser, and post-deployment gate', () => {
   assert.match(workflow, /deployment_status:/);
   assert.doesNotMatch(workflow, /schedule:/);
   assert.match(workflow, /verify-pa-production-hardening\.mjs --require-auth/);
+  assert.equal(protectedReadRoutes.includes('/api/assistant/sandbox/sandbox-quiz'), true);
+  assert.equal(protectedReadRoutes.includes('/api/sandbox/sessions'), true);
+  assert.equal(protectedReadRoutes.includes('/api/sandbox/create-share'), true);
+});
+
+test('all Personal Assistant data routes share resilient auth and the durable worker owns a JSON failure boundary', () => {
+  const apiRoots = [
+    'pages/api/assistant',
+    'pages/api/sandbox/_routes',
+    'app/api/assistant',
+  ];
+  const files = apiRoots.flatMap(root => fs.readdirSync(path.join(ROOT, root), { recursive: true })
+    .filter(name => String(name).endsWith('.js'))
+    .map(name => path.join(root, String(name))));
+  const directAuth = files.filter(file => /\.auth\.getUser\s*\(/.test(read(file)));
+  assert.deepEqual(directAuth, []);
+
+  const worker = read('app/api/assistant/leaks/audit-worker/route.js');
+  assert.match(worker, /export async function POST\(request\) \{\s*try \{/);
+  assert.match(worker, /status: 503/);
 });

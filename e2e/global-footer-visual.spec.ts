@@ -376,6 +376,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
           if (capturedHref === undefined) await page.waitForTimeout(100);
         }
 
+        if (capturedHref === undefined) {
+          throw new Error(`Footer click ${index + 1} for ${definition.id} was not captured.`);
+        }
         expect(capturedHref).toBe(expectedHref);
         capturedWorldHrefs.push(capturedHref);
       }
