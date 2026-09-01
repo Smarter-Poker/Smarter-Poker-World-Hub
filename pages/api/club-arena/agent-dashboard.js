@@ -127,25 +127,28 @@ export default async function handler(req, res) {
 
       const { data: pendingCashouts } = await cashoutQuery;
 
-      // 5. Get commission history (last 5 periods)
+      // 5. Get commission history.
+      //
+      // PHASE 7 (2026-09-01): off commission_history - which never held a row,
+      // so this list was empty for every club and every agent since the day it
+      // was written - onto agent_commissions, the ledger the engine writes as
+      // hands settle. It is keyed by the agent's auth user_id, not agents.id.
+      // commission_history is dropped in club-arena migration 20260902070000.
       let commHistQuery = getSupabase()
-        .from('commission_history')
-        .select('*')
+        .from('agent_commissions')
+        .select('id, user_id, club_id, amount, source_type, created_at, settled_at')
         .eq('club_id', clubId)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (isAgent) {
-        const myAgent = (agents || []).find(a => a.user_id === user.id);
-        if (myAgent) {
-          commHistQuery = getSupabase()
-            .from('commission_history')
-            .select('*')
-            .eq('club_id', clubId)
-            .eq('agent_id', myAgent.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-        }
+        commHistQuery = getSupabase()
+          .from('agent_commissions')
+          .select('id, user_id, club_id, amount, source_type, created_at, settled_at')
+          .eq('club_id', clubId)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
       }
 
       const { data: commissionHistory } = await commHistQuery;

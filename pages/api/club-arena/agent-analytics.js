@@ -27,6 +27,41 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * What an agent has earned in a window, from agent_commissions.
+ *
+ * PHASE 7 (2026-09-01). This replaces `sum_agent_commissions`, which read
+ * commission_history - a table with zero rows in it - and answered
+ * {total: 0, paid: 0} to every question ever asked of it. Club Arena's phase 6
+ * DROPPED that function on 2026-08-31, so the two callers below have been
+ * asking PostgREST for a function that no longer exists; supabase-js hands back
+ * an error rather than throwing, and both callers read `commsData?.total || 0`,
+ * so the failure rendered as a zero either way.
+ *
+ * `paid` means settled: a commission row is settled when the agent has claimed
+ * it through fn_agent_claim_commission and the club bank has paid for it.
+ */
+async function sumAgentCommissions(supabase, clubId, agentUserId, sinceIso) {
+    const { data, error } = await supabase
+        .from('agent_commissions')
+        .select('amount, settled_at')
+        .eq('club_id', clubId)
+        .eq('user_id', agentUserId)
+        .gte('created_at', sinceIso)
+        .limit(50000);
+
+    if (error) return { total: 0, paid: 0, pending: 0, error };
+
+    let total = 0;
+    let paid = 0;
+    for (const row of data || []) {
+        const amount = Number(row.amount) || 0;
+        total += amount;
+        if (row.settled_at) paid += amount;
+    }
+    return { total, paid, pending: total - paid, error: null };
+}
+
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 export default async function handler(req, res) {
@@ -82,13 +117,10 @@ export default async function handler(req, res) {
       if (action === 'pulse') {
           try {
               // Total commissions earned in the window
-              const { data: commsData } = await getSupabase().rpc('sum_agent_commissions', {
-                  p_club_id: clubId, p_agent_id: targetAgent, p_start: daysAgo
-              });
-              
-              const totalCommissions = commsData?.total || 0;
-              const paidCommissions = commsData?.paid || 0;
-              const pendingCommissions = totalCommissions - paidCommissions;
+              const commsData = await sumAgentCommissions(getSupabase(), clubId, targetAgent, daysAgo);
+              const totalCommissions = commsData.total;
+              const paidCommissions = commsData.paid;
+              const pendingCommissions = commsData.pending;
 
               // Player count under this agent
               const { data: players } = await getSupabase()
@@ -189,21 +221,28 @@ export default async function handler(req, res) {
 
               const agentIds = (agents || []).map(a => a.user_id);
 
-              // Get commission totals per agent
+              // Get commission totals per agent.
+              //
+              // PHASE 7 (2026-09-01): off commission_history, onto
+              // agent_commissions. The 2026-08-15 fix below was real - `amount`
+              // is not a column on commission_history - but it fixed the column
+              // name on a table that has never held a single row, so every
+              // agent on this leaderboard was ranked on 0 earnings. The ledger
+              // the engine actually writes is agent_commissions, keyed by the
+              // agent's auth user_id, and its column IS called amount.
+              // commission_history is dropped in club-arena migration
+              // 20260902070000.
               const { data: commissions } = await getSupabase()
-                  .from('commission_history')
-                  // 2026-08-15 CHECK 13 fix: `amount` is not a column on
-                  // commission_history (real: commission_earned; aliased) — the
-                  // select 42703'd and agent earnings always showed 0.
-                  .select('agent_id, amount:commission_earned')
+                  .from('agent_commissions')
+                  .select('user_id, amount')
                   .eq('club_id', clubId)
-                  .in('agent_id', agentIds)
+                  .in('user_id', agentIds)
                   .gte('created_at', daysAgo)
                   .limit(50000);
 
               const earningsMap = {};
               for (const c of (commissions || [])) {
-                  earningsMap[c.agent_id] = (earningsMap[c.agent_id] || 0) + (c.amount || 0);
+                  earningsMap[c.user_id] = (earningsMap[c.user_id] || 0) + (Number(c.amount) || 0);
               }
 
               // Get player counts per agent
@@ -302,10 +341,8 @@ export default async function handler(req, res) {
 
               // Commissions earned last 30 days
               const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-              const { data: commsData } = await getSupabase().rpc('sum_agent_commissions', {
-                  p_club_id: clubId, p_agent_id: targetAgent, p_start: thirtyDaysAgo
-              });
-              const totalCommissions = commsData?.total || 0;
+              const commsData = await sumAgentCommissions(getSupabase(), clubId, targetAgent, thirtyDaysAgo);
+              const totalCommissions = commsData.total;
 
               // Cashouts processed last 30 days
               const { data: cashouts } = await getSupabase()

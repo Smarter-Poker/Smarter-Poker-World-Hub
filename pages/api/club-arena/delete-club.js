@@ -68,6 +68,41 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Club name does not match' });
       }
 
+      // PHASE 7 (2026-09-01): A CLUB CANNOT BE DELETED OWING ITS AGENTS.
+      //
+      // Commission is claimed by the agent from the club bank
+      // (fn_agent_claim_commission). Deleting the club deletes the agents rows
+      // and the bank the claim draws on, so there would be nothing left to
+      // claim and nothing left to claim it from - the debt would not be
+      // settled, it would be erased. That is the same defect the GDPR precheck
+      // had for a single account, one level up.
+      const { data: owedRows, error: owedErr } = await getSupabase()
+        .from('agent_commissions')
+        .select('user_id, amount')
+        .eq('club_id', clubId)
+        .is('settled_at', null)
+        .limit(50000);
+
+      if (owedErr) {
+        // A read that failed is not a club that owes nothing.
+        return res.status(500).json({
+          success: false,
+          error: 'Could Not Check What This Club Owes Its Agents. Nothing Was Deleted.',
+        });
+      }
+
+      const owedTotal = (owedRows || []).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+      if (owedTotal > 0) {
+        const agentsOwed = new Set((owedRows || []).map((r) => r.user_id)).size;
+        return res.status(409).json({
+          success: false,
+          error:
+            `This Club Still Owes ${owedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Chips In Unclaimed Commission To ${agentsOwed} Agent${agentsOwed === 1 ? '' : 's'}. They Must Claim It Before The Club Can Be Deleted.`,
+          unclaimedCommission: Math.round(owedTotal * 100) / 100,
+          agentsOwed,
+        });
+      }
+
       // SECURITY FIX 2026-07-19: audit-log this destructive cascade BEFORE it
       // runs (was unlogged), capturing a snapshot of members and any non-zero
       // chip balances that will be destroyed, so the deletion is forensically
@@ -100,8 +135,16 @@ export default async function handler(req, res) {
       const tables = [
         'chip_transactions',
         'cashout_requests',
-        'commission_records',
-        'commission_history',
+        // PHASE 7 (2026-09-01): commission_records and commission_history were
+        // here. Both are dropped in club-arena migration 20260902070000; they
+        // never held a row. This loop discards its errors, so naming a table
+        // that no longer exists would not have failed loudly - it would just
+        // have been a line that did nothing, forever.
+        //
+        // agent_commissions is deliberately NOT added in their place. It is the
+        // record of what this club owes its agents, and the guard above refuses
+        // the deletion while any of it is unclaimed rather than deleting the
+        // debt along with the club.
         'settlement_invoices',
         'settlement_locks',
         'rakeback_distributions',
