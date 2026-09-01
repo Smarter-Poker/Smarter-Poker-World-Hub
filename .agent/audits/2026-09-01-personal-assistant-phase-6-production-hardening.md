@@ -67,5 +67,6 @@ The closure also:
 - Compiled production-server matrix across desktop Chromium, mobile Chrome, desktop Safari/WebKit, and iPhone Safari/WebKit: 49 applicable journeys passed with four intentional desktop-only mobile checks skipped.
 - Authenticated read-only production hardening: four public routes, sixteen bounded requests at concurrency four, all twelve protected reads, and all four owner-isolation probes passed.
 - Protected account audit: seven batches scanned 1,347 Club Arena hands, recovered 787 private-card records, classified 422 eligible hands as already current, persisted 19 findings, and covered all 32 active corrective candidates with eight verified and twenty-four honest practice-only mappings; no candidate was empty, unmapped, missing, or errored.
+- Two immutable-commit runs of the broad four-worker CI matrix reproduced changing failures across Health, News, Video, Store, Poker Near Me, Auth, Social, Wallet, and Personal Assistant tests while 660 and 667 tests passed respectively. The single local Next.js server now receives two bounded workers, preserving the same desktop/mobile suite and retries without the four-worker contention that made local health and hydration nondeterministic.
 
 Republication and exact deployed-revision evidence are recorded after the closure pull request reaches production.
