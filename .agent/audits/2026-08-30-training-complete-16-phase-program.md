@@ -100,6 +100,19 @@ Worker activation can no longer reload a live Training decision, and the
 footerless mobile lobby no longer reserves a phantom footer row. The approved
 global header remained untouched.
 
+Protected closeout PR 1208 merged as `c70dda95fd`; its complete local
+Chromium/mobile matrix passed 689 tests with 24 intentional skips and no
+failures or flaky results. The protected broad E2E rerun and the exact
+Chromium/WebKit Global Footer rerun both passed. Production then passed the
+authenticated mobile/desktop smoke across the 107-card Hub, login, three
+representative 12-level campaigns, four representative arenas, four-option
+contracts, explicit feedback, persistent manual Next, footerless mobile launch
+geometry, and zero page, console, image, scanline, or overflow defects. The
+permanent smoke now asserts the immersive footerless arena contract instead of
+waiting for the deliberately absent global footer. Follow-up PR 1218 publishes
+that permanent smoke correction and regression contract through protected
+checks.
+
 ### Phase 7: Every Game's Secondary Pages
 
 Audit and optimize the setup, campaign, level selection, lobby, resume, review,

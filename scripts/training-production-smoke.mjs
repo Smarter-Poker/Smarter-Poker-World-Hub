@@ -264,17 +264,56 @@ async function auditArena(page, viewport, arena) {
   }, undefined, { timeout: 10_000 });
 
   if (viewport.name === 'mobile') {
-    const startBox = await start.boundingBox();
-    const footerBox = await page.locator('[data-global-bottom-nav="true"]').boundingBox();
-    assert.ok(startBox && footerBox, `${arena.gameId}: mobile launch/footer geometry missing`);
-    if (startBox.y + startBox.height > footerBox.y + 1) {
+    const geometry = await page.evaluate(() => {
+      const startButton = document.querySelector('.sp-arena-lobby__start');
+      const launchRail = document.querySelector('.sp-arena-lobby__launch');
+      const startBox = startButton?.getBoundingClientRect();
+      const launchBox = launchRail?.getBoundingClientRect();
+      return {
+        footerCount: document.querySelectorAll('[data-global-bottom-nav="true"]').length,
+        start: startBox ? {
+          x: startBox.x,
+          y: startBox.y,
+          width: startBox.width,
+          height: startBox.height,
+          right: startBox.right,
+          bottom: startBox.bottom,
+        } : null,
+        launch: launchBox ? {
+          x: launchBox.x,
+          y: launchBox.y,
+          width: launchBox.width,
+          height: launchBox.height,
+          right: launchBox.right,
+          bottom: launchBox.bottom,
+        } : null,
+        viewport: { width: innerWidth, height: innerHeight },
+      };
+    });
+    assert.equal(geometry.footerCount, 0, `${arena.gameId}: mobile arena lobby must remain footerless`);
+    assert.ok(geometry.start && geometry.launch, `${arena.gameId}: mobile launch geometry missing`);
+    const startInsideViewport = geometry.start.x >= 0
+      && geometry.start.y >= 0
+      && geometry.start.right <= geometry.viewport.width + 1
+      && geometry.start.bottom <= geometry.viewport.height + 1;
+    const launchInsideViewport = geometry.launch.x >= 0
+      && geometry.launch.y >= 0
+      && geometry.launch.right <= geometry.viewport.width + 1
+      && geometry.launch.bottom <= geometry.viewport.height + 1;
+    const launchBottomGap = geometry.viewport.height - geometry.launch.bottom;
+    const startInsideLaunch = geometry.start.x >= geometry.launch.x - 1
+      && geometry.start.right <= geometry.launch.right + 1
+      && geometry.start.y >= geometry.launch.y - 1
+      && geometry.start.bottom <= geometry.launch.bottom + 1;
+    if (!startInsideViewport || !launchInsideViewport || !startInsideLaunch
+      || launchBottomGap < 8 || launchBottomGap > 48) {
       await page.screenshot({
-        path: `/tmp/training-phase1-mobile-${arena.gameId}-covered-start.png`,
+        path: `/tmp/training-phase1-mobile-${arena.gameId}-invalid-start-rail.png`,
         fullPage: false,
       });
       assert.fail(
-        `${arena.gameId}: mobile Start button is covered by the footer; `
-        + `start=${JSON.stringify(startBox)} footer=${JSON.stringify(footerBox)}`,
+        `${arena.gameId}: mobile footerless Start rail escaped its safe viewport contract; `
+        + `geometry=${JSON.stringify(geometry)} bottomGap=${launchBottomGap}`,
       );
     }
   }
