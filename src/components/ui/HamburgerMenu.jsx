@@ -29,6 +29,10 @@ import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 import {
+  sanitizeFallbackMenuConfig,
+  sanitizeProvidedMenuConfig,
+} from '../../config/fallbackMenuSafety.mjs';
+import {
   evaluateWorldMenuActivation,
   getActiveWorldMenuHref,
   parseWorldMenuHref,
@@ -170,14 +174,18 @@ function HamburgerMenuContent({
 
   const activeUser = user || localUser;
   const automaticConfig = useMemo(
-    () => getMenuConfigForPath(router?.asPath || router?.pathname || '/', activeUser),
+    () => sanitizeFallbackMenuConfig(
+      getMenuConfigForPath(router?.asPath || router?.pathname || '/', activeUser)
+    ),
     [router?.asPath, router?.pathname, activeUser],
   );
   const usesAutomaticConfig = providedMenuItems.length === 0;
   const providedConfig = useMemo(
-    () => applyWorldMenuDeck(
-      { menuItems: providedMenuItems, bottomLinks: providedBottomLinks },
-      activeWorld
+    () => sanitizeProvidedMenuConfig(
+      applyWorldMenuDeck(
+        { menuItems: providedMenuItems, bottomLinks: providedBottomLinks },
+        activeWorld
+      )
     ),
     [providedMenuItems, providedBottomLinks, activeWorld]
   );
@@ -611,6 +619,8 @@ function HamburgerMenuContent({
         return renderNavigation(item, key);
 
       case 'toggle': {
+        const isUnavailable = typeof item.onChange !== 'function';
+        if (isUnavailable) return null;
         const hintId = item.hint ? `sp-hint-${String(key).replace(/[^a-zA-Z0-9]/g, '')}` : undefined;
         return (
           <button
@@ -621,7 +631,7 @@ function HamburgerMenuContent({
             aria-label={item.label}
             aria-describedby={hintId}
             className="sp-menu-row"
-            onClick={() => item.onChange && item.onChange(!item.checked)}
+            onClick={() => item.onChange(!item.checked)}
             style={{ ...rowBase, color: colors.text, alignItems: 'center' }}
           >
             <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -658,23 +668,21 @@ function HamburgerMenuContent({
       }
 
       case 'action': {
-        const isStub = !item.onClick && !item.openInviteModal && !item.href;
+        const isStub = typeof item.onClick !== 'function' && !item.openInviteModal && !item.href;
+        if (isStub) return null;
         const isFlat = item.variant === 'flat' || item.noBorder;
         return (
           <button
             key={key}
             type="button"
-            disabled={isStub}
-            aria-disabled={isStub ? 'true' : undefined}
             className="sp-menu-row"
             onClick={() => {
-              if (isStub) return;
               if (item.openInviteModal) {
                 onClose?.();
                 setShowInviteModal(true);
                 return;
               }
-              if (item.onClick) item.onClick();
+              if (typeof item.onClick === 'function') item.onClick();
               if (item.closeOnClick !== false) onClose?.();
             }}
             style={{
@@ -684,17 +692,13 @@ function HamburgerMenuContent({
               border: item.primary || isFlat ? '1px solid transparent' : `1px solid ${colors.border}`,
               borderRadius: isFlat ? 0 : 8,
               color: item.primary ? '#fff' : colors.text,
-              opacity: isStub ? 0.45 : 1,
-              cursor: isStub ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
             }}
           >
             <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {item.icon || null}
             </span>
             <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontWeight: 500 }}>{item.label}</span>
-            {isStub ? (
-              <span style={{ fontSize: 12, color: colors.textSec, flexShrink: 0 }}>Unavailable</span>
-            ) : null}
           </button>
         );
       }
@@ -747,20 +751,18 @@ function HamburgerMenuContent({
               );
 
               if (!gridItem.href) {
-                const stub = !gridItem.onClick;
+                const stub = typeof gridItem.onClick !== 'function';
+                if (stub) return null;
                 return (
                   <button
                     key={gridIndex}
                     type="button"
                     className="sp-grid-tile"
-                    disabled={stub}
-                    aria-disabled={stub ? 'true' : undefined}
                     onClick={() => {
-                      if (stub) return;
                       gridItem.onClick();
                       onClose?.();
                     }}
-                    style={{ ...tileStyle, opacity: stub ? 0.45 : 1, cursor: stub ? 'not-allowed' : 'pointer' }}
+                    style={{ ...tileStyle, cursor: 'pointer' }}
                   >
                     {iconSlot}
                     {labelSlot}
@@ -1437,25 +1439,23 @@ function HamburgerMenuContent({
               );
 
               if (link.action || link.openInviteModal) {
-                const stub = !link.onClick && !link.openInviteModal;
+                const stub = typeof link.onClick !== 'function' && !link.openInviteModal;
+                if (stub) return null;
                 return (
                   <button
                     key={index}
                     type="button"
                     className="sp-menu-row"
-                    disabled={stub}
-                    aria-disabled={stub ? 'true' : undefined}
                     onClick={() => {
-                      if (stub) return;
                       if (link.openInviteModal) {
                         onClose?.();
                         setShowInviteModal(true);
                         return;
                       }
-                      if (link.onClick) link.onClick();
+                      if (typeof link.onClick === 'function') link.onClick();
                       onClose?.();
                     }}
-                    style={{ ...commonStyle, background: 'none', border: 'none', cursor: stub ? 'not-allowed' : 'pointer', opacity: stub ? 0.45 : 1 }}
+                    style={{ ...commonStyle, background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     {iconSlot}
                     <span style={{ flex: 1, minWidth: 0, fontSize: 15, textAlign: 'left' }}>{link.label}</span>

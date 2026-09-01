@@ -103,7 +103,11 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
         ) : modal.panelImageUrl ? (
           <div className={styles.imageFrame}>
             <img src={modal.panelImageUrl} alt={`Jarvis strategic analysis for ${modal.hand || 'this hand'}`} />
-            <p id="jarvis-dialog-description" className={styles.imageCaption}>{modal.hand || 'Selected hand'} // Optimal Action: {action}</p>
+            <p id="jarvis-dialog-description" className={styles.imageCaption}>
+              {modal.hand || 'Selected hand'}
+              {' // Optimal Action: '}
+              {action}
+            </p>
           </div>
         ) : (
           <div className={styles.body}>

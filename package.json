@@ -47,7 +47,7 @@
     "push": "bash scripts/git-safe-push.sh",
     "verify": "node scripts/verify-deploy.js",
     "verify:training": "node scripts/verify_training_flow.js",
-    "lint": "node node_modules/next/dist/bin/next lint",
+    "lint": "node scripts/lint.mjs",
     "prepare": "git config core.hooksPath .husky 2>/dev/null || true"
   },
   "dependencies": {

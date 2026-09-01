@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import HamburgerMenu from './HamburgerMenu';
 import { getMenuConfigForPath } from '../../config/hamburgerMenus';
+import { sanitizeFallbackMenuConfig } from '../../config/fallbackMenuSafety.mjs';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 
 /**
@@ -14,7 +15,10 @@ export default function WorldCommandDock() {
   const router = useRouter();
   const path = router.asPath || router.pathname || '/';
   const world = useMemo(() => resolveWorldMenu(path), [path]);
-  const menuConfig = useMemo(() => getMenuConfigForPath(path, null), [path]);
+  const menuConfig = useMemo(
+    () => sanitizeFallbackMenuConfig(getMenuConfigForPath(path, null)),
+    [path]
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [hasHeaderTrigger, setHasHeaderTrigger] = useState(true);
 

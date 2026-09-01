@@ -423,6 +423,43 @@ for (const world of WORLDS) {
   });
 }
 
+const FALLBACK_SECONDARY_CASES = [
+  {
+    worldId: 'training',
+    path: '/hub/training/aggregate',
+    absentLabels: ['View Mode', 'Sound Effects', 'Timer', 'Auto-Advance', 'Show Hints'],
+  },
+  {
+    worldId: 'trivia',
+    path: '/hub/trivia/cash',
+    absentLabels: ['Sound Effects', 'Timer', 'Hints'],
+  },
+  {
+    worldId: 'preflop-charts',
+    path: '/hub/preflop-charts/achievements',
+    absentLabels: ['Sound Effects', 'Keyboard Shortcuts', 'Show Timer', 'Visual Hints'],
+  },
+];
+
+for (const entry of FALLBACK_SECONDARY_CASES) {
+  const canonicalWorld = WORLDS.find((world) => world.id === entry.worldId)!;
+  test(`${canonicalWorld.label} fallback route omits handlerless secondary controls`, async ({ page }) => {
+    const routeWorld = { ...canonicalWorld, path: entry.path };
+    await visitWorld(page, routeWorld);
+    const { dialog } = await openWorldMenu(page, routeWorld);
+
+    await expect(
+      dialog.locator(`[data-world-primary-commands="${canonicalWorld.id}"] .sp-grid-tile`)
+    ).toHaveCount(6);
+    for (const label of entry.absentLabels) {
+      await expect(dialog.getByText(label, { exact: true })).toHaveCount(0);
+    }
+    await expect(dialog.getByText('Unavailable', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Application Error', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Unhandled Runtime Error', { exact: true })).toHaveCount(0);
+  });
+}
+
 test('Bankroll Log deep links preserve the visible authorization gate and clean their URL', async ({ page }) => {
   await page.goto('/hub/bankroll-manager?view=log-session', { waitUntil: 'domcontentloaded' });
   const dialog = page.getByRole('dialog', { name: 'Sign In Required' });

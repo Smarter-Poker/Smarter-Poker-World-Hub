@@ -600,7 +600,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 </div>
 
                                 <div className="mode-image-card__body">
-                                    <span className="mode-image-card__kicker">{mode.category} // {mode.id}</span>
+                                    <span className="mode-image-card__kicker">
+                                        {mode.category}
+                                        {' // '}
+                                        {mode.id}
+                                    </span>
                                     <h3>{mode.name}</h3>
                                     <p>{mode.description}</p>
 
