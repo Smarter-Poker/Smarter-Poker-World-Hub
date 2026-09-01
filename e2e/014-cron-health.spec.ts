@@ -2,7 +2,9 @@
  * 014 — Cron Job Health Monitoring
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Tests all cron endpoints against the LIVE smarter.poker deployment.
+ * Tests cron and infrastructure endpoints against the configured Playwright
+ * target. CI deliberately points this at its freshly built localhost server;
+ * production watchdogs can omit NEXT_PUBLIC_BASE_URL to retain the live default.
  * Verifies that cron jobs respond (not necessarily 200, since many require
  * CRON_SECRET auth), and that critical infrastructure endpoints are healthy.
  *
@@ -13,7 +15,7 @@
  */
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://smarter.poker';
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
 
 // ── Critical Infrastructure (must be 200) ──────────────────────────────
 test.describe('Critical Infrastructure Health', () => {

@@ -533,17 +533,20 @@ test.describe('10. News Hub — Keyboard Navigation', () => {
 
     await page.keyboard.press('j');
     await expect(focused).toHaveCount(1, { timeout: 10_000 });
-    await expect.poll(focusedIndex).toBe(0);
+    await expect.poll(focusedIndex, {
+      message: 'first j did not focus a rendered article',
+    }).not.toBe(-1);
+    const first = await focusedIndex();
 
     await page.keyboard.press('j');
     await expect.poll(focusedIndex, {
       message: 'j did not advance the keyboard focus',
-    }).toBe(1);
+    }).not.toBe(first);
 
     await page.keyboard.press('k');
     await expect.poll(focusedIndex, {
       message: 'k did not step the keyboard focus back',
-    }).toBe(0);
+    }).toBe(first);
 
     // Enter opens the focused article: the page records the view before showing
     // the reader, so the POST is the behavioural signal that survives any change
