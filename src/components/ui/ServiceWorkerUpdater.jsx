@@ -34,6 +34,27 @@
  * The reload is guarded by a sessionStorage flag: without it, a worker that
  * activates and immediately claims can drive controllerchange -> reload ->
  * controllerchange in a loop, which is a worse bug than a stale build.
+ *
+ * THE FIRST-CLAIM DOUBLE LOAD (Dan, 2026-09-01: "the world hub page is doing
+ * this weird glitch where it loads, then glitches and 'reloads' a 2nd time")
+ *
+ * Step 3 above says "reloads exactly once when control CHANGES". There is a
+ * second way controllerchange fires that is not a change at all: the very
+ * first visit. next.config.js builds the worker with skipWaiting + clientsClaim
+ * (@ducanh2912/next-pwa), so on a page that loaded with NO controller the new
+ * worker installs, activates and claims immediately -- and controllerchange
+ * fires on a document whose HTML and chunks came straight off the network.
+ * There is no old build to escape, and the reload bought nothing: it simply
+ * threw the rendered page away and drew it again.
+ *
+ * That is one visible double load for every uncontrolled entry -- a new
+ * device, cleared site data, a private window, or any session after the
+ * worker was evicted -- and the sessionStorage cooldown does not suppress it,
+ * because a fresh session starts with an empty sessionStorage by definition.
+ *
+ * Fix: remember whether this document had a controller when the effect
+ * mounted. Reload only on a genuine REPLACEMENT (had one, now a different
+ * one). The uncontrolled -> controlled transition is recorded and ignored.
  */
 import { useEffect } from 'react';
 
@@ -83,8 +104,19 @@ export default function ServiceWorkerUpdater() {
 
         let cancelled = false;
 
+        // Whether this document was already being served by a worker. Captured
+        // BEFORE anything is promoted, because it is the only thing that
+        // distinguishes "a newer build took over" from "a worker took over for
+        // the first time", and only the first of those is worth a reload.
+        const hadControllerAtLoad = Boolean(navigator.serviceWorker.controller);
+
         const onControllerChange = () => {
             if (cancelled) return;
+            // FIRST CLAIM, NOT AN UPDATE. This page loaded uncontrolled, so its
+            // HTML and chunks came from the network and are already current.
+            // Reloading here is the double load Dan reported and it corrects
+            // nothing. The new worker serves the NEXT navigation either way.
+            if (!hadControllerAtLoad) return;
             if (isLiveGameplaySession()) return;
             // A different worker is now in charge, so the HTML and chunks this
             // page is running came from the OLD one. Reload to pick up the new
