@@ -58,19 +58,35 @@ export default async function handler(req, res) {
               // verified against production 2026-08-26), so a server-side
               // GROUP BY is not reachable from PostgREST at all.
               const PLAYER_STATS_CAP = 5000;
+              // The roster read is explicitly ranged rather than unbounded: an
+              // unbounded PostgREST read is capped server-side, and a capped
+              // roster is indistinguishable from a smaller one. The fleet
+              // crossed 1,000 on 2026-09-02, which is where that ceiling sits.
+              const ROSTER_CAP = 5000;
 
               const [personasRes, totalHorsesRes, seatsRes, activeTablesRes, playerStatsRes] = await Promise.all([
+                  // A HORSE IS A ROW WITH A POKER PROFILE (2026-09-02).
+                  // content_authors also holds 39 social-only personas created
+                  // 2026-03-10 with a null profile_id: they post, but they have
+                  // no wallet, no club membership, and cannot be dealt a hand.
+                  // Counting them here overstated the fleet and, worse, they can
+                  // never appear in the seat or player_stats joins below - which
+                  // key on profile_id - so every derived figure was a ratio with
+                  // a padded denominator.
                   getSupabase()
                       .from('content_authors')
                       .select('id, name, profile_id, is_active')
-                      .eq('is_active', true),
+                      .not('profile_id', 'is', null)
+                      .eq('is_active', true)
+                      .range(0, ROSTER_CAP - 1),
 
                   // Every horse, active or not, so the UI can label the two
                   // populations honestly instead of calling the active subset
                   // "total".
                   getSupabase()
                       .from('content_authors')
-                      .select('id', { count: 'exact', head: true }),
+                      .select('id', { count: 'exact', head: true })
+                      .not('profile_id', 'is', null),
 
                   // An occupied seat is one that has not been left.
                   getSupabase()
@@ -170,8 +186,8 @@ export default async function handler(req, res) {
                   // stats, so it never reached the UI at all — and would have
                   // thrown "Objects are not valid as a React child" if it had.
                   derivationNote: playerStatsAvailable
-                      ? `All figures are measured. Hands and profit are lifetime totals from player_stats, summed across every club a horse has played in (profit = total_winnings - total_losses). Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan hit its row cap, so Currently Playing may undercount.' : ''}`
-                      : `Hands and profit are unavailable: the player_stats read failed, so they are reported as null rather than as zero. Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan also hit its row cap, so Currently Playing may undercount.' : ''}`,
+                      ? `All figures are measured. Hands and profit are lifetime totals from player_stats, summed across every club a horse has played in (profit = total_winnings - total_losses). Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file. A horse is a roster row carrying a poker profile - social-only personas are excluded, because they cannot hold a seat or a player_stats row and would pad every denominator here.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan hit its row cap, so Currently Playing may undercount.' : ''}`
+                      : `Hands and profit are unavailable: the player_stats read failed, so they are reported as null rather than as zero. Currently Playing counts horses holding an unvacated table_seats row. Active Tables counts tables with status running or active. Total Grinders is active horses; Total Horses is every horse on file. A horse is a roster row carrying a poker profile - social-only personas are excluded, because they cannot hold a seat or a player_stats row and would pad every denominator here.${seats.length >= SEAT_SCAN_CAP ? ' Seat scan also hit its row cap, so Currently Playing may undercount.' : ''}`,
               };
 
               return res.status(200).json({
