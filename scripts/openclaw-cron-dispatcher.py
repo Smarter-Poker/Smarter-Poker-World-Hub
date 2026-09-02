@@ -548,7 +548,28 @@ ALL_CRONS = [
     # columns). Running on a schedule with no variance to reconcile == no-op.
     ('/api/cron/ledger-reconcile',                dict(hour=8, minute=0)),
     ('/api/cron/vip-status-check',                dict(minute=0)),          # every hour
-    ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
+    # VIP STIPEND - repointed 2026-09-01. Was '/api/cron/vip-diamond-stipend'
+    # monthly at 00:05, routed to the workers copy of a handler that had been
+    # deleted from this repo on 2026-04-25. That handler paid 500 diamonds on
+    # `profiles.is_vip = true AND vip_expires_at > now()` with NO payment check
+    # of any kind, so it paid the 30-day signup trial, the phone-verification
+    # grant, and the 1,000 horses that migration 20260311_horses_lifetime_vip
+    # gave lifetime VIP for feature access. It paid 12 such accounts (6,000
+    # diamonds) before this, every one with zero rows in vip_subscriptions.
+    #
+    # '/api/cron/vip-stipend' is the documented control: it pays only accounts
+    # holding a vip_subscriptions row with a non-null stripe_subscription_id
+    # and a live Stripe status. Read that file's header before changing this.
+    #
+    # DAILY, not monthly, and that is deliberate. The handler is idempotent per
+    # user per calendar month (reference_id `vip_stipend_<user>_<YYYY-MM>` plus
+    # award_diamonds_v2's own month guard), so a repeat returns 'duplicate' and
+    # costs nothing. Monthly was silently fragile: misfire_grace_time is 300s,
+    # and this dispatcher was down 2026-08-31 11:31 -> 2026-09-01 17:01 and
+    # again 2026-06-14 -> 2026-07-18, so the 00:05 instant was missed outright
+    # in both July and September. Daily also means someone who subscribes on
+    # the 2nd is paid on the 2nd rather than waiting thirty days.
+    ('/api/cron/vip-stipend',                     dict(hour=9, minute=0)),   # daily 09:00 UTC - idempotent per user per month
     ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
     ('/api/cron/chip-supply-snapshot',            dict(minute=0)),           # hourly — M4 chip-conservation series. fn_snapshot_chip_supply existed but was never scheduled: ONE row (2026-08-08), so deltas stayed NULL and nothing ever reconciled.
     # ('/api/cron/solver-watchdog', dict(minute=20)) — RETIRED 2026-08-27.
@@ -831,7 +852,12 @@ WORKERS_PREFERRED = {
     '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
     '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
     '/api/cron/venue-tournaments':             '/cron/venue-tournaments',
-    '/api/cron/vip-diamond-stipend':           '/cron/vip-diamond-stipend',
+    # '/api/cron/vip-diamond-stipend' - REMOVED 2026-09-01. Nothing schedules it
+    # any more (see the VIP STIPEND note in the schedule block above), and
+    # leaving the mapping would let any future re-add of that path route
+    # silently back to the is_vip-based worker route that pays non-payers.
+    # '/api/cron/vip-stipend' is deliberately NOT in this table: it must run on
+    # Vercel, where the monolith handler and its vip_subscriptions control live.
     '/api/cron/vip-status-check':              '/cron/vip-status-check',
     '/api/clawbot/orchestrator':               '/cron/clawbot-orchestrator',
     # ─── 2B.2(h) — late add: scrape-sports-clips ───────────────────────────
