@@ -1,0 +1,2 @@
+import{bK as e}from"./index-EtjqHHdS-v6.js";const n={nlh:"NLH",plo4:"PLO4",plo5:"PLO5",plo6:"PLO6",plo8:"PLO8",short_deck:"SHORT_DECK",flh:"FLH",flo8:"FLO8"},t=Object.keys(n);function c(o){return!!n[(o??"nlh").toLowerCase()]}function a(o){const s=n[(o??"nlh").toLowerCase()];return!!(s&&e.includes(s))}const r=t.filter(a);export{r as S,t as T,n as a,c as b,a as c};
+//# sourceMappingURL=tournamentVariants-DnDQZQYn-v6.js.map
