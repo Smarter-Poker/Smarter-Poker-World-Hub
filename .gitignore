@@ -59,8 +59,11 @@
 .env.production
 .gemini/
 .idea
-.memory/
-.memory/**
+# .memory/ is PUBLIC and tracked on main - CLAUDE.md says so, agents read
+# decisions from it, and files live there. The blanket ignore here (removed
+# 2026-09-01) contradicted that and forced `git add -f` for every new memory
+# file, which is how decision records silently failed to land. Keep it
+# trackable; put nothing secret in it (the same rule CLAUDE.md states).
 .next/
 .venv
 .vercel
