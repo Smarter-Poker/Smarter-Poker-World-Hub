@@ -101,6 +101,7 @@ const TABS = [
   { id: 'merch', label: 'Merch Catalog' },
   { id: 'promo', label: 'Promo Codes' },
   { id: 'economy', label: 'Economy' },
+  { id: 'mint', label: 'The Mint' },
   { id: 'antiabuse', label: 'Anti-Abuse' },
   { id: 'clubarena', label: 'Club Arena' },
   { id: 'bugreports', label: 'Bug Reports' },
@@ -226,6 +227,38 @@ export default function HorsesAdmin() {
   const [economyLoading, setEconomyLoading] = useState(false);
   const [economyLoaded, setEconomyLoaded] = useState(false);
   const [economyError, setEconomyError] = useState(null);
+
+  // ── The Mint ──
+  // Issuance is the one thing on this page that creates money out of nothing,
+  // so the form state is deliberately explicit rather than one blob: `mintOpId`
+  // in particular is generated ONCE per composed operation and reused on every
+  // retry, which is what makes a double-click harmless (fn_ca_mint claims the
+  // key and replays the original result instead of minting twice).
+  const [mintOverview, setMintOverview] = useState(null);
+  const [mintTargets, setMintTargets] = useState(null);
+  const [mintLedger, setMintLedger] = useState(null);
+  const [mintLoading, setMintLoading] = useState(false);
+  const [mintLoaded, setMintLoaded] = useState(false);
+  const [mintError, setMintError] = useState(null);
+
+  const [mintAction, setMintAction] = useState('mint');   // mint | burn
+  const [mintAsset, setMintAsset] = useState('chips');    // chips | diamonds
+  const [mintTargetKind, setMintTargetKind] = useState('club'); // club | union | player
+  const [mintTargetId, setMintTargetId] = useState('');
+  const [mintAmount, setMintAmount] = useState('');
+  const [mintReason, setMintReason] = useState('');
+  const [mintOpId, setMintOpId] = useState('');
+  const [mintSubmitting, setMintSubmitting] = useState(false);
+  const [mintConfirm, setMintConfirm] = useState(null);
+  const [mintReceipt, setMintReceipt] = useState(null);
+
+  const [mintPlayerQuery, setMintPlayerQuery] = useState('');
+  const [mintPlayerResults, setMintPlayerResults] = useState([]);
+  const [mintPlayerSearching, setMintPlayerSearching] = useState(false);
+  const [mintPickedPlayer, setMintPickedPlayer] = useState(null);
+
+  const [mintLedgerAsset, setMintLedgerAsset] = useState('');
+  const [mintLedgerAction, setMintLedgerAction] = useState('');
 
   // ── Anti-abuse ──
   const [abuseData, setAbuseData] = useState(null);
@@ -502,6 +535,184 @@ export default function HorsesAdmin() {
       setEconomyLoading(false);
     }
   }, [authFetch]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THE MINT
+  //
+  // Chips are issued to a club treasury or a union bank; diamonds to an
+  // individual player. That is Dan's law (2026-09-02) and it is enforced in
+  // three places on purpose: this component will not offer an illegal pairing,
+  // /api/horses/mint refuses one, and fn_ca_mint refuses it again in SQL.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /** A fresh idempotency key. Generated when the operator starts composing an
+   *  operation, NOT when they submit, so every retry of the same intent carries
+   *  the same key and cannot mint twice. */
+  const newMintOpId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return `mint-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }, []);
+
+  const loadMintLedger = useCallback(async (asset = '', action = '') => {
+    const params = new URLSearchParams({ section: 'ledger', limit: '100' });
+    if (asset) params.set('asset', asset);
+    if (action) params.set('action', action);
+    const data = await authFetch(`/api/horses/mint?${params.toString()}`);
+    setMintLedger(data);
+  }, [authFetch]);
+
+  const loadMintData = useCallback(async () => {
+    setMintLoading(true);
+    setMintError(null);
+    try {
+      // Three independent reads. Promise.all rather than sequential awaits
+      // because a slow club list should not delay the supply figures.
+      const [overview, targets] = await Promise.all([
+        authFetch('/api/horses/mint?section=overview'),
+        authFetch('/api/horses/mint?section=targets'),
+      ]);
+      setMintOverview(overview);
+      setMintTargets(targets);
+      await loadMintLedger(mintLedgerAsset, mintLedgerAction);
+      setMintLoaded(true);
+    } catch (err) {
+      setMintError(err.message);
+    } finally {
+      setMintLoading(false);
+    }
+  }, [authFetch, loadMintLedger, mintLedgerAsset, mintLedgerAction]);
+
+  const searchMintPlayers = useCallback(async (term) => {
+    if (!term || term.trim().length < 2) {
+      setMintPlayerResults([]);
+      return;
+    }
+    setMintPlayerSearching(true);
+    try {
+      const data = await authFetch(
+        `/api/horses/mint?section=player_search&q=${encodeURIComponent(term.trim())}`
+      );
+      setMintPlayerResults(data.players || []);
+    } catch (err) {
+      showNotification(err.message, 'error');
+      setMintPlayerResults([]);
+    } finally {
+      setMintPlayerSearching(false);
+    }
+  }, [authFetch, showNotification]);
+
+  /** Reset the form to a clean slate AND rotate the idempotency key, so the
+   *  next operation is genuinely a new one rather than a replay of the last. */
+  const resetMintForm = useCallback(() => {
+    setMintTargetId('');
+    setMintAmount('');
+    setMintReason('');
+    setMintPickedPlayer(null);
+    setMintPlayerQuery('');
+    setMintPlayerResults([]);
+    setMintOpId(newMintOpId());
+  }, [newMintOpId]);
+
+  /** Nothing here writes. It assembles what the confirmation step will show, so
+   *  the operator reads back the exact sentence before any money moves. */
+  const composeMintConfirmation = useCallback(() => {
+    const amount = Number(mintAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showNotification('Enter an amount greater than zero.', 'error');
+      return;
+    }
+    if (mintAsset === 'diamonds' && !Number.isInteger(amount)) {
+      showNotification('Diamonds are whole numbers.', 'error');
+      return;
+    }
+    if (!mintTargetId) {
+      showNotification(
+        mintAsset === 'chips' ? 'Pick a club or union.' : 'Pick a player.',
+        'error'
+      );
+      return;
+    }
+    if (mintReason.trim().length < 10) {
+      showNotification('Write a reason of at least ten characters.', 'error');
+      return;
+    }
+
+    let label = mintTargetId;
+    let balance = null;
+    if (mintTargetKind === 'club') {
+      const club = (mintTargets?.clubs || []).find((c) => c.id === mintTargetId);
+      label = club?.label || mintTargetId;
+      balance = club?.balance ?? null;
+    } else if (mintTargetKind === 'union') {
+      const union = (mintTargets?.unions || []).find((u) => u.id === mintTargetId);
+      label = union?.label || mintTargetId;
+      balance = union?.balance ?? null;
+    } else if (mintPickedPlayer) {
+      label = mintPickedPlayer.label;
+      balance = mintPickedPlayer.balance;
+    }
+
+    // The key travels ON the confirmation object, not in state read back at
+    // submit time. `setMintOpId` would not be visible to submitMint on this
+    // render pass, and an empty key would be rejected by the route -- or worse,
+    // a later render would supply a different one and defeat the whole point.
+    const opId = mintOpId || newMintOpId();
+    if (!mintOpId) setMintOpId(opId);
+
+    setMintConfirm({
+      opId,
+      action: mintAction,
+      asset: mintAsset,
+      targetKind: mintTargetKind,
+      targetId: mintTargetId,
+      label,
+      balance,
+      amount,
+      reason: mintReason.trim(),
+      projected: balance === null ? null : mintAction === 'mint' ? balance + amount : balance - amount,
+    });
+  }, [
+    mintAmount, mintAsset, mintTargetId, mintReason, mintTargetKind, mintTargets,
+    mintPickedPlayer, mintAction, mintOpId, newMintOpId, showNotification,
+  ]);
+
+  const submitMint = useCallback(async () => {
+    if (!mintConfirm) return;
+    setMintSubmitting(true);
+    try {
+      const body = await authFetch('/api/horses/mint', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: mintConfirm.action,
+          asset: mintConfirm.asset,
+          target: mintConfirm.targetKind,
+          targetId: mintConfirm.targetId,
+          amount: mintConfirm.amount,
+          reason: mintConfirm.reason,
+          opId: mintConfirm.opId,
+        }),
+      });
+
+      const result = body.result || {};
+      setMintReceipt(result);
+      setMintConfirm(null);
+      showNotification(
+        result.replayed
+          ? 'Already Done. This Operation Had Already Been Recorded, So Nothing Moved Again.'
+          : `${mintConfirm.action === 'mint' ? 'Issued' : 'Retired'} ${num(mintConfirm.amount)} ${mintConfirm.asset} ${mintConfirm.action === 'mint' ? 'to' : 'from'} ${mintConfirm.label}.`,
+        'success'
+      );
+      resetMintForm();
+      // Re-read rather than patching local state: the supply figures and the
+      // journal are the record, and a panel that guesses at them after a write
+      // is how a display drifts from the books.
+      await loadMintData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setMintSubmitting(false);
+    }
+  }, [authFetch, mintConfirm, resetMintForm, loadMintData, showNotification]);
 
   const loadAnalytics = useCallback(async () => {
     setAnalyticsError(null);
@@ -1547,6 +1758,7 @@ export default function HorsesAdmin() {
     if (activeTab === 'stats' && !analyticsLoaded) loadAnalytics();
     if (activeTab === 'stats' && !platform && !platformLoading) loadPlatform();
     if (activeTab === 'economy' && !economyLoaded && !economyLoading) loadEconomyData();
+    if (activeTab === 'mint' && !mintLoaded && !mintLoading) loadMintData();
     if (activeTab === 'antiabuse' && !abuseLoaded && !abuseLoading) loadAntiAbuseData();
     if (activeTab === 'geeves' && !geevesLoaded && !geevesLoading) loadGeevesAnalytics();
     if (activeTab === 'reviews' && !reviewsLoaded && !reviewsLoading) loadAdminReviews();
@@ -3050,6 +3262,503 @@ export default function HorsesAdmin() {
                   <div style={{ marginTop: 24, textAlign: 'center' }}>
                     <button onClick={loadEconomyData} className={styles.actionBtn} disabled={economyLoading}>
                       Refresh Economy Data
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ──────────────────────────── THE MINT ─────────────────────────── */}
+          {/*
+            The only surface on the platform that creates supply. Three things
+            about the layout are load-bearing rather than decorative:
+
+            1. The destination control is DERIVED from the asset. Picking
+               diamonds removes club and union from the page entirely, because
+               chips never reach a person and diamonds never reach a club
+               (Dan, 2026-09-02). An impossible pairing is not offered, not
+               offered-then-rejected.
+            2. Nothing submits from the form. The button composes a
+               confirmation that states the balance before, the amount, and the
+               balance after, in a sentence -- and THAT is what submits.
+            3. The ledger is on the same screen as the button. Issuance you
+               cannot see is issuance nobody checks.
+          */}
+          {activeTab === 'mint' && (
+            <div className={styles.statsView}>
+              <h2 className={styles.sectionTitle}>The Mint</h2>
+              <p className={styles.subtitle} style={{ marginTop: -8, marginBottom: 20 }}>
+                Authorized Issuance And Retirement. Chips Go To A Club Treasury Or A Union Bank;
+                Diamonds Go To An Individual Player. Every Operation Is Journalled With Its Reason
+                And Cannot Be Edited Afterwards.
+              </p>
+
+              {mintError && (
+                <div className={styles.errorState}>
+                  <div>The Mint Could Not Load: {mintError}</div>
+                  <button onClick={loadMintData} className={styles.actionBtn}>Retry</button>
+                </div>
+              )}
+
+              {mintLoading && !mintLoaded ? (
+                <div className={styles.loading}>Loading The Mint...</div>
+              ) : (
+                <>
+                  {/* ── SUPPLY ─────────────────────────────────────────────── */}
+                  {/* Issued and circulating are shown side by side and never
+                      reconciled into one number: ~172M chips in member wallets
+                      predate The Mint, so they are not supposed to match yet,
+                      and a single blended figure would hide that. */}
+                  <div className={styles.kpiGrid}>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Chips Issued (Net Of Burns)</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.chips_issued, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Diamonds Issued (Net Of Burns)</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.diamonds_issued, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Mint Operations</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.mint_operations, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Club Treasuries</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.club_treasuries, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Union Banks</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.union_banks, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Member Wallets</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.member_wallets, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Chips On The Felt</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.chips_on_the_felt, '0')}</span>
+                    </div>
+                    <div className={styles.kpi}>
+                      <span className={styles.kpiLabel}>Diamonds Held</span>
+                      <span className={styles.kpiValue}>{num(mintOverview?.totals?.diamonds_held, '0')}</span>
+                    </div>
+                  </div>
+
+                  {/* ── RECEIPT OF THE LAST OPERATION ──────────────────────── */}
+                  {mintReceipt && (
+                    <div className={styles.card} style={{ marginTop: 20, borderColor: T.accentLine }}>
+                      <h3 className={styles.sectionTitle}>
+                        {mintReceipt.replayed ? 'Already Recorded' : 'Done'}
+                      </h3>
+                      <p style={{ color: T.dim, margin: '4px 0 12px' }}>
+                        {mintReceipt.action === 'mint' ? 'Issued' : 'Retired'}{' '}
+                        <strong style={{ color: T.text }}>{num(mintReceipt.amount)}</strong>{' '}
+                        {mintReceipt.asset}{' '}
+                        {mintReceipt.action === 'mint' ? 'to' : 'from'}{' '}
+                        <strong style={{ color: T.text }}>{mintReceipt.target_label || mintReceipt.target_id}</strong>.
+                        {' '}Balance {num(mintReceipt.balance_before)} To {num(mintReceipt.balance_after)}.
+                        {' '}Net Issued Supply Is Now {num(mintReceipt.supply_after)}.
+                      </p>
+                      <p style={{ color: T.muted, fontSize: 12, margin: 0, wordBreak: 'break-all' }}>
+                        Operation {mintReceipt.op_id}
+                      </p>
+                      <button
+                        className={styles.actionBtn}
+                        style={{ marginTop: 12 }}
+                        onClick={() => setMintReceipt(null)}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── THE FORM ───────────────────────────────────────────── */}
+                  <div className={styles.card} style={{ marginTop: 20 }}>
+                    <h3 className={styles.sectionTitle}>
+                      {mintAction === 'mint' ? 'Issue' : 'Retire'}
+                    </h3>
+
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label htmlFor="mint-action">Operation</label>
+                        <select
+                          id="mint-action"
+                          className={styles.filterSelect}
+                          value={mintAction}
+                          onChange={(e) => { setMintAction(e.target.value); setMintConfirm(null); }}
+                        >
+                          <option value="mint">Issue (Create Supply)</option>
+                          <option value="burn">Retire (Destroy Supply)</option>
+                        </select>
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label htmlFor="mint-asset">Asset</label>
+                        <select
+                          id="mint-asset"
+                          className={styles.filterSelect}
+                          value={mintAsset}
+                          onChange={(e) => {
+                            const asset = e.target.value;
+                            setMintAsset(asset);
+                            // The destination follows the asset. This is the
+                            // law expressed as a control, so an impossible
+                            // pairing cannot even be composed.
+                            setMintTargetKind(asset === 'chips' ? 'club' : 'player');
+                            setMintTargetId('');
+                            setMintPickedPlayer(null);
+                            setMintConfirm(null);
+                          }}
+                        >
+                          <option value="chips">Chips</option>
+                          <option value="diamonds">Diamonds</option>
+                        </select>
+                      </div>
+
+                      {mintAsset === 'chips' && (
+                        <div className={styles.formGroup}>
+                          <label htmlFor="mint-holder">Holder</label>
+                          <select
+                            id="mint-holder"
+                            className={styles.filterSelect}
+                            value={mintTargetKind}
+                            onChange={(e) => {
+                              setMintTargetKind(e.target.value);
+                              setMintTargetId('');
+                              setMintConfirm(null);
+                            }}
+                          >
+                            <option value="club">Club Treasury</option>
+                            <option value="union">Union Bank</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Destination: a list for chips, a search for diamonds.
+                        1,300 profiles is too many for a select; 17 clubs is not
+                        enough to justify a search. */}
+                    {mintAsset === 'chips' ? (
+                      <div className={styles.formGroup}>
+                        <label htmlFor="mint-target">
+                          {mintTargetKind === 'club' ? 'Club' : 'Union'}
+                        </label>
+                        <select
+                          id="mint-target"
+                          className={styles.filterSelect}
+                          value={mintTargetId}
+                          onChange={(e) => { setMintTargetId(e.target.value); setMintConfirm(null); }}
+                        >
+                          <option value="">Select...</option>
+                          {((mintTargetKind === 'club' ? mintTargets?.clubs : mintTargets?.unions) || []).map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.label}{t.code ? ` (${t.code})` : ''} - Holds {num(t.balance, '0')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className={styles.formGroup}>
+                        <label htmlFor="mint-player">Player</label>
+                        <div className={styles.inputGroup}>
+                          <input
+                            id="mint-player"
+                            className={styles.searchInput}
+                            placeholder="Username, display name, or player number"
+                            value={mintPlayerQuery}
+                            onChange={(e) => setMintPlayerQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                searchMintPlayers(mintPlayerQuery);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className={styles.actionBtn}
+                            onClick={() => searchMintPlayers(mintPlayerQuery)}
+                            disabled={mintPlayerSearching}
+                          >
+                            {mintPlayerSearching ? 'Searching...' : 'Search'}
+                          </button>
+                        </div>
+
+                        {mintPickedPlayer && (
+                          <p style={{ color: T.accent, margin: '8px 0 0' }}>
+                            Selected: {mintPickedPlayer.label}
+                            {mintPickedPlayer.playerNumber ? ` (#${mintPickedPlayer.playerNumber})` : ''}
+                            {mintPickedPlayer.isHorse ? ' - Horse' : ''}
+                            {' '}- Holds {num(mintPickedPlayer.balance, '0')} Diamonds
+                          </p>
+                        )}
+
+                        {mintPlayerResults.length > 0 && (
+                          <div className={styles.tableWrapper} style={{ marginTop: 10, maxHeight: 240 }}>
+                            <table className={styles.table}>
+                              <tbody>
+                                {mintPlayerResults.map((p) => (
+                                  <tr key={p.id}>
+                                    <td>
+                                      {p.label}
+                                      {p.playerNumber ? ` (#${p.playerNumber})` : ''}
+                                      {/* Horses are players (section 10.5). The
+                                          badge identifies, it does not exclude. */}
+                                      {p.isHorse && (
+                                        <span style={{ color: T.muted, marginLeft: 6 }}>Horse</span>
+                                      )}
+                                    </td>
+                                    <td>{num(p.balance, '0')}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className={styles.actionBtn}
+                                        onClick={() => {
+                                          setMintPickedPlayer(p);
+                                          setMintTargetId(p.id);
+                                          setMintPlayerResults([]);
+                                          setMintConfirm(null);
+                                        }}
+                                      >
+                                        Select
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label htmlFor="mint-amount">Amount</label>
+                        <input
+                          id="mint-amount"
+                          className={styles.searchInput}
+                          type="number"
+                          min="0"
+                          step={mintAsset === 'diamonds' ? '1' : '0.01'}
+                          placeholder={mintAsset === 'diamonds' ? 'Whole diamonds' : 'Chips, to two decimals'}
+                          value={mintAmount}
+                          onChange={(e) => { setMintAmount(e.target.value); setMintConfirm(null); }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label htmlFor="mint-reason">
+                        Reason (At Least Ten Characters, And It Is Permanent)
+                      </label>
+                      <input
+                        id="mint-reason"
+                        className={styles.searchInput}
+                        placeholder="Why is this supply being created or destroyed?"
+                        value={mintReason}
+                        onChange={(e) => { setMintReason(e.target.value); setMintConfirm(null); }}
+                      />
+                    </div>
+
+                    <div className={styles.formActions}>
+                      <button
+                        type="button"
+                        className={mintAction === 'mint' ? styles.btnSuccess : styles.btnDanger}
+                        onClick={composeMintConfirmation}
+                        disabled={mintSubmitting}
+                      >
+                        Review {mintAction === 'mint' ? 'Issuance' : 'Retirement'}
+                      </button>
+                      <button type="button" className={styles.btnCancel} onClick={resetMintForm}>
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ── CONFIRMATION ───────────────────────────────────────── */}
+                  {/* Read back before anything moves. The projected balance is
+                      computed from the figure the panel already loaded, so if it
+                      looks wrong the operator finds out here rather than in the
+                      ledger afterwards. */}
+                  {mintConfirm && (
+                    <div className={styles.modalOverlay}>
+                      <div className={styles.modalContent}>
+                        <div className={styles.modalHeader}>
+                          <h3>Confirm {mintConfirm.action === 'mint' ? 'Issuance' : 'Retirement'}</h3>
+                        </div>
+                        <p style={{ color: T.text, lineHeight: 1.6 }}>
+                          {mintConfirm.action === 'mint' ? 'Create' : 'Destroy'}{' '}
+                          <strong>{num(mintConfirm.amount)} {mintConfirm.asset}</strong>{' '}
+                          {mintConfirm.action === 'mint' ? 'and place them in' : 'taken from'}{' '}
+                          <strong>{mintConfirm.label}</strong>
+                          {mintConfirm.balance !== null && (
+                            <>
+                              , Taking That Balance from{' '}
+                              <strong>{num(mintConfirm.balance)}</strong> to{' '}
+                              <strong>{num(mintConfirm.projected)}</strong>
+                            </>
+                          )}
+                          .
+                        </p>
+                        <p style={{ color: T.dim, fontStyle: 'italic' }}>
+                          Reason: {mintConfirm.reason}
+                        </p>
+                        <p style={{ color: T.muted, fontSize: 12 }}>
+                          This Is Recorded Permanently And Cannot Be Edited. A Retirement Can
+                          Offset An Issuance, But Neither Is Ever Removed From The Journal.
+                        </p>
+                        <div className={styles.formActions}>
+                          <button
+                            type="button"
+                            className={mintConfirm.action === 'mint' ? styles.btnSuccess : styles.btnDanger}
+                            onClick={submitMint}
+                            disabled={mintSubmitting}
+                          >
+                            {mintSubmitting
+                              ? 'Working...'
+                              : `Yes, ${mintConfirm.action === 'mint' ? 'issue' : 'retire'} ${num(mintConfirm.amount)}`}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.btnCancel}
+                            onClick={() => setMintConfirm(null)}
+                            disabled={mintSubmitting}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── THE LEDGER ─────────────────────────────────────────── */}
+                  <div className={styles.card} style={{ marginTop: 20 }}>
+                    <h3 className={styles.sectionTitle}>Transaction Ledger</h3>
+
+                    <div className={styles.filterBar}>
+                      <select
+                        className={styles.filterSelect}
+                        value={mintLedgerAsset}
+                        aria-label="Filter by asset"
+                        onChange={(e) => {
+                          setMintLedgerAsset(e.target.value);
+                          loadMintLedger(e.target.value, mintLedgerAction).catch((err) =>
+                            showNotification(err.message, 'error')
+                          );
+                        }}
+                      >
+                        <option value="">All Assets</option>
+                        <option value="chips">Chips</option>
+                        <option value="diamonds">Diamonds</option>
+                      </select>
+                      <select
+                        className={styles.filterSelect}
+                        value={mintLedgerAction}
+                        aria-label="Filter by operation"
+                        onChange={(e) => {
+                          setMintLedgerAction(e.target.value);
+                          loadMintLedger(mintLedgerAsset, e.target.value).catch((err) =>
+                            showNotification(err.message, 'error')
+                          );
+                        }}
+                      >
+                        <option value="">Issuance And Retirement</option>
+                        <option value="mint">Issuance Only</option>
+                        <option value="burn">Retirement Only</option>
+                      </select>
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={() =>
+                          downloadCsv(
+                            stampedName('the-mint-ledger'),
+                            toCsv(mintLedger?.entries || [], [
+                              ['created_at', 'When'],
+                              ['action', 'Operation'],
+                              ['asset', 'Asset'],
+                              ['holder_type', 'Holder Type'],
+                              ['holder_label', 'Holder'],
+                              ['holder_id', 'Holder Id'],
+                              ['amount', 'Amount'],
+                              ['balance_before', 'Balance Before'],
+                              ['balance_after', 'Balance After'],
+                              ['supply_after', 'Net Issued Supply After'],
+                              ['reason', 'Reason'],
+                              ['performed_by_label', 'By'],
+                              ['op_id', 'Operation Id'],
+                            ])
+                          )
+                        }
+                        disabled={!mintLedger?.entries?.length}
+                      >
+                        Export CSV
+                      </button>
+                    </div>
+
+                    {!mintLedger?.entries?.length ? (
+                      <div className={styles.emptyState}>
+                        Nothing Has Been Issued Or Retired Yet. Every Operation Will Appear Here,
+                        With Who Did It And Why.
+                      </div>
+                    ) : (
+                      <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th>When</th>
+                              <th>Operation</th>
+                              <th>Holder</th>
+                              <th>Amount</th>
+                              <th>Balance</th>
+                              <th>Net Issued</th>
+                              <th>Reason</th>
+                              <th>By</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mintLedger.entries.map((row) => (
+                              <tr key={row.id}>
+                                <td>{when(row.created_at, true)}</td>
+                                <td
+                                  style={{ color: row.action === 'mint' ? T.accent : T.danger }}
+                                >
+                                  {row.action === 'mint' ? 'Issued' : 'Retired'} {row.asset}
+                                </td>
+                                <td>
+                                  {row.holder_label || `${String(row.holder_id).slice(0, 8)}...`}
+                                  <span style={{ color: T.muted, marginLeft: 6 }}>
+                                    {row.holder_type}
+                                  </span>
+                                </td>
+                                <td>
+                                  {row.action === 'mint' ? '+' : '-'}
+                                  {num(row.amount)}
+                                </td>
+                                <td style={{ color: T.dim }}>
+                                  {num(row.balance_before)} To {num(row.balance_after)}
+                                </td>
+                                <td>{num(row.supply_after)}</td>
+                                <td>{row.reason}</td>
+                                <td>{row.performed_by_label || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {mintLedger?.total > (mintLedger?.entries?.length || 0) && (
+                      <p className={styles.pageInfo}>
+                        Showing {mintLedger.entries.length} Of {num(mintLedger.total)} Operations.
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <button onClick={loadMintData} className={styles.actionBtn} disabled={mintLoading}>
+                      Refresh The Mint
                     </button>
                   </div>
                 </>
