@@ -454,3 +454,79 @@ On any stop signal, revert the last phase commit, write a note to `.memory/probl
 ---
 
 *Last words:* the architecture is right. Finish the consolidation, close the dual-engine seam, break up the server monolith, and move on to features. No rewrites.
+
+---
+
+# DEPLOYMENT AUDIT ADDENDUM — 2026-09-01 (cost + hardening sweep)
+
+A seven-phase audit shipped and verified live this session. What it FIXED is
+in `club-arena/docs/changelog/2026-09-01-seven-phase-hardening-audit.md`. What
+it LEFT is below — the live deployment/upgrade TODO, each item with an owner
+(AGENT can do it; HUMAN needs a dashboard, a purchase, or a decision).
+
+## Findings that are new to the list
+
+1. **[HUMAN decision] The database is 108 GB and 70% of it is ONE static
+   table.** `solved_spots_gold` (the GTO solver dataset) is 80 GB — 75 GB of
+   it TOAST-stored solution blobs. VERIFIED it is NOT bloat: zero
+   updates/deletes, actively read ~500k times; legitimate static reference
+   data. But it dominates every backup and PITR snapshot and makes a DR
+   restore (runbook Scenario B) far slower and costlier than the money-
+   critical data warrants. Two options, both deliberate: (a) move it to a
+   separate Supabase project or object storage, shrinking the transactional DB
+   ~70% — best for backup cost and DR speed; (b) re-TOAST that column with
+   `lz4` (Postgres 17) in a maintenance window — smaller win, no move, but it
+   rewrites a 75 GB actively-read table so it is a planned op, never casual.
+
+2. **[HUMAN, ~free] No external uptime monitoring.** Nothing watches
+   `smarter.poker` or `engine.smarter.poker` from OUTSIDE the failure domain.
+   Every current signal (publish-watchdog, engine-watchdog, Sentry) runs
+   inside the same infrastructure it watches. A free external monitor
+   (UptimeRobot / BetterStack) on both URLs closes the "the thing that would
+   have told us was also down" gap. 5 minutes to set up.
+
+3. **[HUMAN/AGENT] No staging environment.** Every deploy goes straight to
+   production. For a money platform, a preview/staging Vercel target plus an
+   engine staging instance would give a real pre-prod gate beyond CI. Larger
+   change; flag for a planned phase.
+
+4. **[AGENT] No documented rollback runbook.** Vercel keeps prior deployments
+   (rollback = promote-previous) and the engine can redeploy a prior SHA, but
+   neither is written as a one-command "revert prod to last-known-good." A
+   short `docs/dr/ROLLBACK.md` turns a tense incident into a known step.
+
+5. **[HUMAN, time-boxed] Two credentials expire in November, silently.**
+   `GH_PAT` repo secret expires **2026-11-19**; a `gh`/git PAT
+   (`AGENT-PAT-v7`, in the Mac keychain + `.git/config` remotes) expires
+   **2026-11-10**. GH_PAT is verified fallback-only (App-first everywhere), but
+   the gh/git token's failure stops `gh` and git-over-HTTPS on the Mac at once
+   with no alarm. NEEDED: one secrets-inventory with expiry dates for EVERY
+   credential (GitHub App key, both PATs, Supabase keys, Vercel token, Hetzner
+   SSH keys, Sentry, OneSignal, TURN secret), and a proactive expiry
+   watchdog that opens an issue N days before any of them lapse.
+
+## Already-tracked open items (carried forward)
+
+- **[AGENT] Definer sweep** — 560 SECURITY DEFINER functions are browser-
+  executable, 22 by anon (issue #2573 in club-arena). Monitored daily by
+  `audit-live-definer-exposure.mjs` but not shrinking on its own. Same safe
+  verify-or-revoke as the Phase-1 lockdown; do it in batches.
+- **[AGENT] Two root-cause hunts** — the double-paid-winner endgame
+  sequencing bug (#2531) and the May–July finish-position gaps (#2532);
+  symptoms guarded, causes unexplained. Under the resolution law their
+  incidents cannot close without the answer.
+- **[AGENT] Migration-drift self-heal** — the reconciler REPORTS unrecorded
+  migrations but agents keep applying without committing. Schedule
+  `backfill-unrecorded-migrations.mjs` daily to auto-open a PR of recovered
+  files, closing the loop the way the cron-wedge healer does.
+
+## Human-only, the real blockers to "done"
+
+- [ ] Order the Hetzner CI runner box + set `CI_RUNNER=estate-linux` — the
+      last ~$800/mo lever and the 12-min→2-min vitest fix. Runbook +
+      handoff already shipped (`.agent/handoffs/2026-09-01-selfhosted-ci-runner.md`).
+- [ ] Enable Supabase **PITR** (only daily backups confirmed today).
+- [ ] Enable Hetzner **engine-box snapshots** (Scenario A becomes a rollback).
+- [ ] Run the **first DR restore drill** into a scratch branch (runbook DRILL LOG).
+- [ ] Keep a **second off-Mac encrypted copy** of the engine secrets.
+- [ ] Sit down together on the **CLAUDE.md distillation** — deliberate, not a sweep.
