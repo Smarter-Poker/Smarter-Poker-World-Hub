@@ -82,6 +82,21 @@ fi
 # not evidence of anything. Alarming on it is how a watchdog becomes noise.
 if [ "$AGE_MIN" -lt "$LAG_BUDGET_MIN" ]; then
   say "main's HEAD is only ${AGE_MIN}m old (budget ${LAG_BUDGET_MIN}m) — a deploy is probably still running."
+  # This state IS recovery when production serves an ANCESTOR of main. The
+  # healthy path above closes the alarm only on serving EXACTLY head, and on
+  # a main that merges every few minutes that moment never coincides with a
+  # sweep - so a filed alarm outlived the anomaly it described for hours
+  # (club-arena #2566, 2026-09-02), teaching everyone the alarm means
+  # nothing. Ancestor lag within budget means the filing conditions are gone.
+  if [ -n "${SERVED:-}" ] && git cat-file -e "${SERVED}^{commit}" 2>/dev/null \
+     && git merge-base --is-ancestor "$SERVED" "$HEAD_SHA" 2>/dev/null; then
+    N=$(find_issue "$ISSUE_TITLE")
+    if [ -n "${N:-}" ]; then
+      gh_write "comment on #$N" issue comment "$N" --repo "$REPO" \
+        --body "Recovered. Production is serving \`${SERVED:0:8}\`, an ancestor of main, ${AGE_MIN}m inside the ${LAG_BUDGET_MIN}m budget - ordinary deploy lag, resolving itself. Closing." || true
+      gh_write "close #$N (recovered to ordinary lag)" issue close "$N" --repo "$REPO" || true
+    fi
+  fi
   summary "### Publish watchdog: in flight"
   summary ""
   summary "main \`$HEAD_SHORT\` is ${AGE_MIN}m old; production serves \`${SERVED:-?}\`."
