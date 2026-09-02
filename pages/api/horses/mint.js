@@ -1,5 +1,5 @@
 /**
- * THE MINT -- platform issuance and retirement API
+ * THE MINT - platform issuance and retirement API
  *
  * GET  /api/horses/mint?section=overview
  * GET  /api/horses/mint?section=ledger&asset=&action=&limit=&offset=
@@ -7,10 +7,19 @@
  * GET  /api/horses/mint?section=player_search&q=<text>  (diamond recipients)
  * POST /api/horses/mint  { action, asset, target, targetId, amount, reason, opId }
  *
+ * PHASE 1 NOTE (2026-09-02). Rebuilt onto src/lib/horses/operatorRoute.js:
+ * money.read on GET, money.write on POST, and a DURABLE rate limit of 20 write
+ * operations a minute per operator. The in-memory limiter this route used
+ * before is per lambda instance, so on Vercel the effective ceiling was
+ * 20 x instances - which is not a ceiling at all on the one route that creates
+ * money. Three further fixes: the amount is parsed with money2dp so
+ * 0.07 / 0.29 / 1.15 are accepted (the old float comparison refused them), the
+ * ledger pages properly, and no database error text can reach the browser.
+ *
  * WHY THIS ROUTE EXISTS (added 2026-09-02)
  *
  * `fn_ca_mint` had been in the database since the issuance-reserve work and had
- * never once been called -- `ca_op_claims` held zero rows for it. There was no
+ * never once been called - `ca_op_claims` held zero rows for it. There was no
  * route and no panel, so the only way to create supply was a hand-written
  * migration, which CLAUDE.md section 10.6 forbids by name. This is the surface
  * that makes the authorized path the easy path.
@@ -27,13 +36,13 @@
  *
  * WHY THE SERVICE ROLE
  *
- * Every read here is blocked from the browser by RLS -- an account with
+ * Every read here is blocked from the browser by RLS - an account with
  * profiles.role='admin' reads zero of 1501 club_members and zero
  * chip_transactions, because the policies are scoped to club staff rather than
  * platform staff (see the header of club-arena-admin.js, which was written
- * after that exact failure rendered "0 members" for every club). So the gate is
- * `requireAdmin` in this file and the queries run with the service key. Do not
- * move them back into the browser.
+ * after that exact failure rendered "0 members" for every club). The wrapper's
+ * service-role client is the only client this route ever sees. Do not move
+ * these queries back into the browser.
  *
  * IDEMPOTENCY IS THE CALLER'S JOB AND THE PANEL DOES IT
  *
@@ -41,26 +50,15 @@
  * sent unchanged on every retry. `fn_ca_mint` claims that key, and a replay
  * returns the ORIGINAL result with `replayed: true` instead of minting a second
  * time. A double-click cannot double the money. If the client omits it we mint
- * nothing -- we do not invent a key here, because a key invented per-request is
+ * nothing - we do not invent a key here, because a key invented per-request is
  * not an idempotency key at all.
  */
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
-
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    _supabase = createClient(url, key);
-  }
-  return _supabase;
-}
-
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
+import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { uuid, enumOf, money2dp, text, searchTerm } from '../../../src/lib/horses/validate.js';
 
 /** The single-operation ceilings the RPC also enforces. Mirrored so the panel
  *  can say no without a round trip; the database still has the last word. */
@@ -69,47 +67,19 @@ const CAPS = { chips: 1000000000, diamonds: 10000000 };
 /** Dan's law, expressed as data. `chips` never reaches a person. */
 const ALLOWED_TARGETS = { chips: ['club', 'union'], diamonds: ['player'] };
 
+const SECTIONS = ['overview', 'ledger', 'targets', 'player_search'];
+
 const LEDGER_FIELDS =
   'id, op_id, action, asset, holder_type, holder_id, holder_label, amount, ' +
   'balance_before, balance_after, supply_after, reason, performed_by, ' +
   'performed_by_label, created_at, chip_ledger_id, diamond_tx_id';
 
-const LEDGER_PAGE_MAX = 200;
-
-/**
- * PostgREST `.or()` takes a comma-separated filter STRING, so an unescaped
- * comma, parenthesis or dot in user input does not "inject SQL" but does
- * rewrite the filter tree. Strip everything structural to that grammar.
- */
-function sanitizeSearch(raw) {
-  return String(raw || '')
-    .replace(/[,()*\\%.]/g, ' ')
-    .trim()
-    .slice(0, 60);
-}
-
-async function requireAdmin(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    res.status(401).json({ success: false, error: 'Authorization required' });
-    return null;
-  }
-  const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-  if (authErr || !user) {
-    res.status(401).json({ success: false, error: 'Invalid token' });
-    return null;
-  }
-  const { data: profile } = await getSupabase()
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-    res.status(403).json({ success: false, error: 'Admin access required' });
-    return null;
-  }
-  return user;
-}
+const LEDGER_PAGE = { defaultLimit: 50, max: 200 };
+/** The destination pickers need every club and union, not a 50-row page, so
+ *  this section pages with a deliberately large default and says `truncated`
+ *  the moment the list does not fit. */
+const TARGET_PAGE = { defaultLimit: 500, max: 1000 };
+const PLAYER_PAGE = { defaultLimit: 25, max: 50 };
 
 // -- READS -------------------------------------------------------------------
 
@@ -120,73 +90,108 @@ async function requireAdmin(req, res) {
  * entirely, so "issued" and "circulating" are not supposed to match yet and a
  * panel that reconciled them silently would be lying.
  */
-async function sectionOverview() {
-  const db = getSupabase();
+async function sectionOverview(db) {
   const [{ data: totals, error: totalsErr }, { data: recent }] = await Promise.all([
     db.rpc('fn_ca_mint_overview'),
     db.from('ca_mint_ledger').select(LEDGER_FIELDS).order('created_at', { ascending: false }).limit(10),
   ]);
 
-  if (totalsErr) throw totalsErr;
+  if (totalsErr) {
+    console.error('[horses.mint] fn_ca_mint_overview failed:', totalsErr.message);
+    throw new ApiError(503, 'The Mint Overview Is Unavailable', 'mint_overview_unavailable');
+  }
   return { totals: totals || null, recent: recent || [] };
 }
 
-async function sectionLedger(query) {
-  const db = getSupabase();
-  const limit = Math.min(Number(query.limit) || 50, LEDGER_PAGE_MAX);
-  const offset = Math.max(Number(query.offset) || 0, 0);
+/** Contract item 5: the journal pages, and says how many rows there are. */
+async function sectionLedger(db, query) {
+  const page = paging(query, LEDGER_PAGE);
 
   let q = db
     .from('ca_mint_ledger')
     .select(LEDGER_FIELDS, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+    .order('created_at', { ascending: false });
 
-  if (query.asset === 'chips' || query.asset === 'diamonds') q = q.eq('asset', query.asset);
-  if (query.action === 'mint' || query.action === 'burn') q = q.eq('action', query.action);
-  if (UUID_RE.test(String(query.holderId || ''))) q = q.eq('holder_id', query.holderId);
+  const asset = enumOf(query.asset, ['chips', 'diamonds']);
+  if (asset) q = q.eq('asset', asset);
+  const action = enumOf(query.action, ['mint', 'burn']);
+  if (action) q = q.eq('action', action);
+  const holderId = uuid(query.holderId);
+  if (holderId) q = q.eq('holder_id', holderId);
 
-  const { data, error, count } = await q;
-  if (error) throw error;
-  return { entries: data || [], total: count ?? 0, limit, offset };
+  const result = await runPaged(q, page);
+  if (result.error) {
+    console.error('[horses.mint] ledger read failed:', result.error.message);
+    throw new ApiError(503, 'The Mint Journal Is Unavailable', 'mint_ledger_unavailable');
+  }
+
+  const shaped = pagedResult(result, page);
+  // `entries` is what the console renders today. Added to, never renamed.
+  return { ...shaped, entries: shaped.rows };
 }
 
 /**
  * Everything chips can legally be issued to, with its CURRENT balance, so the
  * operator sees what a club holds before deciding what to add to it. Union
  * balances live in union_wallets rather than on the union row, and a union that
- * has never held chips has no wallet row at all -- that is not an error, it is
+ * has never held chips has no wallet row at all - that is not an error, it is
  * a zero, and fn_ca_mint creates the row on first issuance.
  */
-async function sectionTargets() {
-  const db = getSupabase();
-  const [{ data: clubs, error: clubErr }, { data: unions, error: unionErr }, { data: wallets }] =
-    await Promise.all([
-      db.from('clubs').select('id, name, club_id, code, status, chip_treasury').order('name'),
-      db.from('unions').select('id, name, code, union_code').order('name'),
-      db.from('union_wallets').select('union_id, chip_balance'),
-    ]);
+async function sectionTargets(db, query) {
+  const page = paging(query, TARGET_PAGE);
 
-  if (clubErr) throw clubErr;
-  if (unionErr) throw unionErr;
+  const [clubsRes, unionsRes, walletsRes] = await Promise.all([
+    runPaged(
+      db
+        .from('clubs')
+        .select('id, name, club_id, code, status, chip_treasury', { count: 'exact' })
+        .order('name'),
+      page
+    ),
+    runPaged(
+      db.from('unions').select('id, name, code, union_code', { count: 'exact' }).order('name'),
+      page
+    ),
+    db.from('union_wallets').select('union_id, chip_balance').limit(TARGET_PAGE.max),
+  ]);
+
+  if (clubsRes.error || unionsRes.error) {
+    console.error(
+      '[horses.mint] targets read failed:',
+      clubsRes.error?.message || unionsRes.error?.message
+    );
+    throw new ApiError(503, 'The Destination List Is Unavailable', 'mint_targets_unavailable');
+  }
 
   const walletByUnion = {};
-  for (const w of wallets || []) walletByUnion[w.union_id] = Number(w.chip_balance) || 0;
+  for (const w of walletsRes.data || []) walletByUnion[w.union_id] = Number(w.chip_balance) || 0;
+
+  const clubs = (clubsRes.data || []).map((c) => ({
+    id: c.id,
+    label: c.name,
+    code: c.club_id || c.code || null,
+    status: c.status || null,
+    balance: Number(c.chip_treasury) || 0,
+  }));
+  const unions = (unionsRes.data || []).map((u) => ({
+    id: u.id,
+    label: u.name,
+    code: u.union_code || u.code || null,
+    balance: walletByUnion[u.id] || 0,
+  }));
+
+  const clubPage = { ...pagedResult(clubsRes, page), rows: clubs };
+  const unionPage = { ...pagedResult(unionsRes, page), rows: unions };
 
   return {
-    clubs: (clubs || []).map((c) => ({
-      id: c.id,
-      label: c.name,
-      code: c.club_id || c.code || null,
-      status: c.status || null,
-      balance: Number(c.chip_treasury) || 0,
-    })),
-    unions: (unions || []).map((u) => ({
-      id: u.id,
-      label: u.name,
-      code: u.union_code || u.code || null,
-      balance: walletByUnion[u.id] || 0,
-    })),
+    clubs,
+    unions,
+    pages: { clubs: clubPage, unions: unionPage },
+    limit: page.limit,
+    offset: page.offset,
+    // Explicit rather than implied: a picker missing the club the operator
+    // wants is indistinguishable from that club not existing.
+    truncated: clubPage.hasMore || unionPage.hasMore,
   };
 }
 
@@ -194,18 +199,22 @@ async function sectionTargets() {
  * Diamond recipients. Horses are NOT filtered out: CLAUDE.md section 10.5 is a
  * hard law and a horse is a player, so if the operator wants to grant one
  * diamonds the panel does not get an opinion about it. `is_horse` is surfaced
- * as a BADGE so the operator can see what they are picking -- identification,
+ * as a BADGE so the operator can see what they are picking - identification,
  * which the law explicitly still allows.
  */
-async function sectionPlayerSearch(query) {
-  const term = sanitizeSearch(query.q);
-  if (term.length < 2) return { players: [] };
+async function sectionPlayerSearch(db, query) {
+  const page = paging(query, PLAYER_PAGE);
+  const term = searchTerm(query.q, { max: 60 });
+  if (!term || term.length < 2) {
+    return { players: [], rows: [], total: 0, limit: page.limit, offset: page.offset, hasMore: false };
+  }
 
-  const db = getSupabase();
   let q = db
     .from('profiles')
-    .select('id, username, display_name, full_name, player_number, diamonds, is_horse, avatar_url')
-    .limit(25);
+    .select('id, username, display_name, full_name, player_number, diamonds, is_horse, avatar_url', {
+      count: 'exact',
+    })
+    .order('player_number', { ascending: true });
 
   // A bare number is almost always a player_number, which is how staff refer to
   // an account out loud.
@@ -215,118 +224,111 @@ async function sectionPlayerSearch(query) {
     q = q.or(`username.ilike.%${term}%,display_name.ilike.%${term}%,full_name.ilike.%${term}%`);
   }
 
-  const { data, error } = await q;
-  if (error) throw error;
+  const result = await runPaged(q, page);
+  if (result.error) {
+    console.error('[horses.mint] player search failed:', result.error.message);
+    throw new ApiError(503, 'Player Search Is Unavailable', 'mint_player_search_unavailable');
+  }
 
-  return {
-    players: (data || []).map((p) => ({
-      id: p.id,
-      label: p.display_name || p.username || p.full_name || `${String(p.id).slice(0, 8)}...`,
-      username: p.username || null,
-      playerNumber: p.player_number ?? null,
-      balance: Number(p.diamonds) || 0,
-      isHorse: Boolean(p.is_horse),
-      avatarUrl: p.avatar_url || null,
-    })),
-  };
+  const players = (result.data || []).map((p) => ({
+    id: p.id,
+    label: p.display_name || p.username || p.full_name || `${String(p.id).slice(0, 8)}...`,
+    username: p.username || null,
+    playerNumber: p.player_number ?? null,
+    balance: Number(p.diamonds) || 0,
+    isHorse: Boolean(p.is_horse),
+    avatarUrl: p.avatar_url || null,
+  }));
+
+  return { ...pagedResult(result, page), rows: players, players };
 }
 
 // -- WRITE -------------------------------------------------------------------
 
 /**
  * Validate before the round trip. Every rule here is also enforced inside the
- * RPC -- this layer exists to give the operator a sentence they can act on
+ * RPC - this layer exists to give the operator a sentence they can act on
  * instead of a snake_case reason code, not to be the only thing standing
  * between a typo and the money.
  */
-function validateIssuance(body) {
-  const action = String(body.action || '').toLowerCase();
-  const asset = String(body.asset || '').toLowerCase();
-  const target = String(body.target || '').toLowerCase();
-  const reason = String(body.reason || '').trim();
-  const opId = String(body.opId || '').trim();
-  const amount = Number(body.amount);
+export function validateIssuance(body) {
+  const action = enumOf(String(body.action || '').toLowerCase(), ['mint', 'burn']);
+  if (!action) throw badRequest('Action Must Be Mint Or Burn');
 
-  if (action !== 'mint' && action !== 'burn') {
-    return { error: 'Action must be mint or burn.' };
+  const asset = enumOf(String(body.asset || '').toLowerCase(), ['chips', 'diamonds']);
+  if (!asset) throw badRequest('Asset Must Be Chips Or Diamonds');
+
+  const target = enumOf(String(body.target || '').toLowerCase(), ALLOWED_TARGETS[asset]);
+  if (!target) {
+    throw badRequest(
+      asset === 'chips'
+        ? 'Chips Are Issued To A Club Treasury Or A Union Bank Only, Never To An Individual'
+        : 'Diamonds Are Issued To An Individual Player Only, Never To A Club Or Union'
+    );
   }
-  if (!CAPS[asset]) {
-    return { error: 'Asset must be chips or diamonds.' };
-  }
-  if (!ALLOWED_TARGETS[asset].includes(target)) {
-    return {
-      error:
-        asset === 'chips'
-          ? 'Chips are issued to a club treasury or a union bank only, never to an individual.'
-          : 'Diamonds are issued to an individual player only, never to a club or union.',
-    };
-  }
-  if (!UUID_RE.test(String(body.targetId || ''))) {
-    return { error: 'Pick a valid destination.' };
-  }
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { error: 'Amount must be a positive number.' };
-  }
-  if (Math.round(amount * 100) !== amount * 100) {
-    return { error: 'Amount cannot be finer than two decimal places.' };
-  }
-  if (asset === 'diamonds' && !Number.isInteger(amount)) {
-    return { error: 'Diamonds are whole numbers.' };
-  }
+
+  const targetId = uuid(body.targetId);
+  if (!targetId) throw badRequest('Pick A Valid Destination');
+
+  // Parsed from the STRING, so 0.07 and 1.15 survive. The old check compared
+  // the rounded cent value against the raw float product, and 0.07 * 100 is
+  // 7.000000000000001 in IEEE 754, so legitimate two-decimal amounts were
+  // refused as "finer than two decimal places".
+  const amount = money2dp(body.amount);
+  if (amount === null) throw badRequest('Amount Must Be Positive, To At Most Two Decimals');
+  if (asset === 'diamonds' && !Number.isInteger(amount)) throw badRequest('Diamonds Are Whole Numbers');
   if (amount > CAPS[asset]) {
-    return { error: `That is over the single-operation cap of ${CAPS[asset].toLocaleString()}.` };
-  }
-  if (reason.length < 10) {
-    return { error: 'Write a real reason. It is the only explanation anyone auditing this will have.' };
-  }
-  if (!opId) {
-    return { error: 'Missing idempotency key. Reload the panel and try again.' };
+    throw badRequest(`That Is Over The Single-Operation Cap Of ${CAPS[asset].toLocaleString()}`);
   }
 
-  return { action, asset, target, targetId: body.targetId, amount, reason, opId };
+  const reason = text(body.reason, { min: 10, max: 500 });
+  if (!reason) {
+    throw badRequest(
+      'Write A Real Reason Of At Least Ten Characters. It Is The Only Explanation Anyone Auditing This Will Have'
+    );
+  }
+
+  const opId = text(body.opId, { min: 1, max: 200 });
+  if (!opId) throw badRequest('Missing Idempotency Key. Reload The Panel And Try Again');
+
+  return { action, asset, target, targetId, amount, reason, opId };
 }
 
 /**
- * Reason codes the database returns, in plain English. Anything not listed is
- * passed through verbatim rather than swallowed -- an unrecognised refusal is
- * information, and hiding it behind "something went wrong" is how a money bug
- * survives a week.
+ * Reason codes the database returns, in plain English. A code that is NOT on
+ * this list becomes a 409 "Mint Refused" carrying the code, because an
+ * unrecognised refusal is information - but the raw database sentence behind it
+ * never reaches the browser.
  */
 const REASON_TEXT = {
-  the_mint_is_admin_only: 'The Mint is restricted to platform admins.',
-  asset_must_be_chips_or_diamonds: 'Asset must be chips or diamonds.',
+  the_mint_is_admin_only: 'The Mint Is Restricted To Platform Admins.',
+  asset_must_be_chips_or_diamonds: 'Asset Must Be Chips Or Diamonds.',
   chips_are_issued_to_a_club_or_union_wallet_only:
-    'Chips are issued to a club treasury or a union bank only.',
+    'Chips Are Issued To A Club Treasury Or A Union Bank Only.',
   chips_are_retired_from_a_club_or_union_wallet_only:
-    'Chips are retired from a club treasury or a union bank only.',
+    'Chips Are Retired From A Club Treasury Or A Union Bank Only.',
   diamonds_are_issued_to_an_individual_player_only:
-    'Diamonds are issued to an individual player only.',
+    'Diamonds Are Issued To An Individual Player Only.',
   diamonds_are_retired_from_an_individual_player_only:
-    'Diamonds are retired from an individual player only.',
-  target_required: 'Pick a destination.',
-  amount_must_be_positive_to_two_decimals: 'Amount must be positive, to at most two decimals.',
-  diamonds_are_whole_numbers: 'Diamonds are whole numbers.',
-  amount_over_the_single_mint_cap: 'That is over the single-operation cap.',
-  issuance_needs_a_real_reason: 'Issuance needs a reason of at least ten characters.',
-  retirement_needs_a_real_reason: 'Retirement needs a reason of at least ten characters.',
-  idempotency_key_required: 'Missing idempotency key. Reload the panel and try again.',
-  player_not_found: 'No player with that id.',
-  club_not_found: 'No club with that id.',
-  union_not_found: 'No union with that id.',
-  union_wallet_not_found: 'That union has no chip wallet yet, so there is nothing to retire.',
-  that_would_take_the_balance_below_zero: 'That is more than the player holds.',
-  that_would_take_the_treasury_below_zero: 'That is more than the club treasury holds.',
-  that_would_take_the_union_bank_below_zero: 'That is more than the union bank holds.',
+    'Diamonds Are Retired From An Individual Player Only.',
+  target_required: 'Pick A Destination.',
+  amount_must_be_positive_to_two_decimals: 'Amount Must Be Positive, To At Most Two Decimals.',
+  diamonds_are_whole_numbers: 'Diamonds Are Whole Numbers.',
+  amount_over_the_single_mint_cap: 'That Is Over The Single-Operation Cap.',
+  issuance_needs_a_real_reason: 'Issuance Needs A Reason Of At Least Ten Characters.',
+  retirement_needs_a_real_reason: 'Retirement Needs A Reason Of At Least Ten Characters.',
+  idempotency_key_required: 'Missing Idempotency Key. Reload The Panel And Try Again.',
+  player_not_found: 'No Player With That Id.',
+  club_not_found: 'No Club With That Id.',
+  union_not_found: 'No Union With That Id.',
+  union_wallet_not_found: 'That Union Has No Chip Wallet Yet, So There Is Nothing To Retire.',
+  that_would_take_the_balance_below_zero: 'That Is More Than The Player Holds.',
+  that_would_take_the_treasury_below_zero: 'That Is More Than The Club Treasury Holds.',
+  that_would_take_the_union_bank_below_zero: 'That Is More Than The Union Bank Holds.',
 };
 
-async function handleIssuance(req, res, user) {
-  const parsed = validateIssuance(req.body || {});
-  if (parsed.error) {
-    return res.status(400).json({ success: false, error: parsed.error });
-  }
-
-  const { action, asset, target, targetId, amount, reason, opId } = parsed;
-  const db = getSupabase();
+async function handleIssuance(db, op, req, body) {
+  const { action, asset, target, targetId, amount, reason, opId } = validateIssuance(body);
 
   // fn_ca_mint takes a destination; fn_ca_burn takes a source. Same six values,
   // opposite direction, and the parameter names say which way the chips move.
@@ -349,54 +351,58 @@ async function handleIssuance(req, res, user) {
           p_op_id: opId,
         });
 
-  if (error) throw error;
+  if (error) {
+    // The raw sentence is a Postgres string: table names, constraint names,
+    // SQL fragments. It is logged under the request id and never returned.
+    console.error(`[horses.mint] ${action} rpc failed:`, error.message);
+    throw new ApiError(503, 'The Mint Is Unavailable', 'mint_unavailable');
+  }
 
   if (!data || data.ok !== true) {
-    const code = data?.reason || 'unknown';
-    return res.status(400).json({
-      success: false,
-      error: REASON_TEXT[code] || `The Mint refused this: ${code}`,
-      reason: code,
-      detail: data || null,
-    });
+    const code = typeof data?.reason === 'string' ? data.reason : 'mint_refused';
+    if (REASON_TEXT[code]) throw new ApiError(400, REASON_TEXT[code], code);
+    throw new ApiError(409, 'Mint Refused', code);
   }
 
-  return res.status(200).json({ success: true, result: data, performedBy: user.id });
+  await auditOperatorAction(op, req, {
+    action: action === 'mint' ? 'mint.issue' : 'mint.retire',
+    targetType: target,
+    targetId,
+    before: {
+      balance_before: data.balance_before ?? null,
+      supply_before: data.supply_before ?? null,
+    },
+    after: {
+      balance_after: data.balance_after ?? null,
+      supply_after: data.supply_after ?? null,
+      replayed: data.replayed === true,
+    },
+    details: { asset, target, amount, reason, opId, ledgerId: data.ledger_id ?? null },
+  });
+
+  return { result: data, performedBy: op.user.id };
 }
 
-// -- HANDLER -----------------------------------------------------------------
+export const spec = {
+  name: 'horses.mint',
+  methods: ['GET', 'POST'],
+  permission: { GET: PERMISSIONS.MONEY_READ, POST: PERMISSIONS.MONEY_WRITE },
+  limit: { GET: 'read', POST: 'financial' },
+  // Durable, not in-memory: the money route is the one place where "per lambda
+  // instance" is not a limit at all.
+  durable: { POST: { max: 20, windowSeconds: 60 } },
+};
 
-export default async function handler(req, res) {
-  try {
-    if (req.method === 'GET') {
-      if (!applyRateLimit(req, res, LIMITS.read)) return;
-      const user = await requireAdmin(req, res);
-      if (!user) return;
+export async function handle({ req, op, db, body, query, method }) {
+  if (method === 'POST') return handleIssuance(db, op, req, body);
 
-      const section = String(req.query.section || 'overview');
-      let payload;
-      if (section === 'overview') payload = await sectionOverview();
-      else if (section === 'ledger') payload = await sectionLedger(req.query);
-      else if (section === 'targets') payload = await sectionTargets();
-      else if (section === 'player_search') payload = await sectionPlayerSearch(req.query);
-      else return res.status(400).json({ success: false, error: 'Unknown section' });
+  const section = enumOf(String(query.section || 'overview'), SECTIONS);
+  if (!section) throw badRequest('Unknown Section');
 
-      return res.status(200).json({ success: true, ...payload });
-    }
-
-    if (req.method === 'POST') {
-      // Financial limit, not the write limit: 20/min is far more than a human
-      // operator needs and far less than a runaway client can do damage with.
-      if (!applyRateLimit(req, res, LIMITS.financial)) return;
-      const user = await requireAdmin(req, res);
-      if (!user) return;
-      return await handleIssuance(req, res, user);
-    }
-
-    res.setHeader('Allow', 'GET, POST');
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  } catch (err) {
-    reportApiError(err, req, { route: '/api/horses/mint' });
-    return res.status(500).json({ success: false, error: err?.message || 'The Mint is unavailable' });
-  }
+  if (section === 'overview') return sectionOverview(db);
+  if (section === 'ledger') return sectionLedger(db, query);
+  if (section === 'targets') return sectionTargets(db, query);
+  return sectionPlayerSearch(db, query);
 }
+
+export default withOperatorRoute(spec, handle);

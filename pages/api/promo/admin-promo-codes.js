@@ -1,8 +1,9 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-// Admin CRUD for promo codes — GET (list), POST (create), DELETE (deactivate)
+// Admin CRUD for promo codes - GET (list), POST (create), DELETE (deactivate)
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { randomInt } from 'crypto';
 
@@ -17,7 +18,7 @@ const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 //
 // `vip_trial` IS NOT ONE OF THEM and must not be added. The /horses UI offered
 // it as one of three choices, so picking it 400'd every time. The real VIP
-// value is `vip_days` — that is what production's VIP30 code carries. The
+// value is `vip_days` - that is what production's VIP30 code carries. The
 // allowlist is echoed back on GET as `rewardTypes` so a UI can build its
 // select from the truth instead of guessing.
 const VALID_REWARD_TYPES = [
@@ -60,7 +61,7 @@ function generateCode(length = 8) {
 }
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  // [Phase 6.1.15] Rate limit writes - prevents enumeration + drain attacks.
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -94,7 +95,18 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Platform admin access required' });
       }
 
-      // GET — List all promo codes
+      // The operator context the shared audit helper wants. Auth above is
+      // unchanged; this only gives the audit rows the same actor, role, ip,
+      // user agent, request id and before/after stamp every other console
+      // write now carries.
+      const auditOp = {
+          user: { id: user.id },
+          role: profile.role,
+          db: getSupabase(),
+          requestId: requestIdOf(req),
+      };
+
+      // GET - List all promo codes
       if (req.method === 'GET') {
           try {
               const { data, error } = await getSupabase()
@@ -109,7 +121,7 @@ export default async function handler(req, res) {
               if (error) throw error;
 
               // The embedded count was fetched and then thrown away, so the
-              // UI could only show `times_used` — a counter incremented by the
+              // UI could only show `times_used` - a counter incremented by the
               // redemption paths, which already disagrees with reality in
               // production (WELCOME500 reads times_used 1 with zero rows in
               // promo_code_redemptions). `redemption_count` is the measured
@@ -140,7 +152,7 @@ export default async function handler(req, res) {
           }
       }
 
-      // POST — Create a new promo code
+      // POST - Create a new promo code
       if (req.method === 'POST') {
           const { code, description, type, value, maxUses, expiresAt } = req.body || {};
 
@@ -190,15 +202,14 @@ export default async function handler(req, res) {
                   throw error;
               }
 
-              // Audit log (Phase 6.1.8 — routed via fn_log_admin_action RPC)
-              await logAdminAction(getSupabase(), {
-                  admin_user_id: user.id,
-                  action: 'promo_code.created',
-                  target_type: 'promo_code',
-                  target_id: data?.id,
+              // Audit log. A promo code is a bearer token for diamonds, so who
+              // minted it and for how much is part of the record.
+              await auditOperatorAction(auditOp, req, {
+                  action: 'promo.create',
+                  targetType: 'promo_code',
+                  targetId: data?.id,
                   details: { code: promoCode, type: rewardType, value: clampRewardValue(value), maxUses, expiresAt: expiresAtIso },
                   after: data,
-                  req,
               });
 
               return res.status(201).json({ code: data });
@@ -208,7 +219,7 @@ export default async function handler(req, res) {
           }
       }
 
-      // DELETE — Deactivate a promo code
+      // DELETE - Deactivate a promo code
       if (req.method === 'DELETE') {
           const { id } = req.query;
           if (!id) return res.status(400).json({ success: false, error: 'Code ID required' });
@@ -221,15 +232,15 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              // Audit log (Phase 6.1.8)
-              await logAdminAction(getSupabase(), {
-                  admin_user_id: user.id,
-                  action: 'promo_code.deactivated',
-                  target_type: 'promo_code',
-                  target_id: id,
+              // Audit log. DELETE is a soft deactivate, which is the same act
+              // the toggle performs, so it files under the same action name.
+              await auditOperatorAction(auditOp, req, {
+                  action: 'promo.toggle',
+                  targetType: 'promo_code',
+                  targetId: id,
+                  details: { via: 'delete', is_active: false },
                   before: { is_active: true },
                   after: { is_active: false },
-                  req,
               });
 
               return res.status(200).json({ success: true });
@@ -239,14 +250,14 @@ export default async function handler(req, res) {
           }
       }
 
-      // PATCH — Update promo code (toggle, rename, set max uses, etc.)
+      // PATCH - Update promo code (toggle, rename, set max uses, etc.)
       //
       // BODY SHAPE (application/json). `id` is REQUIRED; every other key is
       // OPTIONAL and only the keys actually present are written, so a partial
       // edit never blanks a field it did not mention. At least one editable
       // key must be present or the call 400s with 'No updates provided'.
       //
-      //   id            string (uuid)  REQUIRED — promo_codes.id
+      //   id            string (uuid)  REQUIRED - promo_codes.id
       //   is_active     boolean        written as-is
       //   code          string         upper-cased and trimmed, must match
       //                                /^[A-Z0-9]{4,20}$/, unique (409-style
@@ -322,15 +333,15 @@ export default async function handler(req, res) {
                   throw error;
               }
 
-              // Audit log for PATCH (Phase 6.1.8)
-              await logAdminAction(getSupabase(), {
-                  admin_user_id: user.id,
-                  action: 'promo_code.updated',
-                  target_type: 'promo_code',
-                  target_id: id,
+              // Audit log. A PATCH that only moves is_active is a toggle; any
+              // other edit can re-price the code and is filed as an update.
+              const isToggleOnly = Object.keys(updates).length === 1 && updates.is_active !== undefined;
+              await auditOperatorAction(auditOp, req, {
+                  action: isToggleOnly ? 'promo.toggle' : 'promo.update',
+                  targetType: 'promo_code',
+                  targetId: id,
                   details: { updates },
                   after: data,
-                  req,
               });
 
               return res.status(200).json({ success: true, code: data });

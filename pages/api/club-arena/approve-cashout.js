@@ -21,8 +21,9 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -37,11 +38,11 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
+  const supabaseAdmin = getSupabase(); // FIX: was undefined - alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    // CONCURRENCY: Idempotency guard — prevent double-tap cashout race
+    // CONCURRENCY: Idempotency guard - prevent double-tap cashout race
     if (checkIdempotency(req, res)) return;
 
     // ── RED TEAM: Payload size + field allowlist + UUID validation ──
@@ -73,11 +74,11 @@ export default async function handler(req, res) {
     // into club treasury (settling off-platform fiat downstream). Require
     // a fresh (within-5-min) MFA confirmation from the approving agent/
     // owner so a stolen 12h cookie can't drain accounts.
-    // Cancel action is reversible (chips return to balance) — we skip the
+    // Cancel action is reversible (chips return to balance) - we skip the
     // step-up gate for cancel so operators aren't friction-slowed on the
     // happy-path rollback.
     if (action === 'approve') {
-      // Only gate if the user has MFA enrolled — agents who haven't
+      // Only gate if the user has MFA enrolled - agents who haven't
       // enrolled fall back to the existing chip-velocity + audit-log
       // controls. (See Phase 6.1.28 follow-up: make MFA mandatory for
       // any agent handling cashouts.)
@@ -105,8 +106,8 @@ export default async function handler(req, res) {
 
     try {
       // ═════════════════════════════════════════════════════════════
-      // 1. Get cashout request — select ALL fields used downstream
-      //    BUG FIX: was .select('id') — cashout.club_id, .agent_id, .player_id,
+      // 1. Get cashout request - select ALL fields used downstream
+      //    BUG FIX: was .select('id') - cashout.club_id, .agent_id, .player_id,
       //    .amount were all undefined, breaking auth, chip transfer, and notifications
       // ═════════════════════════════════════════════════════════════
       const { data: cashout, error: coErr } = await getSupabase()
@@ -117,7 +118,7 @@ export default async function handler(req, res) {
 
       if (coErr || !cashout) return res.status(404).json({ success: false, error: 'Cashout request not found' });
 
-      // Settlement lock check — block during Monday 4:00-4:10 AM CST
+      // Settlement lock check - block during Monday 4:00-4:10 AM CST
       // Must happen BEFORE claiming status, otherwise a lock leaves it orphaned
       const lockCheck = await checkSettlementLock(supabaseAdmin, cashout.club_id);
       if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
@@ -181,8 +182,19 @@ export default async function handler(req, res) {
       const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
       // True only when NEITHER the club nor the agent relationship authorized
-      // this caller — i.e. the action went through purely on platform role.
+      // this caller - i.e. the action went through purely on platform role.
       const viaPlatformOverride = isPlatformAdmin && !isAgent && !isAdmin;
+
+      // The operator context the shared audit helper wants. Auth is unchanged
+      // above; this only gives the audit row the same actor, role, ip, user
+      // agent, request id and before/after stamp every other console write now
+      // carries.
+      const auditOp = {
+        user: { id: user.id },
+        role: callerProfile?.role || 'admin',
+        db: supabaseAdmin,
+        requestId: requestIdOf(req),
+      };
 
       // cashout.amount is nullable; .toLocaleString() on null throws.
       const amountText = Number(cashout.amount || 0).toLocaleString();
@@ -213,14 +225,13 @@ export default async function handler(req, res) {
 
         logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
 
-        // Admin console audit trail — this moves real chips off a player
-        // balance into club treasury. logAdminAction swallows its own errors
-        // so it can never fail the request.
-        await logAdminAction(supabaseAdmin, {
-          admin_user_id: user.id,
-          action: 'cashout.approved',
-          target_type: 'cashout_request',
-          target_id: cashoutId,
+        // Admin console audit trail. This moves real chips off a player
+        // balance into club treasury. auditOperatorAction swallows its own
+        // errors so it can never fail the request.
+        await auditOperatorAction(auditOp, req, {
+          action: 'cashout.approve',
+          targetType: 'cashout_request',
+          targetId: cashoutId,
           details: {
             amount: cashout.amount,
             club_id: cashout.club_id,
@@ -231,7 +242,6 @@ export default async function handler(req, res) {
           },
           before: { status: cashout.status },
           after: { status: 'approved' },
-          req,
         });
 
         return res.status(200).json({
@@ -271,12 +281,11 @@ export default async function handler(req, res) {
 
         logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent', platformAdminOverride: viaPlatformOverride } });
 
-        // Admin console audit trail — returns held chips to the player.
-        await logAdminAction(supabaseAdmin, {
-          admin_user_id: user.id,
-          action: 'cashout.cancelled',
-          target_type: 'cashout_request',
-          target_id: cashoutId,
+        // Admin console audit trail. Returns held chips to the player.
+        await auditOperatorAction(auditOp, req, {
+          action: 'cashout.cancel',
+          targetType: 'cashout_request',
+          targetId: cashoutId,
           details: {
             amount: cashout.amount,
             club_id: cashout.club_id,
@@ -289,7 +298,6 @@ export default async function handler(req, res) {
           },
           before: { status: cashout.status },
           after: { status: 'cancelled' },
-          req,
         });
 
         return res.status(200).json({
@@ -334,7 +342,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       console.warn('[approve-cashout] fn_get_or_create_conversation error:', convErr);
       return;
     }
-    // RPC returns jsonb { success, conversation_id, created } — not a UUID.
+    // RPC returns jsonb { success, conversation_id, created } - not a UUID.
     // Treating the whole jsonb as a UUID (the previous bug) made the
     // fn_send_message call fail with type-coercion 500.
     const convId = convResult?.success ? convResult.conversation_id : null;

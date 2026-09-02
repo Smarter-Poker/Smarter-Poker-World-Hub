@@ -1,15 +1,18 @@
 /**
- * /horses/hg-moderation — Platform-staff Home Games moderation surface
+ * /horses/hg-moderation - Platform-staff Home Games moderation surface
  * 4 tabs: Reports · Appeals · Onboarding lookup · GDPR scrub
  * Admin-gated (admin|superadmin|god).
  *
- * Colour: smarter.poker / Club Arena palette. Cyan #00d4ff is THE accent and
- * also means SUCCESS / ACTIVE. No purples, no greens.
+ * Colour: every value comes from T (src/lib/horsesAdminTokens.js), which is
+ * var() strings resolved by horses.module.css on `.tokenScope`. That class is
+ * on every root this file can return; a new root without it renders
+ * uncoloured. Cyan is THE accent and also means SUCCESS / ACTIVE. No purples,
+ * no greens, and no raw hex in this file.
  *
  * 2026-08-26: moderators can no longer act blind. The Review modal now loads
  * the reported content itself (GET /api/horses/hg-reports?id=<uuid>, backed by
  * get_home_content_report_detail) and the destructive actions stay disabled
- * until that content has actually been seen — either rendered, or explicitly
+ * until that content has actually been seen - either rendered, or explicitly
  * reported as no longer existing.
  */
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
@@ -17,12 +20,12 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
+import { T } from '../../src/lib/horsesAdminTokens';
+import styles from './horses.module.css';
 
 const TABS = ['Reports', 'Appeals', 'Onboarding', 'GDPR Scrub'];
 
-// #6b7280 measures 3.67:1 on the #111827 panel and fails WCAG AA for body
-// text. #8b93a1 is 5.15:1 and matches the shared token in horses.module.css.
-const MUTED = '#8b93a1';
+const PAGE_SIZE = 50;
 
 const RESOLVE_ACTIONS = [
   { value: 'dismiss', label: 'Dismiss' },
@@ -41,7 +44,7 @@ const PAGE_CSS = `
 .hgm-root textarea:focus,
 .hgm-root button:focus,
 .hgm-root summary:focus {
-  outline: 2px solid #00d4ff;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .hgm-root select:focus:not(:focus-visible),
@@ -56,7 +59,7 @@ const PAGE_CSS = `
 .hgm-root textarea:focus-visible,
 .hgm-root button:focus-visible,
 .hgm-root summary:focus-visible {
-  outline: 2px solid #00d4ff;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
@@ -182,9 +185,118 @@ function Modal({ title, onClose, children }) {
         style={S.modal}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h3 id={titleId} style={{ margin: '0 0 12px', color: '#f3f4f6' }}>{title}</h3>
+        <h3 id={titleId} style={{ margin: '0 0 12px', color: T.text }}>{title}</h3>
         {children}
       </div>
+    </div>
+  );
+}
+
+// ── Pager ──────────────────────────────────────────────────────────────────
+/**
+ * Previous / Next over an offset the route already accepts, plus the one line
+ * that makes a truncated queue distinguishable from a complete one.
+ *
+ * `total` may be null: hg-appeals did not return one for a while, and a list
+ * whose route has not caught up must still be usable. When it is null the
+ * range is stated without a denominator rather than an invented one, and Next
+ * falls back to the same honest heuristic the flagged-hands table uses - a
+ * full page MIGHT have more behind it.
+ */
+function Pager({ offset, count, total, pageSize, onOffset, busy, noun }) {
+  const knowTotal = Number.isFinite(total);
+  const first = count === 0 ? 0 : offset + 1;
+  const last = offset + count;
+  const hasPrev = offset > 0;
+  const hasMore = knowTotal ? last < total : count === pageSize;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+      <button
+        type="button"
+        style={{ ...S.btnGhost, opacity: hasPrev && !busy ? 1 : 0.5, cursor: hasPrev && !busy ? 'pointer' : 'not-allowed' }}
+        disabled={!hasPrev || busy}
+        onClick={() => onOffset(Math.max(0, offset - pageSize))}
+      >
+        Previous
+      </button>
+      <button
+        type="button"
+        style={{ ...S.btnGhost, opacity: hasMore && !busy ? 1 : 0.5, cursor: hasMore && !busy ? 'pointer' : 'not-allowed' }}
+        disabled={!hasMore || busy}
+        onClick={() => onOffset(offset + pageSize)}
+      >
+        Next
+      </button>
+      <span aria-live="polite" style={{ fontSize: 13, color: T.muted }}>
+        {count === 0
+          ? `No ${noun} On This Page`
+          : knowTotal
+            ? `Showing ${first}-${last} Of ${total}`
+            : `Showing ${first}-${last} (Total Not Reported By The Route)`}
+      </span>
+    </div>
+  );
+}
+
+// ── Key/value rendering ────────────────────────────────────────────────────
+/**
+ * A definition list instead of JSON.stringify.
+ *
+ * Onboarding status and the GDPR erase counts were both dumped as raw JSON.
+ * That is readable to whoever wrote the RPC and to nobody else, and it is the
+ * shape an operator has to read under time pressure on a legal request. The
+ * keys become sentence labels, values render as text, and the full payload
+ * stays one click away because the labelled view is lossy by design: a nested
+ * object is summarised, and the Raw disclosure is where you check it.
+ */
+function labelize(key) {
+  return String(key)
+    .replace(/^out_/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
+}
+
+function renderValue(value) {
+  if (value === null || value === undefined) return '-';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') return value.toLocaleString();
+  if (Array.isArray(value)) return value.length === 0 ? 'None' : `${value.length} Entries (See Raw)`;
+  if (typeof value === 'object') return `${Object.keys(value).length} Fields (See Raw)`;
+  const str = String(value);
+  return str === '' ? '-' : str;
+}
+
+function KeyValueRows({ data, rawLabel }) {
+  const entries = data && typeof data === 'object' && !Array.isArray(data) ? Object.entries(data) : [];
+  return (
+    <div>
+      {entries.length === 0 ? (
+        <div style={{ fontSize: 13, color: T.muted }}>The Response Carried No Fields.</div>
+      ) : (
+        <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(140px, max-content) 1fr', gap: '6px 16px' }}>
+          {entries.map(([k, v]) => (
+            <div key={k} style={{ display: 'contents' }}>
+              <dt style={{ fontSize: 12, color: T.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {labelize(k)}
+              </dt>
+              <dd style={{ margin: 0, fontSize: 13, color: T.text, wordBreak: 'break-word' }}>{renderValue(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: T.muted, minHeight: 44, display: 'flex', alignItems: 'center' }}>
+          {rawLabel}
+        </summary>
+        <pre style={{ margin: '8px 0 0', color: T.text, fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }
@@ -226,7 +338,7 @@ function snapshotMedia(snap) {
 
 /**
  * The whole point of this block: the moderator sees what they are acting on
- * BEFORE the action select is usable. Three terminal states — rendered,
+ * BEFORE the action select is usable. Three terminal states - rendered,
  * "no longer exists", or a load failure. Only the first two release the
  * actions; a failure keeps them locked and offers a retry.
  */
@@ -271,7 +383,7 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
                 </code>
               </span>
             ) : null}
-            {snap.is_hidden ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Already Hidden</span> : null}
+            {snap.is_hidden ? <span style={{ color: T.danger, fontWeight: 700 }}>Already Hidden</span> : null}
           </div>
 
           {body ? (
@@ -282,16 +394,16 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
 
           {media.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 12, color: MUTED, marginBottom: 4 }}>Attached Media ({media.length})</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#9ca3af', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 4 }}>Attached Media ({media.length})</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.dim, wordBreak: 'break-all' }}>
                 {media.map((u, i) => <li key={i}>{u}</li>)}
               </ul>
             </div>
           )}
 
           <details style={{ marginTop: 10 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 12, color: MUTED }}>Raw Content Record</summary>
-            <pre style={{ margin: '8px 0 0', fontSize: 11, color: '#9ca3af', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: T.muted }}>Raw Content Record</summary>
+            <pre style={{ margin: '8px 0 0', fontSize: 11, color: T.dim, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {JSON.stringify(snap, null, 2)}
             </pre>
           </details>
@@ -318,6 +430,10 @@ function ReportsTab({ token }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState('');
   const [total, setTotal] = useState(null);
+  // The route pages with limit/offset and returns `total`. The queue used to
+  // ask for 100 and stop there, so row 101 was unreachable and only a count
+  // hinted it existed.
+  const [offset, setOffset] = useState(0);
   // Monotonic request token. loadDetail had no sequence guard: open report A
   // (slow), close it or open report B, and A's response still landed, flipping
   // contentSeen true while the panel showed a DIFFERENT report's content. That
@@ -330,7 +446,10 @@ function ReportsTab({ token }) {
     if (!token) return;
     setLoading(true); setErr('');
     try {
-      const d = await apiFetch(`/api/horses/hg-reports?status=${status}&limit=100`, token);
+      const d = await apiFetch(
+        `/api/horses/hg-reports?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`,
+        token
+      );
       // Defensive unwrap. The route now returns a real array (it used to pass
       // through the jsonb envelope from list_home_content_reports, which made
       // reports.map throw and white-screened this tab -- the default one -- on
@@ -340,9 +459,14 @@ function ReportsTab({ token }) {
       setTotal(d.total ?? null);
     } catch (e) { setErr(e.message); }
     setLoading(false);
-  }, [token, status]);
+  }, [token, status, offset]);
 
   useEffect(() => { load(); }, [load]);
+
+  // A status change is a different queue, so it starts at the top. Without
+  // this, switching filters on page 4 lands on page 4 of the new queue, which
+  // is usually empty and reads as "no reports".
+  const changeStatus = (next) => { setOffset(0); setStatus(next); };
 
   // GET /api/horses/hg-reports?id=<uuid> responds
   //   { success: true, report: { success, report, content_snapshot } }
@@ -407,7 +531,7 @@ function ReportsTab({ token }) {
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <select
           value={status}
-          onChange={e => setStatus(e.target.value)}
+          onChange={e => changeStatus(e.target.value)}
           style={S.select}
           aria-label="Filter reports by status"
         >
@@ -423,13 +547,11 @@ function ReportsTab({ token }) {
           <option value="">All</option>
         </select>
         <button onClick={load} style={S.btn}>Refresh</button>
-        {/* The request caps at 100. Without the total, a full queue and a
-            truncated one look identical. */}
+        {/* The whole-queue size, next to the range the pager states. A full
+            page and a truncated queue used to look identical. */}
         {total !== null && (
-          <span style={{ ...S.dim, fontSize: 13 }}>
-            {reports.length >= 100 && total > reports.length
-              ? `Showing first ${reports.length} of ${total}`
-              : `${total} ${total === 1 ? 'report' : 'reports'}`}
+          <span style={{ ...S.dim, padding: 0, fontSize: 13 }}>
+            {`${total} ${total === 1 ? 'Report' : 'Reports'} In This Queue`}
           </span>
         )}
       </div>
@@ -446,7 +568,7 @@ function ReportsTab({ token }) {
                 <tr key={r.id}>
                   <td style={S.td}><code style={{ fontSize: 11 }}>{r.id?.slice(0,8)}</code></td>
                   <td style={S.td}>{r.reported_type}</td>
-                  <td style={S.td}><span style={{ color: ['illegal','self_harm','doxxing'].includes(r.reason_category) ? '#ef4444' : '#9ca3af', fontWeight: 700 }}>{r.reason_category}</span></td>
+                  <td style={S.td}><span style={{ color: ['illegal','self_harm','doxxing'].includes(r.reason_category) ? T.danger : T.dim, fontWeight: 700 }}>{r.reason_category}</span></td>
                   <td style={S.td}>{r.reporter_name || '-'}</td>
                   <td style={S.td}>{r.content_author_name || '-'}</td>
                   <td style={S.td}>{r.status}</td>
@@ -459,10 +581,20 @@ function ReportsTab({ token }) {
         </div>
       )}
 
+      <Pager
+        offset={offset}
+        count={reports.length}
+        total={total}
+        pageSize={PAGE_SIZE}
+        onOffset={setOffset}
+        busy={loading}
+        noun="Reports"
+      />
+
       {resolving && (
         <Modal title="Resolve Report" onClose={closeReview}>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Reporter Category: <strong style={{ color: '#ef4444' }}>{resolving.reason_category}</strong></p>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px' }}>{resolving.reason_text}</p>
+          <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>Reporter Category: <strong style={{ color: T.danger }}>{resolving.reason_category}</strong></p>
+          <p style={{ fontSize: 13, color: T.dim, margin: '0 0 16px' }}>{resolving.reason_text}</p>
 
           <ReportedContentPanel
             reportedType={resolving.reported_type}
@@ -519,18 +651,31 @@ function AppealsTab({ token }) {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [modalErr, setModalErr] = useState('');
+  const [offset, setOffset] = useState(0);
+  // The list route accepts limit/offset and returns `total` alongside the
+  // legacy `appeals` field. `total` is read defensively because this page
+  // shipped against a version of the route that did not send one; the pager
+  // states an honest range either way rather than inventing a denominator.
+  const [total, setTotal] = useState(null);
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true); setErr('');
     try {
-      const d = await apiFetch(`/api/horses/hg-appeals?status=${status}&limit=100`, token);
-      setAppeals(d.appeals || []);
+      const d = await apiFetch(
+        `/api/horses/hg-appeals?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`,
+        token
+      );
+      setAppeals(d.appeals || d.rows || []);
+      setTotal(Number.isFinite(d.total) ? d.total : null);
     } catch (e) { setErr(e.message); }
     setLoading(false);
-  }, [token, status]);
+  }, [token, status, offset]);
 
   useEffect(() => { load(); }, [load]);
+
+  // A different status is a different queue; start it at the top.
+  const changeStatus = (next) => { setOffset(0); setStatus(next); };
 
   const handleReview = async () => {
     setSubmitting(true); setModalErr('');
@@ -551,7 +696,7 @@ function AppealsTab({ token }) {
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <select
           value={status}
-          onChange={e => setStatus(e.target.value)}
+          onChange={e => changeStatus(e.target.value)}
           style={S.select}
           aria-label="Filter appeals by status"
         >
@@ -561,6 +706,11 @@ function AppealsTab({ token }) {
           <option value="">All</option>
         </select>
         <button onClick={load} style={S.btn}>Refresh</button>
+        {total !== null && (
+          <span style={{ ...S.dim, padding: 0, fontSize: 13 }}>
+            {`${total} ${total === 1 ? 'Appeal' : 'Appeals'} In This Queue`}
+          </span>
+        )}
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
       {loading ? <div style={S.dim}>Loading…</div> : appeals.length === 0 ? (
@@ -587,10 +737,20 @@ function AppealsTab({ token }) {
         </div>
       )}
 
+      <Pager
+        offset={offset}
+        count={appeals.length}
+        total={total}
+        pageSize={PAGE_SIZE}
+        onOffset={setOffset}
+        busy={loading}
+        noun="Appeals"
+      />
+
       {reviewing && (
         <Modal title="Review Ban Appeal" onClose={() => setReviewing(null)}>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>User: <strong style={{ color: '#f3f4f6' }}>{reviewing.out_user_display}</strong></p>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
+          <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>User: <strong style={{ color: T.text }}>{reviewing.out_user_display}</strong></p>
+          <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
           {modalErr && <div role="alert" style={S.err}>{modalErr}</div>}
           <label style={S.label}>Decision
             <select value={decision} onChange={e => setDecision(e.target.value)} style={{ ...S.select, width: '100%', marginTop: 4 }}>
@@ -643,8 +803,11 @@ function OnboardingTab({ token }) {
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
       {result && (
-        <div style={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 16, overflowX: 'auto' }}>
-          <pre style={{ color: '#f3f4f6', fontSize: 13, margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
+        <div style={{ background: T.inset, border: `1px solid ${T.line}`, borderRadius: 10, padding: 16, overflowX: 'auto' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: T.accent, marginBottom: 10 }}>
+            Onboarding Status
+          </div>
+          <KeyValueRows data={result} rawLabel="Raw Onboarding Payload" />
         </div>
       )}
     </div>
@@ -661,7 +824,7 @@ function GdprTab({ token }) {
 
   const handleErase = async () => {
     if (!confirmed) { setErr('Check The Confirmation Box First.'); return; }
-    // Deliberate destructive-action guard — this one stays a native confirm.
+    // Deliberate destructive-action guard - this one stays a native confirm.
     if (!window.confirm(`IRREVERSIBLE: Anonymize all Home Games content for user ${userId}?`)) return;
     setLoading(true); setErr(''); setResult(null);
     try {
@@ -677,7 +840,7 @@ function GdprTab({ token }) {
   return (
     <div>
       <h2 style={S.srOnly}>GDPR Scrub</h2>
-      <div style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#ef4444' }}>
+      <div style={{ background: T.dangerWash, border: `1px solid ${T.dangerLine}`, borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: T.danger }}>
         WARNING - GDPR Erasure Is Irreversible. Anonymizes All Home Games Posts, Messages, And Profile Data For The Target User. Use Only On Verified DPO/Legal Request.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 500 }}>
@@ -690,19 +853,22 @@ function GdprTab({ token }) {
             style={{ ...S.select, width: '100%', boxSizing: 'border-box', marginTop: 4 }}
           />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: 13, cursor: 'pointer', minHeight: 44 }}>
-          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: '#00d4ff', width: 20, height: 20 }} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: T.dim, fontSize: 13, cursor: 'pointer', minHeight: 44 }}>
+          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: T.accent, width: 20, height: 20 }} />
           I Confirm This Action Is Authorized And Irreversible
         </label>
-        <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: '#ef4444', color: '#f3f4f6', maxWidth: 200 }}>
+        <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: T.danger, color: T.text, maxWidth: 200 }}>
           {loading ? 'Erasing…' : 'Erase User Content'}
         </button>
       </div>
       {err && <div style={{ ...S.err, marginTop: 16, marginBottom: 0 }}>{err}</div>}
       {result && (
-        <div style={{ marginTop: 16, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 8, padding: 12, overflowX: 'auto' }}>
-          <div style={{ color: '#00d4ff', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Erasure Complete</div>
-          <pre style={{ color: '#f3f4f6', fontSize: 13, margin: 0 }}>{JSON.stringify(result, null, 2)}</pre>
+        <div style={{ marginTop: 16, background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 8, padding: 12, overflowX: 'auto' }}>
+          <div style={{ color: T.accent, fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Erasure Complete</div>
+          {/* One labelled row per table touched. This is the receipt for a
+              legal request, so the counts have to be readable without
+              anyone parsing JSON; Raw stays for the record itself. */}
+          <KeyValueRows data={result} rawLabel="Raw Erasure Counts" />
         </div>
       )}
     </div>
@@ -757,19 +923,19 @@ export default function HgModerationPage() {
     return () => { active = false; };
   }, [token, ready, router]);
 
-  if (!authChecked) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Verifying Access…</div>;
+  if (!authChecked) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.dim }}>Verifying Access…</div>;
   if (!authed && authFailure) return (
-    <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', flexDirection: 'column',
+    <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
-      <div role="alert" style={{ color: '#ef4444', fontSize: 18, fontWeight: 700 }}>Could Not Verify Your Role</div>
-      <div style={{ color: '#9ca3af', fontSize: 14, maxWidth: 480 }}>
+      <div role="alert" style={{ color: T.danger, fontSize: 18, fontWeight: 700 }}>Could Not Verify Your Role</div>
+      <div style={{ color: T.dim, fontSize: 14, maxWidth: 480 }}>
         {authFailure}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
       </div>
-      <button onClick={() => router.reload()} style={{ background: '#00d4ff', color: '#0a0e17', border: 'none',
+      <button onClick={() => router.reload()} style={{ background: T.accent, color: T.page, border: 'none',
         padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
     </div>
   );
-  if (!authed) return <div style={{ minHeight: '100vh', background: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 18 }}>403 - Admin Access Required</div>;
+  if (!authed) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.danger, fontSize: 18 }}>403 - Admin Access Required</div>;
 
   return (
     <>
@@ -778,16 +944,16 @@ export default function HgModerationPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <style>{PAGE_CSS}</style>
-      <div className="hgm-root hgm-page" style={{ minHeight: '100vh', background: '#0a0e17', color: '#f3f4f6', fontFamily: 'Inter,-apple-system,sans-serif', padding: '24px 20px 80px' }}>
+      <div className={`hgm-root hgm-page ${styles.tokenScope}`} style={{ minHeight: '100vh', background: T.page, color: T.text, fontFamily: 'Inter,-apple-system,sans-serif', padding: '24px 20px 80px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
             <button onClick={() => router.push('/horses')} style={S.backBtn}>&larr; Back To Horses</button>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: '#f3f4f6' }}>Home Games Moderation</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px' }}>Platform-Staff Surface - All Escalation Categories, Cross-Group Actions, GDPR Tools</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: T.text }}>Home Games Moderation</h1>
+          <p style={{ fontSize: 13, color: T.muted, margin: '0 0 24px' }}>Platform-Staff Surface - All Escalation Categories, Cross-Group Actions, GDPR Tools</p>
 
           {/* Tab bar */}
-          <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
+          <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: T.surfaceTint, borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
             {TABS.map((t, i) => (
               <button
                 key={t}
@@ -795,14 +961,14 @@ export default function HgModerationPage() {
                 role="tab"
                 aria-selected={tab === i}
                 onClick={() => setTab(i)}
-                style={{ padding: '8px 18px', minHeight: 44, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .15s', background: tab === i ? 'rgba(0,212,255,0.12)' : 'transparent', color: tab === i ? '#00d4ff' : '#9ca3af' }}
+                style={{ padding: '8px 18px', minHeight: 44, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .15s', background: tab === i ? T.accentSoft : 'transparent', color: tab === i ? T.accent : T.dim }}
               >
                 {t}
               </button>
             ))}
           </div>
 
-          <div className="hgm-panel" style={{ background: 'rgba(17,24,39,.55)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 20 }}>
+          <div className="hgm-panel" style={{ background: T.panelSheer, border: `1px solid ${T.line}`, borderRadius: 14, padding: 20 }}>
             {tab === 0 && <ReportsTab token={token} />}
             {tab === 1 && <AppealsTab token={token} />}
             {tab === 2 && <OnboardingTab token={token} />}
@@ -815,34 +981,35 @@ export default function HgModerationPage() {
 }
 
 // ── Shared styles ──────────────────────────────────────────────────────────
-// Palette: bg #0a0e17 / panel #111827 / elevated #1f2937 / inset #0d1520
-//          accent #00d4ff (also SUCCESS) · danger #ef4444 · text #f3f4f6/#9ca3af/#8b93a1
+// Palette: T.page / T.panel / T.elevated / T.inset for surfaces, T.accent
+// (which is also SUCCESS), T.danger, and T.text / T.dim / T.muted for copy.
+// The hex behind each of those lives in horses.module.css and only there.
 // Focus rings live in PAGE_CSS (inline styles cannot express :focus-visible).
 const S = {
-  select: { background: '#0d1520', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#f3f4f6', padding: '8px 12px', fontSize: 13, minHeight: 44 },
-  btn: { padding: '8px 16px', minHeight: 44, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 8, color: '#00d4ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  btnSm: { padding: '4px 12px', minHeight: 44, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 6, color: '#00d4ff', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
-  btnPrimary: { padding: '10px 20px', minHeight: 44, background: '#00d4ff', border: 'none', borderRadius: 8, color: '#0a0e17', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  btnGhost: { padding: '10px 20px', minHeight: 44, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  backBtn: { padding: '6px 14px', minHeight: 44, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
+  select: { background: T.inset, border: `1px solid ${T.lineStrong}`, borderRadius: 8, color: T.text, padding: '8px 12px', fontSize: 13, minHeight: 44 },
+  btn: { padding: '8px 16px', minHeight: 44, background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 8, color: T.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  btnSm: { padding: '4px 12px', minHeight: 44, background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 6, color: T.accent, fontSize: 12, fontWeight: 700, cursor: 'pointer' },
+  btnPrimary: { padding: '10px 20px', minHeight: 44, background: T.accent, border: 'none', borderRadius: 8, color: T.page, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  btnGhost: { padding: '10px 20px', minHeight: 44, background: 'transparent', border: `1px solid ${T.lineStrong}`, borderRadius: 8, color: T.dim, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  backBtn: { padding: '6px 14px', minHeight: 44, background: 'transparent', border: `1px solid ${T.lineStrong}`, borderRadius: 8, color: T.dim, fontSize: 12, fontWeight: 700, cursor: 'pointer' },
   tableWrap: { overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
   table: { width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', padding: '10px 12px', color: MUTED, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' },
-  td: { padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#f3f4f6', verticalAlign: 'middle' },
-  err: { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 8, padding: '10px 14px', color: '#ef4444', fontSize: 13, marginBottom: 12 },
-  empty: { textAlign: 'center', padding: 40, color: MUTED, fontSize: 14 },
-  dim: { textAlign: 'center', padding: 40, color: MUTED },
-  backdrop: { position: 'fixed', inset: 0, background: 'rgba(10,14,23,.8)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' },
-  modal: { background: 'linear-gradient(180deg,#1f2937,#111827)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', color: '#f3f4f6', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' },
-  label: { display: 'block', marginBottom: 14, fontSize: 13, color: '#9ca3af', fontWeight: 600 },
-  textarea: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', background: '#0d1520', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#f3f4f6', fontFamily: 'inherit', fontSize: 14, resize: 'vertical', minHeight: 72, marginTop: 4 },
+  th: { textAlign: 'left', padding: '10px 12px', color: T.muted, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderBottom: `1px solid ${T.line}`, whiteSpace: 'nowrap' },
+  td: { padding: '10px 12px', borderBottom: `1px solid ${T.line}`, color: T.text, verticalAlign: 'middle' },
+  err: { background: T.dangerWash, border: `1px solid ${T.dangerLine}`, borderRadius: 8, padding: '10px 14px', color: T.danger, fontSize: 13, marginBottom: 12 },
+  empty: { textAlign: 'center', padding: 40, color: T.muted, fontSize: 14 },
+  dim: { textAlign: 'center', padding: 40, color: T.muted },
+  backdrop: { position: 'fixed', inset: 0, background: T.pageOverlay, backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' },
+  modal: { background: `linear-gradient(180deg, ${T.elevated}, ${T.panel})`, border: `1px solid ${T.lineStrong}`, borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', color: T.text, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' },
+  label: { display: 'block', marginBottom: 14, fontSize: 13, color: T.dim, fontWeight: 600 },
+  textarea: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', background: T.inset, border: `1px solid ${T.lineStrong}`, borderRadius: 8, color: T.text, fontFamily: 'inherit', fontSize: 14, resize: 'vertical', minHeight: 72, marginTop: 4 },
   srOnly: { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 },
   // Reported-content block
-  contentBox: { background: '#0d1520', border: '1px solid rgba(0,212,255,0.30)', borderRadius: 10, padding: 14, margin: '0 0 16px' },
-  contentHead: { fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: '#00d4ff', marginBottom: 8 },
-  contentDim: { fontSize: 13, color: MUTED },
-  contentGone: { fontSize: 13, color: MUTED, lineHeight: 1.5 },
-  contentMeta: { display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: MUTED, marginBottom: 8 },
-  contentQuote: { margin: 0, padding: '8px 12px', borderLeft: '3px solid rgba(0,212,255,0.30)', background: 'rgba(255,255,255,0.03)', borderRadius: 4, color: '#f3f4f6', fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 260, overflowY: 'auto' },
-  gateNote: { fontSize: 12, color: MUTED, margin: '0 0 12px' },
+  contentBox: { background: T.inset, border: `1px solid ${T.accentLine}`, borderRadius: 10, padding: 14, margin: '0 0 16px' },
+  contentHead: { fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: T.accent, marginBottom: 8 },
+  contentDim: { fontSize: 13, color: T.muted },
+  contentGone: { fontSize: 13, color: T.muted, lineHeight: 1.5 },
+  contentMeta: { display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: T.muted, marginBottom: 8 },
+  contentQuote: { margin: 0, padding: '8px 12px', borderLeft: `3px solid ${T.accentLine}`, background: T.surfaceTint, borderRadius: 4, color: T.text, fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 260, overflowY: 'auto' },
+  gateNote: { fontSize: 12, color: T.muted, margin: '0 0 12px' },
 };

@@ -4,6 +4,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { Pool } from 'pg';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -16,7 +18,7 @@ function getSupabase() {
 }
 
 // [PERF] The execution_audit_logs CREATE TABLE IF NOT EXISTS used to run on
-// EVERY request — a full DDL round-trip against the pooler before any real
+// EVERY request - a full DDL round-trip against the pooler before any real
 // work. It only has to happen once per warm lambda.
 let _auditTableEnsured = false;
 
@@ -61,7 +63,7 @@ function scanText(sql) {
  * Statements that change state. Anything matching this runs as a rolled-back
  * dry run unless the caller confirms it verbatim (see MUTATION SAFETY below).
  *
- * WHAT THIS IS: a guard against the common accident — the pasted DELETE with
+ * WHAT THIS IS: a guard against the common accident - the pasted DELETE with
  * no WHERE, the UPDATE aimed at the wrong table, the DROP typed into the
  * wrong tab.
  *
@@ -70,7 +72,7 @@ function scanText(sql) {
  * has no literal "DROP TABLE" in it, and neither does any other dynamic-SQL
  * construction. A caller who WANTS to defeat this can, trivially. The reason
  * that is tolerable is that this endpoint is already authenticated to
- * admin/superadmin/god or the service role key — a determined caller with
+ * admin/superadmin/god or the service role key - a determined caller with
  * those credentials does not need to trick a regex. The regex is here to stop
  * a fumble, not an adversary. `\bDO\s*\$\$` is matched precisely because
  * anonymous blocks are where the dynamic-SQL escape hatch lives, so at least
@@ -128,7 +130,7 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-      // [HARDENED] No CORS — same-origin only. No cross-origin access allowed.
+      // [HARDENED] No CORS - same-origin only. No cross-origin access allowed.
 
       if (req.method === 'OPTIONS') {
           return res.status(405).json({ success: false, error: 'CORS preflight not supported.' });
@@ -206,7 +208,7 @@ export default async function handler(req, res) {
       //
       // It only COMMITs when the request body carries `confirm` equal to the
       // exact SQL string being run. Sending the statement back verbatim is a
-      // deliberate second act — it cannot be produced by a stray click, a
+      // deliberate second act - it cannot be produced by a stray click, a
       // retried fetch, or a checkbox someone left ticked from last time.
       //
       // The previous guard here 403'd on DROP/DELETE/TRUNCATE and let
@@ -217,7 +219,7 @@ export default async function handler(req, res) {
       const dryRun = mutating && !confirmed;
 
       // 2. Direct PostgreSQL Execution (Bypassing PostgREST limitation)
-      // [HARDENED] Only env-var passwords — no hardcoded credentials
+      // [HARDENED] Only env-var passwords - no hardcoded credentials
       const candidates = [
           process.env.SUPABASE_DB_PASSWORD,
           process.env.POSTGRES_PASSWORD,
@@ -232,7 +234,7 @@ export default async function handler(req, res) {
       // Build parameter-based configs (avoids encodeURIComponent mangling special chars like !)
       const connConfigs = [];
       for (const pw of uniqueCands) {
-          // Supabase Supavisor pooler — port 6543 (transaction mode)
+          // Supabase Supavisor pooler - port 6543 (transaction mode)
           connConfigs.push({
               host: 'aws-0-us-west-2.pooler.supabase.com',
               port: 6543,
@@ -240,7 +242,7 @@ export default async function handler(req, res) {
               password: pw,
               database: 'postgres',
           });
-          // Direct Postgres connection — port 5432
+          // Direct Postgres connection - port 5432
           connConfigs.push({
               host: 'db.kuklfnapbkmacvwxktbh.supabase.co',
               port: 5432,
@@ -278,7 +280,7 @@ export default async function handler(req, res) {
 
           // ── EXECUTE ──────────────────────────────────────────────────
           try {
-              // Ensure audit table exists — once per warm process, not per request.
+              // Ensure audit table exists - once per warm process, not per request.
               if (!_auditTableEnsured) {
                   await client.query(`
                       CREATE TABLE IF NOT EXISTS public.execution_audit_logs (
@@ -337,7 +339,7 @@ export default async function handler(req, res) {
 
               const principal = isServiceRole ? 'SERVICE_ROLE_AGENT' : 'ADMIN_UI_USER';
 
-              // Audit — execution_audit_logs (legacy, full SQL text)
+              // Audit - execution_audit_logs (legacy, full SQL text)
               try {
                   await client.query(
                       `INSERT INTO public.execution_audit_logs (channel, principal, query, execution_ms, success, error_details) VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -345,7 +347,7 @@ export default async function handler(req, res) {
                   );
               } catch (auditErr) { console.warn('Audit log failed', auditErr?.message || auditErr); }
 
-              // Audit — admin_audit_log, EVERY COMMITTED MUTATION.
+              // Audit - admin_audit_log, EVERY COMMITTED MUTATION.
               // Written on the same direct connection rather than through the
               // RPC below, so a committed money-moving statement leaves a row
               // even when PostgREST is unreachable. Dry runs are deliberately
@@ -378,12 +380,47 @@ export default async function handler(req, res) {
                   } catch (auditErr) { console.warn('[execute-sql] admin_audit_log insert failed', auditErr?.message || auditErr); }
               }
 
-              // Audit — admin_audit_log via RPC (Phase 6.1.8 — unified admin trail)
+              // Audit - a COMMITTED MUTATION goes through the shared operator
+              // audit helper, so the one act on this route that changes
+              // production state carries the same actor, role, ip, user agent,
+              // request id and before/after stamp as every other console write.
+              // Dry runs and reads keep the RPC path below: nothing happened,
+              // and burying real mutations under rehearsals is how an audit
+              // trail stops being read.
+              if (mutating && !dryRun) {
+                  await auditOperatorAction(
+                      {
+                          user: { id: sessionUserId },
+                          role: sessionUserId ? 'admin' : 'service_role',
+                          db: getSupabase(),
+                          requestId: requestIdOf(req),
+                      },
+                      req,
+                      {
+                          action: 'sql.commit',
+                          targetType: 'database',
+                          targetId: null,
+                          details: {
+                              principal,
+                              sql_preview: sql.length > 500 ? `${sql.slice(0, 500)}...` : sql,
+                              sql_length: sql.length,
+                              command: finalCommand,
+                              row_count: finalRowCount,
+                              execution_ms: ms,
+                              succeeded: success,
+                              error: errorMessage,
+                          },
+                          after: { command: finalCommand, row_count: finalRowCount, committed: success },
+                      }
+                  );
+              }
+
+              // Audit - admin_audit_log via RPC (Phase 6.1.8 - unified admin trail)
               // Only logged for browser-user admin sessions; service-role agents
               // already get logged in execution_audit_logs above, and admin_user_id
               // for them isn't a real auth.uid().
               try {
-                  if (sessionUserId) {
+                  if (sessionUserId && !(mutating && !dryRun)) {
                       await getSupabase().rpc('fn_log_admin_action', {
                           p_admin_user_id: sessionUserId,
                           p_action: success
@@ -453,7 +490,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Could not establish connection to the master Supabase pooler.' });
 
   } catch (err) {
-      // This catch sits OUTSIDE the auth check — a malformed body, for
+      // This catch sits OUTSIDE the auth check - a malformed body, for
       // instance, lands here before anyone has proved who they are. Returning
       // err.message to an unauthenticated caller leaks internals. Log it
       // server-side, return a fixed string.

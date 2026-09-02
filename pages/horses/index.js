@@ -1,11 +1,11 @@
 /**
- * HORSES ADMIN — /horses
+ * HORSES ADMIN - /horses
  *
  * Platform staff console: content stable, grinder fleet, pipeline, economy,
  * anti-abuse, Club Arena oversight, bug reports, Geeves KB, review moderation
  * and scraper health.
  *
- * ─── 2026-08-26 DEEP AUDIT — what changed and why ───────────────────────────
+ * --- 2026-08-26 DEEP AUDIT - what changed and why --------------------------
  *
  * 1. NO MORE DEMO DATA. The old file shipped 8 hardcoded DEMO_PERSONAS and fell
  *    back to them whenever a query failed OR returned zero rows. On an admin
@@ -18,7 +18,7 @@
  *    Mutations now revert the optimistic update and surface the failure.
  *
  * 3. CLUB ARENA DATA MOVED SERVER-SIDE. Those queries ran in the browser with
- *    the operator's JWT against tables whose RLS has no admin bypass — verified
+ *    the operator's JWT against tables whose RLS has no admin bypass - verified
  *    in production: 0 of 1501 club_members, 0 of 113 agents, 0 of 200,978
  *    chip_transactions readable. They also used four column names that do not
  *    exist (cashout_requests.user_id, chip_transactions.user_id,
@@ -34,24 +34,69 @@
  *    on change, so dragging the temperature slider fired one upsert per pixel
  *    and clearing a number field wrote NaN. Writes are debounced and validated.
  *
- * 6. NO EMOJI. House rule 7 — bare emoji break the SWC compiler.
+ * 6. NO EMOJI. House rule 7 - bare emoji break the SWC compiler.
  *
- * 7. NO RAW HEX. Colours come from ./adminTokens, which points at the CSS
+ * 7. NO RAW HEX. Colours come from horsesAdminTokens, which points at the CSS
  *    custom properties in horses.module.css. smarter.poker schema only.
+ *
+ * --- 2026-09-02 PHASE 1 - what changed and why -----------------------------
+ *
+ * A. AN ERROR BOUNDARY AROUND THE ACTIVE PANEL. One render throw used to
+ *    white-screen all sixteen tabs. It now costs one tab, names it, and leaves
+ *    the nav usable.
+ *
+ * B. THE TAB AND THE CLUB ARENA SECTION ARE IN THE URL. ?tab= and ?section=
+ *    are mirrored shallowly and validated against the registry on read, so the
+ *    Ledger can be bookmarked. The first write (normalising a bare /horses)
+ *    is a replace; every navigation after it is a push, which is what makes
+ *    Back undo a "Needs Attention" jump instead of leaving the console.
+ *
+ * C. THE NAV IS A REAL TABLIST. role=tablist / tab / tabpanel, aria-selected,
+ *    aria-controls, and arrow / Home / End key movement.
+ *
+ * D. ONE MODAL. src/components/horses/Modal.jsx (ported from hg-moderation)
+ *    replaces three hand-rolled dialogs, including the Mint confirmation - the
+ *    screen that creates money - which had no dialog role, no Escape and no
+ *    focus management at all.
+ *
+ * E. SERVER PAGING WHERE THERE WAS NONE. The Mint ledger has a pager; Bug
+ *    Reports reads a service-role route with status, search and paging instead
+ *    of querying live_help_tickets from the browser under the operator's RLS.
+ *
+ * F. HONEST EXPORTS AND HONEST DEAD BUTTONS. The audit CSV walks every page and
+ *    carries details/before/after; the permanently disabled club-management and
+ *    pipeline buttons are replaced by a Not Built Yet panel that says so.
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import PokerBrainLaunchButton from '../../src/components/poker-brain/LaunchButton';
 import MerchCatalogAdmin from '../../src/components/admin/MerchCatalogAdmin';
 import styles from './horses.module.css';
+import shared from '../../src/components/horses/shared.module.css';
 import { T, num, signed, when, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
+import {
+  TABS, EXTERNAL_LINKS, CA_SECTIONS, DEFAULT_TAB, DEFAULT_CA_SECTION,
+  visibleTabs, resolveTabFromQuery, resolveSectionFromQuery,
+} from '../../src/components/horses/tabRegistry';
+import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
+import Modal from '../../src/components/horses/Modal';
+import ConfirmDialog from '../../src/components/horses/ConfirmDialog';
+import DataTable from '../../src/components/horses/DataTable';
+import KpiTile from '../../src/components/horses/KpiTile';
+import StatusPill from '../../src/components/horses/StatusPill';
+import Pager from '../../src/components/horses/Pager';
+import NotBuiltYet from '../../src/components/horses/NotBuiltYet';
+import useOperatorFetch from '../../src/components/horses/useOperatorFetch';
+import usePagedList from '../../src/components/horses/usePagedList';
+import exportAllCsv from '../../src/components/horses/exportAllCsv';
 
 const SYNC_CHANNEL = 'horses-admin-sync';
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
@@ -89,52 +134,61 @@ const EMPTY_ABUSE_DATA = {
   economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] },
 };
 
-/** Nav is data-driven so a tab cannot be added to the bar and forgotten in the
- *  body (or vice versa) — which is how /horses/hg-moderation ended up an
- *  orphan page with no link to it from anywhere. */
-const TABS = [
-  { id: 'stable', label: 'Social Horses' },
-  { id: 'grinder', label: 'Grinder Horses' },
-  { id: 'pipeline', label: 'Pipeline' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'stats', label: 'Statistics' },
-  { id: 'merch', label: 'Merch Catalog' },
-  { id: 'promo', label: 'Promo Codes' },
-  { id: 'economy', label: 'Economy' },
-  { id: 'mint', label: 'The Mint' },
-  { id: 'antiabuse', label: 'Anti-Abuse' },
-  { id: 'clubarena', label: 'Club Arena' },
-  { id: 'bugreports', label: 'Bug Reports' },
-  { id: 'geeves', label: 'Geeves KB' },
-  { id: 'reviews', label: 'Reviews' },
-  { id: 'scrapers', label: 'Scrapers' },
-  { id: 'audit', label: 'Audit Log' },
-];
+/**
+ * The nav, the external links and the Club Arena sections all come from
+ * src/components/horses/tabRegistry.js now. It is data-driven for the same
+ * reason it always was - a tab cannot be added to the bar and forgotten in the
+ * body, which is how /horses/hg-moderation ended up an orphan page with no
+ * link to it from anywhere - and it lives in its own module so a Phase 2+ tab
+ * can be its own code-split component instead of another thousand lines here.
+ *
+ * The sixteen entries in that registry are the sixteen tabs below, in this
+ * order, each still rendered inline by this component (registry `legacy: true`)
+ * with the panel bodies unchanged. That includes
+ * { id: 'merch', label: 'Merch Catalog' }, whose panel is the already-extracted
+ * MerchCatalogAdmin component.
+ */
 
-/** Pages that live outside this SPA but belong to the same console.
- *  /horses/hg-moderation and /horses/hand-reviews had NO link from anywhere —
- *  you could only reach them by typing the URL. */
-const EXTERNAL_LINKS = [
-  { href: '/horses/sql-console', label: 'SQL Console' },
-  { href: '/horses/hg-moderation', label: 'HG Moderation' },
-  { href: '/horses/hand-reviews', label: 'Hand Reviews' },
-];
-
-const CA_SECTIONS = [
-  ['overview', 'Overview'],
-  ['clubs', 'Clubs'],
-  ['revenue', 'Revenue'],
-  ['ledger', 'Ledger'],
-  ['finance', 'Cashouts'],
-  ['users', 'Users'],
-  ['unions', 'Unions'],
-  ['approvals', 'Approvals'],
-];
-
-/** Read a JSON body without exploding on an HTML error page. */
-async function readJson(res) {
-  try { return await res.json(); } catch { return {}; }
+/** Only tabs whose panel is a separate module carry a `load` thunk. dynamic()
+ *  is applied here rather than in the registry so the registry stays a plain
+ *  data module. Memoised per id: calling dynamic() during render would create a
+ *  new component type on every keystroke and remount the panel. */
+const dynamicPanels = new Map();
+function panelComponentFor(tab) {
+  if (!tab || typeof tab.load !== 'function') return null;
+  if (!dynamicPanels.has(tab.id)) {
+    dynamicPanels.set(tab.id, dynamic(tab.load, {
+      ssr: false,
+      loading: () => <div className={styles.loadingSpinner}>Loading {tab.label}</div>,
+    }));
+  }
+  return dynamicPanels.get(tab.id);
 }
+
+/** How many ledger rows a page of The Mint shows. */
+const MINT_LEDGER_PAGE_SIZE = 50;
+
+/** How many tickets a page of Bug Reports shows. */
+const TICKETS_PER_PAGE = 50;
+
+/** Rows per request while an export walks every page. */
+const EXPORT_PAGE_SIZE = 500;
+
+/** The bulk routes accept up to 500 ids per call (PHASE1-CONTRACTS item 6). */
+const BULK_CHUNK = 500;
+
+/**
+ * Exactly the columns the roster renders, edits or exports.
+ *
+ * This was `select('*')`, which pulled every bio for 1,000+ rows on mount AND
+ * on every 2-second sync tick. `bio` is the expensive one and the cards do show
+ * it, so it stays; what is gone is everything the panel never reads.
+ * Cross-checked against every `persona.` and `p.` access in this file: the
+ * cards (name, alias, avatar_url, location, specialty, stakes, bio, voice,
+ * is_active), the edit form (gender), the CSV export, and the horse-versus-
+ * social-only split (profile_id).
+ */
+const ROSTER_COLUMNS = 'id, name, alias, gender, location, specialty, stakes, bio, voice, is_active, avatar_url, profile_id';
 
 export default function HorsesAdmin() {
   const router = useRouter();
@@ -147,7 +201,7 @@ export default function HorsesAdmin() {
   const [loginError, setLoginError] = useState('');
   const [signingIn, setSigningIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('stable');
+  const [activeTab, setActiveTab] = useState(DEFAULT_TAB);
   const [notification, setNotification] = useState(null);
 
   // ── Stable ──
@@ -184,8 +238,10 @@ export default function HorsesAdmin() {
   const [settingsSavedAt, setSettingsSavedAt] = useState(null);
 
   // ── Pipeline ──
+  // No `pipelineBusy` any more: the four quick actions were disabled from the
+  // day they shipped and /api/horses/trigger-pipeline answers 501, so the
+  // trigger function and its busy flag were unreachable code.
   const [pipelineRuns, setPipelineRuns] = useState([]);
-  const [pipelineBusy, setPipelineBusy] = useState(false);
 
   // ── Analytics ──
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -259,6 +315,9 @@ export default function HorsesAdmin() {
 
   const [mintLedgerAsset, setMintLedgerAsset] = useState('');
   const [mintLedgerAction, setMintLedgerAction] = useState('');
+  // The ledger was a fixed limit=100 with no offset, so row 101 of the journal
+  // that records every chip and diamond ever created was unreachable.
+  const [mintLedgerOffset, setMintLedgerOffset] = useState(0);
 
   // ── Anti-abuse ──
   const [abuseData, setAbuseData] = useState(null);
@@ -275,7 +334,11 @@ export default function HorsesAdmin() {
   const [reviewsFilter, setReviewsFilter] = useState('newest');
   const [reviewsRatingFilter, setReviewsRatingFilter] = useState('all');
   const [reviewsFlaggedOnly, setReviewsFlaggedOnly] = useState(false);
+  // `reviewsSearch` is what the operator is typing; `reviewsQuery` is what has
+  // been sent to the route. Debounced 300ms between the two so a search of a
+  // 40,000-row table is not one request per keystroke.
   const [reviewsSearch, setReviewsSearch] = useState('');
+  const [reviewsQuery, setReviewsQuery] = useState('');
   const [reviewsDeleteConfirm, setReviewsDeleteConfirm] = useState(null);
   const [reviewsProcessing, setReviewsProcessing] = useState(false);
   // The route has always returned `page: { offset, limit, returned }` and
@@ -289,12 +352,16 @@ export default function HorsesAdmin() {
   const [grinderData, setGrinderData] = useState(null);
   const [grinderLoading, setGrinderLoading] = useState(false);
   const [grinderError, setGrinderError] = useState(null);
+  // Read-only: { action: 'status' } is the one branch of horse-launch this
+  // console still calls. Launch and shutdown are retired (410 Gone).
+  const [fleetStatus, setFleetStatus] = useState(null);
+  const [fleetStatusLoading, setFleetStatusLoading] = useState(false);
 
   // ── Bug reports ──
-  const [bugReports, setBugReports] = useState([]);
-  const [bugReportsLoading, setBugReportsLoading] = useState(false);
-  const [bugReportsError, setBugReportsError] = useState(null);
-  const [bugReportsFilter, setBugReportsFilter] = useState('open');
+  // The rows, total, paging and error live in usePagedList now (declared below
+  // the fetcher it needs). What stays here is the search box, which is debounced
+  // into the list's `q` filter rather than sent per keystroke.
+  const [bugReportsSearch, setBugReportsSearch] = useState('');
 
   // ── Scrapers ──
   const [scraperHealth, setScraperHealth] = useState(null);
@@ -352,30 +419,11 @@ export default function HorsesAdmin() {
   }, []);
   useEffect(() => () => { if (notifyTimer.current) clearTimeout(notifyTimer.current); }, []);
 
-  /** Authorized fetch. Returns the parsed body and throws a usable message on
-   *  any non-2xx — the old code called res.json() blind and threw a parse
-   *  error on every HTML error page. */
-  const authFetch = useCallback(async (url, options = {}) => {
-    // getFreshAccessToken reads the token out of storage and only hits the
-    // network when it is close to expiry. The argument-less
-    // client session read is banned repo-wide (pre-commit CHECK C):
-    // it makes a round trip on every call and hangs when GoTrue is slow, which
-    // on this page meant every tab silently stopped loading.
-    const token = await getFreshAccessToken();
-    if (!token) throw new Error('Session expired. Please sign in again.');
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...(options.headers || {}),
-      },
-    });
-    const body = await readJson(res);
-    if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
-    if (body.success === false) throw new Error(body.error || 'Request failed');
-    return body;
-  }, []);
+  /** Authorized fetch. Same call signature this console has always used; the
+   *  implementation moved to src/components/horses/useOperatorFetch.js, which
+   *  adds an AbortController per call (aborted on unmount) and surfaces the
+   *  operator envelope's `code` and `requestId` on the thrown Error. */
+  const authFetch = useOperatorFetch();
 
   const broadcastUpdate = useCallback((eventType = 'horses-updated') => {
     window.dispatchEvent(new CustomEvent(eventType));
@@ -462,7 +510,7 @@ export default function HorsesAdmin() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Clear every cached surface — signing out used to leave the previous
+    // Clear every cached surface - signing out used to leave the previous
     // admin's clubs, members and transactions in memory for the next sign-in.
     setUser(null); setRole(null);
     setPersonas([]); setPipelineRuns([]); setPromoCodes([]);
@@ -471,7 +519,10 @@ export default function HorsesAdmin() {
     setAnalyticsData(null); setAnalyticsLoaded(false);
     setGeevesAnalytics({ summary: null, questions: [] }); setGeevesLoaded(false);
     setReviewsData([]); setReviewsLoaded(false);
-    setGrinderData(null); setBugReports([]); setScraperHealth(null);
+    setGrinderData(null); setFleetStatus(null); setScraperHealth(null);
+    // Tickets carry a reporter's display name and avatar. Clear them with
+    // everything else rather than leaving them for the next sign-in.
+    tickets.reset(); setBugReportsSearch('');
     setCaLoaded(false); setCaStats(null); setCaClubs([]); setCaUnions([]);
     setCaFinance(null); setCaPendingCashouts([]); setCaSelectedClub(null);
     setCaClubDetail(null); setCaSelectedUser(null); setCaUserResults([]);
@@ -498,7 +549,7 @@ export default function HorsesAdmin() {
     for (let from = 0; ; from += PAGE) {
       const res = await supabase
         .from('content_authors')
-        .select('*')
+        .select(ROSTER_COLUMNS)
         .order('name')
         .order('id')
         .range(from, from + PAGE - 1);
@@ -584,15 +635,40 @@ export default function HorsesAdmin() {
     return `mint-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
   }, []);
 
-  const loadMintLedger = useCallback(async (asset = '', action = '') => {
-    const params = new URLSearchParams({ section: 'ledger', limit: '100' });
+  /**
+   * One page of the Mint journal. The route has always accepted limit/offset
+   * (mint.js:136-137) and the panel sent neither, so it showed the newest 100
+   * operations and nothing else could ever be reached.
+   *
+   * `rows` is the Phase 1 paged field name; `entries` is the legacy one the
+   * route keeps alongside it, so this reads whichever arrives.
+   */
+  const loadMintLedger = useCallback(async (asset = '', action = '', offset = 0) => {
+    const params = new URLSearchParams({
+      section: 'ledger',
+      limit: String(MINT_LEDGER_PAGE_SIZE),
+      offset: String(Math.max(0, offset)),
+    });
     if (asset) params.set('asset', asset);
     if (action) params.set('action', action);
     const data = await authFetch(`/api/horses/mint?${params.toString()}`);
-    setMintLedger(data);
+    setMintLedger({
+      ...data,
+      entries: data.rows || data.entries || [],
+      offset: typeof data.offset === 'number' ? data.offset : offset,
+    });
   }, [authFetch]);
 
-  const loadMintData = useCallback(async () => {
+  /** Move the ledger pager and load that page, reporting a failure rather than
+   *  leaving the operator on a page that silently did not change. */
+  const goMintLedgerPage = useCallback((nextOffset) => {
+    const offset = Math.max(0, nextOffset);
+    setMintLedgerOffset(offset);
+    loadMintLedger(mintLedgerAsset, mintLedgerAction, offset)
+      .catch((err) => showNotification(err.message, 'error'));
+  }, [loadMintLedger, mintLedgerAsset, mintLedgerAction, showNotification]);
+
+  const loadMintData = useCallback(async (ledgerOffset = mintLedgerOffset) => {
     setMintLoading(true);
     setMintError(null);
     try {
@@ -604,14 +680,14 @@ export default function HorsesAdmin() {
       ]);
       setMintOverview(overview);
       setMintTargets(targets);
-      await loadMintLedger(mintLedgerAsset, mintLedgerAction);
+      await loadMintLedger(mintLedgerAsset, mintLedgerAction, ledgerOffset);
       setMintLoaded(true);
     } catch (err) {
       setMintError(err.message);
     } finally {
       setMintLoading(false);
     }
-  }, [authFetch, loadMintLedger, mintLedgerAsset, mintLedgerAction]);
+  }, [authFetch, loadMintLedger, mintLedgerAsset, mintLedgerAction, mintLedgerOffset]);
 
   const searchMintPlayers = useCallback(async (term) => {
     if (!term || term.trim().length < 2) {
@@ -736,8 +812,10 @@ export default function HorsesAdmin() {
       resetMintForm();
       // Re-read rather than patching local state: the supply figures and the
       // journal are the record, and a panel that guesses at them after a write
-      // is how a display drifts from the books.
-      await loadMintData();
+      // is how a display drifts from the books. Back to page one, because the
+      // operation just recorded is the newest row.
+      setMintLedgerOffset(0);
+      await loadMintData(0);
     } catch (err) {
       showNotification(err.message, 'error');
     } finally {
@@ -785,32 +863,41 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
-  const loadBugReports = useCallback(async (statusFilter) => {
-    setBugReportsLoading(true);
-    setBugReportsError(null);
-    try {
-      let query = supabase
-        .from('live_help_tickets')
-        .select('id, subject, description, priority, status, created_at, user_id, conversation_id, profiles:user_id (display_name, username, avatar_url)')
-        .order('created_at', { ascending: false });
-      if (statusFilter !== 'all') query = query.eq('status', statusFilter);
-      const { data, error } = await query;
-      if (error) throw error;
-      setBugReports(data || []);
-    } catch (err) {
-      setBugReportsError(err.message || 'Failed to load tickets');
-      setBugReports([]);
-    } finally {
-      setBugReportsLoading(false);
-    }
-  }, []);
+  /**
+   * One page of support tickets.
+   *
+   * This used to be a direct browser query against live_help_tickets with an
+   * embedded profiles join and NO limit, running under the operator's own RLS -
+   * the one Club Arena read left in the browser after everything else moved
+   * server-side. It is now GET /api/horses/club-arena-admin?section=tickets
+   * (PHASE1-CONTRACTS item 1): service-role behind the admin gate, with status,
+   * a server-side q search over subject and description, and real paging.
+   */
+  const fetchTicketsPage = useCallback(async ({ limit, offset, filters, signal }) => {
+    const params = new URLSearchParams({
+      section: 'tickets',
+      limit: String(limit),
+      offset: String(offset),
+    });
+    if (filters?.status && filters.status !== 'all') params.set('status', filters.status);
+    if (filters?.q) params.set('q', filters.q);
+    const d = await authFetch(`/api/horses/club-arena-admin?${params.toString()}`, { signal });
+    return { rows: d.rows || d.tickets || [], total: typeof d.total === 'number' ? d.total : null };
+  }, [authFetch]);
+
+  const tickets = usePagedList({
+    fetchPage: fetchTicketsPage,
+    limit: TICKETS_PER_PAGE,
+    initialFilters: { status: 'open', q: '' },
+    auto: activeTab === 'bugreports' && !!user,
+  });
 
   const loadGeevesAnalytics = useCallback(async () => {
     setGeevesLoading(true);
     setGeevesError(null);
     try {
       // The old version put `.catch(() => ({ ok: false }))` on each fetch and
-      // then called .json() on the result — on a network failure that plain
+      // then called .json() on the result - on a network failure that plain
       // object has no .json and threw a TypeError instead of showing an error.
       const [summary, missed] = await Promise.all([
         authFetch('/api/geeves/analytics?action=summary'),
@@ -832,12 +919,17 @@ export default function HorsesAdmin() {
     setReviewsLoading(true);
     setReviewsError(null);
     try {
+      // `q` is sent to the route (PHASE1-CONTRACTS item 3), which ilikes
+      // review_text and the reviewer username. It used to be a client-side
+      // filter over the current 100-row page while looking like a search of the
+      // whole table, so a review on page 4 was unfindable.
       const params = new URLSearchParams({
         sort: reviewsFilter,
         limit: String(REVIEWS_PER_PAGE),
         offset: String(reviewsPage * REVIEWS_PER_PAGE),
         ...(reviewsRatingFilter !== 'all' ? { rating: reviewsRatingFilter } : {}),
         ...(reviewsFlaggedOnly ? { flagged: 'true' } : {}),
+        ...(reviewsQuery.trim() ? { q: reviewsQuery.trim() } : {}),
       });
       const data = await authFetch(`/api/horses/admin-reviews?${params}`);
       setReviewsData(data.reviews || []);
@@ -848,7 +940,7 @@ export default function HorsesAdmin() {
     } finally {
       setReviewsLoading(false);
     }
-  }, [authFetch, reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage]);
+  }, [authFetch, reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage, reviewsQuery]);
 
   const loadScraperHealth = useCallback(async () => {
     setScraperHealthLoading(true);
@@ -865,7 +957,7 @@ export default function HorsesAdmin() {
   }, [authFetch]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CLUB ARENA — all of this now goes through the service-role admin route.
+  // CLUB ARENA - all of this now goes through the service-role admin route.
   // ═══════════════════════════════════════════════════════════════════════════
   const loadClubArenaData = useCallback(async () => {
     setCaLoading(true);
@@ -1196,7 +1288,7 @@ export default function HorsesAdmin() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MUTATIONS — every one of these reverts its optimistic update on failure.
+  // MUTATIONS - every one of these reverts its optimistic update on failure.
   // ═══════════════════════════════════════════════════════════════════════════
   // EVERY WRITE BELOW NOW GOES THROUGH /api/horses/stable-admin.
   //
@@ -1224,6 +1316,57 @@ export default function HorsesAdmin() {
     }
   };
 
+  /**
+   * Send a bulk action in batches of BULK_CHUNK ids and report the result
+   * HONESTLY.
+   *
+   * The route caps a call at 500 ids (PHASE1-CONTRACTS item 6) against a fleet
+   * that is over 1,000, so "Select All Filtered" followed by any bulk action
+   * used to fail outright with nothing applied. Chunking makes the whole
+   * selection reachable, and it introduces a failure mode that did not exist
+   * before: chunk 1 can succeed and chunk 2 fail. That is aggregated rather
+   * than hidden - the caller is told how many were applied, how many were
+   * requested, and what the first failure said.
+   */
+  const runBulkInChunks = useCallback(async (buildBody, ids) => {
+    let affected = 0;
+    let requested = 0;
+    let failedIds = 0;
+    let firstError = null;
+    for (let i = 0; i < ids.length; i += BULK_CHUNK) {
+      const chunk = ids.slice(i, i + BULK_CHUNK);
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const d = await authFetch('/api/horses/stable-admin', {
+          method: 'POST',
+          body: JSON.stringify(buildBody(chunk)),
+        });
+        affected += d.affected || 0;
+        requested += d.requested || chunk.length;
+      } catch (err) {
+        failedIds += chunk.length;
+        requested += chunk.length;
+        if (!firstError) firstError = err.message;
+      }
+    }
+    return { affected, requested, failedIds, firstError };
+  }, [authFetch]);
+
+  /** Turn a chunked result into one sentence that never overstates the write. */
+  const bulkSummary = (label, result) => {
+    const { affected, requested, failedIds, firstError } = result;
+    if (failedIds > 0) {
+      return {
+        message: `${label}: ${num(affected, '0')} Of ${num(requested)} Updated. ${num(failedIds)} Could Not Be Sent: ${firstError}`,
+        tone: 'error',
+      };
+    }
+    const missed = requested - affected;
+    return missed > 0
+      ? { message: `${label}: ${num(affected, '0')} Updated, ${num(missed)} No Longer Exist`, tone: 'info' }
+      : { message: `${label}: ${num(affected, '0')} Updated`, tone: 'success' };
+  };
+
   /** Apply an active/rest change to an explicit set of horses. */
   const setActiveForIds = async (ids, activate, label) => {
     if (!ids.length) return;
@@ -1232,19 +1375,19 @@ export default function HorsesAdmin() {
     setPersonas((prev) => prev.map((p) => (idSet.has(p.id) ? { ...p, is_active: activate } : p)));
     setBulkBusy(true);
     try {
-      const d = await authFetch('/api/horses/stable-admin', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'bulk_active', ids, is_active: activate }),
-      });
-      // The route reports how many rows it actually touched, so a partial
-      // apply cannot be reported as a clean success.
-      const missed = (d.requested || ids.length) - (d.affected || 0);
-      showNotification(
-        missed > 0
-          ? `${label}: ${num(d.affected, '0')} Updated, ${num(missed)} No Longer Exist`
-          : `${label}: ${num(d.affected, '0')} Updated`,
-        missed > 0 ? 'info' : 'success',
+      const result = await runBulkInChunks(
+        (chunk) => ({ action: 'bulk_active', ids: chunk, is_active: activate }),
+        ids,
       );
+      // Nothing landed at all: this is the same outcome the un-chunked call had
+      // on a failure, so restore the roster exactly as it was.
+      if (result.affected === 0 && result.firstError) {
+        setPersonas(snapshot);
+        showNotification(result.firstError, 'error');
+        return;
+      }
+      const summary = bulkSummary(label, result);
+      showNotification(summary.message, summary.tone);
       broadcastUpdate('horses-updated');
       loadData();
     } catch (err) {
@@ -1298,11 +1441,15 @@ export default function HorsesAdmin() {
     setPersonas((prev) => prev.filter((p) => !idSet.has(p.id)));
     setBulkBusy(true);
     try {
-      const d = await authFetch('/api/horses/stable-admin', {
-        method: 'POST', body: JSON.stringify({ action: 'bulk_delete', ids }),
-      });
+      const result = await runBulkInChunks((chunk) => ({ action: 'bulk_delete', ids: chunk }), ids);
+      if (result.affected === 0 && result.firstError) {
+        setPersonas(snapshot);
+        showNotification(result.firstError, 'error');
+        return;
+      }
       setSelectedIds(new Set());
-      showNotification(`${num(d.affected, '0')} Horses Retired`, 'info');
+      const summary = bulkSummary('Retired', result);
+      showNotification(summary.message, summary.tone === 'success' ? 'info' : summary.tone);
       broadcastUpdate('horses-updated');
       loadData();
     } catch (err) {
@@ -1402,82 +1549,35 @@ export default function HorsesAdmin() {
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
   }, []);
 
-  // ── Modal keyboard behaviour ──
-  // The dialog had role/aria-modal and click-outside, but no Escape, no focus
-  // move on open and no focus restore -- so Tab from inside it walked straight
-  // into the sixteen nav buttons behind it.
-  const modalRef = useRef(null);
-  useEffect(() => {
-    if (!showCreateModal) return undefined;
-    const previouslyFocused = document.activeElement;
-    const onKey = (e) => { if (e.key === 'Escape') setShowCreateModal(false); };
-    document.addEventListener('keydown', onKey);
-    modalRef.current?.querySelector('input, select, textarea, button')?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
-    };
-  }, [showCreateModal]);
+  // The Create/Edit Horse dialog's keyboard behaviour used to live here as a
+  // hand-rolled effect with Escape, focus move and focus restore but NO focus
+  // trap, so Tab from inside it walked straight into the sixteen nav buttons
+  // behind it. All three dialogs on this page use src/components/horses/Modal
+  // now, which owns the trap, the scroll lock and the restore.
 
-  const triggerPipeline = async (type) => {
-    setPipelineBusy(true);
-    try {
-      showNotification(`Starting Pipeline: ${type}`, 'info');
-      const data = await authFetch('/api/horses/trigger-pipeline', {
-        method: 'POST', body: JSON.stringify({ type }),
-      });
-      showNotification(data.message || `Pipeline ${type} Completed`);
-      broadcastUpdate('horses-updated');
-      loadData();
-    } catch (err) {
-      showNotification(err.message, 'error');
-    } finally {
-      setPipelineBusy(false);
-    }
-  };
-
-  const handleFleetLaunch = async (fleetAction) => {
-    if (fleetAction === 'launch_all'
-      && !window.confirm('Deploy the full fleet? This creates every cash table, tournament, SNG and Spin, and seats hundreds of horses.')) return;
-    if (fleetAction === 'shutdown'
-      && !window.confirm('Shut down the entire fleet? Every horse will be removed from every table.')) return;
-    setGrinderLoading(true);
+  /**
+   * Fleet status.
+   *
+   * launch_all and shutdown are GONE from this console. Fleet seeding is owned
+   * by the engine (HorseFleetManager); the two buttons that used to be here
+   * drove /api/club-arena/horse-launch, which created 117 duplicate cash tables
+   * per press with no cleanup and performed 700 to 1,500 sequential round trips
+   * inside one serverless invocation. That route now answers 410 Gone for both
+   * (PHASE1-CONTRACTS item 7). `status` still works and is what this reads.
+   */
+  const loadFleetStatus = useCallback(async () => {
+    setFleetStatusLoading(true);
     try {
       const data = await authFetch('/api/club-arena/horse-launch', {
-        method: 'POST', body: JSON.stringify({ action: fleetAction }),
+        method: 'POST', body: JSON.stringify({ action: 'status' }),
       });
-      if (fleetAction === 'launch_all') {
-        showNotification(
-          `Fleet Deployed. ${num(data.cashTables, 0)} Tables, ${num(data.tournaments, 0)} Tournaments, `
-          + `${num(data.sngs, 0)} SNGs, ${num(data.spins, 0)} Spins, ${num(data.cashSeats, 0)} Seats Filled`
-          + (data.warnings ? ` (${data.warnings} Warnings)` : ''),
-        );
-      } else {
-        showNotification(`Fleet Shutdown Complete. ${num(data.horsesRemoved, 0)} Horses Removed.`);
-      }
-      broadcastUpdate('horses-grinder-updated');
-      loadGrinderData();
+      setFleetStatus(data);
     } catch (err) {
       showNotification(err.message, 'error');
     } finally {
-      setGrinderLoading(false);
+      setFleetStatusLoading(false);
     }
-  };
-
-  const handleGrinderAction = async (action, club) => {
-    setGrinderLoading(true);
-    try {
-      const body = { action, ...(club ? { club } : {}) };
-      if (action === 'add_to_club') body.chips = settings.grinder_starting_chips || 10000;
-      const data = await authFetch('/api/horses/grinder-stats', { method: 'POST', body: JSON.stringify(body) });
-      showNotification(data.message || `${action} Completed`);
-      broadcastUpdate('horses-grinder-updated');
-    } catch (err) {
-      showNotification(err.message, 'error');
-    } finally {
-      setGrinderLoading(false);
-    }
-  };
+  }, [authFetch, showNotification]);
 
   // ── AUDIT LOG ─────────────────────────────────────────────────────────
   //
@@ -1496,7 +1596,29 @@ export default function HorsesAdmin() {
   const [auditExpanded, setAuditExpanded] = useState(null);
   const [auditAdmin, setAuditAdmin] = useState('');
   const [auditActors, setAuditActors] = useState([]);
+  // "What happened to THIS club / THIS user / THIS ticket" is the second
+  // question an audit log exists to answer and the tab could not express it.
+  // From/To make the window explicit rather than "the last N days from now".
+  const [auditTarget, setAuditTarget] = useState('');
+  const [auditFrom, setAuditFrom] = useState('');
+  const [auditTo, setAuditTo] = useState('');
+  const [auditExporting, setAuditExporting] = useState(null);
   const AUDIT_PAGE_SIZE = 100;
+
+  /** The filter set as the route wants it (PHASE1-CONTRACTS item 4). Explicit
+   *  From/To win over the quick range; `days` is only sent when neither is set,
+   *  so the window is never filtered twice by two different rules. */
+  const auditQuery = useMemo(() => {
+    const q = {
+      actionPrefix: auditPrefix || undefined,
+      adminId: auditAdmin || undefined,
+      targetId: auditTarget.trim() || undefined,
+    };
+    if (auditFrom) q.from = auditFrom;
+    if (auditTo) q.to = auditTo;
+    if (!auditFrom && !auditTo && auditDays) q.days = auditDays;
+    return q;
+  }, [auditPrefix, auditAdmin, auditTarget, auditFrom, auditTo, auditDays]);
 
   const loadAuditLog = useCallback(async () => {
     setAuditLoading(true);
@@ -1505,17 +1627,18 @@ export default function HorsesAdmin() {
         method: 'POST',
         body: JSON.stringify({
           action: 'audit_log',
-          actionPrefix: auditPrefix || undefined,
-          adminId: auditAdmin || undefined,
-          days: auditDays || undefined,
+          ...auditQuery,
           limit: AUDIT_PAGE_SIZE,
           offset: auditPage * AUDIT_PAGE_SIZE,
+          page: auditPage,
         }),
       });
-      setAuditEntries(d.entries || []);
+      // `rows` is the Phase 1 name, `entries` the legacy one kept beside it.
+      setAuditEntries(d.rows || d.entries || []);
       setAuditTotal(d.total ?? null);
-      // Only replace the actor list when the route sends one, so a filtered
-      // response cannot empty the dropdown the operator is filtering with.
+      // The actor list comes from the route (a cached distinct query), and is
+      // only replaced when the route sends one, so a filtered response cannot
+      // empty the dropdown the operator is filtering with.
       if (Array.isArray(d.actors)) setAuditActors(d.actors);
       setAuditLoaded(true);
     } catch (err) {
@@ -1523,7 +1646,62 @@ export default function HorsesAdmin() {
     } finally {
       setAuditLoading(false);
     }
-  }, [authFetch, showNotification, auditPrefix, auditAdmin, auditDays, auditPage]);
+  }, [authFetch, showNotification, auditQuery, auditPage]);
+
+  /**
+   * The audit CSV used to be "whatever 100 rows are on screen", without
+   * details, before_state or after_state - the three columns that say what
+   * actually changed. This walks the route's own offset until it has `total`
+   * and carries the JSON columns as JSON strings.
+   */
+  const exportAuditLog = useCallback(async () => {
+    setAuditExporting({ fetched: 0, total: auditTotal });
+    try {
+      const result = await exportAllCsv({
+        filenamePrefix: 'admin-audit-log',
+        limit: EXPORT_PAGE_SIZE,
+        onProgress: (p) => setAuditExporting(p),
+        jsonColumns: ['details', 'before_state', 'after_state'],
+        fetchPage: async (offset, limit) => {
+          const d = await authFetch('/api/horses/stable-admin', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'audit_log',
+              ...auditQuery,
+              limit,
+              offset,
+              page: Math.floor(offset / limit),
+            }),
+          });
+          return { rows: d.rows || d.entries || [], total: d.total ?? null };
+        },
+        columns: [
+          ['created_at', 'When'],
+          ['admin_name', 'Admin'],
+          ['admin_user_id', 'Admin ID'],
+          ['admin_role', 'Role'],
+          ['action', 'Action'],
+          ['target_type', 'Target Type'],
+          ['target_id', 'Target'],
+          ['ip_address', 'IP'],
+          ['request_id', 'Request'],
+          ['details', 'Details'],
+          ['before_state', 'Before State'],
+          ['after_state', 'After State'],
+        ],
+      });
+      showNotification(
+        result.complete
+          ? `Exported ${num(result.exported)} Audit Entries`
+          : `Exported ${num(result.exported)} Audit Entries. The Export Stopped At Its Page Cap And Is Incomplete.`,
+        result.complete ? 'success' : 'info',
+      );
+    } catch (err) {
+      showNotification(`Export Failed: ${err.message}`, 'error');
+    } finally {
+      setAuditExporting(null);
+    }
+  }, [authFetch, auditQuery, auditTotal, showNotification]);
 
   // Goes through /api/horses/stable-admin rather than straight to PostgREST.
   // The direct call it replaces was the last unaudited mutation in this
@@ -1533,20 +1711,21 @@ export default function HorsesAdmin() {
   // route checks the affected row count and files the change in
   // admin_audit_log, so both of those failure modes are now impossible.
   const updateBugReportStatus = async (ticketId, newStatus) => {
-    const snapshot = bugReports;
-    setBugReports((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
     try {
       await authFetch('/api/horses/stable-admin', {
         method: 'POST',
         body: JSON.stringify({ action: 'set_ticket_status', id: ticketId, status: newStatus }),
       });
     } catch (err) {
-      setBugReports(snapshot);
       showNotification(`Could Not Update Ticket: ${err.message}`, 'error');
       return;
     }
     showNotification(`Ticket Marked ${newStatus === 'resolved' ? 'Resolved' : 'Open'}`);
-    loadBugReports(bugReportsFilter);
+    // Re-read the page rather than patching a row: under a status filter the
+    // ticket has just left the current view, and patching it in place would
+    // leave a resolved ticket sitting in the Open queue.
+    tickets.refresh();
+    loadBadges();
   };
 
   const markGeevesQuestionResolved = async (id, addedToKB) => {
@@ -1677,7 +1856,7 @@ export default function HorsesAdmin() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EFFECTS — realtime, lazy tab loads, polling
+  // EFFECTS - realtime, lazy tab loads, polling
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Refs so the realtime handlers never close over a stale value. The old
@@ -1697,12 +1876,30 @@ export default function HorsesAdmin() {
     loadBadges();
   }, [user, loadData, loadPromoCodes, loadBadges]);
 
-  // ── Cross-tab and in-app sync. Always on: these are the paths that actually
-  //    carry this panel's own mutations between tabs. ──
+  // ── Cross-tab and in-app sync. Always listening: these are the paths that
+  //    actually carry this panel's own mutations between tabs.
+  //
+  //    The REFETCH is now conditional. Every sync tick re-read the whole
+  //    content_authors roster, on every tab - including the fourteen that do
+  //    not render a horse. Only Social Horses and Statistics read `personas`,
+  //    so only those two pay for a refresh; anywhere else the tick is recorded
+  //    and the roster is re-read the next time one of them is opened. ──
+  const rosterTabActive = activeTab === 'stable' || activeTab === 'stats';
+  const rosterTabActiveRef = useRef(rosterTabActive);
+  const rosterStaleRef = useRef(false);
+  useEffect(() => { rosterTabActiveRef.current = rosterTabActive; }, [rosterTabActive]);
+  useEffect(() => {
+    if (rosterTabActive && rosterStaleRef.current) {
+      rosterStaleRef.current = false;
+      loadDataRef.current();
+    }
+  }, [rosterTabActive]);
+
   useEffect(() => {
     if (!user) return undefined;
     let coreTimer = null;
     const refreshCore = () => {
+      if (!rosterTabActiveRef.current) { rosterStaleRef.current = true; return; }
       if (coreTimer) return;
       coreTimer = setTimeout(() => { coreTimer = null; loadDataRef.current(); }, 2000);
     };
@@ -1794,7 +1991,10 @@ export default function HorsesAdmin() {
     if (activeTab === 'geeves' && !geevesLoaded && !geevesLoading) loadGeevesAnalytics();
     if (activeTab === 'reviews' && !reviewsLoaded && !reviewsLoading) loadAdminReviews();
     if (activeTab === 'audit' && !auditLoaded && !auditLoading) loadAuditLog();
-    if (activeTab === 'bugreports' && bugReports.length === 0 && !bugReportsLoading) loadBugReports(bugReportsFilter);
+    // Bug Reports is not listed here any more. Its guard was
+    // `bugReports.length === 0`, which is not "have we loaded this yet" - an
+    // empty queue re-queried the database on every single visit to the tab.
+    // usePagedList owns the load now and keys it on loaded/page/filters.
     if (activeTab === 'clubarena' && !caLoaded && !caLoading) {
       loadClubArenaData();
       loadApplications('pending');
@@ -1806,27 +2006,122 @@ export default function HorsesAdmin() {
   useEffect(() => {
     if (activeTab === 'reviews' && reviewsLoaded) loadAdminReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage]);
+  }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage, reviewsQuery]);
 
   useEffect(() => {
     if (activeTab === 'audit' && auditLoaded) loadAuditLog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auditPrefix, auditAdmin, auditDays, auditPage]);
+  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo, auditPage]);
 
   // Same reason as the reviews reset below: a filter change must not leave the
   // operator on page 4 of a result set that now has one page.
-  useEffect(() => { setAuditPage(0); }, [auditPrefix, auditAdmin, auditDays]);
+  useEffect(() => {
+    setAuditPage(0);
+  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo]);
 
   // A filter change must return to page one, or the operator lands on page 4
   // of a result set that now has one page.
-  useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
+  useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsQuery]);
+
+  // ── Debounced searches ──
+  // Both of these hit a route now rather than filtering an array in memory, so
+  // they wait 300ms for the operator to stop typing.
+  useEffect(() => {
+    const id = setTimeout(() => setReviewsQuery(reviewsSearch), 300);
+    return () => clearTimeout(id);
+  }, [reviewsSearch]);
+
+  useEffect(() => {
+    const id = setTimeout(() => tickets.setFilter('q', bugReportsSearch.trim()), 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bugReportsSearch]);
 
   useEffect(() => {
     if (activeTab !== 'scrapers' || !user) return undefined;
     loadScraperHealth();
-    const interval = setInterval(loadScraperHealth, 60000);
-    return () => clearInterval(interval);
+    // A hidden tab does not need a poll. The 60 second tick used to run for as
+    // long as the browser tab existed, in the background, forever: nine daemon
+    // health reads a minute that nobody was looking at. The immediate read on
+    // becoming visible is what keeps the panel current when it comes back.
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadScraperHealth();
+    };
+    const interval = setInterval(tick, 60000);
+    const onVisible = () => { if (!document.hidden) loadScraperHealth(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [activeTab, user, loadScraperHealth]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // URL STATE
+  //
+  // The active tab and the Club Arena section lived only in component state, so
+  // the Ledger could not be bookmarked, a refresh threw the operator back to
+  // Social Horses, and Back did not undo a "Needs Attention" jump. Both are
+  // mirrored into the query string.
+  //
+  // SHALLOW always: Next must not re-run data fetching for a tab switch.
+  //
+  // PUSH for a real navigation, REPLACE only for the one write that normalises
+  // the URL on first load (stamping ?tab= in when the operator arrived at bare
+  // /horses). This is deliberate and it is the whole point of the item: with a
+  // replace on every write, a "Needs Attention" jump overwrites the history
+  // entry it came from, so Back leaves the console entirely instead of undoing
+  // the jump - which is the bug audit item 33 names. Sixteen tab clicks do
+  // leave sixteen history entries; that is what Back is for, and it is the
+  // behaviour of every other tabbed console an operator uses.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /** Read the URL into state. Runs on mount and on every router query change,
+   *  which is what makes Back and Forward work: Next updates router.query on a
+   *  popstate and this follows it. Anything unrecognised falls back to the
+   *  registry default rather than rendering a blank panel. */
+  useEffect(() => {
+    if (!router.isReady) return;
+    const nextTab = resolveTabFromQuery(router.query.tab);
+    const nextSection = resolveSectionFromQuery(router.query.section);
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
+    setCaSection((prev) => (prev === nextSection ? prev : nextSection));
+  }, [router.isReady, router.query.tab, router.query.section]);
+
+  /** True until the URL has been written once. The first write is the one that
+   *  normalises a bare /horses into /horses?tab=stable and must not become a
+   *  history entry of its own; every write after it is a navigation. */
+  const urlNormalisedRef = useRef(false);
+
+  /** Write state back into the URL. Only when it actually differs, or this
+   *  would fight the read effect above on every render. */
+  useEffect(() => {
+    if (!router.isReady) return;
+    const currentTab = resolveTabFromQuery(router.query.tab);
+    const currentSection = resolveSectionFromQuery(router.query.section);
+    if (currentTab === activeTab && currentSection === caSection) {
+      urlNormalisedRef.current = true;
+      return;
+    }
+
+    const query = { ...router.query, tab: activeTab };
+    // ?section= only means anything on the Club Arena tab, and a stale section
+    // parameter hanging off every other tab is noise in a shared link.
+    if (activeTab === 'clubarena' && caSection !== DEFAULT_CA_SECTION) query.section = caSection;
+    else delete query.section;
+
+    const isNavigation = urlNormalisedRef.current;
+    urlNormalisedRef.current = true;
+    // Called as a method, not hoisted into a bare reference: next/router's push
+    // and replace are prototype methods and lose `this` when detached.
+    if (isNavigation) {
+      router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
+    } else {
+      router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, caSection, router.isReady]);
 
   // ── Keep the active tab visible in the mobile nav strip ──
   const navRef = useRef(null);
@@ -1837,6 +2132,43 @@ export default function HorsesAdmin() {
     // `badges` is in the deps because the counts land after mount and change
     // the width of the strip, which is what was displacing it.
   }, [activeTab, badges]);
+
+  /**
+   * Tablist keyboard movement.
+   *
+   * ArrowLeft / ArrowRight move by one and wrap; Home and End jump to the ends.
+   * Selection follows focus, which is the automatic-activation pattern and the
+   * right one here: every panel is already mounted lazily and switching is
+   * cheap. The mobile scroll strip is untouched - the effect above still
+   * scrolls whatever becomes active into view.
+   */
+  const navTabs = useMemo(() => visibleTabs(TABS), []);
+  const onTabKeyDown = useCallback((e) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const index = navTabs.findIndex((t) => t.id === activeTab);
+    if (index < 0) return;
+    let nextIndex = index;
+    if (e.key === 'ArrowLeft') nextIndex = (index - 1 + navTabs.length) % navTabs.length;
+    if (e.key === 'ArrowRight') nextIndex = (index + 1) % navTabs.length;
+    if (e.key === 'Home') nextIndex = 0;
+    if (e.key === 'End') nextIndex = navTabs.length - 1;
+    const nextTab = navTabs[nextIndex];
+    if (!nextTab) return;
+    setActiveTab(nextTab.id);
+    const el = navRef.current?.querySelector(`[data-tabid="${nextTab.id}"]`);
+    if (el && typeof el.focus === 'function') el.focus();
+  }, [activeTab, navTabs]);
+
+  const activeTabEntry = useMemo(
+    () => navTabs.find((t) => t.id === activeTab) || null,
+    [navTabs, activeTab],
+  );
+  /** Registry tabs that are their own module render here; the sixteen legacy
+   *  panels below are still inline and unchanged. Today every entry is legacy,
+   *  so this is null on every tab - it is the seam Phase 2 writes into. */
+  const RegistryPanel = activeTabEntry ? panelComponentFor(activeTabEntry) : null;
 
   // ── Derived ──
   const filteredPersonas = useMemo(() => {
@@ -1928,13 +2260,12 @@ export default function HorsesAdmin() {
     showNotification(`Exported ${num(rows.length)} Horses`);
   }, [personas, filteredPersonas, selectedIds, showNotification]);
 
-  const visibleReviews = useMemo(() => {
-    const q = reviewsSearch.trim().toLowerCase();
-    if (!q) return reviewsData;
-    return reviewsData.filter((r) => (r.reviewer_name || '').toLowerCase().includes(q)
-      || (r.venue_name || '').toLowerCase().includes(q)
-      || (r.review_text || '').toLowerCase().includes(q));
-  }, [reviewsData, reviewsSearch]);
+  // The page-only client filter that used to live here is gone: `q` goes to the
+  // route and the route searches the whole table, so what comes back IS the
+  // result set and filtering it again would only hide rows the server matched
+  // on a column this filter did not know about.
+
+  const mintLedgerRows = mintLedger?.entries || [];
 
   const pendingAppCount = useMemo(
     () => caApplications.filter((a) => a.status === 'pending').length, [caApplications],
@@ -2066,34 +2397,66 @@ export default function HorsesAdmin() {
             badges arriving asynchronously change the strip's width after
             mount, which is what moved it. Scroll the active tab into view
             whenever it changes, and once more after the badges land. */}
-        <nav className={styles.nav} ref={navRef}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              data-tabid={tab.id}
-              className={activeTab === tab.id ? styles.active : ''}
-              onClick={() => setActiveTab(tab.id)}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-              style={(tab.id === 'scrapers' && deadScrapers > 0)
-                || (tab.id === 'clubarena' && ledgerCritical > 0)
-                ? { color: T.danger, fontWeight: 700 } : undefined}
-            >
-              {tab.label}
-              {/* num() not raw interpolation: the ledger badge is in the tens
-                  of thousands and rendered as "Club Arena (20206)". */}
-              {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${num(deadScrapers)})` : ''}
-              {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${num(clubArenaBadge)})` : ''}
-              {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${num(bugReportBadge)})` : ''}
-            </button>
-          ))}
+        {/* A real tablist. It was a row of plain buttons with aria-current,
+            which tells a screen reader "this is the current page" and nothing
+            about the sixteen panels it controls. Roving tabindex, so Tab
+            reaches the nav once and then arrow keys move within it, which is
+            what a tablist promises a keyboard user. The external links are NOT
+            tabs - they navigate to other pages - so they sit outside the
+            tablist with their own label. */}
+        <nav className={styles.nav} ref={navRef} aria-label="Console sections">
+          <div role="tablist" aria-label="Stable admin tabs" style={{ display: 'contents' }}>
+            {navTabs.map((tab) => (
+              <button
+                key={tab.id}
+                id={`horses-tab-${tab.id}`}
+                data-tabid={tab.id}
+                role="tab"
+                type="button"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`horses-panel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                className={activeTab === tab.id ? styles.active : ''}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={onTabKeyDown}
+                style={(tab.id === 'scrapers' && deadScrapers > 0)
+                  || (tab.id === 'clubarena' && ledgerCritical > 0)
+                  ? { color: T.danger, fontWeight: 700 } : undefined}
+              >
+                {tab.label}
+                {/* num() not raw interpolation: the ledger badge is in the tens
+                    of thousands and rendered as "Club Arena (20206)". */}
+                {tab.id === 'scrapers' && deadScrapers > 0 ? ` (${num(deadScrapers)})` : ''}
+                {tab.id === 'clubarena' && clubArenaBadge > 0 ? ` (${num(clubArenaBadge)})` : ''}
+                {tab.id === 'bugreports' && bugReportBadge > 0 ? ` (${num(bugReportBadge)})` : ''}
+              </button>
+            ))}
+          </div>
           {EXTERNAL_LINKS.map((link) => (
-            <button key={link.href} onClick={() => router.push(link.href)}>
+            <button key={link.href} type="button" onClick={() => router.push(link.href)}>
               {link.label}
             </button>
           ))}
         </nav>
 
-        <main className={styles.content}>
+        <main
+          className={styles.content}
+          id={`horses-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`horses-tab-${activeTab}`}
+          tabIndex={0}
+        >
+          {/* One throw used to take all sixteen tabs with it. resetKey is the
+              active tab, so moving to another tab clears a captured error and
+              the nav never goes down with the panel. */}
+          <ErrorBoundary
+            resetKey={activeTab}
+            label={activeTabEntry?.label || 'This Tab'}
+          >
+          {RegistryPanel && (
+            <RegistryPanel authFetch={authFetch} showNotification={showNotification} />
+          )}
+
           {activeTab === 'merch' && <MerchCatalogAdmin authFetch={authFetch} />}
 
           {/* ─────────────────────────── SOCIAL HORSES ─────────────────────── */}
@@ -2102,17 +2465,21 @@ export default function HorsesAdmin() {
               <h2 className={styles.srOnly}>Social Horses</h2>
               <div className={styles.stableHeader}>
                 <div className={styles.stableStats}>
+                  {/* Every count in this row is over the SAME population:
+                      horses with a poker profile. The social-only personas are
+                      counted separately at the end of the row, never folded in,
+                      because they are a different thing. */}
                   <div className={styles.statBox}>
                     <span className={styles.statNumber}>{num(horses.length, '0')}</span>
-                    <span className={styles.statLabel}>Total Horses</span>
+                    <span className={styles.statLabel}>Total Horses (With A Poker Profile)</span>
                   </div>
                   <div className={`${styles.statBox} ${styles.activeBox}`}>
                     <span className={styles.statNumber}>{num(activeCount, '0')}</span>
-                    <span className={styles.statLabel}>Active</span>
+                    <span className={styles.statLabel}>Active (Of Those Horses)</span>
                   </div>
                   <div className={`${styles.statBox} ${styles.inactiveBox}`}>
                     <span className={styles.statNumber}>{num(horses.length - activeCount, '0')}</span>
-                    <span className={styles.statLabel}>Resting</span>
+                    <span className={styles.statLabel}>Resting (Of Those Horses)</span>
                   </div>
                   {socialOnlyCount > 0 && (
                     <div className={styles.statBox}>
@@ -2374,43 +2741,52 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.grinderControls}>
-                <h3>Fleet Deployment</h3>
+                <h3>Fleet Status</h3>
+                <p style={{ color: T.dim, fontSize: 13, margin: '0 0 12px' }}>
+                  Fleet Seeding Is Owned By The Engine (HorseFleetManager). The Launch And
+                  Shutdown Buttons That Used To Be Here Were Retired In Phase 1: Each Press Of
+                  Launch Created 117 Duplicate Cash Tables With No Cleanup, And The Route Made
+                  Up To 1,500 Sequential Round Trips Inside One Serverless Invocation, So A
+                  Timeout Left The Database Half Written. Reading The Fleet Is Still Here.
+                </p>
                 <div className={styles.clubActions}>
-                  <button className={styles.btnSuccess} onClick={() => handleFleetLaunch('launch_all')} disabled={grinderLoading}>
-                    Launch Full Fleet
-                  </button>
-                  <button className={styles.btnDanger} onClick={() => handleFleetLaunch('shutdown')} disabled={grinderLoading}>
-                    Shutdown Entire Fleet
+                  <button className={styles.actionBtn} onClick={loadFleetStatus} disabled={fleetStatusLoading}>
+                    {fleetStatusLoading ? 'Reading Fleet Status' : 'Refresh Fleet Status'}
                   </button>
                 </div>
+                {fleetStatus && (
+                  <div className={styles.kpiGrid} style={{ marginTop: 14 }}>
+                    <KpiTile
+                      label="Cash Tables Live"
+                      value={num(fleetStatus.cashTables ?? fleetStatus.tables)}
+                      tone="accent"
+                    />
+                    <KpiTile label="Horses Seated" value={num(fleetStatus.horsesSeated ?? fleetStatus.cashSeats)} />
+                    <KpiTile label="Tournaments Live" value={num(fleetStatus.tournaments)} />
+                    <KpiTile
+                      label="Status Read At"
+                      value={when(fleetStatus.checkedAt || fleetStatus.timestamp, true)}
+                      hint="Straight From /api/club-arena/horse-launch, Action Status."
+                    />
+                  </div>
+                )}
 
                 <h3 style={{ marginTop: 24 }}>Club Management</h3>
-                <div className={styles.warnBanner}>
-                  These Four Actions Are Not Implemented Server-Side, So They Are Disabled
-                  Rather Than Left Clickable. The Endpoint Returns An Explicit 501 Instead Of
-                  Reporting Success, Because It Used To Claim It Had Added Horses And Granted
-                  Chips Without Touching The Database. Seating Horses And Moving Chips Is Real
-                  Money Movement And Is Not Being Implemented Speculatively. Use Fleet Launch,
-                  Which Is Wired And Works.
-                </div>
-                <div className={styles.clubActions}>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'shark_club')} disabled
-                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
-                    Add All Horses To Shark Club
-                  </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('add_to_club', 'club_jaqk')} disabled
-                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
-                    Add All Horses To Club JAQK
-                  </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('start')} disabled
-                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
-                    Start Auto-Join
-                  </button>
-                  <button className={styles.actionBtn} onClick={() => handleGrinderAction('stop')} disabled
-                    title="Not implemented server-side. /api/horses/grinder-stats returns 501 for this action.">
-                    Stop All Horses
-                  </button>
-                </div>
+                <NotBuiltYet
+                  items={[
+                    'Add All Horses To Shark Club',
+                    'Add All Horses To Club JAQK',
+                    'Start Auto-Join',
+                    'Stop All Horses',
+                  ]}
+                >
+                  These Four Actions Were Buttons That Could Never Be Pressed. They Are Listed
+                  Rather Than Rendered Disabled, Because A Greyed-Out Button Says The Feature
+                  Exists And You Simply Cannot Use It Right Now. It Does Not Exist:
+                  The Grinder Stats Route Answers 501 For Every One Of Them. Seating Horses
+                  And Granting Chips Is Real Money Movement And Will Not Be Implemented
+                  Speculatively.
+                </NotBuiltYet>
               </div>
 
               <div className={styles.grinderSettings}>
@@ -2530,32 +2906,25 @@ export default function HorsesAdmin() {
               <h2>Content Pipeline</h2>
               <div className={styles.pipelineActions}>
                 <h3>Quick Actions</h3>
-                {/* The cron handler these posted to does not exist. The route
-                    returns 501 now instead of a fabricated success, but until
-                    it is implemented the only way to learn that was to click. */}
-                <div className={styles.warnBanner}>
-                  The Content Pipeline Is Not Implemented Server-Side, So These Four Actions
-                  Are Disabled Rather Than Left Clickable. The Endpoint Returns An Explicit
-                  501 Rather Than Reporting A Run That Did Not Happen -- It Previously Logged
-                  A Pipeline_Runs Row For Work It Never Did, Which Made The Lie Durable.
-                </div>
-                <div className={styles.actionButtons}>
-                  {[
-                    ['test', 'Test Run', '3 Posts, No Video'],
-                    ['cycle', 'Quick Cycle', '10 Posts, 2 Videos'],
-                    ['daily', 'Full Daily', `${settings.posts_per_day || 20} Posts`],
-                    ['publish', 'Publish Due', 'Post Scheduled'],
-                  ].map(([type, label, desc]) => (
-                    <button
-                      key={type} onClick={() => triggerPipeline(type)} disabled
-                      title="Not implemented server-side. /api/horses/trigger-pipeline returns 501."
-                      className={`${styles.actionBtn} ${type === 'daily' ? styles.featured : ''}`}
-                    >
-                      <span className={styles.label}>{label}</span>
-                      <span className={styles.desc}>{desc}</span>
-                    </button>
-                  ))}
-                </div>
+                {/* Four buttons that were disabled from the day they shipped,
+                    posting to a cron handler that does not exist. The route
+                    answers 501 rather than fabricating a success - it used to
+                    log a pipeline_runs row for work it never did, which made
+                    the lie durable - and this says so in the panel instead of
+                    hiding it in a title attribute nobody hovers. */}
+                <NotBuiltYet
+                  items={[
+                    'Test Run (3 Posts, No Video)',
+                    'Quick Cycle (10 Posts, 2 Videos)',
+                    `Full Daily (${settings.posts_per_day || 20} Posts)`,
+                    'Publish Due (Post Scheduled)',
+                  ]}
+                >
+                  The Content Pipeline Has No Server-Side Implementation:
+                  The Trigger Pipeline Route Answers 501 For Every Type. The Runs Below Are
+                  Real And Are Recorded By Whatever Else Writes Pipeline_Runs; Nothing On This
+                  Tab Can Start One.
+                </NotBuiltYet>
               </div>
 
               {/* The RSS source list used to be five hardcoded names each with a
@@ -2814,10 +3183,28 @@ export default function HorsesAdmin() {
                 </div>
               ) : (
                 <>
+                  {/* ONE DENOMINATOR PER TILE, AND IT IS NAMED.
+                      "Total Authors" counted every content_authors row while
+                      the Social Horses tab's "Total Horses" counted only the
+                      rows with a poker profile, and neither label said which
+                      population it was. They are two different numbers about
+                      two different things: a social-only persona posts but has
+                      no wallet, no club membership and cannot be dealt a hand.
+                      Both tiles now state their denominator, and the
+                      social-only count is its own tile rather than the
+                      difference between two figures nobody could reconcile. */}
                   <div className={styles.statsOverview}>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(personas.length, '0')}</span>
-                      <span className={styles.statLabel}>Total Authors</span>
+                      <span className={styles.statLabel}>Total Authors (Every Persona Row)</span>
+                    </div>
+                    <div className={styles.statCardLarge}>
+                      <span className={styles.statNumber}>{num(horses.length, '0')}</span>
+                      <span className={styles.statLabel}>Of Those, Horses With A Poker Profile</span>
+                    </div>
+                    <div className={styles.statCardLarge}>
+                      <span className={styles.statNumber}>{num(socialOnlyCount, '0')}</span>
+                      <span className={styles.statLabel}>Of Those, Social Only (No Poker Profile)</span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(analyticsData?.activeHorses ?? activeCount)}</span>
@@ -2865,101 +3252,139 @@ export default function HorsesAdmin() {
           {activeTab === 'bugreports' && (
             <div className={styles.statsView}>
               <h2>Bug Reports And Support Tickets</h2>
+              {/* This was the last Club Arena read still running in the
+                  browser: an unbounded select on live_help_tickets with an
+                  embedded profiles join, under the operator's own RLS. It is a
+                  service-role route with status, search and paging now, so the
+                  queue cannot silently truncate and a ticket on page three is
+                  findable. */}
               <div className={styles.filterBar}>
-                {['open', 'resolved', 'all'].map((f) => (
+                {[['open', 'Open'], ['in_progress', 'In Progress'], ['resolved', 'Resolved'], ['closed', 'Closed'], ['all', 'All']].map(([value, label]) => (
                   <button
-                    key={f}
-                    className={`${styles.filterBtn} ${bugReportsFilter === f ? styles.active : ''}`}
-                    onClick={() => { setBugReportsFilter(f); loadBugReports(f); }}
+                    key={value}
+                    type="button"
+                    className={`${styles.filterBtn} ${tickets.filters.status === value ? styles.active : ''}`}
+                    onClick={() => tickets.setFilter('status', value)}
                   >
-                    {f === 'open' ? 'Open' : f === 'resolved' ? 'Resolved' : 'All'}
+                    {label}
                   </button>
                 ))}
-                <button className={styles.filterBtn} onClick={() => loadBugReports(bugReportsFilter)} disabled={bugReportsLoading}>
+                <input
+                  type="search"
+                  value={bugReportsSearch}
+                  onChange={(e) => setBugReportsSearch(e.target.value)}
+                  placeholder="Search subject or description"
+                  className={styles.searchInput}
+                  aria-label="Search tickets"
+                  style={{ flex: 1, minWidth: 200 }}
+                />
+                <button className={styles.filterBtn} onClick={tickets.refresh} disabled={tickets.loading}>
                   Refresh
                 </button>
               </div>
 
-              {bugReportsError ? (
+              {tickets.error ? (
                 <div className={styles.errorState}>
-                  <div>Tickets Unavailable: {bugReportsError}</div>
-                  <button className={styles.actionBtn} onClick={() => loadBugReports(bugReportsFilter)}>Retry</button>
+                  <div>Tickets Unavailable: {tickets.error}</div>
+                  <button className={styles.actionBtn} onClick={tickets.refresh}>Retry</button>
                 </div>
-              ) : bugReportsLoading ? (
-                <div className={styles.loadingSpinner}>Loading Tickets</div>
-              ) : bugReports.length === 0 ? (
-                <div className={styles.emptyState}>No Tickets In This View.</div>
               ) : (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr><th scope="col">User</th><th scope="col">Subject</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Actions</th></tr>
-                    </thead>
-                    <tbody>
-                      {bugReports.map((ticket) => {
-                        const pColor = { high: T.danger, medium: T.warn, low: T.info }[ticket.priority] || T.dim;
-                        return (
-                          <tr key={ticket.id}>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {ticket.profiles?.avatar_url && (
-                                  <img src={ticket.profiles.avatar_url} alt="" loading="lazy"
-                                    style={{ width: 24, height: 24, borderRadius: '50%' }} />
-                                )}
-                                <div>
-                                  <div style={{ fontWeight: 600 }}>
-                                    {ticket.profiles?.display_name || ticket.profiles?.username || 'Anonymous'}
-                                  </div>
-                                  <div style={{ fontSize: 11, color: T.muted }}>@{ticket.profiles?.username || 'unknown'}</div>
+                <>
+                  <DataTable
+                    caption="Support Tickets, Newest First"
+                    loading={tickets.loading}
+                    loadingLabel="Loading Tickets"
+                    empty={tickets.filters.q
+                      ? 'No Tickets Match That Search.'
+                      : 'No Tickets In This View.'}
+                    rows={tickets.rows}
+                    columns={[
+                      {
+                        key: 'user',
+                        header: 'User',
+                        render: (ticket) => {
+                          const who = ticket.reporter || ticket.profiles || null;
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {who?.avatar_url && (
+                                <img src={who.avatar_url} alt="" loading="lazy"
+                                  style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 600, color: T.text }}>
+                                  {who?.display_name || who?.username || 'Anonymous'}
                                 </div>
+                                <div style={{ fontSize: 11, color: T.muted }}>@{who?.username || 'unknown'}</div>
                               </div>
-                            </td>
-                            <td>
-                              <div style={{ fontWeight: 600 }}>{ticket.subject}</div>
-                              <div style={{ fontSize: 12, color: T.dim, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {ticket.description}
-                              </div>
-                            </td>
-                            <td>
-                              <span style={{
-                                padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700,
-                                textTransform: 'uppercase', color: pColor, border: `1px solid ${pColor}`,
-                              }}>{ticket.priority || 'medium'}</span>
-                            </td>
-                            <td>
-                              <span style={{
-                                padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-                                background: ticket.status === 'open' ? T.dangerSoft : T.accentSoft,
-                                color: ticket.status === 'open' ? T.danger : T.accent,
-                              }}>{ticket.status}</span>
-                            </td>
-                            <td style={{ fontSize: 12, color: T.dim }}>{when(ticket.created_at)}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button
-                                  className={styles.filterBtn}
-                                  onClick={() => updateBugReportStatus(ticket.id, ticket.status === 'open' ? 'resolved' : 'open')}
-                                >
-                                  {ticket.status === 'open' ? 'Resolve' : 'Reopen'}
-                                </button>
-                                {ticket.conversation_id && (
-                                  <a
-                                    href={`/hub/messenger?conversation=${ticket.conversation_id}`}
-                                    target="_blank" rel="noreferrer"
-                                    style={{
-                                      background: T.accentSoft, border: `1px solid ${T.accentLine}`, color: T.accent,
-                                      padding: '6px 12px', borderRadius: 8, fontSize: 12, textDecoration: 'none', fontWeight: 600,
-                                    }}
-                                  >Chat</a>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
+                        key: 'subject',
+                        header: 'Subject',
+                        render: (ticket) => (
+                          <>
+                            <div style={{ fontWeight: 600, color: T.text }}>{ticket.subject}</div>
+                            <div style={{ fontSize: 12, color: T.dim, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {ticket.description}
+                            </div>
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'priority',
+                        header: 'Priority',
+                        render: (ticket) => <StatusPill status={ticket.priority || 'medium'} />,
+                      },
+                      {
+                        key: 'status',
+                        header: 'Status',
+                        render: (ticket) => <StatusPill status={ticket.status} />,
+                      },
+                      {
+                        key: 'created_at',
+                        header: 'Date',
+                        render: (ticket) => when(ticket.created_at),
+                      },
+                      {
+                        key: 'actions',
+                        header: 'Actions',
+                        render: (ticket) => (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              className={styles.filterBtn}
+                              onClick={() => updateBugReportStatus(ticket.id, ticket.status === 'open' ? 'resolved' : 'open')}
+                            >
+                              {ticket.status === 'open' ? 'Resolve' : 'Reopen'}
+                            </button>
+                            {ticket.conversation_id && (
+                              <a
+                                href={`/hub/messenger?conversation=${ticket.conversation_id}`}
+                                target="_blank" rel="noreferrer"
+                                style={{
+                                  background: T.accentSoft, border: `1px solid ${T.accentLine}`, color: T.accent,
+                                  padding: '6px 12px', borderRadius: 8, fontSize: 12, textDecoration: 'none', fontWeight: 600,
+                                }}
+                              >Chat</a>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                  <Pager
+                    offset={tickets.offset}
+                    limit={tickets.limit}
+                    count={tickets.rows.length}
+                    total={tickets.total}
+                    loading={tickets.loading}
+                    noun="Tickets"
+                    onPrevious={tickets.previous}
+                    onNext={tickets.next}
+                  />
+                </>
               )}
             </div>
           )}
@@ -3634,55 +4059,43 @@ export default function HorsesAdmin() {
                       computed from the figure the panel already loaded, so if it
                       looks wrong the operator finds out here rather than in the
                       ledger afterwards. */}
+                  {/* This was a plain div: no role, no aria-modal, no Escape,
+                      no focus trap and no focus restore, on the one screen in
+                      the platform that creates money. It is the shared dialog
+                      now. While the write is in flight it is `sticky` and
+                      `blockEscape`, so a stray click on the backdrop or a jab
+                      at Escape cannot dismiss the confirmation out from under a
+                      request whose result the operator has not seen. */}
                   {mintConfirm && (
-                    <div className={styles.modalOverlay}>
-                      <div className={styles.modalContent}>
-                        <div className={styles.modalHeader}>
-                          <h3>Confirm {mintConfirm.action === 'mint' ? 'Issuance' : 'Retirement'}</h3>
-                        </div>
-                        <p style={{ color: T.text, lineHeight: 1.6 }}>
-                          {mintConfirm.action === 'mint' ? 'Create' : 'Destroy'}{' '}
-                          <strong>{num(mintConfirm.amount)} {mintConfirm.asset}</strong>{' '}
-                          {mintConfirm.action === 'mint' ? 'and place them in' : 'taken from'}{' '}
-                          <strong>{mintConfirm.label}</strong>
-                          {mintConfirm.balance !== null && (
-                            <>
-                              , Taking That Balance from{' '}
-                              <strong>{num(mintConfirm.balance)}</strong> to{' '}
-                              <strong>{num(mintConfirm.projected)}</strong>
-                            </>
-                          )}
-                          .
-                        </p>
-                        <p style={{ color: T.dim, fontStyle: 'italic' }}>
-                          Reason: {mintConfirm.reason}
-                        </p>
-                        <p style={{ color: T.muted, fontSize: 12 }}>
-                          This Is Recorded Permanently And Cannot Be Edited. A Retirement Can
-                          Offset An Issuance, But Neither Is Ever Removed From The Journal.
-                        </p>
-                        <div className={styles.formActions}>
-                          <button
-                            type="button"
-                            className={mintConfirm.action === 'mint' ? styles.btnSuccess : styles.btnDanger}
-                            onClick={submitMint}
-                            disabled={mintSubmitting}
-                          >
-                            {mintSubmitting
-                              ? 'Working...'
-                              : `Yes, ${mintConfirm.action === 'mint' ? 'issue' : 'retire'} ${num(mintConfirm.amount)}`}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.btnCancel}
-                            onClick={() => setMintConfirm(null)}
-                            disabled={mintSubmitting}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <ConfirmDialog
+                      title={`Confirm ${mintConfirm.action === 'mint' ? 'Issuance' : 'Retirement'}`}
+                      tone={mintConfirm.action === 'mint' ? 'go' : 'danger'}
+                      busy={mintSubmitting}
+                      sticky={mintSubmitting}
+                      blockEscape={mintSubmitting}
+                      confirmLabel={`Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${num(mintConfirm.amount)}`}
+                      onConfirm={submitMint}
+                      onCancel={() => setMintConfirm(null)}
+                      note="This Is Recorded Permanently And Cannot Be Edited. A Retirement Can Offset An Issuance, But Neither Is Ever Removed From The Journal."
+                    >
+                      <p style={{ marginTop: 0 }}>
+                        {mintConfirm.action === 'mint' ? 'Create' : 'Destroy'}{' '}
+                        <strong>{num(mintConfirm.amount)} {mintConfirm.asset}</strong>{' '}
+                        {mintConfirm.action === 'mint' ? 'And Place Them In' : 'Taken From'}{' '}
+                        <strong>{mintConfirm.label}</strong>
+                        {mintConfirm.balance !== null && (
+                          <>
+                            , Taking That Balance From{' '}
+                            <strong>{num(mintConfirm.balance)}</strong> To{' '}
+                            <strong>{num(mintConfirm.projected)}</strong>
+                          </>
+                        )}
+                        .
+                      </p>
+                      <p style={{ color: T.dim, fontStyle: 'italic', margin: 0 }}>
+                        Reason: {mintConfirm.reason}
+                      </p>
+                    </ConfirmDialog>
                   )}
 
                   {/* ── THE LEDGER ─────────────────────────────────────────── */}
@@ -3696,7 +4109,8 @@ export default function HorsesAdmin() {
                         aria-label="Filter by asset"
                         onChange={(e) => {
                           setMintLedgerAsset(e.target.value);
-                          loadMintLedger(e.target.value, mintLedgerAction).catch((err) =>
+                          setMintLedgerOffset(0);
+                          loadMintLedger(e.target.value, mintLedgerAction, 0).catch((err) =>
                             showNotification(err.message, 'error')
                           );
                         }}
@@ -3711,7 +4125,8 @@ export default function HorsesAdmin() {
                         aria-label="Filter by operation"
                         onChange={(e) => {
                           setMintLedgerAction(e.target.value);
-                          loadMintLedger(mintLedgerAsset, e.target.value).catch((err) =>
+                          setMintLedgerOffset(0);
+                          loadMintLedger(mintLedgerAsset, e.target.value, 0).catch((err) =>
                             showNotification(err.message, 'error')
                           );
                         }}
@@ -3726,7 +4141,7 @@ export default function HorsesAdmin() {
                         onClick={() =>
                           downloadCsv(
                             stampedName('the-mint-ledger'),
-                            toCsv(mintLedger?.entries || [], [
+                            toCsv(mintLedgerRows, [
                               ['created_at', 'When'],
                               ['action', 'Operation'],
                               ['asset', 'Asset'],
@@ -3743,13 +4158,13 @@ export default function HorsesAdmin() {
                             ])
                           )
                         }
-                        disabled={!mintLedger?.entries?.length}
+                        disabled={!mintLedgerRows.length}
                       >
-                        Export CSV
+                        Export This Page
                       </button>
                     </div>
 
-                    {!mintLedger?.entries?.length ? (
+                    {!mintLedgerRows.length ? (
                       <div className={styles.emptyState}>
                         Nothing Has Been Issued Or Retired Yet. Every Operation Will Appear Here,
                         With Who Did It And Why.
@@ -3770,7 +4185,7 @@ export default function HorsesAdmin() {
                             </tr>
                           </thead>
                           <tbody>
-                            {mintLedger.entries.map((row) => (
+                            {mintLedgerRows.map((row) => (
                               <tr key={row.id}>
                                 <td>{when(row.created_at, true)}</td>
                                 <td
@@ -3801,11 +4216,20 @@ export default function HorsesAdmin() {
                       </div>
                     )}
 
-                    {mintLedger?.total > (mintLedger?.entries?.length || 0) && (
-                      <p className={styles.pageInfo}>
-                        Showing {mintLedger.entries.length} Of {num(mintLedger.total)} Operations.
-                      </p>
-                    )}
+                    {/* The journal was a fixed limit=100 with no control, so
+                        operation 101 could not be reached from this console at
+                        all. The route has always accepted limit/offset
+                        (PHASE1-CONTRACTS item 5); this drives it. */}
+                    <Pager
+                      offset={mintLedgerOffset}
+                      limit={MINT_LEDGER_PAGE_SIZE}
+                      count={mintLedgerRows.length}
+                      total={typeof mintLedger?.total === 'number' ? mintLedger.total : null}
+                      loading={mintLoading}
+                      noun="Operations"
+                      onPrevious={() => goMintLedgerPage(mintLedgerOffset - MINT_LEDGER_PAGE_SIZE)}
+                      onNext={() => goMintLedgerPage(mintLedgerOffset + MINT_LEDGER_PAGE_SIZE)}
+                    />
                   </div>
 
                   <div style={{ marginTop: 24, textAlign: 'center' }}>
@@ -4380,7 +4804,7 @@ export default function HorsesAdmin() {
                                     <td style={{ fontWeight: 600 }}>{t.name || `Table ${String(t.id).slice(0, 8)}`}</td>
                                     <td>{t.game_type || '-'}</td>
                                     <td>{t.stakes || '-'}</td>
-                                    {/* max_players, not max_seats — the old query 42703'd on this column. */}
+                                    {/* max_players, not max_seats - the old query 42703'd on this column. */}
                                     <td>{num(t.current_players, '0')} / {num(t.max_players)}</td>
                                     <td style={{ color: ['running', 'active'].includes(t.status) ? T.accent : T.dim }}>
                                       {t.status || 'inactive'}
@@ -4628,7 +5052,7 @@ export default function HorsesAdmin() {
                         {(caRevenue.rake24h?.truncated || caRevenue.rake7d?.truncated
                           || caRevenue.unsettledCommissions?.truncated) && (
                           <div className={styles.warnBanner}>
-                            One Or More Of These Totals Is Summed Over The Most recent{' '}
+                            One Or More Of These Totals Is Summed Over The Most Recent{' '}
                             {num(caRevenue.pageSize)} Rows Only, So It Is A Floor Rather Than An Exact
                             Figure. PostgREST Aggregate Functions Are Disabled On This Project, So The
                             Sums Are Computed Row By Row.
@@ -5313,8 +5737,9 @@ export default function HorsesAdmin() {
                   ['Flagged', reviewsStats.flagged, T.warn],
                   ['Avg Rating', reviewsStats.avg_rating !== null && reviewsStats.avg_rating !== undefined
                     ? Number(reviewsStats.avg_rating).toFixed(1) : null, T.accent],
-                  // Labelled honestly: the search filters the current page.
-                  ['Showing (page)', visibleReviews.length, T.accent],
+                  // The search is server-side now, so this is simply how many
+                  // rows the current page returned, not a filtered subset of it.
+                  ['Showing (Page)', reviewsData.length, T.accent],
                 ].map(([label, value, color]) => (
                   <div key={label} className={styles.kpi}>
                     <div className={styles.kpiValue} style={{ color }}>
@@ -5362,11 +5787,11 @@ export default function HorsesAdmin() {
                 </div>
               ) : reviewsLoading ? (
                 <div className={styles.loadingSpinner}>Loading Reviews</div>
-              ) : visibleReviews.length === 0 ? (
+              ) : reviewsData.length === 0 ? (
                 <div className={styles.emptyState}>No Reviews Match The Current Filters.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {visibleReviews.map((review) => (
+                  {reviewsData.map((review) => (
                     <div key={review.id} className={styles.card} style={{
                       background: review.is_flagged ? T.warnSoft : undefined,
                       borderColor: review.is_flagged ? 'rgba(255,215,0,0.3)' : T.line,
@@ -5435,10 +5860,10 @@ export default function HorsesAdmin() {
                 </div>
               )}
 
-              {/* Server-side paging. The search box still filters only the
-                  CURRENT page, which is why the count below says so -- the KPI
-                  used to read "Showing" over a hardcoded 200-row window and
-                  looked like a total. */}
+              {/* Server-side paging, and since Phase 1 a server-side search:
+                  the box sends `q` to the route, so this pager walks the whole
+                  matching set rather than one page the search then re-filtered
+                  in the browser. */}
               {(reviewsPage > 0 || reviewsData.length >= REVIEWS_PER_PAGE) && (
                 <div className={styles.pagination}>
                   <button onClick={() => setReviewsPage((p) => Math.max(0, p - 1))}
@@ -5452,9 +5877,9 @@ export default function HorsesAdmin() {
                     {(() => {
                       const pageBasis = reviewsStats.filtered_total ?? reviewsStats.total;
                       return pageBasis !== null && pageBasis !== undefined
-                        ? ` of ${Math.max(1, Math.ceil(pageBasis / REVIEWS_PER_PAGE))}` : '';
+                        ? ` Of ${Math.max(1, Math.ceil(pageBasis / REVIEWS_PER_PAGE))}` : '';
                     })()}
-                    {' '}- Showing {num(visibleReviews.length)} Of {num(reviewsData.length)} On This Page
+                    {' '}- Showing {num(reviewsData.length)} On This Page
                   </span>
                   <button onClick={() => setReviewsPage((p) => p + 1)}
                     disabled={reviewsData.length < REVIEWS_PER_PAGE || reviewsLoading}>Next</button>
@@ -5797,6 +6222,7 @@ export default function HorsesAdmin() {
               )}
             </div>
           )}
+          </ErrorBoundary>
         </main>
 
 
@@ -5807,164 +6233,152 @@ export default function HorsesAdmin() {
             (type/value/maxUses/expiresAt), PATCH takes the snake_case column
             names. This form speaks PATCH. */}
         {promoEditing && promoEditForm && (
-          <div
-            className={styles.modalOverlay}
-            onClick={(e) => { if (e.target === e.currentTarget) setPromoEditing(null); }}
-            role="dialog" aria-modal="true" aria-label={`Edit promo code ${promoEditing.code}`}
+          <Modal
+            title={`Edit ${promoEditing.code}`}
+            onClose={() => setPromoEditing(null)}
+            sticky={promoSaving}
+            blockEscape={promoSaving}
+            wide
           >
-            <div className={styles.modalContent}>
-              <div className={styles.modalHeader}>
-                <h2>Edit {promoEditing.code}</h2>
-                <button className={styles.closeBtn} onClick={() => setPromoEditing(null)} aria-label="Close">
-                  Close
+            <form onSubmit={savePromoEdit}>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-code">Code</label>
+                  <input
+                    id="pe-code" type="text" maxLength={20} required
+                    value={promoEditForm.code}
+                    onChange={(e) => setPromoEditForm({
+                      ...promoEditForm,
+                      code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                    })}
+                    style={{ textTransform: 'uppercase', letterSpacing: 2 }}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-type">Type</label>
+                  <select id="pe-type" value={promoEditForm.reward_type}
+                    onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_type: e.target.value })}>
+                    {(promoRewardTypes.length ? promoRewardTypes : [promoEditForm.reward_type]).map((t) => (
+                      <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="pe-desc">Description</label>
+                <input id="pe-desc" type="text" value={promoEditForm.description}
+                  onChange={(e) => setPromoEditForm({ ...promoEditForm, description: e.target.value })} />
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-value">
+                    Value ({['vip_days', 'free_trial'].includes(promoEditForm.reward_type) ? 'Days' : 'Diamonds'})
+                  </label>
+                  <input id="pe-value" type="number" min="0" max="10000" required
+                    value={promoEditForm.reward_value}
+                    onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_value: e.target.value })} />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pe-max">Max Uses (Blank Clears The Cap)</label>
+                  <input id="pe-max" type="number" min="1" placeholder="Unlimited"
+                    value={promoEditForm.max_uses}
+                    onChange={(e) => setPromoEditForm({ ...promoEditForm, max_uses: e.target.value })} />
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="pe-exp">Expires At (Blank Clears It)</label>
+                <input id="pe-exp" type="datetime-local" value={promoEditForm.expires_at}
+                  onChange={(e) => setPromoEditForm({ ...promoEditForm, expires_at: e.target.value })} />
+                {/* Unlike POST, PATCH accepts a past date, so a code can be
+                    retired by expiring it rather than deactivating it. */}
+                <small style={{ color: T.muted, fontSize: 11 }}>
+                  A Past Date Retires The Code Immediately.
+                </small>
+              </div>
+              <div className={styles.formActions}>
+                <button type="button" className={styles.btnCancel} onClick={() => setPromoEditing(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.btnSubmit} disabled={promoSaving}>
+                  {promoSaving ? 'Saving' : 'Save Changes'}
                 </button>
               </div>
-              <form onSubmit={savePromoEdit}>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="pe-code">Code</label>
-                    <input
-                      id="pe-code" type="text" maxLength={20} required
-                      value={promoEditForm.code}
-                      onChange={(e) => setPromoEditForm({
-                        ...promoEditForm,
-                        code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
-                      })}
-                      style={{ textTransform: 'uppercase', letterSpacing: 2 }}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="pe-type">Type</label>
-                    <select id="pe-type" value={promoEditForm.reward_type}
-                      onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_type: e.target.value })}>
-                      {(promoRewardTypes.length ? promoRewardTypes : [promoEditForm.reward_type]).map((t) => (
-                        <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="pe-desc">Description</label>
-                  <input id="pe-desc" type="text" value={promoEditForm.description}
-                    onChange={(e) => setPromoEditForm({ ...promoEditForm, description: e.target.value })} />
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="pe-value">
-                      Value ({['vip_days', 'free_trial'].includes(promoEditForm.reward_type) ? 'Days' : 'Diamonds'})
-                    </label>
-                    <input id="pe-value" type="number" min="0" max="10000" required
-                      value={promoEditForm.reward_value}
-                      onChange={(e) => setPromoEditForm({ ...promoEditForm, reward_value: e.target.value })} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="pe-max">Max Uses (Blank Clears The Cap)</label>
-                    <input id="pe-max" type="number" min="1" placeholder="Unlimited"
-                      value={promoEditForm.max_uses}
-                      onChange={(e) => setPromoEditForm({ ...promoEditForm, max_uses: e.target.value })} />
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="pe-exp">Expires At (Blank Clears It)</label>
-                  <input id="pe-exp" type="datetime-local" value={promoEditForm.expires_at}
-                    onChange={(e) => setPromoEditForm({ ...promoEditForm, expires_at: e.target.value })} />
-                  {/* Unlike POST, PATCH accepts a past date, so a code can be
-                      retired by expiring it rather than deactivating it. */}
-                  <small style={{ color: T.muted, fontSize: 11 }}>
-                    A Past Date Retires The Code Immediately.
-                  </small>
-                </div>
-                <div className={styles.formActions}>
-                  <button type="button" className={styles.btnCancel} onClick={() => setPromoEditing(null)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className={styles.btnSubmit} disabled={promoSaving}>
-                    {promoSaving ? 'Saving' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+            </form>
+          </Modal>
         )}
 
         {/* ─────────────────────────── CREATE / EDIT HORSE ──────────────────── */}
         {showCreateModal && (
-          <div
-            className={styles.modalOverlay}
-            onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
-            role="dialog" aria-modal="true" aria-label={editingPersona ? 'Edit horse' : 'New horse'}
+          <Modal
+            title={editingPersona ? `Edit ${editingPersona.name}` : 'New Horse'}
+            onClose={() => setShowCreateModal(false)}
+            sticky={savingPersona}
+            blockEscape={savingPersona}
+            wide
           >
-            <div className={styles.modalContent} ref={modalRef}>
-              <div className={styles.modalHeader}>
-                <h2>{editingPersona ? `Edit ${editingPersona.name}` : 'New Horse'}</h2>
-                <button className={styles.closeBtn} onClick={() => setShowCreateModal(false)} aria-label="Close">
-                  Close
-                </button>
+            <form onSubmit={handleSavePersona}>
+              <div className={styles.formGroup}>
+                <label htmlFor="p-name">Name</label>
+                <input id="p-name" type="text" required placeholder="Johnny Sticks"
+                  value={personaForm.name}
+                  onChange={(e) => setPersonaForm({ ...personaForm, name: e.target.value })} />
               </div>
-              <form onSubmit={handleSavePersona}>
+              <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="p-name">Name</label>
-                  <input id="p-name" type="text" required placeholder="Johnny Sticks"
-                    value={personaForm.name}
-                    onChange={(e) => setPersonaForm({ ...personaForm, name: e.target.value })} />
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="p-gender">Gender</label>
-                    <select id="p-gender" value={personaForm.gender}
-                      onChange={(e) => setPersonaForm({ ...personaForm, gender: e.target.value })}>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="p-location">Location</label>
-                    <input id="p-location" type="text" required placeholder="Austin, TX"
-                      value={personaForm.location}
-                      onChange={(e) => setPersonaForm({ ...personaForm, location: e.target.value })} />
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="p-bio">Bio</label>
-                  <textarea id="p-bio" rows="3" required placeholder="Brief backstory"
-                    value={personaForm.bio}
-                    onChange={(e) => setPersonaForm({ ...personaForm, bio: e.target.value })} />
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="p-specialty">Specialty</label>
-                    <select id="p-specialty" value={personaForm.specialty}
-                      onChange={(e) => setPersonaForm({ ...personaForm, specialty: e.target.value })}>
-                      {SPECIALTIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="p-stakes">Stakes</label>
-                    <input id="p-stakes" type="text" required placeholder="2/5 NLH"
-                      value={personaForm.stakes}
-                      onChange={(e) => setPersonaForm({ ...personaForm, stakes: e.target.value })} />
-                  </div>
-                </div>
-                {/* The voice field is part of the record and is shown on every
-                    card, but the create form never asked for it. */}
-                <div className={styles.formGroup}>
-                  <label htmlFor="p-voice">Voice</label>
-                  <select id="p-voice" value={personaForm.voice}
-                    onChange={(e) => setPersonaForm({ ...personaForm, voice: e.target.value })}>
-                    {VOICES.map((v) => <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>)}
+                  <label htmlFor="p-gender">Gender</label>
+                  <select id="p-gender" value={personaForm.gender}
+                    onChange={(e) => setPersonaForm({ ...personaForm, gender: e.target.value })}>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
                   </select>
                 </div>
-                <div className={styles.formActions}>
-                  <button type="button" className={styles.btnCancel} onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className={styles.btnSubmit} disabled={savingPersona}>
-                    {savingPersona ? 'Saving' : editingPersona ? 'Save Changes' : 'Stable Horse'}
-                  </button>
+                <div className={styles.formGroup}>
+                  <label htmlFor="p-location">Location</label>
+                  <input id="p-location" type="text" required placeholder="Austin, TX"
+                    value={personaForm.location}
+                    onChange={(e) => setPersonaForm({ ...personaForm, location: e.target.value })} />
                 </div>
-              </form>
-            </div>
-          </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="p-bio">Bio</label>
+                <textarea id="p-bio" rows="3" required placeholder="Brief backstory"
+                  value={personaForm.bio}
+                  onChange={(e) => setPersonaForm({ ...personaForm, bio: e.target.value })} />
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="p-specialty">Specialty</label>
+                  <select id="p-specialty" value={personaForm.specialty}
+                    onChange={(e) => setPersonaForm({ ...personaForm, specialty: e.target.value })}>
+                    {SPECIALTIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="p-stakes">Stakes</label>
+                  <input id="p-stakes" type="text" required placeholder="2/5 NLH"
+                    value={personaForm.stakes}
+                    onChange={(e) => setPersonaForm({ ...personaForm, stakes: e.target.value })} />
+                </div>
+              </div>
+              {/* The voice field is part of the record and is shown on every
+                  card, but the create form never asked for it. */}
+              <div className={styles.formGroup}>
+                <label htmlFor="p-voice">Voice</label>
+                <select id="p-voice" value={personaForm.voice}
+                  onChange={(e) => setPersonaForm({ ...personaForm, voice: e.target.value })}>
+                  {VOICES.map((v) => <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>)}
+                </select>
+              </div>
+              <div className={styles.formActions}>
+                <button type="button" className={styles.btnCancel} onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.btnSubmit} disabled={savingPersona}>
+                  {savingPersona ? 'Saving' : editingPersona ? 'Save Changes' : 'Stable Horse'}
+                </button>
+              </div>
+            </form>
+          </Modal>
         )}
       </div>
     </>

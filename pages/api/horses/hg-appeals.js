@@ -1,149 +1,102 @@
 /**
  * /api/horses/hg-appeals
- * GET  ?status=&group_id=&limit=&offset=  → list appeals (admin view)
- * PATCH {appeal_id, decision, reviewer_note} → review appeal
+ *   GET   ?status=&group_id=&limit=&offset=     - list ban appeals (admin view)
+ *   PATCH {appeal_id, decision, reviewer_note}  - review an appeal
  *
- * ADMIN-ONLY (admin|superadmin|god).
+ * Built on withHgOperatorRoute: `db` is the service-role client (audit writes),
+ * `userDb` speaks as the caller so auth.uid() resolves inside the SECURITY
+ * DEFINER moderation RPCs.
+ *
+ * The list response carries `total`. It did not before, so the 200-row cap was
+ * invisible to the page and an operator could not tell a full queue from a
+ * truncated one.
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
+import { withHgOperatorRoute } from '../../../src/lib/horses/hgOperator.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
+import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { enumOf, paging, uuid } from '../../../src/lib/horses/validate.js';
 
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+const DECISIONS = ['approved', 'denied'];
 
-// A malformed id reaches Postgres as an invalid uuid literal and comes back as
-// a 500. Reject it up front as the 400 it actually is.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const spec = {
+  name: 'horses.hg-appeals',
+  methods: ['GET', 'PATCH'],
+  permission: { GET: PERMISSIONS.PLAYERS_READ, PATCH: PERMISSIONS.MODERATION_WRITE },
+  limit: { GET: 'read', PATCH: 'write' },
+};
 
-let _sb = null;
-function getSB() {
-  if (!_sb) {
-    _sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-  }
-  return _sb;
+/** The RPC returns either a bare array or a jsonb envelope; accept both. */
+function unwrapList(data) {
+  if (Array.isArray(data)) return { rows: data, total: null };
+  return { rows: data?.appeals ?? [], total: typeof data?.total === 'number' ? data.total : null };
 }
 
-
-/**
- * A client that speaks AS THE CALLER.
- *
- * The Home Games moderation RPCs open with:
- *
- *     IF auth.uid() IS NULL OR auth.uid() <> p_caller_user_id THEN
- *       RAISE EXCEPTION 'UNAUTHORIZED';
- *
- * They are SECURITY DEFINER, so they do their own role check internally and
- * do not need the service role to read the tables -- but they DO need
- * `auth.uid()` to resolve. Under the service-role key `auth.uid()` is NULL, so
- * calling them with the module-level admin client raised UNAUTHORIZED every
- * single time and this route turned that into a 500.
- *
- * That is why the whole Home Games moderation page has been non-functional:
- * the list never loaded, and no report or appeal could be resolved.
- *
- * Passing the caller's JWT as the Authorization header makes `auth.uid()`
- * resolve to the admin who is actually clicking the button, which is also the
- * identity the functions want to attribute the action to.
- */
-function getUserSB(token) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } },
-  );
-}
-
-async function requireAdmin(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json({ error: 'Authorization required' }); return null; }
-  const { data: authData, error } = await getSB().auth.getUser(token);
-  if (error || !authData?.user) { res.status(401).json({ error: 'Invalid token' }); return null; }
-  const { data: profile } = await getSB().from('profiles').select('role').eq('id', authData.user.id).maybeSingle();
-  if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-    res.status(403).json({ error: 'Admin access required' }); return null;
+async function handleGet({ op, userDb, query }) {
+  let groupId = null;
+  if (query.group_id !== undefined && query.group_id !== '') {
+    groupId = uuid(query.group_id);
+    if (!groupId) throw badRequest('A Valid Group Id Is Required', 'invalid_group_id');
   }
-  return authData.user;
-}
+  const page = paging(query, { defaultLimit: 50, max: 200 });
 
-export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  const { data, error } = await userDb.rpc('list_home_ban_appeals_admin', {
+    p_caller_user_id: op.user.id,
+    p_status: query.status || null,
+    p_group_id: groupId,
+    p_limit: page.limit,
+    p_offset: page.offset,
+  });
+  if (error) {
+    console.warn('[hg-appeals GET]', error.message || error);
+    throw new ApiError(500, 'Appeals Could Not Be Loaded', 'appeals_read_failed');
   }
 
-  try {
-    // The SECURITY DEFINER moderation RPCs need auth.uid() to resolve to the
-    // caller, so the raw bearer token is forwarded to them below.
-    const callerToken = req.headers.authorization?.replace('Bearer ', '');
-    const user = await requireAdmin(req, res);
-    if (!user) return;
-
-    // ── GET — list appeals ────────────────────────────────────────────────────
-    if (req.method === 'GET') {
-      const { status, group_id, limit = '50', offset = '0' } = req.query;
-      if (group_id && !UUID_RE.test(String(group_id))) {
-        return res.status(400).json({ success: false, error: 'group_id must be a valid uuid' });
-      }
-      const { data, error } = await getUserSB(callerToken).rpc('list_home_ban_appeals_admin', {
-        p_caller_user_id: user.id,
-        p_status: status || null,
-        p_group_id: group_id || null,
-        p_limit: Math.min(parseInt(limit, 10) || 50, 200),
-        p_offset: parseInt(offset, 10) || 0,
-      });
-      if (error) {
-        console.warn('[hg-appeals GET]', error);
-        return res.status(500).json({ success: false, error: 'Failed to load appeals' });
-      }
-      return res.status(200).json({ success: true, appeals: data || [] });
-    }
-
-    // ── PATCH — review appeal ─────────────────────────────────────────────────
-    if (req.method === 'PATCH') {
-      const { appeal_id, decision, reviewer_note } = req.body || {};
-      if (!appeal_id || !decision) {
-        return res.status(400).json({ success: false, error: 'appeal_id and decision required' });
-      }
-      if (!UUID_RE.test(String(appeal_id))) {
-        return res.status(400).json({ success: false, error: 'appeal_id must be a valid uuid' });
-      }
-      if (!['approved', 'denied'].includes(decision)) {
-        return res.status(400).json({ success: false, error: 'decision must be approved or denied' });
-      }
-      const { data, error } = await getUserSB(callerToken).rpc('review_home_ban_appeal', {
-        p_appeal_id: appeal_id,
-        p_decision: decision,
-        p_reviewer_note: reviewer_note || null,
-        p_caller_user_id: user.id,
-      });
-      if (error) {
-        console.warn('[hg-appeals PATCH]', error);
-        return res.status(500).json({ success: false, error: 'Failed to review appeal' });
-      }
-      // Admin console audit trail. An approved appeal UNBANS a player.
-      // Logged with the service-role client so the audit write does not
-      // depend on the caller's own grants.
-      await logAdminAction(getSB(), {
-        admin_user_id: user.id,
-        action: 'hg.appeal_reviewed',
-        target_type: 'home_ban_appeal',
-        target_id: appeal_id,
-        details: {
-          decision,
-          reviewer_note: reviewer_note || null,
-        },
-        after: { result: data ?? null },
-        req,
-      });
-
-      return res.status(200).json({ success: true, result: data });
-    }
-
-    return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
-  } catch (err) {
-    console.warn('[hg-appeals] Unhandled error:', err?.message || err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+  const { rows, total: rpcTotal } = unwrapList(data);
+  const total = rpcTotal === null ? page.offset + rows.length : rpcTotal;
+  return {
+    rows,
+    total,
+    limit: page.limit,
+    offset: page.offset,
+    hasMore: rpcTotal === null ? rows.length === page.limit : page.offset + rows.length < total,
+    // Legacy field name the moderation page already reads.
+    appeals: rows,
+  };
 }
+
+async function handlePatch({ req, op, userDb, body }) {
+  const appealId = uuid(body.appeal_id);
+  if (!appealId) throw badRequest('A Valid Appeal Id Is Required', 'invalid_appeal_id');
+  const decision = enumOf(body.decision, DECISIONS);
+  if (!decision) throw badRequest('Decision Must Be Approved Or Denied', 'invalid_decision');
+  const note = typeof body.reviewer_note === 'string' ? body.reviewer_note.trim().slice(0, 2000) : null;
+
+  const { data, error } = await userDb.rpc('review_home_ban_appeal', {
+    p_appeal_id: appealId,
+    p_decision: decision,
+    p_reviewer_note: note || null,
+    p_caller_user_id: op.user.id,
+  });
+  if (error) {
+    console.warn('[hg-appeals PATCH]', error.message || error);
+    throw new ApiError(500, 'The Appeal Could Not Be Reviewed', 'appeal_review_failed');
+  }
+
+  // An approved appeal UNBANS a player.
+  await auditOperatorAction(op, req, {
+    action: 'hg.appeal_reviewed',
+    targetType: 'home_ban_appeal',
+    targetId: appealId,
+    details: { decision, reviewer_note: note || null },
+    after: { result: data ?? null },
+  });
+
+  return { result: data, appeal_id: appealId, decision };
+}
+
+export async function handle(ctx) {
+  return ctx.method === 'GET' ? handleGet(ctx) : handlePatch(ctx);
+}
+
+export default withHgOperatorRoute(spec, handle);

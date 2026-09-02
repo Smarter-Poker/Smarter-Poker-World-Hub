@@ -8,8 +8,13 @@
  * strings short names so an inline style reads as a colour role rather than a
  * hex code.
  *
+ * A var() only resolves if one of those containers is an ANCESTOR. The three
+ * sub-pages (sql-console, hg-moderation, hand-reviews) render outside
+ * .dashboard, so each imports horses.module.css and puts `.tokenScope` on
+ * every root it can return. A new root without that class renders uncoloured.
+ *
  * NO RAW HEX BELONGS IN pages/horses/*.js. If a colour is missing here, add
- * the token to horses.module.css first and then name it here — do not reach
+ * the token to horses.module.css first and then name it here - do not reach
  * for a literal. Dan 2026-08-26: smarter.poker schema only, no purples, no
  * greens. Cyan is the accent AND the success/active colour.
  */
@@ -20,13 +25,23 @@ export const T = {
   surface: 'var(--bg-surface)',
   elevated: 'var(--bg-elevated)',
   inset: 'var(--bg-inset)',
+  // Translucent variants. `pageOverlay` is the modal backdrop; `panelSheer`
+  // is a card that lets the page ground show through; `surfaceTint` is the
+  // faintest lift there is (a quoted block, a tab strip).
+  pageOverlay: 'var(--bg-page-80)',
+  panelSheer: 'var(--bg-panel-55)',
+  surfaceTint: 'var(--surface-tint)',
 
-  // Accent — also SUCCESS / ACTIVE / ONLINE / POSITIVE
+  // Accent - also SUCCESS / ACTIVE / ONLINE / POSITIVE
   accent: 'var(--accent)',
   accentDim: 'var(--accent-dim)',
   accentSoft: 'var(--accent-soft)',
   accentLine: 'var(--accent-line)',
   accentGlow: 'var(--accent-glow)',
+  // POSITIVE is an alias of ACCENT in horses.module.css, on purpose: naming
+  // it separately is what stops a later edit reintroducing green by reaching
+  // for a plausible "success" colour.
+  positive: 'var(--positive)',
 
   // Semantic
   info: 'var(--info)',
@@ -34,7 +49,10 @@ export const T = {
   warn: 'var(--warn)',
   warnSoft: 'var(--warn-soft)',
   danger: 'var(--danger)',
+  // dangerSoft (20%) is the FILLED state; dangerWash (12%) is the background
+  // behind an error message or a leak-tag chip. Both are in use.
   dangerSoft: 'var(--danger-soft)',
+  dangerWash: 'var(--danger-wash)',
   dangerLine: 'var(--danger-line)',
 
   // Text

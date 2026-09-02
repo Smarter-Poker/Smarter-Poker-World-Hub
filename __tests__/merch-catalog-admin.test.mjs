@@ -54,12 +54,20 @@ test('all Collection 02 storefront assets exist and stay lightweight', async () 
 
 test('merchandise admin endpoint is platform-admin-only and never hard-deletes catalog rows', async () => {
   const api = await read('pages/api/horses/merch-catalog-admin.js');
-  assert.match(api, /getServerUserWithFallback/);
-  assert.match(api, /SUPABASE_SERVICE_ROLE_KEY/);
-  assert.match(api, /ADMIN_ROLES = \['admin', 'superadmin', 'god'\]/);
-  assert.match(api, /LIMITS\.write/);
+  // Phase 1 moved the auth, the role literal, the service-role client and the
+  // audit write out of this route and into
+  // src/lib/horses/{operatorRoute,operatorAuth,permissions,operatorAudit}.
+  // The guarantees the test exists to pin are unchanged; the names are not, so
+  // the ones that moved are asserted where they now live.
+  const auth = await read('src/lib/horses/operatorAuth.js');
+  assert.match(api, /withOperatorRoute/);
+  assert.match(auth, /SUPABASE_SERVICE_ROLE_KEY is required for the operator console/);
+  assert.match(api, /PERMISSIONS\.CATALOG_WRITE/);
+  // The rate limit is declared in the spec now instead of applied inline, but
+  // it is still the write bucket on every mutating method.
+  assert.match(api, /limit: \{ GET: 'read', POST: 'write', PATCH: 'write', DELETE: 'write' \}/);
   assert.match(api, /is_active: false/);
-  assert.match(api, /logAdminAction/);
+  assert.match(api, /auditOperatorAction/);
   assert.match(api, /resolvePrintfulMapping/);
   assert.doesNotMatch(api, /from\(table\)\.delete\(/);
 });
