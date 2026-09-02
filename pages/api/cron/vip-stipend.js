@@ -15,27 +15,43 @@
  *  price going straight back out. Paying it to ONE ineligible account is a
  *  pure $5/month loss; paying it to a farm is unbounded.
  *
- *  ─── WHO GETS PAID (and why the profiles flag is NOT enough) ──────────────
- *  `profiles.is_vip` / `profiles.vip_tier` CANNOT be trusted as proof of
- *  payment:
- *    • the 30-day signup trial writes vip_tier = 'monthly' with no payment at
- *      all (supabase/migrations/20260330120000_vip_paywall_30day_trial.sql),
- *    • /api/sms/verify-otp grants a free VIP window for verifying a phone,
- *    • before the v2 migration, users could self-set is_vip / vip_tier
- *      directly through PostgREST.
- *  award_diamonds_v2's own vip_stipend guard only checks those profile
- *  columns, so it accepts trial VIPs. It is a floor, not the control.
+ *  ─── WHO GETS PAID (changed 2026-09-01 by Dan's decision) ────────────────
+ *  EVERY ACCOUNT WITH AN ACTIVE VIP ENTITLEMENT. 500 diamonds, on the 1st of
+ *  every month. Dan, verbatim: "JUST PAY THEM ALL ON THE 1ST OF EVERY MONTH,
+ *  THEIR 500 DIAMONDS".
  *
- *  THE CONTROL LIVES HERE: we pay only users who have a row in
- *  vip_subscriptions that
- *    • has a non-null stripe_subscription_id (a real Stripe object — this is
- *      what excludes every trial and every hand-granted / self-granted VIP),
- *    • has status 'active' or 'trialing' (Stripe's own view of the sub), and
- *    • has current_period_end in the future (or null for 'active', which
- *      Stripe backfills — see PERIOD_GRACE below).
- *  Without the stripe_subscription_id requirement this endpoint becomes the
- *  best farm on the platform: sign up → free trial VIP → collect $5/month
- *  forever, on as many accounts as you can make.
+ *  Eligibility is `profiles.is_vip = true` AND (vip_tier = 'lifetime' OR
+ *  vip_expires_at in the future). That is the same predicate
+ *  award_diamonds_v2's own vip_stipend guard enforces, so the RPC is now a
+ *  second lock on the identical rule rather than a looser floor beneath a
+ *  stricter one.
+ *
+ *  HORSES ARE PAID. They hold lifetime VIP from the club-arena migration
+ *  20260311_horses_lifetime_vip and are ~1,000 of the ~1,033 eligible
+ *  accounts. Club Arena CLAUDE.md section 10.5 is binding and explicit: a
+ *  horse EARNS and IS PAID everything a human is, and writing `is_horse` into
+ *  a payout in order to leave horses out is a bug, not an optimisation. There
+ *  is deliberately NO is_horse branch anywhere in this file. Do not add one.
+ *
+ *  WHAT THIS REPLACED, so nobody restores it by accident. Until 2026-09-01
+ *  this route paid only accounts holding a vip_subscriptions row with a real
+ *  Stripe subscription id, on the reasoning that `profiles.is_vip` cannot
+ *  prove payment: the 30-day signup trial writes vip_tier without paying
+ *  (20260330120000_vip_paywall_30day_trial.sql), /api/sms/verify-otp grants a
+ *  free VIP window for verifying a phone, and pre-v2 users could self-set
+ *  is_vip through PostgREST. All of that is still true. It is no longer the
+ *  policy: the stipend is now an entitlement benefit, not a rebate on cash
+ *  collected. vip_subscriptions has never held a row, so the old rule paid
+ *  nobody, which is what prompted the change.
+ *
+ *  THE COST IS REAL AND INTENDED. ~1,033 x 500 = ~516,500 diamonds a month of
+ *  newly minted supply. At the store's 1 diamond = $0.01 that is a ~$5,165
+ *  nominal monthly issuance, ~$5,000 of it to horses. Diamonds are spendable
+ *  on merchandise and features, so for the ~33 human accounts this is real
+ *  value; for the horse fleet it is supply that inflates every diamond total
+ *  and reconciliation. Dan was shown these numbers before deciding. If the
+ *  bill needs to change, change the CATALOG amount or the eligibility rule
+ *  here and say so in the commit. Never by quietly filtering horses out.
  *
  *  ─── IDEMPOTENCY ─────────────────────────────────────────────────────────
  *  Two independent locks, both required:
@@ -82,20 +98,14 @@ function getSupabase() {
 }
 
 /* ── Tunables ─────────────────────────────────────────────────────────────── */
-const PAGE_SIZE          = 500;   // rows pulled from vip_subscriptions per query
+const PAGE_SIZE          = 500;   // profiles rows pulled per query
 const AWARD_CHUNK        = 10;    // concurrent award_diamonds_v2 calls
 const MAX_AWARDS_PER_RUN = 5000;  // hard ceiling — 5,000 x 500 💎 = $25,000 max
 const MAX_PAGES          = 40;    // 40 x 500 = 20,000 subscription rows scanned
 
-/* Statuses Stripe considers a live, billable subscription. 'past_due' and
-   'unpaid' are deliberately excluded — we do not pay a stipend to someone
-   whose card is failing. */
-const PAYING_STATUSES = ['active', 'trialing'];
-
-/* Grace on current_period_end. Stripe advances the period at renewal; a
-   webhook that lands minutes late should not cost a paying member their
-   stipend. It is not a licence to pay lapsed subs — 2 days, no more. */
-const PERIOD_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
+/* Retired 2026-09-01 with the vip_subscriptions gate: PAYING_STATUSES and
+   PERIOD_GRACE_MS described a Stripe billing window this route no longer
+   consults. Eligibility is the VIP entitlement on profiles — see the header. */
 
 /**
  * Calendar month key (YYYY-MM) in America/Chicago — the same timezone
@@ -138,15 +148,13 @@ async function handler(req, res) {
         ? Math.min(parsedLimit, MAX_AWARDS_PER_RUN)
         : MAX_AWARDS_PER_RUN;
 
-    const periodFloorISO = new Date(Date.now() - PERIOD_GRACE_MS).toISOString();
-
     const stats = {
-        scanned:        0,   // vip_subscriptions rows examined
-        eligible:       0,   // distinct users that passed the paid-subscription test
+        scanned:        0,   // profiles rows examined
+        eligible:       0,   // distinct users holding a live VIP entitlement
         awarded:        0,   // stipends actually paid this run
         diamonds:       0,   // total diamonds paid this run
         alreadyPaid:    0,   // duplicate / action_limit — already had it this month
-        notEligible:    0,   // rejected by award_diamonds_v2's own VIP check
+        notEligible:    0,   // rejected by award_diamonds_v2's own VIP check (should be ~0 now: same rule)
         capped:         0,   // budget_exhausted / monthly_cap
         failed:         0,   // RPC errors
         truncated:      false,
@@ -157,50 +165,36 @@ async function handler(req, res) {
 
     try {
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 1 — resolve the PAYING subscriber set from vip_subscriptions.
-        // This is the eligibility gate. profiles is never consulted here.
+        // STEP 1 — resolve the entitled set from profiles.
+        // Every account with live VIP, horses included (section 10.5).
         // ═══════════════════════════════════════════════════════════════════
         const eligibleUserIds = new Set();
+        const nowISO = new Date().toISOString();
 
         for (let page = 0; page < MAX_PAGES; page++) {
             const from = page * PAGE_SIZE;
             const to   = from + PAGE_SIZE - 1;
 
             const { data: rows, error: fetchError } = await supabase
-                .from('vip_subscriptions')
-                .select('user_id, stripe_subscription_id, status, tier, current_period_end')
-                .in('status', PAYING_STATUSES)
-                .not('stripe_subscription_id', 'is', null)
-                /* Issue #771.2 — the non-null test exists to prove CASH was
-                   paid, but purchaseVipWithDiamonds writes a placeholder id
-                   ('diamond_<uid>_<ts>') into the same column, which is
-                   non-null and sails through. A diamond-bought VIP minting a
-                   500-diamond monthly stipend is the economy paying itself.
-                   The placeholder rows are excluded by their own prefix; a
-                   real Stripe subscription id is 'sub_…' and is unaffected. */
-                .not('stripe_subscription_id', 'like', 'diamond_%')
+                .from('profiles')
+                .select('id')
+                .eq('is_vip', true)
+                /* Lifetime never expires; everything else must be unexpired.
+                   No is_horse filter, deliberately — see the header. */
+                .or(`vip_tier.eq.lifetime,vip_expires_at.gt."${nowISO}"`)
                 .order('created_at', { ascending: true })
                 .range(from, to);
 
             if (fetchError) {
-                console.error('[cron/vip-stipend] vip_subscriptions fetch failed:', fetchError.message);
+                console.error('[cron/vip-stipend] profiles fetch failed:', fetchError.message);
                 return res.status(500).json({ success: false, error: fetchError.message, stats });
             }
 
             if (!rows || rows.length === 0) break;
 
             stats.scanned += rows.length;
-
             for (const row of rows) {
-                if (!row.user_id) continue;
-
-                // Unexpired period. A null current_period_end is tolerated only
-                // because some legacy rows predate the webhook writing it; the
-                // non-null stripe_subscription_id + Stripe status still prove
-                // this is a real paid subscription.
-                if (row.current_period_end && row.current_period_end < periodFloorISO) continue;
-
-                eligibleUserIds.add(row.user_id);
+                if (row.id) eligibleUserIds.add(row.id);
             }
 
             if (rows.length < PAGE_SIZE) break;
@@ -271,15 +265,14 @@ async function handler(req, res) {
                 if (reason === 'duplicate' || reason === 'action_limit') {
                     stats.alreadyPaid += 1;
                 } else if (reason === 'not_eligible') {
-                    // The user pays Stripe but profiles.is_vip / vip_tier /
-                    // vip_expires_at do not reflect it — award_diamonds_v2
-                    // refuses. F2 is FIXED (2026-08-27): the Stripe webhook
-                    // writes all three fields on checkout AND pushes
-                    // vip_expires_at forward on every renewal, and
-                    // vip_subscriptions held ZERO rows when this was verified,
-                    // so there is nobody to backfill. If this counter ever
-                    // goes nonzero now, a webhook delivery was missed — check
-                    // Stripe's event log before suspecting this cron.
+                    // Since 2026-09-01 this route and award_diamonds_v2 select
+                    // on the SAME predicate (is_vip AND lifetime-or-unexpired),
+                    // so this should be ~0. A nonzero count means the two
+                    // disagree — most likely the entitlement expired between
+                    // STEP 1 and the award, which is benign and self-corrects
+                    // next run. A persistent count means the RPC's guard was
+                    // changed without changing STEP 1 here; reconcile the two
+                    // rather than loosening either.
                     stats.notEligible += 1;
                 } else {
                     stats.capped += 1;
@@ -289,9 +282,10 @@ async function handler(req, res) {
 
         if (stats.notEligible > 0) {
             console.warn(
-                `[cron/vip-stipend] ${stats.notEligible} PAYING subscriber(s) were refused by award_diamonds_v2 ` +
-                'as not_eligible - their profiles row is missing is_vip / vip_tier / vip_expires_at. ' +
-                'Fix pages/api/store/webhooks/stripe.js (follow-up F2) and backfill from vip_subscriptions.'
+                `[cron/vip-stipend] ${stats.notEligible} entitled account(s) were refused by award_diamonds_v2 ` +
+                'as not_eligible. This route and the RPC are supposed to share one predicate ' +
+                '(is_vip AND (vip_tier = lifetime OR vip_expires_at in future)); a persistent count ' +
+                'means they have drifted apart. Reconcile them, do not loosen either.'
             );
         }
 

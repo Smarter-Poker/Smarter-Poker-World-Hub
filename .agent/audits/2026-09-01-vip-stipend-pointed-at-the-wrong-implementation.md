@@ -103,16 +103,52 @@ job has zero runs in its 7-day window, which it downgrades to WARN, and when
 the job did fire the workers route returned 200 while paying the wrong people.
 Liveness measures whether a job runs, not whether it is the right job.
 
+## Policy changed the same day: pay every VIP holder
+
+Dan, after being shown the population and the cost: **"JUST PAY THEM ALL ON THE
+1ST OF EVERY MONTH, THEIR 500 DIAMONDS"**.
+
+So eligibility is no longer the Stripe subscription. `/api/cron/vip-stipend`
+now selects `profiles.is_vip = true AND (vip_tier = 'lifetime' OR
+vip_expires_at in the future)` - the same predicate `award_diamonds_v2`'s own
+`vip_stipend` guard already enforced, so the RPC became a second lock on one
+rule instead of a looser floor under a stricter one.
+
+| cohort | count | paid |
+|---|---|---|
+| horses (lifetime VIP from `20260311_horses_lifetime_vip`) | 1,000 | yes |
+| humans, granted lifetime | 21 | yes |
+| humans, unexpired monthly | 12 | yes |
+| **total** | **1,033** | **~516,500 diamonds/month** |
+
+**Horses are paid, and that is the correct reading of section 10.5**, not a
+concession to it. The rule this file argued for earlier - the question is *did
+this account pay*, never *is this account a horse* - still holds; Dan simply
+changed the answer to the first question by making the stipend an entitlement
+benefit rather than a rebate on cash collected. There is deliberately no
+`is_horse` branch in the handler, and adding one to trim the bill would be the
+exact bug 10.5 forbids. To change the cost, change the catalog amount or the
+entitlement rule, in the open.
+
+At the store's 1 diamond = $0.01 that is ~$5,165/month of nominal issuance,
+~$5,000 of it to the horse fleet. Diamonds are spendable on merchandise and
+features, so for the ~33 human accounts it is real value; for horses it is
+supply that inflates every diamond total. Dan was shown these numbers first.
+
+**It runs daily, and still pays on the 1st.** Each account can receive exactly
+one stipend per calendar month (`vip_stipend_<user>_<YYYY-MM>` plus the RPC's
+month guard), so the daily cadence is purely a catch-up: on a normal month
+everyone is paid on the 1st, and if the dispatcher is dead that day - as it was
+on 2026-09-01 and 2026-07-01 - the month is not skipped. A monthly-only trigger
+is what silently lost July and September.
+
 ## Still open, for Dan
 
-Lifetime VIP has **no purchase anchor**. Paying a lifetime member on their
-purchase anniversary, as Dan asked for, needs a `vip_subscriptions` row with
-`plan = 'lifetime'` written by a real purchase path; `profiles.vip_tier`
-cannot distinguish granted from bought. Until that exists, lifetime members
-are correctly paid nothing.
+`vip_subscriptions` remains empty and no diamond has ever been spent on VIP, so
+there is still no purchase path in use. That no longer blocks the stipend, but
+it does mean the VIP product currently collects nothing while issuing ~516,500
+diamonds a month. Worth a separate decision about pricing or about capping the
+fleet's share.
 
-The predicate must stay **"did this account pay for VIP"** and must never
-become **"is this account a horse"**. Today both questions give the same
-answer for every account on the platform, so section 10.5 is satisfied by
-construction: a horse that buys VIP from the club wallet is owed the stipend
-on exactly the same terms as a human, with no species branch anywhere.
+The 12 historic payments (6,000 diamonds, June and August) are recorded and not
+reversed; those balances have since expired.
