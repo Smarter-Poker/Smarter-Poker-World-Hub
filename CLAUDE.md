@@ -608,6 +608,80 @@ infrastructure cost. **The knob is a config row — Dan sets it, not an agent.**
 
 ---
 
+## 10.6 YOU DECIDE THE MONEY (Dan, 2026-09-02, BINDING)
+
+**Dan, verbatim: "YOU HAVE FULL CONTROL TO MAKE ANY AND ALL DECISIONS ON WHAT
+SHOULD BE DONE WITH REAL MONEY AND REAL CHIP SCENARIOS. ALL CLAUDE AGENTS CAN
+CHOOSE THE BEST OPTION THATS RECOMMENDED AND MAKE ALL CHANGES WITHOUT ASKING
+ME, IF THEY HAVE A CLEAR PATH OF CORRECTION AND RECONCILIATION."**
+
+Identical text lives in the Club Arena CLAUDE.md as section 10.9. The database
+is shared, so the rule has to be, or an agent reading the wrong repo reaches
+the wrong conclusion about the same wallet.
+
+This ends the holding pattern where an agent finds a broken payout, writes a
+careful paragraph explaining it, files it "for Dan", and leaves the money
+frozen. That pattern has a cost and players pay it: on 2026-09-02 three
+tournaments sat frozen at once and the oldest had been unpaid for fifteen
+hours, entirely because the last agent to look decided the money was somebody
+else's call. It was not. It is yours.
+
+### What the grant covers
+
+Unpaid prizes, wrong finishing positions, refunds owed, shortfall back-pay,
+stranded stacks, commissions and VIP points never attributed, a ledger that
+does not balance because of a platform defect. Find it, decide it, ship it,
+and say plainly what you did. You do not open with a question.
+
+### A path is CLEAR only when all five of these hold
+
+1. **The outcome is READ, not assumed.** You can state what happened from rows
+   in this database. The invented `is_horse` filter in section 10.5 is what an
+   assumption dressed as a decision looks like, and it cost 39 events their
+   whole rake attribution.
+2. **Nobody is paid twice.** The credit goes through the platform's own
+   idempotent path (`fn_tournament_payout_reconcile`, `fn_credit_and_log`, the
+   per-user prize keys). Never hand-write a wallet row.
+3. **Nothing is taken back from a player for our mistake.** Overpay our defect
+   caused is absorbed, reported, and left alone.
+4. **You proved it in a transaction you rolled back first.** The numbers you
+   commit are the numbers the probe returned, and the migration asserts them so
+   it aborts if the board moved underneath you. This is also RULE 2 and
+   `.agent/workflows/migration-safety.md`: a money migration is Tier 3.
+5. **You can write the paragraph.** One paragraph naming every affected player
+   and why they got what they got. If you cannot write it, you do not
+   understand the case well enough to settle it.
+
+Fail any one and it goes to Dan as options with their costs and your
+recommendation, never as a question.
+
+### When the evidence disagrees with itself, prefer the witness that was there
+
+Settling the 12:00 AM freeroll on 2026-09-02, re-deriving all 215 finishing
+places from `eliminated_at` moved players by up to three places and would have
+paid 168.51 in top-ups on a pool with 282.06 already out the door. The live
+engine had watched each player bust and recorded the order as it happened; the
+timestamps had not. The recorded order was kept and ONE player inserted into it.
+
+### The record is part of the fix
+
+A settlement is finished when all four exist: the migration with its reasoning
+in the header, the audit note under `.agent/audits/`, the `financial_alerts`
+row resolved with a `resolution` note saying what was accepted and why, and the
+code fix that stops it recurring.
+
+### Still Dan's, and only Dan's
+
+- **Anything that sets what players are owed in FUTURE events**: prices, rake,
+  guarantees, payout structures, retention policy. Fixing what a past event
+  owes is yours. Deciding what the next one owes is his.
+- **Money leaving the platform**: withdrawals, payment providers, anything a
+  bank sees.
+- **Rewriting or deleting a settled record to make a number look tidy.**
+  Correct it forward with a row that says what changed.
+
+---
+
 ## 11. SCHEDULED JOBS / CRONS (binding — CI-enforced)
 
 **All new scheduled jobs go to Open Claw on Hetzner. Never to `vercel.json`.**
