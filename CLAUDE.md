@@ -308,9 +308,14 @@ GitHub auto-revokes leaked tokens. This gate prevents that.
 
 ### 2.4 Protected Zone Enforcement (Phase 0.5)
 
-`public/hub/club-arena/` is a protected zone.
-Only agents whose commit message contains "club-arena" can modify files there.
-All other agents: your changes to that directory are auto-unstaged.
+`public/hub/club-arena/` was a protected zone. It is now something stronger:
+**the directory is DELETED and must never come back.** Club Arena moved to its
+own origin on 2026-09-02 and is reached from here by a single Next.js rewrite
+(see the Club Arena section below). Next serves `public/` BEFORE `afterFiles`
+rewrites, so a file re-vendored there does not merely duplicate the bundle - it
+silently SHADOWS the live one, and the site keeps serving whatever was last
+committed. `tests/club-arena-is-a-rewrite.test.mjs` fails CI if the directory
+or its retired sync scripts return.
 
 ---
 
@@ -403,10 +408,17 @@ src/stores/             Zustand stores
 
 ### Club Arena (Vite SPA -- separate repo)
 ```
-Source:     ~/Documents/club-arena/src/  (pending Phase 5.1.2 rename -> smarter-poker-club-arena/)
-Output:     public/hub/club-arena/ (DO NOT edit directly)
-API:        pages/api/club-arena/
-Rebuild:    Edit source -> Vite build -> copy dist/ to public/hub/club-arena/
+Source:     Smarter-Poker-Club-Arena repo (~/Documents/club-arena/src/)
+Output:     https://ca-static.smarter.poker  -- its OWN origin, NOT this repo.
+            /srv/club-arena on the Hetzner box: releases/<ca_sha>/, an
+            atomically swapped `current` symlink, an additive pool/.
+Serving:    ONE rewrite in next.config.js afterFiles:
+              /hub/club-arena/:path*  ->  https://ca-static.smarter.poker/:path*
+            The browser never sees the origin hostname, so the shared
+            smarter-poker-auth session is untouched. Nothing to sync here.
+API:        pages/api/club-arena/   (still lives in this repo)
+Rebuild:    You do not. Push a branch in the Club Arena repo; its
+            publish-club-arena.yml rsyncs the bundle to the origin.
 Auth:       Same-origin Supabase session via smarter-poker-auth localStorage key
 ```
 
@@ -432,7 +444,7 @@ Stay in your scoped area. If your task is Commander, don't touch Club Arena file
 - Report any shared-file edits
 
 ### Protected Zones
-`public/hub/club-arena/` -- Club Arena agents only
+`public/hub/club-arena/` -- DELETED 2026-09-02, never re-create it (see 2.4)
 `pages/api/club-arena/` -- Club Arena agents only
 
 How to know if you're a Club Arena agent: your task mentions "Club Arena", "poker table",
@@ -781,7 +793,7 @@ GitHub's environment to execute:
   created, so it aborted at its prereq check every run — no deploy had ever
   succeeded, which is also why the dispatcher drifted 6 jobs behind the repo.
   The dispatcher additionally crashed on boot with `ConflictingIdError`
-  because `mlb-analytics-noon` is registered 3x and job ids came from the
+  because one path was registered 3x and job ids came from the
   path alone. Both fixed; deployed with 85 jobs, 0 errors. The digest now
   runs solely from Open Claw at tue 14:00 UTC. Do not re-add a GitHub
   `schedule:` for it — two schedulers at the same instant mail the real

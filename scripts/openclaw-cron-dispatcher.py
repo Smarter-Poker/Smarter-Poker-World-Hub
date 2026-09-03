@@ -104,6 +104,25 @@ LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 
+# PER-JOB TIMEOUTS (2026-09-03). The client timeout is not a cancel: when this
+# dispatcher gives up at 120s the worker keeps running and finishes. So for a
+# job that legitimately takes longer, the journal said ❌ TIMEOUT while the
+# work completed - horse-batch/1..8 (once a day, ~100 horses each, 200-400s)
+# logged a failure on every single run, and trivia-theme-backfill (50 Grok
+# calls) on three runs out of five. A watchdog that counts those as failures
+# pages about jobs that worked. Give the long ones the time they take; the
+# flat 120s stays the default for everything else.
+JOB_TIMEOUTS = {
+    '/api/cron/trivia-theme-backfill': 300,
+    '/api/cron/trivia-embed-backfill': 300,
+    '/api/cron/trivia-player-retag':   300,
+    **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
+    '/api/cron/horses-social-all':     600,
+    '/api/cron/scrape-sports-clips':   300,
+}
+def job_timeout(path: str) -> int:
+    return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
+
 # ─── Phase 2A gate criterion: Hetzner monitoring + alerting (2026-04-25) ──────
 # Plan line 285: "Dashboard/alerting on Hetzner up: at minimum a weekly log
 # summary + PagerDuty/SMS if the dispatcher dies for >10 min." Implementation:
@@ -407,7 +426,7 @@ ALL_CRONS = [
     # other silent failure here — a draining pool does not error, its ladder
     # just collapses toward 2x/3x and players notice before anyone else does.
     # 30-minute lookback deliberately overlaps two runs.
-    ('/api/cron/spin-sweep',                dict(minute='*/15')),
+    ('/api/cron/spin-sweep',                dict(minute='7,22,37,52')),  # OFF THE QUARTER-HOUR (2026-09-03): at :00/:15/:30/:45 it shared the database with every other quarter-hour job and its double-deal check (2.1s alone) hit the 8s statement timeout; 7 minutes later it has the box to itself.
     # ── Waitlist TTL sweep (2026-08-30; cadence corrected 2026-08-31) ────
     # fn_offer_open_seat applies both waitlist TTLs already, but only when a
     # seat opens AT THAT TABLE. On a table nobody leaves, nothing runs: the
@@ -569,7 +588,7 @@ ALL_CRONS = [
     # again 2026-06-14 -> 2026-07-18, so the 00:05 instant was missed outright
     # in both July and September. Daily also means someone who subscribes on
     # the 2nd is paid on the 2nd rather than waiting thirty days.
-    ('/api/cron/vip-stipend',                     dict(hour=9, minute=0)),   # daily 09:00 UTC - idempotent per user per month
+    ('/api/cron/vip-stipend',                     dict(hour=9, minute=0)),   # daily 09:00 UTC - idempotent per user per month  # ONLY scheduler since 2026-09-03: the vercel.json copy ('0 9 1 * *') was removed - same path, same instant on the 1st, two callers.
     ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
     ('/api/cron/chip-supply-snapshot',            dict(minute=0)),           # hourly — M4 chip-conservation series. fn_snapshot_chip_supply existed but was never scheduled: ONE row (2026-08-08), so deltas stayed NULL and nothing ever reconciled.
     # ('/api/cron/solver-watchdog', dict(minute=20)) — RETIRED 2026-08-27.
@@ -641,7 +660,16 @@ ALL_CRONS = [
     #   collusion-scan: every 30 min (4-pattern incl. TIMING_CORRELATION; x67c)
     ('/api/cron/bbj-detect',                       dict(minute='*/5')),       # every 5 min — promptly detect BBJ hits
     ('/api/cron/tournament-bounty-detect',         dict(minute='*/10')),      # every 10 min during MTT runs
-    ('/api/cron/player-stats-refresh',             dict(minute=15)),          # hourly @ :15 — leaderboard refresh
+    # '/api/cron/player-stats-refresh' REMOVED 2026-09-03. It could never run:
+    # the handler asks fn_refresh_player_stats for a 26-hour window, which is
+    # ~130s of hand_history jsonb work against PostgREST's 8s service_role
+    # statement timeout - 24 fires, 24 timeouts, every day. The stats were
+    # never stale, because pg_cron job `refresh-player-stats-hourly` (jobid 76,
+    # '17 * * * *', 90-minute window, advisory-locked, 24/24 succeeded, ~10s)
+    # has been doing the same work INSIDE Postgres where no PostgREST timeout
+    # applies. Two schedulers for one job, one of them structurally unable to
+    # finish. Do not re-add it here; if the pg_cron job must move to Open Claw
+    # one day, the handler must first stop asking for 26 hours in one call.
     ('/api/cron/rakeback-period-settle',           dict(day_of_week='mon', hour=10, minute=30)),
     # ── 2026-09-01 — per-job silence detector ────────────────────────────
     # The 2026-08-31 CRON_SECRET skew 401'd 62 workers-routed jobs for 25
@@ -971,14 +999,14 @@ def fire_cron(path: str):
     try:
         log.info(f'▶ Firing {path} → {target_label}')
         t0 = time.time()
-        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(url, headers=headers, timeout=job_timeout(path))
         elapsed = round(time.time() - t0, 1)
         if resp.status_code == 200:
             log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
         else:
             log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
     except requests.exceptions.Timeout:
-        log.error(f'❌ {path} → {target_label} TIMEOUT after {REQUEST_TIMEOUT}s')
+        log.error(f'❌ {path} → {target_label} TIMEOUT after {job_timeout(path)}s')
     except Exception as e:
         log.error(f'❌ {path} → {target_label} {type(e).__name__}: {e}')
 
@@ -1617,10 +1645,10 @@ def main():
     # 2026-08-16: job ids must be unique per REGISTRATION, not per path.
     #
     # id was `path.replace('/', '_')`, but a path may legitimately appear more
-    # than once with different triggers -- /api/cron/mlb-analytics-noon is
+    # than once with different triggers -- one retired path was
     # registered three times (13:00, 16:00, 17:00 UTC) as deliberate
     # safety-nets. The second one raised
-    #     ConflictingIdError: 'Job identifier (api_cron_mlb-analytics-noon)
+    #     ConflictingIdError: 'Job identifier (api_cron_<path>)
     #                          conflicts with an existing job'
     # from inside scheduler.start(), killing the process with exit 1 before a
     # single job could fire. Combined with deploy-openclaw.sh being unrunnable

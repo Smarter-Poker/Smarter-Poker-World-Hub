@@ -35,7 +35,6 @@ on:
     # that never merges.
     # Skipped here because these assert database shape and never read the bundle.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 
@@ -46,7 +45,7 @@ concurrency:
 jobs:
   phantom-tables:
     name: "U4.2: No phantom tables"
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +64,7 @@ jobs:
 
   policy-function-grants:
     name: "U4.4: Policy functions are executable"
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -97,7 +96,7 @@ jobs:
 
   cron-liveness:
     name: "U4.3: Scheduled jobs actually succeed"
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 

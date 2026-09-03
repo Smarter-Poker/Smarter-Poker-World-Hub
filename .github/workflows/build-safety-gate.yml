@@ -1,3 +1,10 @@
+# RUNNER (2026-09-03): `vars.CI_RUNNER` routes this and eight other World Hub
+# workflows to the estate's Hetzner runners the moment the repository variable is
+# set (Club Arena uses `estate-linux`). Unset, every job is exactly
+# `ubuntu-latest` as before. Measured 2026-09-02: E2E Tests, Global Footer E2E,
+# this gate and Supabase Invariants were ~75% of World Hub's hosted minutes
+# ($53 on Sept 1, $10 on Sept 2). Playwright installs skip `--with-deps` on a
+# self-hosted runner, where the browser deps are installed once on the box.
 name: Build Safety Gate
 
 # Runs on pushes to main and PRs targeting main — NOT all branches
@@ -16,7 +23,6 @@ on:
     # that never merges.
     # Skipped here because its checks are all about source. This is the expensive one — four jobs including tsc and a dozen node scripts.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: ['main']
 
@@ -38,7 +44,7 @@ permissions:
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
 
     steps:
@@ -720,7 +726,8 @@ jobs:
       # ═══════════════════════════════════════════════════════════════
       # CHECK 18: Nothing but the sanctioned safety net may invoke a
       # Vercel deploy (issue #653). Ported from Club Arena, with the one
-      # exception (club-arena-scheduled-deploy.yml owns the deploy hook)
+      # exception is retired with the Club Arena sync (2026-09-03): nothing
+      # calls the deploy hook now, so check-no-vercel-deploy has no allowlist
       # written into the script. A rule in a document loses to a script
       # with a plausible filename; this makes the rule executable.
       # ═══════════════════════════════════════════════════════════════
@@ -765,6 +772,11 @@ jobs:
       # that motivated this guard (every signup 404'd because
       # pages/auth/callback.js had been silently deleted).
       # ═══════════════════════════════════════════════════════════════
+      # arena-theme-assets-exist.test.mjs left this list on 2026-09-03: it
+      # asserted card artwork inside public/hub/club-arena/, which Club Arena
+      # now serves from its own origin. club-arena-is-a-rewrite.test.mjs takes
+      # its place here - the same idea (the thing we serve is actually there)
+      # against the arrangement that exists.
       - name: "CHECK 8: Auth-critical files exist"
         run: |
           if [ ! -f __tests__/auth-routes-exist.test.mjs ]; then
@@ -788,13 +800,13 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
-            __tests__/arena-theme-assets-exist.test.mjs
+            tests/club-arena-is-a-rewrite.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
       # All new scheduled jobs must go to Open Claw on Hetzner, not Vercel.
       # Allowed baselines (caps at the numbers captured 2026-04-24):
-      #   - vercel.json crons array  ≤ 40
+      #   - vercel.json crons array  ≤ 16
       #   - pages/api/cron/ file count ≤ 45
       #   - GitHub Actions schedule: triggers only on the allowlist below
       # Shrinking these is fine (job retirement). Growing them is blocked.
@@ -825,7 +837,8 @@ jobs:
 
           # 6a — vercel.json crons array size
           VERCEL_CRONS=$(node -e "const d=require('./vercel.json');console.log((d.crons||[]).length)")
-          MAX_VERCEL_CRONS=40
+          # 16 as of 2026-09-03 (vip-stipend left for Open Claw, which already scheduled it).
+          MAX_VERCEL_CRONS=16
           echo "vercel.json crons count: $VERCEL_CRONS (max: $MAX_VERCEL_CRONS)"
           if [ "$VERCEL_CRONS" -gt "$MAX_VERCEL_CRONS" ]; then
             echo "::error::FATAL: vercel.json crons grew from $MAX_VERCEL_CRONS to $VERCEL_CRONS."
@@ -861,7 +874,7 @@ jobs:
           # created, so the script aborted at its own prereq check on every
           # invocation and no deploy had ever succeeded. The dispatcher then
           # crashed on start with ConflictingIdError, because
-          # mlb-analytics-noon is registered three times and job ids were
+          # one path was registered three times and job ids were
           # derived from the path alone. Both fixed; dispatcher deployed with
           # 85 jobs and 0 errors, and it now registers
           #   /api/news/digest?days=7  [tue 14:00 UTC]
@@ -870,7 +883,7 @@ jobs:
           # this allowlist entry retires with it, exactly as §11.4 required.
           # Do not re-add either: Open Claw owns the digest now, and a second
           # scheduler at the same instant mails the subscriber list twice.
-          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry agent-autopilot publish-watchdog"
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry agent-autopilot publish-watchdog"
           SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
             if grep -qE '^\s*-?\s*cron:' "$wf"; then
               basename "$wf" .yml
@@ -908,7 +921,7 @@ jobs:
     name: Failure Notification
     needs: [safety-checks]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - name: Create GitHub Issue on Failure
@@ -946,7 +959,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════
   type-check:
     name: TypeScript Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     
     steps:
@@ -1003,7 +1016,7 @@ jobs:
     name: Vercel Deploy Retry (GitHub-500 guard)
     needs: [safety-checks]
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 
     steps:

@@ -62,12 +62,11 @@ const PAGE_EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 // the bug this file exists to catch; silencing it here hides it from the
 // next person and from the audit. Fix the link or ship the page.
 const KNOWN_MISSING = {
-    // Club Arena is a Vite SPA vendored into public/hub/club-arena/, not pages/.
-    // next.config.js rewrites().fallback maps every extension-less path under
-    // /hub/club-arena/ to /hub/club-arena/index.html, and the SPA's own router
-    // resolves these six. Verified 2026-08-03: no pages/hub/club-arena/* files
-    // exist, the fallback rewrite is present, and each route name appears in
-    // public/hub/club-arena/assets/index-*.js.
+    // Club Arena is a Vite SPA on its own origin (2026-09-03). next.config.js
+    // rewrites().afterFiles proxies /hub/club-arena/:path* to
+    // ca-static.smarter.poker, which serves index.html for any extension-less
+    // path, and the SPA's own router resolves these six. Verified 2026-09-03:
+    // no pages/hub/club-arena/* files exist and the rewrite is present.
     '/hub/club-arena/cashier': 'club-arena SPA route (next.config.js rewrites().fallback -> index.html)',
     '/hub/club-arena/hand-history': 'club-arena SPA route (next.config.js rewrites().fallback -> index.html)',
     '/hub/club-arena/leaderboard': 'club-arena SPA route (next.config.js rewrites().fallback -> index.html)',

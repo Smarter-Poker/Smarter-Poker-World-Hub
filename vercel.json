@@ -631,7 +631,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, must-revalidate"
+          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
         },
         {
           "key": "Pragma",
@@ -644,7 +644,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, must-revalidate"
+          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
         },
         {
           "key": "Pragma",
@@ -713,10 +713,6 @@
     {
       "path": "/api/cron/vip-lapse",
       "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/vip-stipend",
-      "schedule": "0 9 1 * *"
     },
     {
       "path": "/api/cron/pvp-settle",

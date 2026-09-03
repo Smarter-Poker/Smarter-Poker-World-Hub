@@ -233,7 +233,7 @@ Two independent defects, either of which alone was fatal:
 1. `deploy-openclaw.sh` hardcoded `SSH_KEY="$HOME/.ssh/openclaw_ed25519"` — a
    key "Phase 2A.1 creates" that **was never created**. The script aborted at
    its own prereq check on every invocation. No deploy had ever succeeded.
-2. Job ids were `path.replace('/', '_')`, but `mlb-analytics-noon` is
+2. Job ids were `path.replace('/', '_')`, but one path was
    deliberately registered three times (13:00/16:00/17:00 UTC). The second
    raised `ConflictingIdError` inside `scheduler.start()` and exited 1 before
    any job fired.

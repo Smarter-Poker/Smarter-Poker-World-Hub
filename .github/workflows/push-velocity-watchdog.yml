@@ -31,5 +31,21 @@ jobs:
 
       - name: Check push velocity on main
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_ADMIN_PAT || secrets.VERCEL_UNIQUENESS_PAT || secrets.GITHUB_TOKEN }}
+          # THE BUILT-IN TOKEN, deliberately - not a PAT.
+          #
+          # This was `secrets.GH_ADMIN_PAT || secrets.VERCEL_UNIQUENESS_PAT ||
+          # secrets.GITHUB_TOKEN`, and it had been failing every hour since at
+          # least 2026-09-02 with
+          #     Error: GET commit: 401
+          # `||` in an Actions expression picks the first NON-EMPTY value, and
+          # an EXPIRED PAT is not empty - so the dead secret kept winning and
+          # the perfectly good built-in token was never reached. A fallback
+          # chain does not protect you from expiry; it hides it, and it hid it
+          # inside the watchdog whose whole job is to notice silence.
+          #
+          # Nothing here needs a PAT. check-push-velocity.mjs only reads
+          # commits, lists and files issues, and reads workflow runs - all in
+          # THIS repository, all covered by the `permissions:` block above.
+          # GITHUB_TOKEN is minted per run and cannot expire.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/check-push-velocity.mjs

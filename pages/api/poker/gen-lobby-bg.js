@@ -1,4 +1,6 @@
+import { timingSafeEqual } from 'crypto';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -7,11 +9,35 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  * Generates a cinematic lobby background image via Grok API.
  * Returns base64 JPEG or URL to the generated image.
  *
- * GET /api/poker/gen-lobby-bg?key=smarterpoker2026&style=default
+ * GET /api/poker/gen-lobby-bg?key=<LOBBY_IMAGE_GEN_KEY>&style=default
+ *
+ * AUTH, corrected 2026-09-02 — same note as gen-lobby-img.js. A hard-coded
+ * password was committed in the code AND repeated in this doc comment, with
+ * no rate limit, in front of a billed image generation call.
+ * The secret now lives in `LOBBY_IMAGE_GEN_KEY`, is compared in constant time,
+ * and the route fails CLOSED when it is unset.
  */
 
+/** Constant-time compare. Length is checked first because timingSafeEqual
+ *  throws on a length mismatch rather than returning false. */
+function safeEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export default async function handler(req, res) {
-  if (req.query.key !== 'smarterpoker2026') {
+  // Billed per call, so the AI limit (5/min) rather than the read limit.
+  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
+  const expected = process.env.LOBBY_IMAGE_GEN_KEY;
+  if (!expected) {
+    return res
+      .status(503)
+      .json({ error: 'Image generation is not configured (LOBBY_IMAGE_GEN_KEY unset).' });
+  }
+  if (!req.query.key || !safeEqual(req.query.key, expected)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
