@@ -16,6 +16,14 @@
  *
  * This handler is now an honest 410 so any stale client learns the real
  * destination instead of a mystery 500. It performs no money operations.
+ *
+ * freeze-exempt: this route is retired and moves nothing. CHECK 18 reads it as
+ * a money route because the paragraph above NAMES the two sanctioned flows
+ * (atomic_table_buyin, fn_atomic_buyin) so a reader knows where to go instead.
+ * Those names are signposts in prose, not calls: the handler below has no
+ * database client, no RPC and no query. Deleting the signposts to quiet the
+ * check would make the retirement notice less useful, which is the opposite of
+ * why it exists, so the exemption is declared here where a reviewer sees it.
  */
 export default async function handler(req, res) {
   res.setHeader('Allow', 'POST');
