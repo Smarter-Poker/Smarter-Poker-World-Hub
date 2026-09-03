@@ -43,7 +43,7 @@ concurrency:
 
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Wait for the deploy to land
         # A push to main is the START of a Vercel build, not the end. Probing
@@ -64,7 +64,8 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Install WebKit for the footer probe
-        run: npx playwright install --with-deps webkit
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install webkit; else npx playwright install --with-deps webkit; fi
 
       - name: Probe production footer geometry in WebKit
         id: footer-probe
