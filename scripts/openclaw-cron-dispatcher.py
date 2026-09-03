@@ -569,7 +569,7 @@ ALL_CRONS = [
     # again 2026-06-14 -> 2026-07-18, so the 00:05 instant was missed outright
     # in both July and September. Daily also means someone who subscribes on
     # the 2nd is paid on the 2nd rather than waiting thirty days.
-    ('/api/cron/vip-stipend',                     dict(hour=9, minute=0)),   # daily 09:00 UTC - idempotent per user per month
+    ('/api/cron/vip-stipend',                     dict(hour=9, minute=0)),   # daily 09:00 UTC - idempotent per user per month  # ONLY scheduler since 2026-09-03: the vercel.json copy ('0 9 1 * *') was removed - same path, same instant on the 1st, two callers.
     ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
     ('/api/cron/chip-supply-snapshot',            dict(minute=0)),           # hourly — M4 chip-conservation series. fn_snapshot_chip_supply existed but was never scheduled: ONE row (2026-08-08), so deltas stayed NULL and nothing ever reconciled.
     # ('/api/cron/solver-watchdog', dict(minute=20)) — RETIRED 2026-08-27.
@@ -641,7 +641,16 @@ ALL_CRONS = [
     #   collusion-scan: every 30 min (4-pattern incl. TIMING_CORRELATION; x67c)
     ('/api/cron/bbj-detect',                       dict(minute='*/5')),       # every 5 min — promptly detect BBJ hits
     ('/api/cron/tournament-bounty-detect',         dict(minute='*/10')),      # every 10 min during MTT runs
-    ('/api/cron/player-stats-refresh',             dict(minute=15)),          # hourly @ :15 — leaderboard refresh
+    # '/api/cron/player-stats-refresh' REMOVED 2026-09-03. It could never run:
+    # the handler asks fn_refresh_player_stats for a 26-hour window, which is
+    # ~130s of hand_history jsonb work against PostgREST's 8s service_role
+    # statement timeout - 24 fires, 24 timeouts, every day. The stats were
+    # never stale, because pg_cron job `refresh-player-stats-hourly` (jobid 76,
+    # '17 * * * *', 90-minute window, advisory-locked, 24/24 succeeded, ~10s)
+    # has been doing the same work INSIDE Postgres where no PostgREST timeout
+    # applies. Two schedulers for one job, one of them structurally unable to
+    # finish. Do not re-add it here; if the pg_cron job must move to Open Claw
+    # one day, the handler must first stop asking for 26 hours in one call.
     ('/api/cron/rakeback-period-settle',           dict(day_of_week='mon', hour=10, minute=30)),
     # ── 2026-09-01 — per-job silence detector ────────────────────────────
     # The 2026-08-31 CRON_SECRET skew 401'd 62 workers-routed jobs for 25

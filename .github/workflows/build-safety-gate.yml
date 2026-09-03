@@ -794,7 +794,7 @@ jobs:
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
       # All new scheduled jobs must go to Open Claw on Hetzner, not Vercel.
       # Allowed baselines (caps at the numbers captured 2026-04-24):
-      #   - vercel.json crons array  ≤ 40
+      #   - vercel.json crons array  ≤ 16
       #   - pages/api/cron/ file count ≤ 45
       #   - GitHub Actions schedule: triggers only on the allowlist below
       # Shrinking these is fine (job retirement). Growing them is blocked.
@@ -825,7 +825,8 @@ jobs:
 
           # 6a — vercel.json crons array size
           VERCEL_CRONS=$(node -e "const d=require('./vercel.json');console.log((d.crons||[]).length)")
-          MAX_VERCEL_CRONS=40
+          # 16 as of 2026-09-03 (vip-stipend left for Open Claw, which already scheduled it).
+          MAX_VERCEL_CRONS=16
           echo "vercel.json crons count: $VERCEL_CRONS (max: $MAX_VERCEL_CRONS)"
           if [ "$VERCEL_CRONS" -gt "$MAX_VERCEL_CRONS" ]; then
             echo "::error::FATAL: vercel.json crons grew from $MAX_VERCEL_CRONS to $VERCEL_CRONS."
