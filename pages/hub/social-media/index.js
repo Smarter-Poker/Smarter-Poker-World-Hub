@@ -112,6 +112,7 @@ import {
 } from '../../../src/components/social/SharedVideoComponents';
 
 import { feedCache } from '../../../src/lib/feedCache';
+import { getAuthorDisplayName, SOCIAL_NAME_COLUMNS } from '../../../src/utils/displayName';
 
 // 2026-08-15 audit: typing-indicator broadcasts used to construct a brand-new
 // RealtimeChannel PER KEYSTROKE (supabase.channel() registers a new channel
@@ -481,7 +482,7 @@ const PostCard = React.memo(
                 try {
                   const { data: author } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select(`id,${SOCIAL_NAME_COLUMNS},avatar_url`)
                     .eq('id', payload.authorId)
                     .maybeSingle();
                   setComments((prev) => {
@@ -493,7 +494,7 @@ const PostCard = React.memo(
                         text: payload.content || '',
                         authorId: payload.authorId,
                         parentId: payload.parentId || null,
-                        authorName: author?.username || author?.full_name || 'Player',
+                        authorName: getAuthorDisplayName(author) || 'Player',
                         authorAvatar: author?.avatar_url || null,
                         authorUsername: author?.username || null,
                         time: 'Just now',
@@ -682,7 +683,7 @@ const PostCard = React.memo(
         if (authorIds.length > 0) {
           const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select(`id,${SOCIAL_NAME_COLUMNS},avatar_url`)
             .in('id', authorIds);
 
           if (profilesData) {
@@ -701,7 +702,7 @@ const PostCard = React.memo(
             text: c.content,
             authorId: c.author_id,
             parentId: c.parent_id || null,
-            authorName: author.username || author.full_name || 'Player',
+            authorName: getAuthorDisplayName(author) || 'Player',
             authorAvatar: author.avatar_url || null,
             authorUsername: author.username || null,
             time: timeAgo(c.created_at),
@@ -979,6 +980,7 @@ const PostCard = React.memo(
           <div style={{ flex: 1 }}>
             <Link
               href={`/hub/user/${post.author?.username || 'player'}`}
+              data-preserve-case="true"
               style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}
             >
               {post.author?.name || 'Player'}
@@ -1213,7 +1215,22 @@ const PostCard = React.memo(
           </div>
         ) : (
           displayContent && (
-            <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
+            /* WHAT A PERSON WROTE IS NOT UI COPY (Dan 2026-09-03).
+               WorldCopyPolicy applies `.world-copy-scope * { text-transform:
+               capitalize !important }` to EVERY descendant of the app shell,
+               which is right for buttons and labels and wrong for a post: it
+               rewrote "he knew what he was up against before he even acted"
+               into Title Case on screen while the database held ordinary
+               sentence case (only 48 of 26,158 posts are actually title-cased
+               in the data). Every horse therefore sounded like the same robot.
+
+               data-preserve-case is that policy's own documented escape
+               hatch — see WorldCopyPolicy.jsx — so this uses the existing
+               convention rather than fighting the rule. */
+            <div
+              data-preserve-case="true"
+              style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}
+            >
               {(() => {
                 // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
                 let displayText = displayContent;
@@ -2380,11 +2397,16 @@ const PostCard = React.memo(
                             minWidth: '80%',
                           }}
                         >
-                          <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>
+                          <div
+                            data-preserve-case="true"
+                            style={{ fontWeight: 600, fontSize: 13, color: C.text }}
+                          >
                             {c.authorName}
                           </div>
                           {c.text && (
-                            <div style={{ fontSize: 14, color: C.text }}>
+                            /* A comment is what somebody typed. Same reason as
+                               the post body above. */
+                            <div data-preserve-case="true" style={{ fontSize: 14, color: C.text }}>
                               {renderMentions(c.text)}
                             </div>
                           )}
@@ -4417,13 +4439,13 @@ function SocialMediaPage() {
                     actorIds.length > 0
                       ? supabase
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select(`id,${SOCIAL_NAME_COLUMNS},avatar_url`)
                           .in('id', actorIds)
                       : Promise.resolve({ data: [] }),
                     actorNames.length > 0
                       ? supabase
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select(`id,${SOCIAL_NAME_COLUMNS},avatar_url`)
                           .in('full_name', actorNames)
                       : Promise.resolve({ data: [] }),
                   ]);

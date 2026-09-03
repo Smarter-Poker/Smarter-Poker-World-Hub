@@ -121,7 +121,10 @@ export function ReelsViewer({ onClose }) {
   // Infinite scroll state
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [pageOffset, setPageOffset] = useState(60); // tracks next fetch offset per source
+  /* `pageOffset` lived here to page each source_type by a fixed offset. Both
+     loaders now take a random uuid window across the whole public library
+     (see loadReels), so there is no per-source cursor left to track and a
+     stale offset would only mislead the next reader. */
 
   // Anti-Drift: Preserve viewed reel when new reels are inserted above it
   const prevReelIdRef = useRef(null);
@@ -766,77 +769,70 @@ export function ReelsViewer({ onClose }) {
     setLoading(true);
     setLoadError(false);
     try {
-      // 3-source fetch - interleaved to prevent any single source monopolizing the feed
-      // BUG FIX: single query ordered by created_at filled the 100-slot limit with only
-      // video_library reels (newest timestamps) or only user reels, depending on timing.
-      // Solution: fetch each source separately then interleave 2:1 (user:library).
+      /* ── REELS PLAYS THE WHOLE LIBRARY, IN NO PARTICULAR ORDER ──────────
+         Dan, 2026-09-03: "REELS SHOULD PLAY ALL THE RANDOM REELS IN NO
+         IMPRATICULAR ORDER, NOT JUST PLAY THE REELS THAT USER UPLOADED. IT
+         CURRENTLY ONLY PLAYS VIDEO'S I'VE UPLOADED ONLY."
+
+         He was right, and the cause was the weighting rather than any filter
+         — nothing here was ever scoped to the viewer. The feed took three
+         fixed slots and interleaved them 2 user : 1 library, splicing a horse
+         reel in only every tenth item. Measured against production the day
+         this changed:
+
+             source_type='user'          7 public reels, ALL of them one author's
+             source_type='video_library' 200
+             source_type='youtube'       8,900   (244 authors)
+             source_type='native'        5,635   (220 authors)
+
+         So two of every three slots were drawn from a pool of seven videos by
+         one person, and the 14,535 everyone else had posted queued up behind
+         a one-in-ten splice. "Only plays my uploads" is exactly what that
+         arithmetic produces.
+
+         Now: one query across every public reel, no source weighting at all.
+         The random window comes from a random uuid cursor — `id` is a uuid,
+         so ordering by it is arbitrary with respect to author and age, and
+         starting at a random point lands anywhere in the library. One indexed
+         query, no COUNT, no RPC. The wrap-around top-up keeps the page full
+         when the cursor lands near the end of the id space. */
       const REEL_SELECT = `id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)`;
+      const PAGE = 150;
 
-      // M7 (2026-05-03): postsResult removed. Every public video post in
-      // social_posts now has a social_reels mirror via the new
-      // trg_social_posts_video_to_reel_mirror trigger, so a separate
-      // social_posts query produces duplicates rather than fresh content.
-      // Horse-posted videos surface via the new horseResult slot below
-      // (source_type IN ('youtube','native') with source_post_id set).
-      const [userResult, libraryResult, horseResult] = await Promise.all([
-        // Slot A: User-uploaded reels (genuine social content)
+      const randomUuid = () =>
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : '00000000-0000-4000-8000-000000000000'.replace(/[08]/g, () =>
+              Math.floor(Math.random() * 16).toString(16)
+            );
+
+      const windowFrom = (cursor, limit) =>
         supabase
           .from('social_reels')
           .select(REEL_SELECT)
           .eq('is_public', true)
-          .eq('source_type', 'user')
-          .order('created_at', { ascending: false })
-          .limit(60),
-        // Slot B: Video-library-bridged reels (curated poker content)
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'video_library')
-          .order('created_at', { ascending: false })
-          .limit(60),
-        // Slot C: Horse-posted reels (from social_posts via trigger mirror)
-        // includes both 'youtube' (still iframe while queue drains) and
-        // 'native' (already converted to Supabase MP4)
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .in('source_type', ['youtube', 'native'])
-          .not('source_post_id', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(60),
-      ]);
+          .gt('id', cursor)
+          .order('id', { ascending: true })
+          .limit(limit);
 
-      const userReels = userResult.data || [];
-      const libReels = libraryResult.data || [];
-      const horseReels = (horseResult.data || []).map((r) => ({ ...r, source: 'reels' }));
+      const firstPass = await windowFrom(randomUuid(), PAGE);
+      let pool = firstPass.data || [];
 
-      // Interleave 2 user reels + 1 library reel + sprinkle horse content
-      const interleaved = [];
-      const maxLen = Math.max(userReels.length, libReels.length, horseReels.length);
-      let uIdx = 0,
-        lIdx = 0,
-        pIdx = 0;
-      for (let i = 0; i < maxLen * 3 && interleaved.length < 120; i++) {
-        // Pattern: user, user, library (repeating)
-        const slot = i % 3;
-        if (slot === 0 || slot === 1) {
-          if (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
-          else if (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
-        } else {
-          if (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
-          else if (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
-        }
-        // Splice in a horse-posted reel every 10 items
-        if (interleaved.length > 0 && interleaved.length % 10 === 0 && pIdx < horseReels.length) {
-          interleaved.push(horseReels[pIdx++]);
-        }
+      // Landed near the end of the id space: wrap to the beginning so a late
+      // cursor still returns a full page rather than three videos.
+      if (pool.length < PAGE) {
+        const wrap = await windowFrom('00000000-0000-0000-0000-000000000000', PAGE - pool.length);
+        const seen = new Set(pool.map((r) => r.id));
+        pool = pool.concat((wrap.data || []).filter((r) => !seen.has(r.id)));
       }
-      // Append any remaining
-      while (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
-      while (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
-      while (pIdx < horseReels.length) interleaved.push(horseReels[pIdx++]);
+
+      // ...and shuffle, because ordering by uuid is arbitrary but STABLE:
+      // without this the same window always plays in the same sequence.
+      const interleaved = pool.slice();
+      for (let i = interleaved.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [interleaved[i], interleaved[j]] = [interleaved[j], interleaved[i]];
+      }
 
       // Deduplicate by id AND video_url. Same physical video can land in
       // BOTH social_reels (auto-mirror via source_post_id) AND social_posts
@@ -949,49 +945,45 @@ export function ReelsViewer({ onClose }) {
     try {
       const REEL_SELECT =
         'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)';
-      // M7 (2026-05-03): retired the social_posts query — every public
-      // video post now has a social_reels mirror, so a separate query
-      // produced duplicates. Horse-posted reels surface via the
-      // horseRes slot (same pattern as loadReels).
-      const [userRes, libRes, horseRes] = await Promise.all([
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'user')
-          .order('created_at', { ascending: false })
-          .range(pageOffset, pageOffset + 29),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'video_library')
-          .order('created_at', { ascending: false })
-          .range(pageOffset, pageOffset + 29),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .in('source_type', ['youtube', 'native'])
-          .not('source_post_id', 'is', null)
-          .order('created_at', { ascending: false })
-          .range(pageOffset, pageOffset + 29),
-      ]);
-      const horseReels = (horseRes.data || []).map((r) => ({ ...r, source: 'reels' }));
+      /* Same fix as loadReels, and it has to be here too: page 1 could draw
+         from the whole library and the very next scroll would drop straight
+         back into the 2 user : 1 library split, so "only my uploads" returned
+         four videos later. One random window across every public reel. */
+      const randomUuid = () =>
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : '00000000-0000-4000-8000-000000000000'.replace(/[08]/g, () =>
+              Math.floor(Math.random() * 16).toString(16)
+            );
 
-      const reelItems = [
-        ...(userRes.data || []).map((r) => ({ ...r, source: 'reels' })),
-        ...(libRes.data || []).map((r) => ({ ...r, source: 'reels' })),
-      ];
-      // Splice a horse reel every 10 items (mirrors loadReels interleave pattern)
-      const combined = [];
-      let pIdx = 0;
-      reelItems.forEach((r, i) => {
-        combined.push(r);
-        if ((i + 1) % 10 === 0 && pIdx < horseReels.length) combined.push(horseReels[pIdx++]);
-      });
-      // Append remaining horse reels
-      while (pIdx < horseReels.length) combined.push(horseReels[pIdx++]);
+      const moreWindow = (cursor, limit) =>
+        supabase
+          .from('social_reels')
+          .select(REEL_SELECT)
+          .eq('is_public', true)
+          .gt('id', cursor)
+          .order('id', { ascending: true })
+          .limit(limit);
+
+      const moreRes = await moreWindow(randomUuid(), 60);
+      let moreRows = moreRes.data || [];
+      /* A cursor landing near the top of the id space returns few rows or
+         none. Without this top-up, `combined.length === 0` below reads that
+         as "the library is exhausted" and ends the feed on a full library. */
+      if (moreRows.length < 60) {
+        const wrap = await moreWindow(
+          '00000000-0000-0000-0000-000000000000',
+          60 - moreRows.length
+        );
+        const seen = new Set(moreRows.map((r) => r.id));
+        moreRows = moreRows.concat((wrap.data || []).filter((r) => !seen.has(r.id)));
+      }
+
+      const combined = moreRows.map((r) => ({ ...r, source: 'reels' }));
+      for (let i = combined.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [combined[i], combined[j]] = [combined[j], combined[i]];
+      }
 
       if (combined.length === 0) {
         setHasMore(false);

@@ -19,6 +19,8 @@
 // NOTE: This handler uses Node.js Pages Router API (req.query, res.setHeader, res.status)
 // and CANNOT run on Edge Runtime. Keep as Node.js runtime (no export const runtime = 'edge').
 
+import { getAuthorDisplayName, SOCIAL_NAME_COLUMNS } from '../../../src/utils/displayName';
+
 const getSupaConfig = () => ({ url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY });
 
 
@@ -96,7 +98,9 @@ export default async function handler(req, res) {
         const [profilesData, likesData, ownLikesData, bookmarksData] = await Promise.all([
             // Profiles for all authors on this page
             authorIds.length > 0
-                ? supaFetch(`/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`)
+                ? supaFetch(
+                      `/profiles?id=in.(${authorIds.join(',')})&select=id,${SOCIAL_NAME_COLUMNS},avatar_url`
+                  )
                 : Promise.resolve([]),
 
             // Reaction flavor for posts on this page (display only — capped)
@@ -164,7 +168,13 @@ export default async function handler(req, res) {
                 link_site_name: p.link_site_name || null,
                 metadata: meta,
                 author: {
-                    name: meta.page_name || profile?.display_name || profile?.full_name || profile?.username || 'Player',
+                    /* Dan 2026-09-03: social shows the REAL NAME by default,
+                       and only the alias when the player has chosen it. This
+                       hand-rolled chain put display_name first, which is the
+                       handle-ish column for horses ("bulletProof"), and it
+                       never consulted display_name_preference at all — the
+                       select above did not even fetch it. One resolver now. */
+                    name: meta.page_name || getAuthorDisplayName(profile) || 'Player',
                     username: profile?.username || null,
                     avatar: meta.page_avatar_url || profile?.avatar_url || null,
                 },
