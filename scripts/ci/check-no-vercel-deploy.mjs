@@ -36,7 +36,10 @@ const EXTS = /\.(sh|ya?ml|mjs|cjs|js|ts|json|command)$/;
 const SPECIAL_FILENAMES = new Set(['Makefile']);
 
 /** The sole sanctioned deploy-hook caller (see header). */
-const ALLOWED = new Set(['.github/workflows/club-arena-scheduled-deploy.yml']);
+// No exceptions since 2026-09-03: club-arena-scheduled-deploy.yml (the daily
+// deploy-hook safety net for a Club Arena sync that never came) is retired
+// with the sync itself. Nothing may call the deploy hook.
+const ALLOWED = new Set();
 
 /* The forbidden thing is INVOKING a deploy, not the word "vercel". Reading the
    Vercel API to ask what a deployment did is how verify-deploy.js and the

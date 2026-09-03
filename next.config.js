@@ -1025,30 +1025,28 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      // Club Arena — 100% NATIVE. All files (JS/CSS/HTML/images/cards/videos)
-      // live in public/hub/club-arena/ and are served directly from smarter.poker.
-      // ZERO external requests to club-arena.vercel.app or any other domain.
+      // Club Arena (rewritten 2026-09-03). The Vite SPA no longer lives in this
+      // repo's public/ tree. It is published by its own repo to a static
+      // origin (Caddy on estate-ci-1, ca-static.smarter.poker), and this ONE
+      // rewrite proxies it: the player is still on smarter.poker - the browser
+      // never sees the origin's hostname, so the shared Supabase session
+      // (localStorage key smarter-poker-auth) is untouched - but Vercel fetches
+      // the bytes from the origin instead of from a 1,383-file copy that had
+      // to be committed here and rebuilt (4-5 minutes) on every Club Arena
+      // merge. The origin does SPA fallback itself (an extension-less path
+      // gets index.html; a missing asset is a real 404), and sets the same
+      // Cache-Control the headers() block above sets, so caching is preserved
+      // at both Vercel's edge and the browser.
       //
-      // afterFiles handles SPA routing — serves index.html for routes that
-      // don't match a real file in public/ or a native Next.js page.
+      // afterFiles, not beforeFiles: a native Next.js page or public/ file
+      // under /hub/club-arena/ would still win, and none is meant to exist -
+      // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
-      afterFiles: [],
-      // fallback rewrites run LAST — after pages AND public/ files.
-      // This ensures all static files (JS/CSS/images/cards/logos) in
-      // public/hub/club-arena/ are served directly. Only SPA routes
-      // (no matching file) fall through to index.html.
-      fallback: [
-        {
-          source: '/hub/club-arena',
-          destination: '/hub/club-arena/index.html',
-        },
-        {
-          // Match all SPA paths but EXCLUDE files with extensions (.js, .css, etc)
-          // so missing assets naturally 404 instead of serving index.html (MIME error)
-          source: '/hub/club-arena/:path((?!.*\\.[\\w]+$).*)',
-          destination: '/hub/club-arena/index.html',
-        },
+      afterFiles: [
+        { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
+        { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
       ],
+      fallback: [],
     };
   },
 };

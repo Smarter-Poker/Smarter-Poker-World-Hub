@@ -12,10 +12,10 @@
 #
 # DESIGN INTENT:
 #   - Club Arena deploys via build-club-arena.sh are ALWAYS immediate.
-#     public/hub/club-arena/ changes are treated as real deployments.
+#     Club Arena is a rewrite to its own origin now; it never changes this repo.
 #   - Pure noise commits (docs, agent memory, Python scrapers, test files)
 #     are skipped — these don't affect what users see on smarter.poker.
-#   - The daily GitHub Actions safety-net (club-arena-scheduled-deploy.yml)
+#   - (retired 2026-09-03 with the Club Arena sync: there is no daily safety-net)
 #     fires at 2PM CT only if somehow no deploy happened that day.
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -49,7 +49,7 @@ echo ""
 #   pages/                 → Next.js pages
 #   src/                   → Source components/hooks/lib
 #   styles/                → Global CSS
-#   public/hub/club-arena/ → Club Arena SPA (intentional deploys via build-club-arena.sh)
+#   (Club Arena moved to its own origin 2026-09-03; nothing of it is in this repo)
 #   next.config.js         → Build configuration
 #   vercel.json            → Vercel routing/headers/crons
 #   middleware.ts           → Edge middleware

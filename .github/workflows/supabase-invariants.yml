@@ -35,7 +35,6 @@ on:
     # that never merges.
     # Skipped here because these assert database shape and never read the bundle.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 

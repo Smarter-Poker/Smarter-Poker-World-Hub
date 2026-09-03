@@ -27,7 +27,6 @@ on:
     # that never merges.
     # Skipped here because a "revert" in generated output is meaningless and false-positives on every rebuild.
     paths-ignore:
-      - 'public/hub/club-arena/**'
 
 concurrency:
   group: silent-revert-${{ github.ref }}
