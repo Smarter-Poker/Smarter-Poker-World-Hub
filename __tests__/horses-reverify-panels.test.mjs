@@ -69,11 +69,14 @@ test('executeApprovalBody carries the id and nothing else', () => {
   assert.deepEqual(Object.keys(executeApprovalBody('x')).sort(), ['action', 'approvalId']);
 });
 
-test('isExecutableKind names mint, burn and fund_club and nothing else', () => {
-  for (const kind of ['mint', 'burn', 'fund_club', 'MINT', 'Fund_Club']) {
+test('isExecutableKind names exactly the kinds the route can carry out', () => {
+  // Phase 3 gave fleet_policy an executor (fn_ca_fleet_set_policy), so it is
+  // executable now. cashout never will be from here: its chips move on the
+  // cashout screen, which is why the Approve dialog says so.
+  for (const kind of ['mint', 'burn', 'fund_club', 'fleet_policy', 'MINT', 'Fund_Club']) {
     assert.equal(isExecutableKind(kind), true, kind);
   }
-  for (const kind of ['cashout', 'fleet_policy', 'sanction', '', null, undefined, 'unknown']) {
+  for (const kind of ['cashout', 'sanction', '', null, undefined, 'unknown']) {
     assert.equal(isExecutableKind(kind), false, String(kind));
   }
   // The same table as the server's, member for member.
@@ -131,8 +134,13 @@ test('the decide toast is the route\'s message, toned by execution.ok', async ()
 test('the Approve dialog sentence branches on the kind', async () => {
   const src = await read(APPROVALS);
   assert.match(src, /function approveSentence\(kind\)/);
-  assert.match(src, /if \(isExecutableKind\(kind\)\) \{/);
+  // Four sentences, because Phase 3 split "executable" from "moves money":
+  // the money kinds, an executable change that moves no money (fleet policy),
+  // the cashout that finishes on its own screen, and everything else.
+  assert.match(src, /MONEY_KINDS\.includes\(k\)/);
+  assert.match(src, /if \(isExecutableKind\(k\)\) \{/);
   assert.ok(src.includes('Approving Carries The Operation Out. It Is Executed Once And Only Once, Against The Operation ID This Request Already Holds.'));
+  assert.ok(src.includes('Approving Applies The Change. It Is Applied Once And Only Once, Against The Operation ID This Request Already Holds.'));
   assert.ok(src.includes('Approving Records Your Decision. The Cashout Itself Is Still Completed From The Cashout Screen, So No Chips Move Here.'));
   assert.ok(src.includes('Approving Records Your Decision. Nothing Moves Until Its Own Screen Runs It.'));
   assert.match(src, /approveSentence\(decideFor\.row\.kind\)/);

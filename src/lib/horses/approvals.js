@@ -60,6 +60,7 @@
  */
 import { ApiError, requestIdOf } from './apiEnvelope.js';
 import { enumOf, money2dp, text, uuid } from './validate.js';
+import { FLEET_POLICY_SCOPES, validateFleetPolicyPatch } from './fleetPolicy.js';
 
 /** ca_operator_approvals.kind. The last two exist for phases that wire them. */
 export const APPROVAL_KINDS = Object.freeze([
@@ -283,12 +284,77 @@ function requestPayload(spec) {
 
 // -- EXECUTING AN APPROVED REQUEST -------------------------------------------
 //
-// The kinds whose stored payload names a money RPC this console can drive.
+// The kinds whose stored payload names an RPC this console can drive.
 // `cashout` is deliberately absent: its execution lives behind
 // /api/club-arena/approve-cashout, which owns the settlement lock, the MFA
 // gate, the notifications and the club-side authorisation, and none of that
 // can be replayed from here.
-export const EXECUTABLE_APPROVAL_KINDS = Object.freeze(['mint', 'burn', 'fund_club']);
+//
+// PHASE 3 (2026-09-03) adds `fleet_policy`. It is the first executable kind
+// that moves no money at all: an approved fleet policy change re-drives
+// fn_ca_fleet_set_policy under the row's own op_id. It is here for exactly
+// the reason mint is (review B-1) - a queue that can approve a change and
+// then has no way to apply it is a control with no exit, and with approvals
+// on every material fleet change would sit in it forever.
+export const EXECUTABLE_APPROVAL_KINDS = Object.freeze([
+  'mint',
+  'burn',
+  'fund_club',
+  'fleet_policy',
+]);
+
+/**
+ * What the operator is told when an approved request has been carried out.
+ *
+ * Per kind, because "The Money Has Moved" over a fleet policy change is a
+ * sentence about something that did not happen.
+ */
+export const EXECUTION_DONE_TEXT = Object.freeze({
+  mint: 'Approved And Carried Out. The Money Has Moved',
+  burn: 'Approved And Carried Out. The Money Has Moved',
+  fund_club: 'Approved And Carried Out. The Money Has Moved',
+  fleet_policy:
+    'Approved And Applied. The Fleet Policy Has Changed. No Chips Moved And No Seated Horse Was Touched',
+  default: 'Approved And Carried Out',
+});
+
+/** The same, for the case where the approval row itself could not be closed. */
+export const EXECUTION_UNRECORDED_TEXT = Object.freeze({
+  mint: 'Approved And Carried Out. The Money Has Moved, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+  burn: 'Approved And Carried Out. The Money Has Moved, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+  fund_club:
+    'Approved And Carried Out. The Money Has Moved, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+  fleet_policy:
+    'Approved And Applied. The Fleet Policy Has Changed, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+  default: 'Approved And Carried Out, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+});
+
+/**
+ * And the same, for the case where the RPC itself could not be REACHED.
+ *
+ * Per kind for the reason the two tables above are (review M-4): the executor
+ * hard-coded "The Money Operation Could Not Be Reached" for every kind, so an
+ * operator whose fleet quota change could not be written was told a money
+ * operation had failed. `fleet_policy` moves no money at all.
+ */
+export const EXECUTION_UNAVAILABLE_TEXT = Object.freeze({
+  mint: 'The Money Operation Could Not Be Reached',
+  burn: 'The Money Operation Could Not Be Reached',
+  fund_club: 'The Money Operation Could Not Be Reached',
+  fleet_policy: 'The Fleet Policy Could Not Be Written',
+  default: 'The Approved Operation Could Not Be Reached',
+});
+
+/** The sentence for one executed kind, in either state. */
+export function executionDoneText(kind, { trailClosed = true } = {}) {
+  const table = trailClosed ? EXECUTION_DONE_TEXT : EXECUTION_UNRECORDED_TEXT;
+  return table[kind] || table.default;
+}
+
+/** The sentence for a kind whose RPC could not be reached at all. */
+export function executionUnavailableText(kind) {
+  return EXECUTION_UNAVAILABLE_TEXT[kind] || EXECUTION_UNAVAILABLE_TEXT.default;
+}
 
 export function isExecutableKind(kind) {
   return EXECUTABLE_APPROVAL_KINDS.includes(kind);
@@ -394,6 +460,95 @@ function fundClubValidator(payload, opId) {
 }
 
 /**
+ * fleet_policy. The payload /api/horses/fleet-admin stores when a MATERIAL
+ * policy change is raised (PHASE3-CONTRACTS section 0: enabling or disabling
+ * the fleet, pausing new seatings, or setting, clearing or moving a cap by
+ * more than 25 percent).
+ *
+ * THREE THINGS THIS CHECKS THAT THE ROUTE ALREADY CHECKED, AND WHY.
+ * `ca_operator_approvals.payload` is jsonb written by a deploy that may be
+ * weeks old. It is INPUT here, exactly as a request body is: the scope, the
+ * fields and the operator the change will be filed under are all re-read.
+ *
+ * `p_updated_by` is the operator who RAISED the change, carried in the
+ * payload, not the one approving it. The change is theirs; the approval is a
+ * separate act and operator-admin audits it separately. fn_ca_fleet_set_policy
+ * refuses a null actor, so a payload with no usable one is refused here rather
+ * than turned into an unattributable write.
+ *
+ * NOTE ON EXACTLY-ONCE. fn_ca_fleet_set_policy has no idempotency key of its
+ * own - it is an upsert, so re-applying the same patch produces the same row.
+ * What makes this run once is the approval row: `op_id` is unique where not
+ * null, and operator-admin refuses to execute a row that is already
+ * `executed`. A second run would write the same values and file a second
+ * audit row, which is visible rather than silent.
+ */
+function fleetPolicyValidator(payload, opId) {
+  const p = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
+  if (!p) return refuse('payload_missing', 'That Approval Has No Stored Request To Run');
+
+  const scope = enumOf(String(p.scope ?? '').toLowerCase(), [...FLEET_POLICY_SCOPES]);
+  if (!scope) return refuse('payload_scope_invalid', 'The Stored Request Names No Valid Policy Scope');
+
+  const rawScopeId = p.scopeId ?? p.scope_id ?? null;
+  const scopeId = scope === 'global' ? null : uuid(rawScopeId);
+  if (scope !== 'global' && !scopeId) {
+    return refuse('payload_target_invalid', 'The Stored Request Names No Valid Club Or Union');
+  }
+  if (scope === 'global' && rawScopeId) {
+    return refuse('payload_target_invalid', 'The Global Policy Row Has No Club Or Union Attached To It');
+  }
+
+  const patch = p.patch && typeof p.patch === 'object' && !Array.isArray(p.patch) ? p.patch : null;
+  if (!patch || Object.keys(patch).length === 0) {
+    return refuse('payload_patch_invalid', 'The Stored Request Changes No Policy Field');
+  }
+  // THE VALUES, NOT ONLY THE FIELD NAMES (review L-8). The docblock above says
+  // the stored payload is treated exactly as a request body is, and a request
+  // body gets validateFleetPolicyPatch: types, integer caps, a bias inside its
+  // range, arrays of names, hour ranges inside 0 to 23. A key check alone let
+  // `{max_horses: -5}` through to fn_ca_fleet_set_policy and came back as a
+  // refusal code the operator then had to interpret. The validator already
+  // exists and is the same one the route runs.
+  const checked = validateFleetPolicyPatch(patch);
+  if (!checked.ok) return refuse('payload_patch_invalid', checked.message);
+
+  const updatedBy = uuid(p.updatedBy ?? p.updated_by ?? p.requestedBy ?? p.requested_by);
+  if (!updatedBy) {
+    return refuse(
+      'payload_actor_missing',
+      'The Stored Request Names No Operator To File The Change Under'
+    );
+  }
+
+  const reason = text(p.reason, { min: 10, max: 500 });
+  if (!reason) return refuse('payload_reason_invalid', 'The Stored Request Has No Usable Reason');
+
+  const key = executionKey(p, opId);
+  if (!key.ok) return key;
+
+  return {
+    ok: true,
+    kind: 'fleet_policy',
+    rpc: 'fn_ca_fleet_set_policy',
+    args: {
+      p_scope: scope,
+      p_scope_id: scopeId,
+      p_patch: patch,
+      p_updated_by: updatedBy,
+      p_reason: reason,
+    },
+    summary: {
+      kind: 'fleet_policy',
+      scope,
+      scopeId,
+      fields: Object.keys(patch).sort(),
+      opId: key.opId,
+    },
+  };
+}
+
+/**
  * The key the operation runs under is the key the APPROVAL was raised under,
  * so an approved request executes exactly once however many times it is
  * driven. A payload carrying a different key is a payload that does not belong
@@ -422,6 +577,7 @@ const PAYLOAD_VALIDATORS = Object.freeze({
   mint: issuanceValidator('mint'),
   burn: issuanceValidator('burn'),
   fund_club: fundClubValidator,
+  fleet_policy: fleetPolicyValidator,
 });
 
 /**
@@ -541,6 +697,7 @@ export async function requireApproval(op, req, spec = {}) {
         required: false,
         approvalId: null,
         status: 'unrecorded',
+        alreadyExecuted: false,
         blockedReason: null,
         recorded: false,
         threshold: decision.threshold,
@@ -589,10 +746,23 @@ export async function requireApproval(op, req, spec = {}) {
   const required = dbRequired || (decision.required && !released);
   const status = rawStatus || (required ? 'pending' : 'auto_approved');
 
+  // THIS KEY HAS ALREADY RUN (review M-8). fn_ca_operator_request_approval
+  // answers `already_executed: true` for a key whose row reached `executed`,
+  // and it answers `required: false` with it, because for a money kind the
+  // replay goes through the money RPC's own op_id claim and mints nothing
+  // twice. A kind whose RPC has NO key of its own - fn_ca_fleet_set_policy is
+  // an upsert - has no such protection, so the fact is surfaced rather than
+  // collapsed into `required: false` and the caller decides what a replay
+  // means for it. Nothing that reads only `required` changes behaviour.
+  const alreadyExecuted = data.already_executed === true
+    || data.alreadyExecuted === true
+    || rawStatus === 'executed';
+
   return {
     required,
     approvalId,
     status,
+    alreadyExecuted,
     blockedReason,
     recorded: true,
     threshold: decision.threshold,
