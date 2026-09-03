@@ -259,6 +259,9 @@ export default function HorsesAdmin() {
 
   const [mintLedgerAsset, setMintLedgerAsset] = useState('');
   const [mintLedgerAction, setMintLedgerAction] = useState('');
+  // Drill-down: { id, label } of a single holder, or null for the whole journal.
+  const [mintLedgerHolder, setMintLedgerHolder] = useState(null);
+  const [mintLedgerPaging, setMintLedgerPaging] = useState(false);
 
   // ── Anti-abuse ──
   const [abuseData, setAbuseData] = useState(null);
@@ -584,13 +587,42 @@ export default function HorsesAdmin() {
     return `mint-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
   }, []);
 
-  const loadMintLedger = useCallback(async (asset = '', action = '') => {
-    const params = new URLSearchParams({ section: 'ledger', limit: '100' });
-    if (asset) params.set('asset', asset);
-    if (action) params.set('action', action);
-    const data = await authFetch(`/api/horses/mint?${params.toString()}`);
-    setMintLedger(data);
-  }, [authFetch]);
+  /** Ledger page size. The route caps a single page at 200; 100 keeps the
+   *  first paint quick and "Load More" honest about how much is left. */
+  const MINT_LEDGER_PAGE = 100;
+
+  /**
+   * The ledger, one page at a time.
+   *
+   * `offset` and `append` are what make "Load More" work. Without them this
+   * fetched the newest 100 operations and rendered "Showing 100 of N" with no
+   * way to reach the rest — the identical bug this file already carries a
+   * comment about for the reviews tab, where the panel hardcoded a limit and
+   * never sent an offset. The route has always accepted both.
+   *
+   * `holderId` powers the per-holder drill-down: the route has always
+   * supported it, and "show me everything ever issued to this club" is the
+   * first question anyone asks of an issuance journal.
+   */
+  const loadMintLedger = useCallback(
+    async (asset = '', action = '', holderId = '', offset = 0, append = false) => {
+      const params = new URLSearchParams({
+        section: 'ledger',
+        limit: String(MINT_LEDGER_PAGE),
+        offset: String(offset),
+      });
+      if (asset) params.set('asset', asset);
+      if (action) params.set('action', action);
+      if (holderId) params.set('holderId', holderId);
+      const data = await authFetch(`/api/horses/mint?${params.toString()}`);
+      setMintLedger((prev) =>
+        append && prev
+          ? { ...data, entries: [...(prev.entries || []), ...(data.entries || [])] }
+          : data
+      );
+    },
+    [authFetch]
+  );
 
   const loadMintData = useCallback(async () => {
     setMintLoading(true);
@@ -604,14 +636,78 @@ export default function HorsesAdmin() {
       ]);
       setMintOverview(overview);
       setMintTargets(targets);
-      await loadMintLedger(mintLedgerAsset, mintLedgerAction);
+      await loadMintLedger(mintLedgerAsset, mintLedgerAction, mintLedgerHolder?.id || '', 0, false);
       setMintLoaded(true);
     } catch (err) {
       setMintError(err.message);
     } finally {
       setMintLoading(false);
     }
-  }, [authFetch, loadMintLedger, mintLedgerAsset, mintLedgerAction]);
+  }, [authFetch, loadMintLedger, mintLedgerAsset, mintLedgerAction, mintLedgerHolder]);
+
+  /** Re-read the ledger from the top under the current filters. Every filter
+   *  control routes through this so none of them can forget a sibling filter
+   *  and silently widen the view. */
+  const refreshMintLedger = useCallback(
+    (asset, action, holder) => {
+      loadMintLedger(asset, action, holder?.id || '', 0, false).catch((err) =>
+        showNotification(err.message, 'error')
+      );
+    },
+    [loadMintLedger, showNotification]
+  );
+
+  const loadMoreMintLedger = useCallback(async () => {
+    if (!mintLedger?.entries) return;
+    setMintLedgerPaging(true);
+    try {
+      await loadMintLedger(
+        mintLedgerAsset,
+        mintLedgerAction,
+        mintLedgerHolder?.id || '',
+        mintLedger.entries.length,
+        true
+      );
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setMintLedgerPaging(false);
+    }
+  }, [loadMintLedger, mintLedger, mintLedgerAsset, mintLedgerAction, mintLedgerHolder, showNotification]);
+
+  /**
+   * Load a past operation back into the form as its OPPOSITE, ready to review.
+   *
+   * Correcting a mistyped issuance is the single most likely thing an operator
+   * needs from a journal, and retyping a holder id and an amount by hand is
+   * exactly where a second mistake gets made. This fills the form and stops —
+   * the confirmation step still has to be read and accepted, and a fresh
+   * idempotency key is minted so the reversal is its own operation rather than
+   * a replay of the row being reversed.
+   */
+  const reverseMintOperation = useCallback(
+    (row) => {
+      setMintAction(row.action === 'mint' ? 'burn' : 'mint');
+      setMintAsset(row.asset);
+      setMintTargetKind(row.holder_type);
+      setMintTargetId(row.holder_id);
+      setMintAmount(String(row.amount));
+      setMintReason(
+        `Reversing ${row.action} of ${row.amount} ${row.asset} (operation ${row.op_id}): `
+      );
+      setMintPickedPlayer(
+        row.holder_type === 'player'
+          ? { id: row.holder_id, label: row.holder_label, balance: null, playerNumber: null }
+          : null
+      );
+      setMintOpId(newMintOpId());
+      setMintConfirm(null);
+      setMintReceipt(null);
+      showNotification('Loaded Into The Form. Add Why, Then Review.', 'success');
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [newMintOpId, showNotification]
+  );
 
   const searchMintPlayers = useCallback(async (term) => {
     if (!term || term.trim().length < 2) {
@@ -3696,9 +3792,7 @@ export default function HorsesAdmin() {
                         aria-label="Filter by asset"
                         onChange={(e) => {
                           setMintLedgerAsset(e.target.value);
-                          loadMintLedger(e.target.value, mintLedgerAction).catch((err) =>
-                            showNotification(err.message, 'error')
-                          );
+                          refreshMintLedger(e.target.value, mintLedgerAction, mintLedgerHolder);
                         }}
                       >
                         <option value="">All Assets</option>
@@ -3711,9 +3805,7 @@ export default function HorsesAdmin() {
                         aria-label="Filter by operation"
                         onChange={(e) => {
                           setMintLedgerAction(e.target.value);
-                          loadMintLedger(mintLedgerAsset, e.target.value).catch((err) =>
-                            showNotification(err.message, 'error')
-                          );
+                          refreshMintLedger(mintLedgerAsset, e.target.value, mintLedgerHolder);
                         }}
                       >
                         <option value="">Issuance And Retirement</option>
@@ -3744,9 +3836,26 @@ export default function HorsesAdmin() {
                           )
                         }
                         disabled={!mintLedger?.entries?.length}
+                        title="Exports the rows currently loaded below, not the whole journal"
                       >
-                        Export CSV
+                        Export Loaded Rows
                       </button>
+
+                      {/* A drill-down you cannot see is a drill-down you cannot
+                          leave. The chip states the filter and clears it. */}
+                      {mintLedgerHolder && (
+                        <button
+                          type="button"
+                          className={styles.filterBtn}
+                          onClick={() => {
+                            setMintLedgerHolder(null);
+                            refreshMintLedger(mintLedgerAsset, mintLedgerAction, null);
+                          }}
+                          title="Show every holder again"
+                        >
+                          Only {mintLedgerHolder.label} - Clear
+                        </button>
+                      )}
                     </div>
 
                     {!mintLedger?.entries?.length ? (
@@ -3767,6 +3876,7 @@ export default function HorsesAdmin() {
                               <th>Net Issued</th>
                               <th>Reason</th>
                               <th>By</th>
+                              <th>Correct</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -3779,7 +3889,34 @@ export default function HorsesAdmin() {
                                   {row.action === 'mint' ? 'Issued' : 'Retired'} {row.asset}
                                 </td>
                                 <td>
-                                  {row.holder_label || `${String(row.holder_id).slice(0, 8)}...`}
+                                  {/* Clicking a holder narrows the journal to that
+                                      holder. The route has always supported it and
+                                      "everything ever issued to this club" is the
+                                      first question anyone asks of an issuance log. */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const holder = {
+                                        id: row.holder_id,
+                                        label: row.holder_label || row.holder_id,
+                                      };
+                                      setMintLedgerHolder(holder);
+                                      refreshMintLedger(mintLedgerAsset, mintLedgerAction, holder);
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: 0,
+                                      color: T.text,
+                                      cursor: 'pointer',
+                                      textDecoration: 'underline',
+                                      textUnderlineOffset: 3,
+                                      font: 'inherit',
+                                    }}
+                                    title="Show only this holder"
+                                  >
+                                    {row.holder_label || `${String(row.holder_id).slice(0, 8)}...`}
+                                  </button>
                                   <span style={{ color: T.muted, marginLeft: 6 }}>
                                     {row.holder_type}
                                   </span>
@@ -3794,6 +3931,16 @@ export default function HorsesAdmin() {
                                 <td>{num(row.supply_after)}</td>
                                 <td>{row.reason}</td>
                                 <td>{row.performed_by_label || '-'}</td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className={styles.actionBtn}
+                                    onClick={() => reverseMintOperation(row)}
+                                    title={`Load the opposite of this ${row.action} into the form`}
+                                  >
+                                    Reverse
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -3801,10 +3948,29 @@ export default function HorsesAdmin() {
                       </div>
                     )}
 
-                    {mintLedger?.total > (mintLedger?.entries?.length || 0) && (
-                      <p className={styles.pageInfo}>
-                        Showing {mintLedger.entries.length} Of {num(mintLedger.total)} Operations.
-                      </p>
+                    {/* "Showing 100 of 400" with no way to see the other 300 is
+                        not a status line, it is a dead end — and it is the bug
+                        this file already records for the reviews tab. */}
+                    {mintLedger?.entries?.length > 0 && (
+                      <div style={{ marginTop: 14, textAlign: 'center' }}>
+                        <p className={styles.pageInfo} style={{ marginBottom: 8 }}>
+                          Showing {num(mintLedger.entries.length)} Of {num(mintLedger.total)}{' '}
+                          Operations
+                          {mintLedgerHolder ? ` For ${mintLedgerHolder.label}` : ''}.
+                        </p>
+                        {mintLedger.total > mintLedger.entries.length && (
+                          <button
+                            type="button"
+                            className={styles.actionBtn}
+                            onClick={loadMoreMintLedger}
+                            disabled={mintLedgerPaging}
+                          >
+                            {mintLedgerPaging
+                              ? 'Loading...'
+                              : `Load ${num(Math.min(MINT_LEDGER_PAGE, mintLedger.total - mintLedger.entries.length))} More`}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
