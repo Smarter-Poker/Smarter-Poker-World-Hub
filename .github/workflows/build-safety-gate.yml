@@ -772,6 +772,11 @@ jobs:
       # that motivated this guard (every signup 404'd because
       # pages/auth/callback.js had been silently deleted).
       # ═══════════════════════════════════════════════════════════════
+      # arena-theme-assets-exist.test.mjs left this list on 2026-09-03: it
+      # asserted card artwork inside public/hub/club-arena/, which Club Arena
+      # now serves from its own origin. club-arena-is-a-rewrite.test.mjs takes
+      # its place here - the same idea (the thing we serve is actually there)
+      # against the arrangement that exists.
       - name: "CHECK 8: Auth-critical files exist"
         run: |
           if [ ! -f __tests__/auth-routes-exist.test.mjs ]; then
@@ -795,7 +800,7 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
-            __tests__/arena-theme-assets-exist.test.mjs
+            tests/club-arena-is-a-rewrite.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
