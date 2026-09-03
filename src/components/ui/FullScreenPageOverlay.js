@@ -13,6 +13,9 @@ import React, { useEffect, useRef, useState } from 'react';
 export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onNotifCleared }) {
     const [loaded, setLoaded] = useState(false);
     const iframeRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const panelRef = useRef(null);
+    const previousFocusRef = useRef(null);
 
     // Lock body scroll & listen for Escape key
     useEffect(() => {
@@ -30,17 +33,80 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
             return;
         }
 
+        /*
+         * SCROLL LOCK: RESTORE WHAT WAS THERE, DO NOT BLANK IT.
+         *
+         * This used to end with `document.body.style.overflow = ''` and a note
+         * saying "Always clear — don't restore saved value (race condition
+         * risk)". Blanking is not the safe option, it is a silent bug: a page
+         * that had deliberately locked its own scroll — a poker table, a modal
+         * already open beneath this one — got quietly unlocked the moment
+         * somebody dismissed a notification popup over it, and started
+         * scrolling behind content that was supposed to hold it still.
+         *
+         * There is no race here to be afraid of. Capture is per-open and the
+         * restore is in that same effect's cleanup, so a nested overlay
+         * captures 'hidden', restores 'hidden', and the outer one still puts
+         * the true original back. Blanking is what loses information; saving
+         * and restoring is what preserves it.
+         */
+        const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
+        /*
+         * FOCUS: put the keyboard inside the popup and remember where it came
+         * from. Note the honest limit of framing a page — once focus enters the
+         * iframe, its document owns the Tab order and our keydown listener
+         * cannot see it, because events do not cross the frame boundary. What
+         * this gets right is the part we CAN control: focus starts on Close
+         * rather than wherever it happened to be on the page behind, Tab cycles
+         * between Close and the frame rather than walking into the covered
+         * page, and focus returns to the control that opened the popup when it
+         * closes. A feed rendered natively rather than framed would be fully
+         * trappable; that is one more reason to prefer one.
+         */
+        previousFocusRef.current =
+            typeof document !== 'undefined' ? document.activeElement : null;
+        const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus());
+
         const handleKey = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+            if (e.key !== 'Tab' || !panelRef.current) return;
+            const focusables = panelRef.current.querySelectorAll(
+                'a[href], button:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            // Focus sitting on a non-focusable part of the overlay makes
+            // activeElement <body>, and the next Tab would otherwise walk into
+            // the page behind. Pull it back in.
+            if (!panelRef.current.contains(document.activeElement)) {
+                e.preventDefault();
+                (e.shiftKey ? last : first).focus();
+                return;
+            }
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
         };
         window.addEventListener('keydown', handleKey);
 
         return () => {
-            // Always clear — don't restore saved value (race condition risk)
-            document.body.style.overflow = '';
+            document.body.style.overflow = previousOverflow;
+            cancelAnimationFrame(focusFrame);
             window.removeEventListener('keydown', handleKey);
+            const returnTo = previousFocusRef.current;
+            if (returnTo && typeof returnTo.focus === 'function' && returnTo.isConnected) {
+                returnTo.focus();
+            }
         };
     }, [isOpen, onClose]);
 
@@ -130,13 +196,24 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                     transition: background 0.15s ease, transform 0.1s ease;
                 }
 
-                .fsp-close-btn:hover {
+                /* NO :hover. Two reasons, and the second is the one that bit
+                   players: most of this traffic is a phone, where hover does
+                   not exist, so a hover style is a state most people can never
+                   see; and iOS SYNTHESISES a hover on first tap, so the old
+                   scale(1.1) transform left the close button visibly
+                   enlarged and stuck that way after the tap, until something
+                   else was tapped. Press feedback is :active, which fires on
+                   touch. Keyboard reachability is :focus-visible, and it
+                   matters more now that focus starts here on open. */
+                .fsp-close-btn:active {
                     background: rgba(255,255,255,0.2);
-                    transform: scale(1.1);
+                    transform: scale(0.95);
                 }
 
-                .fsp-close-btn:active {
-                    transform: scale(0.95);
+                .fsp-close-btn:focus-visible {
+                    background: rgba(255,255,255,0.2);
+                    outline: 2px solid #0088ff;
+                    outline-offset: 2px;
                 }
 
                 .fsp-iframe-wrap {
@@ -184,11 +261,19 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                 }
             `}</style>
 
-            <div className="fsp-overlay" role="dialog" aria-modal="true" aria-label={title || 'Page Overlay'}>
+            <div
+                ref={panelRef}
+                className="fsp-overlay"
+                role="dialog"
+                aria-modal="true"
+                aria-label={title || 'Page Overlay'}
+            >
                 {/* Top bar with title & close */}
                 <div className="fsp-topbar">
                     <span className="fsp-title">{title || ''}</span>
                     <button
+                        ref={closeButtonRef}
+                        type="button"
                         className="fsp-close-btn"
                         onClick={onClose}
                         aria-label="Close"

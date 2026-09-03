@@ -41,7 +41,7 @@ import { useDiamondBalance } from '../../hooks/useDiamondBalance';
 import useCurrentUser from '../../hooks/useCurrentUser';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
-import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
+import { listenBroadcast } from '../../lib/broadcastSync';
 import { getHeaderStats } from '../../lib/headerStats';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { resolveActiveVip, resolveHeaderPortrait } from '../../lib/headerPortrait';
@@ -168,7 +168,7 @@ export default function UniversalHeader({
   // Commander can open the same popup this header opens. Rendered by
   // GlobalPageOverlay in _app; nothing is rendered from this file.
   const openPageOverlay = usePageOverlayStore((s) => s.openOverlay);
-  const notifClearedCount = usePageOverlayStore((s) => s.notifClearedCount);
+  const notifCleared = usePageOverlayStore((s) => s.notifCleared);
   const [isVip, setIsVip] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -305,39 +305,18 @@ export default function UniversalHeader({
   // close produced two competing writes and one redundant API call. Anything
   // the bridge misses is reconciled by useUnreadCount's realtime subscription.
   useEffect(() => {
-    if (typeof notifClearedCount === 'number') {
-      setNotificationCount(notifClearedCount);
+    if (notifCleared && typeof notifCleared.count === 'number') {
+      setNotificationCount(notifCleared.count);
     }
-  }, [notifClearedCount]);
+    // Keyed on the whole object, which carries a timestamp, so a second clear
+    // to the same number still fires. See the note in pageOverlayStore.
+  }, [notifCleared]);
 
-  // Persist "all notifications read" so the optimistic badge zero is actually TRUE.
-  // An empty body means mark-all (see pages/api/notifications/mark-read.js), and that
-  // endpoint writes BOTH the `read` and `is_read` columns — which is exactly what
-  // stops the count resurrecting on the next poll.
-  const markAllNotificationsRead = useCallback(async () => {
-    try {
-      let accessToken = null;
-      try {
-        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-        accessToken = authData?.access_token || null;
-      } catch (_) {
-        /* private browsing — ignore */
-      }
-      await fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({}),
-      });
-      try {
-        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications' });
-      } catch (_) {}
-    } catch (e) {
-      console.warn('[UniversalHeader] mark-all-read failed:', e?.message || e);
-    }
-  }, []);
+  // `markAllNotificationsRead` used to live here and was called by the bell's
+  // onClick alone. It moved into src/stores/pageOverlayStore.js so that opening
+  // notifications from ANY door acknowledges the badge — see the note there.
+  // Deleted rather than left in place: a mark-all-read helper sitting unused in
+  // a header is one `onClick` away from a second, competing writer.
 
   useEffect(() => {
     let mounted = true; // Prevent state updates after unmount
@@ -1551,16 +1530,14 @@ export default function UniversalHeader({
           <button
             type="button"
             className="approved-global-header__button approved-global-header__notifications"
-            onClick={() => {
-              setNotificationCount(0);
-              try {
-                localStorage.setItem('sp-notif-count', '0');
-              } catch (_) {
-                console.warn('[App] Handled exception:', _?.message || _);
-              }
-              markAllNotificationsRead();
-              openOverlay('notifications');
-            }}
+            /* Zeroing the badge, writing sp-notif-count and POSTing mark-read
+               used to be written out here, which meant the badge cleared from
+               THIS control and from nowhere else — the bottom nav, the
+               hamburger, /hub/pages and Commander opened the identical popup
+               and left the count sitting there. All of it moved into the
+               store's openOverlay, so acknowledging is now part of opening
+               notifications rather than a property of one button. */
+            onClick={() => openOverlay('notifications')}
             aria-label="Notifications"
           >
             {safeNotificationCount > 0 && (
