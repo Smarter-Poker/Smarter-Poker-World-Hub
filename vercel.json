@@ -715,10 +715,6 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/vip-stipend",
-      "schedule": "0 9 1 * *"
-    },
-    {
       "path": "/api/cron/pvp-settle",
       "schedule": "*/30 * * * *"
     }
