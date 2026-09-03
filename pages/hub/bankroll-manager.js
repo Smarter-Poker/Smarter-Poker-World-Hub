@@ -813,46 +813,42 @@ export default function BankrollManagerPage() {
 
           {/* Main Layout */}
           <div className="bankroll-main-layout" style={styles.mainLayout}>
-            {/* Left Sidebar — hidden on mobile via CSS */}
-            <nav className="bankroll-sidebar" style={styles.sidebar}>
-              {SIDEBAR_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
-                  style={{
-                    ...styles.sidebarItem,
-                    ...(activeSection === section.id && !section.action ? styles.sidebarItemActive : {}),
-                  }}
-                >
-                  {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
-                </button>
-              ))}
+            {/* Navigation. ONE nav for every width (Always-Displayed Mobile
+                Standard, docs/mobile-standard). Desktop: the 160px rail.
+                Phone (<=768px): the same 13 buttons as a two-column grid
+                above the content, every one visible, nothing behind a
+                swipe. The old `.bankroll-mobile-nav` horizontal pill rail
+                (hidden scrollbar, items 5-13 off screen) is deleted. */}
+            <nav className="bankroll-sidebar" style={styles.sidebar} aria-label="Bankroll Manager Sections">
+              <div className="bankroll-sidebar-list">
+                {SIDEBAR_SECTIONS.map((section) => {
+                  const isActive = activeSection === section.id && !section.action;
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      className={`bankroll-sidebar-item${isActive ? ' active' : ''}`}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
+                      style={{
+                        ...styles.sidebarItem,
+                        ...(isActive ? styles.sidebarItemActive : {}),
+                      }}
+                    >
+                      {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
+                    </button>
+                  );
+                })}
+              </div>
 
               {/* Jarvis AI Insights - moved from right panel */}
-              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+              <div className="bankroll-sidebar-insights" style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
                 <JarvisLeakInsights userId={userId} onRefresh={loadData} />
               </div>
             </nav>
 
             {/* Main Content - Switches based on activeSection */}
             <main className="bankroll-main-content" style={styles.mainContent}>
-              {/* Mobile Navigation — horizontal pill bar, visible only on mobile via CSS */}
-              <div className="bankroll-mobile-nav">
-                {SIDEBAR_SECTIONS.map((section) => {
-                  const isDashboard = section.id === 'dashboard';
-                  const onSubPage = activeSection !== 'dashboard';
-                  const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
-                  return (
-                    <button
-                      key={section.id}
-                      className={`bankroll-mobile-nav-item${activeSection === section.id && !section.action ? ' active' : ''}`}
-                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
-                    >
-                      {displayLabel}
-                    </button>
-                  );
-                })}
-              </div>
 
               {/* Header */}
               <div className="bankroll-content-header" style={styles.contentHeader}>
@@ -1254,18 +1250,21 @@ export default function BankrollManagerPage() {
                         </button>
                       </div>
                     )}
-                    <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
-                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                    {/* Analytics: a grid at every width. Three across on
+                        desktop, one column stacked on phones. Was a
+                        scroll-snap slider with 85% cards (slide to see). */}
+                    <div className="bankroll-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridAutoRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
+                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
                         <HubErrorBoundary name="Location Analytics">
                           <LocationAnalytics entries={filteredAnalyticsEntries} isLoading={isLoading} />
                         </HubErrorBoundary>
                       </div>
-                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
                         <HubErrorBoundary name="Variance Calculator">
                           <VarianceCalculator entries={filteredAnalyticsEntries} />
                         </HubErrorBoundary>
                       </div>
-                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
                         <HubErrorBoundary name="Historical Comparison">
                           <HistoricalComparison entries={filteredAnalyticsEntries} />
                         </HubErrorBoundary>
@@ -2181,11 +2180,13 @@ export default function BankrollManagerPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100dvh',
     background: '#18191a',  // SmarterPoker dark background
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
-    paddingBottom: 70,  // CRITICAL: clears fixed bottom nav
+    // No paddingBottom here: pages/_app.js renders <BottomNavSpacer/> for
+    // every route in src/config/bottom-nav-routes.json (PR #766, #992). A
+    // page-owned 70 was ~34px short on home-indicator iPhones.
     width: '100%',
     maxWidth: '100vw',
     overflowX: 'hidden',

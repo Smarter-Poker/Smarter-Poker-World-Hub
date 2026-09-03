@@ -765,15 +765,17 @@ const s = {
     },
 
     // Tabs
+    // Always-Displayed Mobile Standard: tabs wrap, they never scroll sideways.
     tabBar: {
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 0,
         padding: '12px 16px 0',
-        overflowX: 'auto',
         borderBottom: `1px solid ${METAL.highlight}`,
     },
     tab: {
         flex: '0 0 auto',
+        minHeight: 44,
         padding: '10px 14px',
         background: 'none',
         border: 'none',
@@ -793,11 +795,12 @@ const s = {
     // Year filter
     yearRow: {
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 8,
         padding: '12px 16px',
-        overflowX: 'auto',
     },
     yearBtn: {
+        minHeight: 44,
         padding: '6px 12px',
         background: METAL.darkest,
         border: `1px solid ${METAL.highlight}`,

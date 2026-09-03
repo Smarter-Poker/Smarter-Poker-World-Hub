@@ -299,8 +299,9 @@ const s = {
     venueStats: { textAlign: 'right', flexShrink: 0 },
     venueTotal: { fontSize: 15, fontWeight: 700, color: METAL.success },
     venueRate: { fontSize: 12, color: METAL.textSecondary },
-    tableWrapper: { overflowX: 'auto', padding: '0 16px 12px' },
-    table: { width: '100%', borderCollapse: 'collapse' },
+    // Four short columns fit 375px; no sideways scroll (Always-Displayed standard).
+    tableWrapper: { padding: '0 16px 12px' },
+    table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
     thead: { background: METAL.darkest },
     th: { padding: '8px 10px', fontSize: 11, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' },
     td: { padding: '10px 10px', fontSize: 14, color: METAL.textSecondary, borderBottom: '1px solid rgba(255,255,255,0.04)' },

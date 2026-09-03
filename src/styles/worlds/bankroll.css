@@ -40,7 +40,8 @@ body.world-bankroll-manager {
     border: 2px solid #9ca3af !important;
 }
 
-.bankroll-page button:not(.universal-header *):not(.hamburger-menu *):hover {
+/* Press feedback, not hover (no hover anywhere on mobile-first surfaces). */
+.bankroll-page button:not(.universal-header *):not(.hamburger-menu *):active {
     border-color: #d1d5db !important;
 }
 
@@ -77,11 +78,6 @@ body.world-bankroll-manager {
     border: none !important;
 }
 
-/* ── Mobile nav tabs ── */
-.bankroll-mobile-nav .bankroll-mobile-nav-item {
-    border: 2px solid #9ca3af !important;
-}
-
 /* ── Dropdown menus (outer = 2px) ── */
 .bankroll-page .bankroll-dropdown-menu {
     border: 2px solid #9ca3af !important;
@@ -96,15 +92,25 @@ body.world-bankroll-manager {
     border: 1px solid #9ca3af !important;
 }
 
-/* ── Sidebar items ── */
-.bankroll-sidebar button {
+/* ── Sidebar items ──
+   No hover (Club Arena: "Remove hover entirely, everywhere."). The active
+   section is marked by border + background + aria-current, never colour
+   alone. Press feedback is :active. */
+.bankroll-sidebar .bankroll-sidebar-item {
     border: 2px solid transparent !important;
     transition: border-color 0.15s ease;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.bankroll-sidebar button:hover,
-.bankroll-sidebar button[style*="background"] {
+.bankroll-sidebar .bankroll-sidebar-item.active,
+.bankroll-sidebar .bankroll-sidebar-item:focus-visible {
     border: 2px solid #9ca3af !important;
+}
+
+.bankroll-sidebar .bankroll-sidebar-item:active {
+    transform: scale(0.98);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -170,28 +176,18 @@ body.world-bankroll-manager {
 @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE NAVIGATION — Horizontal scrollable pill bar
-   Hidden on desktop, shown on mobile when sidebar is hidden
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.bankroll-mobile-nav {
-    display: none;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE — @media (max-width: 768px)
+   Always-Displayed Mobile Standard (docs/mobile-standard/). Everything the
+   desktop shows, the phone shows, stacked. No horizontal rails, no hidden
+   scrollbars, no scroll-snap, no display:none on content.
    DO NOT REMOVE THESE RULES. They are the sole mobile layout for Bankroll Manager.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-    /* Hide desktop sidebar on mobile */
-    .bankroll-sidebar {
-        display: none !important;
-    }
-
-    /* Stack layout vertically */
+    /* Stack layout vertically: nav grid, then content */
     .bankroll-main-layout {
         flex-direction: column !important;
+        min-height: 0 !important;
     }
 
     /* Edge-to-edge: Social Media mobile standard */
@@ -209,6 +205,50 @@ body.world-bankroll-manager {
         overflow-x: clip !important;
     }
 
+    /* The sidebar IS the phone nav: full width, every section visible as a
+       two-column grid of 44px buttons. Nothing to slide. */
+    .bankroll-sidebar {
+        width: 100% !important;
+        padding: 12px 12px 0 !important;
+        border-right: none !important;
+        box-sizing: border-box;
+    }
+
+    .bankroll-sidebar-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .bankroll-sidebar .bankroll-sidebar-item {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+        text-align: center !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.2;
+        border-radius: 10px !important;
+        border: 2px solid rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .bankroll-sidebar .bankroll-sidebar-item.active {
+        background: rgba(35, 116, 225, 0.2) !important;
+        border-color: #2374e1 !important;
+        color: #2374e1 !important;
+        font-weight: 600 !important;
+    }
+
+    /* Jarvis insights stay visible; they sit under the nav grid, full width */
+    .bankroll-sidebar-insights {
+        margin-top: 12px !important;
+        padding-top: 12px !important;
+    }
+
     /* Content goes full-width on mobile */
     .bankroll-main-content {
         max-width: 100% !important;
@@ -218,6 +258,8 @@ body.world-bankroll-manager {
 
     .bankroll-content-header {
         margin-bottom: 12px !important;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .bankroll-page-title {
@@ -227,6 +269,7 @@ body.world-bankroll-manager {
     .bankroll-log-btn {
         padding: 8px 16px !important;
         font-size: 13px !important;
+        min-height: 44px;
     }
 
     .bankroll-stats-grid {
@@ -234,45 +277,7 @@ body.world-bankroll-manager {
         margin-bottom: 16px !important;
     }
 
-    /* Show mobile horizontal pill navigation */
-    .bankroll-mobile-nav {
-        display: flex !important;
-        overflow-x: auto;
-        gap: 6px;
-        padding: 0 0 12px 0;
-        margin-bottom: 8px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .bankroll-mobile-nav::-webkit-scrollbar {
-        display: none;
-    }
-
-    .bankroll-mobile-nav-item {
-        flex-shrink: 0;
-        padding: 7px 14px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.12);
-        background: rgba(255,255,255,0.04);
-        color: rgba(255,255,255,0.6);
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        white-space: nowrap;
-        font-family: Inter, -apple-system, sans-serif;
-        transition: all 0.15s ease;
-    }
-
-    .bankroll-mobile-nav-item.active {
-        background: rgba(35,116,225,0.2);
-        border-color: #2374e1;
-        color: #2374e1;
-        font-weight: 600;
-    }
-
-    /* Compact 2-column filter grid on mobile */
+    /* Compact 2-column filter grid on mobile: all four filters visible */
     .bankroll-filters-row {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
@@ -288,12 +293,12 @@ body.world-bankroll-manager {
 
     .bankroll-filters-row button {
         padding: 6px 8px !important;
-        font-size: 11px !important;
+        font-size: 13px !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         width: 100% !important;
-        min-height: 32px;
+        min-height: 44px;
         touch-action: manipulation;
     }
 
@@ -303,29 +308,21 @@ body.world-bankroll-manager {
         max-height: 50vh !important;
     }
 
-    /* Horizontally scrollable analytics cards on mobile */
-    .bankroll-analytics-slider {
-        display: flex !important;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 12px;
-        padding-bottom: 8px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+    /* Analytics cards: one column, all three stacked and fully visible.
+       Was `.bankroll-analytics-slider`: overflow-x:auto + scroll-snap + 85%
+       cards, i.e. two of three cards only reachable by swiping. */
+    .bankroll-analytics-grid {
+        grid-template-columns: 1fr !important;
+        grid-auto-rows: auto !important;
+        gap: 12px !important;
     }
 
-    .bankroll-analytics-slider::-webkit-scrollbar {
-        display: none;
-    }
-
-    .bankroll-analytics-slider > * {
-        flex: 0 0 85%;
-        scroll-snap-align: start;
-        min-width: 0;
-        height: 300px !important;
-        min-height: 300px !important;
-        max-height: 300px !important;
-        overflow: auto;
+    /* Each card shows its whole content on phones: no 300px inner scroller. */
+    .bankroll-analytics-card {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     /* Wrap active trip banner on mobile */
@@ -337,15 +334,5 @@ body.world-bankroll-manager {
     /* Smaller stat values on mobile */
     .bankroll-stat-value {
         font-size: 20px !important;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESKTOP — Force-hide mobile nav on desktop
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@media (min-width: 769px) {
-    .bankroll-mobile-nav {
-        display: none !important;
     }
 }
