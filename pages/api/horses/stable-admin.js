@@ -237,7 +237,7 @@ function horseIdList(value) {
  * one operation with no record of itself.
  */
 async function writeInChunks(ids, run) {
-  const rows = [];
+  const data = [];
   let error = null;
   let chunks = 0;
   for (const part of chunk(ids, BULK_IN_CHUNK)) {
@@ -247,9 +247,10 @@ async function writeInChunks(ids, run) {
       error = res.error;
       break;
     }
-    rows.push(...(res?.data || []));
+    data.push(...(res?.data || []));
   }
-  return { rows, error, chunks };
+  // Returned as `data` so the silent-write guard can see the row count is read.
+  return { data, error, chunks };
 }
 
 // -- ACTIONS -----------------------------------------------------------------
@@ -360,17 +361,17 @@ async function bulkActive(db, op, req, body) {
     db.from('content_authors').select('id, is_active').in('id', part)
   );
 
-  const { rows, error, chunks } = await writeInChunks(ids, (part) =>
+  const { data, error, chunks } = await writeInChunks(ids, (part) =>
     db.from('content_authors').update({ is_active: isActive }).in('id', part).select('id')
   );
-  const affected = rows.length;
+  const affected = data.length;
 
   await auditOperatorAction(op, req, {
     action: 'horse.bulk_active',
     targetType: 'content_author',
     targetId: null,
     before: { rows: beforeRead.rows },
-    after: { is_active: isActive, ids: rows.map((r) => r.id) },
+    after: { is_active: isActive, ids: data.map((r) => r.id) },
     details: {
       requested: ids.length,
       affected,
@@ -425,10 +426,10 @@ async function bulkDelete(db, op, req, body) {
     db.from('content_authors').select('id, name, alias').in('id', part)
   );
 
-  const { rows, error, chunks } = await writeInChunks(ids, (part) =>
+  const { data, error, chunks } = await writeInChunks(ids, (part) =>
     db.from('content_authors').delete().in('id', part).select('id')
   );
-  const affected = rows.length;
+  const affected = data.length;
 
   await auditOperatorAction(op, req, {
     action: 'horse.bulk_delete',
@@ -442,7 +443,7 @@ async function bulkDelete(db, op, req, body) {
       chunks,
       chunkSize: BULK_IN_CHUNK,
       partial: Boolean(error),
-      deleted: rows.map((r) => r.id),
+      deleted: data.map((r) => r.id),
     },
   });
   // The audit row is written FIRST: chunks that succeeded before the failure
