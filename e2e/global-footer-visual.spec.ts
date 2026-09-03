@@ -83,7 +83,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       for (let index = 0; index < 6; index += 1) {
         const link = links.nth(index);
         const linkBox = await link.boundingBox();
-        const iconBox = await link.locator('svg').boundingBox();
+        const iconBox = await link.locator('svg').first().boundingBox();
         const labelBox = await link.locator('.bn-label').boundingBox();
         expect(linkBox).not.toBeNull();
         expect(iconBox).not.toBeNull();
@@ -160,6 +160,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(nav).toHaveCount(1);
     await expect(nav).toHaveAttribute('data-footer-world', 'global');
     await expect(nav.getByRole('link')).toHaveCount(6);
+  });
+
+  test('the World Hub landing page stays footerless', async ({ page }) => {
+    await visit(page, '/hub');
+    await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-bottom-nav-clearance="true"]')).toHaveCount(0);
   });
 
   test('Club Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {

@@ -19,14 +19,16 @@
       "label": "Personal Assistant",
       "theme": "dark",
       "accent": "#4599ff",
+      "secondary": "#8f6bff",
+      "visual": "premium",
       "routePrefixes": ["/hub/personal-assistant"],
       "items": [
-        { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain" },
-        { "href": "/hub/personal-assistant/sandbox", "label": "Sandbox", "title": "GTO Sandbox", "icon": "target" },
-        { "href": "/hub/personal-assistant/leaks", "label": "Leaks", "title": "Leak Finder", "icon": "flame" },
-        { "href": "/hub/training", "label": "Train", "title": "Training Games", "icon": "graduation" },
-        { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Charts", "icon": "grid" },
-        { "href": "/hub/poker-tools", "label": "Odds", "title": "Odds Calculator", "icon": "calculator" }
+        { "href": "/hub/personal-assistant", "label": "Coach", "title": "Assistant Home", "icon": "brain", "tone": "#56c8ff" },
+        { "href": "/hub/personal-assistant/sandbox", "label": "Sandbox", "title": "GTO Sandbox", "icon": "target", "tone": "#9b7cff" },
+        { "href": "/hub/personal-assistant/leaks", "label": "Leaks", "title": "Leak Finder", "icon": "flame", "tone": "#ff6b45" },
+        { "href": "/hub/training", "label": "Train", "title": "Training Games", "icon": "graduation", "tone": "#49e28d" },
+        { "href": "/hub/preflop-charts", "label": "Charts", "title": "Preflop Charts", "icon": "grid", "tone": "#42e5e8" },
+        { "href": "/hub/poker-tools", "label": "Odds", "title": "Odds Calculator", "icon": "calculator", "tone": "#ffc857" }
       ]
     },
     {
@@ -34,14 +36,16 @@
       "label": "Training Games",
       "theme": "dark",
       "accent": "#22e67a",
+      "secondary": "#13c8ff",
+      "visual": "premium",
       "routePrefixes": ["/hub/training", "/hub/gto-trainer", "/hub/poker-brain", "/pokerbrain"],
       "items": [
-        { "href": "/hub/training", "label": "Library", "title": "Training Library", "icon": "graduation" },
-        { "href": "/hub/training/play-mode", "label": "Play", "title": "Play Training Games", "icon": "play" },
-        { "href": "/hub/training/daily-challenge", "label": "Daily", "title": "Daily Challenge", "icon": "zap" },
-        { "href": "/hub/training/progress", "label": "Progress", "title": "My Progress", "icon": "chart" },
-        { "href": "/hub/training/challenges", "label": "Goals", "title": "Training Challenges", "icon": "target" },
-        { "href": "/hub/training/leaderboard", "label": "Ranks", "title": "Training Leaderboard", "icon": "trophy" }
+        { "href": "/hub/training", "label": "Library", "title": "Training Library", "icon": "graduation", "tone": "#5ce6ff" },
+        { "href": "/hub/training/play-mode", "label": "Play", "title": "Play Training Games", "icon": "play", "tone": "#42f58d" },
+        { "href": "/hub/training/daily-challenge", "label": "Daily", "title": "Daily Challenge", "icon": "zap", "tone": "#ffe15a" },
+        { "href": "/hub/training/progress", "label": "Progress", "title": "My Progress", "icon": "chart", "tone": "#38bfff" },
+        { "href": "/hub/training/challenges", "label": "Goals", "title": "Training Challenges", "icon": "target", "tone": "#ff8264" },
+        { "href": "/hub/training/leaderboard", "label": "Ranks", "title": "Training Leaderboard", "icon": "trophy", "tone": "#f4c85b" }
       ]
     },
     {
@@ -49,14 +53,16 @@
       "label": "Poker News",
       "theme": "dark",
       "accent": "#ff7a1a",
+      "secondary": "#f2c45d",
+      "visual": "premium",
       "routePrefixes": ["/hub/news", "/hub/article"],
       "items": [
-        { "href": "/hub/news", "label": "Latest", "title": "Latest Poker News", "icon": "newspaper" },
-        { "href": "/hub/news?tab=videos", "label": "Videos", "title": "News Videos", "icon": "video" },
-        { "href": "/hub/news?tab=reels", "label": "Reels", "title": "News Reels", "icon": "film" },
-        { "href": "/hub/news?tab=events", "label": "Events", "title": "Poker Events", "icon": "calendar" },
-        { "href": "/hub/news?filter=bookmarks", "label": "Saved", "title": "Saved News", "icon": "bookmark" },
-        { "href": "/hub/news/sources", "label": "Sources", "title": "Manage News Sources", "icon": "rss" }
+        { "href": "/hub/news", "label": "Latest", "title": "Latest Poker News", "icon": "newspaper", "tone": "#ff9c50" },
+        { "href": "/hub/news?tab=videos", "label": "Videos", "title": "News Videos", "icon": "video", "tone": "#ff5c57" },
+        { "href": "/hub/news?tab=reels", "label": "Reels", "title": "News Reels", "icon": "film", "tone": "#c27cff" },
+        { "href": "/hub/news?tab=events", "label": "Events", "title": "Poker Events", "icon": "calendar", "tone": "#52cfff" },
+        { "href": "/hub/news?filter=bookmarks", "label": "Saved", "title": "Saved News", "icon": "bookmark", "tone": "#f3c968" },
+        { "href": "/hub/news/sources", "label": "Sources", "title": "Manage News Sources", "icon": "rss", "tone": "#6be2a0" }
       ]
     },
     {
@@ -64,14 +70,16 @@
       "label": "Poker Trivia",
       "theme": "dark",
       "accent": "#20d6ff",
+      "secondary": "#9a69ff",
+      "visual": "premium",
       "routePrefixes": ["/hub/trivia"],
       "items": [
-        { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help" },
-        { "href": "/hub/trivia/daily", "label": "Daily", "title": "Daily Challenge", "icon": "calendar" },
-        { "href": "/hub/trivia/arcade", "label": "Arcade", "title": "Quick Play Arcade", "icon": "gamepad" },
-        { "href": "/hub/trivia/pvp", "label": "PvP", "title": "Player versus Player", "icon": "swords" },
-        { "href": "/hub/trivia/stats", "label": "Stats", "title": "Trivia Statistics", "icon": "chart" },
-        { "href": "/hub/trivia/leaderboard", "label": "Ranks", "title": "Trivia Leaderboard", "icon": "trophy" }
+        { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help", "tone": "#4ee9ff" },
+        { "href": "/hub/trivia/daily", "label": "Daily", "title": "Daily Challenge", "icon": "calendar", "tone": "#ffd45e" },
+        { "href": "/hub/trivia/arcade", "label": "Arcade", "title": "Quick Play Arcade", "icon": "gamepad", "tone": "#8d7cff" },
+        { "href": "/hub/trivia/pvp", "label": "PvP", "title": "Player versus Player", "icon": "swords", "tone": "#ff647d" },
+        { "href": "/hub/trivia/stats", "label": "Stats", "title": "Trivia Statistics", "icon": "chart", "tone": "#4ed7a1" },
+        { "href": "/hub/trivia/leaderboard", "label": "Ranks", "title": "Trivia Leaderboard", "icon": "trophy", "tone": "#f0bd55" }
       ]
     },
     {
@@ -79,14 +87,16 @@
       "label": "Social Media",
       "theme": "dark",
       "accent": "#ff5d6c",
+      "secondary": "#3ed8ff",
+      "visual": "premium",
       "routePrefixes": ["/hub/social-media", "/hub/reels", "/hub/friends", "/hub/messenger", "/hub/social-pages", "/hub/saved-posts", "/hub/post", "/hub/user", "/u"],
       "items": [
-        { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home" },
-        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create a Post", "icon": "compose" },
-        { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
-        { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message" },
-        { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film" },
-        { "href": "/hub/social-pages", "label": "Pages", "title": "Social Pages", "icon": "layout" }
+        { "href": "/hub/social-media", "label": "Feed", "title": "Social Feed", "icon": "home", "tone": "#55d9ff" },
+        { "href": "/hub/social-media/compose", "label": "Create", "title": "Create a Post", "icon": "compose", "tone": "#ff6b8d" },
+        { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users", "tone": "#8f7dff" },
+        { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message", "tone": "#55e3a2" },
+        { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film", "tone": "#ff9b50" },
+        { "href": "/hub/social-pages", "label": "Pages", "title": "Social Pages", "icon": "layout", "tone": "#f5c85d" }
       ]
     },
     {

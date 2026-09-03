@@ -64,8 +64,7 @@ const routeExists = (href) => {
 };
 
 test('the legacy route policy remains valid and excludes Club Arena ownership', () => {
-  assert.equal(manifest['/hub'].theme, 'dark');
-  assert.equal(manifest['/hub'].noSafeArea, true);
+  assert.equal(manifest['/hub'], undefined, 'the World Hub landing page is intentionally footerless');
   assert.equal(manifest['/hub/settings'].hideInIframe, true);
   assert.equal(manifest['/hub/notifications'].hideInIframe, true);
   assert.equal(manifest['/hub/club-arena'], undefined, 'Club Arena owns its own chrome');
@@ -74,6 +73,19 @@ test('the legacy route policy remains valid and excludes Club Arena ownership', 
     assert.ok(
       routeFiles(route).some((candidate) => fs.existsSync(path.join(ROOT, candidate))),
       `${route} points to a page that no longer exists`
+    );
+  }
+});
+
+test('the first five approval worlds use the premium individualized treatment', () => {
+  const approvalIds = ['personal-assistant', 'training', 'news', 'trivia', 'social-media'];
+  for (const id of approvalIds) {
+    const world = registry.worlds.find((candidate) => candidate.id === id);
+    assert.equal(world?.visual, 'premium', `${id} is missing its premium frame treatment`);
+    assert.match(world?.secondary || '', /^#[0-9a-f]{6}$/i, `${id} needs a secondary light color`);
+    assert.ok(
+      world?.items.every((item) => /^#[0-9a-f]{6}$/i.test(item.tone || '')),
+      `${id} needs an individual color treatment for every control`
     );
   }
 });
@@ -130,6 +142,7 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(nav, /BOTTOM_NAV_CLEARANCE\s*=\s*'calc\([^']*env\(safe-area-inset-bottom/);
   assert.match(nav, /data-bottom-nav-clearance="true"/);
   assert.match(nav, /data-footer-world=\{footer\.id\}/);
+  assert.match(nav, /data-footer-visual=\{isPremium \? 'premium' : 'standard'\}/);
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);
   assert.match(nav, /position: 'fixed'/);

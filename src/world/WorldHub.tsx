@@ -52,7 +52,6 @@ import NewUserWelcomeModal from '../components/gates/NewUserWelcomeModal';
 import { useAvatar } from '../contexts/AvatarContext';
 /* The bottom nav's own height, so the mobile footer strip below can reserve it
    instead of guessing (it guessed 20px and lost every card's label). */
-import { BOTTOM_NAV_H } from '../components/ui/BottomNavBar';
 
 
 
@@ -1003,7 +1002,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         <div
                             style={{
                                 position: 'absolute',
-                                bottom: `calc(${BOTTOM_NAV_H} + 6px)`,
+                                bottom: '6px',
                                 left: 0,
                                 right: 0,
                                 display: 'flex',
