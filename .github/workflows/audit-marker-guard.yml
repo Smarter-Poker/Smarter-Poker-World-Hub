@@ -39,7 +39,7 @@ permissions:
 jobs:
   check:
     name: Audit-marker registry vs. tree
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 3
     steps:
       - name: Checkout

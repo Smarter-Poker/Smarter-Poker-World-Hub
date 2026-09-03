@@ -1,3 +1,10 @@
+# RUNNER (2026-09-03): `vars.CI_RUNNER` routes this and eight other World Hub
+# workflows to the estate's Hetzner runners the moment the repository variable is
+# set (Club Arena uses `estate-linux`). Unset, every job is exactly
+# `ubuntu-latest` as before. Measured 2026-09-02: E2E Tests, Global Footer E2E,
+# this gate and Supabase Invariants were ~75% of World Hub's hosted minutes
+# ($53 on Sept 1, $10 on Sept 2). Playwright installs skip `--with-deps` on a
+# self-hosted runner, where the browser deps are installed once on the box.
 name: Build Safety Gate
 
 # Runs on pushes to main and PRs targeting main — NOT all branches
@@ -38,7 +45,7 @@ permissions:
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
 
     steps:
@@ -908,7 +915,7 @@ jobs:
     name: Failure Notification
     needs: [safety-checks]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - name: Create GitHub Issue on Failure
@@ -946,7 +953,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════
   type-check:
     name: TypeScript Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     
     steps:
@@ -1003,7 +1010,7 @@ jobs:
     name: Vercel Deploy Retry (GitHub-500 guard)
     needs: [safety-checks]
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 
     steps:

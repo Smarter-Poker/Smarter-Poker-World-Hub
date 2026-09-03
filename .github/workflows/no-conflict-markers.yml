@@ -34,7 +34,7 @@ jobs:
     # both reported as the context `check` and a required-checks rule naming it
     # would have been ambiguous - satisfiable by whichever reported first.
     name: No Conflict Markers
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4

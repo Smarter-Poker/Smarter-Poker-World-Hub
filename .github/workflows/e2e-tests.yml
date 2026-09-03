@@ -20,7 +20,7 @@ concurrency:
 jobs:
   e2e:
     name: Playwright E2E Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean install + production build consumes ~7 minutes. The authenticated
     # desktop/mobile matrix uses two bounded workers. Four workers repeatedly
     # saturated the single local Next.js server and produced changing health,
@@ -53,7 +53,8 @@ jobs:
           fi
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
 
       - name: Build Next.js
         # `npm run build`, NOT a bare `npx next build`.
