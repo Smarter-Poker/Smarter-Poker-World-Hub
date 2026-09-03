@@ -1,15 +1,48 @@
+import { timingSafeEqual } from 'crypto';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 /**
  * /api/poker/gen-lobby-img
  * Generates a single photorealistic lobby image via Grok API.
  * Returns base64 PNG with black background removed.
- * 
- * GET /api/poker/gen-lobby-img?key=smarterpoker2026&name=search&type=pods
+ *
+ * GET /api/poker/gen-lobby-img?key=<LOBBY_IMAGE_GEN_KEY>&name=search&type=pods
+ *
+ * AUTH, corrected 2026-09-02. This route compared req.query.key against a
+ * hard-coded password that was committed in the code AND repeated in this
+ * doc comment, with no rate limit — in front of a real billed image generation
+ * call. Anyone who read the repository could spend money.
+ *
+ * Now: the secret lives in `LOBBY_IMAGE_GEN_KEY`, the comparison is
+ * constant-time, and the route fails CLOSED when the variable is unset rather
+ * than falling back to something guessable. Same shape as
+ * `venue-scraper/receive.js`.
  */
+
+/** Constant-time compare. Length is checked first because timingSafeEqual
+ *  throws on a length mismatch rather than returning false. */
+function safeEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 export default async function handler(req, res) {
   try {
-    if (req.query.key !== 'smarterpoker2026') {
+    // Image generation is billed per call, so this takes the AI limit (5/min)
+    // rather than the generic read limit.
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
+    const expected = process.env.LOBBY_IMAGE_GEN_KEY;
+    if (!expected) {
+      // Fail closed. A missing secret must never mean "let everyone through",
+      // and it should say so rather than look like a wrong password.
+      return res
+        .status(503)
+        .json({ error: 'Image generation is not configured (LOBBY_IMAGE_GEN_KEY unset).' });
+    }
+    if (!req.query.key || !safeEqual(req.query.key, expected)) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

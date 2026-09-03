@@ -16,3 +16,27 @@ jobs:
         run: node scripts/check-vercel-project-uniqueness.mjs
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      # BRANCH PROTECTION WATCHDOG (added 2026-09-02)
+      #
+      # CLAUDE.md 11.4 documents `branch-protection-watchdog.yml` as a daily
+      # 09:00 UTC job, and CHECK 6c's allowlist names it — but the file does
+      # not exist in .github/workflows/ and has not for some time. The logic
+      # survived in scripts/check-branch-protection.mjs, whose only caller was
+      # scripts/agent-push.sh, a push path CLAUDE.md never sanctions. So the
+      # regression it was built for — protection on `main` drifting silently,
+      # the 2026-05-10 incident — had nothing watching for it.
+      #
+      # It lives HERE rather than in a restored standalone workflow because
+      # CLAUDE.md 11.4 forbids net-new `schedule:` triggers, and this job
+      # already runs at exactly the 09:00 UTC the missing watchdog specified.
+      # Same cadence, same guarantee, no allowlist change needed.
+      #
+      # continue-on-error so a protection drift cannot mask the Vercel
+      # uniqueness result above it; the step still annotates the run and prints
+      # what it corrected.
+      - name: Branch protection watchdog
+        continue-on-error: true
+        run: node scripts/check-branch-protection.mjs --fix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
