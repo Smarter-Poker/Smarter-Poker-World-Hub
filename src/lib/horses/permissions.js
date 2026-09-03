@@ -217,11 +217,36 @@ export function isLegacyRole(role) {
   return LEGACY_ADMIN_ROLES.includes(role);
 }
 
-/** Permissions a profile role carries. Unknown or missing role -> none. */
+/**
+ * Permissions a ROLE KEY carries: the matrix, and what a grant of that key
+ * confers. Unknown or missing role -> none.
+ *
+ * This is NOT the function for `profiles.role`. A grant is a row with a
+ * granter and a reason; a profile role is free text. Feed a profile role
+ * through legacyPermissionsForProfileRole below, which answers nothing for
+ * every key but the legacy three.
+ */
 export function permissionsForRole(role) {
   if (typeof role !== 'string') return [];
   const perms = ROLE_PERMISSIONS[role];
   return perms ? [...perms] : [];
+}
+
+/**
+ * What `profiles.role` contributes on its own (re-verification H-1).
+ *
+ * Only the legacy three carry a set. A named key in profiles.role - `owner`
+ * is the one any future club or venue work is likely to write - contributes
+ * NOTHING: the named roles reach an account through an active grant in
+ * ca_operator_grants and through nothing else. This is the exact rule
+ * fn_ca_operator_permissions applies (`ca_operator_roles.is_legacy`), and
+ * until this function existed the JS resolver seeded its legacy set from
+ * permissionsForRole, so profiles.role = 'owner' plus a read_only grant
+ * resolved to every permission in this file while the database resolved
+ * six.
+ */
+export function legacyPermissionsForProfileRole(role) {
+  return isLegacyRole(role) ? permissionsForRole(role) : [];
 }
 
 /**

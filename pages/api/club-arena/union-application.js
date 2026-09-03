@@ -21,6 +21,8 @@ import { checkIdempotency } from '../../../src/lib/club-arena/idempotency';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 
 // Lazy accessor - a module-scope createClient() throws at IMPORT time when the
 // service-role key is missing, which takes the whole route down before any
@@ -47,8 +49,6 @@ async function getMidwayUnionId() {
   return data || null;
 }
 
-const PLATFORM_ADMIN_ROLES = ['admin', 'superadmin', 'god'];
-
 // The caller's real profiles.role, or null. Read once per request and passed
 // down so the authorisation check and the audit row agree about who this is.
 async function fetchProfileRole(userId) {
@@ -60,12 +60,18 @@ async function fetchProfileRole(userId) {
   return data?.role ?? null;
 }
 
-// Check if caller is platform admin (has admin/superadmin/god in profiles.role)
+// Is the caller platform staff for union review? Whoever holds clubs.write,
+// resolved the way the console resolves it (re-verification M-3): the three
+// legacy profile roles ('god' is the one the real owner accounts carry, and
+// omitting it once locked them out of every union review action) carry it
+// until enforce_named_roles is on, a granted finance or operations operator
+// carries it through the grant, and a narrowed legacy account does not. The
+// resolver fails open to the legacy set when its RPC is unreachable. Union
+// leads are authorised through union_admins below exactly as before.
 async function isPlatformAdmin(userId, knownRole) {
   const role = knownRole !== undefined ? knownRole : await fetchProfileRole(userId);
-  // 'god' is the role the real owner accounts carry - omitting it locked
-  // them out of every union review action.
-  return PLATFORM_ADMIN_ROLES.includes(role);
+  const gate = await operatorHoldsPermission(getSupabase(), { userId, profileRole: role }, PERMISSIONS.CLUBS_WRITE);
+  return gate.ok === true;
 }
 
 // Check if caller is union_lead for the given unionId
@@ -131,7 +137,7 @@ export default async function handler(req, res) {
     db: getSupabase(),
     requestId: requestIdOf(req),
   };
-  const platformAdmin = PLATFORM_ADMIN_ROLES.includes(actorRole);
+  const platformAdmin = await isPlatformAdmin(user.id, actorRole);
 
   // Zod validation - reject malformed payloads before DB queries
   const validation = validateUnionApplication(req.body);

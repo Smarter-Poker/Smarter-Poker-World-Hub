@@ -276,11 +276,11 @@ function fullPageRoots(body) {
 const ROOT_EXPECTATIONS = {
   'pages/horses/sql-console.js': {
     min: 3,
-    states: ['Authenticating Agent', 'This Is A Failure To Check Your Role'],
+    states: ['Authenticating Agent', 'This Is A Failure To Ask The Route'],
   },
   'pages/horses/hg-moderation.js': {
     min: 4,
-    states: ['Verifying Access', 'Could Not Verify Your Role', '403 - Admin Access Required'],
+    states: ['Verifying Access', 'Could Not Verify Your Role', '403 - Operator Access Required'],
   },
   'pages/horses/hand-reviews.js': {
     min: 3,
@@ -764,25 +764,37 @@ test('the sub-pages never use the throwing single-row read', () => {
   }
 });
 
-test('each sub-page keeps its own role check, on a live line', () => {
+test('each sub-page takes the route\'s answer on who is an operator, on a live line', () => {
+  // Re-verification M-1. The three legacy profile roles were the gate, and
+  // that list is exactly what Phase 2 made incomplete: requireOperator admits
+  // an active ca_operator_grants row too. So the pages ask
+  // GET operator-admin?section=policy through operatorGate, and the
+  // client-side role list is gone from every executable line.
   const ROLES = /\[\s*(['"])admin\1\s*,\s*(['"])superadmin\2\s*,\s*(['"])god\3\s*\]/;
   for (const rel of SUB_PAGES) {
     const lines = read(rel).split('\n');
     // A commented-out gate is not a gate. Only executable lines count.
     const live = lines.filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l));
-    const gate = live.filter((l) => ROLES.test(l));
-    assert.ok(gate.length > 0, `${rel} lost its role gate`);
-    assert.ok(
-      gate.some((l) => /\.includes\(/.test(l)),
-      `${rel} names the roles but does not test membership against them`
+    assert.equal(
+      live.filter((l) => ROLES.test(l)).length,
+      0,
+      `${rel} still gates on the legacy profile-role list`
+    );
+    assert.equal(
+      live.filter((l) => /from\(\s*(['"])profiles\1\s*\)/.test(l)).length,
+      0,
+      `${rel} still reads the role from profiles for itself`
     );
     assert.ok(
-      live.some((l) => /\.maybeSingle\(\s*\)/.test(l)),
-      `${rel} lost its profile read`
+      live.some((l) => /import \{ operatorGate \} from '\.\.\/\.\.\/src\/components\/horses\/operatorAdmin'/.test(l)),
+      `${rel} must import operatorGate`
     );
     assert.ok(
-      live.some((l) => /from\(\s*(['"])profiles\1\s*\)/.test(l)),
-      `${rel} must read the role from profiles`
+      live.some((l) => /await operatorGate\(token\)/.test(l)),
+      `${rel} must ask the route with the bearer`
     );
+    // Denied goes away; not-verified gets the retry screen, never a denial.
+    assert.ok(live.some((l) => /gate\.denied/.test(l)), `${rel} must branch on gate.denied`);
+    assert.ok(live.some((l) => /gate\.ok/.test(l)), `${rel} must branch on gate.ok`);
   }
 });

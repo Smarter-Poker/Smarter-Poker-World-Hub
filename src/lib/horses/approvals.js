@@ -32,11 +32,17 @@
  *      approvals on, "the approvals table is down" cannot mean "so we minted it
  *      anyway" - that would be the gate quietly disabling itself under load.
  *
- * And one more, which is the same rule read from the other end: the cached
- * policy is a CEILING, never a floor. If the local policy says this move is not
- * gated, `required` is false whatever the database returns. A stale 30-second
- * cache can therefore let a move through that a fresh read would have held; it
- * can never hold a move that today runs unimpeded.
+ * And one more, corrected on 2026-09-03 (re-verification H-2): a PENDING row
+ * the database wrote HOLDS, whatever the local policy cache says. The cached
+ * policy is still a ceiling for the RPC-UNAVAILABLE branch (rule 1 above), and
+ * it still decides on its own whether an unrecognised status holds; but when
+ * the database itself answers `required: true` it has already written a
+ * pending row, and that only happens when ca_operator_policy.approvals_enabled
+ * is true in the database - Dan's switch, not a failure mode. The old rule
+ * ANDed that answer away for the 30 seconds a stale lambda still held "off",
+ * minted the chips, and left the row pending in the queue for a second
+ * operator to reject after the fact. Nothing that works today is blocked by
+ * this: the RPC never answers required:true while approvals are off.
  *
  * NEVER THROWS INTO THE MONEY PATH except that one deliberate 503, and
  * markApprovalExecuted never throws at all - it runs AFTER the chips have
@@ -192,6 +198,31 @@ export function canDecideApproval(approval, operatorId, policy, { eligibleApprov
 }
 
 /**
+ * May this operator WITHDRAW this approval (re-verification L-12)?
+ *
+ * The four-eyes rule exists so nobody approves their own money move. It has
+ * nothing to say about cancelling one: a requester who raised a mint by
+ * mistake used to watch it sit in the queue until the TTL, because the self
+ * rule was applied to `reject` as well as `approve`. A withdrawal is a
+ * rejection by the requester of their own PENDING row, and only that: a
+ * decided row stays decided, an expired row is expired, and somebody else's
+ * request is a decision, not a withdrawal. fn_ca_operator_decide_approval
+ * applies the same rule and files it as operator.withdraw_approval.
+ */
+export function canWithdrawApproval(approval, operatorId) {
+  if (!approval || typeof approval !== 'object') return { allowed: false, reason: 'not_found' };
+  const status = typeof approval.status === 'string' ? approval.status : null;
+  if (status && status !== 'pending') return { allowed: false, reason: 'already_decided' };
+  if (approval.expires_at) {
+    const expires = Date.parse(approval.expires_at);
+    if (Number.isFinite(expires) && expires <= Date.now()) return { allowed: false, reason: 'expired' };
+  }
+  const isSelf = Boolean(approval.requested_by) && Boolean(operatorId) && approval.requested_by === operatorId;
+  if (!isSelf) return { allowed: false, reason: 'not_requester' };
+  return { allowed: true, reason: 'withdraw' };
+}
+
+/**
  * WHICH DOOR A CASHOUT CALLER CAME THROUGH, AND WHETHER THE GATE APPLIES.
  *
  * /api/club-arena/approve-cashout has four of them and only one belongs to
@@ -335,6 +366,12 @@ function issuanceValidator(kind) {
  * Phase 2 shipped; no route raises one yet (review L-2), so this is the shape
  * the executor will demand on the day one does, rather than a call assembled
  * from whatever happens to be in the row.
+ *
+ * Production's signature is fn_ca_fund_club(p_club_id uuid, p_amount numeric,
+ * p_reason text, p_idempotency_key text). The key parameter is named
+ * differently from fn_ca_mint's p_op_id, and this validator shipped with
+ * p_op_id (re-verification, live-routes). It is the same key under a different
+ * name: `summary.opId` is the one place a caller should read it from.
  */
 function fundClubValidator(payload, opId) {
   const p = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
@@ -351,7 +388,7 @@ function fundClubValidator(payload, opId) {
     ok: true,
     kind: 'fund_club',
     rpc: 'fn_ca_fund_club',
-    args: { p_club_id: clubId, p_amount: amount, p_reason: reason, p_op_id: key.opId },
+    args: { p_club_id: clubId, p_amount: amount, p_reason: reason, p_idempotency_key: key.opId },
     summary: { kind: 'fund_club', clubId, amount, opId: key.opId },
   };
 }
@@ -541,12 +578,15 @@ export async function requireApproval(op, req, spec = {}) {
     throw new ApiError(409, REPLAY_REFUSAL_TEXT[refusal] || REPLAY_REFUSAL_TEXT.default, refusal);
   }
 
-  // The ceiling rule. The database may say a gated move is NOT required (the
-  // alone-rule cleared it); it may not say an ungated move IS. Within that
-  // ceiling only the three RELEASED statuses mean the money may move now, so a
-  // status this module does not recognise HOLDS rather than passes.
+  // A PENDING ROW THE DATABASE WROTE HOLDS (re-verification H-2). The
+  // database may say a gated move is NOT required (the alone-rule cleared
+  // it), and the local policy may hold a move the database released with a
+  // status this module does not recognise; but a `required: true` from the
+  // RPC means a pending row exists in the queue, and the local cache does not
+  // get to mint past it. Only the three RELEASED statuses mean the money may
+  // move now.
   const released = rawStatus === null || RELEASED_STATUSES.has(rawStatus);
-  const required = decision.required && (dbRequired || !released);
+  const required = dbRequired || (decision.required && !released);
   const status = rawStatus || (required ? 'pending' : 'auto_approved');
 
   return {

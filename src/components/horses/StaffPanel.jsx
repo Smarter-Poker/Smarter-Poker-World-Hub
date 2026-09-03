@@ -37,12 +37,12 @@ import styles from './shared.module.css';
 import { num, when } from '../../lib/horsesAdminTokens';
 import { ROLE_META } from '../../lib/horses/permissions';
 import { normalizePolicy } from './approvalModel';
-import { ADMIN_MANAGE, canManageOperators } from './operatorPermissions';
+import { ADMIN_MANAGE, canManageOperators, permissionsFromPayload } from './operatorPermissions';
 import {
   MIN_REASON_LENGTH, TTL_DEFAULT_MINUTES, TTL_MAX_MINUTES, TTL_MIN_MINUTES,
-  approvalsStateLabel, grantRoleBody, listMeta, permissionMatrix, policyIsKnown,
-  policyUrl, reasonIsValid, revokeRoleBody, rolesUrl, rowsOf, setPolicyBody,
-  staffUrl, OPERATOR_ADMIN,
+  approvalsStateLabel, describePolicyPatch, grantRoleBody, listMeta, permissionMatrix,
+  policyDraftProblems, policyIsKnown, policyUrl, reasonIsValid, revokeRoleBody, rolesUrl,
+  rowsOf, setPolicyBody, staffUrl, OPERATOR_ADMIN,
 } from './operatorAdmin';
 
 /** The one place the policy form's defaults are written down. These are the
@@ -229,11 +229,28 @@ export default function StaffPanel({
     [matrix],
   );
 
+  /**
+   * THE WHOLE ANSWER GOES BACK UP, NOT JUST THE POLICY.
+   *
+   * `section=policy` answers `{ policy, defaults, operator, aloneRule }`, and
+   * the alone rule is computed BY the policy: approvals on, self-approval
+   * allowed, nobody else eligible. Forwarding only the policy left the
+   * parent's `operatorAloneRule` at its sign-in value, so after Dan turned
+   * approvals on here the Mint's confirm dialog said "This Will Be Sent For
+   * Approval" over a button that requireApproval was about to execute on
+   * the spot. The parent applies all three (index.js handlePolicyChange
+   * reads this shape through operatorContextChange); a null aloneRule is
+   * "the route did not say", and null permissions are left alone up there.
+   */
   const refreshPolicy = useCallback(async () => {
     try {
       const body = await authFetch(policyUrl());
       if (typeof onPolicyChange === 'function') {
-        onPolicyChange(normalizePolicy(body && body.policy));
+        onPolicyChange({
+          policy: normalizePolicy(body && body.policy),
+          aloneRule: (body && body.aloneRule) || null,
+          permissions: permissionsFromPayload(body),
+        });
       }
       return true;
     } catch {
@@ -267,7 +284,7 @@ export default function StaffPanel({
     setBusy(true);
     try {
       await authFetch(OPERATOR_ADMIN, { method: 'POST', body: JSON.stringify(body) });
-      showNotification(`Granted ${grantRole} To ${grantFor.display_name || grantFor.email || 'That Operator'}.`, 'success');
+      showNotification(`Granted ${roleLabel(grantRole)} To ${grantFor.display_name || grantFor.email || 'That Operator'}.`, 'success');
       setGrantFor(null);
       setGrantRole('');
       setGrantReason('');
@@ -309,6 +326,12 @@ export default function StaffPanel({
         'The Approval Policy Has Not Been Read, So It Cannot Be Saved. Retry The Read First.',
         'error',
       );
+      setPolicyConfirm(false);
+      return;
+    }
+    const problems = policyDraftProblems(policyDraft);
+    if (problems.length) {
+      showNotification(problems[0], 'error');
       setPolicyConfirm(false);
       return;
     }
@@ -462,10 +485,17 @@ export default function StaffPanel({
     [policyDraft, policy, policyKnown],
   );
   const policyDirty = !!policyPatch;
-  const ttlInRange = useMemo(() => {
-    const n = Number(policyDraft.approval_ttl_minutes);
-    return Number.isFinite(n) && n >= TTL_MIN_MINUTES && n <= TTL_MAX_MINUTES;
-  }, [policyDraft.approval_ttl_minutes]);
+  /** Every reason the route would answer 400 to this draft, said here
+   *  first. `type="number" min="0"` stops none of a typed -5, a typed 10.005
+   *  or an emptied box, and the emptied box used to be SENT as 0. */
+  const policyProblems = useMemo(() => policyDraftProblems(policyDraft), [policyDraft]);
+  const policyValid = policyProblems.length === 0;
+  /** What the save will actually change, for the confirm dialog. */
+  const policyChanges = useMemo(
+    () => describePolicyPatch(policyPatch, policy),
+    [policyPatch, policy],
+  );
+  const switchingApprovals = !!(policyPatch && 'approvalsEnabled' in policyPatch);
 
   return (
     <div className={styles.panel}>
@@ -648,6 +678,8 @@ export default function StaffPanel({
                 className={styles.input}
                 type="number"
                 min="0"
+                step="0.01"
+                inputMode="decimal"
                 value={policyDraft.mint_threshold}
                 onChange={(e) => setPolicyDraft((p) => ({ ...p, mint_threshold: e.target.value }))}
               />
@@ -666,6 +698,8 @@ export default function StaffPanel({
                 className={styles.input}
                 type="number"
                 min="0"
+                step="0.01"
+                inputMode="decimal"
                 value={policyDraft.fund_threshold}
                 onChange={(e) => setPolicyDraft((p) => ({ ...p, fund_threshold: e.target.value }))}
               />
@@ -680,6 +714,8 @@ export default function StaffPanel({
                 className={styles.input}
                 type="number"
                 min="0"
+                step="0.01"
+                inputMode="decimal"
                 value={policyDraft.cashout_threshold}
                 onChange={(e) => setPolicyDraft((p) => ({ ...p, cashout_threshold: e.target.value }))}
               />
@@ -699,6 +735,8 @@ export default function StaffPanel({
                 type="number"
                 min={TTL_MIN_MINUTES}
                 max={TTL_MAX_MINUTES}
+                step="1"
+                inputMode="numeric"
                 value={policyDraft.approval_ttl_minutes}
                 onChange={(e) => setPolicyDraft((p) => ({
                   ...p, approval_ttl_minutes: e.target.value,
@@ -716,17 +754,16 @@ export default function StaffPanel({
             className={`${styles.btn} ${styles.btnGo}`}
             style={{ marginTop: 14 }}
             onClick={() => setPolicyConfirm(true)}
-            disabled={busy || !policyDirty || !ttlInRange}
+            disabled={busy || !policyDirty || !policyValid}
           >
             Save Policy
           </button>
-          {!ttlInRange && (
-            <span className={styles.fieldHint}>
-              {' '}The Approval Window Must Be Between {num(TTL_MIN_MINUTES)} And{' '}
-              {num(TTL_MAX_MINUTES)} Minutes.
+          {policyProblems.map((problem) => (
+            <span key={problem} className={styles.fieldHint} role="alert">
+              {' '}{problem}
             </span>
-          )}
-          {ttlInRange && !policyDirty && (
+          ))}
+          {policyValid && !policyDirty && (
             <span className={styles.fieldHint}> Nothing Has Been Changed Yet.</span>
           )}
         </div>
@@ -857,12 +894,16 @@ export default function StaffPanel({
       {/* ── POLICY CONFIRMATION ───────────────────────────────────────────── */}
       {/* Typed, because this is the one control on the page whose effect is
           felt on a different tab by a different operator. The sentence names
-          what will happen, not which column changes. */}
+          what will happen, not which column changes - and it is built from
+          the PATCH, not the draft: the dialog used to say "Turning Approvals
+          On" whenever the draft had approvals on, so changing only the TTL
+          with approvals already on announced a switch that was not being
+          thrown. Danger tone only when approvals are being switched ON. */}
       {policyConfirm && (
         <ConfirmDialog
           title="Confirm The Approval Policy"
           confirmLabel="Save Policy"
-          tone={policyDraft.approvals_enabled ? 'danger' : 'go'}
+          tone={switchingApprovals && policyDraft.approvals_enabled ? 'danger' : 'go'}
           busy={busy}
           sticky={busy}
           blockEscape={busy}
@@ -871,7 +912,7 @@ export default function StaffPanel({
           onCancel={() => setPolicyConfirm(false)}
           note="Every Change To This Policy Is Recorded In The Admin Audit Log With Your Account Against It."
         >
-          {policyDraft.approvals_enabled ? (
+          {switchingApprovals && policyDraft.approvals_enabled ? (
             <>
               <p style={{ marginTop: 0 }}>
                 <strong>Turning Approvals On.</strong> From The Moment This Saves, A Mint
@@ -889,12 +930,20 @@ export default function StaffPanel({
                   : 'With Only One Eligible Approver And The Alone Rule Off, Nothing At Or Over A Threshold Can Be Completed By Anybody. Turn The Alone Rule On Unless There Are Genuinely Two Operators.'}
               </p>
             </>
-          ) : (
+          ) : switchingApprovals ? (
             <p style={{ marginTop: 0 }}>
               <strong>Turning Approvals Off.</strong> Every Money Move Will Execute As
               Soon As An Operator Confirms It, Exactly As It Does Today. Requests Are
               Still Recorded So The Trail Stays Complete, Marked As Auto Approved.
             </p>
+          ) : (
+            <p style={{ marginTop: 0 }}>
+              <strong>Approvals Stay {approvalsStateLabel(policy)}.</strong> This Changes{' '}
+              {policyChanges.length ? policyChanges.join(', ') : 'Nothing'}.
+            </p>
+          )}
+          {switchingApprovals && policyChanges.length > 0 && (
+            <p>Also Changing {policyChanges.join(', ')}.</p>
           )}
         </ConfirmDialog>
       )}

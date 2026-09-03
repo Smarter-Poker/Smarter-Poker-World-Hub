@@ -45,7 +45,7 @@
  * both. Do not move these queries back into the browser.
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
-import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
+import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
 import { badRequest, notFound } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { runPaged, fetchAll } from '../../../src/lib/horses/paged.js';
@@ -486,6 +486,38 @@ async function sectionClub(db, clubId, query, c) {
 }
 
 // -- SECTION: USER SEARCH ----------------------------------------------------
+
+/**
+ * An address the operator can recognise without the route shipping the
+ * address itself: "daniel@example.com" -> "d***@example.com". The same
+ * treatment anti-abuse.js gives raw_email; anything that is not an address is
+ * null rather than guessed at.
+ */
+export function maskEmail(raw) {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  const at = value.lastIndexOf('@');
+  if (at < 1 || at === value.length - 1) return null;
+  return `${value[0]}***${value.slice(at)}`;
+}
+
+/**
+ * The email column goes out unmasked ONLY to an operator holding
+ * players.write (re-verification L-9). user_search sits behind clubs.read,
+ * which under Phase 2 `support` and `read_only` hold too, and it shipped every
+ * matching player's real address to all of them while anti-abuse masked the
+ * same column for players.read. Search still matches on the full address; it
+ * is the response that is masked, and `emailMasked` says which it was.
+ */
+export function maskSearchRows(rows, permissions) {
+  const canSeeEmail = hasPermission(permissions, PERMISSIONS.PLAYERS_WRITE);
+  return (rows || []).map((row) => {
+    if (!row || typeof row !== 'object' || !('email' in row)) return row;
+    if (canSeeEmail) return { ...row, emailMasked: false };
+    return { ...row, email: maskEmail(row.email), emailMasked: true };
+  });
+}
+
 /**
  * NO COUNT ON THIS PATH (review addendum item 10). The Phase 1 rebuild added
  * `count: 'exact'` behind three LEADING-wildcard ilike filters on `profiles`,
@@ -493,7 +525,7 @@ async function sectionClub(db, clubId, query, c) {
  * a search box. The original had no count at all. `total` is therefore null -
  * an honest "not counted" - and the pager takes Next from `hasMore`.
  */
-async function sectionUserSearch(db, rawQuery, query, c) {
+async function sectionUserSearch(db, op, rawQuery, query, c) {
   const page = pageFor(query, 'search', PAGE_OPTS.search);
   const q = searchTerm(rawQuery, { max: 60 });
   if (!q || q.length < 2) {
@@ -525,8 +557,15 @@ async function sectionUserSearch(db, rawQuery, query, c) {
   );
 
   c.check('user_search', result);
-  const shaped = shapeUnknownTotal(result.data || [], page, { countMode: 'none' });
-  return { ...shaped, results: shaped.rows, users: shaped.rows, failedSources: c.list() };
+  const rows = maskSearchRows(result.data || [], op?.permissions);
+  const shaped = shapeUnknownTotal(rows, page, { countMode: 'none' });
+  return {
+    ...shaped,
+    results: shaped.rows,
+    users: shaped.rows,
+    emailsMasked: !hasPermission(op?.permissions, PERMISSIONS.PLAYERS_WRITE),
+    failedSources: c.list(),
+  };
 }
 
 // -- SECTION: SINGLE USER ----------------------------------------------------
@@ -1123,7 +1162,7 @@ export async function handle({ req, op, db, body, query, method, requestId }) {
     if (!userId) throw badRequest('A Valid User Id Is Required');
     return sectionUser(db, userId, query, c);
   }
-  if (section === 'user_search') return sectionUserSearch(db, query.q, query, c);
+  if (section === 'user_search') return sectionUserSearch(db, op, query.q, query, c);
   if (section === 'tickets') return sectionTickets(db, query, c);
   if (section === 'ledger') return sectionLedger(db, query, c);
   if (section === 'revenue') return sectionRevenue(db, query, c);

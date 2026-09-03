@@ -2,6 +2,11 @@
 -- PHASE 2 SIMULATION 2: THE APPROVAL GATE IS EXACT.
 -- RUN INSIDE A TRANSACTION THAT IS ROLLED BACK.
 -- =====================================================================
+-- NOTE (re-verification, 2026-09-03): this record was run and rolled back BEFORE
+-- migration 20260903202500_ca_operator_reverify_fixes.sql. Since that migration
+-- fn_ca_operator_grant raises operator_not_found for a user id with no profiles
+-- row, so re-running this file needs a rolled-back profiles row for each
+-- synthetic operator it grants to. The record itself stands as run.
 -- Companion to docs/horses/PHASE2-SIM.sql, which proves what
 -- 20260903120000 claims. This file proves the eight defects that an
 -- adversarial review found INSIDE that applied migration are fixed by

@@ -402,7 +402,7 @@ test('a section loads from an effect keyed on the section, not only from a click
   assert.match(src, /caSection === 'revenue' && !caRevenue[\s\S]{0,60}loadCaRevenue\(\)/);
 });
 
-test('the filter resets are declared before the loads they feed', async () => {
+test('a filter change resets the audit page before it loads, in one effect', async () => {
   const src = await read(INDEX);
   const resetAudit = src.indexOf('setAuditPage(0);');
   const loadOnFilterChange = src.indexOf("if (activeTab === 'audit' && auditLoaded) loadAuditLog();");
@@ -411,6 +411,12 @@ test('the filter resets are declared before the loads they feed', async () => {
     resetAudit < loadOnFilterChange,
     'the page reset must run first, or the load fires against the stale page',
   );
+  // One effect, not two: a setAuditPage(0) in a separate effect cannot change
+  // the auditPage closure of a load effect running in the same commit, so the
+  // old pair sent one request at the stale offset and one at 0. The single
+  // effect only resets when the page is off 0 and lets the page change reload.
+  assert.match(src, /const filterChanged = auditQuerySeenRef\.current !== auditQuery;/);
+  assert.match(src, /if \(filterChanged && auditPage !== 0\) \{\s*setAuditPage\(0\);\s*return;/);
   // And both loaders drop a late response for a superseded request.
   assert.match(src, /auditSeqRef/);
   assert.match(src, /reviewsSeqRef/);
@@ -603,10 +609,15 @@ test('loading and empty are distinct states on the roster', async () => {
   );
 });
 
-test('both directions of the bulk activate confirm', async () => {
+test('both directions of the bulk activate confirm, through the shared dialog', async () => {
   const src = await read(INDEX);
-  assert.match(src, /Activate all \$\{ids\.length\} horses\?/);
-  assert.match(src, /Rest all \$\{ids\.length\} horses\?/);
+  assert.match(src, /Activate All \$\{num\(ids\.length\)\} Horses\?/);
+  assert.match(src, /Rest All \$\{num\(ids\.length\)\} Horses\?/);
+  // And no confirmation anywhere in the console is a window.confirm any more:
+  // it has no dialog role, no focus management and cannot carry the
+  // thresholdDecision sentence. Comments may still name it.
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/^\s*\*.*$/gm, '');
+  assert.ok(!code.includes('window.confirm('), 'no window.confirm call remains in index.js');
 });
 
 test('the console obeys the house rules on dashes, emoji, hex and .single()', async () => {

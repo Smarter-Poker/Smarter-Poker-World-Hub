@@ -283,6 +283,82 @@ test('requireOperator: 403 for a non-operator role, 200 context for an admin, 50
   assert.equal(res.body.code, 'route_misconfigured');
 });
 
+/**
+ * H-1 (re-verification 2026-09-03). `profiles.role` is free text this feature
+ * does not own. An account whose profile says 'owner' and whose only grant is
+ * read_only used to reach the console holding every permission, because the
+ * JS resolver seeded its legacy set from the full matrix. It holds exactly
+ * what the grant says.
+ */
+test('requireOperator: a named key in profiles.role contributes nothing, only the grant does', async () => {
+  const { _resetOperatorCachesForTests } = await import('../src/lib/horses/operatorAuth.js');
+  const { permissionsForRole: forRole, orderPermissions } = await import('../src/lib/horses/permissions.js');
+  const dbFor = (profileRole, grantedRole) => {
+    const calls = { rpc: [] };
+    return {
+      calls,
+      from(table) {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          async maybeSingle() {
+            if (table === 'profiles') return { data: { id: 'u1', role: profileRole }, error: null };
+            if (table === 'ca_operator_policy') return { data: { id: true, enforce_named_roles: false }, error: null };
+            return { data: null, error: null };
+          },
+        };
+        return chain;
+      },
+      async rpc(name, args) {
+        calls.rpc.push({ name, args });
+        return {
+          data: { role: profileRole, roles: [grantedRole], permissions: forRole(grantedRole), source: 'granted' },
+          error: null,
+        };
+      },
+    };
+  };
+
+  _resetOperatorCachesForTests();
+  let res = fakeRes();
+  const owner = dbFor('owner', 'read_only');
+  const op = await requireOperator(fakeReq(), res, {
+    permission: PERMISSIONS.CONSOLE_READ,
+    deps: { getServerUserWithFallback: okVerifier, getDb: async () => owner },
+  });
+  assert.ok(op, 'the grant admits the account');
+  assert.deepEqual(op.permissions, orderPermissions(forRole('read_only')), 'exactly the grant, nothing from the profile string');
+  assert.equal(op.permissions.includes(PERMISSIONS.ADMIN_MANAGE), false);
+  assert.equal(op.permissions.includes(PERMISSIONS.SQL_EXECUTE), false);
+  assert.deepEqual(op.grantedRoles, ['read_only']);
+
+  _resetOperatorCachesForTests();
+  res = fakeRes();
+  assert.equal(
+    await requireOperator(fakeReq(), res, {
+      permission: PERMISSIONS.MONEY_WRITE,
+      deps: { getServerUserWithFallback: okVerifier, getDb: async () => dbFor('owner', 'read_only') },
+    }),
+    null
+  );
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.code, 'permission_denied');
+
+  // profiles.role 'finance' + a support grant: no money.write.
+  _resetOperatorCachesForTests();
+  res = fakeRes();
+  assert.equal(
+    await requireOperator(fakeReq(), res, {
+      permission: PERMISSIONS.MONEY_WRITE,
+      deps: { getServerUserWithFallback: okVerifier, getDb: async () => dbFor('finance', 'support') },
+    }),
+    null
+  );
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.code, 'permission_denied');
+  _resetOperatorCachesForTests();
+});
+
 test('requireOperator: 503 (not 403) when the profile read itself fails', async () => {
   const res = fakeRes();
   const db = fakeDb({ profile: null, profileError: { message: 'connection reset' } });

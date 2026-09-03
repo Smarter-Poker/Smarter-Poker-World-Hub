@@ -5,6 +5,8 @@ import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { T, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
+import { operatorGate } from '../../src/components/horses/operatorAdmin';
+import { readJsonBody } from '../../src/components/horses/useOperatorFetch';
 import styles from './horses.module.css';
 
 // COLOUR. Every value comes from T, which is a set of var() strings resolved
@@ -96,7 +98,7 @@ export default function OmnichannelSQLConsole() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [authError, setAuthError] = useState('');
 
-    const [sqlQuery, setSqlQuery] = useState('-- Write your raw PostgreSQL query here\nSELECT * FROM profiles LIMIT 5;');
+    const [sqlQuery, setSqlQuery] = useState('-- Write Your Raw PostgreSQL Query Here\nSELECT * FROM profiles LIMIT 5;');
     const [isRunning, setIsRunning] = useState(false);
     const [result, setResult] = useState(null);
     // Session-local only. Deliberately NOT localStorage - this is a god-mode
@@ -143,21 +145,27 @@ export default function OmnichannelSQLConsole() {
                 router.push('/auth/login?redirect=/horses/sql-console');
                 return;
             }
-            const { data: profile, error: roleErr } = await supabase
-                .from('profiles').select('role').eq('id', authUser.id).maybeSingle();
-            // A FAILED QUERY IS NOT A DENIAL. `error` used to be discarded, so
-            // an RLS regression or a dropped connection made profile null and
-            // bounced a real superadmin to the home page with no way to tell
-            // "you are not an admin" from "we could not ask". Say which.
-            if (roleErr) {
-                setAuthError('Could not verify your role: ' + roleErr.message);
+            // THE ROUTE DECIDES WHO IS AN OPERATOR, NOT THIS FILE. This page
+            // used to read profiles.role and admit three legacy strings, which
+            // is exactly the list Phase 2 made incomplete: requireOperator
+            // admits an active ca_operator_grants row too, so a granted
+            // operator was a real operator this page sent home. operatorGate
+            // asks GET operator-admin?section=policy with the bearer: 200 is
+            // an operator, 401/403 is a refusal, and anything else is "could
+            // not verify" - which is neither, so it gets the retry screen.
+            const token = await getFreshAccessToken();
+            if (!token) {
                 setLoadingConfig(false);
+                router.push('/auth/login?redirect=/horses/sql-console');
                 return;
             }
-            if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
+            const gate = await operatorGate(token);
+            if (gate.ok) {
                 setIsAdmin(true);
-            } else {
+            } else if (gate.denied) {
                 router.push('/');
+            } else {
+                setAuthError('Could Not Verify Your Role: ' + gate.error);
             }
             setLoadingConfig(false);
         };
@@ -227,7 +235,7 @@ export default function OmnichannelSQLConsole() {
         try {
             const token = await getFreshAccessToken();
             if (!token) {
-                setResult({ status: 401, data: { success: false, error: 'Session expired. Please refresh the page or log in again.' } });
+                setResult({ status: 401, data: { success: false, error: 'Session Expired. Refresh The Page Or Sign In Again.' } });
                 return;
             }
             const body = confirmValue === null ? { sql: sqlQuery } : { sql: sqlQuery, confirm: confirmValue };
@@ -240,10 +248,16 @@ export default function OmnichannelSQLConsole() {
                 body: JSON.stringify(body)
             });
 
-            const data = await res.json();
+            // NEVER res.json() BLIND. A 502 or 504 from the platform is an
+            // HTML page, and parsing it threw a SyntaxError into the catch,
+            // so the operator read "Unexpected token <" instead of the status.
+            // readJsonBody is the console's own reader and answers {} for a
+            // body that is not JSON.
+            const data = await readJsonBody(res);
             if (!res.ok) {
-                // Show the actual API error message instead of generic "Request failed"
-                setResult({ status: res.status, data: { success: false, error: data?.error || `Request failed (${res.status})` } });
+                // The route's own sentence where it sent one, the status where
+                // it did not.
+                setResult({ status: res.status, data: { success: false, error: data?.error || `Request Failed (${res.status})` } });
                 return;
             }
             setResult({ status: res.status, data });
@@ -298,7 +312,7 @@ export default function OmnichannelSQLConsole() {
                 justifyContent: 'center', alignItems: 'center', gap: 16, color: T.text, padding: 24, textAlign: 'center' }}>
                 <div role="alert" style={{ color: T.danger, fontWeight: 700 }}>{authError}</div>
                 <div style={{ color: T.dim, fontSize: 14, maxWidth: 480 }}>
-                    This Is A Failure To Check Your Role, Not A Refusal. Your Access Has Not Changed.
+                    This Is A Failure To Ask The Route, Not A Refusal. Your Access Has Not Changed.
                 </div>
                 <button
                     onClick={() => router.reload()}
@@ -474,7 +488,7 @@ export default function OmnichannelSQLConsole() {
                                 Commit This Mutation
                             </h2>
                             <p style={{ fontSize: '0.8125rem', color: T.dim, margin: '0 0 0.75rem 0', lineHeight: 1.6 }}>
-                                The Statement Below Was Executed And Rolled Back. It affected{' '}
+                                The Statement Below Was Executed And Rolled Back. It Affected{' '}
                                 <strong style={{ color: T.text }}>{result?.data?.rowCount ?? 0}</strong> Row(S) And Wrote Nothing.
                                 To Run It For Real, Type Or Paste The Statement Back Exactly As Written:
                             </p>
@@ -490,7 +504,7 @@ export default function OmnichannelSQLConsole() {
                                 id="commit-confirm"
                                 value={confirmText}
                                 onChange={(e) => setConfirmText(e.target.value)}
-                                placeholder="Retype the statement above to enable Commit"
+                                placeholder="Retype The Statement Above To Enable Commit"
                                 style={{
                                     width: '100%', boxSizing: 'border-box', minHeight: 88,
                                     background: T.inset, color: T.text,
@@ -525,7 +539,7 @@ export default function OmnichannelSQLConsole() {
                                     Cancel
                                 </button>
                                 <span style={{ fontSize: '0.75rem', color: confirmMatches ? T.accent : T.muted }}>
-                                    {confirmMatches ? 'Confirmation matches.' : 'Confirmation does not match yet.'}
+                                    {confirmMatches ? 'Confirmation Matches.' : 'Confirmation Does Not Match Yet.'}
                                 </span>
                             </div>
                         </div>
@@ -569,7 +583,7 @@ export default function OmnichannelSQLConsole() {
                                     )}
                                     {result.data.rowCount !== undefined && (
                                         <span style={{ color: T.dim }}>
-                                            {result.data.dryRun ? 'Rows that would be affected: ' : 'Rows: '}{result.data.rowCount}
+                                            {result.data.dryRun ? 'Rows That Would Be Affected: ' : 'Rows: '}{result.data.rowCount}
                                         </span>
                                     )}
                                     {result.data.command && (

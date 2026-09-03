@@ -45,6 +45,7 @@ export default function Modal({
   hideClose = false,
 }) {
   const boxRef = useRef(null);
+  const bodyRef = useRef(null);
   const closeRef = useRef(onClose);
   const blockRef = useRef(blockEscape);
   const titleId = useId();
@@ -57,7 +58,15 @@ export default function Modal({
   useEffect(() => {
     const opener = typeof document !== 'undefined' ? document.activeElement : null;
     const box = boxRef.current;
-    const first = box ? box.querySelector(FOCUSABLE) : null;
+    const body = bodyRef.current;
+    // THE FIRST FIELD, NOT THE CLOSE BUTTON. The header's Close control is
+    // the first focusable in document order, so querying the whole box put
+    // focus on "Close" in every dialog that has a header - the Approvals
+    // decision, Grant and Revoke - and the operator's first Tab press was
+    // spent leaving it. The body is asked first; the box is the fallback for
+    // a body with nothing to focus, and the box itself after that.
+    const first = (body ? body.querySelector(FOCUSABLE) : null)
+      || (box ? box.querySelector(FOCUSABLE) : null);
     if (first) first.focus();
     else if (box) box.focus();
 
@@ -128,7 +137,7 @@ export default function Modal({
             </button>
           )}
         </div>
-        <div className={styles.dialogBody}>{children}</div>
+        <div ref={bodyRef} className={styles.dialogBody}>{children}</div>
       </div>
     </div>
   );

@@ -11,11 +11,58 @@
  * (audit writes), and `userDb` speaks as the caller so auth.uid() resolves
  * inside the SECURITY DEFINER moderation RPCs.
  */
-import { withHgOperatorRoute } from '../../../src/lib/horses/hgOperator.js';
+import { withHgOperatorRoute, mapHgRpcError } from '../../../src/lib/horses/hgOperator.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { enumOf, paging, uuid } from '../../../src/lib/horses/validate.js';
+
+/**
+ * home_content_reports.status, as the check constraint allows it (recorded on
+ * the moderation page next to its filter): pending, hidden_pending_review,
+ * reviewed, actioned, dismissed. resolve_home_content_report writes actioned
+ * or dismissed. An empty status means "all"; anything else is a 400 here, not
+ * a 500 out of the RPC (re-verification L-8).
+ */
+export const REPORT_STATUSES = Object.freeze([
+  'pending',
+  'hidden_pending_review',
+  'reviewed',
+  'actioned',
+  'dismissed',
+]);
+
+/**
+ * reported_type is a slug the moderation page renders per type (post, comment,
+ * review, game, group, member) and falls through on anything else, so the
+ * accepted set is not knowable from this repo. It is validated as a short
+ * lowercase slug rather than an enum this file would have to guess at: junk
+ * still becomes a 400 here, and a real type the page has not learned to
+ * render yet still reaches the RPC.
+ */
+const REPORTED_TYPE_RE = /^[a-z][a-z0-9_]{0,31}$/;
+
+/** 'hidden_pending_review' -> 'Hidden Pending Review', for the 400 sentence. */
+const titleOf = (value) => value.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+
+function statusFilterOf(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const picked = enumOf(String(value).toLowerCase(), REPORT_STATUSES);
+  if (!picked) {
+    throw badRequest(
+      `Status Must Be ${REPORT_STATUSES.map(titleOf).join(', ')}, Or Blank For All`,
+      'invalid_status'
+    );
+  }
+  return picked;
+}
+
+function reportedTypeFilterOf(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const slug = String(value).trim().toLowerCase();
+  if (!REPORTED_TYPE_RE.test(slug)) throw badRequest('Reported Type Is Not A Valid Content Type', 'invalid_reported_type');
+  return slug;
+}
 
 const RESOLVE_ACTIONS = [
   'dismiss',
@@ -64,23 +111,25 @@ async function handleGet({ userDb, op, query }) {
       p_caller_user_id: op.user.id,
     });
     if (error) {
-      console.warn('[hg-reports GET detail]', error.message || error);
-      throw new ApiError(500, 'The Report Could Not Be Loaded', 'report_read_failed');
+      throw mapHgRpcError(error, 'That Report', { requestId: op.requestId, route: 'horses.hg-reports' });
     }
     return { report: data };
   }
 
+  const status = statusFilterOf(query.status);
+  const reportedType = reportedTypeFilterOf(query.reported_type);
   const page = paging(query, { defaultLimit: 50, max: 200 });
   const { data, error } = await userDb.rpc('list_home_content_reports', {
     p_caller_user_id: op.user.id,
-    p_status: query.status || null,
-    p_reported_type: query.reported_type || null,
+    p_status: status,
+    p_reported_type: reportedType,
     p_limit: page.limit,
     p_offset: page.offset,
   });
   if (error) {
-    console.warn('[hg-reports GET list]', error.message || error);
-    throw new ApiError(500, 'Reports Could Not Be Loaded', 'reports_read_failed');
+    // 42501 / UNAUTHORIZED -> 403, an expired JWT -> 401, anything else
+    // through mapDbError; the database sentence is logged, never returned.
+    throw mapHgRpcError(error, 'The Reports Queue', { requestId: op.requestId, route: 'horses.hg-reports' });
   }
 
   // Contract addendum item 15: `total` is null when the jsonb envelope carries
@@ -114,8 +163,7 @@ async function handlePatch({ req, op, userDb, body }) {
     p_caller_user_id: op.user.id,
   });
   if (error) {
-    console.warn('[hg-reports PATCH]', error.message || error);
-    throw new ApiError(500, 'The Report Could Not Be Resolved', 'report_resolve_failed');
+    throw mapHgRpcError(error, 'That Report', { requestId: op.requestId, route: 'horses.hg-reports' });
   }
 
   // delete_content, strike_author and ban_author are irreversible; this is the

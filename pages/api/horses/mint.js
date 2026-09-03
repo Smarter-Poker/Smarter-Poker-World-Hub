@@ -460,11 +460,20 @@ async function handleIssuance(db, op, req, res, body) {
     // The raw sentence is a Postgres string: table names, constraint names,
     // SQL fragments. It is logged under the request id and never returned.
     console.error(`[horses.mint] ${action} rpc failed:`, error.message);
+    // The trail reads the same through either door (re-verification L-11):
+    // operator-admin.executeApproval records `failed` for the same outcome,
+    // and the SQL treats a failed row as a fresh request, so the operator can
+    // retry. markApprovalExecuted never throws.
+    await markApprovalExecuted(op, approval.approvalId, { ok: false, error: 'mint_unavailable' }, { status: 'failed' });
     throw new ApiError(503, 'The Mint Is Unavailable', 'mint_unavailable');
   }
 
   if (!data || data.ok !== true) {
     const code = typeof data?.reason === 'string' ? data.reason : 'mint_refused';
+    // Record the refusal on the approval row before answering (L-11), so an
+    // auto_approved or approved row does not sit with no result while the
+    // same request through execute_approval would read `failed`.
+    await markApprovalExecuted(op, approval.approvalId, { ok: false, error: code }, { status: 'failed' });
     if (REASON_TEXT[code]) throw new ApiError(400, REASON_TEXT[code], code);
     // THE CODE GOES IN THE MESSAGE. The console shows `err.message` and nothing
     // else, so a bare "Mint Refused" tells the operator that the money did not
@@ -478,13 +487,29 @@ async function handleIssuance(db, op, req, res, body) {
   // The money has moved. Close the approval row out. markApprovalExecuted never
   // throws for the same reason auditOperatorAction never does: telling an
   // operator a completed mint failed is how a mint happens twice.
-  await markApprovalExecuted(op, approval.approvalId, {
+  //
+  // ITS ANSWER IS READ (re-verification M-4). `refused: true` means
+  // fn_ca_operator_mark_executed would not close the row - the loudest signal
+  // this system has, because it means chips moved against a row nobody
+  // approved (the H-2 shape). It goes into the audit row as
+  // `mark_executed_refused`, `trail_closed` says whether the row is closed,
+  // and the response carries `trailClosed` so the operator sees it too.
+  const mark = await markApprovalExecuted(op, approval.approvalId, {
     ok: true,
     ledger_id: data.ledger_id ?? null,
     balance_after: data.balance_after ?? null,
     supply_after: data.supply_after ?? null,
     replayed: data.replayed === true,
   });
+  const trailClosed = mark.ok === true;
+  // The approval's status AFTER execution, not the pre-execution one the
+  // request returned: executed when the row closed, failed-to-close otherwise,
+  // and unrecorded when there was no row to close.
+  const approvalStatusAfter = !approval.approvalId
+    ? approval.status
+    : trailClosed
+      ? 'executed'
+      : approval.status;
 
   await auditOperatorAction(op, req, {
     action: action === 'mint' ? 'mint.issue' : 'mint.retire',
@@ -507,8 +532,12 @@ async function handleIssuance(db, op, req, res, body) {
       opId,
       ledgerId: data.ledger_id ?? null,
       approvalId: approval.approvalId,
-      approvalStatus: approval.status,
+      approvalStatus: approvalStatusAfter,
+      approvalStatusBefore: approval.status,
       approvalBlockedReason: approval.blockedReason,
+      trail_closed: trailClosed,
+      mark_executed_refused: mark.refused === true,
+      mark_executed_reason: mark.reason ?? null,
     },
   });
 
@@ -516,7 +545,12 @@ async function handleIssuance(db, op, req, res, body) {
     result: data,
     performedBy: op.user.id,
     approvalId: approval.approvalId,
+    // `approvalStatus` is the status the request was released under, as it
+    // always was (add, never rename); `approvalStatusAfter` is the row after
+    // this execution, and `trailClosed` is whether it closed.
     approvalStatus: approval.status,
+    approvalStatusAfter,
+    trailClosed,
   };
 }
 

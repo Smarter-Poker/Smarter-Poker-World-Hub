@@ -77,3 +77,38 @@ export function nextUrlQuery(state = {}, query = {}) {
   }
   return next;
 }
+
+/** The first value of a query field, which is what Next's router hands over
+ *  for ?tab=a&tab=b; undefined when the field is absent. */
+function rawQueryValue(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return typeof raw === 'string' ? raw : undefined;
+}
+
+/**
+ * Does the address bar need rewriting even though it RESOLVES to the view?
+ *
+ * `urlMatchesState` compares through the resolvers on purpose, so
+ * `/horses?tab=bogus` and Social Horses agree - the read effect mapped the
+ * unknown tab to the default. But agreement is not the same as the URL being
+ * right: that bookmark stays broken for as long as it says `bogus`, and the
+ * write effect used to leave it alone because `tab` was defined. This is the
+ * second question the write effect asks in the agreement branch: is what the
+ * URL literally says the canonical spelling of the view it resolved to?
+ *
+ * Answers true for a bare /horses (no tab at all), for a tab the registry
+ * does not know, and for a section that resolved to something other than
+ * what it says or that hangs off a tab that does not read it. Answers FALSE
+ * whenever the URL does not resolve to the state at all, because that is a
+ * navigation and the push branch owns it.
+ */
+export function urlNeedsNormalising(state = {}, query = {}) {
+  const q = query || {};
+  if (!urlMatchesState(state, q)) return false;
+  const canonical = nextUrlQuery(state, q);
+  const rawTab = rawQueryValue(q.tab);
+  if (rawTab === undefined || rawTab !== canonical.tab) return true;
+  const rawSection = rawQueryValue(q.section);
+  if (q.section !== undefined && rawSection !== canonical.section) return true;
+  return false;
+}

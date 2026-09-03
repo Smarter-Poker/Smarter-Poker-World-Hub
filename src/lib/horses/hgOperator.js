@@ -32,6 +32,7 @@
  */
 import { withOperatorRoute } from './operatorRoute.js';
 import { ApiError } from './apiEnvelope.js';
+import { mapDbError } from './dbErrors.js';
 
 export const MAX_TOKEN_CLIENTS = 200;
 export const TOKEN_CLIENT_TTL_MS = 10 * 60 * 1000;
@@ -110,6 +111,39 @@ export async function getUserDb(token, deps = {}) {
     auth: { persistSession: false },
   });
   return cacheStore(token, client);
+}
+
+/**
+ * The one mapping for a failed caller-scoped RPC (re-verification L-6).
+ *
+ * The Home Games RPCs raise UNAUTHORIZED (SQLSTATE 42501) when auth.uid() does
+ * not satisfy their own role check, and PostgREST answers PGRST301 / "JWT
+ * expired" when the caller's token has lapsed. Four routes used to collapse
+ * both into a 500 "Could Not Be Loaded" plus a Sentry report, so an operator
+ * whose session had simply expired, or whom the RPC does not accept (any
+ * granted non-legacy operator until those functions learn about grants), read
+ * as an outage. Now:
+ *
+ *   42501 / UNAUTHORIZED / FORBIDDEN  -> 403 forbidden
+ *   PGRST301 / JWT expired / invalid  -> 401 session_expired
+ *   anything else                     -> mapDbError (409/400/403/404/503)
+ *
+ * `subject` is the Title Case thing the sentence is about ("The Appeal").
+ * The raw database sentence is logged by mapDbError under the request id and
+ * never returned.
+ */
+export function mapHgRpcError(error, subject = 'The Request', { requestId, route } = {}) {
+  const code = typeof error?.code === 'string' ? error.code : '';
+  const message = [error?.message, error?.details, error?.hint].filter(Boolean).join(' | ');
+  if (code === 'PGRST301' || /jwt (expired|invalid|malformed)|invalid jwt|token is expired/i.test(message)) {
+    console.warn(`[hgOperator] ${route || ''} ${requestId || ''} caller session refused: ${message}`.trim());
+    return new ApiError(401, 'Your Session Has Expired. Sign In Again', 'session_expired');
+  }
+  if (code === '42501' || /unauthorized|forbidden/i.test(message)) {
+    console.warn(`[hgOperator] ${route || ''} ${requestId || ''} rpc refused the caller: ${message}`.trim());
+    return new ApiError(403, `You Are Not Authorized To Act On ${subject}`, 'forbidden');
+  }
+  return mapDbError(error, subject, { requestId, route });
 }
 
 /**

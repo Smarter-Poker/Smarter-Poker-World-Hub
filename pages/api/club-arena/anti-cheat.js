@@ -23,6 +23,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -140,7 +142,18 @@ try {
         .select('role')
         .eq('id', userId)
         .maybeSingle();
-      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+      // Platform staff here is whoever holds moderation.write, resolved the
+      // way the console resolves it (re-verification M-3): the legacy profile
+      // roles carry it until enforce_named_roles is on, a granted compliance or
+      // operations operator carries it through the grant, and a narrowed
+      // legacy account does not. Club owners, admins and super agents are
+      // authorised through club_members below exactly as before.
+      const platformGate = await operatorHoldsPermission(
+        getSupabase(),
+        { userId, profileRole: callerProfile?.role || null },
+        PERMISSIONS.MODERATION_WRITE
+      );
+      const isPlatformAdmin = platformGate.ok === true;
 
       // The operator context the shared audit helper wants. Auth below is
       // unchanged; this only gives the audit rows the same actor, role, ip,

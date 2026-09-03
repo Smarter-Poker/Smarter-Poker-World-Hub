@@ -4,12 +4,16 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { randomInt } from 'crypto';
 
 // promo_codes is a GLOBAL table with no venue_id column, so a code minted here
-// grants diamonds platform-wide. Only platform admins may touch it.
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+// grants diamonds platform-wide. Only an operator holding promo.write may touch
+// it (re-verification M-3): the three legacy profile roles carry it until
+// enforce_named_roles is on, a granted finance or operations operator carries
+// it through the grant, and a narrowed legacy account does not.
 
 // reward_type values the redemption paths actually understand
 // (pages/api/promo/redeem.js, redeem-promo-code.js, seed-premade.js) plus the
@@ -111,7 +115,12 @@ export default async function handler(req, res) {
           .eq('id', user.id)
           .maybeSingle();
 
-      if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+      const gate = await operatorHoldsPermission(
+          getAuditDb() || getSupabase(),
+          { userId: user.id, profileRole: profile?.role || null },
+          PERMISSIONS.PROMO_WRITE
+      );
+      if (!profile || !gate.ok) {
           return res.status(403).json({ success: false, error: 'Platform admin access required' });
       }
 

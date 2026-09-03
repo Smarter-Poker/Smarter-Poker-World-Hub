@@ -42,6 +42,13 @@ const GATE_PATH = join(
   repo,
   'supabase/migrations/20260903140000_ca_operator_approval_gate_is_exact.sql'
 );
+/** The third follow-up: the re-verification fixes (M-2, L-3, L-12, N-4 of
+ *  docs/horses/reverify-2026-09-03/server-db.md). See the REVERIFY section
+ *  at the bottom of this file. */
+const REVERIFY_PATH = join(
+  repo,
+  'supabase/migrations/20260903202500_ca_operator_reverify_fixes.sql'
+);
 const SIM_PATH = join(repo, 'docs/horses/PHASE2-SIM.sql');
 const SIM2_PATH = join(repo, 'docs/horses/PHASE2-SIM-2.sql');
 const CONTRACT_PATH = join(repo, 'docs/horses/PHASE2-CONTRACTS.md');
@@ -49,6 +56,7 @@ const CONTRACT_PATH = join(repo, 'docs/horses/PHASE2-CONTRACTS.md');
 const sql = readFileSync(MIGRATION_PATH, 'utf8');
 const followup = readFileSync(FOLLOWUP_PATH, 'utf8');
 const gate = readFileSync(GATE_PATH, 'utf8');
+const reverify = readFileSync(REVERIFY_PATH, 'utf8');
 const sim = readFileSync(SIM_PATH, 'utf8');
 const sim2 = readFileSync(SIM2_PATH, 'utf8');
 const contract = readFileSync(CONTRACT_PATH, 'utf8');
@@ -76,9 +84,15 @@ const gateCode = gate
   .filter((line) => !line.trim().startsWith('--'))
   .join('\n');
 
+/** The re-verification migration, comment lines stripped the same way. */
+const reverifyCode = reverify
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('--'))
+  .join('\n');
+
 /**
  * The body of one function as the DATABASE would end up with it: from the
- * newest migration that replaces it, from the original otherwise. Three
+ * newest migration that replaces it, from the original otherwise. Four
  * migrations, one live definition per function, and it is the LIVE
  * definition every audit assertion below is about. NEWEST FIRST, so a
  * later CREATE OR REPLACE that dropped a mutator's audit write has to fail
@@ -86,7 +100,7 @@ const gateCode = gate
  */
 function liveBody(fn) {
   const marker = `create or replace function public.${fn}`;
-  for (const text of [gateCode, followupCode, code]) {
+  for (const text of [reverifyCode, gateCode, followupCode, code]) {
     const start = text.lastIndexOf(marker);
     if (start === -1) continue;
     return text.slice(start, text.indexOf('$fn$;', start) + 5);
@@ -1531,4 +1545,260 @@ test('the simulation never touches a real account or commits a policy change', (
   assert.ok(!/insert\s+into\s+public\.profiles/i.test(sim), 'the simulation writes to profiles');
   assert.ok(!/delete\s+from/i.test(sim), 'the simulation deletes rows');
   assert.ok(!/drop\s+/i.test(sim), 'the simulation drops an object');
+});
+
+// ----------------------------------------------------------------- REVERIFY
+//
+// The third follow-up, 20260903202500_ca_operator_reverify_fixes.sql. Four
+// functions replaced with unchanged signatures: the alone-rule predicate
+// (M-2), grant (L-3), decide (L-12) and the staff read (N-4).
+
+const REVERIFY_FUNCTIONS = [
+  'fn_ca_operator_has_second_approver',
+  'fn_ca_operator_grant',
+  'fn_ca_operator_decide_approval',
+  'fn_ca_operator_staff',
+];
+
+function reverifyAssertBlock() {
+  const start = reverifyCode.lastIndexOf('do $assert$');
+  assert.ok(start > -1, 'the reverify migration has no assertion block');
+  return reverifyCode.slice(start);
+}
+
+test('the reverify migration replaces exactly the four intended functions', () => {
+  assert.ok(reverify.length > 0, 'the reverify migration is empty');
+  const replaced = [...reverifyCode.matchAll(/create or replace function public\.([a-z_]+)\s*\(/g)].map(
+    (m) => m[1]
+  );
+  assert.deepEqual([...replaced].sort(), [...REVERIFY_FUNCTIONS].sort());
+  for (const fn of FUNCTIONS.filter((f) => !REVERIFY_FUNCTIONS.includes(f))) {
+    assert.ok(!replaced.includes(fn), `the reverify migration replaces ${fn}, which is not one of its four`);
+  }
+});
+
+test('the reverify migration changes no signature: Tier 2, not Tier 3', () => {
+  for (const fn of REVERIFY_FUNCTIONS) {
+    assert.equal(
+      signatureIn(reverifyCode, fn),
+      signatureIn(code, fn),
+      `${fn} has a different parameter list from its 20260903120000 definition, which would create an OVERLOAD rather than replace it`
+    );
+    const start = reverifyCode.indexOf(`create or replace function public.${fn}`);
+    const head = reverifyCode.slice(start, reverifyCode.indexOf('as $fn$', start));
+    assert.match(head, /security definer/, `${fn} is not SECURITY DEFINER`);
+    assert.match(head, /set search_path = public, pg_temp/, `${fn} does not pin search_path`);
+    assert.match(
+      head,
+      fn === 'fn_ca_operator_has_second_approver' ? /returns boolean/ : /returns jsonb/,
+      `${fn} changed its return type`
+    );
+  }
+  // The predicate stays stable, as it was.
+  const predicate = reverifyCode.slice(
+    reverifyCode.indexOf('create or replace function public.fn_ca_operator_has_second_approver'),
+    reverifyCode.indexOf('as $fn$', reverifyCode.indexOf('fn_ca_operator_has_second_approver'))
+  );
+  assert.match(predicate, /\nstable\n/);
+});
+
+test('the reverify migration creates nothing, alters nothing, and runs in one transaction', () => {
+  assert.ok(!/create\s+table/i.test(reverifyCode), 'the reverify migration creates a table');
+  assert.ok(!/alter\s+table/i.test(reverifyCode), 'the reverify migration alters a table');
+  assert.ok(!/drop\s+/i.test(reverifyCode), 'the reverify migration drops an object');
+  assert.ok(!/create\s+(unique\s+)?index/i.test(reverifyCode), 'the reverify migration creates an index');
+  assert.ok(!/create\s+policy/i.test(reverifyCode), 'the reverify migration creates a policy');
+  assert.ok(!/update\s+public\.profiles/i.test(reverifyCode), 'the reverify migration writes to profiles');
+  assert.ok(!/insert\s+into\s+public\.profiles/i.test(reverifyCode), 'the reverify migration writes to profiles');
+  assert.match(reverifyCode, /set local lock_timeout/, 'the reverify migration runs without a lock timeout');
+  // N-5 of the review: `set local` outside a transaction is a no-op under
+  // psql -f. This file opens and closes its own.
+  assert.match(reverifyCode, /^begin;$/m, 'the reverify migration does not open a transaction');
+  assert.match(reverifyCode, /^commit;$/m, 'the reverify migration does not commit');
+  assert.ok(reverifyCode.indexOf('begin;') < reverifyCode.indexOf('set local lock_timeout'));
+  assert.ok(reverifyCode.lastIndexOf('commit;') > reverifyCode.lastIndexOf('$assert$;'));
+});
+
+test('M-2: has_second_approver counts a grantless legacy account under enforcement, and the floor', () => {
+  const body = bodyIn(reverifyCode, 'fn_ca_operator_has_second_approver');
+  // The old exclusion is gone.
+  assert.ok(!/where not v_enforce\s*\n/.test(body), 'the legacy branch still excludes every legacy account under enforcement');
+  // The new rule: enforcement off, or admin.manage, or no active grant.
+  assert.match(body, /not v_enforce\s*\n\s*or p_permission = 'admin\.manage'\s*\n\s*or not exists \(/);
+  const exclusion = body.slice(body.indexOf('or not exists ('));
+  assert.match(exclusion, /from public\.ca_operator_grants g\s*\n\s*where g\.user_id = p\.id\s*\n\s*and g\.revoked_at is null/);
+  // And the original really did exclude them, so this is a change.
+  assert.match(bodyIn(code, 'fn_ca_operator_has_second_approver'), /where not v_enforce/);
+  // The rule it mirrors is still the rule in the live resolver.
+  assert.match(
+    liveBody('fn_ca_operator_permissions'),
+    /if v_enforce and array_length\(v_granted_roles, 1\) is not null then/
+  );
+});
+
+test('L-3: fn_ca_operator_grant refuses a uuid with no profile and refuses the legacy keys', () => {
+  const body = bodyIn(reverifyCode, 'fn_ca_operator_grant');
+  assert.match(body, /select true into v_has_profile from public\.profiles where id = p_user_id limit 1;/);
+  assert.match(body, /raise exception 'fn_ca_operator_grant: operator_not_found[^']*'[^;]*using errcode = '23503'/);
+  assert.match(body, /select true, r\.is_legacy into v_exists, v_is_legacy/);
+  assert.match(body, /raise exception 'fn_ca_operator_grant: legacy_role_not_grantable[^']*'[^;]*using errcode = '23514'/);
+  // Both refusals sit before the insert, so nothing is stored.
+  const insertAt = body.indexOf('insert into public.ca_operator_grants');
+  assert.ok(body.indexOf('operator_not_found') < insertAt);
+  assert.ok(body.indexOf('legacy_role_not_grantable') < insertAt);
+  // The idempotent ON CONFLICT insert from the gate migration survives.
+  assert.match(body, /on conflict \(user_id, role_key\) where revoked_at is null do nothing/);
+  // And both SQLSTATEs are ones dbErrors.js reads as the operator's input.
+  const dbErrors = readFileSync(join(repo, 'src/lib/horses/dbErrors.js'), 'utf8');
+  assert.match(dbErrors, /FOREIGN_KEY_VIOLATION: '23503'/);
+  assert.match(dbErrors, /CHECK_VIOLATION: '23514'/);
+  // The route refuses the same keys before the RPC, with the same words.
+  const route = readFileSync(join(repo, 'pages/api/horses/operator-admin.js'), 'utf8');
+  assert.match(route, /enumOf\(body\.roleKey, NAMED_OPERATOR_ROLES\)/);
+  assert.match(route, /'Legacy Roles Live On The Profile, Not In A Grant', 'legacy_role_not_grantable'/);
+});
+
+test('L-12: fn_ca_operator_decide_approval lets the requester withdraw and files it by its own name', () => {
+  const body = bodyIn(reverifyCode, 'fn_ca_operator_decide_approval');
+  assert.match(body, /v_withdraw := v_self and v_decision = 'rejected';/);
+  assert.match(body, /if v_self and not v_withdraw then/);
+  // The self-approval refusal is still there for the approve case.
+  assert.match(body, /'error', 'self_approval_refused'/);
+  // The permission check still runs before the withdrawal (the requester
+  // held it to raise the row).
+  assert.ok(body.indexOf("'permission_denied'") < body.indexOf('v_withdraw :='));
+  assert.match(
+    body,
+    /p_action\s*:=\s*case when v_withdraw then 'operator\.withdraw_approval' else 'operator\.decide_approval' end/
+  );
+  assert.match(body, /'withdrawn', v_withdraw/);
+  assert.match(ACTION_RE.source, /./);
+  assert.match('operator.withdraw_approval', ACTION_RE);
+  // The row still ends in the same status vocabulary: there is no new
+  // status, a withdrawal is a rejection.
+  assert.ok(!/'withdrawn'\s*,?\s*\)?\s*where/.test(body));
+  assert.match(body, /set status = v_decision,/);
+  // The route audits the same name.
+  const route = readFileSync(join(repo, 'pages/api/horses/operator-admin.js'), 'utf8');
+  assert.match(route, /withdrawal \? 'operator\.withdraw_approval' : 'operator\.decide_approval'/);
+});
+
+test('N-4: fn_ca_operator_staff answers false when nobody has a verified factor, null only when unreadable', () => {
+  const body = bodyIn(reverifyCode, 'fn_ca_operator_staff');
+  assert.match(body, /v_mfa_known\s+boolean\s*:=\s*false;/);
+  assert.match(body, /v_mfa_known := true;/);
+  assert.match(body, /when not v_mfa_known then null/);
+  assert.ok(!/when v_mfa = '\{\}'::jsonb then null/.test(body), 'an empty aggregate still answers null');
+  assert.match(body, /where status = 'verified'/, 'true must come from a VERIFIED factor only');
+  // The read-failure branch resets the flag, so a failed read is null.
+  const handler = body.slice(body.indexOf('exception when others then'), body.indexOf('exception when others then') + 200);
+  assert.match(handler, /v_mfa_known := false;/);
+  // Still no audit row, and the grants array is intact.
+  assert.ok(!/fn_log_admin_action/.test(body));
+  assert.match(body, /as grants/);
+  assert.match(body, /as granted_roles/);
+});
+
+test('the reverify migration restates the ACL for all four functions, to service_role only', () => {
+  const signatures = {
+    fn_ca_operator_has_second_approver: '\\(uuid, text\\)',
+    fn_ca_operator_grant: '\\(uuid, text, uuid, text\\)',
+    fn_ca_operator_decide_approval: '\\(uuid, text, uuid, text\\)',
+    fn_ca_operator_staff: '\\(\\)',
+  };
+  for (const [fn, args] of Object.entries(signatures)) {
+    assert.match(
+      reverifyCode,
+      new RegExp(`revoke all on function public\\.${fn}\\s*${args}[\\s\\S]{0,40}?from public, anon, authenticated;`),
+      `${fn} has no REVOKE in the reverify migration`
+    );
+    assert.match(
+      reverifyCode,
+      new RegExp(`grant execute on function public\\.${fn}\\s*${args}[\\s\\S]{0,40}?to service_role;`),
+      `${fn} has no GRANT EXECUTE TO service_role in the reverify migration`
+    );
+  }
+  const grants = reverifyCode.match(/grant execute on function[\s\S]*?to ([a-z_, ]+);/g) || [];
+  assert.equal(grants.length, REVERIFY_FUNCTIONS.length);
+  for (const g of grants) assert.match(g, /to service_role;$/);
+});
+
+test('the reverify migration proves each fix in a subtransaction it rolls back', () => {
+  const block = reverifyAssertBlock();
+  assert.match(block, /ROLLBACK_PROBE/);
+  assert.match(block, /if sqlerrm <> 'ROLLBACK_PROBE' then\s*\n\s*raise;/);
+  for (const [finding, needle] of [
+    ['L-3', 'ASSERT FAILED (L-3)'],
+    ['M-2', 'ASSERT FAILED (M-2)'],
+    ['L-12', 'ASSERT FAILED (L-12)'],
+    ['N-4', 'ASSERT FAILED (N-4)'],
+  ]) {
+    assert.ok(block.includes(needle), `the assertion block never checks ${finding}`);
+  }
+  // The exact things each probe has to see.
+  assert.match(block, /operator_not_found/);
+  assert.match(block, /legacy_role_not_grantable/);
+  assert.match(block, /fn_ca_operator_has_second_approver\(c_checker, 'money\.write'\)/);
+  assert.match(block, /fn_ca_operator_has_second_approver\(c_checker, 'admin\.manage'\)/);
+  assert.match(block, /fn_ca_operator_decide_approval\(v_id, 'reject', c_checker/);
+  assert.match(block, /fn_ca_operator_decide_approval\(v_id, 'approve', c_checker/);
+  assert.match(block, /'self_approval_refused'/);
+  assert.match(block, /jsonb_typeof\(v_row -> 'mfa_enabled'\) <> 'boolean'/);
+  // Rolled back means rolled back: policy, grants, approvals re-read.
+  assert.match(block, /the probe changed the policy row and it was not rolled back/);
+  assert.match(block, /the probe changed the active grant count and it was not rolled back/);
+  assert.match(block, /probe approval row\(s\) survived the rollback/);
+  assert.match(block, /probe grant row\(s\) survived the rollback/);
+  const raises = block.match(/raise exception/g) || [];
+  assert.ok(raises.length >= 18, `only ${raises.length} assertions in the reverify migration`);
+  // Synthetic actors only, in the reserved block, and never a write to
+  // profiles. The synthetic checker gets its grant by a direct insert
+  // because fn_ca_operator_grant now refuses a uuid with no profile.
+  const uuids = block.match(/'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/gi) || [];
+  assert.ok(uuids.length > 0);
+  for (const u of uuids) {
+    assert.match(u, /^'00000000-0000-4000-8000-0000000000[0-9a-f]{2}'$/, `uuid outside the reserved block: ${u}`);
+  }
+  assert.match(block, /insert into public\.ca_operator_grants \(user_id, role_key, granted_by, reason\)\s*\n\s*values \(c_checker, 'finance'/);
+});
+
+test('the reverify header explains each finding, section 0, and carries a ROLLBACK', () => {
+  const header = reverify.slice(0, reverify.indexOf('set local lock_timeout'));
+  assert.match(header, /WHAT THIS IS/);
+  assert.match(header, /HOW THESE WERE FOUND/);
+  assert.match(header, /reverify-2026-09-03\/server-db\.md/);
+  for (const finding of ['M-2', 'L-3', 'L-12', 'N-4']) {
+    assert.ok(header.includes(finding), `the header never explains finding ${finding}`);
+  }
+  assert.match(header, /WHAT THIS FILE DELIBERATELY DOES NOT FIX/);
+  assert.match(header, /CONTRACT SECTION 0/);
+  assert.match(header, /Tier 2/);
+  assert.match(header, /PHASE2-SIM\.sql/, 'the header must warn that the sims grant to a uuid with no profile');
+  assert.match(reverify, /^-- ROLLBACK$/m);
+  const section = reverify.slice(reverify.indexOf('-- ROLLBACK'));
+  for (const fn of REVERIFY_FUNCTIONS) assert.ok(section.includes(fn), `the ROLLBACK section never names ${fn}`);
+  assert.match(section, /20260903120000/);
+  assert.match(section, /20260903121500/);
+  assert.match(section, /20260903140000/);
+});
+
+test('the reverify migration is ascii and free of em dashes', () => {
+  const bad = [...reverify].filter((ch) => ch.codePointAt(0) > 126);
+  assert.deepEqual([...new Set(bad)], []);
+  assert.ok(!reverify.includes('\u2014'));
+});
+
+test('the contract records the re-verification correction', () => {
+  assert.match(contract, /Post-build correction, re-verification 2026-09-03/);
+  assert.match(contract, /20260903202500_ca_operator_reverify_fixes\.sql/);
+  for (const needle of [
+    'operator.withdraw_approval',
+    'operator_not_found',
+    'legacy_role_not_grantable',
+    'fn_ca_operator_has_second_approver',
+    'p_idempotency_key',
+    'mfa_enabled',
+  ]) {
+    assert.ok(contract.includes(needle), `the contract correction never mentions ${needle}`);
+  }
 });

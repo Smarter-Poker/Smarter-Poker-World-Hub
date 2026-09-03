@@ -17,6 +17,7 @@ import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { ApiError } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
 import { uuid } from '../../../src/lib/horses/validate.js';
 const { isPrintfulReady, resolvePrintfulMapping } = require('../../../src/lib/store/printfulFulfillment');
 
@@ -37,11 +38,12 @@ class CatalogInputError extends ApiError {
 
 /**
  * Turn the Postgres error codes this table actually produces into operator-safe
- * 400s. An unmapped error is re-thrown and reaches the shared scrubber, whose
- * heuristic list does not match, for example, `value too long for type
- * character varying(64)` - so that text was echoed to the browser verbatim.
- * Anything not named here is still re-thrown: guessing at an unknown code would
- * be worse than a scrubbed 500 with a request id.
+ * 400s. An unmapped error used to be re-thrown raw and reach the shared
+ * scrubber, whose heuristic list does not match, for example, `value too long
+ * for type character varying(64)` - so that text was echoed to the browser
+ * verbatim. Anything not named here now goes through mapDbError (addendum
+ * item 17): the database sentence is logged, and the operator gets a status
+ * that describes the failure with a request id to find it by.
  */
 function catalogWriteError(error) {
   if (error?.code === '22001') {
@@ -53,7 +55,7 @@ function catalogWriteError(error) {
   if (error?.code === '22P02' || error?.code === '22003') {
     return new CatalogInputError('One Of Those Values Is Not A Number This Column Accepts');
   }
-  return error;
+  return mapDbError(error, 'That Catalog Record');
 }
 
 function cleanString(value, maxLength, { required = false } = {}) {
@@ -230,8 +232,8 @@ async function loadCatalog(supabase) {
     supabase.from('merchandise_items').select('*').order('sort_order').order('name').limit(500),
     supabase.from('merchandise_item_variants').select('*').order('sort_order').order('sku').limit(5000),
   ]);
-  if (itemError) throw itemError;
-  if (variantError) throw variantError;
+  if (itemError) throw mapDbError(itemError, 'That Catalog Record');
+  if (variantError) throw mapDbError(variantError, 'That Catalog Record');
 
   const variantsByItem = new Map();
   for (const variant of variants || []) {
@@ -264,21 +266,46 @@ async function loadCatalog(supabase) {
   };
 }
 
-async function syncHasVariants(supabase, itemId) {
+/**
+ * Recompute merchandise_items.has_variants from the live variant rows.
+ *
+ * NEVER THROWS (re-verification M-5). This runs AFTER the primary write has
+ * landed and been audited: a variant is already archived, created or updated
+ * by the time it is called. It used to throw, and it used to run BEFORE the
+ * audit row, so a failed count or item update turned a completed write into a
+ * 500 with no record of itself. Now the outcome is returned and the route
+ * reports it as `hasVariantsSynced`; the database sentence is logged under
+ * the request id and never returned.
+ *
+ * Returns { synced: boolean, hasVariants: boolean|null, reason: string|null }.
+ */
+async function syncHasVariants(supabase, itemId, requestId) {
+  const tag = `[merch-catalog-admin] ${requestId || ''} has_variants sync for ${itemId}`.replace('  ', ' ');
   const { count, error } = await supabase
     .from('merchandise_item_variants')
     .select('id', { count: 'exact', head: true })
     .eq('item_id', itemId)
     .eq('is_active', true);
-  if (error) throw error;
+  if (error) {
+    console.error(`${tag}: variant count failed:`, error.message || error);
+    return { synced: false, hasVariants: null, reason: 'variant_count_failed' };
+  }
+  const hasVariants = Number(count || 0) > 0;
   const { data: updatedItem, error: updateError } = await supabase
     .from('merchandise_items')
-    .update({ has_variants: Number(count || 0) > 0 })
+    .update({ has_variants: hasVariants })
     .eq('id', itemId)
     .select('id')
     .maybeSingle();
-  if (updateError) throw updateError;
-  if (!updatedItem) throw new Error('Product variant state could not be verified');
+  if (updateError) {
+    console.error(`${tag}: item update failed:`, updateError.message || updateError);
+    return { synced: false, hasVariants, reason: 'item_update_failed' };
+  }
+  if (!updatedItem) {
+    console.error(`${tag}: item update matched no row`);
+    return { synced: false, hasVariants, reason: 'item_not_found' };
+  }
+  return { synced: true, hasVariants, reason: null };
 }
 
 export const spec = {
@@ -336,7 +363,8 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
       throw catalogWriteError(error);
     }
     if (!data) throw new ApiError(500, 'Variant Creation Could Not Be Verified', 'create_unverified');
-    await syncHasVariants(supabase, data.item_id);
+    // The audit row is filed for the write that LANDED, before anything
+    // derived from it runs (re-verification M-5).
     await auditOperatorAction(op, req, {
       action: 'merchandise.variant_created',
       targetType: 'merchandise_variant',
@@ -344,7 +372,8 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
       details: { item_id: data.item_id, sku: data.sku },
       after: data,
     });
-    return { variant: data };
+    const sync = await syncHasVariants(supabase, data.item_id, op?.requestId);
+    return { variant: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
   }
 
   const rawId = cleanString(body.id, 64, { required: true });
@@ -355,14 +384,15 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
 
   const table = entity === 'item' ? 'merchandise_items' : 'merchandise_item_variants';
   const { data: before, error: beforeError } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
-  if (beforeError) throw beforeError;
+  if (beforeError) throw mapDbError(beforeError, 'That Catalog Record');
   if (!before) throw new ApiError(404, 'Record Not Found', 'not_found');
 
   if (method === 'DELETE') {
     const { data, error } = await supabase.from(table).update({ is_active: false }).eq('id', id).select().maybeSingle();
-    if (error) throw error;
+    if (error) throw mapDbError(error, 'That Catalog Record');
     if (!data) throw new ApiError(409, 'Record Changed Before It Could Be Archived', 'stale_record');
-    if (entity === 'variant') await syncHasVariants(supabase, before.item_id);
+    // Audit the archive that landed FIRST; the derived has_variants sync
+    // reports its own outcome and cannot un-record the write.
     await auditOperatorAction(op, req, {
       action: `merchandise.${entity}_archived`,
       targetType: `merchandise_${entity}`,
@@ -370,6 +400,10 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
       before,
       after: data,
     });
+    if (entity === 'variant') {
+      const sync = await syncHasVariants(supabase, before.item_id, op?.requestId);
+      return { record: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
+    }
     return { record: data };
   }
 
@@ -384,7 +418,6 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
     throw catalogWriteError(error);
   }
   if (!data) throw new ApiError(409, 'Record Changed Before It Could Be Updated', 'stale_record');
-  if (entity === 'variant') await syncHasVariants(supabase, before.item_id);
   await auditOperatorAction(op, req, {
     action: `merchandise.${entity}_updated`,
     targetType: `merchandise_${entity}`,
@@ -392,6 +425,10 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
     before,
     after: data,
   });
+  if (entity === 'variant') {
+    const sync = await syncHasVariants(supabase, before.item_id, op?.requestId);
+    return { record: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
+  }
   return { record: data };
 }
 

@@ -12,9 +12,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 import { T, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
+import { operatorGate } from '../../src/components/horses/operatorAdmin';
 import styles from './horses.module.css';
 
 /* COLOUR. Every value is a token from T, resolved by the custom properties
@@ -332,29 +333,34 @@ export default function HorseHandReviews() {
     // argument-less client session call is banned repo-wide by pre-commit
     // CHECK C. This check is UX only; the RPCs are SECURITY DEFINER and
     // verify the caller's role server-side via fn_is_horse_admin().
+    //
+    // THE ROUTE DECIDES WHO IS AN OPERATOR, NOT THIS FILE. This page used to
+    // read profiles.role and admit three legacy strings, which is exactly the
+    // list Phase 2 made incomplete: requireOperator admits an active
+    // ca_operator_grants row too, so a granted operator was a real operator
+    // this page sent home. operatorGate asks GET operator-admin?section=policy
+    // with the bearer: 200 is an operator, 401/403 is a refusal, and anything
+    // else is "could not verify" - neither, and it gets the retry screen.
     const verify = async () => {
       const user = getAuthUser();
       if (!user?.id) {
         router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      const { data: profile, error: roleErr } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-      // A FAILED QUERY IS NOT A DENIAL. `error` was discarded, so a transient
-      // RLS or network failure made profile null and silently redirected a
-      // real admin to the home page with no message.
-      if (roleErr) {
-        setRoleError(roleErr.message || 'Role lookup failed');
-        setLoading(false);
+      const token = await getFreshAccessToken();
+      if (!token) {
+        router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
+      const gate = await operatorGate(token);
+      if (gate.ok) {
         setIsAdmin(true);
-      } else {
+      } else if (gate.denied) {
         router.push('/');
+        return;
+      } else {
+        setRoleError(gate.error || 'The Operator Check Failed.');
+        setLoading(false);
         return;
       }
       setLoading(false);
@@ -453,7 +459,7 @@ export default function HorseHandReviews() {
         justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, textAlign: 'center', color: T.text }}>
         <div role="alert" style={{ color: T.danger, fontWeight: 700, fontSize: 18 }}>Could Not Verify Your Role</div>
         <div style={{ color: T.muted, fontSize: 14, maxWidth: 480 }}>
-          {roleError}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
+          {roleError} This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
         </div>
         <button onClick={() => router.reload()} style={{ background: T.accent, color: T.page, border: 'none',
           padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
@@ -586,8 +592,8 @@ export default function HorseHandReviews() {
                       <tr>
                         <td colSpan={3} style={{ padding: '0.4rem', color: T.muted }}>
                           {telemetryError
-                            ? `The telemetry read FAILED (${telemetryError}). This is not evidence the engine is dark -- the query did not run. Fix the read before drawing any conclusion from this panel.`
-                            : 'Counters appear after the telemetry engine deploy. A telemetry_dark finding above means this is expected.'}
+                            ? `The Telemetry Read FAILED (${telemetryError}). This Is Not Evidence The Engine Is Dark, The Query Did Not Run. Fix The Read Before Drawing Any Conclusion From This Panel.`
+                            : 'Counters Appear After The Telemetry Engine Deploy. A Telemetry Dark Finding Above Means This Is Expected.'}
                         </td>
                       </tr>
                     )}
@@ -711,8 +717,8 @@ export default function HorseHandReviews() {
                       <tr>
                         <td colSpan={6} style={{ padding: '0.4rem', color: T.muted }}>
                           {leagueError
-                            ? `The league read FAILED (${leagueError}). Fix the read before drawing conclusions.`
-                            : 'No league runs recorded yet.'}
+                            ? `The League Read FAILED (${leagueError}). Fix The Read Before Drawing Conclusions.`
+                            : 'No League Runs Recorded Yet.'}
                         </td>
                       </tr>
                     )}
@@ -796,8 +802,8 @@ export default function HorseHandReviews() {
                           <tr>
                             <td colSpan={1 + daysList.length} style={{ padding: '0.4rem', color: T.muted }}>
                               {tagTrendsError
-                                ? `The trends read FAILED (${tagTrendsError}). Fix the read before drawing conclusions.`
-                                : 'No tagged hands in the window.'}
+                                ? `The Trends Read FAILED (${tagTrendsError}). Fix The Read Before Drawing Conclusions.`
+                                : 'No Tagged Hands In The Window.'}
                             </td>
                           </tr>
                         )}
@@ -953,7 +959,7 @@ export default function HorseHandReviews() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Fleet Summary</h2>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle} aria-label="Fleet summary time window">
+              <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={inputStyle} aria-label="Fleet Summary Time Window">
                 <option value={1}>Last 24h</option>
                 <option value={7}>Last 7 Days</option>
                 <option value={30}>Last 30 Days</option>
@@ -1065,21 +1071,21 @@ export default function HorseHandReviews() {
         <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.05rem', marginRight: 8 }}>Flagged Hands</h2>
-            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by game variant">
+            <select value={filters.variant} onChange={(e) => setFilter('variant', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Game Variant">
               {VARIANTS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Variants'}
                 </option>
               ))}
             </select>
-            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by table format">
+            <select value={filters.format} onChange={(e) => setFilter('format', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Table Format">
               {FORMATS.map((v) => (
                 <option key={v} value={v}>
                   {v || 'All Formats'}
                 </option>
               ))}
             </select>
-            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle} aria-label="Filter flagged hands by result">
+            <select value={filters.win} onChange={(e) => setFilter('win', e.target.value)} style={inputStyle} aria-label="Filter Flagged Hands By Result">
               <option value="">Wins And Losses</option>
               <option value="win">Wins Only</option>
               <option value="loss">Losses Only</option>

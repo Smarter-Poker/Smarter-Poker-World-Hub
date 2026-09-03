@@ -18,9 +18,9 @@
  *     erasing a user who is in NO Home Games group inserted zero audit rows and
  *     left no record anywhere.
  */
-import { withHgOperatorRoute } from '../../../src/lib/horses/hgOperator.js';
+import { withHgOperatorRoute, mapHgRpcError } from '../../../src/lib/horses/hgOperator.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { ApiError, badRequest, forbidden } from '../../../src/lib/horses/apiEnvelope.js';
+import { badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { uuid } from '../../../src/lib/horses/validate.js';
 
@@ -46,14 +46,12 @@ export async function handle({ req, op, userDb, body }) {
     p_requested_by: op.user.id,
   });
   if (error) {
-    console.warn('[hg-gdpr-erase POST]', error.message || error);
     // The RPC raises UNAUTHORIZED with errcode 42501. Collapsing that into
     // "Erasure request failed" left the operator unable to tell "you are not
-    // allowed to do this" from "the tool is broken".
-    if (error.code === '42501' || /unauthorized|forbidden/i.test(error.message || '')) {
-      throw forbidden('You Are Not Authorized To Erase This User', 'erase_forbidden');
-    }
-    throw new ApiError(500, 'The Erasure Request Failed', 'gdpr_erase_failed');
+    // allowed to do this" from "the tool is broken". The mapping is the one
+    // every hg route shares now (re-verification L-6): 42501 -> 403, an
+    // expired JWT -> 401, the rest through mapDbError.
+    throw mapHgRpcError(error, 'This User', { requestId: op.requestId, route: 'horses.hg-gdpr-erase' });
   }
 
   await auditOperatorAction(op, req, {

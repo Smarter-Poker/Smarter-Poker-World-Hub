@@ -50,6 +50,7 @@ import {
   isOperatorRole,
   isKnownRole,
   isLegacyRole,
+  legacyPermissionsForProfileRole,
 } from '../src/lib/horses/permissions.js';
 import {
   requireOperator,
@@ -70,6 +71,7 @@ import {
   approvalPendingBody,
   approvalPendingResponse,
   canDecideApproval,
+  canWithdrawApproval,
   cashoutAuthPath,
   isApprovalKind,
   isExecutableKind,
@@ -488,22 +490,113 @@ test('resolveOperatorPermissions: legacy stays a superset while enforcement is o
   assert.deepEqual(resolved.roles, ['admin', 'read_only']);
 });
 
-test('resolveOperatorPermissions: a grant WIDENS a narrow profile role', async () => {
+test('resolveOperatorPermissions: a grant applies, and a named key in profiles.role contributes nothing', async () => {
   _resetOperatorCachesForTests();
   const db = fakeDb(
     { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: false }] } },
     permissionRpc({
       role: 'support',
-      roles: ['support', 'finance'],
+      roles: ['finance'],
       permissions: permissionsForRole('finance'),
-      source: 'both',
+      source: 'granted',
     })
   );
   const resolved = await resolveOperatorPermissions(db, OPERATOR_ID, 'support');
   assert.ok(hasPermission(resolved.permissions, PERMISSIONS.MONEY_WRITE), 'the finance grant must apply');
-  assert.ok(hasPermission(resolved.permissions, PERMISSIONS.SUPPORT_WRITE), 'the profile role must survive');
+  // The string 'support' in profiles.role is not a grant (re-verification
+  // H-1): the JS seeds nothing from it, exactly as fn_ca_operator_permissions
+  // seeds nothing from a role that is not is_legacy.
+  assert.equal(hasPermission(resolved.permissions, PERMISSIONS.SUPPORT_WRITE), false);
+  assert.deepEqual(resolved.permissions, orderPermissions(permissionsForRole('finance')));
   assert.equal(hasPermission(resolved.permissions, PERMISSIONS.ADMIN_MANAGE), false);
   assert.deepEqual(resolved.grantedRoles, ['finance']);
+});
+
+/**
+ * H-1 (re-verification). `profiles.role` is free text this feature does not
+ * own; `owner` is a value any future club or venue work is likely to write.
+ * The JS resolver used to seed its legacy set from the full matrix, so
+ * 'owner' + a read_only grant resolved to every permission in JS while SQL
+ * resolved read_only's six - and every route check reads the JS set. The
+ * legacy seed is now the legacy three and nothing else.
+ */
+test('resolveOperatorPermissions: profiles.role owner plus a read_only grant is exactly read_only', async () => {
+  _resetOperatorCachesForTests();
+  const narrow = permissionsForRole('read_only');
+  const db = fakeDb(
+    { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: false }] } },
+    permissionRpc({ role: 'owner', roles: ['read_only'], permissions: narrow, source: 'granted' })
+  );
+  const resolved = await resolveOperatorPermissions(db, OPERATOR_ID, 'owner');
+  assert.deepEqual(resolved.permissions, orderPermissions(narrow));
+  assert.equal(hasPermission(resolved.permissions, PERMISSIONS.ADMIN_MANAGE), false);
+  assert.equal(hasPermission(resolved.permissions, PERMISSIONS.SQL_EXECUTE), false);
+  assert.equal(hasPermission(resolved.permissions, PERMISSIONS.MONEY_WRITE), false);
+  assert.equal(resolved.enforced, false, 'this is not enforcement narrowing anything: it is a seed that was never there');
+
+  // profiles.role 'finance' + a support grant: no money.write, no cashier.write.
+  _resetOperatorCachesForTests();
+  const support = permissionsForRole('support');
+  const db2 = fakeDb(
+    { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: false }] } },
+    permissionRpc({ role: 'finance', roles: ['support'], permissions: support, source: 'granted' })
+  );
+  const resolved2 = await resolveOperatorPermissions(db2, OPERATOR_ID, 'finance');
+  assert.equal(hasPermission(resolved2.permissions, PERMISSIONS.MONEY_WRITE), false);
+  assert.equal(hasPermission(resolved2.permissions, PERMISSIONS.CASHIER_WRITE), false);
+  assert.deepEqual(resolved2.permissions, orderPermissions(support));
+
+  // And the pure helper says the same for every named key, and the legacy
+  // set for the legacy three.
+  for (const role of NAMED_OPERATOR_ROLES) assert.deepEqual(legacyPermissionsForProfileRole(role), []);
+  for (const role of LEGACY_ADMIN_ROLES) assert.deepEqual(legacyPermissionsForProfileRole(role), ALL_PERMISSIONS);
+  assert.deepEqual(legacyPermissionsForProfileRole('player'), []);
+  assert.deepEqual(legacyPermissionsForProfileRole(null), []);
+  _resetOperatorCachesForTests();
+});
+
+/**
+ * L-10 (re-verification). One failed RPC used to buy a full 30 seconds of the
+ * un-narrowed legacy set per lambda, even after the RPC was back. A degraded
+ * answer is cached for at most five seconds.
+ */
+test('resolveOperatorPermissions: a degraded answer is cached for five seconds, not thirty', async () => {
+  _resetOperatorCachesForTests();
+  let hits = 0;
+  let broken = true;
+  const db = fakeDb(
+    { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: true }] } },
+    {
+      fn_ca_operator_permissions: async () => {
+        hits += 1;
+        if (broken) return { data: null, error: { message: 'connection reset' } };
+        return { data: { role: 'admin', roles: ['read_only'], permissions: permissionsForRole('read_only') }, error: null };
+      },
+    }
+  );
+  const t0 = 5_000_000;
+  const { value: first } = await quiet(() => resolveOperatorPermissions(db, OPERATOR_ID, 'admin', { now: t0 }));
+  assert.equal(first.degraded, true);
+  assert.deepEqual(first.permissions, ALL_PERMISSIONS, 'the fail-open set while the RPC is down');
+  assert.equal(hits, 1);
+
+  // Inside five seconds the degraded answer is still served.
+  const { value: soon } = await quiet(() => resolveOperatorPermissions(db, OPERATOR_ID, 'admin', { now: t0 + 4_000 }));
+  assert.equal(soon.degraded, true);
+  assert.equal(hits, 1, 'a degraded answer is still a cache entry, for five seconds');
+
+  // The RPC is back. At six seconds the degraded answer must NOT be served.
+  broken = false;
+  const { value: after } = await quiet(() => resolveOperatorPermissions(db, OPERATOR_ID, 'admin', { now: t0 + 6_000 }));
+  assert.equal(hits, 2, 'a degraded answer must not be served past five seconds');
+  assert.equal(after.degraded, false);
+  assert.equal(after.enforced, true);
+  assert.equal(hasPermission(after.permissions, PERMISSIONS.MONEY_WRITE), false, 'the narrowing is felt as soon as the RPC answers');
+
+  // A healthy answer keeps the full 30 seconds.
+  await resolveOperatorPermissions(db, OPERATOR_ID, 'admin', { now: t0 + 6_000 + 29_000 });
+  assert.equal(hits, 2);
+  _resetOperatorCachesForTests();
 });
 
 test('resolveOperatorPermissions: enforce_named_roles is the only thing that narrows', async () => {
@@ -810,12 +903,19 @@ test('payloadFor: the executable kinds shape a real RPC call and the rest refuse
   );
   assert.equal(fund.ok, true);
   assert.equal(fund.rpc, 'fn_ca_fund_club');
+  // Production's fn_ca_fund_club takes p_idempotency_key, not p_op_id
+  // (re-verification, live-routes). The key is the row's op_id under the
+  // parameter name that RPC actually has, and summary.opId is where a caller
+  // reads it from without knowing which RPC it is.
   assert.deepEqual(fund.args, {
     p_club_id: CLUB_ID,
     p_amount: 100,
     p_reason: 'Topping up the club treasury',
-    p_op_id: 'op-key-4',
+    p_idempotency_key: 'op-key-4',
   });
+  assert.equal(fund.summary.opId, 'op-key-4');
+  assert.equal('p_op_id' in fund.args, false);
+  assert.equal(mint.summary.opId, mint.args.p_op_id, 'summary.opId names the same key for every executable kind');
 
   // Every refusal carries an operator-facing sentence, not just a code.
   const missing = payloadFor('burn')(null, 'op-key-5');
@@ -883,13 +983,72 @@ test('requireApproval: the alone-rule clears a gated move and says why', async (
   assert.equal(result.blockedReason, 'no_second_approver');
 });
 
-test('requireApproval: the local policy is a ceiling - the database cannot gate an ungated move', async () => {
-  // A stale 30s cache may let a move through that a fresh read would hold. It
-  // may never hold a move that today runs unimpeded. Section 0.
+/**
+ * H-2 (re-verification). This test used to assert the opposite: that a stale
+ * local policy saying "off" could talk past a PENDING row the database had
+ * just written. Dan turns approvals on from lambda A; lambda B holds "off"
+ * for up to 30 seconds; an operator on B mints; the RPC writes `pending`, the
+ * JS ANDed that away, fn_ca_mint ran, and the row sat in the queue for a
+ * second operator to reject with the chips already gone. A pending row the
+ * database wrote HOLDS. Section 0 is not breached: the RPC only ever answers
+ * required:true when approvals_enabled is true IN THE DATABASE, which is
+ * Dan's switch and not a failure mode.
+ */
+test('requireApproval: a pending row the database wrote holds, whatever the local policy cache says', async () => {
   const db = fakeDb({}, requestRpc({ required: true, approval_id: APPROVAL_ID, status: 'pending' }));
   const op = opFor(db, { policy: policyOf({ approvalsEnabled: false }) });
   const result = await requireApproval(op, fakeReq(), { kind: 'mint', amount: 500, opId: 'op-4' });
-  assert.equal(result.required, false);
+  assert.equal(result.required, true, 'a stale "off" must not mint past a pending row');
+  assert.equal(result.status, 'pending');
+  assert.equal(result.approvalId, APPROVAL_ID);
+  assert.equal(result.policyReason, 'approvals_disabled', 'the local decision is still reported honestly');
+
+  // The degraded policy (table read failed, RPC works) is the same window.
+  const degraded = fakeDb({}, requestRpc({ required: true, approval_id: APPROVAL_ID, status: 'pending' }));
+  const held = await requireApproval(
+    opFor(degraded, { policy: { ...DEFAULT_OPERATOR_POLICY, degraded: true } }),
+    fakeReq(),
+    { kind: 'mint', amount: 500, opId: 'op-4b' }
+  );
+  assert.equal(held.required, true);
+});
+
+test('requireApproval: an RPC answer of required:true with status pending never yields required:false', async () => {
+  const policies = [
+    policyOf({ approvalsEnabled: false }),
+    policyOf({ approvalsEnabled: true, mintThreshold: 1_000_000 }),
+    policyOf({ approvalsEnabled: true, mintThreshold: 0 }),
+    { ...DEFAULT_OPERATOR_POLICY },
+    { ...DEFAULT_OPERATOR_POLICY, degraded: true },
+    null,
+  ];
+  for (const policy of policies) {
+    for (const kind of ['mint', 'burn', 'fund_club', 'cashout']) {
+      const db = fakeDb({}, requestRpc({ required: true, approval_id: APPROVAL_ID, status: 'pending' }));
+      const result = await requireApproval(opFor(db, { policy }), fakeReq(), {
+        kind,
+        amount: 5,
+        opId: `op-hold-${kind}`,
+      });
+      assert.equal(result.required, true, `${kind} under ${JSON.stringify(policy)} must hold`);
+      assert.equal(result.status, 'pending');
+    }
+  }
+
+  // And the other half of the rule is unchanged: with the RPC UNAVAILABLE the
+  // local policy is still the ceiling, because no row was written at all.
+  const down = fakeDb({}, {
+    fn_ca_operator_request_approval: async () => ({ data: null, error: { message: 'does not exist' } }),
+  });
+  const { value } = await quiet(() =>
+    requireApproval(opFor(down, { policy: policyOf({ approvalsEnabled: false }) }), fakeReq(), {
+      kind: 'mint',
+      amount: 5,
+      opId: 'op-down',
+    })
+  );
+  assert.equal(value.required, false);
+  assert.equal(value.recorded, false);
 });
 
 test('requireApproval: a failed ADVISORY row is logged and the money still moves', async () => {
@@ -1330,16 +1489,19 @@ test('mint: requireApproval runs BEFORE the money RPC and markApprovalExecuted e
   assert.equal(payload.approvalStatus, 'auto_approved');
 });
 
-test('mint: a refused move does not mark an approval executed', async () => {
+test('mint: a refused move marks the approval FAILED, never executed (re-verification L-11)', async () => {
   const db = mintDb({
     ...requestRpc({ required: false, approval_id: APPROVAL_ID, status: 'auto_approved' }),
     fn_ca_mint: async () => ({ data: { ok: false, reason: 'club_not_found' }, error: null }),
+    fn_ca_operator_mark_executed: async () => ({ data: { ok: true, status: 'failed' }, error: null }),
   });
   await assert.rejects(
     mintHandle({ req: fakeReq(), res: fakeRes(), op: opFor(db), db, body: mintBody(), query: {}, method: 'POST' }),
     (err) => err.status === 400
   );
-  assert.ok(!db.rpcNames().includes('fn_ca_operator_mark_executed'));
+  const marks = db.rpcCalls().filter((c) => c.rpc === 'fn_ca_operator_mark_executed');
+  assert.equal(marks.length, 1, 'the trail reads the same through either door');
+  assert.equal(marks[0].args.p_status, 'failed');
 });
 
 test('mint: with the approvals RPC missing entirely, the mint still goes through', async () => {
@@ -1513,20 +1675,21 @@ test('operator-admin: set_policy validates every switch and threshold, then audi
   assert.throws(() => validatePolicyPatch({ mintThreshold: -5 }), (err) => err.status === 400);
   assert.throws(() => validatePolicyPatch({ approvalTtlMinutes: 1 }), (err) => err.status === 400);
 
-  // No fn_ca_operator_set_policy in this world, which is production between
-  // this deploy and the follow-up migration: the direct write is the fallback,
-  // and it still has to carry the whole patch and the actor.
+  // The RPC carries the whole patch and the actor, and the audit row names
+  // the fields that changed.
   _resetOperatorCachesForTests();
-  const db = adminDb();
+  let sent = null;
+  const db = adminDb({}, {
+    fn_ca_operator_set_policy: async (args) => {
+      sent = args;
+      return { data: { ok: true, policy: { id: true, ...args.p_patch } }, error: null };
+    },
+  });
   const owner = opFor(db, { role: 'owner' });
-  const { value: fallback } = await quiet(() =>
-    adminPost(db, owner, { action: 'set_policy', approvalsEnabled: true, mintThreshold: '1000' })
-  );
-  assert.equal(fallback.policy.approvals_enabled, false, 'the fallback answers with the row it read back');
-  const update = db.calls.find((c) => c.table === 'ca_operator_policy' && c.update);
-  assert.equal(update.update.approvals_enabled, true);
-  assert.equal(update.update.mint_threshold, 1000);
-  assert.equal(update.update.updated_by, OPERATOR_ID);
+  const saved = await adminPost(db, owner, { action: 'set_policy', approvalsEnabled: true, mintThreshold: '1000' });
+  assert.equal(saved.policy.approvals_enabled, true);
+  assert.deepEqual(sent.p_patch, { approvals_enabled: true, mint_threshold: 1000 });
+  assert.equal(sent.p_updated_by, OPERATOR_ID);
   const audit = db.calls.find((c) => c.rpc === 'fn_log_admin_action');
   assert.equal(audit.args.p_action, 'operator.set_policy');
   assert.deepEqual(audit.args.p_details.fields.sort(), ['approvals_enabled', 'mint_threshold']);
@@ -1606,9 +1769,55 @@ test('operator-admin: set_policy uses the guarded RPC and surfaces its refusal',
   _resetOperatorCachesForTests();
 });
 
-test('operator-admin: set_policy refuses when the update matched no row', async () => {
+/**
+ * M-1 (re-verification). The direct-UPDATE fallback is gone. It existed for
+ * the window between the deploy and migration 20260903140000; that migration
+ * is applied, so all the fallback could do was turn ANY RPC error - a
+ * statement timeout, a pooler hiccup, a RAISE - into a row write with no
+ * lockout guard in front of it, and then report `enforce_named_roles: true`.
+ */
+test('operator-admin: set_policy never writes the table on an RPC error, and never reports enforcement on', async () => {
+  for (const failing of [
+    async () => ({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }),
+    async () => ({ data: null, error: { code: 'PGRST202', message: 'function fn_ca_operator_set_policy does not exist' } }),
+    async () => {
+      throw new Error('connection reset');
+    },
+  ]) {
+    _resetOperatorCachesForTests();
+    const db = adminDb(
+      { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: false }] } },
+      { fn_ca_operator_set_policy: failing }
+    );
+    const { value } = await quiet(() =>
+      adminPost(db, opFor(db, { role: 'owner' }), { action: 'set_policy', enforceNamedRoles: true }).then(
+        (payload) => ({ payload }),
+        (err) => ({ err })
+      )
+    );
+    assert.ok(value.err, 'an RPC error must be an error');
+    assert.equal(value.payload, undefined);
+    assert.equal(value.err.status, 503);
+    assert.equal(value.err.code, 'database_unavailable');
+    assert.match(value.err.message, /The Operator Policy/);
+    assert.ok(
+      !db.calls.some((c) => c.table === 'ca_operator_policy' && c.update),
+      'no direct write to ca_operator_policy on an RPC error'
+    );
+    assert.ok(
+      !db.calls.some((c) => c.rpc === 'fn_log_admin_action'),
+      'a write that did not happen must not be audited as if it had'
+    );
+  }
   _resetOperatorCachesForTests();
-  const db = adminDb({ ca_operator_policy: { rows: [] } });
+});
+
+test('operator-admin: set_policy refuses when the RPC hands back no policy row', async () => {
+  _resetOperatorCachesForTests();
+  const db = adminDb(
+    { ca_operator_policy: { rows: [] } },
+    { fn_ca_operator_set_policy: async () => ({ data: { ok: true }, error: null }) }
+  );
   const { value } = await quiet(() =>
     assert.rejects(
       adminPost(db, opFor(db, { role: 'owner' }), { action: 'set_policy', approvalsEnabled: true }),
@@ -1621,6 +1830,7 @@ test('operator-admin: set_policy refuses when the update matched no row', async 
     )
   );
   assert.equal(value, undefined);
+  assert.ok(!db.calls.some((c) => c.table === 'ca_operator_policy' && c.update));
   assert.ok(
     !db.calls.some((c) => c.rpc === 'fn_log_admin_action'),
     'a write that did not happen must not be audited as if it had'
@@ -2315,12 +2525,13 @@ test('operator-admin: the policy read counts who else could approve a money move
 
 test('operator-admin: set_policy answers in both spellings as well', async () => {
   _resetOperatorCachesForTests();
-  // The fake applies the UPDATE to the row it hands back, so this is the
-  // shape the panel reads after it saves.
-  const db = adminDb({
-    ca_operator_policy: {
-      rows: (record) => [{ id: true, approvals_enabled: false, ...(record.update || {}) }],
-    },
+  // The RPC hands back the row it stored, so this is the shape the panel
+  // reads after it saves.
+  const db = adminDb({}, {
+    fn_ca_operator_set_policy: async (args) => ({
+      data: { ok: true, policy: { id: true, approvals_enabled: false, ...args.p_patch } },
+      error: null,
+    }),
   });
   const payload = await adminPost(db, opFor(db, { role: 'owner' }), {
     action: 'set_policy',
@@ -2531,6 +2742,423 @@ test('operator-admin: unknown sections and actions are refused before anything r
  * request either. With cashout_threshold at 0 that was every cashout on the
  * platform, frozen behind a queue the people filing them cannot see.
  */
+// ----------------------------------------- re-verification 2026-09-03, route
+
+/**
+ * H-1 AT THE ROSTER. aloneRuleFor counts eligible approvers from
+ * fn_ca_operator_staff through rolesOfStaffRow, which used to feed a profile
+ * role of 'owner' into the permission matrix and count that account as a
+ * money.write holder with no grant at all.
+ */
+test('operator-admin: the roster count seeds nothing from a named key in profiles.role', async () => {
+  _resetOperatorCachesForTests();
+  const roster = (staff) => adminDb(
+    {
+      ca_operator_policy: {
+        rows: [{ id: true, approvals_enabled: true, allow_self_approve_when_alone: true }],
+      },
+    },
+    { fn_ca_operator_staff: async () => ({ data: { staff, total: staff.length }, error: null }) }
+  );
+  // 'owner' with no grant and 'finance' with a read_only grant: neither holds
+  // money.write, so the admin is alone.
+  const named = roster([
+    { user_id: OPERATOR_ID, profile_role: 'admin', granted_roles: [], grants: [] },
+    { user_id: OTHER_ID, profile_role: 'owner', granted_roles: [], grants: [] },
+    { user_id: CLUB_ID, profile_role: 'finance', granted_roles: ['read_only'], grants: [{ id: 'g1', role_key: 'read_only' }] },
+  ]);
+  const page = await adminGet(named, opFor(named, { role: 'admin' }), { section: 'policy' });
+  assert.equal(page.aloneRule.eligibleApprovers, 0, 'a named string in profiles.role is not a grant');
+  assert.equal(page.aloneRule.applies, true);
+
+  // A real legacy account with no grant still counts, enforcement or not:
+  // that is the rule fn_ca_operator_permissions applies and the follow-up
+  // migration makes fn_ca_operator_has_second_approver apply too (M-2).
+  const legacy = roster([
+    { user_id: OPERATOR_ID, profile_role: 'admin', granted_roles: [], grants: [] },
+    { user_id: OTHER_ID, profile_role: 'god', granted_roles: [], grants: [] },
+  ]);
+  const counted = await adminGet(legacy, opFor(legacy, { role: 'admin' }), { section: 'policy' });
+  assert.equal(counted.aloneRule.eligibleApprovers, 1);
+  _resetOperatorCachesForTests();
+});
+
+/**
+ * L-3 AT THE ROUTE. The legacy three are what profiles.role says. A grant of
+ * `god` would be an owner by another name that the Staff tab cannot explain.
+ */
+test('operator-admin: grant_role accepts the named roles only, never god, superadmin or admin', async () => {
+  for (const roleKey of LEGACY_ADMIN_ROLES) {
+    const db = adminDb({}, {
+      fn_ca_operator_grant: async () => {
+        throw new Error('the RPC must not be reached for a legacy key');
+      },
+    });
+    await assert.rejects(
+      adminPost(db, opFor(db, { role: 'owner' }), {
+        action: 'grant_role',
+        userId: OTHER_ID,
+        roleKey,
+        reason: 'Trying to grant a legacy key',
+      }),
+      (err) => {
+        assert.equal(err.status, 400);
+        assert.equal(err.code, 'legacy_role_not_grantable');
+        assert.equal(err.message, 'Legacy Roles Live On The Profile, Not In A Grant');
+        return true;
+      }
+    );
+    assert.ok(!db.rpcNames().includes('fn_ca_operator_grant'));
+    assert.ok(!db.rpcNames().includes('fn_log_admin_action'), 'a refused grant files no audit row');
+  }
+  // Every named role still goes through.
+  for (const roleKey of NAMED_OPERATOR_ROLES) {
+    const db = adminDb({}, {
+      fn_ca_operator_grant: async (args) => ({ data: { ok: true, grant_id: 'g-' + args.p_role_key }, error: null }),
+    });
+    const payload = await adminPost(db, opFor(db, { role: 'owner' }), {
+      action: 'grant_role',
+      userId: OTHER_ID,
+      roleKey,
+      reason: 'Granting a named role for the test',
+    });
+    assert.equal(payload.roleKey, roleKey);
+  }
+});
+
+/**
+ * L-4. The pending queue and its total exclude rows already past their TTL:
+ * the row is still `pending` in the table until somebody touches it, and the
+ * badge used to count it.
+ */
+test('operator-admin: the pending queue filters out rows past their TTL, on the server', async () => {
+  const db = adminDb({ ca_operator_approvals: { rows: [APPROVAL_ROW] } });
+  const before = Date.now();
+  await adminGet(db, opFor(db, { role: 'read_only' }), { section: 'approvals', status: 'pending' });
+  const call = db.calls.find((c) => c.table === 'ca_operator_approvals' && c.countMode);
+  const or = call.filters.find(([o]) => o === 'or');
+  assert.ok(or, 'the pending queue must carry the TTL filter');
+  const m = /^expires_at\.is\.null,expires_at\.gt\.(.+)$/.exec(or[1]);
+  assert.ok(m, `unexpected filter: ${or[1]}`);
+  const at = Date.parse(m[1]);
+  assert.ok(Number.isFinite(at) && at >= before && at <= Date.now(), 'the cutoff is now, as an ISO timestamp');
+
+  // History reads carry no such filter: an expired row is history.
+  for (const query of [{ section: 'approvals' }, { section: 'approvals', status: 'expired' }, { section: 'approvals', status: 'executed' }]) {
+    const other = adminDb({ ca_operator_approvals: { rows: [APPROVAL_ROW] } });
+    await adminGet(other, opFor(other, { role: 'read_only' }), query);
+    const c = other.calls.find((x) => x.table === 'ca_operator_approvals' && x.countMode);
+    assert.ok(!c.filters.some(([o]) => o === 'or'), `${JSON.stringify(query)} must not filter on expires_at`);
+  }
+});
+
+/**
+ * L-7. A 500-row page carries up to 1,000 ids (requester and decider); the
+ * Phase 1 rule is that an `.in()` list never exceeds 200.
+ */
+test('operator-admin: requester and decider labels are read in chunks of 200 ids', async () => {
+  const ids = Array.from({ length: 450 }, (_, i) => `${String(i).padStart(8, '0')}-0000-4000-8000-000000000000`);
+  const rows = ids.map((id, i) => ({
+    ...APPROVAL_ROW,
+    id: `row-${i}`,
+    requested_by: id,
+    decided_by: i % 2 ? OTHER_ID : null,
+    status: i % 2 ? 'executed' : 'pending',
+  }));
+  const profiles = ids.slice(0, 3).map((id, i) => ({ id, username: `u${i}`, display_name: `User ${i}` }));
+  profiles.push({ id: OTHER_ID, username: 'checker', display_name: 'The Checker' });
+  const db = adminDb({ ca_operator_approvals: { rows }, profiles: { rows: profiles } });
+  const page = await adminGet(db, opFor(db, { role: 'read_only' }), { section: 'approvals', limit: '500' });
+  assert.equal(page.rows.length, 450);
+
+  const reads = db.calls.filter((c) => c.table === 'profiles');
+  assert.equal(reads.length, 3, '451 unique ids is three chunks of at most 200');
+  for (const read of reads) {
+    const inFilter = read.filters.find(([o, c]) => o === 'in' && c === 'id');
+    assert.ok(inFilter);
+    assert.ok(inFilter[2].length <= 200, `an .in() list of ${inFilter[2].length} ids`);
+  }
+  const seen = new Set(reads.flatMap((r) => r.filters.find(([o]) => o === 'in')[2]));
+  assert.equal(seen.size, 451, 'every id is asked for exactly once');
+  const by = Object.fromEntries(page.rows.map((r) => [r.id, r]));
+  assert.equal(by['row-0'].requester_label, 'User 0');
+  assert.equal(by['row-1'].decided_by_label, 'The Checker');
+  assert.equal(by['row-7'].requester_label, ids[7], 'an unnamed profile keeps its uuid');
+});
+
+/**
+ * L-1. The TTL bounds the execution too. An approved-but-failed mint could be
+ * re-driven months later against a club whose state had changed.
+ */
+test('operator-admin: execute_approval refuses an approved row past its TTL, marks it expired and audits it', async () => {
+  for (const status of ['approved', 'failed']) {
+    const world = approvalWorld({ payload: MINT_PAYLOAD, status, expires_at: '2020-01-01T00:00:00Z' });
+    let minted = 0;
+    const db = world.db({
+      fn_ca_mint: async () => {
+        minted += 1;
+        return { data: { ok: true, ledger_id: 'never' }, error: null };
+      },
+    });
+    const { value } = await quiet(() =>
+      adminPost(db, opFor(db, { role: 'finance' }), { action: 'execute_approval', approvalId: APPROVAL_ID }).then(
+        (payload) => ({ payload }),
+        (err) => ({ err })
+      )
+    );
+    assert.ok(value.err, `an expired ${status} row must be refused`);
+    assert.equal(value.err.status, 409);
+    assert.equal(value.err.code, 'approval_expired');
+    assert.match(value.err.message, /Nothing Moved/);
+    assert.equal(minted, 0, 'no money RPC');
+
+    // The status moved by a direct update whose result was read: the fake's
+    // rows are static, so the update is what is asserted, plus its guards.
+    const update = db.calls.find((c) => c.table === 'ca_operator_approvals' && c.update);
+    assert.ok(update, 'the row must be marked expired');
+    assert.deepEqual(update.update, { status: 'expired' });
+    assert.ok(update.filters.some(([o, c, v]) => o === 'eq' && c === 'id' && v === APPROVAL_ID));
+    assert.ok(
+      update.filters.some(([o, c, v]) => o === 'eq' && c === 'status' && v === status),
+      'guarded on the status the row was read with'
+    );
+    assert.ok(!db.rpcNames().includes('fn_ca_operator_mark_executed'), 'mark_executed does not accept expired');
+
+    const audit = db.calls.find(
+      (c) => c.rpc === 'fn_log_admin_action' && c.args.p_action === 'operator.execute_approval'
+    );
+    assert.ok(audit, 'the refusal is on the record');
+    assert.equal(audit.args.p_details.error, 'approval_expired');
+    assert.equal(audit.args.p_details.via, 'execute_approval');
+    assert.equal(audit.args.p_before_state.status, status);
+  }
+
+  // A row with a TTL still ahead of it runs.
+  const live = approvalWorld({ payload: MINT_PAYLOAD, status: 'approved', expires_at: '2999-01-01T00:00:00Z' });
+  const liveDb = live.db(okMint());
+  const payload = await adminPost(liveDb, opFor(liveDb, { role: 'finance' }), {
+    action: 'execute_approval',
+    approvalId: APPROVAL_ID,
+  });
+  assert.equal(payload.execution.ok, true);
+});
+
+/**
+ * Item 9. An approval id that names no row is a 404, the same answer
+ * decide_approval gives. execution_row_missing is kept for a row that
+ * vanished between the decision and the execution.
+ */
+test('operator-admin: execute_approval on an id that names no row is a 404, and a vanished row keeps its own code', async () => {
+  const missing = adminDb({ ca_operator_approvals: { rows: [] } });
+  await assert.rejects(
+    adminPost(missing, opFor(missing, { role: 'finance' }), { action: 'execute_approval', approvalId: APPROVAL_ID }),
+    (err) => {
+      assert.equal(err.status, 404);
+      assert.equal(err.code, 'not_found');
+      return true;
+    }
+  );
+
+  // The row exists for the decision read and is gone for the execution read.
+  let reads = 0;
+  const vanishing = fakeDb(
+    {
+      ca_operator_approvals: {
+        rows: () => {
+          reads += 1;
+          return reads === 1 ? [{ ...APPROVAL_ROW, payload: MINT_PAYLOAD }] : [];
+        },
+      },
+      ca_operator_policy: { rows: [{ id: true }] },
+      profiles: { rows: [] },
+    },
+    {
+      ...logRpc,
+      ...okMint(),
+      fn_ca_operator_has_second_approver: async () => ({ data: false, error: null }),
+      fn_ca_operator_decide_approval: async () => ({ data: { ok: true, status: 'approved' }, error: null }),
+    }
+  );
+  await assert.rejects(
+    adminPost(vanishing, opFor(vanishing, { role: 'finance' }), {
+      action: 'decide_approval',
+      approvalId: APPROVAL_ID,
+      decision: 'approve',
+    }),
+    (err) => {
+      assert.equal(err.status, 409);
+      assert.equal(err.code, 'execution_row_missing');
+      return true;
+    }
+  );
+  assert.ok(!vanishing.rpcNames().includes('fn_ca_mint'));
+});
+
+/**
+ * fund_club. Production's fn_ca_fund_club takes p_idempotency_key, not
+ * p_op_id, and the executor used to read shaped.args.p_op_id for its audit
+ * row and its answer - undefined for this kind.
+ */
+test('operator-admin: an approved fund_club runs fn_ca_fund_club under p_idempotency_key and reports the key', async () => {
+  const world = approvalWorld({
+    kind: 'fund_club',
+    status: 'approved',
+    op_id: 'op-fund-1',
+    target_type: 'club',
+    target_id: CLUB_ID,
+    payload: { clubId: CLUB_ID, amount: 5000, reason: 'Topping up the club treasury', opId: 'op-fund-1' },
+  });
+  let args = null;
+  const db = world.db({
+    fn_ca_fund_club: async (a) => {
+      args = a;
+      return { data: { ok: true, ledger_id: 'l-fund' }, error: null };
+    },
+  });
+  const payload = await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'execute_approval',
+    approvalId: APPROVAL_ID,
+  });
+  assert.deepEqual(args, {
+    p_club_id: CLUB_ID,
+    p_amount: 5000,
+    p_reason: 'Topping up the club treasury',
+    p_idempotency_key: 'op-fund-1',
+  });
+  assert.equal(payload.execution.ok, true);
+  assert.equal(payload.execution.rpc, 'fn_ca_fund_club');
+  assert.equal(payload.execution.opId, 'op-fund-1', 'the key is reported whatever the RPC calls it');
+  assert.equal(world.row.status, 'executed');
+  assert.equal(world.row.result.op_id, 'op-fund-1');
+  const audit = db.calls.find(
+    (c) => c.rpc === 'fn_log_admin_action' && c.args.p_action === 'operator.execute_approval'
+  );
+  assert.equal(audit.args.p_details.op_id, 'op-fund-1');
+  assert.equal(audit.args.p_details.rpc, 'fn_ca_fund_club');
+});
+
+/**
+ * L-12. A requester may WITHDRAW their own pending request. The four-eyes
+ * rule guards approvals, not cancellations; a mistaken request used to sit in
+ * the queue until its TTL.
+ */
+test('operator-admin: a requester may withdraw their own pending request, audited as a withdrawal', async () => {
+  const strict = policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: false });
+  const world = approvalWorld({ requested_by: OPERATOR_ID, payload: MINT_PAYLOAD });
+  const db = world.db({
+    ...okMint(),
+    fn_ca_operator_has_second_approver: async () => ({ data: true, error: null }),
+  });
+  const me = opFor(db, { role: 'finance', policy: strict });
+
+  // Approving your own row is still refused.
+  await assert.rejects(
+    adminPost(db, me, { action: 'decide_approval', approvalId: APPROVAL_ID, decision: 'approve', note: 'Approving my own request' }),
+    (err) => err.status === 409 && err.code === 'self_approval'
+  );
+
+  // Withdrawing needs a reason of at least ten characters.
+  await assert.rejects(
+    adminPost(db, me, { action: 'decide_approval', approvalId: APPROVAL_ID, decision: 'reject', note: 'oops' }),
+    (err) => {
+      assert.equal(err.status, 400);
+      assert.match(err.message, /At Least Ten Characters/);
+      return true;
+    }
+  );
+  await assert.rejects(
+    adminPost(db, me, { action: 'decide_approval', approvalId: APPROVAL_ID, decision: 'reject' }),
+    (err) => err.status === 400
+  );
+  assert.equal(world.row.status, 'pending');
+  assert.ok(!db.rpcNames().includes('fn_ca_operator_decide_approval'));
+
+  // With a reason, the row is rejected and the trail says it was withdrawn.
+  const payload = await adminPost(db, me, {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'reject',
+    note: 'Raised against the wrong club',
+  });
+  assert.equal(payload.withdrawn, true);
+  assert.equal(payload.decision, 'reject');
+  assert.equal(payload.execution.attempted, false);
+  assert.match(payload.execution.message, /^Withdrawn\./);
+  assert.equal(world.row.status, 'rejected', 'a withdrawal is a rejection in the table');
+  const decide = db.calls.find((c) => c.rpc === 'fn_ca_operator_decide_approval');
+  assert.equal(decide.args.p_decision, 'reject');
+  assert.equal(decide.args.p_decided_by, OPERATOR_ID);
+  assert.equal(decide.args.p_note, 'Raised against the wrong club');
+  const audit = db.calls.find((c) => c.rpc === 'fn_log_admin_action');
+  assert.equal(audit.args.p_action, 'operator.withdraw_approval');
+  assert.equal(audit.args.p_details.withdrawn, true);
+  assert.equal(audit.args.p_details.decision, 'reject');
+  assert.equal(audit.args.p_after_state.status, 'rejected');
+  assert.ok(!db.rpcNames().includes('fn_ca_mint'));
+
+  // Somebody else's reject is a decision, not a withdrawal, and a decided row
+  // cannot be withdrawn.
+  const theirs = approvalWorld({ requested_by: OTHER_ID, payload: MINT_PAYLOAD });
+  const theirsDb = theirs.db();
+  const rejected = await adminPost(theirsDb, opFor(theirsDb, { role: 'finance', policy: strict }), {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'reject',
+    note: 'No',
+  });
+  assert.equal(rejected.withdrawn, false);
+  assert.equal(
+    theirsDb.calls.find((c) => c.rpc === 'fn_log_admin_action').args.p_action,
+    'operator.decide_approval'
+  );
+  const done = approvalWorld({ requested_by: OPERATOR_ID, status: 'approved' });
+  const doneDb = done.db();
+  await assert.rejects(
+    adminPost(doneDb, opFor(doneDb, { role: 'finance', policy: strict }), {
+      action: 'decide_approval',
+      approvalId: APPROVAL_ID,
+      decision: 'reject',
+      note: 'Taking it back after the fact',
+    }),
+    (err) => err.status === 409 && err.code === 'already_decided'
+  );
+
+  // And the pure helper the queue and the route share.
+  assert.equal(canWithdrawApproval({ status: 'pending', requested_by: OPERATOR_ID }, OPERATOR_ID).allowed, true);
+  assert.equal(canWithdrawApproval({ status: 'pending', requested_by: OTHER_ID }, OPERATOR_ID).reason, 'not_requester');
+  assert.equal(canWithdrawApproval({ status: 'rejected', requested_by: OPERATOR_ID }, OPERATOR_ID).reason, 'already_decided');
+  assert.equal(
+    canWithdrawApproval({ status: 'pending', requested_by: OPERATOR_ID, expires_at: '2020-01-01T00:00:00Z' }, OPERATOR_ID).reason,
+    'expired'
+  );
+  assert.equal(canWithdrawApproval(null, OPERATOR_ID).reason, 'not_found');
+});
+
+test('operator-admin: the queue says which rows the caller may withdraw', async () => {
+  const rows = [
+    { ...APPROVAL_ROW, id: 'a-mine', requested_by: OPERATOR_ID },
+    { ...APPROVAL_ROW, id: 'a-theirs', requested_by: OTHER_ID },
+    { ...APPROVAL_ROW, id: 'a-mine-done', requested_by: OPERATOR_ID, status: 'rejected' },
+  ];
+  const db = adminDb({ ca_operator_approvals: { rows }, profiles: { rows: [] } });
+  const page = await adminGet(
+    db,
+    opFor(db, { role: 'finance', policy: policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: false }) }),
+    { section: 'approvals' }
+  );
+  const by = Object.fromEntries(page.rows.map((r) => [r.id, r]));
+  assert.equal(by['a-mine'].can_decide, false, 'approving your own row is still refused');
+  assert.equal(by['a-mine'].decide_blocked_reason, 'self_approval');
+  assert.equal(by['a-mine'].can_withdraw, true);
+  assert.equal(by['a-theirs'].can_withdraw, false);
+  assert.equal(by['a-mine-done'].can_withdraw, false);
+
+  // Without the kind's permission there is nothing to withdraw either.
+  const support = adminDb({ ca_operator_approvals: { rows }, profiles: { rows: [] } });
+  const read = await adminGet(support, opFor(support, { role: 'support' }), { section: 'approvals' });
+  assert.ok(read.rows.every((r) => r.can_withdraw === false));
+});
+
 test('approve-cashout: only the platform-override path is gated, and the row says which path it took', () => {
   const agent = cashoutAuthPath({ isPlatformAdmin: false, isAgent: true });
   assert.equal(agent.gated, false, 'a club agent keeps exactly the behaviour they have today');

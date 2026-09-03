@@ -25,6 +25,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import Pager from './Pager';
 import StatusPill from './StatusPill';
@@ -34,11 +35,13 @@ import styles from './shared.module.css';
 import { num, when } from '../../lib/horsesAdminTokens';
 import {
   APPROVAL_KINDS, APPROVAL_STATUSES, approvalRowState, blockedReasonLabel, formatAge,
-  formatExpiresIn, isStaleRowRefusal, kindLabel, statusLabel, toneForApprovalStatus,
+  formatExpiresIn, isExecutableKind, isStaleRowRefusal, kindLabel, permissionForKind,
+  statusLabel, toneForApprovalStatus,
 } from './approvalModel';
+import { hasPermission } from './operatorPermissions';
 import {
-  MIN_REASON_LENGTH, approvalsUrl, decideApprovalBody, policyIsKnown, reasonIsValid,
-  rowsOf, OPERATOR_ADMIN,
+  MIN_REASON_LENGTH, approvalsUrl, decideApprovalBody, executeApprovalBody, policyIsKnown,
+  reasonIsValid, rowsOf, OPERATOR_ADMIN,
 } from './operatorAdmin';
 
 const HISTORY_PAGE_SIZE = 50;
@@ -71,6 +74,64 @@ function targetLabel(row) {
   return row.target_type ? `${row.target_type}: ${label}` : String(label);
 }
 
+/**
+ * IS THIS THE NEWS THAT AN APPROVAL WAS RECORDED BUT NOT CARRIED OUT?
+ *
+ * `decide_approval` with `approve` runs the money RPC in the same request.
+ * When that RPC cannot be reached the route marks the row `failed` and
+ * answers 503 `execution_unavailable`; when the RPC refuses, 409
+ * `execution_refused` (or the RPC's own reason). Either way the decision IS
+ * recorded, the row is no longer pending, and the modal's Approve button is
+ * now over a row the route will refuse with `already_decided`. So these are
+ * handled exactly like a stale-row refusal: close the modal, say what the
+ * route said, and re-read both lists so the row appears in History with its
+ * Run Again button.
+ */
+function isExecutionFailure(err) {
+  if (!err) return false;
+  const code = String(err.code || '').toLowerCase();
+  if (code === 'execution_unavailable' || code === 'execution_refused') return true;
+  return Number(err.status) === 503;
+}
+
+/**
+ * Which History rows may be run again.
+ *
+ * A `failed` row of any kind the route can execute, and an `approved` row of
+ * an executable kind that never got an `executed_at` - the case where the
+ * decision landed and the request died before the execution was recorded.
+ * The route refuses anything else (409), and it refuses an expired row too,
+ * so this is a hint about which button to draw and never the authority.
+ */
+function canRunAgain(row, permissions) {
+  if (!row || !isExecutableKind(row.kind)) return false;
+  if (!hasPermission(permissions, permissionForKind(row.kind))) return false;
+  const status = String(row.status || '').toLowerCase();
+  if (status === 'failed') return true;
+  return status === 'approved' && !row.executed_at;
+}
+
+/**
+ * The sentence the Approve dialog owes the operator, by kind.
+ *
+ * It used to say "Approving Carries The Operation Out" for every kind, and a
+ * cashout is NOT carried out here: the route records the decision and the
+ * chips move from the Cashout screen. An operator who read "carried out" did
+ * not go back to that screen, and the player was not paid.
+ */
+function approveSentence(kind) {
+  if (isExecutableKind(kind)) {
+    return 'Approving Carries The Operation Out. It Is Executed Once And Only Once, Against The Operation ID This Request Already Holds.';
+  }
+  if (String(kind || '').toLowerCase() === 'cashout') {
+    return 'Approving Records Your Decision. The Cashout Itself Is Still Completed From The Cashout Screen, So No Chips Move Here.';
+  }
+  return 'Approving Records Your Decision. Nothing Moves Until Its Own Screen Runs It.';
+}
+
+const WITHDRAW_SENTENCE = 'Withdrawing Cancels Your Own Request. Say Why In At Least Ten Characters.';
+const REJECT_SENTENCE = 'Rejecting Moves Nothing. The Request Is Closed And The Operator Who Raised It Has To Raise It Again.';
+
 export default function ApprovalsPanel({
   authFetch,
   showNotification,
@@ -84,9 +145,14 @@ export default function ApprovalsPanel({
   const [pendingLoaded, setPendingLoaded] = useState(false);
   const [pendingError, setPendingError] = useState(null);
 
-  const [decideFor, setDecideFor] = useState(null); // { row, decision }
+  // { row, decision, withdraw } - `withdraw` is a rejection of the operator's
+  // OWN pending row (decision stays 'reject'; the route files it as a
+  // withdrawal because the requester is the caller).
+  const [decideFor, setDecideFor] = useState(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [runAgainFor, setRunAgainFor] = useState(null); // a History row
+  const [running, setRunning] = useState(false);
 
   const [exporting, setExporting] = useState(null);
   const [now, setNow] = useState(() => Date.now());
@@ -163,18 +229,35 @@ export default function ApprovalsPanel({
       return;
     }
     if (decideFor.decision === 'reject' && !reasonIsValid(note)) {
-      showNotification(`A Rejection Needs A Note Of At Least ${MIN_REASON_LENGTH} Characters.`, 'error');
+      showNotification(
+        decideFor.withdraw
+          ? `A Withdrawal Needs A Note Of At Least ${MIN_REASON_LENGTH} Characters.`
+          : `A Rejection Needs A Note Of At Least ${MIN_REASON_LENGTH} Characters.`,
+        'error',
+      );
       return;
     }
     setBusy(true);
     try {
-      await authFetch(OPERATOR_ADMIN, { method: 'POST', body: JSON.stringify(body) });
-      showNotification(
-        decideFor.decision === 'approve'
-          ? 'Approved. The Operation Will Be Carried Out And Recorded.'
-          : 'Rejected. Nothing Was Moved.',
-        'success',
-      );
+      // THE BODY IS READ. The route answers `{ execution: { ok, message },
+      // withdrawn, message }`, and the message is the only true account of
+      // what happened: "carried out" for a mint, "still completed from the
+      // Cashout screen" for a cashout, "the approval row could not be closed,
+      // check the audit trail" for a mint whose trail did not close. A
+      // constant toast said "carried out" for all of them.
+      const answer = await authFetch(OPERATOR_ADMIN, { method: 'POST', body: JSON.stringify(body) });
+      const execution = answer && answer.execution ? answer.execution : null;
+      const fallback = decideFor.decision === 'approve'
+        ? 'Approved. Nothing Else Was Reported.'
+        : 'Rejected. Nothing Was Moved.';
+      if (answer && answer.withdrawn === true) {
+        showNotification('Request Withdrawn.', 'success');
+      } else {
+        showNotification(
+          (answer && answer.message) || (execution && execution.message) || fallback,
+          execution && execution.ok === false ? 'info' : 'success',
+        );
+      }
       setDecideFor(null);
       setNote('');
       await loadPending();
@@ -186,7 +269,11 @@ export default function ApprovalsPanel({
       // leave the stale row, the open modal and a live Approve button exactly
       // where they were - and the next press produced the same refusal. The
       // refusal IS the news that this page is out of date, so it reloads.
-      if (isStaleRowRefusal(err)) {
+      //
+      // AN APPROVAL RECORDED BUT NOT RUN is the same news: the row is
+      // `failed` now, Approve would answer already_decided, and the way
+      // forward is the Run Again button in History, which the reload shows.
+      if (isStaleRowRefusal(err) || isExecutionFailure(err)) {
         setDecideFor(null);
         setNote('');
         await loadPending();
@@ -196,6 +283,41 @@ export default function ApprovalsPanel({
       setBusy(false);
     }
   }, [authFetch, decideFor, note, loadPending, history, showNotification]);
+
+  /**
+   * RUN AN APPROVED OR FAILED ROW AGAIN (POST execute_approval).
+   *
+   * The route re-reads the row, re-checks the permission, validates the
+   * stored payload and calls the RPC under the row's own op_id, so however
+   * many times this runs the money moves once. It answers 404 for an unknown
+   * id, 409 `approval_expired` past the TTL and 409 with a reason for any
+   * other refusal; every one of those changes the row, so both lists are
+   * re-read whether the run succeeded or not.
+   */
+  const runAgain = useCallback(async () => {
+    if (!runAgainFor) return;
+    const body = executeApprovalBody(runAgainFor.id);
+    if (!body) {
+      showNotification('That Request Could Not Be Composed.', 'error');
+      return;
+    }
+    setRunning(true);
+    try {
+      const answer = await authFetch(OPERATOR_ADMIN, { method: 'POST', body: JSON.stringify(body) });
+      const execution = answer && answer.execution ? answer.execution : null;
+      showNotification(
+        (answer && answer.message) || (execution && execution.message) || 'Carried Out.',
+        execution && execution.ok === false ? 'info' : 'success',
+      );
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setRunning(false);
+      setRunAgainFor(null);
+      await loadPending();
+      history.refresh();
+    }
+  }, [authFetch, runAgainFor, loadPending, history, showNotification]);
 
   const exportHistory = useCallback(async () => {
     setExporting({ fetched: 0, total: history.total });
@@ -225,17 +347,18 @@ export default function ApprovalsPanel({
           ['amount', 'Amount'],
           ['asset', 'Asset'],
           ['target_type', 'Target Type'],
-          ['target_id', 'Target Id'],
+          ['target_id', 'Target ID'],
           ['requester_label', 'Requested By'],
-          ['requested_by', 'Requested By Id'],
+          ['requested_by', 'Requested By ID'],
           ['decided_at', 'Decided At'],
           ['decided_by_label', 'Decided By'],
-          ['decided_by', 'Decided By Id'],
+          ['decided_by', 'Decided By ID'],
+          ['executed_at', 'Executed At'],
           ['expires_at', 'Expires At'],
           ['blocked_reason', 'Blocked Reason'],
           ['reason', 'Reason'],
-          ['op_id', 'Operation Id'],
-          ['request_id', 'Request Id'],
+          ['op_id', 'Operation ID'],
+          ['request_id', 'Request ID'],
           // NO Payload AND NO Result COLUMN. `section=approvals` selects
           // APPROVAL_FIELDS, which contains neither, so both columns exported
           // blank on every row - and a blank Payload cell reads as "this
@@ -288,11 +411,26 @@ export default function ApprovalsPanel({
       header: 'Decision',
       render: (row) => {
         const state = approvalRowState({ row, operatorId, permissions, policy, now });
+        // THE REQUESTER MAY TAKE THEIR OWN REQUEST BACK. The route says so
+        // per row (`can_withdraw`): four-eyes guards approvals, not
+        // cancellations, and without this a mistaken request sat in the
+        // queue until its TTL. It is a rejection with a note, filed as
+        // operator.withdraw_approval.
+        const withdraw = row.can_withdraw === true ? (
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => { setDecideFor({ row, decision: 'reject', withdraw: true }); setNote(''); }}
+          >
+            Withdraw
+          </button>
+        ) : null;
         if (!state.canDecide) {
           return (
             <>
               <StatusPill tone="neutral" label={state.label} />
               {state.note ? <span className={styles.blockedNote}>{state.note}</span> : null}
+              {withdraw ? <span className={styles.rowActions}>{withdraw}</span> : null}
             </>
           );
         }
@@ -313,6 +451,7 @@ export default function ApprovalsPanel({
               >
                 Reject
               </button>
+              {withdraw}
             </span>
             {state.reason === 'alone'
               ? <span className={styles.blockedNote}>{state.note}</span>
@@ -403,7 +542,26 @@ export default function ApprovalsPanel({
       // cell headed Note, on a screen whose every other cell is written out.
       render: (row) => blockedReasonLabel(row.blocked_reason),
     },
-  ]), []);
+    {
+      key: 'run_again',
+      header: 'Action',
+      // THE WAY FORWARD FOR A STRANDED APPROVAL. The route's own 503 copy
+      // says "Try Running It Again From The Approvals Tab", and this tab
+      // could not: nothing in the client sent execute_approval, so a
+      // transient database blip after a legitimate approval left a row only
+      // SQL could complete.
+      render: (row) => (canRunAgain(row, permissions) ? (
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnGo}`}
+          onClick={() => setRunAgainFor(row)}
+          disabled={running}
+        >
+          Run Again
+        </button>
+      ) : '-'),
+    },
+  ]), [permissions, running]);
 
   return (
     <div className={styles.panel}>
@@ -584,7 +742,9 @@ export default function ApprovalsPanel({
       {/* ── THE DECISION ──────────────────────────────────────────────────── */}
       {decideFor && (
         <Modal
-          title={decideFor.decision === 'approve' ? 'Approve This Request' : 'Reject This Request'}
+          title={decideFor.withdraw
+            ? 'Withdraw This Request'
+            : (decideFor.decision === 'approve' ? 'Approve This Request' : 'Reject This Request')}
           onClose={busy ? undefined : () => setDecideFor(null)}
           hideClose={busy}
           sticky={busy}
@@ -605,9 +765,11 @@ export default function ApprovalsPanel({
             </p>
           )}
           <p className={styles.cardNote}>
-            {decideFor.decision === 'approve'
-              ? 'Approving Carries The Operation Out. It Is Executed Once And Only Once, Against The Operation Id This Request Already Holds.'
-              : 'Rejecting Moves Nothing. The Request Is Closed And The Operator Who Raised It Has To Raise It Again.'}
+            {decideFor.withdraw
+              ? WITHDRAW_SENTENCE
+              : (decideFor.decision === 'approve'
+                ? approveSentence(decideFor.row.kind)
+                : REJECT_SENTENCE)}
           </p>
 
           <div className={styles.field}>
@@ -617,9 +779,11 @@ export default function ApprovalsPanel({
                   the ten-character minimum on a rejection is a house rule, and
                   presenting a house rule as the system's is how an operator
                   ends up believing a shorter note was refused by the server. */}
-              Note{decideFor.decision === 'reject'
-                ? ` (This Console Requires At Least ${MIN_REASON_LENGTH} Characters)`
-                : ' (Optional)'}
+              Note{decideFor.withdraw
+                ? ` (A Withdrawal Needs At Least ${MIN_REASON_LENGTH} Characters)`
+                : (decideFor.decision === 'reject'
+                  ? ` (This Console Requires At Least ${MIN_REASON_LENGTH} Characters)`
+                  : ' (Optional)')}
             </label>
             <textarea
               id="decision-note"
@@ -636,7 +800,11 @@ export default function ApprovalsPanel({
               onClick={submitDecision}
               disabled={busy || (decideFor.decision === 'reject' && !reasonIsValid(note))}
             >
-              {busy ? 'Working' : (decideFor.decision === 'approve' ? 'Approve' : 'Reject')}
+              {busy
+                ? 'Working'
+                : (decideFor.withdraw
+                  ? 'Withdraw'
+                  : (decideFor.decision === 'approve' ? 'Approve' : 'Reject'))}
             </button>
             <button
               type="button"
@@ -648,6 +816,35 @@ export default function ApprovalsPanel({
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* ── RUN AGAIN ─────────────────────────────────────────────────────── */}
+      {runAgainFor && (
+        <ConfirmDialog
+          title="Run This Approval Again"
+          confirmLabel="Run It Now"
+          tone="danger"
+          busy={running}
+          sticky={running}
+          blockEscape={running}
+          onConfirm={runAgain}
+          onCancel={() => setRunAgainFor(null)}
+          note="The Row Already Holds Its Operation ID, So However Many Times This Runs, The Money Moves Once. An Expired Window Is Refused."
+        >
+          <p style={{ marginTop: 0 }}>
+            {kindLabel(runAgainFor.kind)}
+            {runAgainFor.amount === null || runAgainFor.amount === undefined
+              ? ''
+              : ` Of ${num(runAgainFor.amount)} ${runAgainFor.asset || ''}`}
+            {' '}For <strong>{targetLabel(runAgainFor)}</strong>, Raised By{' '}
+            <strong>{requesterLabel(runAgainFor)}</strong>, Is{' '}
+            <strong>{statusLabel(runAgainFor.status)}</strong> And Has Not Been Carried Out.
+          </p>
+          <p>
+            This Runs The Approved Operation Now, Against The Live Balances. If It Cannot
+            Be Reached Again The Row Stays Failed And Nothing Moves.
+          </p>
+        </ConfirmDialog>
       )}
     </div>
   );

@@ -31,6 +31,19 @@
  * behind /api/club-arena/approve-cashout, with the settlement lock, the step-up
  * MFA gate and the player notifications that route owns.
  *
+ * RE-VERIFICATION, 2026-09-03 (docs/horses/reverify-2026-09-03/server-db.md).
+ * A requester may WITHDRAW their own pending request: `decide_approval` with
+ * `reject` from the account that raised the row is allowed, audited as
+ * operator.withdraw_approval, and needs a note of at least ten characters
+ * (L-12). `execute_approval` refuses an approved row whose expires_at has
+ * passed, marks it expired and says so (L-1); an approval id that names no row
+ * is a 404 like decide_approval, and execution_row_missing is kept for a row
+ * that vanished between the decision and the execution (item 9). grant_role
+ * accepts the named roles only: the legacy three live on the profile (L-3).
+ * set_policy has no direct-UPDATE fallback any more (M-1). The pending queue
+ * excludes rows already past their TTL (L-4). Actor labels are read in
+ * 200-id chunks (L-7).
+ *
  * PHASE2-CONTRACTS.md SECTION 2. Permissions, exactly as the contract states
  * them: staff / roles / policy read `console.read`; grant_role, revoke_role and
  * set_policy need `admin.manage`, which only `owner` and the three legacy roles
@@ -53,8 +66,10 @@ import {
   ROLE_META,
   ALL_PERMISSIONS,
   OPERATOR_ROLE_KEYS,
+  NAMED_OPERATOR_ROLES,
   hasPermission,
   isKnownRole,
+  isLegacyRole,
   permissionsForRole,
   permissionsForRoles,
 } from '../../../src/lib/horses/permissions.js';
@@ -69,6 +84,7 @@ import {
   APPROVAL_KINDS,
   KIND_PERMISSION,
   canDecideApproval,
+  canWithdrawApproval,
   isExecutableKind,
   markApprovalExecuted,
   payloadFor,
@@ -76,7 +92,7 @@ import {
 } from '../../../src/lib/horses/approvals.js';
 import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
 import { runPaged } from '../../../src/lib/horses/paged.js';
-import { pageFor, shapeList } from '../../../src/lib/horses/listShape.js';
+import { pageFor, readByIds, shapeList } from '../../../src/lib/horses/listShape.js';
 import { uuid, enumOf, int, text, bool, money2dp, isoDate } from '../../../src/lib/horses/validate.js';
 
 const SECTIONS = ['staff', 'roles', 'policy', 'approvals', 'audit_trail'];
@@ -231,9 +247,11 @@ function rolesOfStaffRow(row, { enforced = false } = {}) {
   const profileRole = row?.profile_role || row?.role || null;
   // The same union rule fn_ca_operator_permissions applies: under enforcement
   // an operator WITH grants is described by those grants alone, and everyone
-  // else keeps the legacy set.
+  // else keeps the legacy set. And ONLY the legacy set (re-verification H-1):
+  // a named role key sitting in profiles.role contributes nothing, because
+  // the named roles arrive through a grant and through nothing else.
   if (enforced && granted.length) return granted;
-  return profileRole ? [profileRole, ...granted] : granted;
+  return isLegacyRole(profileRole) ? [profileRole, ...granted] : granted;
 }
 
 /**
@@ -488,6 +506,12 @@ async function sectionApprovals(db, op, query) {
 
   const status = enumOf(query.status, APPROVAL_STATUSES);
   if (status) q = q.eq('status', status);
+  // THE PENDING QUEUE IS THE LIVE QUEUE (re-verification L-4). A pending row
+  // past its TTL is only marked `expired` when somebody touches it, so
+  // without this the queue badge and `total` counted rows nobody can decide.
+  // They are still in the table and still in the unfiltered history; they
+  // are simply not "pending" to anyone reading the pending queue.
+  if (status === 'pending') q = q.or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
   const kind = enumOf(query.kind, APPROVAL_KINDS);
   if (kind) q = q.eq('kind', kind);
   const requestedBy = uuid(query.requestedBy);
@@ -576,11 +600,21 @@ async function decorateApprovals(db, op, rows) {
       aloneRule = gate.reason === 'alone_rule';
     }
 
+    // A requester may take their own pending request back (L-12). That is a
+    // rejection, not an approval, so the four-eyes rule has nothing to say
+    // about it; it still needs the kind's permission, which the requester
+    // held to raise it.
+    const canWithdraw =
+      Boolean(needed) &&
+      hasPermission(op?.permissions, needed) &&
+      canWithdrawApproval(row, op?.user?.id).allowed;
+
     return {
       ...row,
       can_decide: canDecide,
       decide_blocked_reason: blocked,
       alone_rule: aloneRule,
+      can_withdraw: canWithdraw,
       requester_label: labels[String(row?.requested_by || '')] || row?.requested_by || null,
       decided_by_label: row?.decided_by
         ? labels[String(row.decided_by)] || row.decided_by
@@ -592,11 +626,14 @@ async function decorateApprovals(db, op, rows) {
 /**
  * uuid -> display name, for the requesters and deciders on this page.
  *
- * One `.in()` over the ids on the page rather than a join (admin_audit_log
- * and ca_operator_approvals have no declared FK to profiles, so PostgREST
- * cannot embed) and never N+1. A profile that cannot be read keeps its uuid:
- * the uuid is the answer, and "Unknown" over a row that names its requester
- * perfectly well would be the console withholding what it has.
+ * `.in()` over the ids on the page rather than a join (admin_audit_log and
+ * ca_operator_approvals have no declared FK to profiles, so PostgREST cannot
+ * embed) and never N+1. In chunks of IN_CHUNK (200) through readByIds
+ * (re-verification L-7): a 500-row page carries up to 1,000 ids, requester
+ * and decider, and the Phase 1 rule is that an `.in()` list never exceeds
+ * 200. A profile that cannot be read keeps its uuid: the uuid is the answer,
+ * and "Unknown" over a row that names its requester perfectly well would be
+ * the console withholding what it has.
  */
 async function profileLabels(db, rows) {
   const ids = [
@@ -608,10 +645,9 @@ async function profileLabels(db, rows) {
   ];
   if (!ids.length) return {};
   try {
-    const { data, error } = await db
-      .from('profiles')
-      .select('id, username, display_name')
-      .in('id', ids.slice(0, 500));
+    const { rows: data, error } = await readByIds(db, ids, (part) =>
+      db.from('profiles').select('id, username, display_name').in('id', part)
+    );
     if (error) throw error;
     const out = {};
     for (const row of data || []) {
@@ -666,7 +702,15 @@ async function sectionAuditTrail(db, query) {
 async function grantRole(db, op, req, body) {
   const userId = uuid(body.userId);
   if (!userId) throw badRequest('Pick A Valid Operator');
-  const roleKey = enumOf(body.roleKey, OPERATOR_ROLE_KEYS);
+  // NAMED ROLES ONLY (re-verification L-3). The legacy three are what
+  // `profiles.role` says; a grant of `god` would be an owner by another name
+  // that the Staff tab could not explain. fn_ca_operator_grant refuses the
+  // same keys with legacy_role_not_grantable, so this is the sentence the
+  // operator reads and that is the wall behind it.
+  if (isLegacyRole(body.roleKey)) {
+    throw badRequest('Legacy Roles Live On The Profile, Not In A Grant', 'legacy_role_not_grantable');
+  }
+  const roleKey = enumOf(body.roleKey, NAMED_OPERATOR_ROLES);
   if (!roleKey || !isKnownRole(roleKey)) throw badRequest('Pick A Role This Console Knows');
   // TEN characters, the same minimum the contract states and the console
   // enforces before it composes the body. A minimum is a real control on an
@@ -805,7 +849,8 @@ async function setPolicy(db, op, req, body) {
     .maybeSingle();
   if (readErr) throw mapDbError(readErr, 'The Operator Policy', { route: 'horses.operator-admin' });
 
-  // THROUGH THE RPC, WHICH IS WHERE THE GUARD LIVES (review M-1 and H-4).
+  // THROUGH THE RPC, WHICH IS WHERE THE GUARD LIVES (review M-1 and H-4), AND
+  // THROUGH NOTHING ELSE (re-verification M-1).
   //
   // This used to be a bare `.update(...).eq('id', true)`. Two things were wrong
   // with that. An update matching no row answers { data: null, error: null },
@@ -815,53 +860,31 @@ async function setPolicy(db, op, req, body) {
   // refuses to turn `enforce_named_roles` on when no account would still hold
   // admin.manage afterwards. That flag is a one-way door without the guard.
   //
-  // The direct update survives as a FALLBACK for the window where this deploy
-  // is live and the follow-up migration is not, because set_policy failing
-  // outright would leave Dan unable to change the policy at all - and it keeps
-  // the missing-row check the old path never had.
-  let data = null;
+  // The direct update then survived as a fallback for the window between this
+  // deploy and migration 20260903140000. That migration is applied, so the
+  // window is closed and all the fallback could do was turn ANY RPC error - a
+  // statement timeout, a pooler hiccup, a RAISE - into a row write with no
+  // lockout guard in front of it. An RPC error is now the error it is.
   const rpc = await db.rpc('fn_ca_operator_set_policy', {
     p_patch: patch,
     p_updated_by: op.user.id,
   }).catch((err) => ({ data: null, error: err }));
 
   if (rpc?.error) {
-    console.warn(
-      '[horses.operator-admin] fn_ca_operator_set_policy unavailable, writing the row directly:',
-      rpc.error.message || rpc.error
+    throw mapDbError(rpc.error, 'The Operator Policy', { route: 'horses.operator-admin' });
+  }
+  if (rpc?.data && rpc.data.ok === false) {
+    const code = rpc.data.reason || rpc.data.error || 'policy_refused';
+    throw new ApiError(409, POLICY_REFUSAL_TEXT[code] || `Policy Change Refused: ${code}`, code);
+  }
+  const data = rpc?.data?.policy || null;
+  if (!data) {
+    console.error('[horses.operator-admin] fn_ca_operator_set_policy returned no policy row');
+    throw new ApiError(
+      409,
+      'The Operator Policy Row Was Not Found, So Nothing Was Saved',
+      'policy_row_missing'
     );
-    const direct = await db
-      .from('ca_operator_policy')
-      .update({ ...patch, updated_by: op.user.id, updated_at: new Date().toISOString() })
-      .eq('id', true)
-      .select('*')
-      .maybeSingle();
-    if (direct.error) {
-      throw mapDbError(direct.error, 'The Operator Policy', { route: 'horses.operator-admin' });
-    }
-    if (!direct.data) {
-      console.error('[horses.operator-admin] set_policy matched no ca_operator_policy row');
-      throw new ApiError(
-        409,
-        'The Operator Policy Row Was Not Found, So Nothing Was Saved',
-        'policy_row_missing'
-      );
-    }
-    data = direct.data;
-  } else {
-    if (rpc?.data && rpc.data.ok === false) {
-      const code = rpc.data.reason || rpc.data.error || 'policy_refused';
-      throw new ApiError(409, POLICY_REFUSAL_TEXT[code] || `Policy Change Refused: ${code}`, code);
-    }
-    data = rpc?.data?.policy || null;
-    if (!data) {
-      console.error('[horses.operator-admin] fn_ca_operator_set_policy returned no policy row');
-      throw new ApiError(
-        409,
-        'The Operator Policy Row Was Not Found, So Nothing Was Saved',
-        'policy_row_missing'
-      );
-    }
   }
 
   // The cache is 30s per lambda, so without this the operator who just turned
@@ -896,6 +919,14 @@ function pickPolicy(row) {
  * first for exactly that reason, and the self-approval / alone-rule decision is
  * made here as well so the operator gets a sentence rather than a bare refusal.
  * The RPC enforces both again, because the first check is javascript.
+ *
+ * A REQUESTER MAY WITHDRAW THEIR OWN REQUEST (re-verification L-12). A
+ * `reject` from the account that raised a pending row is a withdrawal: the
+ * four-eyes rule guards approvals, not cancellations, and without this a
+ * mistaken request sat in the queue until its TTL. It needs a note of at
+ * least ten characters, the same floor as every other reason on this route,
+ * and it is filed as operator.withdraw_approval so the trail can tell a
+ * withdrawal from a second operator's refusal. The row still ends `rejected`.
  */
 async function decideApproval(db, op, req, body) {
   const approvalId = uuid(body.approvalId);
@@ -922,15 +953,35 @@ async function decideApproval(db, op, req, body) {
   if (!needed) throw new ApiError(409, 'That Approval Has An Unknown Kind', 'unknown_kind');
   requirePermission(op, needed);
 
+  const withdrawal =
+    decision === 'reject' &&
+    approval.requested_by &&
+    approval.requested_by === op.user.id &&
+    canWithdrawApproval(approval, op.user.id).allowed;
+
   // The alone rule needs to know the operator is alone before it lets them
   // stand in for a second pair of eyes, and the answer comes from the same
-  // function the RPC asks (review H-3).
+  // function the RPC asks (review H-3). A withdrawal is not a self approval,
+  // so it does not ask.
   const eligibleApprovers =
-    approval.requested_by && approval.requested_by === op.user.id
+    !withdrawal && approval.requested_by && approval.requested_by === op.user.id
       ? eligibleApproversOf(await secondApproverFor(db, op.user.id, needed), null)
       : null;
 
-  const gate = canDecideApproval(approval, op.user.id, op.policy, { eligibleApprovers });
+  if (withdrawal) {
+    const withdrawNote = text(body.note == null ? '' : String(body.note), {
+      min: MIN_REASON_LENGTH,
+      max: 500,
+    });
+    if (!withdrawNote) {
+      throw badRequest('Write A Reason Of At Least Ten Characters To Withdraw This Request');
+    }
+    note = withdrawNote;
+  }
+
+  const gate = withdrawal
+    ? { allowed: true, reason: 'withdraw' }
+    : canDecideApproval(approval, op.user.id, op.policy, { eligibleApprovers });
   if (!gate.allowed) {
     const message = DECISION_REFUSAL_TEXT[gate.reason] || 'That Approval Cannot Be Decided';
     throw new ApiError(gate.reason === 'not_found' ? 404 : 409, message, gate.reason);
@@ -952,7 +1003,7 @@ async function decideApproval(db, op, req, body) {
   }
 
   await auditOperatorAction(op, req, {
-    action: 'operator.decide_approval',
+    action: withdrawal ? 'operator.withdraw_approval' : 'operator.decide_approval',
     targetType: 'ca_operator_approval',
     targetId: approvalId,
     before: { status: approval.status, decided_by: approval.decided_by ?? null },
@@ -969,6 +1020,7 @@ async function decideApproval(db, op, req, body) {
       // The alone-rule is the whole reason a single-operator platform can move
       // at all with approvals on, so the audit row has to say when it fired.
       alone_rule: gate.reason === 'alone_rule',
+      withdrawn: withdrawal,
       permission: needed,
     },
   });
@@ -985,7 +1037,9 @@ async function decideApproval(db, op, req, body) {
           ok: false,
           kind: approval.kind,
           status: data?.status || 'rejected',
-          message: 'Rejected. Nothing Was Run And Nothing Moved',
+          message: withdrawal
+            ? 'Withdrawn. Nothing Was Run And Nothing Moved'
+            : 'Rejected. Nothing Was Run And Nothing Moved',
         };
 
   return {
@@ -993,6 +1047,7 @@ async function decideApproval(db, op, req, body) {
     approvalId,
     decision,
     aloneRule: gate.reason === 'alone_rule',
+    withdrawn: withdrawal,
     execution,
     message: execution.message,
   };
@@ -1029,7 +1084,15 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     .maybeSingle();
   if (error) throw mapDbError(error, 'That Approval', { route: 'horses.operator-admin' });
   if (!row) {
-    throw new ApiError(409, 'That Approval Could Not Be Read Back, So Nothing Was Run', 'execution_row_missing');
+    // An id that names no row is a 404, the same answer decide_approval
+    // gives (re-verification item 9). execution_row_missing is kept for the
+    // row decide_approval read a few lines earlier and cannot read back now:
+    // that is a row that vanished between two checks, which is a different
+    // fact and deserves its own code.
+    if (via === 'decide_approval') {
+      throw new ApiError(409, 'That Approval Could Not Be Read Back, So Nothing Was Run', 'execution_row_missing');
+    }
+    throw new ApiError(404, 'That Approval Was Not Found', 'not_found');
   }
 
   const kind = row.kind;
@@ -1061,6 +1124,25 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
         : 'That Approval Is Not Approved, So It Cannot Be Run',
       row.status === 'executed' ? 'already_executed' : 'not_approved'
     );
+  }
+
+  // THE TTL BOUNDS THE EXECUTION TOO (re-verification L-1). An approved row
+  // whose expires_at has passed - an approved-but-failed mint re-driven
+  // months later against a club whose state has changed - is closed here as
+  // `expired`, on the record, and refused. fn_ca_operator_mark_executed
+  // accepts executed and failed only, so the status moves by a direct update
+  // whose result is read; the audit row is filed whether or not that write
+  // landed, and the refusal stands either way.
+  if (row.expires_at) {
+    const expires = Date.parse(row.expires_at);
+    if (Number.isFinite(expires) && expires <= Date.now()) {
+      await recordExecutionExpiry(db, op, req, row, { via });
+      throw new ApiError(
+        409,
+        'That Approval Expired Before It Was Carried Out. Nothing Moved. Raise It Again',
+        'approval_expired'
+      );
+    }
   }
 
   const shaped = payloadFor(kind)(row.payload, row.op_id);
@@ -1107,7 +1189,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     ok: true,
     via,
     rpc: shaped.rpc,
-    op_id: shaped.args.p_op_id,
+    op_id: shaped.summary.opId,
     ledger_id: result.ledger_id ?? null,
     balance_after: result.balance_after ?? null,
     supply_after: result.supply_after ?? null,
@@ -1124,7 +1206,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
       approval_id: approvalId,
       kind,
       rpc: shaped.rpc,
-      op_id: shaped.args.p_op_id,
+      op_id: shaped.summary.opId,
       amount: row.amount ?? null,
       asset: row.asset ?? null,
       via,
@@ -1141,7 +1223,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     ok: true,
     kind,
     rpc: shaped.rpc,
-    opId: shaped.args.p_op_id,
+    opId: shaped.summary.opId,
     status: marked.ok ? 'executed' : 'executed_unrecorded',
     trailClosed: marked.ok === true,
     result,
@@ -1183,6 +1265,57 @@ async function recordExecutionFailure(db, op, req, row, { via, reason, message }
       via,
       error: reason,
       message,
+    },
+  });
+}
+
+/**
+ * An approved row found past its TTL at execution time, on the record before
+ * the operator is told (re-verification L-1). The status moves to `expired`
+ * by a direct update, guarded on the status the row was read with so a
+ * concurrent execution that already moved it is not overwritten, and the
+ * result is READ: a write that did not land is logged, not assumed. Never
+ * throws; the caller raises the refusal.
+ */
+async function recordExecutionExpiry(db, op, req, row, { via }) {
+  let marked = false;
+  try {
+    const { data, error } = await db
+      .from('ca_operator_approvals')
+      .update({ status: 'expired' })
+      .eq('id', row.id)
+      .eq('status', row.status)
+      .select('id, status')
+      .maybeSingle();
+    if (error) throw error;
+    marked = Boolean(data && data.status === 'expired');
+    if (!marked) {
+      console.warn(
+        `[horses.operator-admin] approval ${row.id} was not marked expired: the row moved from ${row.status}`
+      );
+    }
+  } catch (err) {
+    console.error(
+      `[horses.operator-admin] could not mark approval ${row.id} expired:`,
+      err?.message || err
+    );
+  }
+  await auditOperatorAction(op, req, {
+    action: 'operator.execute_approval',
+    targetType: row.target_type || 'ca_operator_approval',
+    targetId: row.target_id || row.id,
+    before: { status: row.status, expires_at: row.expires_at ?? null },
+    after: { status: marked ? 'expired' : row.status, ok: false },
+    details: {
+      approval_id: row.id,
+      kind: row.kind,
+      op_id: row.op_id ?? null,
+      amount: row.amount ?? null,
+      asset: row.asset ?? null,
+      via,
+      error: 'approval_expired',
+      message: 'The Approval Expired Before It Was Carried Out',
+      expired_marked: marked,
     },
   });
 }

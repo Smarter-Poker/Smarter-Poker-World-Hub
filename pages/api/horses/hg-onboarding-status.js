@@ -9,9 +9,9 @@
  * Built on withHgOperatorRoute: `userDb` speaks as the caller so auth.uid()
  * resolves inside the SECURITY DEFINER RPC.
  */
-import { withHgOperatorRoute } from '../../../src/lib/horses/hgOperator.js';
+import { withHgOperatorRoute, mapHgRpcError } from '../../../src/lib/horses/hgOperator.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { uuid } from '../../../src/lib/horses/validate.js';
 
@@ -37,8 +37,12 @@ export async function handle({ req, op, userDb, query }) {
     p_target_user_id: userId,
   });
   if (error) {
-    console.warn('[hg-onboarding-status GET]', error.message || error);
-    throw new ApiError(500, 'The Onboarding Status Could Not Be Loaded', 'onboarding_read_failed');
+    // 42501 / UNAUTHORIZED -> 403, an expired JWT -> 401, anything else
+    // through mapDbError; the database sentence is logged, never returned.
+    throw mapHgRpcError(error, 'The Onboarding Status', {
+      requestId: op.requestId,
+      route: 'horses.hg-onboarding-status',
+    });
   }
 
   await auditOperatorAction(op, req, {

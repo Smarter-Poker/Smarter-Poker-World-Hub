@@ -6,6 +6,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -207,7 +209,20 @@ export default async function handler(req, res) {
                   .eq('id', user.id)
                   .maybeSingle();
 
-              if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
+              // WHO MAY RUN SQL FROM THE BROWSER (re-verification M-3): whoever
+              // holds sql.execute, resolved the way the console resolves it,
+              // rather than a literal list of the three legacy roles. A legacy
+              // profile role carries the full set until enforce_named_roles is
+              // on, so nothing that works today changes; under enforcement a
+              // legacy account narrowed to read_only no longer keeps this door
+              // open while the console has closed every other. The resolver
+              // fails open to the legacy set when its RPC is unreachable.
+              const gate = await operatorHoldsPermission(
+                  getAuditDb() || getSupabase(),
+                  { userId: user.id, profileRole: profile?.role || null },
+                  PERMISSIONS.SQL_EXECUTE
+              );
+              if (profile && gate.ok) {
                   isAuthorized = true;
                   sessionUserId = user.id;
                   sessionRole = profile.role;

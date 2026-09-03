@@ -1,6 +1,11 @@
 -- =====================================================================
 -- PHASE 2 SIMULATION. RUN INSIDE A TRANSACTION THAT IS ROLLED BACK.
 -- =====================================================================
+-- NOTE (re-verification, 2026-09-03): this record was run and rolled back BEFORE
+-- migration 20260903202500_ca_operator_reverify_fixes.sql. Since that migration
+-- fn_ca_operator_grant raises operator_not_found for a user id with no profiles
+-- row, so re-running this file needs a rolled-back profiles row for each
+-- synthetic operator it grants to. The record itself stands as run.
 -- THIS SCRIPT MUTATES THE REAL ca_operator_policy ROW. The BEGIN and the
 -- ROLLBACK at the bottom of this file are not decoration: run the body
 -- without them and you leave production with approvals_enabled true,

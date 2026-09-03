@@ -1,7 +1,9 @@
 /**
  * /horses/hg-moderation - Platform-staff Home Games moderation surface
  * 4 tabs: Reports - Appeals - Onboarding lookup - GDPR scrub
- * Admin-gated (admin|superadmin|god).
+ * Operator-gated: the route (GET /api/horses/operator-admin?section=policy)
+ * answers whether the bearer is an operator, and this page takes that answer
+ * rather than reading profiles.role for itself.
  *
  * Colour: every value comes from T (src/lib/horsesAdminTokens.js), which is
  * var() strings resolved by horses.module.css on `.tokenScope`. That class is
@@ -15,13 +17,16 @@
  * until that content has actually been seen - either rendered, or explicitly
  * reported as no longer existing.
  */
-import { useState, useEffect, useCallback, useRef, useId } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { T } from '../../src/lib/horsesAdminTokens';
 import { pagerModel } from '../../src/components/horses/pagerModel';
+import { operatorGate } from '../../src/components/horses/operatorAdmin';
+import Modal from '../../src/components/horses/Modal';
+import ConfirmDialog from '../../src/components/horses/ConfirmDialog';
 import styles from './horses.module.css';
 
 const TABS = ['Reports', 'Appeals', 'Onboarding', 'GDPR Scrub'];
@@ -66,7 +71,6 @@ const PAGE_CSS = `
 @media (max-width: 640px) {
   .hgm-page { padding: 16px 12px 64px !important; }
   .hgm-panel { padding: 14px !important; }
-  .hgm-modal { padding: 16px !important; }
 }
 `;
 
@@ -121,76 +125,46 @@ async function apiFetch(path, token, opts = {}) {
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(json.error || `Request Failed (${res.status})`);
+    err.status = res.status;
+    if (json.code) err.code = json.code;
+    throw err;
+  }
   return json;
 }
 
-// ── Accessible modal shell ─────────────────────────────────────────────────
-// role/aria-modal/accessible name, Escape to close, focus moved to the first
-// control on open and returned to the opener on close, Tab kept inside.
-const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+// THE DIALOGS ARE THE SHARED ONES. This page carried its own Modal, ported
+// into src/components/horses/Modal.jsx and then left behind to drift: it had
+// no `sticky` and no `blockEscape`, so Escape or a backdrop click closed a
+// dialog whose PATCH was still in flight and the write finished out of sight;
+// and it filtered focusables by offsetParent, the heuristic the shared one
+// replaced. The shared Modal and ConfirmDialog read their colours from the
+// custom properties horses.module.css declares on `.tokenScope`, which is on
+// this page's root, so nothing renders uncoloured.
 
-function Modal({ title, onClose, children }) {
-  const boxRef = useRef(null);
-  const closeRef = useRef(onClose);
-  const titleId = useId();
+/**
+ * A monotonic request token for the list loaders.
+ *
+ * Two quick status-tab switches could land the older list last, and
+ * `setLoading(false)` ran after an unmount on navigation. The counter is
+ * bumped on unmount too, so no answer that arrives afterwards touches state.
+ */
+function useRequestSeq() {
+  const seq = useRef(0);
+  useEffect(() => () => { seq.current += 1; }, []);
+  return seq;
+}
 
-  useEffect(() => { closeRef.current = onClose; }, [onClose]);
-
+/** Is this tab still mounted? For the writes, which have no ordering to
+ *  guard - only the setState after an unmount to avoid. */
+function useAlive() {
+  const alive = useRef(true);
   useEffect(() => {
-    const opener = typeof document !== 'undefined' ? document.activeElement : null;
-    const box = boxRef.current;
-    const first = box?.querySelector(FOCUSABLE);
-    if (first) first.focus();
-    else box?.focus();
-
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        closeRef.current?.();
-        return;
-      }
-      if (e.key !== 'Tab' || !boxRef.current) return;
-      const items = Array.from(boxRef.current.querySelectorAll(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement
-      );
-      if (items.length === 0) return;
-      const firstEl = items[0];
-      const lastEl = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === firstEl) {
-        e.preventDefault();
-        lastEl.focus();
-      } else if (!e.shiftKey && document.activeElement === lastEl) {
-        e.preventDefault();
-        firstEl.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      if (opener && typeof opener.focus === 'function') opener.focus();
-    };
+    alive.current = true;
+    return () => { alive.current = false; };
   }, []);
-
-  return (
-    <div style={S.backdrop} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div
-        ref={boxRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="hgm-modal"
-        style={S.modal}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <h3 id={titleId} style={{ margin: '0 0 12px', color: T.text }}>{title}</h3>
-        {children}
-      </div>
-    </div>
-  );
+  return alive;
 }
 
 // ── Pager ──────────────────────────────────────────────────────────────────
@@ -350,8 +324,8 @@ function snapshotBody(reportedType, snap) {
       return [
         snap.role ? `Role: ${snap.role}` : null,
         snap.status ? `Status: ${snap.status}` : null,
-        snap.flake_strikes != null ? `Flake strikes: ${snap.flake_strikes}` : null,
-        snap.ban_reason ? `Ban reason: ${snap.ban_reason}` : null,
+        snap.flake_strikes != null ? `Flake Strikes: ${snap.flake_strikes}` : null,
+        snap.ban_reason ? `Ban Reason: ${snap.ban_reason}` : null,
       ].filter(Boolean).join('\n');
     default:
       return '';
@@ -478,15 +452,21 @@ function ReportsTab({ token }) {
   // actually seen what they are acting on before the destructive actions
   // unlock. Every setState below is gated on still being the newest request.
   const detailReq = useRef(0);
+  // The list has the same guard as the detail: the slower answer loses, and
+  // nothing lands after this tab has unmounted.
+  const loadReq = useRequestSeq();
+  const alive = useAlive();
 
   const load = useCallback(async () => {
     if (!token) return;
+    const mine = ++loadReq.current;
     setLoading(true); setErr('');
     try {
       const d = await apiFetch(
         `/api/horses/hg-reports?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`,
         token
       );
+      if (loadReq.current !== mine) return;
       // Defensive unwrap. The route now returns a real array (it used to pass
       // through the jsonb envelope from list_home_content_reports, which made
       // reports.map throw and white-screened this tab -- the default one -- on
@@ -496,9 +476,13 @@ function ReportsTab({ token }) {
       setReports(rows);
       setTotal(Number.isFinite(d.total) ? d.total : null);
       setHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : rows.length === PAGE_SIZE);
-    } catch (e) { setErr(e.message); }
+    } catch (e) {
+      if (loadReq.current !== mine) return;
+      setErr(e.message);
+    }
+    if (loadReq.current !== mine) return;
     setLoading(false);
-  }, [token, status, offset]);
+  }, [token, status, offset, loadReq]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -528,11 +512,11 @@ function ReportsTab({ token }) {
       const d = await apiFetch(`/api/horses/hg-reports?id=${encodeURIComponent(reportId)}`, token);
       if (detailReq.current !== mine) return;
       const payload = d.report || null;
-      if (!payload) throw new Error('Empty response from the report detail endpoint');
+      if (!payload) throw new Error('The Report Detail Route Answered With No Report.');
       setDetail(payload);
     } catch (e) {
       if (detailReq.current !== mine) return;
-      setDetailErr(e.message || 'Request failed');
+      setDetailErr(e.message || 'Request Failed.');
     }
     if (detailReq.current !== mine) return;
     setDetailLoading(false);
@@ -547,6 +531,9 @@ function ReportsTab({ token }) {
   };
 
   const closeReview = () => {
+    // Nothing closes while the PATCH is in flight: the dialog is sticky and
+    // Escape is blocked below, and this is the same rule for the buttons.
+    if (submitting) return;
     // Invalidate any in-flight detail request so it cannot land after the modal
     // is gone and unlock the gate behind the operator's back.
     detailReq.current += 1;
@@ -563,10 +550,15 @@ function ReportsTab({ token }) {
         method: 'PATCH',
         body: { report_id: resolving.id, action, moderator_note: note },
       });
+      if (!alive.current) return;
       setResolving(null); setNote(''); setAction('dismiss');
       setDetail(null); setDetailErr('');
       load();
-    } catch (e) { setModalErr(e.message); }
+    } catch (e) {
+      if (!alive.current) return;
+      setModalErr(e.message);
+    }
+    if (!alive.current) return;
     setSubmitting(false);
   };
 
@@ -582,7 +574,7 @@ function ReportsTab({ token }) {
           value={status}
           onChange={e => changeStatus(e.target.value)}
           style={S.select}
-          aria-label="Filter reports by status"
+          aria-label="Filter Reports By Status"
         >
           <option value="pending">Pending</option>
           {/* 'resolved' is not a value this column ever holds. The check
@@ -642,7 +634,13 @@ function ReportsTab({ token }) {
       />
 
       {resolving && (
-        <Modal title="Resolve Report" onClose={closeReview}>
+        <Modal
+          title="Resolve Report"
+          onClose={submitting ? undefined : closeReview}
+          hideClose={submitting}
+          sticky={submitting}
+          blockEscape={submitting}
+        >
           <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>Reporter Category: <strong style={{ color: T.danger }}>{resolving.reason_category}</strong></p>
           <p style={{ fontSize: 13, color: T.dim, margin: '0 0 16px' }}>{resolving.reason_text}</p>
 
@@ -670,11 +668,11 @@ function ReportsTab({ token }) {
           </label>
           {!contentSeen && (
             <p style={S.gateNote}>
-              {detailLoading ? 'Waiting for the reported content...' : 'Load the reported content before resolving this report.'}
+              {detailLoading ? 'Waiting For The Reported Content...' : 'Load The Reported Content Before Resolving This Report.'}
             </p>
           )}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <button type="button" style={S.btnGhost} onClick={closeReview}>Cancel</button>
+            <button type="button" style={S.btnGhost} onClick={closeReview} disabled={submitting}>Cancel</button>
             <button
               type="button"
               style={{ ...S.btnPrimary, opacity: (submitting || !contentSeen) ? 0.5 : 1 }}
@@ -708,22 +706,30 @@ function AppealsTab({ token }) {
   // range either way rather than inventing a denominator.
   const [total, setTotal] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const loadReq = useRequestSeq();
+  const alive = useAlive();
 
   const load = useCallback(async () => {
     if (!token) return;
+    const mine = ++loadReq.current;
     setLoading(true); setErr('');
     try {
       const d = await apiFetch(
         `/api/horses/hg-appeals?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`,
         token
       );
+      if (loadReq.current !== mine) return;
       const rows = d.appeals || d.rows || [];
       setAppeals(rows);
       setTotal(Number.isFinite(d.total) ? d.total : null);
       setHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : rows.length === PAGE_SIZE);
-    } catch (e) { setErr(e.message); }
+    } catch (e) {
+      if (loadReq.current !== mine) return;
+      setErr(e.message);
+    }
+    if (loadReq.current !== mine) return;
     setLoading(false);
-  }, [token, status, offset]);
+  }, [token, status, offset, loadReq]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -745,11 +751,18 @@ function AppealsTab({ token }) {
         method: 'PATCH',
         body: { appeal_id: reviewing.out_appeal_id, decision, reviewer_note: note },
       });
+      if (!alive.current) return;
       setReviewing(null); setNote(''); setDecision('approved');
       load();
-    } catch (e) { setModalErr(e.message); }
+    } catch (e) {
+      if (!alive.current) return;
+      setModalErr(e.message);
+    }
+    if (!alive.current) return;
     setSubmitting(false);
   };
+
+  const closeReview = () => { if (!submitting) setReviewing(null); };
 
   return (
     <div>
@@ -759,7 +772,7 @@ function AppealsTab({ token }) {
           value={status}
           onChange={e => changeStatus(e.target.value)}
           style={S.select}
-          aria-label="Filter appeals by status"
+          aria-label="Filter Appeals By Status"
         >
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
@@ -810,7 +823,13 @@ function AppealsTab({ token }) {
       />
 
       {reviewing && (
-        <Modal title="Review Ban Appeal" onClose={() => setReviewing(null)}>
+        <Modal
+          title="Review Ban Appeal"
+          onClose={submitting ? undefined : closeReview}
+          hideClose={submitting}
+          sticky={submitting}
+          blockEscape={submitting}
+        >
           <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>User: <strong style={{ color: T.text }}>{reviewing.out_user_display}</strong></p>
           <p style={{ fontSize: 13, color: T.dim, margin: '0 0 4px' }}>Appeal: {reviewing.out_appeal_text}</p>
           {modalErr && <div role="alert" style={S.err}>{modalErr}</div>}
@@ -824,7 +843,7 @@ function AppealsTab({ token }) {
             <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} rows={3} style={S.textarea} />
           </label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <button type="button" style={S.btnGhost} onClick={() => setReviewing(null)}>Cancel</button>
+            <button type="button" style={S.btnGhost} onClick={closeReview} disabled={submitting}>Cancel</button>
             <button type="button" style={S.btnPrimary} onClick={handleReview} disabled={submitting}>{submitting ? 'Saving...' : 'Submit'}</button>
           </div>
         </Modal>
@@ -864,7 +883,7 @@ function OnboardingTab({ token }) {
           value={userId}
           onChange={e => setUserId(e.target.value)}
           placeholder="User UUID"
-          aria-label="User UUID to look up"
+          aria-label="User UUID To Look Up"
           style={{ ...S.select, flex: 1, minWidth: 180 }}
         />
         <button onClick={lookup} style={S.btn} disabled={loading}>{loading ? '...' : 'Look Up'}</button>
@@ -898,20 +917,35 @@ function GdprTab({ token }) {
   // panel - no receipt, no error, nothing to record against the request.
   const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
+  // The typed confirmation is open. A window.confirm has no dialog role, no
+  // focus management and no way to make an irreversible anonymisation cost
+  // more than a click; the shared ConfirmDialog with requireTyped does.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const alive = useAlive();
+
+  const askErase = () => {
+    if (!confirmed) { setErr('Check The Confirmation Box First.'); return; }
+    setErr('');
+    setConfirmOpen(true);
+  };
 
   const handleErase = async () => {
-    if (!confirmed) { setErr('Check The Confirmation Box First.'); return; }
-    // Deliberate destructive-action guard - this one stays a native confirm.
-    if (!window.confirm(`IRREVERSIBLE: Anonymize all Home Games content for user ${userId}?`)) return;
     setLoading(true); setErr(''); setResult(null); setDone(false);
     try {
       const d = await apiFetch('/api/horses/hg-gdpr-erase', token, {
         method: 'POST',
         body: { userId, confirmed: true },
       });
+      if (!alive.current) return;
       setResult(d.counts ?? null);
       setDone(true);
-    } catch (e) { setErr(e.message); }
+      setConfirmOpen(false);
+    } catch (e) {
+      if (!alive.current) return;
+      setErr(e.message);
+      setConfirmOpen(false);
+    }
+    if (!alive.current) return;
     setLoading(false);
   };
 
@@ -927,7 +961,7 @@ function GdprTab({ token }) {
             value={userId}
             onChange={e => setUserId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            aria-label="Target user UUID for GDPR erasure"
+            aria-label="Target User UUID For GDPR Erasure"
             style={{ ...S.select, width: '100%', boxSizing: 'border-box', marginTop: 4 }}
           />
         </label>
@@ -935,10 +969,31 @@ function GdprTab({ token }) {
           <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ accentColor: T.accent, width: 20, height: 20 }} />
           I Confirm This Action Is Authorized And Irreversible
         </label>
-        <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: T.danger, color: T.text, maxWidth: 200 }}>
+        <button onClick={askErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: T.danger, color: T.text, maxWidth: 200 }}>
           {loading ? 'Erasing...' : 'Erase User Content'}
         </button>
       </div>
+      {confirmOpen && (
+        <ConfirmDialog
+          title="Erase This User's Home Games Content"
+          confirmLabel="Erase User Content"
+          tone="danger"
+          busy={loading}
+          sticky={loading}
+          blockEscape={loading}
+          requireTyped="ERASE"
+          onConfirm={handleErase}
+          onCancel={() => setConfirmOpen(false)}
+          note="This Is Recorded In The Admin Audit Log With Your Account Against It."
+        >
+          <p style={{ marginTop: 0 }}>
+            <strong>This Is Irreversible.</strong> Every Home Games Post, Message And Profile
+            Field For User <code style={{ fontSize: 12 }}>{userId}</code> Will Be Anonymized.
+            Nothing Can Be Restored Afterwards.
+          </p>
+          <p>Do This Only On A Verified DPO Or Legal Request.</p>
+        </ConfirmDialog>
+      )}
       {err && <div style={{ ...S.err, marginTop: 16, marginBottom: 0 }}>{err}</div>}
       {done && (
         <div style={{ marginTop: 16, background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 8, padding: 12, overflowX: 'auto' }}>
@@ -982,24 +1037,26 @@ export default function HgModerationPage() {
         const user = getAuthUser();
         if (!active) return;
         if (!user?.id) { router.replace('/auth/login?redirect=/horses/hg-moderation'); return; }
-        const { data: profile, error: roleErr } = await supabase
-          .from('profiles').select('role').eq('id', user.id).maybeSingle();
+        // THE ROUTE DECIDES WHO IS AN OPERATOR, NOT THIS FILE. This page used
+        // to read profiles.role and admit three legacy strings, which is
+        // exactly the list Phase 2 made incomplete: requireOperator admits an
+        // active ca_operator_grants row too, so a granted operator was a real
+        // operator this page refused with a 403. operatorGate asks GET
+        // operator-admin?section=policy with the bearer: 200 is an operator,
+        // 401/403 is a refusal, and anything else is "could not verify" -
+        // neither, and it gets the retry screen rather than the 403.
+        const gate = await operatorGate(token);
         if (!active) return;
-        // `error` used to be discarded here. An RLS regression or a dropped
-        // connection yielded profile === null, which is indistinguishable from
-        // "not an admin" -- so a genuine superadmin was shown a hard 403 with
-        // no retry and no hint that anything had gone wrong. Say which it is.
-        if (roleErr) {
-          setAuthFailure(roleErr.message || 'Role lookup failed');
-          setAuthChecked(true); setAuthed(false); return;
+        if (gate.ok) {
+          setAuthed(true); setAuthChecked(true); return;
         }
-        if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
-          setAuthChecked(true); setAuthed(false); return;
+        if (!gate.denied) {
+          setAuthFailure(gate.error || 'The Operator Check Failed.');
         }
-        setAuthed(true); setAuthChecked(true);
+        setAuthChecked(true); setAuthed(false);
       } catch (e) {
         if (active) {
-          setAuthFailure(e?.message || 'Role lookup failed');
+          setAuthFailure(e?.message || 'The Operator Check Failed.');
           setAuthChecked(true); setAuthed(false);
         }
       }
@@ -1013,13 +1070,13 @@ export default function HgModerationPage() {
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
       <div role="alert" style={{ color: T.danger, fontSize: 18, fontWeight: 700 }}>Could Not Verify Your Role</div>
       <div style={{ color: T.dim, fontSize: 14, maxWidth: 480 }}>
-        {authFailure}. This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
+        {authFailure} This Is A Failed Check, Not A Refusal - Your Access Has Not Changed.
       </div>
       <button onClick={() => router.reload()} style={{ background: T.accent, color: T.page, border: 'none',
         padding: '10px 20px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, minHeight: 44 }}>Retry</button>
     </div>
   );
-  if (!authed) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.danger, fontSize: 18 }}>403 - Admin Access Required</div>;
+  if (!authed) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.danger, fontSize: 18 }}>403 - Operator Access Required</div>;
 
   return (
     <>
@@ -1037,7 +1094,7 @@ export default function HgModerationPage() {
           <p style={{ fontSize: 13, color: T.muted, margin: '0 0 24px' }}>Platform-Staff Surface - All Escalation Categories, Cross-Group Actions, GDPR Tools</p>
 
           {/* Tab bar */}
-          <div role="tablist" aria-label="Moderation sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: T.surfaceTint, borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
+          <div role="tablist" aria-label="Moderation Sections" style={{ display: 'flex', gap: 2, marginBottom: 24, background: T.surfaceTint, borderRadius: 10, padding: 4, width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap' }}>
             {TABS.map((t, i) => (
               <button
                 key={t}
@@ -1083,8 +1140,6 @@ const S = {
   err: { background: T.dangerWash, border: `1px solid ${T.dangerLine}`, borderRadius: 8, padding: '10px 14px', color: T.danger, fontSize: 13, marginBottom: 12 },
   empty: { textAlign: 'center', padding: 40, color: T.muted, fontSize: 14 },
   dim: { textAlign: 'center', padding: 40, color: T.muted },
-  backdrop: { position: 'fixed', inset: 0, background: T.pageOverlay, backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' },
-  modal: { background: `linear-gradient(180deg, ${T.elevated}, ${T.panel})`, border: `1px solid ${T.lineStrong}`, borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', color: T.text, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' },
   label: { display: 'block', marginBottom: 14, fontSize: 13, color: T.dim, fontWeight: 600 },
   textarea: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', background: T.inset, border: `1px solid ${T.lineStrong}`, borderRadius: 8, color: T.text, fontFamily: 'inherit', fontSize: 14, resize: 'vertical', minHeight: 72, marginTop: 4 },
   srOnly: { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 },

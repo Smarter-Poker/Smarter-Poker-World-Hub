@@ -164,3 +164,78 @@ export function operatorIdFromPayload(payload, fallback = null) {
   }
   return fallback ? String(fallback) : null;
 }
+
+/**
+ * Did the route say "you are not an operator"?
+ *
+ * The console used to decide that for itself with a list of three profile
+ * roles, which is exactly the list Phase 2 made incomplete: an account whose
+ * only claim is an active ca_operator_grants row passes `requireOperator`
+ * and was refused at the door by the client. So the route's answer is the
+ * answer. A 401 (no usable session) or a 403 (`forbidden`,
+ * `permission_denied`) is a refusal; anything else - a 503 while the role
+ * lookup is down, a network failure - is "could not verify", which the caller
+ * reports as such rather than as a denial.
+ */
+export function isOperatorDenial(err) {
+  if (!err || typeof err !== 'object') return false;
+  const status = Number(err.status);
+  if (status === 401 || status === 403) return true;
+  const code = String(err.code || '').toLowerCase();
+  return code === 'unauthorized' || code === 'forbidden' || code === 'permission_denied';
+}
+
+/**
+ * The role to show in the header, from the section=policy envelope.
+ *
+ * `operator.role` is the profile role, which for a Phase 2 grantee is
+ * whatever profiles.role happens to say (usually nothing useful). The first
+ * granted role is the honest label for that account; a legacy operator still
+ * reads as their profile role, which is what the header has always shown.
+ */
+export function operatorRoleFromPayload(payload) {
+  const op = payload && typeof payload === 'object' ? payload.operator : null;
+  if (!op || typeof op !== 'object') return null;
+  const granted = Array.isArray(op.grantedRoles) ? op.grantedRoles.filter(Boolean) : [];
+  if (granted.length) return String(granted[0]);
+  if (op.role) return String(op.role);
+  const roles = Array.isArray(op.roles) ? op.roles.filter(Boolean) : [];
+  return roles.length ? String(roles[0]) : null;
+}
+
+/**
+ * What a Staff tab save hands back up, in ONE shape.
+ *
+ * `onPolicyChange` receives `{ policy, aloneRule, permissions }` - the whole
+ * of what section=policy answers after a save - because the alone rule is
+ * computed BY the policy (approvals on, self-approval allowed, nobody else
+ * eligible) and a Mint that keeps the pre-toggle rule after the toggle tells
+ * the operator their money move will wait when it will not. A bare policy
+ * object (it has `approvals_enabled`) is still accepted, and for it only the
+ * policy is reported; the other two fields come back `undefined`, which the
+ * caller reads as "leave that alone".
+ *
+ *   policy       - the policy row, or null when the payload carried none
+ *   aloneRule    - the route's aloneRule object, null when the payload was
+ *                  the full shape but carried none, undefined for a bare
+ *                  policy
+ *   permissions  - a non-empty string list, or undefined when there is
+ *                  nothing new to say (a null or empty list is never applied,
+ *                  because that is the "show everything" fallback and a save
+ *                  must not widen the nav by accident)
+ */
+export function operatorContextChange(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { policy: null, aloneRule: undefined, permissions: undefined };
+  }
+  const isBarePolicy = 'approvals_enabled' in payload || 'approvalsEnabled' in payload;
+  if (isBarePolicy) return { policy: payload, aloneRule: undefined, permissions: undefined };
+  const permissions = Array.isArray(payload.permissions) && payload.permissions.length
+    ? payload.permissions.map((p) => String(p))
+    : undefined;
+  return {
+    policy: payload.policy && typeof payload.policy === 'object' ? payload.policy : null,
+    aloneRule: payload.aloneRule && typeof payload.aloneRule === 'object' ? payload.aloneRule : null,
+    permissions,
+  };
+}

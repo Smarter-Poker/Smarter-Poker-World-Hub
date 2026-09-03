@@ -25,6 +25,8 @@ const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 import { loadOperatorPolicy } from '../../../src/lib/horses/operatorAuth.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import {
   requireApproval,
   markApprovalExecuted,
@@ -138,12 +140,27 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // Platform staff are not members of every club whose cashouts they
       // action from /horses. Without this branch they were 403'd on all of them.
+      //
+      // WHO COUNTS AS PLATFORM STAFF HERE (re-verification M-3): whoever holds
+      // cashier.write, resolved the way the console resolves it. A legacy
+      // profile role carries the full set until enforcement is on, so nothing
+      // that works today changes; a granted finance operator whose
+      // profiles.role is `user` now holds it too, instead of approving in the
+      // Approvals tab and being 403'd on this screen; and a legacy account
+      // narrowed under enforce_named_roles no longer keeps a door the console
+      // already closed. The resolver fails open to the legacy set when its
+      // RPC is unreachable, and `platformGate.degraded` says when it did.
       const { data: callerProfile } = await getSupabase()
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .maybeSingle();
-      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+      const platformGate = await operatorHoldsPermission(
+        supabaseAdmin,
+        { userId: user.id, profileRole: callerProfile?.role || null },
+        PERMISSIONS.CASHIER_WRITE
+      );
+      const isPlatformAdmin = platformGate.ok === true;
 
       const { data: callerMember } = await getSupabase()
         .from('club_members')
@@ -321,24 +338,29 @@ export default async function handler(req, res) {
           throw rpcErr || new Error(rpcResult?.error || 'Atomic approval failed');
         }
 
-        // Notify player: message + push
-        await notifyPlayer(cashout, playerName, agentName,
-          `[CASHOUT APPROVED]
-
-  ${agentName} approved your cashout of ${amountText} chips.`,
-          `[OK] Cashout approved! ${amountText} chips`,
-          'approve'
-        );
-
-        // The chips have moved. Close the approval row out; this never throws.
-        await markApprovalExecuted(auditOp, approval.approvalId, {
+        // THE CHIPS HAVE MOVED. Close the approval row and file the console
+        // audit row NOW, before any network call (re-verification M-6). These
+        // two used to run after notifyPlayer, whose push branch is a fetch to
+        // /api/notifications/send; a hang there could hit the Vercel timeout
+        // with the approval row still `approved` (re-drivable from the queue)
+        // and no cashout.approve row anywhere. Neither call throws.
+        //
+        // AND THE ANSWER IS READ (M-4). `refused: true` means
+        // fn_ca_operator_mark_executed would not close the row - chips moved
+        // against a row nobody approved, the H-2 shape - and that goes into the
+        // audit row and the response rather than a server log alone.
+        const mark = await markApprovalExecuted(auditOp, approval.approvalId, {
           ok: true,
           cashout_id: cashoutId,
           amount: cashout.amount,
           club_id: cashout.club_id,
         });
-
-        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
+        const trailClosed = mark.ok === true;
+        const approvalStatusAfter = !approval.approvalId
+          ? approval.status
+          : trailClosed
+            ? 'executed'
+            : approval.status;
 
         // Admin console audit trail. This moves real chips off a player
         // balance into club treasury. auditOperatorAction swallows its own
@@ -357,17 +379,37 @@ export default async function handler(req, res) {
             auth_path: authPath,
             approval_gated: viaPlatformOverride,
             approval_id: approval.approvalId,
-            approval_status: approval.status,
+            approval_status: approvalStatusAfter,
+            approval_status_before: approval.status,
+            trail_closed: trailClosed,
+            mark_executed_refused: mark.refused === true,
+            mark_executed_reason: mark.reason ?? null,
+            platform_gate_degraded: platformGate.degraded === true,
           },
           before: { status: cashout.status },
           after: { status: 'approved' },
         });
+
+        logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
+
+        // Notify player: message + push. Last, because it is the one step
+        // here that waits on a network the platform does not own.
+        await notifyPlayer(cashout, playerName, agentName,
+          `[CASHOUT APPROVED]
+
+  ${agentName} approved your cashout of ${amountText} chips.`,
+          `[OK] Cashout approved! ${amountText} chips`,
+          'approve'
+        );
 
         return res.status(200).json({
           success: true,
           action: 'approved',
           amount: cashout.amount,
           playerId: cashout.player_id,
+          approvalId: approval.approvalId,
+          approvalStatus: approvalStatusAfter,
+          trailClosed,
         });
       }
 
@@ -384,7 +426,19 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr || !rpcResult?.success) {
-          return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
+          // The database sentence is logged under the request id and never
+          // returned (re-verification L-5). rpcResult.error is the RPC's own
+          // reason code, not Postgres text; a raw Postgres error gets a
+          // scrubbed sentence.
+          if (rpcErr) {
+            console.error(`[approve-cashout] ${auditOp.requestId} fn_cancel_cashout_atomic failed:`, rpcErr.message || rpcErr);
+          }
+          return res.status(409).json({
+            success: false,
+            error: rpcErr ? 'The Cashout Could Not Be Cancelled' : rpcResult?.error || 'Cancellation failed',
+            code: rpcErr ? 'cancel_unavailable' : 'cancel_refused',
+            requestId: auditOp.requestId,
+          });
         }
 
         const playerNewBalance = rpcResult.new_balance;
@@ -503,6 +557,9 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
           message: pushText,
           url: '/hub/club-arena/cashier',
         }),
+        // Five seconds, as admin-reviews does for the same call. A hung
+        // notifications endpoint must not hold a completed cashout open.
+        signal: AbortSignal.timeout(5000),
       });
       if (!resp.ok) {
         const detail = await resp.text().catch(() => '');

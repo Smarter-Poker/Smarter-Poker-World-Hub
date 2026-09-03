@@ -91,6 +91,24 @@ export function permissionForKind(kind) {
   return KIND_PERMISSIONS[String(kind || '').toLowerCase()] || 'money.write';
 }
 
+/**
+ * The kinds the route CARRIES OUT when they are approved.
+ *
+ * `decide_approval` with `approve` runs the money RPC for a mint, a burn or a
+ * club funding in the same request, under the row's own op_id; a cashout is
+ * still completed from the Cashout screen, and fleet policy and sanctions are
+ * run by their own screens. This is the same table as
+ * `src/lib/horses/approvals.js#isExecutableKind`, and it decides which
+ * sentence the Approve dialog shows and which History rows get Run Again.
+ * An unknown kind is NOT executable: "nothing moves here" is the safe way to
+ * be wrong about a kind this console has not met.
+ */
+export const EXECUTABLE_KINDS = ['mint', 'burn', 'fund_club'];
+
+export function isExecutableKind(kind) {
+  return EXECUTABLE_KINDS.includes(String(kind || '').toLowerCase());
+}
+
 export function kindLabel(kind) {
   const found = APPROVAL_KINDS.find(([id]) => id === String(kind || '').toLowerCase());
   return found ? found[1] : (kind ? String(kind) : 'Unknown');

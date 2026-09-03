@@ -1093,18 +1093,26 @@ test('the operator context is cleared on logout', async () => {
   assert.match(src, /setOperatorPermissions\(null\); setOperatorPolicy\(null\); setOperatorId\(null\);/);
 });
 
-test('a failed operator-context read leaves everything visible', async () => {
+test('a failed operator-context read clears the context rather than keeping a stale one', async () => {
   const src = await read(INDEX);
   const start = src.indexOf('const body = await authFetch(policyUrl());');
   assert.ok(start > 0, 'the console must read the policy section');
-  const block = src.slice(start, start + 1600);
-  assert.match(block, /catch \{[\s\S]*setOperatorPermissions\(null\)/);
-  assert.match(block, /setOperatorPolicy\(null\)/);
+  const block = src.slice(start, start + 400);
+  // The read and its failure path are one function now (readOperatorContext),
+  // and the failure path clears through clearOperatorContext, which sets the
+  // four fields to their "nobody has told us" values.
+  assert.match(block, /catch \(err\) \{[\s\S]*clearOperatorContext\(authUser\.id\)/);
+  assert.match(block, /denied: isOperatorDenial\(err\)/);
+  const clear = src.indexOf('const clearOperatorContext = useCallback(');
+  assert.ok(clear > 0);
+  const clearBlock = src.slice(clear, clear + 400);
+  assert.match(clearBlock, /setOperatorPermissions\(null\)/);
+  assert.match(clearBlock, /setOperatorPolicy\(null\)/);
   // The two Phase 2 additions clear the same way, for the same reason: an
   // alone-rule left over from the last successful read would let the Mint's
   // confirm dialog claim a self-approval this console can no longer verify.
-  assert.match(block, /setOperatorAloneRule\(null\)/);
-  assert.match(block, /setOperatorDegraded\(false\)/);
+  assert.match(clearBlock, /setOperatorAloneRule\(null\)/);
+  assert.match(clearBlock, /setOperatorDegraded\(false\)/);
 });
 
 test('the Audit tab sends targetType and targetId, and renders inputs for both', async () => {
@@ -1113,11 +1121,13 @@ test('the Audit tab sends targetType and targetId, and renders inputs for both',
   assert.match(src, /targetId: auditTarget\.trim\(\) \|\| undefined/);
   assert.match(src, /id="audit-target-type"/);
   assert.match(src, /id="audit-target"/);
-  // A filter change returns to page one.
+  // A filter change returns to page one. The query object is memoised on
+  // every filter, and the one audit effect resets the page when it changes.
   assert.match(
     src,
-    /setAuditPage\(0\);\s*\}, \[auditPrefix, auditAdmin, auditDays, auditTarget, auditTargetType, auditFrom, auditTo\]\);/,
+    /\}, \[auditPrefix, auditAdmin, auditTarget, auditTargetType, auditFrom, auditTo, auditDays\]\);/,
   );
+  assert.match(src, /if \(filterChanged && auditPage !== 0\) \{\s*setAuditPage\(0\);/);
 });
 
 test('IP, user agent and request id are columns AND CSV columns', async () => {
@@ -1208,7 +1218,17 @@ test('the console normalises the policy rather than reading one spelling', async
   const src = await read(INDEX);
   assert.match(src, /setOperatorPolicy\(normalizePolicy\(body && body\.policy\)\)/);
   const staff = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
-  assert.match(staff, /onPolicyChange\(normalizePolicy\(body && body\.policy\)\)/);
+  // Re-verification H-3: the WHOLE section=policy answer goes back up, not
+  // the policy alone, because the alone rule is computed by the policy and a
+  // Mint that kept the pre-toggle rule after the toggle told the operator
+  // their money move would wait when it would not.
+  assert.match(staff, /onPolicyChange\(\{\s*policy: normalizePolicy\(body && body\.policy\),/);
+  assert.match(staff, /aloneRule: \(body && body\.aloneRule\) \|\| null,/);
+  assert.match(staff, /permissions: permissionsFromPayload\(body\),/);
+  assert.ok(
+    !/onPolicyChange\(normalizePolicy\(body && body\.policy\)\)/.test(staff),
+    'the bare-policy call must be gone',
+  );
 });
 
 test('the Approvals history sends its dates to a route that filters by them', async () => {

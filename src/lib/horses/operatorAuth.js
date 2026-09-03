@@ -21,7 +21,7 @@
  */
 import {
   PERMISSIONS,
-  permissionsForRole,
+  legacyPermissionsForProfileRole,
   hasPermission,
   isKnownPermission,
   isLegacyRole,
@@ -85,8 +85,15 @@ async function defaultDeps() {
 // Both caches are 30 seconds, at module scope, which on Vercel means per warm
 // lambda. A grant therefore takes at most 30 seconds to be felt, which is the
 // contract, and a revoke the same.
+//
+// A DEGRADED answer is cached for five seconds, not thirty (re-verification
+// L-10). The fail-open path serves the legacy set the profile role carries;
+// under enforcement that is un-narrowed access, and one failed RPC used to
+// buy a full 30 seconds of it per lambda even after the RPC was back. Five
+// seconds still stops a broken RPC from being asked on every request.
 
 const PERMISSION_CACHE_TTL_MS = 30_000;
+const DEGRADED_PERMISSION_CACHE_TTL_MS = 5_000;
 const POLICY_CACHE_TTL_MS = 30_000;
 
 /** What the console assumes when ca_operator_policy cannot be read. */
@@ -207,13 +214,23 @@ function withAdminManageFloor(profileRole, permissions) {
 
 /**
  * Merge the legacy profile role with whatever ca_operator_grants gives this
- * user, via fn_ca_operator_permissions. Cached 30s per (user, profile role).
+ * user, via fn_ca_operator_permissions. Cached 30s per (user, profile role),
+ * 5s when the answer is degraded.
  *
  * Returns { role, roles, grantedRoles, permissions, source, enforced, degraded }.
  *
  * `degraded: true` means the RPC did not answer and the LEGACY set is what came
  * back. That is the fail-open path and it is deliberate: an operator who could
  * mint yesterday can still mint while the migration is being applied.
+ *
+ * THE LEGACY SEED IS THE LEGACY THREE AND NOTHING ELSE (re-verification H-1).
+ * `profiles.role` is free text this feature does not own. A named role key
+ * sitting in it contributes nothing here, exactly as it contributes nothing
+ * in fn_ca_operator_permissions: the named roles arrive through an active
+ * grant, and the RPC's answer already carries every grant. Seeding from the
+ * full matrix meant profiles.role = 'owner' plus a read_only grant resolved
+ * to all 21 permissions in JS and to six in SQL, with every route check
+ * reading the JS set.
  */
 export async function resolveOperatorPermissions(
   db,
@@ -221,10 +238,13 @@ export async function resolveOperatorPermissions(
   profileRole,
   { now = Date.now(), policy } = {}
 ) {
-  const legacy = permissionsForRole(profileRole);
+  const legacy = legacyPermissionsForProfileRole(profileRole);
   const cacheKey = `${userId || 'anonymous'}|${profileRole || ''}`;
   const cached = _permissionCache.get(cacheKey);
-  if (cached && now - cached.at < PERMISSION_CACHE_TTL_MS) return cached.value;
+  if (cached) {
+    const ttl = cached.value?.degraded === true ? DEGRADED_PERMISSION_CACHE_TTL_MS : PERMISSION_CACHE_TTL_MS;
+    if (now - cached.at < ttl) return cached.value;
+  }
 
   const pol = policy || (await loadOperatorPolicy(db, { now }));
   const legacyOnly = {

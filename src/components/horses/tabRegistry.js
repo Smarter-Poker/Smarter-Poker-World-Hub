@@ -25,9 +25,6 @@
  * an entry nobody can click is a promise nobody made.
  */
 
-/** The single role tier that exists today. */
-export const OPERATOR_PERMISSION = 'operator.console';
-
 /**
  * EVERY `permission` BELOW IS A MEMBER OF THE VOCABULARY IN
  * src/lib/horses/permissions.js, AND A TEST ASSERTS IT.
@@ -110,7 +107,11 @@ export const CA_SECTIONS = [
   ['finance', 'Cashouts'],
   ['users', 'Users'],
   ['unions', 'Unions'],
-  ['approvals', 'Approvals'],
+  // Union applications and leave requests. The KEY stays `approvals` so every
+  // bookmarked ?section=approvals still lands here; the LABEL changed because
+  // the maker-checker tab above is also called Approvals, and two unrelated
+  // screens with one name in one nav is a wrong click waiting to happen.
+  ['approvals', 'Union Applications'],
 ];
 
 export const DEFAULT_CA_SECTION = 'overview';

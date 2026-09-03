@@ -5,7 +5,8 @@
  * The route is written in parallel to PHASE2-CONTRACTS section 2:
  *
  *   GET  ?section=staff | roles | policy | approvals | audit_trail
- *   POST { action: grant_role | revoke_role | set_policy | decide_approval }
+ *   POST { action: grant_role | revoke_role | set_policy | decide_approval
+ *                | execute_approval }
  *
  * Building the query strings and the bodies here rather than at six call
  * sites buys two things. A wrong parameter name fails a unit test instead of
@@ -176,6 +177,168 @@ export function decideApprovalBody({ approvalId, decision, note } = {}) {
     decision: d,
     note: String(note || '').trim(),
   };
+}
+
+/**
+ * Re-drive an approved or failed row (POST `execute_approval`).
+ *
+ * `decide_approval` executes the money RPC in the same request, and when that
+ * RPC cannot be reached the route marks the row `failed`, answers 503
+ * `execution_unavailable` and tells the operator to run it again from the
+ * Approvals tab. This is the body that request needs. It carries the id and
+ * nothing else: the row already holds the op_id, the payload and the kind,
+ * and an execution keyed on anything the client re-supplies is an execution
+ * that can be talked into running something other than what was approved.
+ */
+export function executeApprovalBody(approvalId) {
+  if (!approvalId) return null;
+  return { action: 'execute_approval', approvalId: String(approvalId) };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE POLICY FORM
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Is this threshold something the route will accept?
+ *
+ * The route reads each threshold through `money2dp(..., { allowZero: true })`
+ * and answers 400 to a negative, to more than two decimals, and to anything
+ * that is not a number. `type="number" min="0"` stops none of a typed `-5`,
+ * a typed `10.005` or an emptied box - and the emptied box used to be sent as
+ * 0, which with approvals on means "everything goes for approval". So an
+ * empty string is INVALID here, never zero: a threshold the operator has not
+ * typed is not a threshold of nothing.
+ */
+export function thresholdIsValid(value) {
+  const s = String(value === null || value === undefined ? '' : value).trim();
+  if (!s) return false;
+  return /^\d+(\.\d{1,2})?$/.test(s);
+}
+
+/** A whole number of minutes inside the route's bounds. */
+export function ttlIsValid(value) {
+  const s = String(value === null || value === undefined ? '' : value).trim();
+  if (!/^\d+$/.test(s)) return false;
+  const n = Number(s);
+  return n >= TTL_MIN_MINUTES && n <= TTL_MAX_MINUTES;
+}
+
+export const POLICY_FIELD_LABELS = {
+  approvalsEnabled: 'Require Approvals',
+  allowSelfApproveWhenAlone: 'Alone Rule',
+  mintThreshold: 'Mint Threshold',
+  fundThreshold: 'Club Funding Threshold',
+  cashoutThreshold: 'Cashout Threshold',
+  approvalTtlMinutes: 'Approval Window',
+};
+
+/**
+ * Everything wrong with a policy draft, as the sentences the form shows.
+ *
+ * Empty means the draft can be saved. Each problem names its field, because
+ * a Save button that is disabled with no reason next to it is a Save button
+ * the operator presses harder.
+ */
+export function policyDraftProblems(draft = {}) {
+  const problems = [];
+  const thresholds = [
+    ['mint_threshold', POLICY_FIELD_LABELS.mintThreshold],
+    ['fund_threshold', POLICY_FIELD_LABELS.fundThreshold],
+    ['cashout_threshold', POLICY_FIELD_LABELS.cashoutThreshold],
+  ];
+  for (const [key, label] of thresholds) {
+    if (!thresholdIsValid(draft[key])) {
+      problems.push(`The ${label} Must Be A Number Of Zero Or More, To At Most Two Decimals.`);
+    }
+  }
+  if (!ttlIsValid(draft.approval_ttl_minutes)) {
+    problems.push(
+      `The Approval Window Must Be A Whole Number Between ${TTL_MIN_MINUTES.toLocaleString()} And ${TTL_MAX_MINUTES.toLocaleString()} Minutes.`,
+    );
+  }
+  return problems;
+}
+
+/**
+ * What a `set_policy` patch changes, field by field, as "Label From To To".
+ *
+ * The confirm dialog used to announce "Turning Approvals On" whenever the
+ * draft had approvals on, so changing only the TTL with approvals already on
+ * read as switching them on. The patch is the truth about what will be sent,
+ * so the sentence is built from the patch and the row it was diffed against.
+ * `approvalsEnabled` is left out on purpose: the dialog has a paragraph for
+ * that switch, and this list is for the other five fields.
+ */
+export function describePolicyPatch(patch, saved = null) {
+  if (!patch || typeof patch !== 'object') return [];
+  const current = saved && typeof saved === 'object' ? saved : {};
+  const savedKey = {
+    allowSelfApproveWhenAlone: 'allow_self_approve_when_alone',
+    mintThreshold: 'mint_threshold',
+    fundThreshold: 'fund_threshold',
+    cashoutThreshold: 'cashout_threshold',
+    approvalTtlMinutes: 'approval_ttl_minutes',
+  };
+  const word = (key, value) => {
+    if (key === 'allowSelfApproveWhenAlone') return value === true ? 'On' : 'Off';
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toLocaleString() : 'Not Set';
+  };
+  const out = [];
+  for (const key of Object.keys(savedKey)) {
+    if (!(key in patch)) continue;
+    const from = word(key, current[savedKey[key]]);
+    const to = word(key, patch[key]);
+    const unit = key === 'approvalTtlMinutes' ? ' Minutes' : '';
+    out.push(`${POLICY_FIELD_LABELS[key]} ${from} To ${to}${unit}`);
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WHO IS AN OPERATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ask the route whether this bearer belongs to an operator.
+ *
+ * The sub-pages used to decide that for themselves from `profiles.role in
+ * (admin, superadmin, god)`, which is exactly the list Phase 2 made
+ * incomplete: `requireOperator` admits an active ca_operator_grants row too,
+ * so a `finance` grant to an account whose profile role is `user` was a real
+ * operator the pages sent home. The route's answer is the answer. A 200 is
+ * an operator. A 401 or a 403 is a refusal. Anything else - a 503 while the
+ * roster is down, a network failure, an HTML error page - is "could not
+ * verify", which is neither a pass nor a denial and is reported as such so
+ * the page can offer a retry.
+ *
+ * `fetchImpl` is injected so this stays unit testable without a browser.
+ *
+ * @returns {Promise<{ ok: true, status: number, body: object }
+ *   | { ok: false, denied: boolean, status: number, error: string }>}
+ */
+export async function operatorGate(token, fetchImpl = globalThis.fetch) {
+  if (!token) return { ok: false, denied: true, status: 401, error: 'Not Signed In.' };
+  let res;
+  try {
+    res = await fetchImpl(policyUrl(), {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    return { ok: false, denied: false, status: 0, error: (err && err.message) || 'Network Failure.' };
+  }
+  let body = {};
+  try { body = await res.json(); } catch { body = {}; }
+  if (!body || typeof body !== 'object') body = {};
+  const status = Number(res.status) || 0;
+  if (status === 401 || status === 403) {
+    return { ok: false, denied: true, status, error: body.error || 'Access Denied.' };
+  }
+  if (!res.ok || body.success === false) {
+    return { ok: false, denied: false, status, error: body.error || `Request Failed (${status}).` };
+  }
+  return { ok: true, status, body };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

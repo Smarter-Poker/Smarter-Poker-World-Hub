@@ -106,7 +106,7 @@ import {
   TABS, EXTERNAL_LINKS, CA_SECTIONS, DEFAULT_TAB, DEFAULT_CA_SECTION, visibleTabs,
 } from '../../src/components/horses/tabRegistry';
 import {
-  resolveInitialTab, resolveInitialSection, urlMatchesState, nextUrlQuery,
+  resolveInitialTab, resolveInitialSection, urlMatchesState, nextUrlQuery, urlNeedsNormalising,
 } from '../../src/components/horses/urlState';
 import {
   AUDIT_FILTER_GROUPS, auditActionFilter,
@@ -118,6 +118,7 @@ import {
 // the Phase 2 safety rule (PHASE2-CONTRACTS section 0) written as code.
 import {
   permittedTabs, permissionsFromPayload, operatorIdFromPayload, relocationTarget,
+  isOperatorDenial, operatorRoleFromPayload, operatorContextChange,
 } from '../../src/components/horses/operatorPermissions';
 import {
   thresholdDecision, isPendingApproval, normalizePolicy,
@@ -138,7 +139,40 @@ import usePagedList from '../../src/components/horses/usePagedList';
 import exportAllCsv from '../../src/components/horses/exportAllCsv';
 
 const SYNC_CHANNEL = 'horses-admin-sync';
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+
+/** The sign-in refusal, in one place, because two paths (a session found on
+ *  load and a fresh sign-in) have to say exactly the same thing. */
+const ACCESS_DENIED_MESSAGE = 'Access Denied. Operator Privileges Are Required.';
+const VERIFY_FAILED_MESSAGE = 'Could Not Verify Operator Status. Check Your Connection And Try Again.';
+
+/**
+ * Chips carry two decimals and the route refuses more (mint.js money2dp);
+ * this is the same rule stated on the compose step, so a third decimal is
+ * refused before the confirm dialog rather than after the typed confirmation.
+ * The trimmed STRING is tested, not the parsed number: Number('100.005') is
+ * a perfectly finite value and cannot be told from 100.01 once it has been
+ * rounded for display.
+ */
+const CHIP_AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
+
+/** The asset as a word in a sentence: the value is 'chips' | 'diamonds'. */
+function assetLabel(asset) {
+  const a = String(asset || '').toLowerCase();
+  if (a === 'chips') return 'Chips';
+  if (a === 'diamonds') return 'Diamonds';
+  return a ? a.charAt(0).toUpperCase() + a.slice(1) : '';
+}
+
+/** Chip amounts always show two decimals, so 100.10 chips never reads as
+ *  "100.1" in a sentence the operator is about to sign off on. Diamonds are
+ *  whole numbers and keep the plain rendering. */
+function formatAmount(value, asset) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '-';
+  return asset === 'chips'
+    ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : n.toLocaleString();
+}
 
 /** 593 horses in the stable. Rendering every card at once was the heaviest
  *  thing this page did; the roster is paginated now. */
@@ -196,9 +230,30 @@ const dynamicPanels = new Map();
 function panelComponentFor(tab) {
   if (!tab || typeof tab.load !== 'function') return null;
   if (!dynamicPanels.has(tab.id)) {
+    // next/dynamic renders `loading` both while the chunk is in flight AND
+    // after the import rejected, passing { error, retry } for the second
+    // case. Ignoring `error` meant a chunk 404 after a deploy (stale HTML
+    // pointing at hashes that no longer exist) or an offline tab showed
+    // "Loading Staff And Roles" forever; nothing threw, so the ErrorBoundary
+    // never saw it either. The boundary's own classes are used so the two
+    // failure screens read as one.
     dynamicPanels.set(tab.id, dynamic(tab.load, {
       ssr: false,
-      loading: () => <div className={styles.loadingSpinner}>Loading {tab.label}</div>,
+      loading: ({ error, retry }) => (error
+        ? (
+          <div className={shared.boundary} role="alert">
+            <h2 className={shared.boundaryTitle}>{tab.label} Could Not Be Loaded</h2>
+            <p className={shared.boundaryText}>
+              The Code For This Tab Did Not Arrive. Check The Connection, Or Reload The Page
+              If The Console Was Just Deployed.
+            </p>
+            {error.message && <code className={shared.boundaryCode}>{error.message}</code>}
+            <button type="button" className={shared.boundaryBtn} onClick={retry}>
+              Try Again
+            </button>
+          </div>
+        )
+        : <div className={styles.loadingSpinner}>Loading {tab.label}</div>),
     }));
   }
   return dynamicPanels.get(tab.id);
@@ -352,7 +407,7 @@ export default function HorsesAdmin() {
   const [personas, setPersonas] = useState([]);
   const [personasError, setPersonasError] = useState(null);
   // Loading and empty are different states. Without this the roster flashed
-  // "No horses in the stable yet. Create one to get started." on every mount,
+  // "No Horses In The Stable Yet. Create One To Get Started." on every mount,
   // which is the one sentence an operator must never be shown about a stable
   // that has 593 horses in it.
   const [personasLoading, setPersonasLoading] = useState(true);
@@ -445,6 +500,10 @@ export default function HorsesAdmin() {
   const [mintTargets, setMintTargets] = useState(null);
   const [mintLedger, setMintLedger] = useState(null);
   const [mintLoading, setMintLoading] = useState(false);
+  /** The ledger's OWN in-flight flag. The Pager used to read `mintLoading`,
+   *  which only the full panel load sets, so Next and Previous stayed live
+   *  while a page was in flight and a double click was two requests racing. */
+  const [mintLedgerLoading, setMintLedgerLoading] = useState(false);
   const [mintLoaded, setMintLoaded] = useState(false);
   const [mintError, setMintError] = useState(null);
 
@@ -543,6 +602,22 @@ export default function HorsesAdmin() {
   const [caUserSearching, setCaUserSearching] = useState(false);
   const [caSelectedUser, setCaSelectedUser] = useState(null);
   const [caProcessing, setCaProcessing] = useState(false);
+  /** The cashout the operator is about to force through or return, with the
+   *  thresholdDecision for it: { cashout, action, decision }. Rendered by the
+   *  shared ConfirmDialog, never by window.confirm, so the sentence about
+   *  whether chips move on Confirm is the same sentence the Mint shows. */
+  const [cashoutConfirm, setCashoutConfirm] = useState(null);
+  /**
+   * Every OTHER confirmation this console asks for, through the one shared
+   * dialog: { title, body, confirmLabel, tone, requireTyped, onConfirm }.
+   * window.confirm has no dialog role, no focus management, no Title Case
+   * and no way to say what will happen in more than a line of plain text;
+   * the shared ConfirmDialog has all four, and the Mint and the cashout
+   * already use it. The handler that opens the question and the function
+   * that does the work are separate, so the work runs only from the
+   * dialog's Confirm.
+   */
+  const [pendingConfirm, setPendingConfirm] = useState(null);
   const [caApplications, setCaApplications] = useState([]);
   const [caAppLoading, setCaAppLoading] = useState(false);
   const [caAppTab, setCaAppTab] = useState('pending');
@@ -611,78 +686,117 @@ export default function HorsesAdmin() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH
+  //
+  // THE ROUTE DECIDES WHO IS AN OPERATOR, NOT THIS FILE. The console used to
+  // read profiles.role in the browser and refuse anyone outside a list of
+  // three legacy strings - which is exactly the list Phase 2 made incomplete.
+  // `requireOperator` (src/lib/horses/operatorAuth.js) admits a legacy
+  // profile role OR an active ca_operator_grants row, so a `finance` grant to
+  // an account whose profile role is `user` is a real operator the old gate
+  // sent away with "Access denied". A grant the Staff tab could make and the
+  // console could not honour was a grant to nobody.
+  //
+  // So sign-in asks the one question the route answers on every load anyway:
+  // GET section=policy. A 200 is an operator, and the body IS the bootstrap
+  // (policy, permissions, own id, alone rule), so the context is applied from
+  // the same answer rather than fetched twice. A 401/403 is a refusal. Any
+  // other failure is "could not verify", reported as such - it is not a
+  // denial and it is not a pass.
   // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * WHO THIS OPERATOR IS, IN PHASE 2 TERMS.
+   *
+   * The section=policy body carries the policy row and - per PHASE2-CONTRACTS
+   * section 2 - the operator envelope this console needs: the permissions the
+   * account holds and its own user id. Both are used to DECIDE WHAT TO SHOW,
+   * never to decide what is allowed; every route re-checks for itself.
+   */
+  const applyOperatorContext = useCallback((body, fallbackUserId) => {
+    // normalizePolicy, not the raw row: the route answers in camelCase
+    // and the contract, the table and every RPC argument are snake_case.
+    // Reading only one spelling would report maker-checker as OFF while
+    // it is on, which is the wrong way round to be wrong about money.
+    setOperatorPolicy(normalizePolicy(body && body.policy));
+    setOperatorPermissions(permissionsFromPayload(body));
+    setOperatorId(operatorIdFromPayload(body, fallbackUserId));
+    setOperatorAloneRule(body && body.aloneRule ? body.aloneRule : null);
+    setOperatorDegraded(!!(body && body.operator && body.operator.degraded === true));
+  }, []);
+
+  /**
+   * The "nobody has told us" state, which is also the safety rule: null
+   * permissions and a null policy mean every tab visible and maker-checker
+   * off (PHASE2-CONTRACTS section 0). A failed read lands here so nothing
+   * from an earlier answer - least of all an alone rule that would let the
+   * Mint claim a self-approval this console can no longer verify - survives
+   * into a session the read did not vouch for.
+   */
+  const clearOperatorContext = useCallback((fallbackUserId) => {
+    setOperatorPermissions(null);
+    setOperatorPolicy(null);
+    setOperatorId(fallbackUserId || null);
+    setOperatorAloneRule(null);
+    setOperatorDegraded(false);
+  }, []);
+
+  /**
+   * A Staff tab save, flowed back up.
+   *
+   * The panel hands over `{ policy, aloneRule, permissions }` - the whole of
+   * what section=policy answers after the save - and all three are applied.
+   * The alone rule is the part that used to go stale: it is computed by the
+   * route FROM the policy (approvals on, self-approval allowed, nobody else
+   * eligible), so a Mint that kept the pre-toggle rule after Dan switched
+   * approvals on told him his money move would wait for a second operator
+   * when requireApproval was about to execute it on the spot. A bare policy
+   * object is still accepted; for it only the policy changes.
+   */
+  const handlePolicyChange = useCallback((payload) => {
+    const change = operatorContextChange(payload);
+    setOperatorPolicy(normalizePolicy(change.policy));
+    if (change.aloneRule !== undefined) setOperatorAloneRule(change.aloneRule);
+    if (change.permissions !== undefined) setOperatorPermissions(change.permissions);
+  }, []);
+
+  /**
+   * Ask the route whether this account is an operator, and if so seed the
+   * operator context from its answer.
+   *
+   * @returns {{ ok: true, body: object } | { ok: false, denied: boolean }}
+   */
+  const readOperatorContext = useCallback(async (authUser) => {
+    try {
+      const body = await authFetch(policyUrl());
+      applyOperatorContext(body, authUser.id);
+      return { ok: true, body };
+    } catch (err) {
+      clearOperatorContext(authUser.id);
+      return { ok: false, denied: isOperatorDenial(err) };
+    }
+  }, [authFetch, applyOperatorContext, clearOperatorContext]);
+
   const checkAuth = useCallback(async () => {
     try {
       const authUser = getAuthUser();
       if (!authUser?.id) { setLoading(false); return; }
 
-      const { data: profile, error } = await supabase
-        .from('profiles').select('role').eq('id', authUser.id).maybeSingle();
-
-      if (error) {
-        setLoginError('Could not verify admin status. Check your connection and try again.');
-        setLoading(false);
-        return;
-      }
-      if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-        setLoginError('Access denied. Administrator privileges required.');
+      const answer = await readOperatorContext(authUser);
+      if (!answer.ok) {
+        setLoginError(answer.denied ? ACCESS_DENIED_MESSAGE : VERIFY_FAILED_MESSAGE);
         setLoading(false);
         return;
       }
       setUser(authUser);
-      setRole(profile.role);
+      setRole(operatorRoleFromPayload(answer.body));
     } catch {
-      setLoginError('Could not reach the authentication service.');
+      setLoginError('Could Not Reach The Authentication Service.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [readOperatorContext]);
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
-
-  /**
-   * WHO THIS OPERATOR IS, IN PHASE 2 TERMS.
-   *
-   * One read of /api/horses/operator-admin?section=policy, which answers with
-   * the policy row and - per PHASE2-CONTRACTS section 2 - the operator
-   * envelope this console needs: the permissions the account holds and its
-   * own user id. Both are used to DECIDE WHAT TO SHOW, never to decide what
-   * is allowed; every route re-checks for itself.
-   *
-   * THE CATCH BLOCK IS THE SAFETY RULE. A failure here - the route not
-   * deployed, a 403, a timeout - leaves permissions null and the policy null,
-   * and both of those mean "carry on exactly as before": every tab visible,
-   * maker-checker off. A console that hides the Mint because a fetch failed
-   * would be a worse outage than the one it is reacting to.
-   */
-  useEffect(() => {
-    if (!user) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const body = await authFetch(policyUrl());
-        if (cancelled) return;
-        // normalizePolicy, not the raw row: the route answers in camelCase
-        // and the contract, the table and every RPC argument are snake_case.
-        // Reading only one spelling would report maker-checker as OFF while
-        // it is on, which is the wrong way round to be wrong about money.
-        setOperatorPolicy(normalizePolicy(body && body.policy));
-        setOperatorPermissions(permissionsFromPayload(body));
-        setOperatorId(operatorIdFromPayload(body, user.id));
-        setOperatorAloneRule(body && body.aloneRule ? body.aloneRule : null);
-        setOperatorDegraded(!!(body && body.operator && body.operator.degraded === true));
-      } catch {
-        if (cancelled) return;
-        setOperatorPermissions(null);
-        setOperatorPolicy(null);
-        setOperatorId(user.id || null);
-        setOperatorAloneRule(null);
-        setOperatorDegraded(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user, authFetch]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -694,20 +808,22 @@ export default function HorsesAdmin() {
       });
       if (error) { setLoginError(error.message); return; }
 
-      const { data: profile, error: profileErr } = await supabase
-        .from('profiles').select('role').eq('id', data.user.id).maybeSingle();
-
-      if (profileErr) { setLoginError('Could not verify admin status.'); return; }
-      if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-        // Do not leave a non-admin holding an authenticated session on a staff page.
-        await supabase.auth.signOut();
-        setLoginError('Access denied. Administrator privileges required.');
+      const answer = await readOperatorContext(data.user);
+      if (!answer.ok) {
+        if (answer.denied) {
+          // Do not leave a non-operator holding an authenticated session on a
+          // staff page.
+          await supabase.auth.signOut();
+          setLoginError(ACCESS_DENIED_MESSAGE);
+        } else {
+          setLoginError(VERIFY_FAILED_MESSAGE);
+        }
         return;
       }
       setUser(data.user);
-      setRole(profile.role);
+      setRole(operatorRoleFromPayload(answer.body));
     } catch {
-      setLoginError('Connection failed.');
+      setLoginError('Connection Failed.');
     } finally {
       setSigningIn(false);
     }
@@ -875,6 +991,11 @@ export default function HorsesAdmin() {
     setMintOpId(newMintOpId());
   }, [mintPayloadKey, newMintOpId]);
 
+  /** Monotonic, like auditSeqRef: a filter change and a page move can be in
+   *  flight together, and without this the slower (older) answer landed last
+   *  and the table showed one page under another page's pager. */
+  const mintLedgerSeqRef = useRef(0);
+
   /**
    * One page of the Mint journal. The route has always accepted limit/offset
    * (mint.js:136-137) and the panel sent neither, so it showed the newest 100
@@ -889,6 +1010,7 @@ export default function HorsesAdmin() {
    * route keeps alongside it, so this reads whichever arrives.
    */
   const loadMintLedger = useCallback(async (asset = '', action = '', holderId = '', offset = 0) => {
+    const seq = ++mintLedgerSeqRef.current;
     const params = new URLSearchParams({
       section: 'ledger',
       limit: String(MINT_LEDGER_PAGE_SIZE),
@@ -897,12 +1019,18 @@ export default function HorsesAdmin() {
     if (asset) params.set('asset', asset);
     if (action) params.set('action', action);
     if (holderId) params.set('holderId', holderId);
-    const data = await authFetch(`/api/horses/mint?${params.toString()}`);
-    setMintLedger({
-      ...data,
-      entries: data.rows || data.entries || [],
-      offset: typeof data.offset === 'number' ? data.offset : offset,
-    });
+    setMintLedgerLoading(true);
+    try {
+      const data = await authFetch(`/api/horses/mint?${params.toString()}`);
+      if (seq !== mintLedgerSeqRef.current) return;
+      setMintLedger({
+        ...data,
+        entries: data.rows || data.entries || [],
+        offset: typeof data.offset === 'number' ? data.offset : offset,
+      });
+    } finally {
+      if (seq === mintLedgerSeqRef.current) setMintLedgerLoading(false);
+    }
   }, [authFetch]);
 
   /**
@@ -996,7 +1124,7 @@ export default function HorsesAdmin() {
     setMintTargetId(row.holder_id);
     setMintAmount(String(row.amount));
     setMintReason(
-      `Reversing ${row.action} of ${row.amount} ${row.asset} (operation ${row.op_id}): `
+      `Reversing ${row.action === 'mint' ? 'Issuance' : 'Retirement'} Of ${formatAmount(row.amount, row.asset)} ${assetLabel(row.asset)} (Operation ${row.op_id}): `
     );
     setMintPickedPlayer(
       row.holder_type === 'player'
@@ -1045,22 +1173,29 @@ export default function HorsesAdmin() {
   const composeMintConfirmation = useCallback(() => {
     const amount = Number(mintAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      showNotification('Enter an amount greater than zero.', 'error');
+      showNotification('Enter An Amount Greater Than Zero.', 'error');
       return;
     }
     if (mintAsset === 'diamonds' && !Number.isInteger(amount)) {
-      showNotification('Diamonds are whole numbers.', 'error');
+      showNotification('Diamonds Are Whole Numbers.', 'error');
+      return;
+    }
+    // The same rule the route applies (money2dp), stated before the confirm
+    // dialog: 100.005 chips used to reach the typed confirmation and then
+    // fail with a 400 the operator could not act on from that screen.
+    if (mintAsset === 'chips' && !CHIP_AMOUNT_PATTERN.test(String(mintAmount).trim())) {
+      showNotification('Chips Take At Most Two Decimals.', 'error');
       return;
     }
     if (!mintTargetId) {
       showNotification(
-        mintAsset === 'chips' ? 'Pick a club or union.' : 'Pick a player.',
+        mintAsset === 'chips' ? 'Pick A Club Or Union.' : 'Pick A Player.',
         'error'
       );
       return;
     }
     if (mintReason.trim().length < 10) {
-      showNotification('Write a reason of at least ten characters.', 'error');
+      showNotification('Write A Reason Of At Least Ten Characters.', 'error');
       return;
     }
 
@@ -1196,7 +1331,7 @@ export default function HorsesAdmin() {
       showNotification(
         result.replayed
           ? 'Already Done. This Operation Had Already Been Recorded, So Nothing Moved Again.'
-          : `${mintConfirm.action === 'mint' ? 'Issued' : 'Retired'} ${num(mintConfirm.amount)} ${mintConfirm.asset} ${mintConfirm.action === 'mint' ? 'to' : 'from'} ${mintConfirm.label}.`,
+          : `${mintConfirm.action === 'mint' ? 'Issued' : 'Retired'} ${formatAmount(mintConfirm.amount, mintConfirm.asset)} ${assetLabel(mintConfirm.asset)} ${mintConfirm.action === 'mint' ? 'To' : 'From'} ${mintConfirm.label}.`,
         'success'
       );
       resetMintForm();
@@ -1240,6 +1375,11 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
+  /** Monotonic, like auditSeqRef. goGrinderRosterPage sets the offset and
+   *  then awaits the fetch; two quick presses of Next were two requests, and
+   *  the slower one used to win, so page 2's rows sat under page 3's pager. */
+  const grinderSeqRef = useRef(0);
+
   /**
    * Fleet totals plus ONE PAGE of the grinder roster.
    *
@@ -1256,6 +1396,7 @@ export default function HorsesAdmin() {
    * above the table does not move when the pager does.
    */
   const loadGrinderData = useCallback(async (offset = 0) => {
+    const seq = ++grinderSeqRef.current;
     setGrinderLoading(true);
     setGrinderError(null);
     try {
@@ -1264,6 +1405,7 @@ export default function HorsesAdmin() {
         offset: String(Math.max(0, offset)),
       });
       const data = await authFetch(`/api/horses/grinder-stats?${params.toString()}`);
+      if (seq !== grinderSeqRef.current) return;
       // `roster` at the TOP LEVEL is the paged envelope
       // ({ rows, total, limit, offset, hasMore, truncated }); `stats.roster` is
       // the bare array of that same page. The envelope wins, so the table has
@@ -1273,9 +1415,10 @@ export default function HorsesAdmin() {
         ? { ...data.stats, roster: data.roster ?? data.stats.roster ?? [] }
         : null);
     } catch (err) {
+      if (seq !== grinderSeqRef.current) return;
       setGrinderError(err.message);
     } finally {
-      setGrinderLoading(false);
+      if (seq === grinderSeqRef.current) setGrinderLoading(false);
     }
   }, [authFetch]);
 
@@ -1521,31 +1664,91 @@ export default function HorsesAdmin() {
    * no way to release it -- their only options were to pay it or leave it
    * pending forever. 'cancel' is the reversible branch: the chips go back to
    * the player's balance.
+   *
+   * Opening the dialog is separate from sending, so the confirmation can say
+   * what will actually happen. A /horses operator takes the platform-override
+   * path of /api/club-arena/approve-cashout, which is the path Phase 2 gates
+   * with requireApproval: with approvals on and the amount at or over
+   * cashout_threshold the route answers 202 and moves nothing. The
+   * thresholdDecision here is the same one the Mint shows, so "Force Approve"
+   * reads "This Will Be Sent For Approval" before the click when that is the
+   * truth.
    */
-  const resolveCashout = useCallback(async (cashout, action) => {
-    const label = action === 'approve' ? 'Force approve' : 'Cancel';
-    const consequence = action === 'approve'
-      ? 'This pays the request and moves real chips.'
-      : 'This releases the request and returns the chips to the player.';
-    if (!window.confirm(`${label} a cashout of ${num(cashout.amount)} chips?\n\n${consequence}`)) return;
+  const resolveCashout = useCallback((cashout, action) => {
+    setCashoutConfirm({
+      cashout,
+      action,
+      decision: action === 'approve'
+        ? thresholdDecision({
+          policy: operatorPolicy,
+          kind: 'cashout',
+          amount: cashout.amount,
+          asset: 'chips',
+          aloneRule: operatorAloneRule,
+        })
+        : null,
+    });
+  }, [operatorPolicy, operatorAloneRule]);
+
+  /** Tag a pending cashout row, wherever it is rendered, with the approval
+   *  it is now waiting on. The row STAYS: it has not been paid. */
+  const markCashoutPendingApproval = useCallback((cashoutId, approvalId) => {
+    const tag = (c) => (c.id === cashoutId ? { ...c, pendingApprovalId: approvalId } : c);
+    setCaPendingCashouts((prev) => prev.map(tag));
+    setCaClubDetail((prev) => (prev
+      ? { ...prev, pendingCashouts: (prev.pendingCashouts || []).map(tag) }
+      : prev));
+  }, []);
+
+  const submitCashout = useCallback(async () => {
+    if (!cashoutConfirm) return;
+    const { cashout, action } = cashoutConfirm;
     setCaProcessing(true);
     try {
-      await authFetch('/api/club-arena/approve-cashout', {
+      const body = await authFetch('/api/club-arena/approve-cashout', {
         method: 'POST',
         body: JSON.stringify({ cashoutId: cashout.id, clubId: cashout.club_id, action }),
       });
+
+      // ── 202: SENT FOR APPROVAL, NO CHIPS HAVE MOVED ────────────────────
+      //
+      // 202 is `res.ok` and `success` is true, so this used to fall straight
+      // through: the row vanished from the only list the operator was
+      // looking at, the toast said "Cashout Approved", and the request sat
+      // pending in the Approvals queue with nobody told to go there. The
+      // player was not paid until somebody noticed. The row is kept and
+      // tagged instead, so it renders "Waiting For Approval" in place of its
+      // buttons, and the toast says exactly what the route said.
+      if (isPendingApproval(body)) {
+        markCashoutPendingApproval(cashout.id, body.approvalId);
+        setCashoutConfirm(null);
+        showNotification(body.message || 'Sent For Approval. No Chips Have Moved.', 'info');
+        return;
+      }
+
       setCaPendingCashouts((prev) => prev.filter((c) => c.id !== cashout.id));
       setCaClubDetail((prev) => (prev
         ? { ...prev, pendingCashouts: (prev.pendingCashouts || []).filter((c) => c.id !== cashout.id) }
         : prev));
-      showNotification(action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled, Chips Returned');
+      setCashoutConfirm(null);
+      if (action === 'approve' && body && body.trailClosed === false) {
+        // The RPC paid the request; markApprovalExecuted could not close the
+        // approval row that authorised it. The money is right and the trail
+        // is not, and the operator has to hear the second half.
+        showNotification(
+          'The Cashout Went Through But The Approval Row Could Not Be Closed. Check The Audit Trail.',
+          'info',
+        );
+      } else {
+        showNotification(action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled, Chips Returned');
+      }
       loadBadges();
     } catch (err) {
       showNotification(err.message, 'error');
     } finally {
       setCaProcessing(false);
     }
-  }, [authFetch, showNotification, loadBadges]);
+  }, [authFetch, cashoutConfirm, markCashoutPendingApproval, showNotification, loadBadges]);
 
 
   const loadApplications = useCallback(async (statusFilter = 'pending') => {
@@ -1600,9 +1803,7 @@ export default function HorsesAdmin() {
     }
   }, [authFetch, caAppCommission, caAppReason, caAppTab, loadApplications, showNotification]);
 
-  const reviewLeaveRequest = useCallback(async (req, decision) => {
-    if (decision === 'approve'
-      && !window.confirm(`Remove ${req.club_name} from ${req.unions?.name || 'the union'}? This cannot be undone.`)) return;
+  const sendLeaveDecision = useCallback(async (req, decision) => {
     setCaProcessing(true);
     try {
       // The deny button used to send { action: 'reject', applicationId } with a
@@ -1622,6 +1823,22 @@ export default function HorsesAdmin() {
       setCaProcessing(false);
     }
   }, [authFetch, caLeaveTab, loadLeaveRequests, showNotification]);
+
+  /** Approving a leave request removes the club from its union, which is the
+   *  irreversible direction, so only that one asks first. */
+  const reviewLeaveRequest = useCallback((req, decision) => {
+    if (decision !== 'approve') {
+      sendLeaveDecision(req, decision);
+      return;
+    }
+    setPendingConfirm({
+      title: 'Remove Club From Union',
+      body: `Remove ${req.club_name} From ${req.unions?.name || 'The Union'}? This Cannot Be Undone.`,
+      confirmLabel: 'Yes, Remove The Club',
+      tone: 'danger',
+      onConfirm: () => sendLeaveDecision(req, decision),
+    });
+  }, [sendLeaveDecision]);
 
   const reviewFlag = useCallback(async (flag, verdict) => {
     setCaProcessing(true);
@@ -1703,13 +1920,7 @@ export default function HorsesAdmin() {
   // serially, with a 2 second pause between each -- so batches are small and
   // the operator runs it repeatedly.
   const AVATAR_BATCH = 5;
-  const generateAvatars = async () => {
-    if (!window.confirm(
-      `Generate avatars for up to ${AVATAR_BATCH} horses?\n\n`
-      + 'Each one calls a paid image API and takes roughly 15 to 25 seconds, '
-      + 'so this batch may take a couple of minutes. Horses that already have '
-      + 'an avatar are never touched.',
-    )) return;
+  const runGenerateAvatars = async () => {
     setAvatarBusy(true);
     setAvatarResult(null);
     try {
@@ -1731,6 +1942,18 @@ export default function HorsesAdmin() {
     } finally {
       setAvatarBusy(false);
     }
+  };
+
+  const generateAvatars = () => {
+    setPendingConfirm({
+      title: 'Generate Avatars',
+      body: `Generate Avatars For Up To ${AVATAR_BATCH} Horses? Each One Calls A Paid Image API `
+        + 'And Takes Roughly 15 To 25 Seconds, So This Batch May Take A Couple Of Minutes. '
+        + 'Horses That Already Have An Avatar Are Never Touched.',
+      confirmLabel: `Yes, Generate Up To ${AVATAR_BATCH}`,
+      tone: 'go',
+      onConfirm: runGenerateAvatars,
+    });
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1881,20 +2104,18 @@ export default function HorsesAdmin() {
     // first of those used to ask.
     const ids = personas.map((p) => p.id).filter((id) => id !== undefined && id !== null);
     if (!ids.length) return;
-    if (!window.confirm(activate
-      ? `Activate all ${ids.length} horses? This starts the content engine and seats the whole grinder fleet, which buys in from club treasuries.`
-      : `Rest all ${ids.length} horses? This stops the content engine and takes the whole grinder fleet off the tables.`,
-    )) return;
-    await setActiveForIds(ids, activate, activate ? 'All Horses Activated' : 'All Horses Rested');
+    setPendingConfirm({
+      title: activate ? 'Activate Every Horse' : 'Rest Every Horse',
+      body: activate
+        ? `Activate All ${num(ids.length)} Horses? This Starts The Content Engine And Seats The Whole Grinder Fleet, Which Buys In From Club Treasuries.`
+        : `Rest All ${num(ids.length)} Horses? This Stops The Content Engine And Takes The Whole Grinder Fleet Off The Tables.`,
+      confirmLabel: activate ? 'Yes, Activate All' : 'Yes, Rest All',
+      tone: activate ? 'go' : 'danger',
+      onConfirm: () => setActiveForIds(ids, activate, activate ? 'All Horses Activated' : 'All Horses Rested'),
+    });
   };
 
-  const handleDelete = async (id, name) => {
-    // Irreversible: there is no soft-delete column on content_authors. The
-    // route writes the whole row into admin_audit_log before removing it, so
-    // a mistake is at least recoverable by hand.
-    if (!window.confirm(
-      `Retire ${name}?\n\nThis permanently deletes the horse. It cannot be undone from this panel.`,
-    )) return;
+  const runDelete = async (id, name) => {
     const removed = personas.filter((p) => p.id === id);
     setPersonas((prev) => prev.filter((p) => p.id !== id));
     try {
@@ -1909,12 +2130,20 @@ export default function HorsesAdmin() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-    if (!window.confirm(
-      `Retire ${ids.length} horses?\n\nThis permanently deletes them. It cannot be undone from this panel.`,
-    )) return;
+  const handleDelete = (id, name) => {
+    // Irreversible: there is no soft-delete column on content_authors. The
+    // route writes the whole row into admin_audit_log before removing it, so
+    // a mistake is at least recoverable by hand.
+    setPendingConfirm({
+      title: `Retire ${name}`,
+      body: `Retire ${name}? This Permanently Deletes The Horse. It Cannot Be Undone From This Panel.`,
+      confirmLabel: 'Yes, Retire',
+      tone: 'danger',
+      onConfirm: () => runDelete(id, name),
+    });
+  };
+
+  const runBulkDelete = async (ids) => {
     const idSet = new Set(ids);
     const removed = personas.filter((p) => idSet.has(p.id));
     setPersonas((prev) => prev.filter((p) => !idSet.has(p.id)));
@@ -1937,6 +2166,21 @@ export default function HorsesAdmin() {
     } finally {
       setBulkBusy(false);
     }
+  };
+
+  const handleBulkDelete = () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setPendingConfirm({
+      title: `Retire ${num(ids.length)} Horses`,
+      body: `Retire ${num(ids.length)} Horses? This Permanently Deletes Them. It Cannot Be Undone From This Panel.`,
+      confirmLabel: `Yes, Retire ${num(ids.length)}`,
+      tone: 'danger',
+      // Typed, because one click on a bulk action is too cheap for a
+      // permanent delete of a selection the operator may not have re-read.
+      requireTyped: 'RETIRE',
+      onConfirm: () => runBulkDelete(ids),
+    });
   };
 
   const openCreateModal = () => { setEditingPersona(null); setPersonaForm(EMPTY_PERSONA); setShowCreateModal(true); };
@@ -2081,9 +2325,18 @@ export default function HorsesAdmin() {
   // "What happened to THIS club / THIS user / THIS ticket" is the second
   // question an audit log exists to answer and the tab could not express it.
   // From/To make the window explicit rather than "the last N days from now".
+  //
+  // TWO STATES EACH, like the reviews search: `*Input` is what the operator
+  // is typing, `auditTarget` / `auditTargetType` is what the query reads, and
+  // a 300 ms debounce joins them. Keyed straight off the input, typing a
+  // 36-character uuid issued 36 audit_log POSTs (each an exact `eq` on a
+  // partial id, each returning nothing) and a fast typist met the route's
+  // rate limit as one error toast per keystroke.
+  const [auditTargetInput, setAuditTargetInput] = useState('');
   const [auditTarget, setAuditTarget] = useState('');
   // Target TYPE alongside target id (PHASE2-CONTRACTS section 2). An id on its
   // own is ambiguous across tables; "club" plus that id is one record.
+  const [auditTargetTypeInput, setAuditTargetTypeInput] = useState('');
   const [auditTargetType, setAuditTargetType] = useState('');
   const [auditFrom, setAuditFrom] = useState('');
   const [auditTo, setAuditTo] = useState('');
@@ -2208,7 +2461,7 @@ export default function HorsesAdmin() {
           // export that drops them cannot answer "was that the same session".
           ['ip_address', 'IP'],
           ['user_agent', 'User Agent'],
-          ['request_id', 'Request'],
+          ['request_id', 'Request ID'],
           ['details', 'Details'],
           ['before_state', 'Before State'],
           ['after_state', 'After State'],
@@ -2367,7 +2620,7 @@ export default function HorsesAdmin() {
         method: 'PATCH', body: JSON.stringify({ review_id: reviewId, action }),
       });
       setReviewsData((prev) => prev.map((r) => (r.id === reviewId
-        ? { ...r, is_flagged: action === 'flag', flag_reason: action === 'flag' ? 'Admin flagged' : null }
+        ? { ...r, is_flagged: action === 'flag', flag_reason: action === 'flag' ? 'Admin Flagged' : null }
         : r)));
       showNotification(action === 'flag' ? 'Review Flagged' : 'Flag Removed');
     } catch (err) {
@@ -2616,19 +2869,35 @@ export default function HorsesAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caSection, activeTab, user, caLedger, caRevenue, caLedgerError, caRevenueError]);
 
-  // ── THE RESETS ARE DECLARED BEFORE THE LOADS, AND THAT ORDER IS THE FIX ──
+  // ── A FILTER CHANGE RESETS THE PAGE, AND THE RESET IS WHAT LOADS ──
   //
   // A filter change must return to page one, or the operator lands on page 4
-  // of a result set that now has one page. Both effects fire in the SAME
-  // commit on a filter change, in declaration order: with the load first it
-  // fired against the STALE page (offset 300 under the new filter), then the
-  // reset re-rendered and fired a second load at offset 0 - two requests, and
-  // whichever landed last won. Resetting first means the load that runs in
-  // this commit already sees page 0; the sequence guards inside the two
-  // loaders cover the rest.
+  // of a result set that now has one page. Two separate effects (one
+  // resetting the page, one loading) cannot do that in one request: a
+  // `setAuditPage(0)` in the first does NOT change the `auditPage` closure of
+  // the second running in the same commit (the same mechanism the URL-state
+  // comment below explains), so with auditPage at 3 a filter change fired a
+  // load at offset 300 under the new filter and then a second at 0 after the
+  // re-render, and only the sequence guard kept the first from landing.
+  //
+  // So the audit effect below is ONE effect keyed on the query and the page.
+  // It remembers the last query it saw in a ref; when the query changed and
+  // the page is not 0 it only resets the page, and the page change re-runs it
+  // at offset 0. When the query changed on page 0, or the page changed, it
+  // loads. One request per filter change, and the seq guard stays for the
+  // in-flight overlap of a page move over a filter change.
+  const auditQuerySeenRef = useRef(auditQuery);
+
   useEffect(() => {
-    setAuditPage(0);
-  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditTargetType, auditFrom, auditTo]);
+    const filterChanged = auditQuerySeenRef.current !== auditQuery;
+    auditQuerySeenRef.current = auditQuery;
+    if (filterChanged && auditPage !== 0) {
+      setAuditPage(0);
+      return;
+    }
+    if (activeTab === 'audit' && auditLoaded) loadAuditLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditQuery, auditPage]);
 
   useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsQuery]);
 
@@ -2637,18 +2906,23 @@ export default function HorsesAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage, reviewsQuery]);
 
-  useEffect(() => {
-    if (activeTab === 'audit' && auditLoaded) loadAuditLog();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditTargetType, auditFrom, auditTo, auditPage]);
-
   // ── Debounced searches ──
-  // Both of these hit a route now rather than filtering an array in memory, so
+  // All of these hit a route now rather than filtering an array in memory, so
   // they wait 300ms for the operator to stop typing.
   useEffect(() => {
     const id = setTimeout(() => setReviewsQuery(reviewsSearch), 300);
     return () => clearTimeout(id);
   }, [reviewsSearch]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setAuditTarget(auditTargetInput), 300);
+    return () => clearTimeout(id);
+  }, [auditTargetInput]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setAuditTargetType(auditTargetTypeInput), 300);
+    return () => clearTimeout(id);
+  }, [auditTargetTypeInput]);
 
   useEffect(() => {
     const id = setTimeout(() => tickets.setFilter('q', bugReportsSearch.trim()), 300);
@@ -2750,16 +3024,19 @@ export default function HorsesAdmin() {
     if (!router.isReady || !urlHydratedRef.current) return;
 
     if (urlMatchesState({ activeTab, caSection }, router.query)) {
-      if (!urlSyncedRef.current) {
-        urlSyncedRef.current = true;
-        // The ONE write that is not a navigation: stamping ?tab= into a bare
-        // /horses. A REPLACE, so normalising the address the operator arrived
-        // at does not cost them a Back press. A URL that already names a tab
-        // is left exactly as it is - that is the deep link.
-        if (router.query.tab === undefined) {
-          const query = nextUrlQuery({ activeTab, caSection }, router.query);
-          router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
-        }
+      urlSyncedRef.current = true;
+      // The ONE write that is not a navigation: making the address say what
+      // it resolved to. A REPLACE, so normalising the address the operator
+      // arrived at does not cost them a Back press. That covers a bare
+      // /horses (stamp ?tab= in) AND an unknown ?tab=bogus, which the read
+      // effect mapped to the default but which used to be left in the bar
+      // because a tab was "already named" - so the bookmark stayed broken.
+      // A URL that already spells the view correctly is not touched: that is
+      // the deep link. urlNeedsNormalising answers false for it, and false
+      // again once the replace has landed, so this cannot loop.
+      if (urlNeedsNormalising({ activeTab, caSection }, router.query)) {
+        const query = nextUrlQuery({ activeTab, caSection }, router.query);
+        router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
       }
       return;
     }
@@ -3023,7 +3300,7 @@ export default function HorsesAdmin() {
       <>
         <SEOHead
           title="Stable Admin"
-          description="Smarter.Poker staff console."
+          description="Smarter.Poker Staff Console."
           canonical="/horses"
         >
           <meta name="robots" content="noindex, nofollow" />
@@ -3081,6 +3358,24 @@ export default function HorsesAdmin() {
             cashout approve -- and it was not announced at all. The always-
             mounted region matters: a live region inserted in the same tick as
             its content is unreliable in NVDA and JAWS. */}
+        {pendingConfirm && (
+          <ConfirmDialog
+            title={pendingConfirm.title}
+            tone={pendingConfirm.tone || 'danger'}
+            confirmLabel={pendingConfirm.confirmLabel || 'Confirm'}
+            requireTyped={pendingConfirm.requireTyped || null}
+            onConfirm={() => {
+              // Close first, then run: the work may open its own toast or a
+              // further dialog, and neither should land under this one.
+              const run = pendingConfirm.onConfirm;
+              setPendingConfirm(null);
+              if (typeof run === 'function') run();
+            }}
+            onCancel={() => setPendingConfirm(null)}
+          >
+            <p style={{ marginTop: 0 }}>{pendingConfirm.body}</p>
+          </ConfirmDialog>
+        )}
         <div role="status" aria-live="polite" className={styles.srOnly}>
           {notification?.message || ''}
         </div>
@@ -3132,13 +3427,13 @@ export default function HorsesAdmin() {
             pointed at an element that is not in the document - which is worse
             than omitting the attribute, since a screen reader announces a
             relationship it cannot follow. */}
-        <nav className={styles.nav} ref={navRef} aria-label="Console sections">
+        <nav className={styles.nav} ref={navRef} aria-label="Console Sections">
           {/* NOT display:contents. That property has a history of dropping the
               element - and with it the role - out of the accessibility tree in
               WebKit and Blink, and the role is what makes these sixteen
               buttons a tablist. shared.tablist is a real flex box sized to
               match the nav. */}
-          <div role="tablist" aria-label="Stable admin tabs" className={shared.tablist}>
+          <div role="tablist" aria-label="Stable Admin Tabs" className={shared.tablist}>
             {navTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -3200,7 +3495,7 @@ export default function HorsesAdmin() {
               operatorId={operatorId}
               policy={operatorPolicy}
               permissionsDegraded={operatorDegraded}
-              onPolicyChange={setOperatorPolicy}
+              onPolicyChange={handlePolicyChange}
             />
           )}
 
@@ -3240,9 +3535,9 @@ export default function HorsesAdmin() {
                   <input
                     type="search" placeholder="Search Horses" value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput}
-                    aria-label="Search horses"
+                    aria-label="Search Horses"
                   />
-                  <select value={filter} onChange={(e) => setFilter(e.target.value)} className={styles.filterSelect} aria-label="Filter horses">
+                  <select value={filter} onChange={(e) => setFilter(e.target.value)} className={styles.filterSelect} aria-label="Filter Horses">
                     <option value="all">All Horses</option>
                     <option value="active">Active Only</option>
                     <option value="inactive">Resting Only</option>
@@ -3258,7 +3553,7 @@ export default function HorsesAdmin() {
                     Export CSV
                   </button>
                   <button className={styles.actionBtn} onClick={generateAvatars} disabled={avatarBusy}
-                    title="Generate avatars for horses that have none">
+                    title="Generate Avatars For Horses That Have None">
                     {avatarBusy ? 'Generating Avatars' : 'Generate Avatars'}
                   </button>
                   <button className={styles.btnCreate} onClick={openCreateModal}>New Horse</button>
@@ -3283,8 +3578,8 @@ export default function HorsesAdmin() {
               {!personasError && !personasLoading && filteredPersonas.length === 0 && (
                 <div className={styles.emptyState}>
                   {personas.length === 0
-                    ? 'No horses in the stable yet. Create one to get started.'
-                    : 'No horses match the current search and filter.'}
+                    ? 'No Horses In The Stable Yet. Create One To Get Started.'
+                    : 'No Horses Match The Current Search And Filter.'}
                 </div>
               )}
 
@@ -3310,7 +3605,7 @@ export default function HorsesAdmin() {
                     <> - Failures: {(avatarResult.results || []).filter((r) => !r.success)
                       .map((r) => `${r.horse}: ${r.error}`).join('; ')}</>
                   )}
-                  {avatarResult.remaining > 0 && ' Run it again to continue.'}
+                  {avatarResult.remaining > 0 && ' Run It Again To Continue.'}
                 </div>
               )}
 
@@ -3322,7 +3617,7 @@ export default function HorsesAdmin() {
                     type="checkbox"
                     checked={allPagedSelected}
                     onChange={toggleSelectPage}
-                    aria-label={allPagedSelected ? 'Deselect this page' : 'Select this page'}
+                    aria-label={allPagedSelected ? 'Deselect This Page' : 'Select This Page'}
                   />
                   <span>Select Page</span>
                 </label>
@@ -3365,7 +3660,7 @@ export default function HorsesAdmin() {
                         className={styles.personaSelect}
                         checked={selectedIds.has(persona.id)}
                         onChange={() => toggleSelect(persona.id)}
-                        aria-label={`Select ${persona.name || 'this horse'}`}
+                        aria-label={`Select ${persona.name || 'This Horse'}`}
                       />
                       <div className={styles.personaAvatar}>
                         {persona.avatar_url ? (
@@ -3397,17 +3692,17 @@ export default function HorsesAdmin() {
                         <input
                           type="checkbox" checked={!!persona.is_active}
                           onChange={() => togglePersona(persona.id, persona.is_active)}
-                          aria-label={`${persona.is_active ? 'Rest' : 'Activate'} ${persona.name || 'this horse'}`}
+                          aria-label={`${persona.is_active ? 'Rest' : 'Activate'} ${persona.name || 'This Horse'}`}
                         />
                         <span className={styles.slider} />
                       </label>
                     </div>
                     <div className={styles.personaDetails}>
-                      <p>{persona.location || 'Location unknown'}</p>
-                      <p>{persona.specialty?.replace(/_/g, ' ') || 'No specialty'}</p>
-                      <p>{persona.stakes || 'No stakes set'}</p>
+                      <p>{persona.location || 'Location Unknown'}</p>
+                      <p>{persona.specialty?.replace(/_/g, ' ') || 'No Specialty'}</p>
+                      <p>{persona.stakes || 'No Stakes Set'}</p>
                     </div>
-                    <div className={styles.personaBio}>{persona.bio || 'No bio.'}</div>
+                    <div className={styles.personaBio}>{persona.bio || 'No Bio.'}</div>
                     <div className={styles.personaVoice}>
                       <span className={styles.voiceTag}>{persona.voice || 'casual'}</span>
                       {/* Resting used to be signalled by opacity alone. */}
@@ -3417,7 +3712,7 @@ export default function HorsesAdmin() {
                         <button
                           className={styles.deleteBtn}
                           onClick={() => handleDelete(persona.id, persona.name)}
-                          title="Retire this horse"
+                          title="Retire This Horse"
                           aria-label={`Retire ${persona.name}`}
                         >
                           Retire
@@ -3650,8 +3945,8 @@ export default function HorsesAdmin() {
                   <input
                     type="search" value={grinderSearch}
                     onChange={(e) => setGrinderSearch(e.target.value)}
-                    placeholder="Filter this page" className={styles.searchInput}
-                    aria-label="Filter the rows on this page of the grinder roster"
+                    placeholder="Filter This Page" className={styles.searchInput}
+                    aria-label="Filter The Rows On This Page Of The Grinder Roster"
                     style={{ marginLeft: 'auto', maxWidth: 240 }}
                   />
                 </h3>
@@ -3715,7 +4010,7 @@ export default function HorsesAdmin() {
                               {stats.status === 'playing'
                                 ? <span className={styles.statusActive}>Playing</span>
                                 : stats.status === 'unknown'
-                                  ? <span className={styles.statusIdle} title="The seat read did not complete for the whole fleet.">Unknown</span>
+                                  ? <span className={styles.statusIdle} title="The Seat Read Did Not Complete For The Whole Fleet.">Unknown</span>
                                   : <span className={styles.statusIdle}>Idle</span>}
                             </td>
                           </tr>
@@ -3837,8 +4132,8 @@ export default function HorsesAdmin() {
                   <h3>Posting Schedule</h3>
                   {[
                     ['posts_per_day', 'Posts Per Day', 1, 100],
-                    ['min_delay_minutes', 'Min Delay (minutes)', 5, 180],
-                    ['max_delay_minutes', 'Max Delay (minutes)', 15, 300],
+                    ['min_delay_minutes', 'Min Delay (Minutes)', 5, 180],
+                    ['max_delay_minutes', 'Max Delay (Minutes)', 15, 300],
                   ].map(([key, label, min, max]) => (
                     <div className={styles.settingItem} key={key}>
                       <label htmlFor={`set-${key}`}>{label}</label>
@@ -4126,9 +4421,9 @@ export default function HorsesAdmin() {
                   type="search"
                   value={bugReportsSearch}
                   onChange={(e) => setBugReportsSearch(e.target.value)}
-                  placeholder="Search subject or description"
+                  placeholder="Search Subject Or Description"
                   className={styles.searchInput}
-                  aria-label="Search tickets"
+                  aria-label="Search Tickets"
                   style={{ flex: 1, minWidth: 200 }}
                 />
                 <button className={styles.filterBtn} onClick={tickets.refresh} disabled={tickets.loading}>
@@ -4292,7 +4587,7 @@ export default function HorsesAdmin() {
                     <div className={styles.formGroup}>
                       <label htmlFor="promo-code">Code (Blank Auto-Generates)</label>
                       <input
-                        id="promo-code" type="text" maxLength={20} placeholder="Auto-generated"
+                        id="promo-code" type="text" maxLength={20} placeholder="Auto-Generated"
                         value={promoForm.code}
                         onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
                         style={{ textTransform: 'uppercase', letterSpacing: 2 }}
@@ -4301,7 +4596,7 @@ export default function HorsesAdmin() {
                     <div className={styles.formGroup}>
                       <label htmlFor="promo-desc">Description</label>
                       <input
-                        id="promo-desc" type="text" required placeholder="Welcome bonus for new users"
+                        id="promo-desc" type="text" required placeholder="Welcome Bonus For New Users"
                         value={promoForm.description}
                         onChange={(e) => setPromoForm({ ...promoForm, description: e.target.value })}
                       />
@@ -4401,7 +4696,7 @@ export default function HorsesAdmin() {
                                 {num(code.reward_value ?? code.value)}{' '}
                                 {['vip_days', 'free_trial'].includes(code.reward_type || code.type) ? 'days' : 'diamonds'}
                               </td>
-                              <td>{num(uses, '0')}{max ? ` / ${num(max)}` : ' / unlimited'}</td>
+                              <td>{num(uses, '0')}{max ? ` / ${num(max)}` : ' / Unlimited'}</td>
                               <td>
                                 <span style={{
                                   padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
@@ -4731,9 +5026,9 @@ export default function HorsesAdmin() {
                       <p style={{ color: T.dim, margin: '4px 0 12px' }}>
                         Nothing Has Moved. This Request To{' '}
                         {mintReceipt.action === 'mint' ? 'Issue' : 'Retire'}{' '}
-                        <strong style={{ color: T.text }}>{num(mintReceipt.amount)}</strong>{' '}
-                        {mintReceipt.asset}{' '}
-                        {mintReceipt.action === 'mint' ? 'to' : 'from'}{' '}
+                        <strong style={{ color: T.text }}>{formatAmount(mintReceipt.amount, mintReceipt.asset)}</strong>{' '}
+                        {assetLabel(mintReceipt.asset)}{' '}
+                        {mintReceipt.action === 'mint' ? 'To' : 'From'}{' '}
                         <strong style={{ color: T.text }}>{mintReceipt.target_label || mintReceipt.target_id}</strong>{' '}
                         Is Waiting For A Second Operator To Decide It.
                       </p>
@@ -4768,9 +5063,9 @@ export default function HorsesAdmin() {
                       </h3>
                       <p style={{ color: T.dim, margin: '4px 0 12px' }}>
                         {mintReceipt.action === 'mint' ? 'Issued' : 'Retired'}{' '}
-                        <strong style={{ color: T.text }}>{num(mintReceipt.amount)}</strong>{' '}
-                        {mintReceipt.asset}{' '}
-                        {mintReceipt.action === 'mint' ? 'to' : 'from'}{' '}
+                        <strong style={{ color: T.text }}>{formatAmount(mintReceipt.amount, mintReceipt.asset)}</strong>{' '}
+                        {assetLabel(mintReceipt.asset)}{' '}
+                        {mintReceipt.action === 'mint' ? 'To' : 'From'}{' '}
                         <strong style={{ color: T.text }}>{mintReceipt.target_label || mintReceipt.target_id}</strong>.
                         {' '}Balance {num(mintReceipt.balance_before)} To {num(mintReceipt.balance_after)}.
                         {' '}Net Issued Supply Is Now {num(mintReceipt.supply_after)}.
@@ -4890,7 +5185,7 @@ export default function HorsesAdmin() {
                           <input
                             id="mint-player"
                             className={styles.searchInput}
-                            placeholder="Username, display name, or player number"
+                            placeholder="Username, Display Name, Or Player Number"
                             value={mintPlayerQuery}
                             onChange={(e) => setMintPlayerQuery(e.target.value)}
                             onKeyDown={(e) => {
@@ -4967,7 +5262,7 @@ export default function HorsesAdmin() {
                           type="number"
                           min="0"
                           step={mintAsset === 'diamonds' ? '1' : '0.01'}
-                          placeholder={mintAsset === 'diamonds' ? 'Whole diamonds' : 'Chips, to two decimals'}
+                          placeholder={mintAsset === 'diamonds' ? 'Whole Diamonds' : 'Chips, To Two Decimals'}
                           value={mintAmount}
                           onChange={(e) => { setMintAmount(e.target.value); setMintConfirm(null); }}
                         />
@@ -4981,7 +5276,7 @@ export default function HorsesAdmin() {
                       <input
                         id="mint-reason"
                         className={styles.searchInput}
-                        placeholder="Why is this supply being created or destroyed?"
+                        placeholder="Why Is This Supply Being Created Or Destroyed?"
                         value={mintReason}
                         onChange={(e) => { setMintReason(e.target.value); setMintConfirm(null); }}
                       />
@@ -5023,7 +5318,7 @@ export default function HorsesAdmin() {
                       blockEscape={mintSubmitting}
                       confirmLabel={mintConfirm.approval?.willRequest
                         ? 'Yes, Send For Approval'
-                        : `Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${num(mintConfirm.amount)}`}
+                        : `Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${formatAmount(mintConfirm.amount, mintConfirm.asset)}`}
                       requireTyped={String(mintConfirm.asset).toUpperCase()}
                       onConfirm={submitMint}
                       onCancel={() => setMintConfirm(null)}
@@ -5031,7 +5326,7 @@ export default function HorsesAdmin() {
                     >
                       <p style={{ marginTop: 0 }}>
                         {mintConfirm.action === 'mint' ? 'Create' : 'Destroy'}{' '}
-                        <strong>{num(mintConfirm.amount)} {mintConfirm.asset}</strong>{' '}
+                        <strong>{formatAmount(mintConfirm.amount, mintConfirm.asset)} {assetLabel(mintConfirm.asset)}</strong>{' '}
                         {mintConfirm.action === 'mint' ? 'And Place Them In' : 'Taken From'}{' '}
                         <strong>{mintConfirm.label}</strong>
                         {mintConfirm.balance !== null && (
@@ -5079,7 +5374,7 @@ export default function HorsesAdmin() {
                       <select
                         className={styles.filterSelect}
                         value={mintLedgerAsset}
-                        aria-label="Filter by asset"
+                        aria-label="Filter By Asset"
                         onChange={(e) => refreshMintLedger({ asset: e.target.value })}
                       >
                         <option value="">All Assets</option>
@@ -5089,7 +5384,7 @@ export default function HorsesAdmin() {
                       <select
                         className={styles.filterSelect}
                         value={mintLedgerAction}
-                        aria-label="Filter by operation"
+                        aria-label="Filter By Operation"
                         onChange={(e) => refreshMintLedger({ action: e.target.value })}
                       >
                         <option value="">Issuance And Retirement</option>
@@ -5120,7 +5415,7 @@ export default function HorsesAdmin() {
                           )
                         }
                         disabled={!mintLedgerRows.length}
-                        title="Exports the rows currently loaded below, not the whole journal"
+                        title="Exports The Rows Currently Loaded Below, Not The Whole Journal"
                       >
                         Export Loaded Rows
                       </button>
@@ -5132,7 +5427,7 @@ export default function HorsesAdmin() {
                           type="button"
                           className={styles.filterBtn}
                           onClick={() => refreshMintLedger({ holder: null })}
-                          title="Show every holder again"
+                          title="Show Every Holder Again"
                         >
                           Only {mintLedgerHolder.label} - Clear
                         </button>
@@ -5183,7 +5478,7 @@ export default function HorsesAdmin() {
                                 <td
                                   style={{ color: row.action === 'mint' ? T.accent : T.danger }}
                                 >
-                                  {row.action === 'mint' ? 'Issued' : 'Retired'} {row.asset}
+                                  {row.action === 'mint' ? 'Issued' : 'Retired'} {assetLabel(row.asset)}
                                 </td>
                                 <td>
                                   {/* Clicking a holder narrows the journal to that
@@ -5210,7 +5505,7 @@ export default function HorsesAdmin() {
                                       textUnderlineOffset: 3,
                                       font: 'inherit',
                                     }}
-                                    title="Show only this holder"
+                                    title="Show Only This Holder"
                                   >
                                     {row.holder_label || `${String(row.holder_id).slice(0, 8)}...`}
                                   </button>
@@ -5233,7 +5528,7 @@ export default function HorsesAdmin() {
                                     type="button"
                                     className={styles.actionBtn}
                                     onClick={() => reverseMintOperation(row)}
-                                    title={`Load the opposite of this ${row.action} into the form`}
+                                    title={`Load The Opposite Of This ${row.action === 'mint' ? 'Issuance' : 'Retirement'} Into The Form`}
                                   >
                                     Reverse
                                   </button>
@@ -5256,7 +5551,7 @@ export default function HorsesAdmin() {
                       limit={MINT_LEDGER_PAGE_SIZE}
                       count={mintLedgerRows.length}
                       total={typeof mintLedger?.total === 'number' ? mintLedger.total : null}
-                      loading={mintLoading}
+                      loading={mintLoading || mintLedgerLoading}
                       noun={
                         mintLedgerHolder
                           ? `Operations For ${mintLedgerHolder.label}`
@@ -5445,7 +5740,7 @@ export default function HorsesAdmin() {
                         {abuseData.economy?.windowLabel && (
                           <span style={{ color: T.dim, fontWeight: 400, fontSize: 13, marginLeft: 8 }}>
                             ({abuseData.economy.windowLabel}
-                            {abuseData.economy.truncated ? ', truncated' : ''})
+                            {abuseData.economy.truncated ? ', Truncated' : ''})
                           </span>
                         )}
                       </h3>
@@ -5567,6 +5862,60 @@ export default function HorsesAdmin() {
                 </div>
               )}
 
+              {/* ── CASHOUT CONFIRMATION ──────────────────────────────────
+                  The shared dialog, not window.confirm, because this is the
+                  one place a /horses operator moves a player's chips and the
+                  sentence about whether they move on Confirm has to come from
+                  thresholdDecision, the same as the Mint. Sticky while the
+                  request is in flight. */}
+              {cashoutConfirm && (
+                <ConfirmDialog
+                  title={cashoutConfirm.action === 'approve' ? 'Force Approve Cashout' : 'Return Chips To The Player'}
+                  tone={cashoutConfirm.action === 'approve' ? 'danger' : 'go'}
+                  busy={caProcessing}
+                  sticky={caProcessing}
+                  blockEscape={caProcessing}
+                  confirmLabel={cashoutConfirm.action !== 'approve'
+                    ? 'Yes, Return The Chips'
+                    : cashoutConfirm.decision?.willRequest
+                      ? 'Yes, Send For Approval'
+                      : 'Yes, Force Approve'}
+                  onConfirm={submitCashout}
+                  onCancel={() => setCashoutConfirm(null)}
+                >
+                  <p style={{ marginTop: 0 }}>
+                    {cashoutConfirm.action === 'approve' ? 'Force Approve' : 'Cancel'} A Cashout Of{' '}
+                    <strong>{formatAmount(cashoutConfirm.cashout.amount, 'chips')} Chips</strong>
+                    {cashoutConfirm.cashout.player_name ? (
+                      <> For <strong>{cashoutConfirm.cashout.player_name}</strong></>
+                    ) : null}
+                    {cashoutConfirm.cashout.club_name ? (
+                      <> In <strong>{cashoutConfirm.cashout.club_name}</strong></>
+                    ) : null}
+                    .
+                  </p>
+                  <p style={{ color: T.dim, margin: 0 }}>
+                    {cashoutConfirm.action === 'approve'
+                      ? 'This Pays The Request And Moves Real Chips Into The Club Treasury For Settlement.'
+                      : 'This Releases The Request And Returns The Chips To The Player.'}
+                  </p>
+                  {cashoutConfirm.decision && (
+                    <p
+                      style={{
+                        margin: '12px 0 0',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        background: cashoutConfirm.decision.willRequest ? T.warnSoft : T.surfaceTint,
+                        color: cashoutConfirm.decision.willRequest ? T.warn : T.dim,
+                        border: `1px solid ${cashoutConfirm.decision.willRequest ? T.warn : T.line}`,
+                      }}
+                    >
+                      <strong>{cashoutConfirm.decision.headline}.</strong>{' '}
+                      {cashoutConfirm.decision.detail}
+                    </p>
+                  )}
+                </ConfirmDialog>
+              )}
               <div className={styles.subNav}>
                 {CA_SECTIONS.map(([id, label]) => (
                   <button
@@ -5933,8 +6282,8 @@ export default function HorsesAdmin() {
                         (caClubDetail.flags || []).length === 0 ? (
                           <div className={styles.emptyState}>
                             {caClubDetail.securityError
-                              ? `Flags unavailable: ${caClubDetail.securityError}`
-                              : 'No open anti-cheat flags for this club.'}
+                              ? `Flags Unavailable: ${caClubDetail.securityError}`
+                              : 'No Open Anti-Cheat Flags For This Club.'}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -5975,8 +6324,8 @@ export default function HorsesAdmin() {
                         (caClubDetail.sessions || []).length === 0 ? (
                           <div className={styles.emptyState}>
                             {caClubDetail.securityError
-                              ? `Sessions unavailable: ${caClubDetail.securityError}`
-                              : 'No active sessions at this club right now.'}
+                              ? `Sessions Unavailable: ${caClubDetail.securityError}`
+                              : 'No Active Sessions At This Club Right Now.'}
                           </div>
                         ) : (
                           <div className={styles.tableWrapper}>
@@ -6020,12 +6369,18 @@ export default function HorsesAdmin() {
                                     <td style={{ fontSize: 12, color: T.dim }}>{when(c.created_at, true)}</td>
                                     <td style={{ fontSize: 12, color: T.dim }}>{c.agent_note || c.player_note || '-'}</td>
                                     <td>
-                                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                        <button className={styles.filterBtn} disabled={caProcessing}
-                                          onClick={() => resolveCashout(c, 'approve')}>Approve</button>
-                                        <button className={styles.filterBtn} disabled={caProcessing}
-                                          onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
-                                      </div>
+                                      {c.pendingApprovalId ? (
+                                        <span title={`Approval ${c.pendingApprovalId}`}>
+                                          <StatusPill tone="warn" label="Waiting For Approval" />
+                                        </span>
+                                      ) : (
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                          <button className={styles.filterBtn} disabled={caProcessing}
+                                            onClick={() => resolveCashout(c, 'approve')}>Approve</button>
+                                          <button className={styles.filterBtn} disabled={caProcessing}
+                                            onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
+                                        </div>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}
@@ -6103,12 +6458,18 @@ export default function HorsesAdmin() {
                                     {c.agent_note || c.player_note || '-'}
                                   </td>
                                   <td>
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                      <button className={styles.filterBtn} disabled={caProcessing}
-                                        onClick={() => resolveCashout(c, 'approve')}>Approve</button>
-                                      <button className={styles.filterBtn} disabled={caProcessing}
-                                        onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
-                                    </div>
+                                    {c.pendingApprovalId ? (
+                                      <span title={`Approval ${c.pendingApprovalId}`}>
+                                        <StatusPill tone="warn" label="Waiting For Approval" />
+                                      </span>
+                                    ) : (
+                                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        <button className={styles.filterBtn} disabled={caProcessing}
+                                          onClick={() => resolveCashout(c, 'approve')}>Approve</button>
+                                        <button className={styles.filterBtn} disabled={caProcessing}
+                                          onClick={() => resolveCashout(c, 'cancel')}>Return Chips</button>
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               ))}
@@ -6377,7 +6738,7 @@ export default function HorsesAdmin() {
                                 run_date: '',
                                 entity_type: 'EXPORT NOTE',
                                 entity_id: '',
-                                entity_name: `Sample of ${rows.length} rows out of ${total} critical rows. This file is NOT the whole set.`,
+                                entity_name: `Sample Of ${rows.length} Rows Out Of ${total} Critical Rows. This File Is NOT The Whole Set.`,
                                 ledger_balance: '', stored_balance: '', drift: '',
                                 severity: '', notes: '',
                               }] : [];
@@ -6481,10 +6842,10 @@ export default function HorsesAdmin() {
                         <input
                           type="search" value={caUserSearch}
                           onChange={(e) => setCaUserSearch(e.target.value)}
-                          placeholder="Search by name, username, email or player number"
+                          placeholder="Search By Name, Username, Email Or Player Number"
                           className={styles.searchInput}
                           style={{ flex: 1, minWidth: 240 }}
-                          aria-label="Search players"
+                          aria-label="Search Players"
                         />
                         <button type="submit" className={styles.actionBtn} disabled={caUserSearching}>
                           {caUserSearching ? 'Searching' : 'Search'}
@@ -6501,13 +6862,13 @@ export default function HorsesAdmin() {
                             </div>
                             <div style={{ fontSize: 13, color: T.dim, marginTop: 4 }}>
                               @{caSelectedUser.profile?.username || caSelectedUser.username || 'unknown'}
-                              {' - '}{caSelectedUser.profile?.email || caSelectedUser.email || 'no email'}
-                              {' - '}player #{num(caSelectedUser.profile?.player_number ?? caSelectedUser.player_number)}
+                              {' - '}{caSelectedUser.profile?.email || caSelectedUser.email || 'No Email'}
+                              {' - '}Player #{num(caSelectedUser.profile?.player_number ?? caSelectedUser.player_number)}
                             </div>
                             <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>
                               Role {caSelectedUser.profile?.role || caSelectedUser.role || 'user'}
-                              {' - '}diamonds {num(caSelectedUser.profile?.diamonds ?? caSelectedUser.diamonds)}
-                              {' - '}joined {when(caSelectedUser.profile?.created_at || caSelectedUser.created_at)}
+                              {' - '}Diamonds {num(caSelectedUser.profile?.diamonds ?? caSelectedUser.diamonds)}
+                              {' - '}Joined {when(caSelectedUser.profile?.created_at || caSelectedUser.created_at)}
                             </div>
                           </div>
 
@@ -6592,8 +6953,8 @@ export default function HorsesAdmin() {
                       ) : caUserResults.length === 0 ? (
                         <div className={styles.emptyState}>
                           {caUserSearch.trim().length >= 2 && !caUserSearching
-                            ? 'No players match that search.'
-                            : 'Search for a player to inspect their clubs, chips and cashouts.'}
+                            ? 'No Players Match That Search.'
+                            : 'Search For A Player To Inspect Their Clubs, Chips And Cashouts.'}
                         </div>
                       ) : (
                         <div className={styles.cardGrid}>
@@ -6606,7 +6967,7 @@ export default function HorsesAdmin() {
                                 onClick={() => loadCaUserDetail(u)}>
                                 {u.display_name || u.username || 'Unknown'}
                               </button>
-                              <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>{u.email || 'no email'}</div>
+                              <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>{u.email || 'No Email'}</div>
                               <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>
                                 Player #{num(u.player_number)} - {u.role || 'user'}
                                 {u.is_vip ? ` - ${u.vip_tier || 'VIP'}` : ''}
@@ -6674,7 +7035,7 @@ export default function HorsesAdmin() {
                         <div className={styles.loadingSpinner}>Loading Applications</div>
                       ) : caApplications.length === 0 ? (
                         <div className={styles.emptyState}>
-                          {caAppTab === 'pending' ? 'No pending applications.' : 'No applications found.'}
+                          {caAppTab === 'pending' ? 'No Pending Applications.' : 'No Applications Found.'}
                         </div>
                       ) : caApplications.map((app) => (
                         <div key={app.id} className={styles.card} style={{
@@ -6729,8 +7090,8 @@ export default function HorsesAdmin() {
                                 Approve And Add To Union
                               </button>
                               <input
-                                placeholder="Rejection reason (optional)"
-                                aria-label={`Rejection reason for ${app.club_name || 'this application'}`}
+                                placeholder="Rejection Reason (Optional)"
+                                aria-label={`Rejection Reason For ${app.club_name || 'This Application'}`}
                                 value={caAppReason[app.id] ?? ''}
                                 onChange={(e) => setCaAppReason((prev) => ({ ...prev, [app.id]: e.target.value }))}
                                 style={{
@@ -6767,7 +7128,7 @@ export default function HorsesAdmin() {
                         <div className={styles.loadingSpinner}>Loading Leave Requests</div>
                       ) : caLeaveRequests.length === 0 ? (
                         <div className={styles.emptyState}>
-                          {caLeaveTab === 'pending' ? 'No pending leave requests.' : 'No leave requests found.'}
+                          {caLeaveTab === 'pending' ? 'No Pending Leave Requests.' : 'No Leave Requests Found.'}
                         </div>
                       ) : caLeaveRequests.map((req) => (
                         <div key={req.id} className={styles.card} style={{
@@ -6956,7 +7317,7 @@ export default function HorsesAdmin() {
 
               <div className={styles.filterBar}>
                 <select value={reviewsFilter} onChange={(e) => setReviewsFilter(e.target.value)}
-                  className={styles.filterSelect} aria-label="Sort reviews">
+                  className={styles.filterSelect} aria-label="Sort Reviews">
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
                   <option value="highest">Highest Rated</option>
@@ -6964,7 +7325,7 @@ export default function HorsesAdmin() {
                   <option value="flagged">Flagged First</option>
                 </select>
                 <select value={reviewsRatingFilter} onChange={(e) => setReviewsRatingFilter(e.target.value)}
-                  className={styles.filterSelect} aria-label="Filter by rating">
+                  className={styles.filterSelect} aria-label="Filter By Rating">
                   <option value="all">All Ratings</option>
                   {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} {r === 1 ? 'Star' : 'Stars'}</option>)}
                 </select>
@@ -6974,8 +7335,8 @@ export default function HorsesAdmin() {
                 </button>
                 <input
                   type="search" value={reviewsSearch} onChange={(e) => setReviewsSearch(e.target.value)}
-                  placeholder="Search reviewer, venue or text" className={styles.searchInput}
-                  style={{ flex: 1, minWidth: 200 }} aria-label="Search reviews"
+                  placeholder="Search Reviewer, Venue Or Text" className={styles.searchInput}
+                  style={{ flex: 1, minWidth: 200 }} aria-label="Search Reviews"
                 />
               </div>
 
@@ -7022,7 +7383,7 @@ export default function HorsesAdmin() {
                             <span style={{ color: T.muted, fontSize: 12, marginLeft: 'auto' }}>{when(review.created_at)}</span>
                           </div>
                           <div style={{ fontSize: 12, color: T.dim, marginBottom: 6 }}>
-                            {review.venue_name || review.venue_id || 'Unknown venue'}
+                            {review.venue_name || review.venue_id || 'Unknown Venue'}
                           </div>
                           <p style={{ margin: 0, fontSize: 13, color: T.dim, lineHeight: 1.5, wordBreak: 'break-word' }}>
                             {review.review_text}
@@ -7144,7 +7505,7 @@ export default function HorsesAdmin() {
                 <select
                   value={auditPrefix}
                   onChange={(e) => setAuditPrefix(e.target.value)}
-                  aria-label="Filter by action type"
+                  aria-label="Filter By Action Type"
                 >
                   {AUDIT_FILTER_GROUPS.map((group) => (
                     <option key={group.id || 'all'} value={group.id}>{group.label}</option>
@@ -7156,7 +7517,7 @@ export default function HorsesAdmin() {
                 <select
                   value={auditAdmin}
                   onChange={(e) => setAuditAdmin(e.target.value)}
-                  aria-label="Filter by admin"
+                  aria-label="Filter By Admin"
                 >
                   <option value="">All Admins</option>
                   {auditActors.map((a) => (
@@ -7168,7 +7529,7 @@ export default function HorsesAdmin() {
                 <select
                   value={auditDays}
                   onChange={(e) => setAuditDays(e.target.value)}
-                  aria-label="Filter by time range"
+                  aria-label="Filter By Time Range"
                 >
                   <option value="1">Last 24 Hours</option>
                   <option value="7">Last 7 Days</option>
@@ -7192,9 +7553,9 @@ export default function HorsesAdmin() {
                   type="search"
                   className={styles.searchInput}
                   style={{ minWidth: 160 }}
-                  placeholder="Target type (club, user)"
-                  value={auditTargetType}
-                  onChange={(e) => setAuditTargetType(e.target.value)}
+                  placeholder="Target Type (Club, User)"
+                  value={auditTargetTypeInput}
+                  onChange={(e) => setAuditTargetTypeInput(e.target.value)}
                 />
                 <label className={styles.srOnly} htmlFor="audit-target">Target ID</label>
                 <input
@@ -7202,9 +7563,9 @@ export default function HorsesAdmin() {
                   type="search"
                   className={styles.searchInput}
                   style={{ minWidth: 220 }}
-                  placeholder="Target id (club, user, ticket)"
-                  value={auditTarget}
-                  onChange={(e) => setAuditTarget(e.target.value)}
+                  placeholder="Target ID (Club, User, Ticket)"
+                  value={auditTargetInput}
+                  onChange={(e) => setAuditTargetInput(e.target.value)}
                 />
                 {/* An explicit window, rather than "the last N days from now".
                     From and To win over the quick range in auditQuery, so the
@@ -7216,7 +7577,7 @@ export default function HorsesAdmin() {
                   className={styles.filterSelect}
                   value={auditFrom}
                   onChange={(e) => setAuditFrom(e.target.value)}
-                  aria-label="From date"
+                  aria-label="From Date"
                 />
                 <label className={styles.srOnly} htmlFor="audit-to">To Date</label>
                 <input
@@ -7225,13 +7586,14 @@ export default function HorsesAdmin() {
                   className={styles.filterSelect}
                   value={auditTo}
                   onChange={(e) => setAuditTo(e.target.value)}
-                  aria-label="To date"
+                  aria-label="To Date"
                 />
-                {(auditTarget || auditTargetType || auditFrom || auditTo || auditPrefix || auditAdmin) && (
+                {(auditTargetInput || auditTargetTypeInput || auditFrom || auditTo || auditPrefix || auditAdmin) && (
                   <button
                     type="button"
                     className={styles.filterBtn}
                     onClick={() => {
+                      setAuditTargetInput(''); setAuditTargetTypeInput('');
                       setAuditTarget(''); setAuditTargetType('');
                       setAuditFrom(''); setAuditTo('');
                       setAuditPrefix(''); setAuditAdmin('');
@@ -7246,7 +7608,7 @@ export default function HorsesAdmin() {
                   </span>
                 )}
                 <span style={{ color: T.muted, fontSize: 13, alignSelf: 'center' }}>
-                  {auditTotal === null ? '' : `${num(auditTotal)} ${auditTotal === 1 ? 'entry' : 'entries'}`}
+                  {auditTotal === null ? '' : `${num(auditTotal)} ${auditTotal === 1 ? 'Entry' : 'Entries'}`}
                 </span>
               </div>
 
@@ -7350,8 +7712,8 @@ export default function HorsesAdmin() {
                                 <td colSpan={8} style={{ background: T.inset, padding: 16 }}>
                                   <div style={{ display: 'grid', gap: 12 }}>
                                     <div style={{ color: T.muted, fontSize: 12 }}>
-                                      IP {entry.ip_address || 'not recorded'}
-                                      {entry.request_id ? ` - request ${entry.request_id}` : ''}
+                                      IP {entry.ip_address || 'Not Recorded'}
+                                      {entry.request_id ? ` - Request ID ${entry.request_id}` : ''}
                                     </div>
                                     {[['Details', entry.details], ['Before', entry.before_state], ['After', entry.after_state]]
                                       .filter(([, v]) => v && Object.keys(v).length)
@@ -7434,8 +7796,8 @@ export default function HorsesAdmin() {
                             </span>
                           </div>
                           <div className={shared.mono}>
-                            IP {row.ip_address || 'not recorded'}
-                            {row.request_id ? ` - request ${row.request_id}` : ''}
+                            IP {row.ip_address || 'Not Recorded'}
+                            {row.request_id ? ` - Request ID ${row.request_id}` : ''}
                           </div>
                           {[['Details', row.details], ['Before', row.before_state], ['After', row.after_state]]
                             .filter(([, v]) => v && Object.keys(v).length)
@@ -7548,7 +7910,7 @@ export default function HorsesAdmin() {
                               <div>
                                 <div style={{ fontWeight: 700, color: T.text, fontSize: 15 }}>{daemon.label}</div>
                                 <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>
-                                  {daemon.type ? `${daemon.type} - ` : ''}interval {daemon.interval || 'unknown'}
+                                  {daemon.type ? `${daemon.type} - ` : ''}Interval {daemon.interval || 'Unknown'}
                                 </div>
                                 {daemon.statusReason && (
                                   <div style={{ fontSize: 12, color: T.muted, marginTop: 4, maxWidth: 420 }}>
@@ -7574,7 +7936,7 @@ export default function HorsesAdmin() {
                                   ['Progress', hb.progress],
                                   ['Errors', hb.errors],
                                   ['Last Duration', hb.durationSeconds !== undefined ? `${Math.round(hb.durationSeconds)}s` : undefined],
-                                  ['Heartbeat Age', hb.staleMinutes !== undefined ? `${hb.staleMinutes}m ago` : undefined],
+                                  ['Heartbeat Age', hb.staleMinutes !== undefined ? `${hb.staleMinutes}m Ago` : undefined],
                                 ].filter(([, v]) => v !== undefined && v !== null).map(([label, value]) => (
                                   <React.Fragment key={label}>
                                     <div style={{ color: T.dim }}>{label}</div>
@@ -7737,7 +8099,7 @@ export default function HorsesAdmin() {
               </div>
               <div className={styles.formGroup}>
                 <label htmlFor="p-bio">Bio</label>
-                <textarea id="p-bio" rows="3" required placeholder="Brief backstory"
+                <textarea id="p-bio" rows="3" required placeholder="Brief Backstory"
                   value={personaForm.bio}
                   onChange={(e) => setPersonaForm({ ...personaForm, bio: e.target.value })} />
               </div>
