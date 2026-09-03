@@ -24,7 +24,7 @@ import { supabase } from '../../lib/supabase';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
-import FullScreenPageOverlay from './FullScreenPageOverlay';
+import { usePageOverlayStore } from '../../stores/pageOverlayStore';
 
 // ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
 const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
@@ -69,14 +69,14 @@ const C = {
 // data already sitting in localStorage. Inside this window we trust the cache.
 const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
-// Static — hoisted out of the component so it is not rebuilt on every render.
-const OVERLAY_TITLES = {
-  profile: 'My Profile',
-  messenger: 'Messenger',
-  notifications: 'Notifications',
-  settings: 'Settings',
-  'diamond-store': 'Diamond Store',
-};
+// The overlay's page->url->title table moved to src/stores/pageOverlayStore.js
+// on 2026-09-02, along with the open flag itself. Dan: "IT SHOULD CREATE A
+// 'FULL SCREEN POP UP' SO YOU STAY ON THE PAGE YOU WERE ON... INSIDE THE WORLD
+// HUB, CLUB ARENA AND CLUB COMMANDER PAGES." This header is rendered per-page
+// and Commander never mounts it, so an overlay owned here could only ever be
+// opened by this header's own buttons — which is why the bottom nav, the
+// hamburger and Commander all still navigated. One store, one overlay mounted
+// in _app (GlobalPageOverlay), every door the same.
 
 // useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
 // server. On the client this flushes BEFORE the browser paints, which means the
@@ -163,8 +163,12 @@ export default function UniversalHeader({
 
   const [isWalletOpen, setIsWalletOpen] = useState(false);
 
-  // ── FULL-SCREEN OVERLAY STATES ──
-  const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
+  // ── FULL-SCREEN OVERLAY ──
+  // The flag lives in the shared store so the bottom nav, the hamburger and
+  // Commander can open the same popup this header opens. Rendered by
+  // GlobalPageOverlay in _app; nothing is rendered from this file.
+  const openPageOverlay = usePageOverlayStore((s) => s.openOverlay);
+  const notifClearedCount = usePageOverlayStore((s) => s.notifClearedCount);
   const [isVip, setIsVip] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -280,29 +284,31 @@ export default function UniversalHeader({
   const liveHelp = useLiveHelp();
 
   // ── OVERLAY HELPERS ──
-  const openOverlay = (page) => setOverlayPage(page);
+  // `profile` is the one page whose address depends on who is signed in, so it
+  // passes an explicit url; every other key resolves from OVERLAY_PAGES in the
+  // store. Keeping this thin wrapper means every call site in this file below
+  // still reads `openOverlay('notifications')`, which is also what
+  // __tests__/global-header-approved.test.mjs pins.
+  const openOverlay = useCallback(
+    (page) => {
+      openPageOverlay(page, page === 'profile' ? { url: profileHref, title: 'My Profile' } : {});
+    },
+    [openPageOverlay, profileHref]
+  );
 
-  // BUGFIX (header-audit #2/#10): closing an overlay no longer schedules an 800ms
-  // poll of /api/user/get-header-stats. FullScreenPageOverlay reports the fresh count
-  // straight up its postMessage bridge (onNotifCleared), which is both faster and
-  // authoritative. The old timer RACED that bridge, so every notification-overlay
-  // close produced two competing writes and one redundant API call. Anything the
-  // bridge misses is reconciled by useUnreadCount's realtime subscription.
-  const closeOverlay = useCallback(() => {
-    setOverlayPage(null);
-  }, []);
-
-  // Fresh count pushed up from the notifications iframe. useCallback keeps the
-  // identity stable so FullScreenPageOverlay's message listener is not torn down
-  // and re-added on every count/balance tick.
-  const handleNotifCleared = useCallback((count) => {
-    setNotificationCount(count);
-    try {
-      localStorage.setItem('sp-notif-count', String(count));
-    } catch (_) {
-      /* private browsing — ignore */
+  // Fresh count pushed up from the notifications iframe's postMessage bridge,
+  // now relayed through the store because the overlay is mounted in _app.
+  //
+  // BUGFIX (header-audit #2/#10), still true: closing an overlay does NOT
+  // schedule an 800ms poll of /api/user/get-header-stats. The bridge is both
+  // faster and authoritative; the old timer RACED it, so every notification
+  // close produced two competing writes and one redundant API call. Anything
+  // the bridge misses is reconciled by useUnreadCount's realtime subscription.
+  useEffect(() => {
+    if (typeof notifClearedCount === 'number') {
+      setNotificationCount(notifClearedCount);
     }
-  }, []);
+  }, [notifClearedCount]);
 
   // Persist "all notifications read" so the optimistic badge zero is actually TRUE.
   // An empty body means mark-all (see pages/api/notifications/mark-read.js), and that
@@ -332,18 +338,6 @@ export default function UniversalHeader({
       console.warn('[UniversalHeader] mark-all-read failed:', e?.message || e);
     }
   }, []);
-
-  // Only the profile entry is dynamic; the rest are constants (see OVERLAY_TITLES).
-  const overlayUrlMap = useMemo(
-    () => ({
-      profile: profileHref,
-      messenger: '/hub/messenger',
-      notifications: '/hub/notifications',
-      settings: '/hub/settings',
-      'diamond-store': '/hub/diamond-store',
-    }),
-    [profileHref]
-  );
 
   useEffect(() => {
     let mounted = true; // Prevent state updates after unmount
@@ -1589,21 +1583,18 @@ export default function UniversalHeader({
         initialBalance={diamondBalance}
       />
 
-      {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
-      {/* Full-Screen Page Overlay — opens pages as a popup instead of navigating.
-                BUGFIX (header-audit #10): rendered unconditionally and driven by isOpen.
-                It used to be mounted behind `{overlayPage && ...}` with a hardcoded
-                isOpen={true}, which made the component's entire !isOpen branch dead code,
-                and the two inline arrow props were recreated on every parent render —
-                tearing down and re-adding the keydown and postMessage listeners on every
+      {/* The full-screen popup used to be rendered HERE, driven by a useState
+                in this component. It moved to <GlobalPageOverlay /> in _app.js on
+                2026-09-02 so that every door opens it, not only this header's buttons
+                — Commander never mounts this header at all, and the bottom nav sits
+                in _app, so both were stuck navigating. The two earlier fixes recorded
+                on this block still hold in its new home: it is rendered
+                unconditionally and driven by isOpen (it once had a hardcoded
+                isOpen={true} behind a `{overlayPage && ...}` gate, making the
+                component's entire !isOpen branch dead code), and its callbacks are
+                stable identities rather than inline arrows, which used to tear down
+                and re-add the keydown and postMessage listeners on every
                 notification/balance tick. */}
-      <FullScreenPageOverlay
-        isOpen={!!overlayPage}
-        onClose={closeOverlay}
-        url={overlayPage ? overlayUrlMap[overlayPage] : null}
-        title={overlayPage ? OVERLAY_TITLES[overlayPage] : ''}
-        onNotifCleared={handleNotifCleared}
-      />
     </>
   );
 }

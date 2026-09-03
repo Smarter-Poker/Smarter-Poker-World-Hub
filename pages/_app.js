@@ -91,6 +91,7 @@ import { PushProvider } from '../src/contexts/PushContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
+import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import PWAInstallPrompt from '../src/components/ui/PWAInstallPrompt';
 import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
@@ -1041,6 +1042,19 @@ export default function App({ Component, pageProps }) {
                               </HubErrorBoundary>
                               <HubErrorBoundary name="Toast Container" fallback={<></>}>
                                 <ToastContainer />
+                              </HubErrorBoundary>
+                              {/* The full-screen notifications popup, and the other
+                                  pages that open the same way. Dan, 2026-09-02: "IT
+                                  SHOULD CREATE A 'FULL SCREEN POP UP' SO YOU STAY ON
+                                  THE PAGE YOU WERE ON... INSIDE THE WORLD HUB, CLUB
+                                  ARENA AND CLUB COMMANDER PAGES." Mounted here rather
+                                  than in UniversalHeader because that header is
+                                  rendered per-page and Commander never renders it, so
+                                  a header-owned overlay was unopenable from most of
+                                  the doors that lead to it. Renders null until
+                                  something calls the store. */}
+                              <HubErrorBoundary name="Global Page Overlay" fallback={<></>}>
+                                <GlobalPageOverlay />
                               </HubErrorBoundary>
                               <ToastProvider>
                                 <HubErrorBoundary name="Notification Prompt" fallback={<></>}>

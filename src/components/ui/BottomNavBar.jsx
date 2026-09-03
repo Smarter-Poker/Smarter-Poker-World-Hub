@@ -70,6 +70,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterNavigation';
 
 // Keep navigation above ordinary page content but below dialogs and other
@@ -220,6 +221,39 @@ const parseLocation = (value) => {
   return { path, query };
 };
 
+/**
+ * NOTIFICATIONS OPENS A POPUP, IT DOES NOT NAVIGATE (Dan, 2026-09-02, verbatim):
+ * "WHEN YOU CLICK ON NOTIFICATIONS, IT SHOULDN'T OPEN TO ITS OWN PAGE, IT
+ * SHOULD CREATE A 'FULL SCREEN POP UP' SO YOU STAY ON THE PAGE YOU WERE ON."
+ *
+ * The header bell has behaved this way for a while. This footer did not — the
+ * "Alerts" tab was a plain <Link>, so the same word did two different things
+ * depending on which control you touched, and the footer is the one most
+ * players reach for on a phone.
+ *
+ * It stays a real <Link href="/hub/notifications">: the popup has no address,
+ * and a modified click (cmd, ctrl, shift, alt, middle button) should still do
+ * what the browser promises and open the page in a new tab. Only a plain left
+ * click is intercepted.
+ */
+const NOTIFICATIONS_HREF = '/hub/notifications';
+
+const openAsOverlayIfNotifications = (href) => (event) => {
+  if (href !== NOTIFICATIONS_HREF) return;
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+  event.preventDefault();
+  openPageOverlay('notifications');
+};
+
 const activeDestination = (items, currentLocation) => {
   const current = parseLocation(currentLocation);
   let winner = null;
@@ -340,6 +374,7 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
               aria-label={item.title || item.label}
               aria-current={active ? 'page' : undefined}
               title={item.title || item.label}
+              onClick={openAsOverlayIfNotifications(item.href)}
               onTouchStart={() => warm(item.href)}
               onMouseEnter={() => warm(item.href)}
               style={{
@@ -474,6 +509,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
             aria-label={ariaLabel}
             aria-current={active ? 'page' : undefined}
             title={item.title || item.label}
+            onClick={openAsOverlayIfNotifications(item.href)}
             onTouchStart={() => warm(item.href)}
             onMouseEnter={() => warm(item.href)}
             style={{
