@@ -954,7 +954,7 @@ const s = {
         marginTop: 4,
     },
     docDate: {
-        fontSize: 11,
+        fontSize: 12,
         color: METAL.textSecondary,
         marginTop: 4,
     },

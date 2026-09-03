@@ -3003,21 +3003,35 @@ const PostCard = React.memo(
               cursor: 'zoom-out',
             }}
           >
+            {/* Close: below the status bar, 44x44 tap target (mobile phase 0b). */}
             <button
               onClick={() => {
                 setLightboxUrl(null);
                 setLightboxImages([]);
               }}
+              aria-label="Close"
+              className="sp-icon-btn sp-overlay-close"
               style={{
                 position: 'absolute',
-                top: 16,
-                right: 16,
-                background: 'none',
+                top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                right: 12,
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
                 border: 'none',
                 color: 'white',
                 fontSize: 32,
+                lineHeight: 1,
                 cursor: 'pointer',
                 zIndex: 10000,
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               ×
@@ -5832,7 +5846,9 @@ function SocialMediaPage() {
   // Only show loading skeleton if intro is done and still loading
   if (loading )
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
+      // No paddingBottom here: pages/_app.js mounts BottomNavSpacer after every
+      // page, which is the one sanctioned bottom-nav clearance (PR #766, #992).
+      <div style={{ minHeight: '100dvh', background: C.bg }}>
         <style>{`
                 @keyframes sf-shimmer {
                     0%   { background-position: -800px 0; }
@@ -6666,7 +6682,8 @@ function SocialMediaPage() {
           minHeight: '100vh',
           background: '#0a0e1a',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-          paddingBottom: 70,
+          // No paddingBottom: the app shell (pages/_app.js) renders BottomNavSpacer
+          // after this page, so the page never reserves footer clearance itself.
           width: '100%',
           maxWidth: '100vw',
           overflowX: 'hidden',
@@ -7966,7 +7983,9 @@ function SocialMediaPage() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{
             position: 'fixed',
-            bottom: 80,
+            // Sit above the shared footer plus the iPhone home indicator; a
+            // literal 80 cleared the nav but not the safe-area inset.
+            bottom: 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))',
             right: 20,
             zIndex: 999,
             width: 44,

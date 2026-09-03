@@ -687,19 +687,25 @@ export function FullScreenVideoViewer({
       }}
       onClick={handleTap}
     >
-      {/* Close Button */}
+      {/* Close Button. Below the status bar, 44x44 (mobile phase 0b). */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
+        aria-label="Close"
+        className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
         style={{
           position: 'absolute',
-          top: 16,
-          left: 16,
+          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          left: 12,
           zIndex: 10001,
           width: 44,
           height: 44,
+          minWidth: 44,
+          minHeight: 44,
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
           borderRadius: '50%',
           background: 'rgba(255,255,255,0.15)',
           backdropFilter: 'blur(10px)',

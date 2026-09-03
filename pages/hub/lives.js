@@ -545,13 +545,13 @@ export default function LivesPage() {
                     overflow: 'hidden',
                 }}
             >
-                {/* Header */}
+                {/* Header. Starts below the status bar so the back control is reachable (mobile phase 0b). */}
                 <div style={{
                     position: 'absolute',
-                    top: 0,
+                    top: 'env(safe-area-inset-top, 0px)',
                     left: 0,
                     right: 0,
-                    padding: '16px 20px',
+                    padding: '12px 20px',
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
                     zIndex: 100,
                     display: 'flex',
@@ -560,9 +560,15 @@ export default function LivesPage() {
                 }}>
                     <button
                         onClick={() => router.back()}
+                        aria-label="Close"
+                        className="sp-icon-btn"
                         style={{
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             background: 'none',
                             border: 'none',
                             color: 'white',
@@ -578,12 +584,12 @@ export default function LivesPage() {
                     <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
                         🔴 Lives
                     </h1>
-                    <div style={{ width: 32 }} />
+                    <div style={{ width: 44 }} />
                 </div>
 
                 {/* Category Filter Bar */}
                 <div style={{
-                    position: 'absolute', top: 50, left: 0, right: 0, zIndex: 8,
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 62px)', left: 0, right: 0, zIndex: 8,
                     display: 'flex', gap: 8, padding: '8px 16px', overflowX: 'auto',
                     scrollbarWidth: 'none',
                 }}>
@@ -1122,7 +1128,7 @@ export default function LivesPage() {
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My Saved Streams</h3>
-                    <button onClick={() => setShowDrafts(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }}>&#10005;</button>
+                    <button onClick={() => setShowDrafts(false)} aria-label="Close" className="sp-icon-btn" style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer', minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>&#10005;</button>
                 </div>
                 {myDrafts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>

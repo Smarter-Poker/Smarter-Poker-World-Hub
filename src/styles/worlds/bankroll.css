@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   BANKROLL MANAGER THEME — Money, Growth, Emerald
+   BANKROLL MANAGER THEME - Money, Growth, Emerald
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-bankroll-manager {
@@ -18,24 +18,24 @@ body.world-bankroll-manager {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   UNIVERSAL SILVER BORDER — 2px Thick on EVERY element across ALL pages
+   UNIVERSAL SILVER BORDER - 2px Thick on EVERY element across ALL pages
    Applies to top-level AND deeply nested interior elements
    EXCLUDES: Global header (.universal-header) and hamburger menu
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── EXTERIOR: Every div with a border-radius (= every card/box/container) — 2px ── */
+/* ── EXTERIOR: Every div with a border-radius (= every card/box/container) - 2px ── */
 .bankroll-page div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page section[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── INTERIOR: Nested boxes inside an outer bordered container — 1px ── */
+/* ── INTERIOR: Nested boxes inside an outer bordered container - 1px ── */
 .bankroll-page div[style*="border-radius"] div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page section[style*="border-radius"] div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *) {
     border: 1px solid #9ca3af !important;
 }
 
-/* ── EXTERIOR: Every button everywhere (except header/hamburger) — 2px ── */
+/* ── EXTERIOR: Every button everywhere (except header/hamburger) - 2px ── */
 .bankroll-page button:not(.universal-header *):not(.universal-header button):not(.hamburger-menu *):not(.hamburger-menu button) {
     border: 2px solid #9ca3af !important;
 }
@@ -45,19 +45,19 @@ body.world-bankroll-manager {
     border-color: #d1d5db !important;
 }
 
-/* ── INTERIOR: Buttons inside a bordered container — 1px ── */
+/* ── INTERIOR: Buttons inside a bordered container - 1px ── */
 .bankroll-page div[style*="border-radius"] button:not(.universal-header *):not(.hamburger-menu *) {
     border: 1px solid #9ca3af !important;
 }
 
-/* ── EXTERIOR: Every form element (except header/hamburger) — 2px ── */
+/* ── EXTERIOR: Every form element (except header/hamburger) - 2px ── */
 .bankroll-page input:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page select:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page textarea:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── INTERIOR: Form elements inside a bordered container — 1px ── */
+/* ── INTERIOR: Form elements inside a bordered container - 1px ── */
 .bankroll-page div[style*="border-radius"] input:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page div[style*="border-radius"] select:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page div[style*="border-radius"] textarea:not(.universal-header *):not(.hamburger-menu *) {
@@ -70,7 +70,7 @@ body.world-bankroll-manager {
     border-color: #d1d5db !important;
 }
 
-/* ── Header elements — explicitly remove any borders ── */
+/* ── Header elements - explicitly remove any borders ── */
 .bankroll-page .universal-header,
 .bankroll-page .universal-header *,
 .bankroll-page header.universal-header,
@@ -83,7 +83,7 @@ body.world-bankroll-manager {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── Modal overlays — outer modal container = 2px, interior elements = 1px ── */
+/* ── Modal overlays - outer modal container = 2px, interior elements = 1px ── */
 .bankroll-page div[style*="z-index"]>div[style*="border-radius"]:not(.universal-header *) {
     border: 2px solid #9ca3af !important;
 }
@@ -114,7 +114,7 @@ body.world-bankroll-manager {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   EXCLUSIONS — Tiny decorative elements that should NOT get thick borders
+   EXCLUSIONS - Tiny decorative elements that should NOT get thick borders
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Small status indicator dots (≤ 14px) */
@@ -161,7 +161,7 @@ body.world-bankroll-manager {
     border: none !important;
 }
 
-/* Leaflet map internals — no borders on map tiles/controls */
+/* Leaflet map internals - no borders on map tiles/controls */
 .bankroll-page .leaflet-container *,
 .bankroll-page .leaflet-pane * {
     border: unset !important;
@@ -176,7 +176,279 @@ body.world-bankroll-manager {
 @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — @media (max-width: 768px)
+   SKELETON (mobile phase 1b). One class, one shimmer keyframe. The first
+   paint mirrors the dashboard layout (stats grid, chart block, three
+   analytics cards); background reloads never re-show it (useInitialLoadRef).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes bankrollShimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+.bankroll-skel {
+    display: block;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.04) 100%);
+    background-size: 800px 100%;
+    animation: bankrollShimmer 1.4s linear infinite;
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    box-sizing: border-box;
+}
+
+.bankroll-skel-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.bankroll-skel-analytics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bankroll-skel { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOUCH (mobile phase 1b). Every control on the page and in every bankroll
+   component is at least 44px tall and never relies on hover. The global
+   768 block in src/index.css already sets touch-action; this makes the
+   44px floor unconditional for bankroll controls at every width.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bankroll-page button:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-modal button,
+.bankroll-tutorial button {
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bankroll-page [role="button"] {
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Inputs never zoom iOS: exactly 16px. */
+.bankroll-page input:not([type="checkbox"]):not([type="radio"]),
+.bankroll-page select,
+.bankroll-page textarea,
+.bankroll-modal input:not([type="checkbox"]):not([type="radio"]),
+.bankroll-modal select,
+.bankroll-modal textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODALS ARE BOTTOM SHEETS ON PHONES (mobile phase 1b).
+   Every bankroll modal carries these class names on its overlay, container,
+   header, close control, body and footer. The switch is CSS only (no
+   window-width branching, hydration #418) and lives in the ONE sanctioned
+   600px breakpoint (docs/mobile-standard, "Breakpoints").
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* .sp-icon-btn (src/index.css) forces width/height to --sp-btn-size, 32px
+   by default. Every bankroll close control is 44px, so set the token. */
+.bankroll-modal-close,
+.bankroll-tutorial .sp-icon-btn {
+    --sp-btn-size: 44px;
+}
+
+.bankroll-modal-close {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bankroll-sheet-handle {
+    display: none;
+}
+
+/* The modals and the tutorial render outside `.bankroll-page`, so they
+   inherit the body font; give them the page's own stack. */
+.bankroll-modal,
+.bankroll-tutorial-card {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bankroll-modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+}
+
+.bankroll-modal-footer button {
+    min-height: 48px;
+}
+
+@media (max-width: 600px) {
+    .bankroll-modal-overlay {
+        align-items: flex-end !important;
+        justify-content: stretch !important;
+        padding: 0 !important;
+    }
+
+    .bankroll-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92dvh !important;
+        margin: 0 !important;
+        border-radius: 16px 16px 0 0 !important;
+        border-bottom: none !important;
+        outline: none !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        box-sizing: border-box;
+    }
+
+    /* A sheet that reaches full height puts its chrome under the clock;
+       the header then clears the status bar (mobile phase 0b rule). */
+    .bankroll-modal--full {
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+    }
+
+    .bankroll-modal--full .bankroll-modal-header {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    }
+
+    .bankroll-sheet-handle {
+        display: block;
+        width: 44px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.28);
+        margin: 10px auto 0;
+        flex-shrink: 0;
+    }
+
+    .bankroll-modal-header {
+        flex-shrink: 0;
+        padding-top: 12px !important;
+    }
+
+    .bankroll-modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIRST-VISIT TUTORIAL (src/components/bankroll/BankrollTutorial.jsx).
+   Centered card on desktop, bottom sheet on phones (same 600px switch).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bankroll-tutorial-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(0, 0, 0, 0.62);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+/* With a spotlight target the scrim goes clear and the ring's oversized
+   box-shadow darkens everything EXCEPT the target, so the real element
+   stays bright and readable inside the ring. */
+.bankroll-tutorial-scrim.has-target {
+    background: transparent;
+}
+
+.bankroll-tutorial-scrim.place-top {
+    align-items: flex-start;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 84px);
+}
+
+.bankroll-tutorial-scrim.place-bottom {
+    align-items: flex-end;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.bankroll-tutorial-ring {
+    position: fixed;
+    z-index: 951;
+    pointer-events: none;
+    border: 3px solid #6ee7ef;
+    border-radius: 14px;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 0 24px rgba(110, 231, 239, 0.55);
+    transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.bankroll-tutorial-card {
+    position: relative;
+    z-index: 952;
+    width: 100%;
+    max-width: 440px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    background: linear-gradient(145deg, #0f1c2e, #0a1422);
+    color: #fff;
+    border: 2px solid rgba(110, 231, 239, 0.3);
+    border-radius: 16px;
+    padding: 20px 20px 16px;
+    box-sizing: border-box;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.bankroll-tutorial-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 12px 0 4px;
+}
+
+.bankroll-tutorial-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.bankroll-tutorial-dot.active {
+    background: #6ee7ef;
+    box-shadow: 0 0 8px rgba(110, 231, 239, 0.6);
+}
+
+@media (max-width: 600px) {
+    .bankroll-tutorial-scrim {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    .bankroll-tutorial-card {
+        max-width: 100%;
+        max-height: 80dvh;
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE - @media (max-width: 768px)
    Always-Displayed Mobile Standard (docs/mobile-standard/). Everything the
    desktop shows, the phone shows, stacked. No horizontal rails, no hidden
    scrollbars, no scroll-snap, no display:none on content.

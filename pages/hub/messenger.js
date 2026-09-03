@@ -3758,11 +3758,13 @@ function MessengerPage() {
                         background: C.card, borderRadius: 12, width: 360, maxHeight: 480,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 16 }}>
-                            Forward Message
-                            <button onClick={() => setForwardingMessage(null)} style={{
-                                float: 'right', background: 'none', border: 'none', cursor: 'pointer',
+                        <div style={{ padding: '8px 8px 8px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>Forward Message</span>
+                            <button onClick={() => setForwardingMessage(null)} aria-label="Close" className="sp-icon-btn" style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
                                 color: C.textSec, fontSize: 20,
+                                minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                             }}>×</button>
                         </div>
                         <div style={{ padding: '8px 0', maxHeight: 360, overflowY: 'auto' }}>
@@ -4063,9 +4065,10 @@ function MessengerPage() {
                     display: 'flex',
                     flexDirection: 'column',
                 }}>
-                    {/* Call Header */}
+                    {/* Call Header. Below the status bar so End Call is reachable (mobile phase 0b). */}
                     <div style={{
                         padding: '12px 16px',
+                        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                         background: 'rgba(0,0,0,0.9)',
                         display: 'flex',
                         alignItems: 'center',
@@ -4084,8 +4087,12 @@ function MessengerPage() {
                         </div>
                         <button
                             onClick={endCall}
+                            aria-label="End Call"
                             style={{
                                 padding: '10px 20px',
+                                minHeight: 44,
+                                touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
                                 background: '#E53935',
                                 color: 'white',
                                 border: 'none',

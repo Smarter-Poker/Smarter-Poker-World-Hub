@@ -322,9 +322,15 @@ export default function ManageSocialPage() {
     if (loading) {
         return (
             <><UniversalHeader pageDepth={2} />
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
-                    <SkeletonLight variant="profile" />
-                    <SkeletonLight variant="list" rows={4} />
+                {/* Outer shell keeps the 100vw clamp; the readable 700px cap lives on
+                    the inner column. Two maxWidth keys in one literal meant the 700
+                    silently overwrote the viewport clamp. Bottom clearance is the
+                    app shell's BottomNavSpacer, never page padding. */}
+                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, padding: '76px 16px 0', fontFamily: "var(--font-inter), -apple-system, sans-serif" }}>
+                    <div style={{ width: '100%', maxWidth: 700, margin: '0 auto' }}>
+                        <SkeletonLight variant="profile" />
+                        <SkeletonLight variant="list" rows={4} />
+                    </div>
                 </div></>
         );
     }

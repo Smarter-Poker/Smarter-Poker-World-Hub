@@ -247,16 +247,21 @@ export default function PokerToolsPage() {
                         <div style={{
                             position: 'absolute', top: 0, right: 0, width: 280, height: '100%',
                             background: '#111118', borderLeft: '1px solid #333',
-                            padding: '24px 20px', overflowY: 'auto',
+                            padding: '24px 20px', overflowY: 'auto', boxSizing: 'border-box',
+                            // Below the status bar so the X is reachable (mobile phase 0b).
+                            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
                         }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                                 <span style={{ fontSize: 16, fontWeight: 800 }}>Settings</span>
                                 <button onClick={() => setShowMenu(false)}
-                                    aria-label="Close settings menu"
+                                    aria-label="Close"
+                                    className="sp-icon-btn"
                                     style={{
                                         background: 'none', border: 'none', color: '#888', cursor: 'pointer',
                                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                         minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
+                                        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                                     }}>
                                     <X size={18} aria-hidden />
                                 </button>

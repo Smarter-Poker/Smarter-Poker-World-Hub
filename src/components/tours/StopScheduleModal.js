@@ -288,7 +288,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
                   <span className="ssm-gtd-label">GUARANTEED</span>
                 </div>
               )}
-              <button className="ssm-close-btn" onClick={onClose} aria-label="Close schedule">
+              <button className="ssm-close-btn sp-icon-btn" onClick={onClose} aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -411,6 +411,8 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
           display: flex; align-items: flex-start;
           justify-content: space-between; gap: 16px;
           padding: 20px 24px 16px;
+          /* Full-height panel: header starts below the status bar (mobile phase 0b). */
+          padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
         }
         .ssm-header-left { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
         .ssm-tour-badge {
@@ -436,8 +438,9 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
         .ssm-gtd-amount { font-size: 22px; font-weight: 900; color: #fbbf24; line-height: 1.1; }
         .ssm-close-btn {
           background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
-          width: 36px; height: 36px; cursor: pointer; color: rgba(255,255,255,0.8);
+          width: 44px; height: 44px; min-width: 44px; min-height: 44px; cursor: pointer; color: rgba(255,255,255,0.8);
           display: flex; align-items: center; justify-content: center;
+          touch-action: manipulation; -webkit-tap-highlight-color: transparent;
           transition: background 0.15s;
         }
         .ssm-close-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
@@ -563,6 +566,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
         .ssm-footer {
           display: flex; align-items: center; justify-content: space-between;
           padding: 12px 20px; background: #0a0f1a;
+          padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
           border-top: 1px solid rgba(255,255,255,0.06);
           flex-shrink: 0;
         }

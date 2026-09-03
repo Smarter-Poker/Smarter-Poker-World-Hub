@@ -1979,19 +1979,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
           e.stopPropagation();
           onClose();
         }}
-        aria-label="Close reels"
+        aria-label="Close"
+        className="sp-icon-btn sp-overlay-close"
         style={{
           position: 'absolute',
-          top: 20,
-          right: 20,
+          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          right: 12,
           width: 44,
           height: 44,
+          minWidth: 44,
+          minHeight: 44,
           borderRadius: '50%',
           background: 'rgba(255,255,255,0.1)',
           border: 'none',
           color: 'white',
           fontSize: 20,
           cursor: 'pointer',
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
           zIndex: 10,
           opacity: showOverlay ? 1 : 0.3,
           transition: 'opacity 0.3s ease',

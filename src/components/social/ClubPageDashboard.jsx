@@ -2983,6 +2983,7 @@ const PostCard = React.memo(
                 }
               }
             }}
+            className="sp-fullscreen-overlay"
             style={{
               position: 'fixed',
               top: 0,
@@ -2997,21 +2998,35 @@ const PostCard = React.memo(
               cursor: 'zoom-out',
             }}
           >
+            {/* Close: below the status bar, 44x44 tap target (mobile phase 0b). */}
             <button
               onClick={() => {
                 setLightboxUrl(null);
                 setLightboxImages([]);
               }}
+              aria-label="Close"
+              className="sp-icon-btn sp-overlay-close"
               style={{
                 position: 'absolute',
-                top: 16,
-                right: 16,
-                background: 'none',
+                top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                right: 12,
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
                 border: 'none',
                 color: 'white',
                 fontSize: 32,
+                lineHeight: 1,
                 cursor: 'pointer',
                 zIndex: 10000,
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               ×

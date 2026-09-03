@@ -142,6 +142,11 @@ const BottomSheet = React.memo(function BottomSheet({
         borderTopLeftRadius: 'var(--sp-r-xl, 16px)',
         borderBottomLeftRadius: 'var(--sp-r-xl, 16px)',
         boxShadow: '-12px 0 32px rgba(0,0,0,0.5)',
+        // A right-hand drawer spans the full height, so its header starts
+        // under the status bar unless it is pushed down (mobile phase 0b).
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         animation: 'sp-bs-slide-left var(--sp-dur-slow, 420ms) var(--sp-ease-out, ease) both',
@@ -185,8 +190,11 @@ const BottomSheet = React.memo(function BottomSheet({
 
   const closeBtnStyle = {
     marginLeft: 'auto',
-    minWidth: 36,
-    height: 36,
+    minWidth: 44,
+    minHeight: 44,
+    height: 44,
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
     borderRadius: 8,
     border: '1px solid var(--sp-border, #2f2f44)',
     background: 'transparent',
@@ -233,7 +241,8 @@ const BottomSheet = React.memo(function BottomSheet({
             {showClose ? (
               <button
                 type="button"
-                aria-label="Close panel"
+                aria-label="Close"
+                className="sp-icon-btn"
                 onClick={onClose}
                 style={closeBtnStyle}
               >

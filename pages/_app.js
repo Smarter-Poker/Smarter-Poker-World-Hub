@@ -99,6 +99,7 @@ import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
+import OfflineBar from '../src/components/ui/OfflineBar';
 import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
 import {
   getFallbackFooter,
@@ -1034,6 +1035,12 @@ export default function App({ Component, pageProps }) {
                                   noSafeArea={Boolean(bottomNavRouteConfig?.noSafeArea)}
                                 />
                               )}
+                              {/* Mobile foundation (Phase 0a): one offline pill for
+                                  every route. SSR-safe (renders null until the
+                                  browser reports offline after hydration). */}
+                              <HubErrorBoundary name="Offline Bar" fallback={<></>}>
+                                <OfflineBar />
+                              </HubErrorBoundary>
                               <HubErrorBoundary name="Celebrations" fallback={<></>}>
                                 <CelebrationManager />
                               </HubErrorBoundary>

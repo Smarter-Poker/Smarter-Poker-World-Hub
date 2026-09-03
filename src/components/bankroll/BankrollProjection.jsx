@@ -3,7 +3,8 @@
  * Monte Carlo simulation visualization (user-initiated only)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import { motion } from 'framer-motion';
 
 export default function BankrollProjection({ userId, currentBankroll = 0, onClose }) {
@@ -14,6 +15,15 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
         sessionsPerWeek: 3,
         projectionDays: 90
     });
+    // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
+    // open, so isOpen is constant; the unmount cleanup pops our entry if an
+    // X-close left it on top.
+    useModalHistory(true, onClose);
+    useEffect(() => () => {
+        try {
+            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
+        } catch (_) { /* history unavailable */ }
+    }, []);
 
     async function runProjection() {
         if (!userId) return;
@@ -50,6 +60,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
 
     return (
         <motion.div
+            className="bankroll-modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -57,16 +68,20 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
             onClick={onClose}
         >
             <motion.div
+                className="bankroll-modal"
+                role="dialog"
+                aria-modal="true"
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 style={styles.modal}
                 onClick={e => e.stopPropagation()}
             >
-                <div style={styles.header}>
-                    <span style={styles.emoji}></span>
+                <div className="bankroll-sheet-handle" aria-hidden="true" />
+                <div className="bankroll-modal-header" style={styles.header}>
                     <h2 style={styles.title}>Bankroll Projection</h2>
-                    <button onClick={onClose} style={styles.closeBtn}>×</button>
+                    <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={styles.closeBtn}>×</button>
                 </div>
+                <div className="bankroll-modal-body" style={styles.body}>
 
                 {!projection && (
                     <>
@@ -87,6 +102,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 <label style={styles.label}>Sessions Per Week</label>
                                 <input
                                     type="number"
+                                    inputMode="decimal"
                                     min={1}
                                     max={10}
                                     value={settings.sessionsPerWeek}
@@ -214,10 +230,11 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                         </div>
 
                         <button onClick={() => setProjection(null)} style={styles.rerunBtn}>
-                            ← Adjust Settings
+                            Adjust Settings
                         </button>
                     </>
                 )}
+                </div>
             </motion.div>
         </motion.div>
     );
@@ -241,18 +258,27 @@ const styles = {
         background: 'linear-gradient(135deg, #0a1929, #0d2137)',
         borderRadius: 20,
         border: '2px solid rgba(0, 212, 255, 0.3)',
-        padding: 24,
+        padding: '0 24px 24px',
         maxWidth: 440,
         width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
+        maxHeight: '90dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+    },
+    body: {
+        overflowY: 'auto',
+        flex: 1,
+        minHeight: 0,
     },
     header: {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        marginBottom: 16,
+        padding: '12px 0 12px',
+        marginBottom: 4,
+        flexShrink: 0,
     },
     emoji: {
         fontSize: 28,
@@ -265,16 +291,21 @@ const styles = {
         color: '#fff',
     },
     closeBtn: {
-        width: 32,
-        height: 32,
+        width: 44,
+        height: 44,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'transparent',
+        background: 'rgba(255,255,255,0.08)',
         border: 'none',
-        color: '#8a8d91',
+        color: '#fff',
         fontSize: 24,
         cursor: 'pointer',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
     },
     description: {
         fontSize: 14,
@@ -306,7 +337,9 @@ const styles = {
         color: '#fff',
         fontSize: 16,
         outline: 'none',
-        width: 80,
+        width: 96,
+        minHeight: 44,
+        boxSizing: 'border-box',
     },
     inputValue: {
         fontSize: 20,
@@ -316,9 +349,12 @@ const styles = {
     periodOptions: {
         display: 'flex',
         gap: 8,
+        flexWrap: 'wrap',
     },
     periodBtn: {
         padding: '8px 12px',
+        minHeight: 44,
+        touchAction: 'manipulation',
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
@@ -343,6 +379,8 @@ const styles = {
     runBtn: {
         width: '100%',
         padding: 16,
+        minHeight: 48,
+        touchAction: 'manipulation',
         background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 10,
@@ -449,6 +487,8 @@ const styles = {
     rerunBtn: {
         width: '100%',
         padding: 12,
+        minHeight: 44,
+        touchAction: 'manipulation',
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,

@@ -1912,6 +1912,7 @@ export function ReelsViewer({ onClose }) {
   if (loading) {
     return (
       <div
+        className="sp-fullscreen-overlay"
         style={{
           position: 'fixed',
           inset: 0,
@@ -1924,6 +1925,32 @@ export function ReelsViewer({ onClose }) {
           gap: 20,
         }}
       >
+        {/* A loading screen with no exit traps the player if the feed never
+            arrives. Same reachable X as the loaded viewer (mobile phase 0b). */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
+          style={{
+            position: 'absolute',
+            top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+            left: 12,
+            width: 44,
+            height: 44,
+            minWidth: 44,
+            minHeight: 44,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.1)',
+            border: 'none',
+            color: 'white',
+            fontSize: 20,
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          ←
+        </button>
         <div
           style={{
             width: 280,
@@ -1966,6 +1993,7 @@ export function ReelsViewer({ onClose }) {
   if (loadError) {
     return (
       <div
+        className="sp-fullscreen-overlay"
         style={{
           position: 'fixed',
           inset: 0,
@@ -2018,6 +2046,7 @@ export function ReelsViewer({ onClose }) {
   if (!reels.length) {
     return (
       <div
+        className="sp-fullscreen-overlay"
         style={{
           position: 'fixed',
           inset: 0,
@@ -2128,19 +2157,23 @@ export function ReelsViewer({ onClose }) {
         setShowContextMenu(true);
       }}
     >
-      {/* Fixed close button */}
+      {/* Fixed close button. Pushed below the status bar (safe-area-inset-top)
+          so it is never painted under the clock on a phone (mobile phase 0b). */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        aria-label="Close reels"
+        aria-label="Close"
+        className="sp-icon-btn"
         style={{
           position: 'fixed',
-          top: 20,
-          left: 20,
+          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          left: 12,
           width: 44,
           height: 44,
+          minWidth: 44,
+          minHeight: 44,
           borderRadius: '50%',
           background: 'rgba(255,255,255,0.1)',
           border: 'none',
@@ -2151,6 +2184,8 @@ export function ReelsViewer({ onClose }) {
           opacity: showOverlay ? 1 : 0.3,
           transition: 'opacity 0.3s ease',
           pointerEvents: 'auto',
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
         ←
@@ -2175,7 +2210,7 @@ export function ReelsViewer({ onClose }) {
             data-reel-index={idx}
             onClick={isActive ? handleTap : undefined}
             style={{
-              height: '100vh',
+              height: '100dvh',
               width: '100%',
               maxWidth: 420,
               margin: '0 auto',
@@ -3081,12 +3116,21 @@ export function ReelsViewer({ onClose }) {
                         </button>
                         <button
                           onClick={() => setShowCommentInput(false)}
+                          aria-label="Close"
+                          className="sp-icon-btn"
                           style={{
                             background: 'none',
                             border: 'none',
                             color: 'white',
                             fontSize: 18,
                             cursor: 'pointer',
+                            minWidth: 44,
+                            minHeight: 44,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                           }}
                         >
                           X
@@ -4102,12 +4146,18 @@ export function ReelsViewer({ onClose }) {
                         </div>
                         <button
                           onClick={() => setShowShareDescriptionModal(false)}
+                          aria-label="Close"
+                          className="sp-icon-btn"
                           style={{
                             background: 'rgba(255,255,255,0.1)',
                             border: 'none',
                             color: 'white',
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             borderRadius: '50%',
                             cursor: 'pointer',
                             fontSize: 16,

@@ -6,7 +6,8 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import { motion } from 'framer-motion';
 import { setStartingBankroll } from '../../lib/bankroll/bankrollSelectors';
 import toast from '../../stores/toastStore';
@@ -14,22 +15,31 @@ import toast from '../../stores/toastStore';
 export default function StartingBankrollModal({ userId, onComplete, onClose }) {
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
+    // open, so isOpen is constant; the unmount cleanup pops our entry if an
+    // X-close left it on top.
+    useModalHistory(true, onClose);
+    useEffect(() => () => {
+        try {
+            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
+        } catch (_) { /* history unavailable */ }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const value = parseFloat(amount);
         if (!value || value <= 0) {
-            toast.error('Please enter a valid amount');
+            toast.error('Please Enter A Valid Amount');
             return;
         }
 
         setIsSubmitting(true);
         try {
             await setStartingBankroll(userId, value);
-            toast.success(`Starting bankroll set to $${value.toLocaleString()}!`);
+            toast.success(`Starting Bankroll Set To $${value.toLocaleString()}`);
             onComplete();
         } catch (err) {
-            toast.error(err.message || 'Failed to set starting bankroll');
+            toast.error(err.message || 'Failed To Set Starting Bankroll');
         } finally {
             setIsSubmitting(false);
         }
@@ -37,6 +47,7 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
 
     return (
         <motion.div
+            className="bankroll-modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -44,12 +55,22 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
             onClick={onClose}
         >
             <motion.div
+                className="bankroll-modal"
+                role="dialog"
+                aria-modal="true"
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 style={styles.modal}
                 onClick={(e) => e.stopPropagation()}
             >
+                <div className="bankroll-sheet-handle" aria-hidden="true" />
+                <div className="bankroll-modal-header" style={styles.headerRow}>
+                    <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={styles.closeBtn}>
+                        ×
+                    </button>
+                </div>
+                <div className="bankroll-modal-body">
                 <div style={styles.iconCircle}>$</div>
 
                 <h2 style={styles.title}>Set Your Starting Bankroll</h2>
@@ -63,6 +84,7 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
                         <span style={styles.dollarSign}>$</span>
                         <input
                             type="number"
+                            inputMode="decimal"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             placeholder="0.00"
@@ -93,17 +115,20 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
                         You Can Add Or Withdraw From Your Bankroll At Any Time From The Dashboard.
                     </p>
 
-                    <button
-                        type="submit"
-                        disabled={isSubmitting || !amount}
-                        style={{
-                            ...styles.submitBtn,
-                            opacity: isSubmitting || !amount ? 0.5 : 1,
-                        }}
-                    >
-                        {isSubmitting ? 'Setting up...' : 'Start Tracking →'}
-                    </button>
+                    <div className="bankroll-modal-footer" style={styles.footer}>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting || !amount}
+                            style={{
+                                ...styles.submitBtn,
+                                opacity: isSubmitting || !amount ? 0.5 : 1,
+                            }}
+                        >
+                            {isSubmitting ? 'Setting Up...' : 'Start Tracking'}
+                        </button>
+                    </div>
                 </form>
+                </div>
             </motion.div>
         </motion.div>
     );
@@ -128,10 +153,41 @@ const styles = {
         background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
         border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 16,
-        padding: 32,
+        padding: '0 24px 24px',
         maxWidth: 440,
         width: '100%',
         textAlign: 'center',
+        maxHeight: '90dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+    },
+    headerRow: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: '8px 0 0',
+        flexShrink: 0,
+    },
+    closeBtn: {
+        width: 44,
+        height: 44,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)',
+        border: 'none',
+        color: '#fff',
+        fontSize: 22,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+    },
+    footer: {
+        background: '#0a1628',
+        padding: '8px 0 0',
     },
     iconCircle: {
         width: 64,
@@ -185,6 +241,8 @@ const styles = {
         fontWeight: 700,
         padding: '12px 0',
         textAlign: 'left',
+        minWidth: 0,
+        width: '100%',
     },
     presets: {
         display: 'flex',
@@ -197,11 +255,13 @@ const styles = {
         border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 8,
         padding: '8px 14px',
+        minHeight: 44,
         color: '#94a3b8',
         fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        touchAction: 'manipulation',
     },
     presetBtnActive: {
         background: 'rgba(59, 130, 246, 0.2)',
@@ -219,9 +279,12 @@ const styles = {
         border: 'none',
         borderRadius: 10,
         padding: '14px 24px',
+        minHeight: 48,
+        width: '100%',
         fontSize: 16,
         fontWeight: 600,
         cursor: 'pointer',
         marginTop: 4,
+        touchAction: 'manipulation',
     },
 };

@@ -2329,12 +2329,21 @@ export function GoLiveModal({
                   )}
                   <button
                     onClick={onClose}
+                    aria-label="Close"
+                    className="sp-icon-btn"
                     style={{
                       background: 'none',
                       border: 'none',
                       fontSize: 24,
                       cursor: 'pointer',
                       color: C.textSec,
+                      minWidth: 44,
+                      minHeight: 44,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                   >
                     ✕

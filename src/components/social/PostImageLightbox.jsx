@@ -46,30 +46,34 @@ export default function PostImageLightbox({ mediaUrls = [], initialIndex = 0, co
     return (
         <div
             onClick={onClose}
+            className="sp-fullscreen-overlay"
             style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
                 zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 animation: 'lbFadeIn 0.2s ease',
             }}
         >
-            {/* Close button */}
+            {/* Close button. Sits below the status bar (safe-area-inset-top),
+                44x44 tap target (phase 0b). */}
             <button
                 onClick={onClose}
-                aria-label="Close lightbox"
+                aria-label="Close"
+                className="sp-icon-btn sp-overlay-close"
                 style={{
-                    position: 'absolute', top: 16, right: 16, zIndex: 10,
-                    width: 44, height: 44, borderRadius: '50%', border: 'none',
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12, zIndex: 10,
+                    width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none',
                     background: 'rgba(255,255,255,0.1)', color: 'white',
                     fontSize: 24, cursor: 'pointer', display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
-                    backdropFilter: 'blur(4px)'
+                    backdropFilter: 'blur(4px)',
+                    touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                 }}
             >✕</button>
 
             {/* Counter */}
             {mediaUrls.length > 1 && (
                 <div style={{
-                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 20px)', left: '50%', transform: 'translateX(-50%)',
                     color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: 600,
                     background: 'rgba(0,0,0,0.4)', padding: '4px 14px', borderRadius: 12,
                     backdropFilter: 'blur(4px)'

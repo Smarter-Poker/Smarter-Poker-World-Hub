@@ -44,6 +44,7 @@
   "/hub/saved-posts": {},
   "/hub/session-history": {},
   "/hub/settings": { "hideInIframe": true },
+  "/hub/social-media": {},
   "/hub/social-pages/[pageId]": {},
   "/hub/social-pages/[pageId]/manage": {},
   "/hub/social-pages/create": {},

@@ -234,7 +234,7 @@ export default function InviteFriendsModal({
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
                     width: 'min(420px, 92vw)',
-                    maxHeight: '90vh',
+                    maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)',
                     overflowY: 'auto',
                     background: '#242526',
                     border: '1px solid rgba(24, 119, 242, 0.3)',
@@ -276,9 +276,15 @@ export default function InviteFriendsModal({
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        className="sp-icon-btn"
                         style={{
-                            width: 36,
-                            height: 36,
+                            width: 44,
+                            height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             borderRadius: '50%',
                             border: 'none',
                             background: 'rgba(255,255,255,0.08)',

@@ -120,7 +120,9 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                 style={{
                     position: 'fixed',
                     top: 0, right: 0,
-                    height: '100vh',
+                    height: '100dvh',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    boxSizing: 'border-box',
                     width: 'min(360px, 92vw)',
                     background: 'linear-gradient(180deg, #0d1117 0%, #0a0e16 100%)',
                     borderLeft: '1px solid rgba(0,212,255,0.2)',
@@ -140,7 +142,7 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                             <div style={s.headerSub}>Toggle Which Cards Appear On Your World Hub</div>
                         </div>
                     </div>
-                    <button onClick={onClose} style={s.closeBtn}>✕</button>
+                    <button onClick={onClose} style={s.closeBtn} aria-label="Close" className="sp-icon-btn">✕</button>
                 </div>
 
                 {/* Note */}
@@ -249,6 +251,8 @@ const s: Record<string, React.CSSProperties> = {
     header: {
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
         padding: '20px 20px 14px',
+        // Below the status bar so the X is reachable (mobile phase 0b).
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         borderBottom: '1px solid rgba(0,212,255,0.1)',
     },
     headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
@@ -256,9 +260,9 @@ const s: Record<string, React.CSSProperties> = {
     headerSub: { fontSize: 12, color: '#4a5568', marginTop: 3, lineHeight: 1.4 },
     closeBtn: {
         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-        color: '#94a3b8', borderRadius: 8, width: 32, height: 32,
+        color: '#94a3b8', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44,
         cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
+        flexShrink: 0, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     note: {
         margin: '0 16px 4px',

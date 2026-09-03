@@ -140,3 +140,46 @@ body,
 
 @-webkit-keyframes spThumbSpin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
 @keyframes spThumbSpin         { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FULL-SCREEN OVERLAY SAFE AREA (added 2026-09-03, mobile phase 0b)
+
+   WHY: Dan, verbatim: "change any and all full screen pop ups, they don't
+   leave any padding at the top to X off." The app runs with
+   viewport-fit=cover and a translucent status bar, so a position:fixed
+   inset:0 layer starts at y=0 UNDER the clock / notch (about 47px on a
+   modern iPhone). A close button placed at top:8..24px is painted under the
+   status bar and cannot be tapped. Every full-screen overlay must either
+   carry .sp-fullscreen-overlay (pads the whole layer) or place its X with
+   .sp-overlay-close (absolute, pushed below the inset). The 12px floor keeps
+   the same breathing room on desktop, where the inset is 0.
+
+   The close control is 44x44 minimum, the iOS / WCAG tap target size.
+   Enforced by __tests__/overlays-leave-room-to-close.law.test.mjs.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sp-fullscreen-overlay {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
+.sp-overlay-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 1;
+}
+
+.sp-overlay-close--left {
+  right: auto;
+  left: 12px;
+}

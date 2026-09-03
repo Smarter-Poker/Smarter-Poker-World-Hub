@@ -1257,6 +1257,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         style={styles.lightboxOverlay}
                         onClick={() => setViewingReceiptUrl(null)}
                     >
+                        {/* Reachable X below the status bar (mobile phase 0b); tapping anywhere also closes. */}
+                        <button
+                            type="button"
+                            onClick={() => setViewingReceiptUrl(null)}
+                            aria-label="Close"
+                            className="sp-icon-btn sp-overlay-close"
+                            style={styles.lightboxClose}
+                        >&times;</button>
                         <img src={viewingReceiptUrl} alt="Receipt" style={styles.lightboxImage} />
                     </motion.div>
                 )}
@@ -1501,7 +1509,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     {day.expenses.map(exp => (
                                         <div key={exp.id} style={{ ...styles.downRow, border: '2px solid rgba(239,68,68,0.4)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', opacity: 0.8 }}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.2)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.2)', fontSize: 10 }}>
+                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.2)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.2)', fontSize: 12 }}>
                                                     {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                                 </span>
                                                 {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
@@ -2093,9 +2101,9 @@ const styles = {
         background: '#3A3B3C', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
     },
     downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 100, flex: 1 },
-    downTypeBadge: { fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
+    downTypeBadge: { fontSize: 12, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
     downDetail: { fontSize: 12, color: '#B0B3B8', wordBreak: 'break-word' },
-    downTime: { fontSize: 11, color: '#B0B3B8', whiteSpace: 'nowrap' },
+    downTime: { fontSize: 12, color: '#B0B3B8', whiteSpace: 'nowrap' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 140 },
     tokeDisplay: {
         background: 'none', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', fontSize: 13,
@@ -2114,7 +2122,7 @@ const styles = {
     },
     endDownSmallBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
-        borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
     downDeleteBtn: {
@@ -2230,7 +2238,17 @@ const styles = {
     },
     lightboxOverlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 11000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
+        boxSizing: 'border-box',
+    },
+    lightboxClose: {
+        position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
+        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none',
+        background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 26, lineHeight: 1, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     lightboxImage: {
         maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain',
@@ -2266,6 +2284,9 @@ const styles = {
     modalOverlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
+        boxSizing: 'border-box',
     },
     modalCard: {
         position: 'relative',
@@ -2338,7 +2359,7 @@ const styles = {
     reportDates: { fontSize: 14, color: '#64748b', margin: '0 0 20px' },
     reportStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
     reportStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '10px 8px' },
-    reportStatLabel: { fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+    reportStatLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
     reportStatValue: { fontSize: 18, fontWeight: 700, color: '#fff' },
     reportBreakdown: { background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16 },
     reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#E4E6EB', margin: '0 0 10px' },
@@ -2364,7 +2385,7 @@ const styles = {
         display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12,
     },
     jarvisChip: {
-        fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
+        fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
         background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
         border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', transition: 'all 0.15s',
     },
@@ -2392,7 +2413,7 @@ const styles = {
         background: 'rgba(0,0,0,0.25)', borderRadius: 10,
         padding: 14, border: '2px solid rgba(56,189,248,0.15)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.15)',
     },
-    jarvisAnswerLabel: { fontSize: 11, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
+    jarvisAnswerLabel: { fontSize: 12, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
     jarvisAnswerText: { fontSize: 13, color: '#E4E6EB', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
     jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
     jarvisHistoryItem: {

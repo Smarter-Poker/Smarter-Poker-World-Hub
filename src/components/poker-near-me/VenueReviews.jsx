@@ -332,7 +332,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         <h2>Reviews</h2>
                         <p className="vr-venue-name">{venueName}</p>
                     </div>
-                    <button className="vr-close" aria-label="Close reviews" onClick={onClose}>×</button>
+                    <button className="vr-close sp-icon-btn" aria-label="Close" onClick={onClose}>×</button>
                 </div>
 
                 {/* Rating summary */}
@@ -521,12 +521,13 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
             <style>{`
         .vr-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.75); display: flex; justify-content: flex-end; }
-        .vr-panel { width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; animation: slideInRight 0.3s ease-out; }
+        /* padding-top clears the status bar so the X is reachable (mobile phase 0b). */
+        .vr-panel { width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); animation: slideInRight 0.3s ease-out; }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .vr-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
         .vr-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }
         .vr-venue-name { font-size: 13px; color: rgba(255,255,255,0.4); margin: 4px 0 0; }
-        .vr-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 28px; cursor: pointer; padding: 0; line-height: 1; }
+        .vr-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 28px; cursor: pointer; padding: 0; line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .vr-summary { display: flex; gap: 20px; margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
         .vr-score-box { text-align: center; min-width: 80px; }
         .vr-score { font-size: 36px; font-weight: 700; color: #ffffff; line-height: 1; }

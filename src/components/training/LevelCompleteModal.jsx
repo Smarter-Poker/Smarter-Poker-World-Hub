@@ -111,6 +111,9 @@ export default function LevelCompleteModal({
                     justify-content: center;
                     z-index: 10000;
                     padding: 20px;
+                    padding-top: max(env(safe-area-inset-top, 0px), 20px);
+                    padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+                    box-sizing: border-box;
                     animation: fadeIn 0.2s ease-out;
                 }
 

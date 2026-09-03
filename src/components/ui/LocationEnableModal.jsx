@@ -175,7 +175,7 @@ export default function LocationEnableModal({
       background: 'rgba(3,4,8,0.88)',
       display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       animation: 'locModalFadeIn 0.25s ease-out',
-      padding: isMobile ? '16px 8px env(safe-area-inset-bottom, 8px)' : '20px',
+      padding: isMobile ? 'max(env(safe-area-inset-top, 0px), 16px) 8px env(safe-area-inset-bottom, 8px)' : '20px',
     }}>
       <div className="location-enable-modal__frame" style={{
         width: isMobile ? 'min(420px, 96vw)' : 'min(460px, 94vw)',
@@ -218,8 +218,8 @@ export default function LocationEnableModal({
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="location-enable-modal__close"
-            style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1 }}
+            className="location-enable-modal__close sp-icon-btn"
+            style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1, minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             aria-label="Close"
           >&times;</button>
         </div>
