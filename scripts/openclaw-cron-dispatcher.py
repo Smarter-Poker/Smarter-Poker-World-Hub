@@ -104,6 +104,25 @@ LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 
+# PER-JOB TIMEOUTS (2026-09-03). The client timeout is not a cancel: when this
+# dispatcher gives up at 120s the worker keeps running and finishes. So for a
+# job that legitimately takes longer, the journal said ❌ TIMEOUT while the
+# work completed - horse-batch/1..8 (once a day, ~100 horses each, 200-400s)
+# logged a failure on every single run, and trivia-theme-backfill (50 Grok
+# calls) on three runs out of five. A watchdog that counts those as failures
+# pages about jobs that worked. Give the long ones the time they take; the
+# flat 120s stays the default for everything else.
+JOB_TIMEOUTS = {
+    '/api/cron/trivia-theme-backfill': 300,
+    '/api/cron/trivia-embed-backfill': 300,
+    '/api/cron/trivia-player-retag':   300,
+    **{f'/api/cron/horse-batch/{i}': 600 for i in range(10)},
+    '/api/cron/horses-social-all':     600,
+    '/api/cron/scrape-sports-clips':   300,
+}
+def job_timeout(path: str) -> int:
+    return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
+
 # ─── Phase 2A gate criterion: Hetzner monitoring + alerting (2026-04-25) ──────
 # Plan line 285: "Dashboard/alerting on Hetzner up: at minimum a weekly log
 # summary + PagerDuty/SMS if the dispatcher dies for >10 min." Implementation:
@@ -407,7 +426,7 @@ ALL_CRONS = [
     # other silent failure here — a draining pool does not error, its ladder
     # just collapses toward 2x/3x and players notice before anyone else does.
     # 30-minute lookback deliberately overlaps two runs.
-    ('/api/cron/spin-sweep',                dict(minute='*/15')),
+    ('/api/cron/spin-sweep',                dict(minute='7,22,37,52')),  # OFF THE QUARTER-HOUR (2026-09-03): at :00/:15/:30/:45 it shared the database with every other quarter-hour job and its double-deal check (2.1s alone) hit the 8s statement timeout; 7 minutes later it has the box to itself.
     # ── Waitlist TTL sweep (2026-08-30; cadence corrected 2026-08-31) ────
     # fn_offer_open_seat applies both waitlist TTLs already, but only when a
     # seat opens AT THAT TABLE. On a table nobody leaves, nothing runs: the
@@ -980,14 +999,14 @@ def fire_cron(path: str):
     try:
         log.info(f'▶ Firing {path} → {target_label}')
         t0 = time.time()
-        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(url, headers=headers, timeout=job_timeout(path))
         elapsed = round(time.time() - t0, 1)
         if resp.status_code == 200:
             log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
         else:
             log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
     except requests.exceptions.Timeout:
-        log.error(f'❌ {path} → {target_label} TIMEOUT after {REQUEST_TIMEOUT}s')
+        log.error(f'❌ {path} → {target_label} TIMEOUT after {job_timeout(path)}s')
     except Exception as e:
         log.error(f'❌ {path} → {target_label} {type(e).__name__}: {e}')
 
