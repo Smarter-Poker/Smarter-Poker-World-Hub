@@ -19,6 +19,10 @@ export default function usePagedList({
 }) {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(null);
+  // `total` may legitimately be null (an RPC-backed list has no count), so the
+  // route's own hasMore is carried alongside it rather than inferred from a
+  // number nobody has. Pager reads both.
+  const [hasMore, setHasMore] = useState(undefined);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -56,12 +60,14 @@ export default function usePagedList({
       if (seq !== seqRef.current) return;
       setRows(Array.isArray(result?.rows) ? result.rows : []);
       setTotal(typeof result?.total === 'number' ? result.total : null);
+      setHasMore(typeof result?.hasMore === 'boolean' ? result.hasMore : undefined);
       setLoaded(true);
     } catch (err) {
       if (seq !== seqRef.current) return;
       if (err && err.name === 'AbortError') return;
       setError(err && err.message ? err.message : 'Request Failed');
       setRows([]);
+      setHasMore(undefined);
     } finally {
       if (seq === seqRef.current) setLoading(false);
     }
@@ -101,11 +107,12 @@ export default function usePagedList({
 
   const reset = useCallback(() => {
     lastLoadKeyRef.current = null;
-    setRows([]); setTotal(null); setOffset(0); setLoaded(false); setError(null);
+    setRows([]); setTotal(null); setHasMore(undefined);
+    setOffset(0); setLoaded(false); setError(null);
   }, []);
 
   return {
-    rows, total, limit, offset, loading, error, loaded, filters,
+    rows, total, hasMore, limit, offset, loading, error, loaded, filters,
     setFilter, setFilters, refresh, next, previous, reset,
   };
 }

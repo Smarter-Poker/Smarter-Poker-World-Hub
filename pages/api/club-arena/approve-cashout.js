@@ -190,8 +190,11 @@ export default async function handler(req, res) {
       // agent, request id and before/after stamp every other console write now
       // carries.
       const auditOp = {
+        // The caller's REAL role, or null. `|| 'admin'` fabricated a platform
+        // privilege for every agent whose profiles.role is null - which is the
+        // common case for a club agent authorised through club_members.
         user: { id: user.id },
-        role: callerProfile?.role || 'admin',
+        role: callerProfile?.role || null,
         db: supabaseAdmin,
         requestId: requestIdOf(req),
       };

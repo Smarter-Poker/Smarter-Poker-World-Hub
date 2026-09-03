@@ -58,11 +58,15 @@ export const spec = {
   // The retired actions are gated a second time inside the handler against
   // fleet.write, so an operator without it gets 403 rather than the 410.
   permission: PERMISSIONS.FLEET_READ,
-  limit: 'read',
+  // The write tier, not the read tier: this is a POST, and the two retired
+  // actions each write an audit row on refusal. Under the read tier (120/min)
+  // a stale cached client in a retry loop could put 120 fleet.launch_refused
+  // rows a minute per IP into admin_audit_log.
+  limit: 'write',
 };
 
 /** A read-only snapshot of the fleet. No writes, no seeding, no funding. */
-async function fleetStatus(db) {
+async function fleetStatus(db, requestId) {
   const [totalHorses, seatedHorses, activeTables, regTournaments] = await Promise.all([
     db
       .from('profiles')
@@ -85,37 +89,63 @@ async function fleetStatus(db) {
       .in('status', ['REGISTERING', 'RUNNING', 'ANNOUNCED']),
   ]);
 
+  // Contract addendum item 16: an entry names the source in generic terms and
+  // carries the request id. The database's own text (table names, constraint
+  // names, PostgREST codes) is logged server-side and never returned.
   const failedSources = [];
   const readCount = (result, name) => {
     if (result.error) {
       console.warn('[horse-launch status]', name, 'read failed:', result.error.message || result.error);
-      failedSources.push(name);
+      failedSources.push({ source: name, error: `${name} read failed`, requestId: requestId || null });
       return null;
     }
     return result.count ?? 0;
   };
 
-  return {
+  const snapshot = {
     totalHorses: readCount(totalHorses, 'horses'),
     seatedHorses: readCount(seatedHorses, 'seated_horses'),
     activeTables: readCount(activeTables, 'tables'),
     activeTournaments: readCount(regTournaments, 'tournaments'),
+    checkedAt: new Date().toISOString(),
     seedingOwner: 'engine.HorseFleetManager',
     failedSources,
   };
+
+  // Contract addendum item 13: BOTH the new names above and the legacy aliases
+  // the Grinder fleet panel already reads. The panel's four tiles read
+  // cashTables, horsesSeated, tournaments and checkedAt || timestamp; without
+  // these aliases every one of them renders '-' next to a hint claiming the
+  // figure came straight from this route. Add, never rename.
+  return {
+    ...snapshot,
+    cashTables: snapshot.activeTables,
+    horsesSeated: snapshot.seatedHorses,
+    tournaments: snapshot.activeTournaments,
+    timestamp: snapshot.checkedAt,
+  };
 }
 
-export async function handle({ req, op, db, body }) {
+export async function handle({ req, op, db, body, requestId }) {
   const action = enumOf(body.action, ACTIONS);
   if (!action) throw badRequest('Action Must Be Status, Launch All Or Shutdown', 'invalid_action');
 
   if (action === 'status') {
-    return { action: 'status', ...(await fleetStatus(db)) };
+    return { action: 'status', ...(await fleetStatus(db, requestId || op?.requestId)) };
+  }
+
+  if (!RETIRED_ACTIONS.includes(action)) {
+    // Unreachable while ACTIONS is status plus the two retired names, and kept
+    // so adding a fourth action cannot silently inherit the 410 below.
+    throw badRequest('Action Must Be Status, Launch All Or Shutdown', 'invalid_action');
   }
 
   // A retired button is still a write button. Gate it on fleet.write so the
   // refusal is a permission decision for anyone who should not be pressing it,
-  // and a 410 only for the operators who legitimately could have.
+  // and a 410 only for the operators who legitimately could have. Contract
+  // item 7 describes the 410 the console sees; every Phase 1 role holds
+  // fleet.write (permissions.js), so this gate changes nothing today and stops
+  // a Phase 2 read-only operator from writing refusal rows.
   if (!hasPermission(op.permissions, PERMISSIONS.FLEET_WRITE)) {
     throw new ApiError(403, 'Permission Required: ' + PERMISSIONS.FLEET_WRITE, 'permission_denied');
   }

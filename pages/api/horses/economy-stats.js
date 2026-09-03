@@ -17,7 +17,8 @@
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { runPaged } from '../../../src/lib/horses/paged.js';
+import { pageFor, shapeList } from '../../../src/lib/horses/listShape.js';
 
 // Upper bound on any unbounded row pull in this route.
 const ROW_CAP = 500;
@@ -27,6 +28,22 @@ const TX_CAP = 20000;
 // `vipPoints.truncated` says so honestly if it ever is not.
 const VIP_POINTS_CAP = 5000;
 
+/**
+ * The window "Diamonds Spent" is measured over, and the row cap on that read.
+ * The figure used to be summed over the TRANSACTION PAGE, so a headline number
+ * moved when the operator changed `?limit`. It has its own bounded query now
+ * and `stats.totalDiamondsSpentWindowLabel` prints the window next to it.
+ */
+const SPEND_WINDOW_DAYS = 30;
+const SPEND_CAP = 20000;
+
+/**
+ * TWO LISTS, TWO PAGERS. Both used to read the same `limit`/`offset`, so
+ * `?limit=200` for the transaction log silently set the purchase page to 200
+ * as well and `?offset=100` sliced the purchase array from index 100. They are
+ * namespaced now (`txLimit`/`txOffset`, `purchaseLimit`/`purchaseOffset`) and
+ * each still falls back to the shared params the console sends today.
+ */
 const TX_PAGE = { defaultLimit: 100, max: 200 };
 const PURCHASE_PAGE = { defaultLimit: 20, max: 200 };
 
@@ -38,8 +55,8 @@ export const spec = {
 };
 
 export async function handle({ db, query }) {
-  const txPage = paging(query, TX_PAGE);
-  const purchasePage = paging(query, PURCHASE_PAGE);
+  const txPage = pageFor(query, 'tx', TX_PAGE);
+  const purchasePage = pageFor(query, 'purchase', PURCHASE_PAGE);
 
   // A transaction counts as a REWARD when its type matches an action_key in
   // diamond_reward_catalog - the same definition award_diamonds_v2 uses. This
@@ -76,12 +93,20 @@ export async function handle({ db, query }) {
     recentUsersResult,
     vipPointsResult,
     vipLedgerCountResult,
+    spendResult,
   ] = await Promise.all([
     // 1. Recent diamond transactions, paged.
+    //
+    // PLANNED COUNT, NOT EXACT (review addendum item 10). diamond_transactions
+    // is the other multi-million-row ledger in this schema, and the header of
+    // this very file records that an exact count on vip_points_ledger took 8.5
+    // seconds and 500'd the whole tab. Reintroducing that shape on this table
+    // would have reproduced it. `pages.transactions.countMode` says 'planned'
+    // so nobody reads the total as a certified number.
     runPaged(
       db
         .from('diamond_transactions')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'planned' })
         .order('created_at', { ascending: false }),
       txPage
     ),
@@ -168,6 +193,23 @@ export async function handle({ db, query }) {
     // operator's time. The most recent entry is enough to say whether the
     // ledger is live, and it is an index hit.
     db.from('vip_points_ledger').select('created_at').order('created_at', { ascending: false }).limit(1),
+
+    // 10. DIAMONDS SPENT, over its own window.
+    //
+    // This was summed over the transaction PAGE, so the headline changed with
+    // `?limit` and was really "spent in the last 100 ledger rows". It is now a
+    // bounded read of its own with a stated window, in the shape anti-abuse
+    // already uses for `windowLabel`.
+    // The same definition of "spent" the page used, expressed as a filter:
+    // either column may carry the kind, and a negative amount is a spend
+    // whatever it is called.
+    db
+      .from('diamond_transactions')
+      .select('id, amount, type, transaction_type')
+      .or('type.eq.spent,type.eq.purchase,transaction_type.eq.spent,transaction_type.eq.purchase,amount.lt.0')
+      .gte('created_at', new Date(Date.now() - SPEND_WINDOW_DAYS * 86400000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(SPEND_CAP),
   ]);
 
   // Every result is checked. None of these were checked before, so a failing
@@ -183,6 +225,7 @@ export async function handle({ db, query }) {
     ['profiles recent users', recentUsersResult],
     ['vip_points', vipPointsResult],
     ['vip_points_ledger latest entry', vipLedgerCountResult],
+    ['diamonds spent window', spendResult],
   ];
   // PARTIAL FAILURE IS NOT TOTAL FAILURE.
   //
@@ -210,13 +253,16 @@ export async function handle({ db, query }) {
   const transactions = transactionsResult.data || [];
   // Raw ledger rows name the column `transaction_type`; `type` is only
   // populated on some rows. Reading t.type alone missed every row that used
-  // the other column.
-  const totalDiamondsSpent = transactions
+  // the other column. Summed over the WINDOWED read, not over the page the
+  // operator happens to be looking at.
+  const spendRows = spendResult.data || [];
+  const totalDiamondsSpent = spendRows
     .filter((t) => {
       const kind = t.type || t.transaction_type;
       return kind === 'spent' || kind === 'purchase' || (t.amount && t.amount < 0);
     })
-    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+  const spendTruncated = spendRows.length >= SPEND_CAP;
 
   const purchases = diamondPurchasesResult.data || [];
 
@@ -302,6 +348,10 @@ export async function handle({ db, query }) {
       newUsers7d: newUsersResult.count || 0,
       totalDiamondsEarned,
       totalDiamondsSpent,
+      // Printable verbatim beside the figure: it is a window, not a lifetime.
+      totalDiamondsSpentWindowDays: SPEND_WINDOW_DAYS,
+      totalDiamondsSpentWindowLabel: `last ${SPEND_WINDOW_DAYS} days`,
+      totalDiamondsSpentTruncated: spendTruncated,
       totalRewardClaims: rewardClaims.length,
       diamondPurchaseCount: purchases.length,
       diamondPurchaseCompletedCount: settledPurchases.length,
@@ -348,14 +398,27 @@ export async function handle({ db, query }) {
     recentUsers,
 
     pages: {
-      transactions: { ...pagedResult(transactionsResult, txPage), rows: transactionRows },
-      purchases: {
-        rows: purchaseRows,
-        total: diamondPurchasesResult.count ?? purchases.length,
-        limit: purchasePage.limit,
-        offset: purchasePage.offset,
-        hasMore: purchasePage.offset + purchaseRows.length < purchases.length,
+      transactions: {
+        ...shapeList(transactionsResult, txPage, transactionRows),
+        countMode: 'planned',
       },
+      purchases: (() => {
+        // `hasMore` used to be measured against the CAPPED in-memory array
+        // while `total` was the exact table count, so the two disagreed and a
+        // pager built on them stopped early. Both come from the same number
+        // now, and `truncated` says when the in-memory array is the limit.
+        const total = diamondPurchasesResult.count ?? purchases.length;
+        return {
+          rows: purchaseRows,
+          total,
+          limit: purchasePage.limit,
+          offset: purchasePage.offset,
+          hasMore: purchasePage.offset + purchaseRows.length < total,
+          truncated: total > purchaseRows.length,
+          rowCapped: purchases.length >= ROW_CAP,
+          rowCap: ROW_CAP,
+        };
+      })(),
     },
     limit: txPage.limit,
     offset: txPage.offset,

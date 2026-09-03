@@ -19,7 +19,13 @@ export const spec = {
   name: 'horses.hg-onboarding-status',
   methods: ['GET'],
   permission: PERMISSIONS.PLAYERS_READ,
-  limit: 'read',
+  // The WRITE bucket even though this is a GET. The lookup is audited (see
+  // below), so every call writes an admin_audit_log row; under the read tier
+  // (120/min per IP and token) a stuck client polling the lookup box is an
+  // audit-table write amplifier. The audit row stays - a support agent reading
+  // another player's record is exactly the act that has to be reviewable - so
+  // the rate limit is what moves.
+  limit: 'write',
 };
 
 export async function handle({ req, op, userDb, query }) {

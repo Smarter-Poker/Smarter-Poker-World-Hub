@@ -35,6 +35,27 @@ class CatalogInputError extends ApiError {
   }
 }
 
+/**
+ * Turn the Postgres error codes this table actually produces into operator-safe
+ * 400s. An unmapped error is re-thrown and reaches the shared scrubber, whose
+ * heuristic list does not match, for example, `value too long for type
+ * character varying(64)` - so that text was echoed to the browser verbatim.
+ * Anything not named here is still re-thrown: guessing at an unknown code would
+ * be worse than a scrubbed 500 with a request id.
+ */
+function catalogWriteError(error) {
+  if (error?.code === '22001') {
+    return new CatalogInputError('One Of Those Values Is Too Long For Its Column');
+  }
+  if (error?.code === '23514') {
+    return new CatalogInputError('One Of Those Values Is Outside What This Catalog Allows');
+  }
+  if (error?.code === '22P02' || error?.code === '22003') {
+    return new CatalogInputError('One Of Those Values Is Not A Number This Column Accepts');
+  }
+  return error;
+}
+
 function cleanString(value, maxLength, { required = false } = {}) {
   if (value === undefined) return undefined;
   if (value === null) return required ? undefined : null;
@@ -294,7 +315,7 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
       const { data, error } = await supabase.from('merchandise_items').insert(payload).select().maybeSingle();
       if (error) {
         if (error.code === '23505') throw new ApiError(409, 'That Product ID Already Exists', 'duplicate_item_id');
-        throw error;
+        throw catalogWriteError(error);
       }
       if (!data) throw new ApiError(500, 'Product Creation Could Not Be Verified', 'create_unverified');
       await auditOperatorAction(op, req, {
@@ -303,7 +324,7 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
         targetId: data.id,
         after: data,
       });
-      return { item: data, record: data };
+      return { item: data };
     }
 
     const payload = variantPayload(body, { creating: true });
@@ -312,7 +333,7 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
     if (error) {
       if (error.code === '23505') throw new ApiError(409, 'That SKU Already Exists', 'duplicate_sku');
       if (error.code === '23503') throw new ApiError(404, 'Product Not Found', 'item_not_found');
-      throw error;
+      throw catalogWriteError(error);
     }
     if (!data) throw new ApiError(500, 'Variant Creation Could Not Be Verified', 'create_unverified');
     await syncHasVariants(supabase, data.item_id);
@@ -323,7 +344,7 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
       details: { item_id: data.item_id, sku: data.sku },
       after: data,
     });
-    return { variant: data, record: data };
+    return { variant: data };
   }
 
   const rawId = cleanString(body.id, 64, { required: true });
@@ -360,7 +381,7 @@ export async function handle({ req, res, op, db, method, body: rawBody }) {
   const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().maybeSingle();
   if (error) {
     if (error.code === '23505') throw new ApiError(409, 'That SKU Already Exists', 'duplicate_sku');
-    throw error;
+    throw catalogWriteError(error);
   }
   if (!data) throw new ApiError(409, 'Record Changed Before It Could Be Updated', 'stale_record');
   if (entity === 'variant') await syncHasVariants(supabase, before.item_id);

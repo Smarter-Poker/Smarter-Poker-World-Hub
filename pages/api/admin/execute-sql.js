@@ -17,6 +17,26 @@ function getSupabase() {
     return _supabase;
 }
 
+// The audit client is SERVICE ROLE ONLY. getSupabase() falls back to the anon
+// key, and under the anon key operatorAudit's documented "direct service-role
+// insert if the RPC is unavailable" runs under RLS and is denied - the fallback
+// that exists to guarantee the row can never fire. Returning null instead makes
+// the helper log a dropped row loudly rather than pretend it wrote one.
+let _auditDb;
+function getAuditDb() {
+    if (_auditDb === undefined) {
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            console.error('[execute-sql] SUPABASE_SERVICE_ROLE_KEY missing; sql.commit audit rows cannot be written');
+            _auditDb = null;
+        } else {
+            const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+            _auditDb = createClient(url, key);
+        }
+    }
+    return _auditDb;
+}
+
 // [PERF] The execution_audit_logs CREATE TABLE IF NOT EXISTS used to run on
 // EVERY request - a full DDL round-trip against the pooler before any real
 // work. It only has to happen once per warm lambda.
@@ -162,6 +182,11 @@ export default async function handler(req, res) {
       const token = authHeader.replace('Bearer ', '').trim();
       let isAuthorized = false;
       let sessionUserId = null;
+      // The caller's REAL profiles.role, captured where it is already read.
+      // The audit row used to hardcode 'admin' here, so a `god` committing a
+      // mutation was filed as an `admin` - a privilege statement the row had no
+      // business inventing when the true value was one line away.
+      let sessionRole = null;
 
       // Check 1: Headless Orb System Access (comparing token to Service Role Key)
       const isServiceRole = secretEquals(token, process.env.SUPABASE_SERVICE_ROLE_KEY || '');
@@ -185,6 +210,7 @@ export default async function handler(req, res) {
               if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
                   isAuthorized = true;
                   sessionUserId = user.id;
+                  sessionRole = profile.role;
               }
           } catch (err) {
               console.warn('[execute-sql] Auth validation crashed:', err?.message || err);
@@ -347,43 +373,24 @@ export default async function handler(req, res) {
                   );
               } catch (auditErr) { console.warn('Audit log failed', auditErr?.message || auditErr); }
 
-              // Audit - admin_audit_log, EVERY COMMITTED MUTATION.
-              // Written on the same direct connection rather than through the
-              // RPC below, so a committed money-moving statement leaves a row
-              // even when PostgREST is unreachable. Dry runs are deliberately
-              // not written here: nothing happened, and burying real
-              // mutations under rehearsals is how an audit trail stops being
-              // read.
-              if (mutating && !dryRun) {
-                  try {
-                      await client.query(
-                          `INSERT INTO public.admin_audit_log (admin_user_id, action, target_type, target_id, details, ip_address)
-                           VALUES ($1, $2, $3, $4, $5::jsonb, $6)`,
-                          [
-                              sessionUserId,
-                              success ? 'admin.sql_mutation_committed' : 'admin.sql_mutation_failed',
-                              'database',
-                              null,
-                              JSON.stringify({
-                                  principal,
-                                  sql,
-                                  sql_length: sql.length,
-                                  command: finalCommand,
-                                  row_count: finalRowCount,
-                                  execution_ms: ms,
-                                  confirmed: true,
-                                  error: errorMessage,
-                              }),
-                              clientIp,
-                          ]
-                      );
-                  } catch (auditErr) { console.warn('[execute-sql] admin_audit_log insert failed', auditErr?.message || auditErr); }
-              }
-
-              // Audit - a COMMITTED MUTATION goes through the shared operator
-              // audit helper, so the one act on this route that changes
+              // Audit - a COMMITTED MUTATION writes EXACTLY ONE admin_audit_log
+              // row, through the shared operator audit helper (contract
+              // addendum item 19), so the one act on this route that changes
               // production state carries the same actor, role, ip, user agent,
               // request id and before/after stamp as every other console write.
+              //
+              // There used to be a SECOND writer here: a direct INSERT on this
+              // Postgres connection filing admin.sql_mutation_committed. It has
+              // been removed. Every commit was producing two rows under two
+              // namespaces, so the Audit tab's prefix filter both split and
+              // double-counted the same statement. The full SQL text that
+              // insert carried still lands in execution_audit_logs above, on
+              // this same connection, so nothing readable was lost.
+              //
+              // For a service-role (headless) caller admin_user_id is null,
+              // exactly as the removed insert wrote it; the helper logs loudly
+              // and never throws if the schema refuses the row.
+              //
               // Dry runs and reads keep the RPC path below: nothing happened,
               // and burying real mutations under rehearsals is how an audit
               // trail stops being read.
@@ -391,8 +398,8 @@ export default async function handler(req, res) {
                   await auditOperatorAction(
                       {
                           user: { id: sessionUserId },
-                          role: sessionUserId ? 'admin' : 'service_role',
-                          db: getSupabase(),
+                          role: sessionUserId ? sessionRole : 'service_role',
+                          db: getAuditDb(),
                           requestId: requestIdOf(req),
                       },
                       req,
@@ -416,9 +423,11 @@ export default async function handler(req, res) {
               }
 
               // Audit - admin_audit_log via RPC (Phase 6.1.8 - unified admin trail)
-              // Only logged for browser-user admin sessions; service-role agents
-              // already get logged in execution_audit_logs above, and admin_user_id
-              // for them isn't a real auth.uid().
+              // This is the DRY-RUN and READ path only; committed mutations are
+              // filed once, above. It stays limited to browser-user admin
+              // sessions: service-role agents are already recorded in
+              // execution_audit_logs above, and admin_user_id for them is not a
+              // real auth.uid().
               try {
                   if (sessionUserId && !(mutating && !dryRun)) {
                       await getSupabase().rpc('fn_log_admin_action', {

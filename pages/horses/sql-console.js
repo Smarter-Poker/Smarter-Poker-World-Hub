@@ -15,6 +15,11 @@ import styles from './horses.module.css';
 
 const MAX_HISTORY = 20;
 
+// The tag this console stamps on its own DATA_MUTATED emit, and the tag it
+// looks for when deciding whether a mutation notice is its own echo. One
+// constant so the emit and the suppression can never drift apart.
+const SELF_EMIT_TAG = 'sql-console-execution';
+
 // Minimum height for anything the operator taps. 44px is the WCAG 2.5.5 /
 // Apple HIG floor. Applied unconditionally rather than behind a
 // pointer:coarse query because this file is inline-styled and a taller
@@ -172,12 +177,16 @@ export default function OmnichannelSQLConsole() {
         // stale and says so, and the operator decides whether to re-run.
         const unsubMutated = eventBus.on(EventType.DATA_MUTATED, (event) => {
             // Our own commit already refreshed what the operator is looking at.
-            // The bus is not in this snapshot, so read `source` from both the
-            // payload and an envelope around it rather than assuming a shape:
-            // guessing wrong here would only ever ADD a notice, never suppress
-            // a real one, but the check costs nothing.
-            const source = event?.source || event?.payload?.source;
-            if (source === 'sql-console-execution') return;
+            // The bus is not in this snapshot, so BOTH shapes are tested
+            // independently rather than with `a || b`: eventBus.emit is called
+            // with an emitter name as its third argument, so an envelope can
+            // carry its own `source` ('SQLConsole') that is truthy and shadows
+            // the payload's tag, and `||` would then never look at the payload
+            // at all - the console would raise "another console changed this"
+            // about its own commit.
+            const envelopeTag = event?.source;
+            const payloadTag = event?.payload?.source;
+            if (envelopeTag === SELF_EMIT_TAG || payloadTag === SELF_EMIT_TAG) return;
             setStaleSince(new Date());
         });
 
@@ -253,7 +262,7 @@ export default function OmnichannelSQLConsole() {
             // nothing and must not make the rest of the app refetch.
             if (data.success && data.committed && data.mutating) {
                 try {
-                    eventBus.emit(EventType.DATA_MUTATED, { source: 'sql-console-execution' }, 'SQLConsole');
+                    eventBus.emit(EventType.DATA_MUTATED, { source: SELF_EMIT_TAG }, 'SQLConsole');
                 } catch (e) {
                     console.warn('Failed to emit mutation event:', e);
                 }

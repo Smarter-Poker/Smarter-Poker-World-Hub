@@ -98,6 +98,10 @@ export function when(value, withTime = false) {
  * appearing upstream must not silently change the shape of a file someone has
  * built a spreadsheet around.
  */
+/** A cell whose text is a plain number, in any form a JSON payload produces:
+ *  -124.5, +12, 1e3, .5. These must reach the spreadsheet AS NUMBERS. */
+const NUMERIC_CELL_RE = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+
 export function toCsv(rows, columns) {
   const esc = (v) => {
     if (v === null || v === undefined) return '';
@@ -106,7 +110,15 @@ export function toCsv(rows, columns) {
     // A leading =, +, - or @ makes Excel and Sheets treat the cell as a
     // formula. Prefix with a single quote so an exported display name cannot
     // execute in someone's spreadsheet.
-    const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+    //
+    // NUMBERS ARE EXEMPT (contract addendum item 18). The guard used to fire on
+    // the leading minus of every negative figure, so -124.5 was written '-124.5
+    // and arrived as TEXT: SUM and AVG over net_bb, sum_net_bb, bb100 and every
+    // money column silently skipped exactly the rows an operator exports this
+    // file to reconcile. A number is never a formula, so only non-numeric
+    // strings are quoted.
+    const numeric = typeof v === 'number' || NUMERIC_CELL_RE.test(str);
+    const safe = !numeric && /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
     return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   const head = columns.map(([, header]) => esc(header)).join(',');

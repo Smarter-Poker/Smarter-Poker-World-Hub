@@ -402,6 +402,29 @@
     border-color: var(--line-strong, rgba(255, 255, 255, 0.16));
 }
 
+/* ── The console's tab strip ──────────────────────────────────────────────
+   role="tablist" used to sit on a `display: contents` wrapper. That property
+   has a history of dropping the element - and therefore its role - out of the
+   accessibility tree in WebKit and Blink, and the role is doing real work
+   here: it is what makes sixteen buttons a tablist rather than sixteen
+   buttons. So the wrapper is a real flex box.
+
+   flex: 0 0 auto keeps it one non-shrinking item, which is what preserves the
+   horizontal scroll strip .nav becomes at 768px and under; above that it
+   wraps the way the nav itself used to. */
+.tablist {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+@media (min-width: 769px) {
+    .tablist {
+        flex-wrap: wrap;
+    }
+}
+
 /* ── Export progress ─────────────────────────────────────────────────────── */
 .exportProgress {
     margin: 10px 0;

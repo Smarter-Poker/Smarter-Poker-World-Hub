@@ -34,7 +34,7 @@
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { getOperatorDb } from '../../../src/lib/horses/operatorAuth.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { requestIdOf, sendFail, sendOk, scrubError } from '../../../src/lib/horses/apiEnvelope.js';
+import { ApiError, requestIdOf, sendFail, sendOk, scrubError } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { stablePick } from '../../../src/lib/horses/hash.js';
 import { int } from '../../../src/lib/horses/validate.js';
@@ -197,9 +197,11 @@ async function remainingCount(db) {
 }
 
 export async function handle({ req, op, db, query }) {
+  // Parsed with a wide bound and clamped here, so an over-cap request is
+  // reported back as clamped instead of silently becoming the default.
   const requested = int(Array.isArray(query.limit) ? query.limit[0] : query.limit, {
     min: 1,
-    max: MAX_BATCH,
+    max: 10000,
     fallback: null,
   });
   const limit = requested === null ? DEFAULT_BATCH : Math.min(Math.max(requested, 1), MAX_BATCH);
@@ -219,8 +221,12 @@ export async function handle({ req, op, db, query }) {
     .is('avatar_url', null)
     .limit(limit);
   if (error) {
+    // A FAILED READ IS NOT AN EMPTY ROSTER. Returning a zero-generated success
+    // here made the console show "No Horses Were Eligible" - the operator's
+    // signal that every horse already has an avatar - when the database read
+    // had actually failed, so the run looked finished and nobody looked again.
     console.warn('[generate-avatars] roster read failed:', error.message || error);
-    return { generated: 0, attempted: 0, limit, maxBatch: MAX_BATCH, results: [], error: null };
+    throw new ApiError(503, 'Roster Read Failed', 'roster_unavailable');
   }
   if (!horses?.length) {
     return {
@@ -318,6 +324,10 @@ export async function handle({ req, op, db, query }) {
     attempted: results.length,
     limit,
     maxBatch: MAX_BATCH,
+    // A caller that asked for more than the spend ceiling allows is told so
+    // rather than left to infer it from a short `results` array.
+    requestedLimit: requested,
+    limitClamped: requested !== null && requested > MAX_BATCH,
     remaining: await remainingCount(db),
     results,
   };
@@ -328,8 +338,12 @@ const jwtRoute = withOperatorRoute(spec, handle);
 /**
  * The cron caller has no JWT and therefore no operator context. It gets one
  * built here with a null user id and the role 'cron', so the batch it runs is
- * still filed in admin_audit_log: this route spends money per image, and an
- * unattributed run still has to leave a record.
+ * filed in admin_audit_log under a null actor: this route spends money per
+ * image, and an unattributed run still has to leave a record. If
+ * admin_audit_log.admin_user_id turns out to be NOT NULL or FK-constrained,
+ * both the RPC and the insert fallback fail and auditOperatorAction drops the
+ * row with a console.error rather than failing the run - the batch is filed
+ * only as far as the schema allows it to be.
  */
 async function runCronBatch(req, res, requestId) {
   if (!applyRateLimit(req, res, LIMITS.ai || LIMITS.write)) return undefined;
@@ -374,6 +388,12 @@ export default async function generateAvatarsRoute(req, res) {
     res.setHeader('Allow', 'POST');
     return sendFail(res, 405, 'Method Not Allowed', 'method_not_allowed', requestId);
   }
-  if (isCronCall(req)) return runCronBatch(req, res, requestId);
+  // A caller that presents an operator JWT is attributed to that operator even
+  // when it also sends the cron secret. Taking the cron path first filed a
+  // human operator's paid batch under admin_user_id null / role 'cron' and lost
+  // the attribution outright.
+  const authorization = req.headers?.authorization;
+  const hasBearer = typeof authorization === 'string' && authorization.startsWith('Bearer ');
+  if (!hasBearer && isCronCall(req)) return runCronBatch(req, res, requestId);
   return jwtRoute(req, res);
 }

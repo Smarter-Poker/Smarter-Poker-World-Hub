@@ -32,6 +32,10 @@ import {
 } from '../src/lib/horses/hgOperator.js';
 import { handle as reviewsHandle, spec as reviewsSpec } from '../pages/api/horses/admin-reviews.js';
 import { handle as launchHandle, spec as launchSpec } from '../pages/api/club-arena/horse-launch.js';
+import { handle as reportsHandle } from '../pages/api/horses/hg-reports.js';
+import { handle as appealsHandle } from '../pages/api/horses/hg-appeals.js';
+import { handle as onboardingHandle, spec as onboardingSpec } from '../pages/api/horses/hg-onboarding-status.js';
+import { handle as pipelineHandle, PIPELINE_TYPES } from '../pages/api/horses/trigger-pipeline.js';
 import { PERMISSIONS } from '../src/lib/horses/permissions.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -122,9 +126,13 @@ test('the five routes outside /horses now audit through the shared helper', asyn
 test('the outside routes carry the audit action names the console filters on', async () => {
   const expected = {
     'pages/api/club-arena/approve-cashout.js': ['cashout.approve', 'cashout.cancel'],
-    'pages/api/club-arena/anti-cheat.js': ['anticheat.review_flag', 'anticheat.kick_session'],
+    // kick_player, not kick_session: the target of that row is a player id.
+    'pages/api/club-arena/anti-cheat.js': ['anticheat.review_flag', 'anticheat.kick_player'],
     'pages/api/club-arena/union-application.js': ['union.review_application', 'union.review_leave_request'],
-    'pages/api/promo/admin-promo-codes.js': ['promo.create', 'promo.update', 'promo.toggle'],
+    // activate / deactivate, not one 'toggle' covering both directions: the
+    // Audit tab filters on the action name, so the name has to say which way it
+    // went.
+    'pages/api/promo/admin-promo-codes.js': ['promo.create', 'promo.update', 'promo.activate', 'promo.deactivate'],
     'pages/api/admin/execute-sql.js': ['sql.commit'],
   };
   for (const [path, actions] of Object.entries(expected)) {
@@ -135,9 +143,77 @@ test('the outside routes carry the audit action names the console filters on', a
   }
 });
 
-test('execute-sql audits a committed mutation only, never a dry run', async () => {
+/**
+ * execute-sql cannot be imported here: it opens a `pg` Pool and its handler is
+ * a single 300-line function with no seam. These assertions are therefore made
+ * against the source, but against its STRUCTURE rather than its whitespace: a
+ * count of writers, the guard each one sits under, and the value passed as the
+ * actor role. The previous version of this test matched the exact newlines
+ * between `if (mutating && !dryRun) {` and `await auditOperatorAction(`, which
+ * a formatter or one inserted comment would have broken while behaviour stayed
+ * identical, and which said nothing about the duplicate row three lines above.
+ */
+test('execute-sql writes exactly one audit row per committed mutation, with the real role', async () => {
   const src = await read('pages/api/admin/execute-sql.js');
-  assert.match(src, /if \(mutating && !dryRun\) \{\s*\n\s*await auditOperatorAction\(/);
+
+  // One helper call, under the committed-mutation guard.
+  assert.equal(
+    (src.match(/auditOperatorAction\(/g) || []).length,
+    1,
+    'exactly one auditOperatorAction call: a second is a second admin_audit_log row'
+  );
+  const guards = src.match(/if \(mutating && !dryRun\)/g) || [];
+  assert.equal(guards.length, 1, 'only the audit call may be gated on committed-mutation');
+
+  // The direct-connection duplicate is gone. Nothing may INSERT into
+  // admin_audit_log on the pg client any more.
+  assert.doesNotMatch(src, /INSERT INTO public\.admin_audit_log/i, 'the duplicate direct insert must be gone');
+  // The names may survive in the comment explaining the removal; what must be
+  // gone is any code that files them.
+  assert.doesNotMatch(src, /'admin\.sql_mutation_committed'/, 'the second action namespace must be gone');
+  assert.doesNotMatch(src, /'admin\.sql_mutation_failed'/);
+  assert.doesNotMatch(src, /success \? 'admin\.sql_mutation/);
+  assert.ok(src.includes("'sql.commit'"), 'the committed mutation files sql.commit');
+
+  // The full SQL text still lands somewhere on the direct connection.
+  assert.match(src, /INSERT INTO public\.execution_audit_logs/i);
+
+  // The actor role is the one the auth check read, never a literal.
+  assert.match(src, /let sessionRole = null;/);
+  assert.match(src, /sessionRole = profile\.role;/);
+  assert.match(src, /role: sessionUserId \? sessionRole : 'service_role'/);
+  assert.doesNotMatch(src, /role: sessionUserId \? 'admin'/, 'the actor role must not be fabricated');
+
+  // The audit client is service-role only; getSupabase() falls back to anon,
+  // under which operatorAudit's insert fallback is refused by RLS.
+  assert.match(src, /db: getAuditDb\(\)/);
+  assert.match(src, /function getAuditDb\(\)/);
+  assert.doesNotMatch(src, /db: getSupabase\(\),/, 'the audit client must not be the anon-capable one');
+
+  // Dry runs and reads keep the older RPC path, and it stays browser-only.
+  assert.match(src, /if \(sessionUserId && !\(mutating && !dryRun\)\) \{/);
+  assert.match(src, /'admin\.sql_dry_run'/);
+  assert.match(src, /'admin\.sql_executed'/);
+});
+
+test('the audit-wiring routes pass a real role, never a hardcoded admin literal', async () => {
+  for (const path of [
+    'pages/api/club-arena/approve-cashout.js',
+    'pages/api/club-arena/anti-cheat.js',
+    'pages/api/club-arena/union-application.js',
+  ]) {
+    const src = await read(path);
+    assert.doesNotMatch(src, /role: 'admin'/, `${path} must not hardcode the actor role`);
+    assert.doesNotMatch(
+      src,
+      /role: \w+\?\.role \|\| 'admin'/,
+      `${path} must not fabricate an admin role for a caller whose profiles.role is null`
+    );
+  }
+  const union = await read('pages/api/club-arena/union-application.js');
+  assert.match(union, /const actorRole = await fetchProfileRole\(user\.id\);/);
+  assert.match(union, /role: actorRole,/);
+  assert.match(union, /union_authority:/, 'the authority that allowed the act belongs in the row');
 });
 
 test('horse-launch no longer contains any fleet-seeding machinery', async () => {
@@ -186,6 +262,35 @@ test('generate-avatars compares the cron secret in constant time and guards the 
   assert.match(src, /const MAX_BATCH = 5;/);
   assert.match(src, /stablePick/, 'the style must be picked from a string hash, not id % n');
   assert.match(src, /role: 'cron'/);
+});
+
+/**
+ * generate-avatars imports src/lib/grokClient, which is outside this snapshot,
+ * so its handler cannot be imported the way admin-reviews' and horse-launch's
+ * are. These two properties are the ones the review found broken, and both are
+ * visible in the source.
+ */
+test('generate-avatars turns a roster read failure into a 503, never a zero-generated success', async () => {
+  const src = await read('pages/api/horses/generate-avatars.js');
+  assert.match(
+    src,
+    /throw new ApiError\(503, 'Roster Read Failed', 'roster_unavailable'\)/,
+    'a failed roster read must be an error, not "No Horses Were Eligible"'
+  );
+  assert.doesNotMatch(src, /results: \[\], error: null/, 'the fake success payload must be gone');
+  assert.doesNotMatch(src, /error: null,?\s*\}/, 'the meaningless error:null key must be gone');
+  // The success path that really does mean "nothing to do" still says so.
+  assert.match(src, /message: 'All Horses Have Avatars'/);
+});
+
+test('generate-avatars attributes a call that carries BOTH a JWT and the cron secret to the operator', async () => {
+  const src = await read('pages/api/horses/generate-avatars.js');
+  assert.match(src, /const hasBearer = /);
+  assert.match(
+    src,
+    /if \(!hasBearer && isCronCall\(req\)\) return runCronBatch\(/,
+    'the cron path may only be taken when there is no operator JWT to attribute the run to'
+  );
 });
 
 test('admin-reviews validates ids and ratings, searches server side and keeps the unban path', async () => {
@@ -247,7 +352,15 @@ test('merch-catalog-admin keeps every validation and widens the uuid check to v7
 });
 
 test('no file this group owns contains an em dash or an emoji', async () => {
-  for (const path of [...WRAPPED_ROUTES, ...OUTSIDE_ROUTES, ...NEW_LIBS, '__tests__/horses-routes-group-b.test.mjs']) {
+  for (const path of [
+    ...WRAPPED_ROUTES,
+    ...OUTSIDE_ROUTES,
+    ...NEW_LIBS,
+    'src/lib/horses/operatorAudit.js',
+    'src/lib/horsesAdminTokens.js',
+    '__tests__/horses-routes-group-b.test.mjs',
+    '__tests__/horses-libs-review.test.mjs',
+  ]) {
     const src = await read(path);
     assert.ok(!src.includes(EM_DASH), `${path} contains an em dash`);
     const emoji = src.match(EMOJI_RE);
@@ -337,7 +450,7 @@ function fakeOp(db, { permissions = Object.values(PERMISSIONS) } = {}) {
  * are kept so a test can assert on the filters that were built.
  */
 function fakeDb(results = {}) {
-  const calls = { tables: [], filters: [], rpc: [] };
+  const calls = { tables: [], filters: [], rpc: [], ilikes: [] };
   const db = {
     calls,
     from(table) {
@@ -376,6 +489,11 @@ function fakeDb(results = {}) {
         },
         is(col, val) {
           state.is = [col, val];
+          return chain;
+        },
+        ilike(col, pattern) {
+          state.ilike = [col, pattern];
+          calls.ilikes.push([table, col, pattern]);
           return chain;
         },
         not(...args) {
@@ -527,6 +645,62 @@ test('admin-reviews GET searches server side with ilike over the text and the re
   assert.deepEqual(out.page, { offset: 0, limit: 25, returned: 1 });
 });
 
+test('admin-reviews GET resolves matching usernames to ids and folds them into the search', async () => {
+  // Contract item 3 says the search covers the reviewer USERNAME, and the
+  // console tells the operator so. venue_reviews only carries the denormalised
+  // reviewer_name, so profiles.username has to be resolved to ids first.
+  const db = fakeDb({
+    profiles: {
+      data: [
+        { id: '018f5c2e-1a2b-7c3d-8e4f-0123456789ab' },
+        { id: 'E5A1B2C3-D4E5-4F60-8112-233445566778' },
+      ],
+      error: null,
+    },
+    venue_reviews: (state) => {
+      if (state.range) return { data: [], count: 0, error: null };
+      if (state.not) return { data: [], count: null, error: null };
+      return { data: null, count: 0, error: null };
+    },
+  });
+
+  await reviewsHandle({ req: fakeReq(), op: fakeOp(db), db, method: 'GET', query: { q: 'dan' }, body: {} });
+
+  assert.deepEqual(db.calls.ilikes, [['profiles', 'username', '%dan%']]);
+  assert.equal(db.calls.filters.length, 1);
+  const filter = db.calls.filters[0];
+  assert.match(filter, /review_text\.ilike\.%dan%/);
+  assert.match(filter, /reviewer_name\.ilike\.%dan%/);
+  assert.match(
+    filter,
+    /user_id\.in\.\(018f5c2e-1a2b-7c3d-8e4f-0123456789ab,e5a1b2c3-d4e5-4f60-8112-233445566778\)/,
+    'ids are lower-cased through uuid() so nothing unvalidated reaches the filter'
+  );
+});
+
+test('admin-reviews GET still lists when the username lookup fails', async () => {
+  const db = fakeDb({
+    profiles: { data: null, error: { message: 'permission denied for table profiles' } },
+    venue_reviews: (state) => {
+      if (state.range) return { data: [], count: 0, error: null };
+      if (state.not) return { data: [], count: null, error: null };
+      return { data: null, count: 0, error: null };
+    },
+  });
+  const out = await reviewsHandle({
+    req: fakeReq(),
+    op: fakeOp(db),
+    db,
+    method: 'GET',
+    query: { q: 'dan' },
+    body: {},
+  });
+  assert.equal(out.total, 0);
+  const filter = db.calls.filters[0];
+  assert.doesNotMatch(filter, /user_id\.in/, 'a failed lookup narrows the search, it does not break it');
+  assert.match(filter, /review_text\.ilike\.%dan%/);
+});
+
 test('admin-reviews GET builds no search filter when q is absent or blank', async () => {
   const db = fakeDb({
     venue_reviews: (state) => {
@@ -562,6 +736,65 @@ test('horse-launch status is a read-only snapshot and asks only for fleet.read',
   for (const state of db.calls.tables) {
     assert.equal(state.op, 'select', 'status must never write');
   }
+});
+
+test('horse-launch status returns the new names AND the legacy aliases the panel reads', async () => {
+  // Contract addendum item 13. Without the aliases every tile on the Grinder
+  // fleet panel renders '-' beside a hint claiming the figure came straight
+  // from this route.
+  const db = fakeDb({
+    profiles: (state) => ({ count: state.eqs.some(([c, v]) => c === 'horse_status' && v === 'seated') ? 340 : 1200, error: null }),
+    tables: { count: 89, error: null },
+    tournaments: { count: 12, error: null },
+  });
+  const out = await launchHandle({
+    req: fakeReq(),
+    op: fakeOp(db),
+    db,
+    method: 'POST',
+    query: {},
+    body: { action: 'status' },
+    requestId: 'req-1',
+  });
+
+  assert.equal(out.totalHorses, 1200);
+  assert.equal(out.seatedHorses, 340);
+  assert.equal(out.activeTables, 89);
+  assert.equal(out.activeTournaments, 12);
+  assert.equal(out.cashTables, out.activeTables, 'legacy alias cashTables');
+  assert.equal(out.horsesSeated, out.seatedHorses, 'legacy alias horsesSeated');
+  assert.equal(out.tournaments, out.activeTournaments, 'legacy alias tournaments');
+  assert.equal(out.timestamp, out.checkedAt, 'legacy alias timestamp');
+  assert.match(out.checkedAt, /^\d{4}-\d{2}-\d{2}T/, 'Status Read At needs a real timestamp');
+});
+
+test('horse-launch status names a failed source generically and carries the request id', async () => {
+  // Contract addendum item 16: no raw database text in the response.
+  const db = fakeDb({
+    profiles: { count: 1200, error: null },
+    tables: { count: null, error: { message: 'relation "tables" does not exist' } },
+    tournaments: { count: 12, error: null },
+  });
+  const out = await launchHandle({
+    req: fakeReq(),
+    op: fakeOp(db),
+    db,
+    method: 'POST',
+    query: {},
+    body: { action: 'status' },
+    requestId: 'req-42',
+  });
+  assert.equal(out.activeTables, null, 'a failed count is null, never 0');
+  assert.equal(out.cashTables, null);
+  assert.deepEqual(out.failedSources, [{ source: 'tables', error: 'tables read failed', requestId: 'req-42' }]);
+  assert.ok(!JSON.stringify(out).includes('does not exist'), 'database text must never reach the browser');
+});
+
+test('horse-launch POST is rate limited at the write tier', () => {
+  // A POST that writes an audit row on every refusal must not sit in the
+  // 120/min read bucket: a stale cached client in a retry loop would fill
+  // admin_audit_log with fleet.launch_refused rows.
+  assert.equal(launchSpec.limit, 'write');
 });
 
 test('horse-launch launch_all is 410 retired, and the refusal is audited', async () => {
@@ -610,4 +843,206 @@ test('horse-launch 400s on an unknown action', async () => {
     () => launchHandle({ req: fakeReq(), op: fakeOp(db), db, method: 'POST', query: {}, body: { action: 'seed_everything' } }),
     (err) => err.status === 400 && err.code === 'invalid_action'
   );
+});
+
+// ------------------------------------------------- handler unit: hg pagination
+
+/** A caller-scoped client double: the hg routes run every RPC on this. */
+function fakeUserDb(responder) {
+  const calls = [];
+  return {
+    calls,
+    async rpc(name, args) {
+      calls.push({ name, args });
+      const r = typeof responder === 'function' ? responder(name, args) : responder;
+      return r || { data: null, error: null };
+    },
+  };
+}
+
+const hgOp = { user: { id: 'op-1' }, role: 'admin', requestId: 'req-1' };
+
+test('hg-reports returns total null and hasMore true when the RPC gives no count', async () => {
+  // Contract addendum item 15. The fabricated total (offset + rows.length) made
+  // page one of a full queue read "Showing 1-50 Of 50" and disabled Next, so
+  // every report past row 50 was unreachable - on the DEFAULT tab.
+  const rows = Array.from({ length: 50 }, (_, i) => ({ id: `r${i}` }));
+  const userDb = fakeUserDb({ data: { success: true, reports: rows }, error: null });
+  const out = await reportsHandle({
+    method: 'GET',
+    op: hgOp,
+    userDb,
+    query: { limit: '50', offset: '0' },
+  });
+  assert.equal(out.total, null, 'an unknown total must be null, never invented');
+  assert.equal(out.hasMore, true, 'a full page means there may be more');
+  assert.equal(out.rows.length, 50);
+  assert.deepEqual(out.reports, out.rows, 'the legacy key is still there');
+  assert.equal(out.limit, 50);
+  assert.equal(out.offset, 0);
+});
+
+test('hg-reports reports hasMore false on a short page and uses a real count when given one', async () => {
+  const short = fakeUserDb({ data: { reports: [{ id: 'r1' }, { id: 'r2' }] }, error: null });
+  const outShort = await reportsHandle({ method: 'GET', op: hgOp, userDb: short, query: { limit: '50' } });
+  assert.equal(outShort.total, null);
+  assert.equal(outShort.hasMore, false);
+
+  const counted = fakeUserDb({ data: { total: 137, reports: [{ id: 'r1' }] }, error: null });
+  const outCounted = await reportsHandle({
+    method: 'GET',
+    op: hgOp,
+    userDb: counted,
+    query: { limit: '50', offset: '100' },
+  });
+  assert.equal(outCounted.total, 137);
+  assert.equal(outCounted.hasMore, true, '100 + 1 < 137');
+
+  const last = fakeUserDb({ data: { total: 101, reports: [{ id: 'r1' }] }, error: null });
+  const outLast = await reportsHandle({
+    method: 'GET',
+    op: hgOp,
+    userDb: last,
+    query: { limit: '50', offset: '100' },
+  });
+  assert.equal(outLast.hasMore, false, '100 + 1 is not less than 101');
+});
+
+test('hg-reports treats an empty ?id= as a list request, not a malformed detail request', async () => {
+  const userDb = fakeUserDb({ data: [{ id: 'r1' }], error: null });
+  const out = await reportsHandle({ method: 'GET', op: hgOp, userDb, query: { id: '' } });
+  assert.equal(userDb.calls[0].name, 'list_home_content_reports');
+  assert.equal(out.rows.length, 1);
+
+  const detail = fakeUserDb({ data: { id: 'r1' }, error: null });
+  const outDetail = await reportsHandle({
+    method: 'GET',
+    op: hgOp,
+    userDb: detail,
+    query: { id: '018f5c2e-1a2b-7c3d-8e4f-0123456789ab' },
+  });
+  assert.equal(detail.calls[0].name, 'get_home_content_report_detail');
+  assert.deepEqual(outDetail.report, { id: 'r1' });
+
+  const bad = fakeUserDb({ data: null, error: null });
+  await assert.rejects(
+    () => reportsHandle({ method: 'GET', op: hgOp, userDb: bad, query: { id: 'not-a-uuid' } }),
+    (err) => err.status === 400 && err.code === 'invalid_report_id'
+  );
+});
+
+test('hg-appeals returns total null and hasMore from the page size', async () => {
+  const rows = Array.from({ length: 25 }, (_, i) => ({ id: `a${i}` }));
+  const userDb = fakeUserDb({ data: rows, error: null });
+  const out = await appealsHandle({
+    method: 'GET',
+    op: hgOp,
+    userDb,
+    query: { limit: '25', offset: '50' },
+  });
+  assert.equal(out.total, null);
+  assert.equal(out.hasMore, true);
+  assert.deepEqual(out.appeals, out.rows, 'the legacy appeals key is still there');
+  assert.equal(userDb.calls[0].name, 'list_home_ban_appeals_admin');
+  assert.equal(userDb.calls[0].args.p_offset, 50);
+  assert.equal(userDb.calls[0].args.p_caller_user_id, 'op-1');
+
+  const counted = fakeUserDb({ data: { total: 4, appeals: [{ id: 'a1' }] }, error: null });
+  const outCounted = await appealsHandle({ method: 'GET', op: hgOp, userDb: counted, query: {} });
+  assert.equal(outCounted.total, 4);
+  assert.equal(outCounted.hasMore, true);
+});
+
+test('hg-appeals PATCH audits the decision on the service-role client, not the caller client', async () => {
+  const db = fakeDb();
+  const userDb = fakeUserDb({ data: { unbanned: true }, error: null });
+  const out = await appealsHandle({
+    req: fakeReq(),
+    method: 'PATCH',
+    op: { ...hgOp, db },
+    db,
+    userDb,
+    query: {},
+    body: {
+      appeal_id: '018f5c2e-1a2b-7c3d-8e4f-0123456789ab',
+      decision: 'approved',
+      reviewer_note: '  looks right  ',
+    },
+  });
+  assert.equal(out.decision, 'approved');
+  assert.equal(userDb.calls[0].name, 'review_home_ban_appeal');
+  assert.equal(userDb.calls[0].args.p_reviewer_note, 'looks right');
+  assert.equal(userDb.calls.length, 1, 'the audit row must not go through the caller client');
+  assert.equal(db.calls.rpc.length, 1);
+  assert.equal(db.calls.rpc[0].args.p_action, 'hg.appeal_reviewed');
+  assert.equal(db.calls.rpc[0].args.p_details.decision, 'approved');
+
+  await assert.rejects(
+    () =>
+      appealsHandle({
+        req: fakeReq(),
+        method: 'PATCH',
+        op: { ...hgOp, db },
+        db,
+        userDb: fakeUserDb({ data: null, error: null }),
+        query: {},
+        body: { appeal_id: '018f5c2e-1a2b-7c3d-8e4f-0123456789ab', decision: 'maybe' },
+      }),
+    (err) => err.status === 400 && err.code === 'invalid_decision'
+  );
+});
+
+// ------------------------------------ handler unit: onboarding and pipeline
+
+test('hg-onboarding-status keeps its audit row and pays for it with the write rate bucket', async () => {
+  assert.equal(onboardingSpec.limit, 'write', 'an audited GET must not sit in the 120/min read bucket');
+
+  const db = fakeDb();
+  const userDb = fakeUserDb({ data: { step: 'complete' }, error: null });
+  const out = await onboardingHandle({
+    req: fakeReq(),
+    op: { ...hgOp, db },
+    db,
+    userDb,
+    query: { userId: '018f5c2e-1a2b-7c3d-8e4f-0123456789ab' },
+  });
+  assert.deepEqual(out.status, { step: 'complete' });
+  assert.equal(db.calls.rpc.length, 1, 'a support lookup of another player is audited');
+  assert.equal(db.calls.rpc[0].args.p_action, 'support.lookup_onboarding');
+  // PII posture: the row records that something was found, never what.
+  assert.deepEqual(db.calls.rpc[0].args.p_details, { found: true });
+});
+
+test('trigger-pipeline validates the requested type before answering 501', async () => {
+  assert.deepEqual(PIPELINE_TYPES, ['test', 'cycle', 'daily', 'publish']);
+
+  for (const type of PIPELINE_TYPES) {
+    await assert.rejects(
+      () => pipelineHandle({ body: { type } }),
+      (err) => {
+        assert.equal(err.status, 501);
+        assert.equal(err.code, 'not_built');
+        return true;
+      },
+      `a valid type (${type}) must still answer 501 not_built`
+    );
+  }
+
+  // A typo used to get the same 501 as a correct call, so the caller learned
+  // nothing about what it had sent.
+  for (const bad of ['daily_stories', '', 'TEST', 42, {}]) {
+    await assert.rejects(
+      () => pipelineHandle({ body: { type: bad } }),
+      (err) => {
+        assert.equal(err.status, 400, `type=${String(bad)} must be a 400`);
+        assert.equal(err.code, 'invalid_pipeline_type');
+        assert.match(err.message, /test, cycle, daily, publish/);
+        return true;
+      }
+    );
+  }
+
+  // No body at all is the console's own call shape and stays a 501.
+  await assert.rejects(() => pipelineHandle({}), (err) => err.status === 501);
+  await assert.rejects(() => pipelineHandle(), (err) => err.status === 501);
 });

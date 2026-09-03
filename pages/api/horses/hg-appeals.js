@@ -7,9 +7,9 @@
  * `userDb` speaks as the caller so auth.uid() resolves inside the SECURITY
  * DEFINER moderation RPCs.
  *
- * The list response carries `total`. It did not before, so the 200-row cap was
- * invisible to the page and an operator could not tell a full queue from a
- * truncated one.
+ * The list response carries `total` when the RPC knows one and `total: null`
+ * when it does not, never an invented figure, plus `hasMore`. A fabricated
+ * count is worse than no count: the pager believes it and stops.
  */
 import { withHgOperatorRoute } from '../../../src/lib/horses/hgOperator.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
@@ -29,6 +29,11 @@ export const spec = {
 /** The RPC returns either a bare array or a jsonb envelope; accept both. */
 function unwrapList(data) {
   if (Array.isArray(data)) return { rows: data, total: null };
+  if (data && typeof data === 'object' && !Array.isArray(data.appeals)) {
+    // An envelope keyed something else would silently render an empty queue,
+    // which reads exactly like "no appeals to review".
+    console.warn('[hg-appeals] rpc envelope has no appeals array; keys:', Object.keys(data).join(','));
+  }
   return { rows: data?.appeals ?? [], total: typeof data?.total === 'number' ? data.total : null };
 }
 
@@ -52,14 +57,19 @@ async function handleGet({ op, userDb, query }) {
     throw new ApiError(500, 'Appeals Could Not Be Loaded', 'appeals_read_failed');
   }
 
+  // Contract addendum item 15: when the RPC reports no count, `total` is null
+  // and the pager reads `hasMore`. It used to be filled with
+  // page.offset + rows.length, so page one of a full queue answered
+  // "Showing 1-50 Of 50" and the client's own `last < total` disabled Next:
+  // every appeal past row 50 was unreachable, and the count shown was a lie.
   const { rows, total: rpcTotal } = unwrapList(data);
-  const total = rpcTotal === null ? page.offset + rows.length : rpcTotal;
+  const total = rpcTotal;
   return {
     rows,
     total,
     limit: page.limit,
     offset: page.offset,
-    hasMore: rpcTotal === null ? rows.length === page.limit : page.offset + rows.length < total,
+    hasMore: rpcTotal === null ? rows.length === page.limit : page.offset + rows.length < rpcTotal,
     // Legacy field name the moderation page already reads.
     appeals: rows,
   };

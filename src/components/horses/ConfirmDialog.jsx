@@ -6,7 +6,7 @@
  * this file guesses at consequences - the caller passes the sentence, because
  * the caller is the only thing that knows what is about to move.
  */
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import Modal from './Modal';
 import styles from './shared.module.css';
 
@@ -25,6 +25,10 @@ export default function ConfirmDialog({
   blockEscape = false,
 }) {
   const [typed, setTyped] = useState('');
+  // Generated, not hardcoded: two confirm dialogs on screen at once would
+  // otherwise share one DOM id and the second label would point at the first
+  // input. Modal already does this for its title.
+  const typedId = useId();
   const typedOk = !requireTyped || typed.trim().toUpperCase() === String(requireTyped).trim().toUpperCase();
 
   return (
@@ -39,11 +43,11 @@ export default function ConfirmDialog({
 
       {requireTyped && (
         <>
-          <label className={styles.confirmTypedLabel} htmlFor="confirm-typed">
+          <label className={styles.confirmTypedLabel} htmlFor={typedId}>
             Type {requireTyped} To Confirm
           </label>
           <input
-            id="confirm-typed"
+            id={typedId}
             className={styles.confirmTypedInput}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}

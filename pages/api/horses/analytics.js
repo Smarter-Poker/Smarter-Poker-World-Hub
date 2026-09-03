@@ -37,13 +37,42 @@ export const spec = {
   limit: 'read',
 };
 
+/**
+ * Run one analytics service call with the service's own errors kept OUT of the
+ * response.
+ *
+ * `scrubError` only replaces messages that LOOK like database text; anything
+ * else is returned to the browser verbatim, first 200 characters. So any error
+ * HorseAlertingService throws - a fetch failure carrying an internal URL, a
+ * TypeError naming a private field - reached the operator's screen, where the
+ * original route had always returned the fixed string 'Failed to load
+ * analytics'. Every call now becomes one 503 with a sentence this file wrote.
+ */
+async function callAnalytics(label, run) {
+  try {
+    return await run();
+  } catch (err) {
+    console.error(`[horses.analytics] ${label} failed:`, err?.message || err);
+    throw new ApiError(503, 'Analytics Is Unavailable', 'analytics_unavailable');
+  }
+}
+
+/** A repeated query param arrives as an array; take the first value. */
+function firstValue(value) {
+  if (Array.isArray(value)) return value.length ? value[0] : undefined;
+  return value;
+}
+
 export async function handle({ query }) {
-  const type = enumOf(query.type || 'summary', TYPES);
+  // `?type=summary&type=errors` made query.type an array, enumOf returned null
+  // for a non-string, and the route 400'd where the original coerced.
+  const type = enumOf(String(firstValue(query.type) ?? 'summary'), TYPES);
   if (!type) throw badRequest('Invalid Type Parameter');
 
   // `?days=abc` used to become NaN and travel all the way into the query.
-  const numDays = int(query.days, { min: 1, max: 365, fallback: null });
-  if (query.days !== undefined && query.days !== '' && numDays === null) {
+  const rawDays = firstValue(query.days);
+  const numDays = int(rawDays, { min: 1, max: 365, fallback: null });
+  if (rawDays !== undefined && rawDays !== '' && numDays === null) {
     throw badRequest('Days Must Be Between 1 And 365');
   }
   const days = numDays ?? 7;
@@ -59,27 +88,32 @@ export async function handle({ query }) {
     throw new ApiError(503, 'Analytics Is Unavailable', 'analytics_unavailable');
   }
 
-  const alertingService = new HorseAlertingService(SUPABASE_URL, serviceKey());
+  const alertingService = await callAnalytics(
+    'construct',
+    async () => new HorseAlertingService(SUPABASE_URL, serviceKey())
+  );
 
   if (type === 'summary') {
-    return { data: await alertingService.getAnalyticsSummary(days) };
+    return { data: await callAnalytics('summary', () => alertingService.getAnalyticsSummary(days)) };
   }
 
   if (type === 'errors') {
-    const [recent, breakdown] = await Promise.all([
-      alertingService.getRecentErrors(20),
-      alertingService.getErrorBreakdown(days),
-    ]);
+    const [recent, breakdown] = await callAnalytics('errors', () =>
+      Promise.all([alertingService.getRecentErrors(20), alertingService.getErrorBreakdown(days)])
+    );
     return { data: { recent, breakdown } };
   }
 
   if (type === 'top-horses') {
-    return { data: await alertingService.getTopHorses(days, 10) };
+    return { data: await callAnalytics('top-horses', () => alertingService.getTopHorses(days, 10)) };
   }
 
-  const tracker = new ClipUsageTracker(SUPABASE_URL, serviceKey());
-  const usedClips = await tracker.getRecentlyUsedClips(24);
-  return { data: { usedInLast24h: usedClips.length, clips: usedClips } };
+  const usedClips = await callAnalytics('clips', async () => {
+    const tracker = new ClipUsageTracker(SUPABASE_URL, serviceKey());
+    return tracker.getRecentlyUsedClips(24);
+  });
+  const clips = usedClips || [];
+  return { data: { usedInLast24h: clips.length, clips } };
 }
 
 export default withOperatorRoute(spec, handle);

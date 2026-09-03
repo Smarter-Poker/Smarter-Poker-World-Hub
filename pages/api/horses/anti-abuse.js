@@ -14,7 +14,8 @@
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { badRequest } from '../../../src/lib/horses/apiEnvelope.js';
-import { paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { runPaged } from '../../../src/lib/horses/paged.js';
+import { pageFor, shapeList } from '../../../src/lib/horses/listShape.js';
 import { enumOf } from '../../../src/lib/horses/validate.js';
 
 const VALID_SECTIONS = ['all', 'abuse', 'audit', 'economy', 'alerts'];
@@ -38,6 +39,28 @@ export function maskEmail(raw) {
   return `${value[0]}***${value.slice(at)}`;
 }
 
+/**
+ * The abuse log is `select('*')`, and one of those columns is `raw_email`.
+ * Masking it in the alerts feed while shipping it unmasked in the log rows
+ * rendered directly underneath - in a column headed "Email" - defeated the
+ * masking on the same screen. Same treatment in both places now.
+ */
+export function maskLogRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  if (!('raw_email' in row)) return row;
+  return { ...row, raw_email: maskEmail(row.raw_email), email: maskEmail(row.raw_email), emailMasked: true };
+}
+
+/**
+ * A named source that failed, with NO database text (contract line 5, addendum
+ * item 16). The console renders `${f.source} (${f.error})`, so `error` carries
+ * the generic sentence and the real message is logged under the request id.
+ */
+function sourceFailure(source, error, requestId) {
+  console.error(`[horses.anti-abuse] ${requestId || 'no-request-id'} ${source} read failed:`, error?.message || error);
+  return { source, code: 'read_failed', error: `${source} read failed`, requestId: requestId || null };
+}
+
 export const spec = {
   name: 'horses.anti-abuse',
   methods: ['GET'],
@@ -45,15 +68,17 @@ export const spec = {
   limit: 'read',
 };
 
-export async function handle({ db, query }) {
+export async function handle({ db, query, requestId }) {
   // ?section=bogus used to fall through every branch and return
   // { success: true } with no keys, so every panel rendered empty and the
   // operator had no way to tell a typo from a quiet platform.
   const section = enumOf(query.section || 'all', VALID_SECTIONS);
   if (!section) throw badRequest(`Unknown Section. Valid: ${VALID_SECTIONS.join(', ')}`);
 
-  const abusePage = paging(query, ABUSE_PAGE);
-  const auditPage = paging(query, AUDIT_PAGE);
+  // Two independent lists, two independent pagers: `abuseLimit`/`abuseOffset`
+  // and `auditLimit`/`auditOffset`, each falling back to the shared params.
+  const abusePage = pageFor(query, 'abuse', ABUSE_PAGE);
+  const auditPage = pageFor(query, 'audit', AUDIT_PAGE);
 
   // A DISCARDED ERROR ON THIS TAB IS A FALSE NEGATIVE. The three main reads
   // below destructured `data` only, so a permission failure or a query error
@@ -75,10 +100,9 @@ export async function handle({ db, query }) {
       abusePage
     );
     if (abuseRes.error) {
-      console.warn('[anti-abuse] signup_abuse_log read failed:', abuseRes.error);
-      failedSources.push({ source: 'signup_abuse_log', error: abuseRes.error.message });
+      failedSources.push(sourceFailure('signup_abuse_log', abuseRes.error, requestId));
     }
-    const abuseLog = abuseRes.data || [];
+    const abuseLog = (abuseRes.data || []).map(maskLogRow);
 
     // Stats over the WHOLE table, not just the page above. These were
     // previously derived from `abuseLog` alone, so "Total Signups" was really
@@ -131,8 +155,9 @@ export async function handle({ db, query }) {
         disposableScope: 'current page only',
       },
       topIPs,
+      emailsMasked: true,
     };
-    pages.abuse = pagedResult(abuseRes, abusePage);
+    pages.abuse = shapeList(abuseRes, abusePage, abuseLog);
   }
 
   // -- ADMIN AUDIT LOG --
@@ -142,11 +167,10 @@ export async function handle({ db, query }) {
       auditPage
     );
     if (auditRes.error) {
-      console.warn('[anti-abuse] admin_audit_log read failed:', auditRes.error);
-      failedSources.push({ source: 'admin_audit_log', error: auditRes.error.message });
+      failedSources.push(sourceFailure('admin_audit_log', auditRes.error, requestId));
     }
     result.audit = auditRes.data || [];
-    pages.audit = pagedResult(auditRes, auditPage);
+    pages.audit = shapeList(auditRes, auditPage);
   }
 
   // -- DIAMOND ECONOMY --
@@ -162,7 +186,7 @@ export async function handle({ db, query }) {
       .order('created_at', { ascending: false })
       .limit(ECONOMY_TX_CAP);
 
-    if (txErr) console.warn('[Anti-Abuse] diamond_transactions error:', txErr.message || txErr);
+    if (txErr) failedSources.push(sourceFailure('diamond_transactions', txErr, requestId));
 
     const sourceBreakdown = {};
     let totalGranted = 0;
@@ -170,9 +194,13 @@ export async function handle({ db, query }) {
 
     (transactions || []).forEach((tx) => {
       const type = tx.transaction_type || 'unknown';
-      sourceBreakdown[type] = (sourceBreakdown[type] || 0) + Math.abs(tx.amount);
-      if (tx.amount > 0) totalGranted += tx.amount;
-      else totalSpent += Math.abs(tx.amount);
+      // A null amount made Math.abs return NaN, which poisoned the breakdown
+      // for that whole type and rendered as NaN on the tab. The neighbouring
+      // lines already guarded; this one did not.
+      const amount = Number(tx.amount) || 0;
+      sourceBreakdown[type] = (sourceBreakdown[type] || 0) + Math.abs(amount);
+      if (amount > 0) totalGranted += amount;
+      else totalSpent += Math.abs(amount);
     });
 
     // Top diamond holders.
@@ -188,8 +216,7 @@ export async function handle({ db, query }) {
       .order('diamonds', { ascending: false })
       .limit(20);
     if (holdersErr) {
-      console.warn('[anti-abuse] top holders read failed:', holdersErr);
-      failedSources.push({ source: 'profiles.top_holders', error: holdersErr.message });
+      failedSources.push(sourceFailure('profiles.top_holders', holdersErr, requestId));
     }
 
     result.economy = {

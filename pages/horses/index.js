@@ -50,6 +50,10 @@
  *    Ledger can be bookmarked. The first write (normalising a bare /horses)
  *    is a replace; every navigation after it is a push, which is what makes
  *    Back undo a "Needs Attention" jump instead of leaving the console.
+ *    The read and write effects are latched so a deep link cannot be destroyed
+ *    by the write effect running in the same commit as the read - the whole
+ *    mechanism is written out above `urlHydratedRef` and the pure half lives
+ *    in src/components/horses/urlState.js.
  *
  * C. THE NAV IS A REAL TABLIST. role=tablist / tab / tabpanel, aria-selected,
  *    aria-controls, and arrow / Home / End key movement.
@@ -64,8 +68,24 @@
  *    of querying live_help_tickets from the browser under the operator's RLS.
  *
  * F. HONEST EXPORTS AND HONEST DEAD BUTTONS. The audit CSV walks every page and
- *    carries details/before/after; the permanently disabled club-management and
- *    pipeline buttons are replaced by a Not Built Yet panel that says so.
+ *    carries details/before/after (the Export CSV button calls exportAuditLog,
+ *    which is the only thing that makes that true); the permanently disabled
+ *    club-management and pipeline buttons are replaced by a Not Built Yet panel
+ *    that says so.
+ *
+ * --- 2026-09-03 REVIEW PASS - what the adversarial review changed -----------
+ *
+ * G. NO CAPPED FIGURE PASSES AS A TOTAL. Every list this console renders
+ *    without a pager now sends its cap explicitly and renders "Showing N Of
+ *    Total" when the route reports `truncated`; every count comes from the
+ *    route's own total (memberChipTotal, memberCount, pages.<list>.total,
+ *    caStats.pendingCashouts) instead of the length of the array that fitted.
+ *    The grinder roster is paged by the ROUTE, not sliced client-side over a
+ *    response that never contained those rows.
+ *
+ * H. THE MINT'S IDEMPOTENCY KEY IS BOUND TO ITS PAYLOAD. It rotates the moment
+ *    any field of the composed operation changes and is stable across retries
+ *    of the same one, so a key can never outlive the intent it was minted for.
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -83,9 +103,14 @@ import styles from './horses.module.css';
 import shared from '../../src/components/horses/shared.module.css';
 import { T, num, signed, when, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
 import {
-  TABS, EXTERNAL_LINKS, CA_SECTIONS, DEFAULT_TAB, DEFAULT_CA_SECTION,
-  visibleTabs, resolveTabFromQuery, resolveSectionFromQuery,
+  TABS, EXTERNAL_LINKS, CA_SECTIONS, DEFAULT_TAB, DEFAULT_CA_SECTION, visibleTabs,
 } from '../../src/components/horses/tabRegistry';
+import {
+  resolveInitialTab, resolveInitialSection, urlMatchesState, nextUrlQuery,
+} from '../../src/components/horses/urlState';
+import {
+  AUDIT_FILTER_GROUPS, auditActionFilter,
+} from '../../src/components/horses/auditFilters';
 import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
 import Modal from '../../src/components/horses/Modal';
 import ConfirmDialog from '../../src/components/horses/ConfirmDialog';
@@ -171,6 +196,81 @@ const MINT_LEDGER_PAGE_SIZE = 50;
 /** How many tickets a page of Bug Reports shows. */
 const TICKETS_PER_PAGE = 50;
 
+/** One page of the grinder roster. grinder-stats pages the roster SERVER side
+ *  and caps `limit` at 500 (PHASE1-CONTRACTS addendum item 12). The client used
+ *  to fetch the route's default first page and then paginate the full 1,000-row
+ *  persona list over the top of it, so every row past 50 rendered another
+ *  horse's blank stats. */
+const GRINDER_ROSTER_PAGE_SIZE = 50;
+
+/**
+ * EXPLICIT ROW CAPS for the lists this console renders WITHOUT a pager.
+ *
+ * PHASE1-CONTRACTS addendum item 10: a cap must never be invisible. These are
+ * the original caps, sent on the request rather than left to a route default,
+ * so the number a panel can show is written down in the code that shows it -
+ * and every one of those responses carries `truncated`, which is rendered as
+ * "Showing N Of Total" wherever it is true.
+ */
+const CA_OVERVIEW_LIMIT = 200;   // clubs; unions and cashouts ride the same read
+const CA_CLUB_LIMIT = 300;       // members, and the agent/table lists beside them
+const CA_LEDGER_LIMIT = 200;     // drift rows, circulation, seat exits
+const MINT_TARGET_LIMIT = 500;   // club and union pickers
+
+/** The id of the one tabpanel. Every tab's aria-controls points here. */
+const HORSES_PANEL_ID = 'horses-panel';
+
+/**
+ * A stored timestamp as the LOCAL "YYYY-MM-DDTHH:mm" a datetime-local input
+ * means.
+ *
+ * The promo edit form used to seed the input with the first sixteen characters
+ * of the UTC ISO string. `datetime-local` reads whatever it is given as LOCAL
+ * time, so an expiry stored at 20:00Z was shown as 20:00 local and saved back
+ * as 20:00 local - moving the real expiry by the operator's offset on every
+ * save, including saves that never touched the field.
+ */
+function toLocalDateTimeInput(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    + `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * The other half: a datetime-local value as an absolute instant.
+ *
+ * The bare string carries no zone, and the route resolves it with the SERVER's
+ * clock (UTC on Vercel), not the operator's. Converting here - where the
+ * offset is actually known - is what makes the instant the operator picked the
+ * instant that gets stored.
+ */
+function localInputToIso(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
+ * The one sentence a capped list owes the operator.
+ *
+ * Rendered only when the route says it truncated, so a complete list stays
+ * quiet. Never guesses: with no `total` it says the list is capped without
+ * inventing the number it was capped from.
+ */
+function ShowingOf({ truncated, count, total, noun = 'Rows' }) {
+  if (!truncated) return null;
+  return (
+    <div className={styles.warnBanner}>
+      Showing {num(count, '0')}
+      {total === null || total === undefined ? '' : ` Of ${num(total)}`} {noun}.
+      {' '}This List Is Capped By The Route, So It Is A Page And Not A Total.
+    </div>
+  );
+}
+
 /** Rows per request while an export walks every page. */
 const EXPORT_PAGE_SIZE = 500;
 
@@ -207,14 +307,21 @@ export default function HorsesAdmin() {
   // ── Stable ──
   const [personas, setPersonas] = useState([]);
   const [personasError, setPersonasError] = useState(null);
+  // Loading and empty are different states. Without this the roster flashed
+  // "No horses in the stable yet. Create one to get started." on every mount,
+  // which is the one sentence an operator must never be shown about a stable
+  // that has 593 horses in it.
+  const [personasLoading, setPersonasLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(0);
   // The Grinder roster used to reuse searchTerm/filter/page from the Social
   // Horses tab, so a search typed there silently filtered a table on a
-  // different tab with no visible control explaining why.
+  // different tab with no visible control explaining why. It has its own
+  // controls now, and the PAGE is the route's (grinderOffset), not a slice of
+  // a list the route never sent.
   const [grinderSearch, setGrinderSearch] = useState('');
-  const [grinderPage, setGrinderPage] = useState(0);
+  const [grinderOffset, setGrinderOffset] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [personaForm, setPersonaForm] = useState(EMPTY_PERSONA);
@@ -370,7 +477,9 @@ export default function HorsesAdmin() {
   const [scraperHealthLastFetch, setScraperHealthLastFetch] = useState(null);
 
   // ── Club Arena ──
-  const [caSection, setCaSection] = useState('overview');
+  // The registry owns the default. Repeating the literal here is how the two
+  // silently desync the day a section is renamed.
+  const [caSection, setCaSection] = useState(DEFAULT_CA_SECTION);
   const [caLoaded, setCaLoaded] = useState(false);
   const [caLoading, setCaLoading] = useState(false);
   const [caError, setCaError] = useState(null);
@@ -392,11 +501,18 @@ export default function HorsesAdmin() {
   const [caAppLoading, setCaAppLoading] = useState(false);
   const [caAppTab, setCaAppTab] = useState('pending');
   const [caAppCommission, setCaAppCommission] = useState({});
-  const [caAppReason, setCaAppReason] = useState('');
+  // Keyed by application id, like caAppCommission already was. One shared
+  // string meant the reason typed under application A was sent as the
+  // rejection reason for application B.
+  const [caAppReason, setCaAppReason] = useState({});
   const [caLeaveRequests, setCaLeaveRequests] = useState([]);
   const [caLeaveLoading, setCaLeaveLoading] = useState(false);
   const [caLeaveTab, setCaLeaveTab] = useState('pending');
   // Ledger reconciliation and revenue -- both tables had 0 surface anywhere.
+  // The `pages` envelope of the overview read: { clubs, unions, cashouts }
+  // each { total, limit, offset, truncated }. Every count the Club Arena tab
+  // renders comes from here rather than from the length of a capped array.
+  const [caPages, setCaPages] = useState(null);
   const [caLedger, setCaLedger] = useState(null);
   const [caLedgerLoading, setCaLedgerLoading] = useState(false);
   const [caLedgerError, setCaLedgerError] = useState(null);
@@ -526,11 +642,11 @@ export default function HorsesAdmin() {
     setCaLoaded(false); setCaStats(null); setCaClubs([]); setCaUnions([]);
     setCaFinance(null); setCaPendingCashouts([]); setCaSelectedClub(null);
     setCaClubDetail(null); setCaSelectedUser(null); setCaUserResults([]);
-    // These carry PII -- union applications embed the owner's display name and
-    // email -- and were surviving into the next admin's session.
+    // These carry PII -- the leave-request rows embed the owner's display name
+    // and email -- and were surviving into the next admin's session.
     setCaApplications([]); setCaLeaveRequests([]); setCaAppCommission({});
-    setCaAppReason(''); setCaUserSearch(''); setCaAppTab('pending'); setCaLeaveTab('pending');
-    setCaLedger(null); setCaRevenue(null); setBadges(null);
+    setCaAppReason({}); setCaUserSearch(''); setCaAppTab('pending'); setCaLeaveTab('pending');
+    setCaLedger(null); setCaRevenue(null); setCaPages(null); setBadges(null);
     setScraperHealthLastFetch(null); setSelectedIds(new Set()); setAvatarResult(null);
     setActiveTab('stable');
   };
@@ -573,21 +689,26 @@ export default function HorsesAdmin() {
     // unbounded `select('*')` would have started dropping horses off the end
     // of the stable with no error to notice. Same reason `.range()` is used on
     // every other growing table in this estate.
-    const [authorsRes, settingsRes, runsRes] = await Promise.all([
-      fetchAllAuthors(),
-      supabase.from('content_settings').select('*').limit(1).maybeSingle(),
-      supabase.from('pipeline_runs').select('*').order('started_at', { ascending: false }).limit(10),
-    ]);
+    setPersonasLoading(true);
+    try {
+      const [authorsRes, settingsRes, runsRes] = await Promise.all([
+        fetchAllAuthors(),
+        supabase.from('content_settings').select('*').limit(1).maybeSingle(),
+        supabase.from('pipeline_runs').select('*').order('started_at', { ascending: false }).limit(10),
+      ]);
 
-    if (authorsRes.error) {
-      setPersonasError(authorsRes.error.message);
-      setPersonas([]);
-    } else {
-      setPersonasError(null);
-      setPersonas(authorsRes.data || []);
+      if (authorsRes.error) {
+        setPersonasError(authorsRes.error.message);
+        setPersonas([]);
+      } else {
+        setPersonasError(null);
+        setPersonas(authorsRes.data || []);
+      }
+      if (settingsRes.data) setSettings((prev) => ({ ...prev, ...settingsRes.data }));
+      setPipelineRuns(runsRes.data || []);
+    } finally {
+      setPersonasLoading(false);
     }
-    if (settingsRes.data) setSettings((prev) => ({ ...prev, ...settingsRes.data }));
-    setPipelineRuns(runsRes.data || []);
   }, [fetchAllAuthors]);
 
   const loadPromoCodes = useCallback(async () => {
@@ -636,6 +757,32 @@ export default function HorsesAdmin() {
   }, []);
 
   /**
+   * THE IDEMPOTENCY KEY IS BOUND TO THE PAYLOAD, NOT TO THE SESSION.
+   *
+   * fn_ca_mint claims `opId` and replays the ORIGINAL result when it sees the
+   * same key twice, which is what makes a double-click harmless. The key used
+   * to rotate only on a successful submit or an explicit Clear - so after a
+   * FAILED submit the operator could cancel, change the target, the asset or
+   * the amount, and re-compose carrying the same key. If that first attempt
+   * had actually committed and only the response was lost, the second one
+   * replays the first operation: the panel reports "Already Done" for an
+   * operation that never happened, with a receipt for the wrong amount and the
+   * wrong holder. The route delegates key generation to the client and does
+   * not bind the key to the payload, so binding it is this component's job.
+   *
+   * Derived from the composed payload: it rotates the moment any field changes
+   * and stays stable across every retry of the SAME payload, which is the only
+   * case idempotency is meant to cover.
+   */
+  const mintPayloadKey = [
+    mintAction, mintAsset, mintTargetKind, mintTargetId,
+    String(mintAmount).trim(), mintReason.trim(),
+  ].join('|');
+  useEffect(() => {
+    setMintOpId(newMintOpId());
+  }, [mintPayloadKey, newMintOpId]);
+
+  /**
    * One page of the Mint journal. The route has always accepted limit/offset
    * (mint.js:136-137) and the panel sent neither, so it showed the newest 100
    * operations and nothing else could ever be reached.
@@ -674,9 +821,13 @@ export default function HorsesAdmin() {
     try {
       // Three independent reads. Promise.all rather than sequential awaits
       // because a slow club list should not delay the supply figures.
+      // The picker's cap is sent explicitly (addendum item 10) rather than
+      // left to a route default, and `truncated` is rendered beside the select
+      // so "the club I want is not in this list" is distinguishable from "that
+      // club does not exist".
       const [overview, targets] = await Promise.all([
         authFetch('/api/horses/mint?section=overview'),
-        authFetch('/api/horses/mint?section=targets'),
+        authFetch(`/api/horses/mint?section=targets&limit=${MINT_TARGET_LIMIT}`),
       ]);
       setMintOverview(overview);
       setMintTargets(targets);
@@ -763,6 +914,8 @@ export default function HorsesAdmin() {
     // submit time. `setMintOpId` would not be visible to submitMint on this
     // render pass, and an empty key would be rejected by the route -- or worse,
     // a later render would supply a different one and defeat the whole point.
+    // `mintOpId` is already the key for THIS payload (see mintPayloadKey); the
+    // fallback only covers the first render before that effect has run.
     const opId = mintOpId || newMintOpId();
     if (!mintOpId) setMintOpId(opId);
 
@@ -801,7 +954,24 @@ export default function HorsesAdmin() {
       });
 
       const result = body.result || {};
-      setMintReceipt(result);
+      // THE RECEIPT IS BUILT FROM WHAT THIS CONSOLE COMPOSED, merged with the
+      // balance and supply fields the route documents (mint.js only ever
+      // touches ok / reason / balance_before / balance_after / supply_before /
+      // supply_after / replayed / ledger_id). It used to read action, asset,
+      // amount, target_label and op_id straight off the raw fn_ca_mint return,
+      // none of which the route promises: if the RPC does not happen to emit
+      // `action`, a successful ISSUANCE renders as "Retired" with a blank
+      // amount and no holder. The client already knows all five for certain.
+      setMintReceipt({
+        ...result,
+        action: mintConfirm.action,
+        asset: mintConfirm.asset,
+        amount: mintConfirm.amount,
+        target_label: mintConfirm.label,
+        target_id: mintConfirm.targetId,
+        op_id: mintConfirm.opId,
+        replayed: result.replayed === true,
+      });
       setMintConfirm(null);
       showNotification(
         result.replayed
@@ -850,18 +1020,52 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
-  const loadGrinderData = useCallback(async () => {
+  /**
+   * Fleet totals plus ONE PAGE of the grinder roster.
+   *
+   * The route pages the roster itself (PHASE1-CONTRACTS addendum item 12) and
+   * this sent no limit and no offset, so it received the default first 50 rows
+   * and the table then paginated the full 1,000-row persona list on top of
+   * them. Every row past the 50th looked up a horse the response did not
+   * contain and silently rendered 0/4 tables, no hands, no profit and status
+   * Idle. Two independent paginations over the same list; there is one now,
+   * and it is the route's.
+   *
+   * `currentlyPlaying`, `totalHands` and `totalProfit` are WHOLE-FLEET figures
+   * (`totalsScope: 'fleet'`), not sums of the page, which is why the KPI row
+   * above the table does not move when the pager does.
+   */
+  const loadGrinderData = useCallback(async (offset = 0) => {
     setGrinderLoading(true);
     setGrinderError(null);
     try {
-      const data = await authFetch('/api/horses/grinder-stats');
-      setGrinderData(data.stats || null);
+      const params = new URLSearchParams({
+        limit: String(GRINDER_ROSTER_PAGE_SIZE),
+        offset: String(Math.max(0, offset)),
+      });
+      const data = await authFetch(`/api/horses/grinder-stats?${params.toString()}`);
+      // `roster` at the TOP LEVEL is the paged envelope
+      // ({ rows, total, limit, offset, hasMore, truncated }); `stats.roster` is
+      // the bare array of that same page. The envelope wins, so the table has
+      // the route's total and its hasMore rather than the length of whatever
+      // it happened to receive.
+      setGrinderData(data.stats
+        ? { ...data.stats, roster: data.roster ?? data.stats.roster ?? [] }
+        : null);
     } catch (err) {
       setGrinderError(err.message);
     } finally {
       setGrinderLoading(false);
     }
   }, [authFetch]);
+
+  /** Move the roster pager and load that page, so the offset in state and the
+   *  offset on screen can never disagree. */
+  const goGrinderRosterPage = useCallback((nextOffset) => {
+    const offset = Math.max(0, nextOffset);
+    setGrinderOffset(offset);
+    loadGrinderData(offset);
+  }, [loadGrinderData]);
 
   /**
    * One page of support tickets.
@@ -882,7 +1086,13 @@ export default function HorsesAdmin() {
     if (filters?.status && filters.status !== 'all') params.set('status', filters.status);
     if (filters?.q) params.set('q', filters.q);
     const d = await authFetch(`/api/horses/club-arena-admin?${params.toString()}`, { signal });
-    return { rows: d.rows || d.tickets || [], total: typeof d.total === 'number' ? d.total : null };
+    return {
+      rows: d.rows || d.tickets || [],
+      total: typeof d.total === 'number' ? d.total : null,
+      // Carried through so the Pager can enable Next from the route's own
+      // answer when the route cannot count the set (addendum item 15).
+      hasMore: typeof d.hasMore === 'boolean' ? d.hasMore : undefined,
+    };
   }, [authFetch]);
 
   const tickets = usePagedList({
@@ -915,7 +1125,12 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
+  /** Same guard as the audit log: a filter change resets the page and reloads,
+   *  so the stale request must not be allowed to land last. */
+  const reviewsSeqRef = useRef(0);
+
   const loadAdminReviews = useCallback(async () => {
+    const seq = ++reviewsSeqRef.current;
     setReviewsLoading(true);
     setReviewsError(null);
     try {
@@ -932,13 +1147,15 @@ export default function HorsesAdmin() {
         ...(reviewsQuery.trim() ? { q: reviewsQuery.trim() } : {}),
       });
       const data = await authFetch(`/api/horses/admin-reviews?${params}`);
+      if (seq !== reviewsSeqRef.current) return;
       setReviewsData(data.reviews || []);
       setReviewsStats(data.stats || { total: null, flagged: null, avg_rating: null });
       setReviewsLoaded(true);
     } catch (err) {
+      if (seq !== reviewsSeqRef.current) return;
       setReviewsError(err.message);
     } finally {
-      setReviewsLoading(false);
+      if (seq === reviewsSeqRef.current) setReviewsLoading(false);
     }
   }, [authFetch, reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsPage, reviewsQuery]);
 
@@ -964,12 +1181,17 @@ export default function HorsesAdmin() {
     setCaError(null);
     setCaWarnings(null);
     try {
-      const d = await authFetch('/api/horses/club-arena-admin?section=overview');
+      // The cap is sent explicitly (addendum item 10) so the number this panel
+      // can show is written down in the code that shows it, and `pages` is
+      // kept so every count below is the route's total rather than the length
+      // of the array that fitted under the cap.
+      const d = await authFetch(`/api/horses/club-arena-admin?section=overview&limit=${CA_OVERVIEW_LIMIT}`);
       setCaStats(d.stats || null);
       setCaClubs(d.clubs || []);
       setCaUnions(d.unions || []);
       setCaPendingCashouts(d.pendingCashouts || []);
       setCaFinance(d.finance || null);
+      setCaPages(d.pages || null);
       setCaWarnings(d.failedSources || null);
       setCaLoaded(true);
     } catch (err) {
@@ -995,7 +1217,7 @@ export default function HorsesAdmin() {
       // review and kick actions too. reviewFlag and kickSession have existed
       // in this file with no caller since the tab was written.
       const [d, flagsRes, sessionsRes] = await Promise.all([
-        authFetch(`/api/horses/club-arena-admin?section=club&clubId=${encodeURIComponent(club.id)}`),
+        authFetch(`/api/horses/club-arena-admin?section=club&clubId=${encodeURIComponent(club.id)}&limit=${CA_CLUB_LIMIT}`),
         authFetch('/api/club-arena/anti-cheat', {
           method: 'POST', body: JSON.stringify({ action: 'get_flags', clubId: club.id }),
         }).catch((e) => ({ flags: [], error: e.message })),
@@ -1140,12 +1362,16 @@ export default function HorsesAdmin() {
       const rate = parseFloat(caAppCommission[app.id] ?? 90);
       const body = decision === 'approve'
         ? { action: 'approve', applicationId: app.id, commissionRate: Number.isFinite(rate) ? rate / 100 : 0.9 }
-        : { action: 'reject', applicationId: app.id, reason: caAppReason };
+        : { action: 'reject', applicationId: app.id, reason: caAppReason[app.id] || '' };
       const d = await authFetch('/api/club-arena/union-application', {
         method: 'POST', body: JSON.stringify(body),
       });
       showNotification(d.message || (decision === 'approve' ? 'Application Approved' : 'Application Rejected'));
-      setCaAppReason('');
+      setCaAppReason((prev) => {
+        const next = { ...prev };
+        delete next[app.id];
+        return next;
+      });
       loadApplications(caAppTab);
     } catch (err) {
       showNotification(err.message, 'error');
@@ -1229,7 +1455,7 @@ export default function HorsesAdmin() {
     setCaLedgerLoading(true);
     setCaLedgerError(null);
     try {
-      setCaLedger(await authFetch('/api/horses/club-arena-admin?section=ledger'));
+      setCaLedger(await authFetch(`/api/horses/club-arena-admin?section=ledger&limit=${CA_LEDGER_LIMIT}`));
     } catch (err) {
       setCaLedgerError(err.message);
     } finally {
@@ -1367,11 +1593,41 @@ export default function HorsesAdmin() {
       : { message: `${label}: ${num(affected, '0')} Updated`, tone: 'success' };
   };
 
+  /**
+   * Reverts, by ID SET rather than by restoring a whole snapshot.
+   *
+   * `const snapshot = personas` captures the roster at call time, and the
+   * two-second sync tick can replace `personas` while the request is in
+   * flight - so putting the snapshot back on a failure clobbered every row
+   * that had been refreshed meanwhile. These two touch only the rows the
+   * failed write touched and leave the rest of the roster alone.
+   */
+  const revertActiveForRows = useCallback((rows) => {
+    const previous = new Map(rows.map((p) => [p.id, p.is_active]));
+    setPersonas((prev) => prev.map((p) => (previous.has(p.id)
+      ? { ...p, is_active: previous.get(p.id) }
+      : p)));
+  }, []);
+
+  /** Put optimistically removed rows back, in the loader's own order (name,
+   *  then id), without disturbing anything fetched since. */
+  const restorePersonaRows = useCallback((rows) => {
+    setPersonas((prev) => {
+      const present = new Set(prev.map((p) => p.id));
+      const missing = rows.filter((p) => !present.has(p.id));
+      if (!missing.length) return prev;
+      return [...prev, ...missing].sort((a, b) => (
+        String(a.name || '').localeCompare(String(b.name || ''))
+        || String(a.id).localeCompare(String(b.id))
+      ));
+    });
+  }, []);
+
   /** Apply an active/rest change to an explicit set of horses. */
   const setActiveForIds = async (ids, activate, label) => {
     if (!ids.length) return;
-    const snapshot = personas;
     const idSet = new Set(ids);
+    const touched = personas.filter((p) => idSet.has(p.id));
     setPersonas((prev) => prev.map((p) => (idSet.has(p.id) ? { ...p, is_active: activate } : p)));
     setBulkBusy(true);
     try {
@@ -1380,9 +1636,9 @@ export default function HorsesAdmin() {
         ids,
       );
       // Nothing landed at all: this is the same outcome the un-chunked call had
-      // on a failure, so restore the roster exactly as it was.
+      // on a failure, so put the touched rows back the way they were.
       if (result.affected === 0 && result.firstError) {
-        setPersonas(snapshot);
+        revertActiveForRows(touched);
         showNotification(result.firstError, 'error');
         return;
       }
@@ -1391,7 +1647,7 @@ export default function HorsesAdmin() {
       broadcastUpdate('horses-updated');
       loadData();
     } catch (err) {
-      setPersonas(snapshot);
+      revertActiveForRows(touched);
       showNotification(err.message, 'error');
     } finally {
       setBulkBusy(false);
@@ -1399,12 +1655,15 @@ export default function HorsesAdmin() {
   };
 
   const toggleAllPersonas = async (activate) => {
-    // Resting all 593 horses stops the content engine and the grinder fleet.
-    // It used to happen on a single unconfirmed click.
+    // BOTH DIRECTIONS CONFIRM. Resting all 593 horses stops the content engine
+    // and the grinder fleet; activating them all starts the engine and seats
+    // the whole fleet, which moves real chips out of club treasuries. Only the
+    // first of those used to ask.
     const ids = personas.map((p) => p.id).filter((id) => id !== undefined && id !== null);
     if (!ids.length) return;
-    if (!activate && !window.confirm(
-      `Rest all ${ids.length} horses? This stops the content engine and takes the whole grinder fleet off the tables.`,
+    if (!window.confirm(activate
+      ? `Activate all ${ids.length} horses? This starts the content engine and seats the whole grinder fleet, which buys in from club treasuries.`
+      : `Rest all ${ids.length} horses? This stops the content engine and takes the whole grinder fleet off the tables.`,
     )) return;
     await setActiveForIds(ids, activate, activate ? 'All Horses Activated' : 'All Horses Rested');
   };
@@ -1416,7 +1675,7 @@ export default function HorsesAdmin() {
     if (!window.confirm(
       `Retire ${name}?\n\nThis permanently deletes the horse. It cannot be undone from this panel.`,
     )) return;
-    const snapshot = personas;
+    const removed = personas.filter((p) => p.id === id);
     setPersonas((prev) => prev.filter((p) => p.id !== id));
     try {
       await authFetch('/api/horses/stable-admin', {
@@ -1425,7 +1684,7 @@ export default function HorsesAdmin() {
       showNotification(`${name} Retired`, 'info');
       broadcastUpdate('horses-updated');
     } catch (err) {
-      setPersonas(snapshot);
+      restorePersonaRows(removed);
       showNotification(err.message, 'error');
     }
   };
@@ -1436,14 +1695,14 @@ export default function HorsesAdmin() {
     if (!window.confirm(
       `Retire ${ids.length} horses?\n\nThis permanently deletes them. It cannot be undone from this panel.`,
     )) return;
-    const snapshot = personas;
     const idSet = new Set(ids);
+    const removed = personas.filter((p) => idSet.has(p.id));
     setPersonas((prev) => prev.filter((p) => !idSet.has(p.id)));
     setBulkBusy(true);
     try {
       const result = await runBulkInChunks((chunk) => ({ action: 'bulk_delete', ids: chunk }), ids);
       if (result.affected === 0 && result.firstError) {
-        setPersonas(snapshot);
+        restorePersonaRows(removed);
         showNotification(result.firstError, 'error');
         return;
       }
@@ -1453,7 +1712,7 @@ export default function HorsesAdmin() {
       broadcastUpdate('horses-updated');
       loadData();
     } catch (err) {
-      setPersonas(snapshot);
+      restorePersonaRows(removed);
       showNotification(err.message, 'error');
     } finally {
       setBulkBusy(false);
@@ -1588,6 +1847,9 @@ export default function HorsesAdmin() {
   // player, who launched the fleet at 3am.
   const [auditEntries, setAuditEntries] = useState([]);
   const [auditTotal, setAuditTotal] = useState(null);
+  // total may be null; hasMore is the route's own answer and is what enables
+  // Next when nothing can count the set.
+  const [auditHasMore, setAuditHasMore] = useState(undefined);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditLoaded, setAuditLoaded] = useState(false);
   const [auditPage, setAuditPage] = useState(0);
@@ -1610,7 +1872,11 @@ export default function HorsesAdmin() {
    *  so the window is never filtered twice by two different rules. */
   const auditQuery = useMemo(() => {
     const q = {
-      actionPrefix: auditPrefix || undefined,
+      // A GROUP, not a single prefix: the trail was namespaced in Phase 1, so
+      // "Horse Records" has to ask for horse.* AND the pre-rename vocabulary
+      // or it hides the older half of its own history. auditFilters.js owns
+      // the table; the route ORs the `like` filters (addendum item 14).
+      ...auditActionFilter(auditPrefix),
       adminId: auditAdmin || undefined,
       targetId: auditTarget.trim() || undefined,
     };
@@ -1620,7 +1886,15 @@ export default function HorsesAdmin() {
     return q;
   }, [auditPrefix, auditAdmin, auditTarget, auditFrom, auditTo, auditDays]);
 
+  /** Monotonic sequence guard. A filter change resets the page AND reloads, so
+   *  two requests can be in flight at once; without this the slower one wins
+   *  and the operator reads page 4 of the old filter under the new one's
+   *  heading. usePagedList solves this properly; these two hand-rolled loaders
+   *  borrow the same idea. */
+  const auditSeqRef = useRef(0);
+
   const loadAuditLog = useCallback(async () => {
+    const seq = ++auditSeqRef.current;
     setAuditLoading(true);
     try {
       const d = await authFetch('/api/horses/stable-admin', {
@@ -1633,18 +1907,21 @@ export default function HorsesAdmin() {
           page: auditPage,
         }),
       });
+      if (seq !== auditSeqRef.current) return;
       // `rows` is the Phase 1 name, `entries` the legacy one kept beside it.
       setAuditEntries(d.rows || d.entries || []);
       setAuditTotal(d.total ?? null);
+      setAuditHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : undefined);
       // The actor list comes from the route (a cached distinct query), and is
       // only replaced when the route sends one, so a filtered response cannot
       // empty the dropdown the operator is filtering with.
       if (Array.isArray(d.actors)) setAuditActors(d.actors);
       setAuditLoaded(true);
     } catch (err) {
+      if (seq !== auditSeqRef.current) return;
       showNotification(err.message, 'error');
     } finally {
-      setAuditLoading(false);
+      if (seq === auditSeqRef.current) setAuditLoading(false);
     }
   }, [authFetch, showNotification, auditQuery, auditPage]);
 
@@ -1791,7 +2068,10 @@ export default function HorsesAdmin() {
     setPromoCreating(true);
     try {
       const data = await authFetch('/api/promo/admin-promo-codes', {
-        method: 'POST', body: JSON.stringify(promoForm),
+        method: 'POST',
+        // Same zone correction as the edit form: the operator picked an
+        // instant on their clock, so that is the instant that is sent.
+        body: JSON.stringify({ ...promoForm, expiresAt: localInputToIso(promoForm.expiresAt) }),
       });
       showNotification(`Promo Code ${data.code?.code || ''} Created`.trim());
       setPromoForm({ code: '', description: '', type: 'signup_bonus', value: 100, maxUses: '', expiresAt: '' });
@@ -1814,7 +2094,7 @@ export default function HorsesAdmin() {
       reward_type: code.reward_type || code.type || 'diamonds',
       reward_value: code.reward_value ?? code.value ?? 0,
       max_uses: code.max_uses ?? '',
-      expires_at: code.expires_at ? String(code.expires_at).slice(0, 16) : '',
+      expires_at: toLocalDateTimeInput(code.expires_at),
     });
   };
 
@@ -1827,7 +2107,9 @@ export default function HorsesAdmin() {
       // Empty string clears the cap and the expiry; the route treats '' and
       // null the same way for both.
       if (body.max_uses === '') body.max_uses = null;
-      if (body.expires_at === '') body.expires_at = null;
+      // Sent as an absolute instant, not as the zoneless string the input
+      // holds: the route resolves a zoneless value against the server's clock.
+      body.expires_at = localInputToIso(body.expires_at);
       body.reward_value = parseInt(body.reward_value, 10) || 0;
       await authFetch('/api/promo/admin-promo-codes', { method: 'PATCH', body: JSON.stringify(body) });
       showNotification(`Promo Code ${body.code} Saved`);
@@ -2003,6 +2285,39 @@ export default function HorsesAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user]);
 
+  // ── CLUB ARENA SECTION LOADS ──
+  //
+  // Keyed on caSection, NOT on the sub-nav onClick that used to be the only
+  // caller. Arriving at ?section=ledger any other way - a shared link,
+  // Back/Forward, or the "Needs Attention" jump on the Statistics tab - left
+  // caLedger null with caLedgerLoading false, and the ledger branch renders a
+  // spinner in exactly that state. It never resolved. Same for revenue.
+  //
+  // The error is part of the guard: a failed read must show its Retry button
+  // rather than re-firing on every render.
+  useEffect(() => {
+    if (!user || activeTab !== 'clubarena') return;
+    if (caSection === 'ledger' && !caLedger && !caLedgerLoading && !caLedgerError) loadCaLedger();
+    if (caSection === 'revenue' && !caRevenue && !caRevenueLoading && !caRevenueError) loadCaRevenue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caSection, activeTab, user, caLedger, caRevenue, caLedgerError, caRevenueError]);
+
+  // ── THE RESETS ARE DECLARED BEFORE THE LOADS, AND THAT ORDER IS THE FIX ──
+  //
+  // A filter change must return to page one, or the operator lands on page 4
+  // of a result set that now has one page. Both effects fire in the SAME
+  // commit on a filter change, in declaration order: with the load first it
+  // fired against the STALE page (offset 300 under the new filter), then the
+  // reset re-rendered and fired a second load at offset 0 - two requests, and
+  // whichever landed last won. Resetting first means the load that runs in
+  // this commit already sees page 0; the sequence guards inside the two
+  // loaders cover the rest.
+  useEffect(() => {
+    setAuditPage(0);
+  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo]);
+
+  useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsQuery]);
+
   useEffect(() => {
     if (activeTab === 'reviews' && reviewsLoaded) loadAdminReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2012,16 +2327,6 @@ export default function HorsesAdmin() {
     if (activeTab === 'audit' && auditLoaded) loadAuditLog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo, auditPage]);
-
-  // Same reason as the reviews reset below: a filter change must not leave the
-  // operator on page 4 of a result set that now has one page.
-  useEffect(() => {
-    setAuditPage(0);
-  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo]);
-
-  // A filter change must return to page one, or the operator lands on page 4
-  // of a result set that now has one page.
-  useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsQuery]);
 
   // ── Debounced searches ──
   // Both of these hit a route now rather than filtering an array in memory, so
@@ -2077,49 +2382,85 @@ export default function HorsesAdmin() {
   // behaviour of every other tabbed console an operator uses.
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * HOW THE DEEP LINK SURVIVES (this is the mechanism, read it before editing
+   * either effect).
+   *
+   * This page exports no getServerSideProps, so it is auto-statically-
+   * optimised and `router.isReady` is FALSE on the first client render. When
+   * it flips true, React flushes BOTH effects below in the same commit, in
+   * declaration order. The read effect's `setActiveTab('mint')` does NOT
+   * update `activeTab` for the write effect that runs microseconds later in
+   * that same pass - so the write effect saw the initial DEFAULT_TAB, decided
+   * the URL disagreed with it, and replaced ?tab=mint with ?tab=stable.
+   * Opening /horses?tab=mint landed the operator on Social Horses and rewrote
+   * their URL on the way. That is the whole of item B shipping broken.
+   *
+   * Two refs, and both are load-bearing:
+   *
+   *   urlHydratedRef - the read effect has applied the URL at least once.
+   *                    A ref, not state, because the write effect has to see
+   *                    it inside the same commit.
+   *   urlSyncedRef   - state and the URL have actually AGREED at least once,
+   *                    which is the only proof that the seed has landed.
+   *                    Hydration alone is not enough: on the flip commit the
+   *                    read effect has hydrated but `activeTab` is still the
+   *                    pre-hydration value, and writing then is exactly the
+   *                    bug. So the write effect never writes a difference it
+   *                    has not first seen resolved.
+   *
+   * After that first agreement, a difference can only mean the operator moved,
+   * and that is when - and only when - the URL is written.
+   */
+  const urlHydratedRef = useRef(false);
+  const urlSyncedRef = useRef(false);
+
   /** Read the URL into state. Runs on mount and on every router query change,
    *  which is what makes Back and Forward work: Next updates router.query on a
    *  popstate and this follows it. Anything unrecognised falls back to the
    *  registry default rather than rendering a blank panel. */
   useEffect(() => {
     if (!router.isReady) return;
-    const nextTab = resolveTabFromQuery(router.query.tab);
-    const nextSection = resolveSectionFromQuery(router.query.section);
+    const nextTab = resolveInitialTab(router.query);
+    const nextSection = resolveInitialSection(router.query);
     setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
     setCaSection((prev) => (prev === nextSection ? prev : nextSection));
+    urlHydratedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.tab, router.query.section]);
 
-  /** True until the URL has been written once. The first write is the one that
-   *  normalises a bare /horses into /horses?tab=stable and must not become a
-   *  history entry of its own; every write after it is a navigation. */
-  const urlNormalisedRef = useRef(false);
-
-  /** Write state back into the URL. Only when it actually differs, or this
-   *  would fight the read effect above on every render. */
+  /** Write state back into the URL - only after hydration, and only when it
+   *  actually differs, or this would fight the read effect above on every
+   *  render. */
   useEffect(() => {
-    if (!router.isReady) return;
-    const currentTab = resolveTabFromQuery(router.query.tab);
-    const currentSection = resolveSectionFromQuery(router.query.section);
-    if (currentTab === activeTab && currentSection === caSection) {
-      urlNormalisedRef.current = true;
+    if (!router.isReady || !urlHydratedRef.current) return;
+
+    if (urlMatchesState({ activeTab, caSection }, router.query)) {
+      if (!urlSyncedRef.current) {
+        urlSyncedRef.current = true;
+        // The ONE write that is not a navigation: stamping ?tab= into a bare
+        // /horses. A REPLACE, so normalising the address the operator arrived
+        // at does not cost them a Back press. A URL that already names a tab
+        // is left exactly as it is - that is the deep link.
+        if (router.query.tab === undefined) {
+          const query = nextUrlQuery({ activeTab, caSection }, router.query);
+          router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+        }
+      }
       return;
     }
 
-    const query = { ...router.query, tab: activeTab };
-    // ?section= only means anything on the Club Arena tab, and a stale section
-    // parameter hanging off every other tab is noise in a shared link.
-    if (activeTab === 'clubarena' && caSection !== DEFAULT_CA_SECTION) query.section = caSection;
-    else delete query.section;
+    // Hydrated but never reconciled: the read effect seeded state in this very
+    // commit and we are still looking at the pre-hydration value. Writing here
+    // is what destroyed the deep link.
+    if (!urlSyncedRef.current) return;
 
-    const isNavigation = urlNormalisedRef.current;
-    urlNormalisedRef.current = true;
-    // Called as a method, not hoisted into a bare reference: next/router's push
-    // and replace are prototype methods and lose `this` when detached.
-    if (isNavigation) {
-      router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
-    } else {
-      router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
-    }
+    // A real navigation. PUSH, which is what makes Back undo a "Needs
+    // Attention" jump instead of leaving the console. Called as a method, not
+    // hoisted into a bare reference: next/router's push and replace are
+    // prototype methods and lose `this` when detached.
+    const query = nextUrlQuery({ activeTab, caSection }, router.query);
+    router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, caSection, router.isReady]);
 
@@ -2206,27 +2547,47 @@ export default function HorsesAdmin() {
   const pagedPersonas = filteredPersonas.slice(safePage * HORSES_PER_PAGE, (safePage + 1) * HORSES_PER_PAGE);
   useEffect(() => { setPage(0); }, [searchTerm, filter]);
 
-  // ── Grinder roster: its own search and paging ──
-  const grinderPersonas = useMemo(() => {
-    const q = grinderSearch.trim().toLowerCase();
-    if (!q) return personas;
-    return personas.filter((p) => p.name?.toLowerCase().includes(q) || p.alias?.toLowerCase().includes(q));
-  }, [personas, grinderSearch]);
-  const grinderTotalPages = Math.max(1, Math.ceil(grinderPersonas.length / HORSES_PER_PAGE));
-  const grinderSafePage = Math.min(grinderPage, grinderTotalPages - 1);
-  const pagedGrinderPersonas = grinderPersonas.slice(
-    grinderSafePage * HORSES_PER_PAGE, (grinderSafePage + 1) * HORSES_PER_PAGE,
-  );
-  useEffect(() => { setGrinderPage(0); }, [grinderSearch]);
+  // ── Grinder roster: ONE page, and it is the route's ──
+  //
+  // `roster` is the paged envelope { rows, total, limit, offset, hasMore }; an
+  // older deploy answers with the bare array, which is read as a single page
+  // rather than as a total.
+  const grinderRoster = grinderData?.roster;
+  const grinderRosterRows = useMemo(() => (
+    Array.isArray(grinderRoster) ? grinderRoster : (grinderRoster?.rows || [])
+  ), [grinderRoster]);
+  const grinderRosterTotal = Array.isArray(grinderRoster)
+    ? grinderRoster.length
+    : (typeof grinderRoster?.total === 'number' ? grinderRoster.total : null);
+  const grinderRosterHasMore = Array.isArray(grinderRoster)
+    ? undefined
+    : (typeof grinderRoster?.hasMore === 'boolean' ? grinderRoster.hasMore : undefined);
 
-  // The roster lookup was `roster.find(...)` inside a map over 48 rows against
-  // a 554-entry array -- ~26,000 comparisons on every keystroke anywhere in
-  // this component. One index instead.
-  const rosterById = useMemo(() => {
+  // The display fields (name, alias, avatar, specialty, voice) live on
+  // content_authors, which this component already holds; the roster row from
+  // the route carries the play stats. Joined by id - one index rather than a
+  // `roster.find(...)` inside a map, which was ~26,000 comparisons on every
+  // keystroke anywhere in this component.
+  const personaById = useMemo(() => {
     const map = new Map();
-    for (const r of grinderData?.roster || []) map.set(r.horse_id, r);
+    for (const p of personas) map.set(p.id, p);
     return map;
-  }, [grinderData]);
+  }, [personas]);
+
+  // A PAGE-SCOPED filter, and the control says so. grinder-stats pages the
+  // roster and does not search it, so this narrows the rows on screen and
+  // nothing else; pretending otherwise is how the old cross-tab search box
+  // made row 51 unfindable while looking like a roster search.
+  const visibleGrinderRows = useMemo(() => {
+    const q = grinderSearch.trim().toLowerCase();
+    if (!q) return grinderRosterRows;
+    return grinderRosterRows.filter((r) => {
+      const p = personaById.get(r.horse_id) || {};
+      const name = String(r.name || p.name || '').toLowerCase();
+      const alias = String(r.alias || p.alias || '').toLowerCase();
+      return name.includes(q) || alias.includes(q);
+    });
+  }, [grinderRosterRows, grinderSearch, personaById]);
 
   // ── Bulk selection ──
   const allPagedSelected = pagedPersonas.length > 0 && pagedPersonas.every((p) => selectedIds.has(p.id));
@@ -2404,8 +2765,19 @@ export default function HorsesAdmin() {
             what a tablist promises a keyboard user. The external links are NOT
             tabs - they navigate to other pages - so they sit outside the
             tablist with their own label. */}
+        {/* aria-controls names ONE element, because there is one. The panel id
+            used to be interpolated per tab (`horses-panel-${tab.id}`) while
+            only a single <main> existed, so fifteen of the sixteen tabs
+            pointed at an element that is not in the document - which is worse
+            than omitting the attribute, since a screen reader announces a
+            relationship it cannot follow. */}
         <nav className={styles.nav} ref={navRef} aria-label="Console sections">
-          <div role="tablist" aria-label="Stable admin tabs" style={{ display: 'contents' }}>
+          {/* NOT display:contents. That property has a history of dropping the
+              element - and with it the role - out of the accessibility tree in
+              WebKit and Blink, and the role is what makes these sixteen
+              buttons a tablist. shared.tablist is a real flex box sized to
+              match the nav. */}
+          <div role="tablist" aria-label="Stable admin tabs" className={shared.tablist}>
             {navTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -2414,7 +2786,7 @@ export default function HorsesAdmin() {
                 role="tab"
                 type="button"
                 aria-selected={activeTab === tab.id}
-                aria-controls={`horses-panel-${tab.id}`}
+                aria-controls={HORSES_PANEL_ID}
                 tabIndex={activeTab === tab.id ? 0 : -1}
                 className={activeTab === tab.id ? styles.active : ''}
                 onClick={() => setActiveTab(tab.id)}
@@ -2441,7 +2813,7 @@ export default function HorsesAdmin() {
 
         <main
           className={styles.content}
-          id={`horses-panel-${activeTab}`}
+          id={HORSES_PANEL_ID}
           role="tabpanel"
           aria-labelledby={`horses-tab-${activeTab}`}
           tabIndex={0}
@@ -2525,7 +2897,15 @@ export default function HorsesAdmin() {
                 </div>
               )}
 
-              {!personasError && filteredPersonas.length === 0 && (
+              {/* Loading and empty are DIFFERENT STATES. Without the first
+                  branch this panel told the operator "No horses in the stable
+                  yet" on every single mount, for the half second before 593 of
+                  them arrived. */}
+              {!personasError && personasLoading && personas.length === 0 && (
+                <div className={styles.loadingSpinner}>Loading The Stable</div>
+              )}
+
+              {!personasError && !personasLoading && filteredPersonas.length === 0 && (
                 <div className={styles.emptyState}>
                   {personas.length === 0
                     ? 'No horses in the stable yet. Create one to get started.'
@@ -2700,7 +3080,9 @@ export default function HorsesAdmin() {
               {grinderError && (
                 <div className={styles.errorState}>
                   <div>Grinder Stats Unavailable: {grinderError}</div>
-                  <button className={styles.actionBtn} onClick={loadGrinderData}>Retry</button>
+                  {/* Not bound bare: onClick would hand the React synthetic
+                      event to the loader as its offset. */}
+                  <button className={styles.actionBtn} onClick={() => loadGrinderData(grinderOffset)}>Retry</button>
                 </div>
               )}
 
@@ -2711,11 +3093,30 @@ export default function HorsesAdmin() {
                 <div className={styles.warnBanner}>{grinderData.derivationNote}</div>
               )}
 
+              {/* These five are WHOLE-FLEET figures, computed server-side over
+                  every horse profile id (addendum item 12), which is why they
+                  do not move when the roster pager below does. Said out loud
+                  because a KPI row sitting on top of a paged table reads as a
+                  sum of that page until something says otherwise. */}
+              {grinderData?.totalsScope === 'fleet' && (
+                <p style={{ color: T.dim, fontSize: 12, margin: '0 0 8px' }}>
+                  Totals Below Cover The Whole Fleet, Not The Roster Page.
+                </p>
+              )}
+              {grinderData?.performanceTruncated && (
+                <div className={styles.warnBanner}>
+                  The Fleet ID Scan Hit Its Ceiling, So Hands Played And Fleet Profit Are A Floor
+                  Rather Than A Total.
+                </div>
+              )}
               <div className={styles.grinderStats}>
                 <div className={styles.statBox}>
                   {/* This used to render personas.length while the API returned
-                      its own, smaller, active-only count under the same label. */}
-                  <span className={styles.statNumber}>{num(grinderData?.totalGrinders ?? activeCount)}</span>
+                      its own, smaller, active-only count under the same label.
+                      No client-side fallback either: activeCount counts a
+                      different population, and quietly substituting it put two
+                      different numbers under one label. */}
+                  <span className={styles.statNumber}>{num(grinderData?.totalGrinders)}</span>
                   <span className={styles.statLabel}>Active Grinders</span>
                 </div>
                 <div className={`${styles.statBox} ${styles.activeBox}`}>
@@ -2754,21 +3155,54 @@ export default function HorsesAdmin() {
                     {fleetStatusLoading ? 'Reading Fleet Status' : 'Refresh Fleet Status'}
                   </button>
                 </div>
+                {/* THESE ARE THE FIELD NAMES THE STATUS BRANCH RETURNS.
+                    They used to be cashTables / horsesSeated / tournaments /
+                    timestamp - the shape of the RETIRED launch_all response -
+                    so every tile on this panel rendered a dash. The status
+                    branch returns totalHorses, seatedHorses, activeTables,
+                    activeTournaments and checkedAt (addendum item 13); the
+                    legacy aliases are kept by the route and read as a fallback
+                    so a stale deploy degrades instead of blanking. */}
                 {fleetStatus && (
-                  <div className={styles.kpiGrid} style={{ marginTop: 14 }}>
-                    <KpiTile
-                      label="Cash Tables Live"
-                      value={num(fleetStatus.cashTables ?? fleetStatus.tables)}
-                      tone="accent"
-                    />
-                    <KpiTile label="Horses Seated" value={num(fleetStatus.horsesSeated ?? fleetStatus.cashSeats)} />
-                    <KpiTile label="Tournaments Live" value={num(fleetStatus.tournaments)} />
-                    <KpiTile
-                      label="Status Read At"
-                      value={when(fleetStatus.checkedAt || fleetStatus.timestamp, true)}
-                      hint="Straight From /api/club-arena/horse-launch, Action Status."
-                    />
-                  </div>
+                  <>
+                    <div className={styles.kpiGrid} style={{ marginTop: 14 }}>
+                      <KpiTile
+                        label="Cash Tables Live"
+                        value={num(fleetStatus.activeTables ?? fleetStatus.cashTables)}
+                        tone="accent"
+                      />
+                      <KpiTile
+                        label="Horses Seated"
+                        value={num(fleetStatus.seatedHorses ?? fleetStatus.horsesSeated)}
+                        hint="Of The Whole Stable, Not Of This Page."
+                      />
+                      <KpiTile
+                        label="Horses In The Fleet"
+                        value={num(fleetStatus.totalHorses)}
+                      />
+                      <KpiTile
+                        label="Tournaments Live"
+                        value={num(fleetStatus.activeTournaments ?? fleetStatus.tournaments)}
+                      />
+                      <KpiTile
+                        label="Status Read At"
+                        value={when(fleetStatus.checkedAt ?? fleetStatus.timestamp, true)}
+                        hint="Straight From /api/club-arena/horse-launch, Action Status."
+                      />
+                    </div>
+                    {/* A fleet reading with a source missing is not a fleet
+                        reading. The route names what it could not read and the
+                        panel has to say so, or four confident tiles describe a
+                        fleet nobody actually counted. */}
+                    {(fleetStatus.failedSources || []).length > 0 && (
+                      <div className={styles.warnBanner} role="alert">
+                        This Reading Is Incomplete. These Sources Could Not Be Read:{' '}
+                        {(fleetStatus.failedSources || [])
+                          .map((f) => (typeof f === 'string' ? f : `${f.source}${f.requestId ? ` (request ${f.requestId})` : ''}`))
+                          .join('; ')}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <h3 style={{ marginTop: 24 }}>Club Management</h3>
@@ -2831,17 +3265,27 @@ export default function HorsesAdmin() {
               <div className={styles.grinderTable}>
                 <h3 className={styles.sectionTitle}>
                   Horse Roster
-                  <span className={styles.countPill}>{num(grinderPersonas.length)}</span>
-                  {/* This table used to be filtered and paged by the SEARCH BOX
-                      ON A DIFFERENT TAB, with no control here to explain it. */}
+                  {/* The route's total, not the length of the page. */}
+                  <span className={styles.countPill}>{num(grinderRosterTotal)}</span>
+                  {/* PAGE-SCOPED, and the label says so. The roster is paged by
+                      the route; this box narrows the rows already on screen and
+                      cannot reach row 51. It used to be filtered and paged by
+                      the search box ON A DIFFERENT TAB, with no control here to
+                      explain it. */}
                   <input
                     type="search" value={grinderSearch}
                     onChange={(e) => setGrinderSearch(e.target.value)}
-                    placeholder="Search roster" className={styles.searchInput}
-                    aria-label="Search the grinder roster"
+                    placeholder="Filter this page" className={styles.searchInput}
+                    aria-label="Filter the rows on this page of the grinder roster"
                     style={{ marginLeft: 'auto', maxWidth: 240 }}
                   />
                 </h3>
+                {grinderSearch.trim() && (
+                  <p style={{ color: T.dim, fontSize: 12, margin: '0 0 8px' }}>
+                    Filtering The {num(grinderRosterRows.length, '0')} Rows On This Page Only.
+                    Use The Pager To Reach The Rest Of The Roster.
+                  </p>
+                )}
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
                     <thead>
@@ -2851,37 +3295,53 @@ export default function HorsesAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pagedGrinderPersonas.map((persona) => {
-                        const stats = rosterById.get(persona.id);
+                      {/* Driven by the ROUTE'S page. The stats row is the
+                          record; content_authors supplies the display fields
+                          the roster row does not carry. Nothing here slices a
+                          client-side list, so a row can no longer be a horse
+                          the response never mentioned. */}
+                      {visibleGrinderRows.map((stats) => {
+                        const persona = personaById.get(stats.horse_id) || {};
+                        const name = stats.name || persona.name || 'Unknown';
+                        const alias = stats.alias || persona.alias || 'no-alias';
+                        const avatarUrl = stats.avatar_url || persona.avatar_url;
                         return (
-                          <tr key={persona.id}>
+                          <tr key={stats.horse_id || persona.id}>
                             <td>
                               <div className={styles.horseCell}>
-                                {persona.avatar_url
-                                  ? <img src={persona.avatar_url} alt="" className={styles.tableCellAvatar} loading="lazy" />
-                                  : <span className={styles.avatarFallback} aria-hidden="true">{(persona.name || '?').charAt(0).toUpperCase()}</span>}
+                                {avatarUrl
+                                  ? <img src={avatarUrl} alt="" className={styles.tableCellAvatar} loading="lazy" />
+                                  : <span className={styles.avatarFallback} aria-hidden="true">{name.charAt(0).toUpperCase()}</span>}
                                 <div>
-                                  <strong>{persona.name}</strong>
-                                  <small>@{persona.alias}</small>
+                                  <strong>{name}</strong>
+                                  <small>@{alias}</small>
                                 </div>
                               </div>
                             </td>
-                            <td>{persona.specialty?.replace(/_/g, ' ') || '-'}</td>
-                            <td><span className={styles.voiceTag}>{persona.voice || 'casual'}</span></td>
-                            <td>{num(stats?.tables, '0')}/{num(settings.grinder_max_tables ?? 4)}</td>
+                            <td>{(stats.specialty || persona.specialty)?.replace(/_/g, ' ') || '-'}</td>
+                            <td><span className={styles.voiceTag}>{stats.voice || persona.voice || 'casual'}</span></td>
+                            <td>{num(stats.tables, '0')}/{num(settings.grinder_max_tables ?? 4)}</td>
                             {/* hands and profit are null, not 0, when they cannot be derived. */}
-                            <td>{num(stats?.hands)}</td>
+                            <td>{num(stats.hands)}</td>
                             <td style={{
                               fontWeight: 700,
-                              color: stats?.profit === null || stats?.profit === undefined
+                              color: stats.profit === null || stats.profit === undefined
                                 ? T.dim : (Number(stats.profit) >= 0 ? T.accent : T.danger),
                             }}>
-                              {stats?.profit === null || stats?.profit === undefined ? '-' : signed(stats.profit)}
+                              {stats.profit === null || stats.profit === undefined ? '-' : signed(stats.profit)}
                             </td>
                             <td>
-                              {stats?.status === 'playing'
+                              {/* THREE STATUSES, NOT TWO. grinder-stats emits
+                                  'playing' | 'idle' | 'unknown', and 'unknown'
+                                  is what it sends when the seat read did not
+                                  complete for the whole fleet. Folding it into
+                                  Idle reported a horse as off the tables on the
+                                  one run where nothing had actually looked. */}
+                              {stats.status === 'playing'
                                 ? <span className={styles.statusActive}>Playing</span>
-                                : <span className={styles.statusIdle}>Idle</span>}
+                                : stats.status === 'unknown'
+                                  ? <span className={styles.statusIdle} title="The seat read did not complete for the whole fleet.">Unknown</span>
+                                  : <span className={styles.statusIdle}>Idle</span>}
                             </td>
                           </tr>
                         );
@@ -2889,13 +3349,30 @@ export default function HorsesAdmin() {
                     </tbody>
                   </table>
                 </div>
-                {grinderPersonas.length > HORSES_PER_PAGE && (
-                  <div className={styles.pagination}>
-                    <button onClick={() => setGrinderPage((p) => Math.max(0, p - 1))} disabled={grinderSafePage === 0}>Previous</button>
-                    <span className={styles.pageInfo}>Page {grinderSafePage + 1} Of {grinderTotalPages}</span>
-                    <button onClick={() => setGrinderPage((p) => Math.min(grinderTotalPages - 1, p + 1))} disabled={grinderSafePage >= grinderTotalPages - 1}>Next</button>
+                {/* Loading and empty stay distinct here too. */}
+                {visibleGrinderRows.length === 0 && (
+                  <div className={grinderLoading ? styles.loadingSpinner : styles.emptyState}>
+                    {grinderLoading
+                      ? 'Loading The Roster'
+                      : grinderSearch.trim()
+                        ? 'No Rows On This Page Match That Filter.'
+                        : 'No Horses On This Page.'}
                   </div>
                 )}
+                {/* The route's pager, on the route's own limit and offset. The
+                    client-side slice this replaces paged a list the response
+                    did not contain. */}
+                <Pager
+                  offset={grinderOffset}
+                  limit={GRINDER_ROSTER_PAGE_SIZE}
+                  count={grinderRosterRows.length}
+                  total={grinderRosterTotal}
+                  hasMore={grinderRosterHasMore}
+                  loading={grinderLoading}
+                  noun="Horses"
+                  onPrevious={() => goGrinderRosterPage(grinderOffset - GRINDER_ROSTER_PAGE_SIZE)}
+                  onNext={() => goGrinderRosterPage(grinderOffset + GRINDER_ROSTER_PAGE_SIZE)}
+                />
               </div>
             </div>
           )}
@@ -2913,6 +3390,7 @@ export default function HorsesAdmin() {
                     the lie durable - and this says so in the panel instead of
                     hiding it in a title attribute nobody hovers. */}
                 <NotBuiltYet
+                  title="Not Built Yet - The Content Pipeline Has No Trigger"
                   items={[
                     'Test Run (3 Posts, No Video)',
                     'Quick Cycle (10 Posts, 2 Videos)',
@@ -3351,14 +3829,34 @@ export default function HorsesAdmin() {
                         key: 'actions',
                         header: 'Actions',
                         render: (ticket) => (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                              type="button"
-                              className={styles.filterBtn}
-                              onClick={() => updateBugReportStatus(ticket.id, ticket.status === 'open' ? 'resolved' : 'open')}
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {/* THE WRITE VOCABULARY IS NARROWER THAN THE READ
+                                VOCABULARY, and the control now says so. The
+                                filter bar offers open / in_progress / resolved
+                                / closed, but stable-admin accepts only
+                                ['open','resolved'] - so a binary button on an
+                                in_progress ticket read "Reopen" and silently
+                                DOWNGRADED it to open. A select that offers
+                                exactly the two settable states cannot mislabel
+                                the third and fourth; the ticket's real status
+                                is in the Status column beside it. */}
+                            <label className={styles.srOnly} htmlFor={`ticket-status-${ticket.id}`}>
+                              Set Status For Ticket {ticket.subject || ticket.id}
+                            </label>
+                            <select
+                              id={`ticket-status-${ticket.id}`}
+                              className={styles.filterSelect}
+                              value={['open', 'resolved'].includes(ticket.status) ? ticket.status : ''}
+                              onChange={(e) => {
+                                if (e.target.value) updateBugReportStatus(ticket.id, e.target.value);
+                              }}
                             >
-                              {ticket.status === 'open' ? 'Resolve' : 'Reopen'}
-                            </button>
+                              {!['open', 'resolved'].includes(ticket.status) && (
+                                <option value="">{ticket.status || 'unknown'} (Set To)</option>
+                              )}
+                              <option value="open">Open</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
                             {ticket.conversation_id && (
                               <a
                                 href={`/hub/messenger?conversation=${ticket.conversation_id}`}
@@ -3379,6 +3877,7 @@ export default function HorsesAdmin() {
                     limit={tickets.limit}
                     count={tickets.rows.length}
                     total={tickets.total}
+                    hasMore={tickets.hasMore}
                     loading={tickets.loading}
                     noun="Tickets"
                     onPrevious={tickets.previous}
@@ -3633,7 +4132,13 @@ export default function HorsesAdmin() {
                             small. price_usd is already dollars. */}
                         ${(Number(economyData.stats?.diamondPurchaseRevenue) || 0).toFixed(2)}
                       </span>
-                      <span className={styles.statLabel}>Purchase Revenue</span>
+                      <span className={styles.statLabel}>
+                        Purchase Revenue
+                        {/* The route says when it summed a capped read. A floor
+                            presented as a total is the one thing a revenue tile
+                            must never be. */}
+                        {economyData.stats?.diamondPurchaseTruncated ? ' (Floor, Capped Read)' : ''}
+                      </span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber} style={{ color: T.accent }}>
@@ -3654,9 +4159,20 @@ export default function HorsesAdmin() {
                       <span className={styles.statNumber} style={{ color: T.warn }}>
                         {num(economyData.vipPoints?.pointsOutstanding)}
                       </span>
-                      <span className={styles.statLabel}>VIP Points Outstanding</span>
+                      <span className={styles.statLabel}>
+                        VIP Points Outstanding
+                        {economyData.vipPoints?.truncated ? ' (Floor, Capped Read)' : ''}
+                      </span>
                     </div>
                   </div>
+
+                  {(economyData.stats?.diamondPurchaseTruncated || economyData.vipPoints?.truncated) && (
+                    <div className={styles.warnBanner}>
+                      One Or More Of The Figures Above Is Summed Over A Capped Read, So It Is A
+                      Floor Rather Than An Exact Total. PostgREST Aggregate Functions Are Disabled
+                      On This Project, So The Sums Are Computed Row By Row.
+                    </div>
+                  )}
 
                   {economyData.recentUsers?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: 24 }}>
@@ -3774,12 +4290,18 @@ export default function HorsesAdmin() {
               {mintError && (
                 <div className={styles.errorState}>
                   <div>The Mint Could Not Load: {mintError}</div>
-                  <button onClick={loadMintData} className={styles.actionBtn}>Retry</button>
+                  {/* NEVER bound bare. loadMintData's first parameter is the
+                      ledger offset, so onClick={loadMintData} handed it the
+                      React synthetic event: Math.max(0, <event>) is NaN, the
+                      route's int() fell back to 0, and the operator was moved
+                      to ledger page one while mintLedgerOffset still said 150 -
+                      so the pager read "Showing 151-200" over rows 1-50. */}
+                  <button onClick={() => { setMintLedgerOffset(0); loadMintData(0); }} className={styles.actionBtn}>Retry</button>
                 </div>
               )}
 
               {mintLoading && !mintLoaded ? (
-                <div className={styles.loading}>Loading The Mint...</div>
+                <div className={styles.loadingSpinner}>Loading The Mint</div>
               ) : (
                 <>
                   {/* ── SUPPLY ─────────────────────────────────────────────── */}
@@ -3934,6 +4456,16 @@ export default function HorsesAdmin() {
                             </option>
                           ))}
                         </select>
+                        {/* "The club I want is not in this list" and "that club
+                            does not exist" are different answers, and only the
+                            route knows which one applies. It sets `truncated`
+                            precisely so this picker can say. */}
+                        {mintTargets?.truncated && (
+                          <div className={styles.warnBanner} style={{ marginTop: 8 }}>
+                            This Picker Is Capped At {num(MINT_TARGET_LIMIT)} Entries And Is Not The
+                            Whole List. A Holder Missing From It May Still Exist.
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className={styles.formGroup}>
@@ -4074,6 +4606,7 @@ export default function HorsesAdmin() {
                       sticky={mintSubmitting}
                       blockEscape={mintSubmitting}
                       confirmLabel={`Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${num(mintConfirm.amount)}`}
+                      requireTyped={String(mintConfirm.asset).toUpperCase()}
                       onConfirm={submitMint}
                       onCancel={() => setMintConfirm(null)}
                       note="This Is Recorded Permanently And Cannot Be Edited. A Retirement Can Offset An Issuance, But Neither Is Ever Removed From The Journal."
@@ -4233,7 +4766,11 @@ export default function HorsesAdmin() {
                   </div>
 
                   <div style={{ marginTop: 24, textAlign: 'center' }}>
-                    <button onClick={loadMintData} className={styles.actionBtn} disabled={mintLoading}>
+                    <button
+                      onClick={() => { setMintLedgerOffset(0); loadMintData(0); }}
+                      className={styles.actionBtn}
+                      disabled={mintLoading}
+                    >
                       Refresh The Mint
                     </button>
                   </div>
@@ -4270,9 +4807,14 @@ export default function HorsesAdmin() {
                         .join('; ')}
                     </div>
                   )}
-                  {abuseData.abuse?.disposableScope && (
+                  {/* stats.disposableScope, not abuse.disposableScope. It sits
+                      one level deeper than this read expected, so the caveat
+                      never rendered and a PAGE-SCOPED count was shown as a
+                      whole-table figure on the one tab whose job is to be
+                      believed. */}
+                  {abuseData.abuse?.stats?.disposableScope && (
                     <div className={styles.warnBanner}>
-                      Disposable-Email Count Is Scoped To {abuseData.abuse.disposableScope}.
+                      Disposable-Email Count Is Scoped To {abuseData.abuse.stats.disposableScope}.
                     </div>
                   )}
                   <div className={styles.statsOverview}>
@@ -4530,17 +5072,24 @@ export default function HorsesAdmin() {
                     className={caSection === id ? styles.active : ''}
                     aria-current={caSection === id ? 'page' : undefined}
                     onClick={() => {
+                      // Just the section. The data for it is loaded by an
+                      // effect keyed on caSection, so a shared link, Back and
+                      // the Needs Attention jump all reach it the same way a
+                      // click does - this onClick used to be the ONLY caller,
+                      // which is why ?section=ledger showed a spinner forever.
                       setCaSection(id);
                       setCaSelectedClub(null);
                       setCaSelectedUser(null);
-                      if (id === 'ledger' && !caLedger && !caLedgerLoading) loadCaLedger();
-                      if (id === 'revenue' && !caRevenue && !caRevenueLoading) loadCaRevenue();
                     }}
                   >
                     {label}
                     {id === 'approvals' && pendingAppCount + pendingLeaveCount > 0
                       ? ` (${pendingAppCount + pendingLeaveCount})` : ''}
-                    {id === 'finance' && caPendingCashouts.length > 0 ? ` (${caPendingCashouts.length})` : ''}
+                    {/* caStats.pendingCashouts is the exact platform count.
+                        caPendingCashouts.length is a page capped at 100, so the
+                        badge under-reported the work waiting. */}
+                    {id === 'finance' && (caStats?.pendingCashouts || 0) > 0
+                      ? ` (${num(caStats.pendingCashouts)})` : ''}
                     {id === 'ledger' && ledgerCritical > 0 ? ` (${num(ledgerCritical)})` : ''}
                   </button>
                 ))}
@@ -4616,6 +5165,13 @@ export default function HorsesAdmin() {
                     caClubs.length === 0 ? (
                       <div className={styles.emptyState}>No Clubs Found.</div>
                     ) : (
+                      <>
+                      <ShowingOf
+                        truncated={caPages?.clubs?.truncated}
+                        count={caClubs.length}
+                        total={caPages?.clubs?.total}
+                        noun="Clubs"
+                      />
                       <div className={styles.cardGrid}>
                         {/* These cards used to be role="button" with a real
                             <button> nested inside, which ARIA forbids:
@@ -4661,6 +5217,7 @@ export default function HorsesAdmin() {
                           </div>
                         ))}
                       </div>
+                      </>
                     )
                   )}
 
@@ -4683,12 +5240,18 @@ export default function HorsesAdmin() {
                       </div>
 
                       <div className={styles.subNav}>
+                        {/* EVERY COUNT HERE IS THE ROUTE'S TOTAL, not the
+                            length of the array that fitted under the page cap.
+                            `memberCount` is a server-side count over all
+                            members; pages.<list>.total covers the rest. A page
+                            length rendered as "Members (50)" told the operator
+                            a 1,200-member club had fifty. */}
                         {[
                           ['overview', 'Overview'],
-                          ['members', `Members (${num(caClubDetail?.members?.length, '0')})`],
-                          ['agents', `Agents (${num(caClubDetail?.agents?.length, '0')})`],
-                          ['tables', `Tables (${num(caClubDetail?.tables?.length, '0')})`],
-                          ['cashouts', `Cashouts (${num(caClubDetail?.pendingCashouts?.length, '0')})`],
+                          ['members', `Members (${num(caClubDetail?.memberCount ?? caClubDetail?.pages?.members?.total, '0')})`],
+                          ['agents', `Agents (${num(caClubDetail?.agentCount ?? caClubDetail?.pages?.agents?.total, '0')})`],
+                          ['tables', `Tables (${num(caClubDetail?.tableCount ?? caClubDetail?.pages?.tables?.total, '0')})`],
+                          ['cashouts', `Cashouts (${num(caClubDetail?.pages?.cashouts?.total ?? caClubDetail?.pendingCashouts?.length, '0')})`],
                           ['flags', `Flags (${num(caClubDetail?.flags?.length, '0')})`],
                           ['sessions', `Sessions (${num(caClubDetail?.sessions?.length, '0')})`],
                         ].map(([id, label]) => (
@@ -4704,20 +5267,41 @@ export default function HorsesAdmin() {
                         <div className={styles.loadingSpinner}>Loading Club</div>
                       ) : caClubTab === 'overview' ? (
                         <>
+                          {/* CHIPS ON BOOKS IS THE ROUTE'S FIGURE, NOT A SUM
+                              OF THIS PAGE. It used to reduce over the first 50
+                              members of the club and present the result as the
+                              club's chips on books - a fabricated balance, on
+                              the tab that exists to make chip movement
+                              answerable. `memberChipTotal` is summed
+                              server-side over every member (addendum item 11).
+                              Where the route has not sent one, the tile says
+                              the number is unknown rather than showing a page
+                              sum that looks like a balance. */}
                           <div className={styles.kpiGrid}>
                             {[
-                              ['Members', caClubDetail.members?.length],
-                              ['Agents', caClubDetail.agents?.length],
-                              ['Tables', caClubDetail.tables?.length],
-                              ['Pending Cashouts', caClubDetail.pendingCashouts?.length],
-                              ['Chips On Books', (caClubDetail.members || []).reduce((s, m) => s + (Number(m.chip_balance) || 0), 0)],
+                              ['Members', caClubDetail.memberCount ?? caClubDetail.pages?.members?.total],
+                              ['Agents', caClubDetail.agentCount ?? caClubDetail.pages?.agents?.total],
+                              ['Tables', caClubDetail.tableCount ?? caClubDetail.pages?.tables?.total],
+                              ['Pending Cashouts', caClubDetail.pages?.cashouts?.total],
+                              ['Chips On Books', caClubDetail.memberChipTotal ?? null],
                             ].map(([label, value]) => (
                               <div key={label} className={styles.kpi}>
-                                <div className={styles.kpiValue}>{num(value, '0')}</div>
-                                <div className={styles.kpiLabel}>{label}</div>
+                                <div className={styles.kpiValue}>{num(value)}</div>
+                                <div className={styles.kpiLabel}>
+                                  {label}
+                                  {label === 'Chips On Books' && caClubDetail.memberChipTotalScope
+                                    ? ` (${caClubDetail.memberChipTotalScope})` : ''}
+                                </div>
                               </div>
                             ))}
                           </div>
+                          {caClubDetail.memberChipTotalTruncated && (
+                            <div className={styles.warnBanner}>
+                              Chips On Books Was Summed Over The First{' '}
+                              {num(caClubDetail.memberChipTotalRowsRead)} Members This Club Has, So It
+                              Is A Floor Rather Than The Whole Balance.
+                            </div>
+                          )}
                           <h3 className={styles.sectionTitle}>Recent Transactions</h3>
                           {(caClubDetail.recentTxns || []).length === 0 ? (
                             <div className={styles.emptyState}>No Recent Transactions.</div>
@@ -4745,6 +5329,13 @@ export default function HorsesAdmin() {
                         (caClubDetail.members || []).length === 0 ? (
                           <div className={styles.emptyState}>No Members In This Club.</div>
                         ) : (
+                          <>
+                          <ShowingOf
+                            truncated={caClubDetail.pages?.members?.truncated}
+                            count={caClubDetail.members.length}
+                            total={caClubDetail.memberCount ?? caClubDetail.pages?.members?.total}
+                            noun="Members"
+                          />
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                               <thead><tr><th scope="col">Player</th><th scope="col">Role</th><th scope="col">Chips</th><th scope="col">Hands</th><th scope="col">Status</th><th scope="col">Joined</th></tr></thead>
@@ -4767,11 +5358,19 @@ export default function HorsesAdmin() {
                               </tbody>
                             </table>
                           </div>
+                          </>
                         )
                       ) : caClubTab === 'agents' ? (
                         (caClubDetail.agents || []).length === 0 ? (
                           <div className={styles.emptyState}>No Agents In This Club.</div>
                         ) : (
+                          <>
+                          <ShowingOf
+                            truncated={caClubDetail.pages?.agents?.truncated}
+                            count={caClubDetail.agents.length}
+                            total={caClubDetail.pages?.agents?.total}
+                            noun="Agents"
+                          />
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                               <thead><tr><th scope="col">Agent</th><th scope="col">Role</th><th scope="col">Commission</th><th scope="col">Credit Used</th><th scope="col">Players</th><th scope="col">Status</th></tr></thead>
@@ -4790,11 +5389,19 @@ export default function HorsesAdmin() {
                               </tbody>
                             </table>
                           </div>
+                          </>
                         )
                       ) : caClubTab === 'tables' ? (
                         (caClubDetail.tables || []).length === 0 ? (
                           <div className={styles.emptyState}>No Tables In This Club.</div>
                         ) : (
+                          <>
+                          <ShowingOf
+                            truncated={caClubDetail.pages?.tables?.truncated}
+                            count={caClubDetail.tables.length}
+                            total={caClubDetail.pages?.tables?.total}
+                            noun="Tables"
+                          />
                           <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                               <thead><tr><th scope="col">Table</th><th scope="col">Game</th><th scope="col">Stakes</th><th scope="col">Seats</th><th scope="col">Status</th><th scope="col">Created</th></tr></thead>
@@ -4815,6 +5422,7 @@ export default function HorsesAdmin() {
                               </tbody>
                             </table>
                           </div>
+                          </>
                         )
                       ) : caClubTab === 'flags' ? (
                         /* reviewFlag() has existed in this file with no caller
@@ -4937,20 +5545,45 @@ export default function HorsesAdmin() {
                         </div>
                         <div className={styles.kpi}>
                           <div className={styles.kpiValue} style={{ color: T.warn }}>{num(caFinance?.pendingCashoutTotal)}</div>
-                          <div className={styles.kpiLabel}>Pending Cashout Total</div>
+                          <div className={styles.kpiLabel}>
+                            Pending Cashout Total
+                            {/* The route caps this sum and says when it hit the
+                                cap. A floor shown as a total is how a payout
+                                queue looks smaller than it is. */}
+                            {caStats?.pendingCashoutTotalTruncated ? ' (Floor, Sum Capped)' : ''}
+                          </div>
                         </div>
                         <div className={styles.kpi}>
-                          <div className={styles.kpiValue}>{num(caPendingCashouts.length, '0')}</div>
+                          {/* The exact platform count - the same figure the
+                              Overview tile shows. This used to be
+                              caPendingCashouts.length, a page capped at 100, so
+                              two near-identical labels carried two different
+                              numbers and the smaller one was on the screen an
+                              operator works from. */}
+                          <div className={styles.kpiValue}>{num(caStats?.pendingCashouts)}</div>
                           <div className={styles.kpiLabel}>Cashout Requests</div>
                         </div>
                       </div>
 
+                      {caStats?.pendingCashoutTotalTruncated && (
+                        <div className={styles.warnBanner}>
+                          The Pending Cashout Total Is Summed Over A Capped Read, So It Is A Floor.
+                          The Real Figure Is At Least This Large.
+                        </div>
+                      )}
+
                       <h3 className={styles.sectionTitle}>
                         Pending Cashouts
-                        {caPendingCashouts.length > 0 && (
-                          <span className={`${styles.countPill} ${styles.warnPill}`}>{caPendingCashouts.length}</span>
+                        {(caStats?.pendingCashouts || 0) > 0 && (
+                          <span className={`${styles.countPill} ${styles.warnPill}`}>{num(caStats.pendingCashouts)}</span>
                         )}
                       </h3>
+                      <ShowingOf
+                        truncated={caPages?.cashouts?.truncated}
+                        count={caPendingCashouts.length}
+                        total={caPages?.cashouts?.total ?? caStats?.pendingCashouts}
+                        noun="Cashout Requests"
+                      />
                       {caPendingCashouts.length === 0 ? (
                         <div className={styles.emptyState}>No Pending Cashouts Anywhere On The Platform.</div>
                       ) : (
@@ -5177,9 +5810,27 @@ export default function HorsesAdmin() {
                           </div>
                         </div>
 
+                        {/* THE TRUNCATION FLAGS ARE THE POINT OF THIS PANEL.
+                            This is the one surface built to make chip loss
+                            loud; a capped list reading as complete here is the
+                            failure mode it exists to prevent. All three flags
+                            were returned and discarded. */}
+                        {caLedger.rpcRowCap && (
+                          <div className={styles.warnBanner}>
+                            The Reconciliation RPC Returns At Most {num(caLedger.rpcRowCap)} Rows Per
+                            Call, So Every List Below Is A Sample Of The Run And Not The Run.
+                          </div>
+                        )}
+
                         {caLedger.circulation?.length > 0 && (
                           <>
                             <h3 className={styles.sectionTitle}>Chip Circulation</h3>
+                            <ShowingOf
+                              truncated={caLedger.circulationTruncated}
+                              count={caLedger.circulation.length}
+                              total={caLedger.counts?.circulation}
+                              noun="Clubs"
+                            />
                             <div className={styles.tableWrapper}>
                               <table className={styles.table}>
                                 <caption className={styles.srOnly}>Where The Chips Are, Per Club</caption>
@@ -5208,15 +5859,38 @@ export default function HorsesAdmin() {
                           <span className={styles.countPill}>
                             Top {num(caLedger.sampleSize)} Of {num(caLedger.counts?.critical)}
                           </span>
+                          {/* THE FILE SAYS WHAT IT IS. This exports
+                              caLedger.critical - the SAMPLE the route sends,
+                              not the set - and an auditor was getting ~200 rows
+                              of a 20,000-row problem with nothing in the file
+                              or the toast admitting it. A sampling row is
+                              written into the CSV itself, because the toast is
+                              gone four seconds later and the file is not. */}
                           <button className={styles.filterBtn} style={{ marginLeft: 'auto' }}
                             onClick={() => {
-                              downloadCsv(stampedName('ledger-drift'), toCsv(caLedger.critical || [], [
+                              const rows = caLedger.critical || [];
+                              const total = caLedger.counts?.critical;
+                              const partial = typeof total === 'number' && total > rows.length;
+                              const noteRow = partial ? [{
+                                run_date: '',
+                                entity_type: 'EXPORT NOTE',
+                                entity_id: '',
+                                entity_name: `Sample of ${rows.length} rows out of ${total} critical rows. This file is NOT the whole set.`,
+                                ledger_balance: '', stored_balance: '', drift: '',
+                                severity: '', notes: '',
+                              }] : [];
+                              downloadCsv(stampedName('ledger-drift'), toCsv([...noteRow, ...rows], [
                                 ['run_date', 'Run Date'], ['entity_type', 'Entity Type'],
                                 ['entity_id', 'Entity ID'], ['entity_name', 'Name'],
                                 ['ledger_balance', 'Ledger Balance'], ['stored_balance', 'Stored Balance'],
                                 ['drift', 'Drift'], ['severity', 'Severity'], ['notes', 'Notes'],
                               ]));
-                              showNotification('Exported Ledger Drift');
+                              showNotification(
+                                partial
+                                  ? `Exported ${num(rows.length)} Of ${num(total)} Critical Rows. This Is The Sample, Not The Set.`
+                                  : `Exported ${num(rows.length)} Critical Rows`,
+                                partial ? 'info' : 'success',
+                              );
                             }}>Export CSV</button>
                         </h3>
                         {(caLedger.critical || []).length === 0 ? (
@@ -5257,6 +5931,12 @@ export default function HorsesAdmin() {
                           Unaccounted Seat Exits
                           <span style={{ color: T.dim, fontWeight: 400, fontSize: 13 }}>Last 7 Days</span>
                         </h3>
+                        <ShowingOf
+                          truncated={caLedger.unaccountedSeatExitsTruncated}
+                          count={(caLedger.unaccountedSeatExits || []).length}
+                          total={caLedger.counts?.unaccountedSeatExits}
+                          noun="Seat Exits"
+                        />
                         {(caLedger.unaccountedSeatExits || []).length === 0 ? (
                           <div className={styles.emptyState}>
                             Every Non-Zero Stack That Left A Seat Has A Matching Wallet Credit.
@@ -5441,6 +6121,13 @@ export default function HorsesAdmin() {
                     caUnions.length === 0 ? (
                       <div className={styles.emptyState}>No Unions Found.</div>
                     ) : (
+                      <>
+                      <ShowingOf
+                        truncated={caPages?.unions?.truncated}
+                        count={caUnions.length}
+                        total={caPages?.unions?.total}
+                        noun="Unions"
+                      />
                       <div className={styles.cardGrid}>
                         {caUnions.map((u) => (
                           <div key={u.id} className={styles.card}>
@@ -5458,6 +6145,7 @@ export default function HorsesAdmin() {
                           </div>
                         ))}
                       </div>
+                      </>
                     )
                   )}
 
@@ -5488,7 +6176,9 @@ export default function HorsesAdmin() {
                         </div>
                       ) : caApplications.map((app) => (
                         <div key={app.id} className={styles.card} style={{
-                          borderColor: app.status === 'pending' ? 'rgba(255,215,0,0.3)' : T.line,
+                          // T.warn, not a raw rgba literal. The file header
+                          // rule is that colours come from horsesAdminTokens.
+                          borderColor: app.status === 'pending' ? T.warn : T.line,
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{app.club_name}</span>
@@ -5499,10 +6189,15 @@ export default function HorsesAdmin() {
                               borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                             }}>{app.status || 'unknown'}</span>
                           </div>
+                          {/* The owner line is gone. union_applications rows
+                              carry no `profiles` embed - the list branch of
+                              union-application selects '*, unions(name)' and
+                              nothing else - so these two expressions were dead
+                              in every case and the card promised an identity it
+                              never had. It comes back when the route attaches
+                              profiles the way list_leave_requests does. */}
                           <div style={{ fontSize: 12, color: T.dim }}>
                             {num(app.member_count, '0')} Members - Applied {when(app.applied_at)}
-                            {app.profiles?.display_name && <> - Owner <strong style={{ color: T.text }}>{app.profiles.display_name}</strong></>}
-                            {app.profiles?.email && <> ({app.profiles.email})</>}
                           </div>
                           {app.message && (
                             <div style={{
@@ -5532,8 +6227,10 @@ export default function HorsesAdmin() {
                                 Approve And Add To Union
                               </button>
                               <input
-                                placeholder="Rejection reason (optional)" value={caAppReason}
-                                onChange={(e) => setCaAppReason(e.target.value)}
+                                placeholder="Rejection reason (optional)"
+                                aria-label={`Rejection reason for ${app.club_name || 'this application'}`}
+                                value={caAppReason[app.id] ?? ''}
+                                onChange={(e) => setCaAppReason((prev) => ({ ...prev, [app.id]: e.target.value }))}
                                 style={{
                                   flex: 1, minWidth: 180, background: T.inset, border: `1px solid ${T.line}`,
                                   borderRadius: 6, color: T.text, fontSize: 12, padding: '7px 10px',
@@ -5572,7 +6269,7 @@ export default function HorsesAdmin() {
                         </div>
                       ) : caLeaveRequests.map((req) => (
                         <div key={req.id} className={styles.card} style={{
-                          borderColor: req.status === 'pending' ? 'rgba(255,215,0,0.3)' : T.line,
+                          borderColor: req.status === 'pending' ? T.warn : T.line,
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{req.club_name}</span>
@@ -5794,7 +6491,7 @@ export default function HorsesAdmin() {
                   {reviewsData.map((review) => (
                     <div key={review.id} className={styles.card} style={{
                       background: review.is_flagged ? T.warnSoft : undefined,
-                      borderColor: review.is_flagged ? 'rgba(255,215,0,0.3)' : T.line,
+                      borderColor: review.is_flagged ? T.warn : T.line,
                     }}>
                       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 220 }}>
@@ -5901,22 +6598,19 @@ export default function HorsesAdmin() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {/* THE EXPORT WALKS EVERY PAGE. This button used to run an
+                      inline downloadCsv over `auditEntries` - the 100 rows on
+                      screen - with details, before_state and after_state
+                      missing: the three columns that say what actually
+                      changed. exportAuditLog was written for exactly this and
+                      had no caller at all, so item F of the header shipped
+                      non-functional. */}
                   <button
                     className={styles.actionBtn}
-                    disabled={!auditEntries.length}
-                    onClick={() => downloadCsv(stampedName('admin-audit-log'), toCsv(auditEntries, [
-                      ['created_at', 'When'],
-                      ['admin_name', 'Admin'],
-                      ['admin_user_id', 'Admin ID'],
-                      ['admin_role', 'Role'],
-                      ['action', 'Action'],
-                      ['target_type', 'Target Type'],
-                      ['target_id', 'Target'],
-                      ['ip_address', 'IP'],
-                      ['request_id', 'Request'],
-                    ]))}
+                    disabled={!auditEntries.length || !!auditExporting}
+                    onClick={exportAuditLog}
                   >
-                    Export CSV
+                    {auditExporting ? 'Exporting' : 'Export CSV'}
                   </button>
                   <button className={styles.actionBtn} onClick={loadAuditLog} disabled={auditLoading}>
                     {auditLoading ? 'Loading' : 'Refresh'}
@@ -5924,24 +6618,35 @@ export default function HorsesAdmin() {
                 </div>
               </div>
 
+              {/* The progress state existed and was unreachable. An export that
+                  walks 20,000 rows in pages of 500 has to say it is working, or
+                  the operator presses the button again. */}
+              {auditExporting && (
+                <div className={shared.exportProgress} role="status">
+                  Exporting Audit Entries: {num(auditExporting.fetched, '0')}
+                  {auditExporting.total === null || auditExporting.total === undefined
+                    ? ' So Far'
+                    : ` Of ${num(auditExporting.total)}`}
+                  . Leave This Tab Open.
+                </div>
+              )}
+
               <div className={styles.filterBar}>
+                {/* A GROUP, not a prefix. The trail was namespaced in Phase 1,
+                    so each group asks for the new vocabulary AND the one it
+                    replaced (auditFilters.js), sent as `actionPrefixes`. Two of
+                    the old options - content_author and content_settings - were
+                    TARGET types rather than action prefixes and matched zero
+                    rows however long the operator waited; they are legacy
+                    members of their real groups now. */}
                 <select
                   value={auditPrefix}
                   onChange={(e) => setAuditPrefix(e.target.value)}
                   aria-label="Filter by action type"
                 >
-                  <option value="">All Actions</option>
-                  <option value="cashout.">Cashouts</option>
-                  <option value="anticheat.">Anti-Cheat</option>
-                  <option value="union.">Union Applications</option>
-                  <option value="fleet.">Fleet Launches</option>
-                  <option value="hg.">Home Game Moderation</option>
-                  <option value="ticket.">Support Tickets</option>
-                  <option value="horses.">Horse Operations</option>
-                  <option value="content_author">Horse Records</option>
-                  <option value="content_settings">Engine Settings</option>
-                  <option value="promo">Promo Codes</option>
-                  <option value="review">Review Moderation</option>
+                  {AUDIT_FILTER_GROUPS.map((group) => (
+                    <option key={group.id || 'all'} value={group.id}>{group.label}</option>
+                  ))}
                 </select>
                 {/* "What did this person do?" is the question an audit log
                     exists to answer, and it was the one filter the tab could
@@ -5970,6 +6675,60 @@ export default function HorsesAdmin() {
                   <option value="365">Last Year</option>
                   <option value="">All Time</option>
                 </select>
+                {/* "WHAT HAPPENED TO THIS CLUB / THIS USER / THIS TICKET" is
+                    the second question an audit log exists to answer, and the
+                    tab could not express it: auditTarget, auditFrom and auditTo
+                    were in state, threaded into the query and into the page
+                    reset, and NO input rendered any of them. The route has
+                    accepted targetId, from and to all along. */}
+                <label className={styles.srOnly} htmlFor="audit-target">Target ID</label>
+                <input
+                  id="audit-target"
+                  type="search"
+                  className={styles.searchInput}
+                  style={{ minWidth: 220 }}
+                  placeholder="Target id (club, user, ticket)"
+                  value={auditTarget}
+                  onChange={(e) => setAuditTarget(e.target.value)}
+                />
+                {/* An explicit window, rather than "the last N days from now".
+                    From and To win over the quick range in auditQuery, so the
+                    set is never filtered twice by two different rules. */}
+                <label className={styles.srOnly} htmlFor="audit-from">From Date</label>
+                <input
+                  id="audit-from"
+                  type="date"
+                  className={styles.filterSelect}
+                  value={auditFrom}
+                  onChange={(e) => setAuditFrom(e.target.value)}
+                  aria-label="From date"
+                />
+                <label className={styles.srOnly} htmlFor="audit-to">To Date</label>
+                <input
+                  id="audit-to"
+                  type="date"
+                  className={styles.filterSelect}
+                  value={auditTo}
+                  onChange={(e) => setAuditTo(e.target.value)}
+                  aria-label="To date"
+                />
+                {(auditTarget || auditFrom || auditTo || auditPrefix || auditAdmin) && (
+                  <button
+                    type="button"
+                    className={styles.filterBtn}
+                    onClick={() => {
+                      setAuditTarget(''); setAuditFrom(''); setAuditTo('');
+                      setAuditPrefix(''); setAuditAdmin('');
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+                {(auditFrom || auditTo) && (
+                  <span style={{ color: T.muted, fontSize: 12, alignSelf: 'center' }}>
+                    The Quick Range Is Ignored While From Or To Is Set.
+                  </span>
+                )}
                 <span style={{ color: T.muted, fontSize: 13, alignSelf: 'center' }}>
                   {auditTotal === null ? '' : `${num(auditTotal)} ${auditTotal === 1 ? 'entry' : 'entries'}`}
                 </span>
@@ -6063,17 +6822,19 @@ export default function HorsesAdmin() {
                     </table>
                   </div>
 
-                  <div className={styles.pagination}>
-                    <button onClick={() => setAuditPage((p) => Math.max(0, p - 1))}
-                      disabled={auditPage === 0 || auditLoading}>Previous</button>
-                    <span>
-                      {auditTotal === null
-                        ? `Page ${auditPage + 1}`
-                        : `${num(auditPage * AUDIT_PAGE_SIZE + 1)}-${num(auditPage * AUDIT_PAGE_SIZE + auditEntries.length)} of ${num(auditTotal)}`}
-                    </span>
-                    <button onClick={() => setAuditPage((p) => p + 1)}
-                      disabled={auditEntries.length < AUDIT_PAGE_SIZE || auditLoading}>Next</button>
-                  </div>
+                  {/* The shared Pager, which knows that total may be null and
+                      says "Showing X-Y" without inventing a denominator. */}
+                  <Pager
+                    offset={auditPage * AUDIT_PAGE_SIZE}
+                    limit={AUDIT_PAGE_SIZE}
+                    count={auditEntries.length}
+                    total={auditTotal}
+                    hasMore={auditHasMore}
+                    loading={auditLoading}
+                    noun="Entries"
+                    onPrevious={() => setAuditPage((p) => Math.max(0, p - 1))}
+                    onNext={() => setAuditPage((p) => p + 1)}
+                  />
                 </>
               )}
             </div>
@@ -6232,6 +6993,13 @@ export default function HorsesAdmin() {
             issuing a replacement. Note the casing: POST takes camelCase
             (type/value/maxUses/expiresAt), PATCH takes the snake_case column
             names. This form speaks PATCH. */}
+        {/* INSIDE A BOUNDARY. Both dialogs used to render as siblings of
+            <main>, outside the ErrorBoundary entirely, so a throw in either one
+            still white-screened all sixteen tabs - the exact failure item A
+            claims to have closed. Each gets its own boundary rather than being
+            moved inside the panel's: a dialog is a separate failure domain, and
+            resetting on `activeTab` would be the wrong reset key for one. */}
+        <ErrorBoundary resetKey={promoEditing?.id || 'promo-dialog'} label="The Promo Code Dialog">
         {promoEditing && promoEditForm && (
           <Modal
             title={`Edit ${promoEditing.code}`}
@@ -6306,8 +7074,10 @@ export default function HorsesAdmin() {
             </form>
           </Modal>
         )}
+        </ErrorBoundary>
 
         {/* ─────────────────────────── CREATE / EDIT HORSE ──────────────────── */}
+        <ErrorBoundary resetKey={editingPersona?.id || 'horse-dialog'} label="The Horse Dialog">
         {showCreateModal && (
           <Modal
             title={editingPersona ? `Edit ${editingPersona.name}` : 'New Horse'}
@@ -6380,6 +7150,7 @@ export default function HorsesAdmin() {
             </form>
           </Modal>
         )}
+        </ErrorBoundary>
       </div>
     </>
   );

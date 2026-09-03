@@ -6,7 +6,11 @@
  *   - it asks for the gdpr.erase permission, not merely "admin";
  *   - it carries a DURABLE rate limit (5 per 10 minutes per operator), because
  *     the in-memory limiter is per lambda instance and multiplies by instance
- *     count on Vercel;
+ *     count on Vercel. A DPO working a batch WILL hit it: a 429 here means
+ *     "wait out the window and continue", not "the system is broken", and the
+ *     erasures already accepted are done. The tab's copy has to say so, since
+ *     the limit is not in the Phase 1 contract and an operator mid-batch has no
+ *     other way to read a 429;
  *   - `confirmed: true` is required in the body, so an accidental call cannot
  *     erase anyone;
  *   - it writes its own audit row. The RPC's logging goes to

@@ -49,6 +49,26 @@ function getSupabase() {
     return _supabase;
 }
 
+// The audit client is SERVICE ROLE ONLY. getSupabase() above falls back to the
+// anon key, and under that key operatorAudit's documented "direct service-role
+// insert if the RPC is unavailable" runs under RLS and is denied - the fallback
+// that exists to guarantee the row could never fire. null makes the helper log
+// a dropped row loudly instead of appearing to write one.
+let _auditDb;
+function getAuditDb() {
+    if (_auditDb === undefined) {
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            console.error('[admin-promo-codes] SUPABASE_SERVICE_ROLE_KEY missing; promo audit rows cannot be written');
+            _auditDb = null;
+        } else {
+            const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+            _auditDb = createClient(url, key);
+        }
+    }
+    return _auditDb;
+}
+
 function generateCode(length = 8) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I/O/0/1 for readability
     // crypto.randomInt, not Math.random: these codes are bearer tokens for
@@ -102,7 +122,7 @@ export default async function handler(req, res) {
       const auditOp = {
           user: { id: user.id },
           role: profile.role,
-          db: getSupabase(),
+          db: getAuditDb(),
           requestId: requestIdOf(req),
       };
 
@@ -232,10 +252,12 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              // Audit log. DELETE is a soft deactivate, which is the same act
-              // the toggle performs, so it files under the same action name.
+              // Audit log. DELETE is a soft deactivate, and the action name
+              // says which direction it went: 'promo.toggle' left a reader of
+              // the Audit tab unable to tell a code being switched off from one
+              // being switched back on, and the tab filters on the name.
               await auditOperatorAction(auditOp, req, {
-                  action: 'promo.toggle',
+                  action: 'promo.deactivate',
                   targetType: 'promo_code',
                   targetId: id,
                   details: { via: 'delete', is_active: false },
@@ -333,11 +355,14 @@ export default async function handler(req, res) {
                   throw error;
               }
 
-              // Audit log. A PATCH that only moves is_active is a toggle; any
-              // other edit can re-price the code and is filed as an update.
+              // Audit log. A PATCH that only moves is_active is filed under the
+              // direction it moved - promo.activate or promo.deactivate - so
+              // the action name alone says what happened; any other edit can
+              // re-price the code and is filed as an update.
               const isToggleOnly = Object.keys(updates).length === 1 && updates.is_active !== undefined;
+              const toggleAction = updates.is_active ? 'promo.activate' : 'promo.deactivate';
               await auditOperatorAction(auditOp, req, {
-                  action: isToggleOnly ? 'promo.toggle' : 'promo.update',
+                  action: isToggleOnly ? toggleAction : 'promo.update',
                   targetType: 'promo_code',
                   targetId: id,
                   details: { updates },

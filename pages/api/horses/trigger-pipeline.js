@@ -24,7 +24,14 @@
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { ApiError } from '../../../src/lib/horses/apiEnvelope.js';
+import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { enumOf } from '../../../src/lib/horses/validate.js';
+
+/** The four pipeline types the original route accepted. The allowlist is kept
+ *  so a typo or a wrong body shape is still told what it got wrong: without it
+ *  every malformed call answered 501 alongside every correct one, and the
+ *  caller could not tell a mistake from an unbuilt feature. */
+export const PIPELINE_TYPES = ['test', 'cycle', 'daily', 'publish'];
 
 export const spec = {
   name: 'horses.trigger-pipeline',
@@ -33,7 +40,14 @@ export const spec = {
   limit: 'write',
 };
 
-export async function handle() {
+export async function handle({ body } = {}) {
+  const requested = (body && body.type) ?? 'test';
+  if (!enumOf(requested, PIPELINE_TYPES)) {
+    throw badRequest(
+      'Pipeline Type Must Be One Of: ' + PIPELINE_TYPES.join(', '),
+      'invalid_pipeline_type'
+    );
+  }
   throw new ApiError(501, 'Not Built Yet', 'not_built');
 }
 

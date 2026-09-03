@@ -47,16 +47,25 @@ async function getMidwayUnionId() {
   return data || null;
 }
 
-// Check if caller is platform admin (has admin/superadmin/god in profiles.role)
-async function isPlatformAdmin(userId) {
+const PLATFORM_ADMIN_ROLES = ['admin', 'superadmin', 'god'];
+
+// The caller's real profiles.role, or null. Read once per request and passed
+// down so the authorisation check and the audit row agree about who this is.
+async function fetchProfileRole(userId) {
   const { data } = await getSupabase()
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .maybeSingle();
+  return data?.role ?? null;
+}
+
+// Check if caller is platform admin (has admin/superadmin/god in profiles.role)
+async function isPlatformAdmin(userId, knownRole) {
+  const role = knownRole !== undefined ? knownRole : await fetchProfileRole(userId);
   // 'god' is the role the real owner accounts carry - omitting it locked
   // them out of every union review action.
-  return ['admin', 'superadmin', 'god'].includes(data?.role);
+  return PLATFORM_ADMIN_ROLES.includes(role);
 }
 
 // Check if caller is union_lead for the given unionId
@@ -71,9 +80,9 @@ async function isUnionLead(userId, unionId) {
 }
 
 // Check if caller can administer this union (platform admin OR union_lead)
-async function canAdminUnion(userId, unionId) {
+async function canAdminUnion(userId, unionId, knownRole) {
   const [admin, lead] = await Promise.all([
-    isPlatformAdmin(userId),
+    isPlatformAdmin(userId, knownRole),
     isUnionLead(userId, unionId),
   ]);
   return admin || lead;
@@ -108,12 +117,21 @@ export default async function handler(req, res) {
   // (canAdminUnion still decides every branch below); this only gives the audit
   // rows the same actor, role, ip, user agent, request id and before/after
   // stamp every other console write now carries.
+  //
+  // `role` is the caller's REAL profiles.role, never a literal. canAdminUnion
+  // also authorises union leads and union owners who hold no platform role at
+  // all, and filing every one of their decisions as `admin` made the audit row
+  // assert a privilege the actor may not have. A union lead with no platform
+  // role is filed with their actual role (often null) and the union authority
+  // that let them act is recorded in `union_authority`.
+  const actorRole = await fetchProfileRole(user.id);
   const auditOp = {
     user: { id: user.id },
-    role: 'admin',
+    role: actorRole,
     db: getSupabase(),
     requestId: requestIdOf(req),
   };
+  const platformAdmin = PLATFORM_ADMIN_ROLES.includes(actorRole);
 
   // Zod validation - reject malformed payloads before DB queries
   const validation = validateUnionApplication(req.body);
@@ -249,7 +267,7 @@ export default async function handler(req, res) {
         targetUnionId = midway.id;
       }
 
-      if (!(await canAdminUnion(user.id, targetUnionId))) {
+      if (!(await canAdminUnion(user.id, targetUnionId, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -284,7 +302,7 @@ export default async function handler(req, res) {
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
 
-      if (!(await canAdminUnion(user.id, app.union_id))) {
+      if (!(await canAdminUnion(user.id, app.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -409,6 +427,7 @@ export default async function handler(req, res) {
         targetId: applicationId,
         details: {
           decision: 'approved',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: app.club_id,
           club_name: app.club_name,
           union_id: app.union_id,
@@ -448,7 +467,7 @@ export default async function handler(req, res) {
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
 
-      if (!(await canAdminUnion(user.id, app.union_id))) {
+      if (!(await canAdminUnion(user.id, app.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -474,6 +493,7 @@ export default async function handler(req, res) {
         targetId: applicationId,
         details: {
           decision: 'rejected',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: app.club_id,
           club_name: app.club_name,
           union_id: app.union_id,
@@ -498,7 +518,7 @@ export default async function handler(req, res) {
         targetUnionId = midway.id;
       }
 
-      if (!(await canAdminUnion(user.id, targetUnionId))) {
+      if (!(await canAdminUnion(user.id, targetUnionId, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -556,7 +576,7 @@ export default async function handler(req, res) {
       if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
       if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
 
-      if (!(await canAdminUnion(user.id, lr.union_id))) {
+      if (!(await canAdminUnion(user.id, lr.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -611,6 +631,7 @@ export default async function handler(req, res) {
         targetId: leaveRequestId,
         details: {
           decision: 'approved',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: lr.club_id,
           club_name: lr.club_name,
           union_id: lr.union_id,
@@ -640,7 +661,7 @@ export default async function handler(req, res) {
       if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
       if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
 
-      if (!(await canAdminUnion(user.id, lr.union_id))) {
+      if (!(await canAdminUnion(user.id, lr.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -670,6 +691,7 @@ export default async function handler(req, res) {
         targetId: leaveRequestId,
         details: {
           decision: 'denied',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: lr.club_id,
           club_name: lr.club_name,
           union_id: lr.union_id,

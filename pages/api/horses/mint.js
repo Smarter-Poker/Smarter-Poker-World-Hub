@@ -57,7 +57,14 @@ import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
-import { paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { paging, runPaged } from '../../../src/lib/horses/paged.js';
+import {
+  pageFor,
+  readByIds,
+  shapeList,
+  shapeUnknownTotal,
+  sourceCollector,
+} from '../../../src/lib/horses/listShape.js';
 import { uuid, enumOf, money2dp, text, searchTerm } from '../../../src/lib/horses/validate.js';
 
 /** The single-operation ceilings the RPC also enforces. Mirrored so the panel
@@ -74,11 +81,13 @@ const LEDGER_FIELDS =
   'balance_before, balance_after, supply_after, reason, performed_by, ' +
   'performed_by_label, created_at, chip_ledger_id, diamond_tx_id';
 
-const LEDGER_PAGE = { defaultLimit: 50, max: 200 };
+/** Restored to the original 200 (addendum item 10): the journal is rendered
+ *  without a pager on first load, and 50 rows of it is half a screen. */
+const LEDGER_PAGE = { defaultLimit: 200, max: 500 };
 /** The destination pickers need every club and union, not a 50-row page, so
  *  this section pages with a deliberately large default and says `truncated`
- *  the moment the list does not fit. */
-const TARGET_PAGE = { defaultLimit: 500, max: 1000 };
+ *  the moment the list does not fit. 500 is the contract ceiling. */
+const TARGET_PAGE = { defaultLimit: 500, max: 500 };
 const PLAYER_PAGE = { defaultLimit: 25, max: 50 };
 
 // -- READS -------------------------------------------------------------------
@@ -90,17 +99,22 @@ const PLAYER_PAGE = { defaultLimit: 25, max: 50 };
  * entirely, so "issued" and "circulating" are not supposed to match yet and a
  * panel that reconciled them silently would be lying.
  */
-async function sectionOverview(db) {
-  const [{ data: totals, error: totalsErr }, { data: recent }] = await Promise.all([
+async function sectionOverview(db, requestId) {
+  const c = sourceCollector({ requestId, route: 'horses.mint' });
+  const [{ data: totals, error: totalsErr }, recentRes] = await Promise.all([
     db.rpc('fn_ca_mint_overview'),
     db.from('ca_mint_ledger').select(LEDGER_FIELDS).order('created_at', { ascending: false }).limit(10),
   ]);
 
   if (totalsErr) {
-    console.error('[horses.mint] fn_ca_mint_overview failed:', totalsErr.message);
+    console.error(`[horses.mint] ${requestId} fn_ca_mint_overview failed:`, totalsErr.message);
     throw new ApiError(503, 'The Mint Overview Is Unavailable', 'mint_overview_unavailable');
   }
-  return { totals: totals || null, recent: recent || [] };
+  // The recent-operations read used to discard its error, so a broken read
+  // rendered as "no recent operations" on the one panel whose job is to show
+  // that money moved.
+  c.check('ca_mint_ledger_recent', recentRes);
+  return { totals: totals || null, recent: recentRes.data || [], failedSources: c.list() };
 }
 
 /** Contract item 5: the journal pages, and says how many rows there are. */
@@ -125,7 +139,7 @@ async function sectionLedger(db, query) {
     throw new ApiError(503, 'The Mint Journal Is Unavailable', 'mint_ledger_unavailable');
   }
 
-  const shaped = pagedResult(result, page);
+  const shaped = shapeList(result, page);
   // `entries` is what the console renders today. Added to, never renamed.
   return { ...shaped, entries: shaped.rows };
 }
@@ -137,34 +151,47 @@ async function sectionLedger(db, query) {
  * has never held chips has no wallet row at all - that is not an error, it is
  * a zero, and fn_ca_mint creates the row on first issuance.
  */
-async function sectionTargets(db, query) {
-  const page = paging(query, TARGET_PAGE);
+async function sectionTargets(db, query, requestId) {
+  // Independently pageable, so the club list can be advanced without dragging
+  // the union list along with it.
+  const clubsPage = pageFor(query, 'clubs', TARGET_PAGE);
+  const unionsPage = pageFor(query, 'unions', TARGET_PAGE);
 
-  const [clubsRes, unionsRes, walletsRes] = await Promise.all([
+  const [clubsRes, unionsRes] = await Promise.all([
     runPaged(
       db
         .from('clubs')
         .select('id, name, club_id, code, status, chip_treasury', { count: 'exact' })
         .order('name'),
-      page
+      clubsPage
     ),
     runPaged(
       db.from('unions').select('id, name, code, union_code', { count: 'exact' }).order('name'),
-      page
+      unionsPage
     ),
-    db.from('union_wallets').select('union_id, chip_balance').limit(TARGET_PAGE.max),
   ]);
 
   if (clubsRes.error || unionsRes.error) {
     console.error(
-      '[horses.mint] targets read failed:',
+      `[horses.mint] ${requestId} targets read failed:`,
       clubsRes.error?.message || unionsRes.error?.message
     );
     throw new ApiError(503, 'The Destination List Is Unavailable', 'mint_targets_unavailable');
   }
 
+  // Wallets FOR THE UNIONS ON THE PAGE. It used to be a flat `.limit(1000)`
+  // with no relation to the page at all, so past the first thousand wallets
+  // every union on screen showed a balance of 0 while holding chips.
+  const unionIds = (unionsRes.data || []).map((u) => u.id);
+  const walletsRead = await readByIds(db, unionIds, (part) =>
+    db.from('union_wallets').select('union_id, chip_balance').in('union_id', part)
+  );
+  if (walletsRead.error) {
+    console.error(`[horses.mint] ${requestId} union_wallets read failed:`, walletsRead.error.message);
+  }
+
   const walletByUnion = {};
-  for (const w of walletsRes.data || []) walletByUnion[w.union_id] = Number(w.chip_balance) || 0;
+  for (const w of walletsRead.rows) walletByUnion[w.union_id] = Number(w.chip_balance) || 0;
 
   const clubs = (clubsRes.data || []).map((c) => ({
     id: c.id,
@@ -180,18 +207,21 @@ async function sectionTargets(db, query) {
     balance: walletByUnion[u.id] || 0,
   }));
 
-  const clubPage = { ...pagedResult(clubsRes, page), rows: clubs };
-  const unionPage = { ...pagedResult(unionsRes, page), rows: unions };
+  const clubPage = shapeList(clubsRes, clubsPage, clubs);
+  const unionPage = shapeList(unionsRes, unionsPage, unions);
 
   return {
     clubs,
     unions,
     pages: { clubs: clubPage, unions: unionPage },
-    limit: page.limit,
-    offset: page.offset,
+    limit: clubsPage.limit,
+    offset: clubsPage.offset,
+    clubTotal: clubPage.total,
+    unionTotal: unionPage.total,
+    walletBalancesAvailable: !walletsRead.error,
     // Explicit rather than implied: a picker missing the club the operator
     // wants is indistinguishable from that club not existing.
-    truncated: clubPage.hasMore || unionPage.hasMore,
+    truncated: clubPage.truncated || unionPage.truncated,
   };
 }
 
@@ -202,18 +232,29 @@ async function sectionTargets(db, query) {
  * as a BADGE so the operator can see what they are picking - identification,
  * which the law explicitly still allows.
  */
-async function sectionPlayerSearch(db, query) {
+async function sectionPlayerSearch(db, query, requestId) {
   const page = paging(query, PLAYER_PAGE);
   const term = searchTerm(query.q, { max: 60 });
   if (!term || term.length < 2) {
-    return { players: [], rows: [], total: 0, limit: page.limit, offset: page.offset, hasMore: false };
+    return {
+      players: [],
+      rows: [],
+      total: 0,
+      limit: page.limit,
+      offset: page.offset,
+      hasMore: false,
+      truncated: false,
+    };
   }
 
+  // NO COUNT (addendum item 10). The Phase 1 rebuild put `count: 'exact'`
+  // behind three LEADING-wildcard ilike filters on `profiles`, so every
+  // keystroke in the recipient box paid for a full scan plus a sort. The
+  // original was a bare `.limit(25)`. `total` is null and the pager takes Next
+  // from `hasMore`.
   let q = db
     .from('profiles')
-    .select('id, username, display_name, full_name, player_number, diamonds, is_horse, avatar_url', {
-      count: 'exact',
-    })
+    .select('id, username, display_name, full_name, player_number, diamonds, is_horse, avatar_url')
     .order('player_number', { ascending: true });
 
   // A bare number is almost always a player_number, which is how staff refer to
@@ -226,7 +267,7 @@ async function sectionPlayerSearch(db, query) {
 
   const result = await runPaged(q, page);
   if (result.error) {
-    console.error('[horses.mint] player search failed:', result.error.message);
+    console.error(`[horses.mint] ${requestId} player search failed:`, result.error.message);
     throw new ApiError(503, 'Player Search Is Unavailable', 'mint_player_search_unavailable');
   }
 
@@ -240,7 +281,8 @@ async function sectionPlayerSearch(db, query) {
     avatarUrl: p.avatar_url || null,
   }));
 
-  return { ...pagedResult(result, page), rows: players, players };
+  const shaped = shapeUnknownTotal(players, page, { countMode: 'none' });
+  return { ...shaped, players };
 }
 
 // -- WRITE -------------------------------------------------------------------
@@ -361,7 +403,13 @@ async function handleIssuance(db, op, req, body) {
   if (!data || data.ok !== true) {
     const code = typeof data?.reason === 'string' ? data.reason : 'mint_refused';
     if (REASON_TEXT[code]) throw new ApiError(400, REASON_TEXT[code], code);
-    throw new ApiError(409, 'Mint Refused', code);
+    // THE CODE GOES IN THE MESSAGE. The console shows `err.message` and nothing
+    // else, so a bare "Mint Refused" tells the operator that the money did not
+    // move and refuses to say why. The reason code is a fixed server-side enum
+    // out of fn_ca_mint, not database text: an unrecognised refusal is
+    // information, and hiding it behind a generic sentence is how a money bug
+    // survives a week.
+    throw new ApiError(409, `Mint Refused: ${code}`, code);
   }
 
   await auditOperatorAction(op, req, {
@@ -393,16 +441,16 @@ export const spec = {
   durable: { POST: { max: 20, windowSeconds: 60 } },
 };
 
-export async function handle({ req, op, db, body, query, method }) {
+export async function handle({ req, op, db, body, query, method, requestId }) {
   if (method === 'POST') return handleIssuance(db, op, req, body);
 
   const section = enumOf(String(query.section || 'overview'), SECTIONS);
   if (!section) throw badRequest('Unknown Section');
 
-  if (section === 'overview') return sectionOverview(db);
+  if (section === 'overview') return sectionOverview(db, requestId);
   if (section === 'ledger') return sectionLedger(db, query);
-  if (section === 'targets') return sectionTargets(db, query);
-  return sectionPlayerSearch(db, query);
+  if (section === 'targets') return sectionTargets(db, query, requestId);
+  return sectionPlayerSearch(db, query, requestId);
 }
 
 export default withOperatorRoute(spec, handle);

@@ -62,6 +62,8 @@ import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
 import { badRequest, forbidden, notFound, ApiError } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
+import { chunk, readByIds, IN_CHUNK } from '../../../src/lib/horses/listShape.js';
 import { uuid, uuidList, int, enumOf, isoDate, text, pick } from '../../../src/lib/horses/validate.js';
 
 /** Columns a caller may set. Anything else in the payload is dropped, so a
@@ -114,6 +116,16 @@ const SETTING_RANGES = {
  * size ships as a sequence of accepted calls instead of one rejected one.
  */
 const MAX_BULK = 500;
+
+/**
+ * ...but a PostgREST `.in()` list travels in the URL, and 500 uuids is about
+ * 19 KB of query string, which is where a proxy starts answering 414 and the
+ * operator sees a scrubbed 500 for a button that says "Select All". The route
+ * accepts 500 ids per CALL and sends them to Postgres 200 at a time, summing
+ * `affected` across the chunks. The client's BULK_CHUNK of 500 therefore
+ * always fits, and the request that reaches the database always does too.
+ */
+const BULK_IN_CHUNK = IN_CHUNK;
 
 /** live_help_tickets.status values the Bug Reports tab can set. */
 const VALID_TICKET_STATUS = ['open', 'resolved'];
@@ -217,6 +229,29 @@ function horseIdList(value) {
   return ids;
 }
 
+/**
+ * Run one write per chunk of at most BULK_IN_CHUNK ids and merge the returned
+ * rows. Stops at the first failing chunk and hands the error back rather than
+ * throwing, so the caller can audit what DID happen before it refuses: a bulk
+ * delete that got through two chunks and failed on the third must not be the
+ * one operation with no record of itself.
+ */
+async function writeInChunks(ids, run) {
+  const rows = [];
+  let error = null;
+  let chunks = 0;
+  for (const part of chunk(ids, BULK_IN_CHUNK)) {
+    chunks += 1;
+    const res = await run(part);
+    if (res?.error) {
+      error = res.error;
+      break;
+    }
+    rows.push(...(res?.data || []));
+  }
+  return { rows, error, chunks };
+}
+
 // -- ACTIONS -----------------------------------------------------------------
 
 async function createHorse(db, op, req, body) {
@@ -233,7 +268,11 @@ async function createHorse(db, op, req, body) {
   if (horse.is_active === undefined) horse.is_active = true;
 
   const { data, error } = await db.from('content_authors').insert([horse]).select().maybeSingle();
-  if (error) throw error;
+  // `alias` is unique and this route generates it from Math.random() when the
+  // caller does not supply one, so a collision is an ordinary event, not a
+  // server fault. Addendum item 17: it comes back as a 409 the operator can
+  // act on instead of a 500 that says "Request failed" and pages Sentry.
+  if (error) throw mapDbError(error, 'A Horse With That Name Or Alias', { route: 'horses.stable-admin' });
   if (!data) throw new ApiError(500, 'The Horse Was Not Created', 'not_created');
 
   await auditOperatorAction(op, req, {
@@ -266,7 +305,7 @@ async function updateHorse(db, op, req, body) {
     .eq('id', id)
     .select()
     .maybeSingle();
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'A Horse With That Name Or Alias', { route: 'horses.stable-admin' });
   // The whole point of this route: a zero-row write is reported, not hidden.
   if (!data) throw notFound('That Horse No Longer Exists');
 
@@ -298,7 +337,7 @@ async function setActive(db, op, req, body) {
     .eq('id', id)
     .select('id, is_active')
     .maybeSingle();
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'That Horse', { route: 'horses.stable-admin' });
   if (!data) throw notFound('That Horse No Longer Exists');
 
   await auditOperatorAction(op, req, {
@@ -317,27 +356,34 @@ async function bulkActive(db, op, req, body) {
   if (typeof body.is_active !== 'boolean') throw badRequest('is_active Must Be A Boolean');
   const isActive = body.is_active;
 
-  const { data: before } = await db.from('content_authors').select('id, is_active').in('id', ids);
+  const beforeRead = await readByIds(db, ids, (part) =>
+    db.from('content_authors').select('id, is_active').in('id', part)
+  );
 
-  const { data, error } = await db
-    .from('content_authors')
-    .update({ is_active: isActive })
-    .in('id', ids)
-    .select('id');
-  if (error) throw error;
-  const affected = (data || []).length;
+  const { rows, error, chunks } = await writeInChunks(ids, (part) =>
+    db.from('content_authors').update({ is_active: isActive }).in('id', part).select('id')
+  );
+  const affected = rows.length;
 
   await auditOperatorAction(op, req, {
     action: 'horse.bulk_active',
     targetType: 'content_author',
     targetId: null,
-    before: { rows: before || [] },
-    after: { is_active: isActive, ids: (data || []).map((r) => r.id) },
-    details: { requested: ids.length, affected, is_active: isActive },
+    before: { rows: beforeRead.rows },
+    after: { is_active: isActive, ids: rows.map((r) => r.id) },
+    details: {
+      requested: ids.length,
+      affected,
+      is_active: isActive,
+      chunks,
+      chunkSize: BULK_IN_CHUNK,
+      partial: Boolean(error),
+    },
   });
+  if (error) throw mapDbError(error, 'Those Horses', { route: 'horses.stable-admin' });
   // affected is returned so the browser can tell the operator the truth
   // when some ids no longer exist.
-  return { affected, requested: ids.length };
+  return { affected, requested: ids.length, chunks };
 }
 
 async function deleteHorse(db, op, req, body) {
@@ -351,7 +397,7 @@ async function deleteHorse(db, op, req, body) {
     .eq('id', id)
     .select('id')
     .maybeSingle();
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'That Horse', { route: 'horses.stable-admin' });
   if (!data) throw notFound('That Horse No Longer Exists');
 
   // Deletion is irreversible and there is no soft-delete column, so the
@@ -370,21 +416,40 @@ async function deleteHorse(db, op, req, body) {
 async function bulkDelete(db, op, req, body) {
   const ids = horseIdList(body.ids);
 
-  const { data: existing } = await db.from('content_authors').select('*').in('id', ids);
+  // IDENTITY, NOT THE WHOLE ROW. This used to `select('*')` for up to 500 rows
+  // and put every one of them into a single admin_audit_log.before_state - each
+  // `bio` is up to 2,000 characters, so one delete could write about a megabyte
+  // of JSON into one JSONB cell. Identity plus a count is what makes the row
+  // findable afterwards, which is what an audit row is for.
+  const beforeRead = await readByIds(db, ids, (part) =>
+    db.from('content_authors').select('id, name, alias').in('id', part)
+  );
 
-  const { data, error } = await db.from('content_authors').delete().in('id', ids).select('id');
-  if (error) throw error;
-  const affected = (data || []).length;
+  const { rows, error, chunks } = await writeInChunks(ids, (part) =>
+    db.from('content_authors').delete().in('id', part).select('id')
+  );
+  const affected = rows.length;
 
   await auditOperatorAction(op, req, {
     action: 'horse.bulk_delete',
     targetType: 'content_author',
     targetId: null,
-    before: { rows: existing || [] },
+    before: { rows: beforeRead.rows, count: beforeRead.rows.length },
     after: null,
-    details: { requested: ids.length, affected },
+    details: {
+      requested: ids.length,
+      affected,
+      chunks,
+      chunkSize: BULK_IN_CHUNK,
+      partial: Boolean(error),
+      deleted: rows.map((r) => r.id),
+    },
   });
-  return { affected, requested: ids.length };
+  // The audit row is written FIRST: chunks that succeeded before the failure
+  // are already gone, and an irreversible delete recorded nowhere is worse than
+  // a delete that failed loudly.
+  if (error) throw mapDbError(error, 'Those Horses', { route: 'horses.stable-admin' });
+  return { affected, requested: ids.length, chunks };
 }
 
 // -- SUPPORT TICKET STATUS ---------------------------------------------------
@@ -425,7 +490,7 @@ async function setTicketStatus(db, op, req, body) {
     .eq('id', id)
     .select('id, status')
     .maybeSingle();
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'That Ticket', { route: 'horses.stable-admin' });
   if (!data) throw notFound('That Ticket No Longer Exists');
 
   await auditOperatorAction(op, req, {
@@ -461,7 +526,7 @@ async function saveSettings(db, op, req, body) {
     .order('id', { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (readErr) throw readErr;
+  if (readErr) throw mapDbError(readErr, 'The Engine Settings', { route: 'horses.stable-admin' });
 
   if (!current?.id) {
     const { data, error } = await db
@@ -469,7 +534,7 @@ async function saveSettings(db, op, req, body) {
       .insert([{ ...settings, updated_at: new Date().toISOString() }])
       .select()
       .maybeSingle();
-    if (error) throw error;
+    if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
     await auditOperatorAction(op, req, {
       action: 'settings.save',
       targetType: 'content_settings',
@@ -487,7 +552,7 @@ async function saveSettings(db, op, req, body) {
     .eq('id', current.id)
     .select()
     .maybeSingle();
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
   if (!data) throw new ApiError(500, 'Settings Row Vanished Mid-Write', 'settings_missing');
 
   await auditOperatorAction(op, req, {
@@ -514,23 +579,36 @@ async function saveSettings(db, op, req, body) {
 // audit.read permission is the only thing that opens it.
 async function readActors(db) {
   const now = Date.now();
-  if (_actorCache.at && now - _actorCache.at < ACTOR_CACHE_TTL_MS) return _actorCache.actors;
+  if (_actorCache.at && now - _actorCache.at < ACTOR_CACHE_TTL_MS) {
+    return { actors: _actorCache.actors, failed: false };
+  }
 
   // PostgREST cannot express SELECT DISTINCT, so the distinct is a bounded
   // scan of the id column de-duplicated here. It runs at most once a minute.
-  const { data: actorRows } = await db
+  const { data: actorRows, error: scanErr } = await db
     .from('admin_audit_log')
     .select('admin_user_id')
     .not('admin_user_id', 'is', null)
     .range(0, ACTOR_SCAN_ROWS - 1);
 
+  // FAILURE IS NOT CACHED. It used to be: one bad scan wrote `actors: []` into
+  // a 60 second cache and the operator's "who" dropdown was silently empty for
+  // a minute with nothing on screen to say why.
+  if (scanErr) {
+    console.error('[horses.stable-admin] audit actor scan failed:', scanErr.message);
+    return { actors: _actorCache.actors || [], failed: true };
+  }
+
   const actorIds = [...new Set((actorRows || []).map((r) => r.admin_user_id).filter(Boolean))];
   let actors = [];
   if (actorIds.length) {
-    const { data: actorProfiles } = await db
-      .from('profiles')
-      .select('id, username, display_name, email, role')
-      .in('id', actorIds.slice(0, 500));
+    const { rows: actorProfiles, error: profileErr } = await readByIds(db, actorIds, (part) =>
+      db.from('profiles').select('id, username, display_name, email, role').in('id', part)
+    );
+    if (profileErr) {
+      console.error('[horses.stable-admin] audit actor profiles failed:', profileErr.message);
+      return { actors: _actorCache.actors || [], failed: true };
+    }
     actors = (actorProfiles || [])
       .map((a) => ({
         id: a.id,
@@ -545,16 +623,58 @@ async function readActors(db) {
   }
 
   _actorCache = { at: now, actors };
-  return actors;
+  return { actors, failed: false };
+}
+
+/** No filter group needs more than a handful of prefixes. */
+const MAX_ACTION_PREFIXES = 12;
+
+/**
+ * Clean and de-duplicate the action prefixes a caller sent, from either
+ * `actionPrefixes: string[]` or the single `actionPrefix`.
+ *
+ * `%` and `*` are LIKE wildcards and are stripped, so an operator-supplied
+ * prefix can never become a full-table wildcard scan. `,`, `(`, `)` and quotes
+ * are stripped because they would rewrite the .or() filter tree.
+ *
+ * `_` is deliberately KEPT. It is a single-character LIKE wildcard, so it
+ * matches more than itself - but it also matches itself, and every real action
+ * name in this console contains one (`content_settings`, `set_status`,
+ * `bulk_delete`). Stripping it, as the first version did, turned the "Engine
+ * Settings" filter into `contentsettings%`, which matches nothing at all.
+ */
+function cleanPrefixes(list, single) {
+  const raw = [];
+  if (Array.isArray(list)) raw.push(...list);
+  else if (typeof list === 'string' && list) raw.push(list);
+  if (single !== undefined && single !== null) raw.push(single);
+
+  const out = [];
+  const seen = new Set();
+  for (const value of raw) {
+    if (typeof value !== 'string') continue;
+    const cleaned = text(value.replace(/[%*,()"'\s]/g, ''), { min: 1, max: 60 });
+    if (!cleaned || seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    out.push(cleaned);
+    if (out.length >= MAX_ACTION_PREFIXES) break;
+  }
+  return out;
 }
 
 async function auditLog(db, body) {
   const limit = Math.min(int(body.limit, { min: 1, fallback: AUDIT_PAGE_DEFAULT }), AUDIT_PAGE_MAX);
-  const offset = int(body.offset, { min: 0, fallback: 0 });
+  // A malformed offset used to fall back to 0 and, because `body.offset !==
+  // undefined`, beat `page` - so a caller asking for page 4 with a broken
+  // offset was silently handed page 1 and had no way to tell. It is a 400 now,
+  // exactly as adminId, from and to already are.
+  const hasOffset = body.offset !== undefined && body.offset !== null && body.offset !== '';
+  const offset = int(body.offset, { min: 0, fallback: null });
+  if (hasOffset && offset === null) throw badRequest('Offset Must Be A Whole Number Of Rows');
   const pageNumber = int(body.page, { min: 0, fallback: null });
   // `page` (contract item 4) and `offset` both work; offset wins when both are
   // sent, so the current client keeps behaving exactly as it does today.
-  const start = body.offset !== undefined ? offset : pageNumber !== null ? pageNumber * limit : offset;
+  const start = hasOffset ? offset : pageNumber !== null ? pageNumber * limit : 0;
 
   let q = db
     .from('admin_audit_log')
@@ -570,9 +690,21 @@ async function auditLog(db, body) {
   //
   // The % and _ strip is deliberate: without it an operator-supplied prefix
   // could turn into a full-table wildcard scan.
-  if (body.actionPrefix) {
-    const prefix = text(String(body.actionPrefix).replace(/[%_]/g, ''), { min: 1, max: 60 });
-    if (prefix) q = q.like('action', `${prefix}%`);
+  //
+  // REVIEW ADDENDUM ITEM 14. Phase 1 renamed the audit vocabulary
+  // (content_settings.updated -> settings.save, horse.created -> horse.create,
+  // and so on) and nothing was backfilled, so history is split across two
+  // vocabularies and the console's "Engine Settings" filter matched zero rows.
+  // The fix is not to rewrite history: the tab's filter groups now map to an
+  // ARRAY of prefixes, [new, legacy], and this accepts `actionPrefixes` as an
+  // OR of `like` filters so both eras come back in one query. `actionPrefix`
+  // still works on its own for any caller that sends one.
+  const prefixes = cleanPrefixes(body.actionPrefixes, body.actionPrefix);
+  if (prefixes.length === 1) {
+    q = q.like('action', `${prefixes[0]}%`);
+  } else if (prefixes.length > 1) {
+    // Inside an .or() string PostgREST spells the LIKE wildcard `*`, not `%`.
+    q = q.or(prefixes.map((p) => `action.like.${p}*`).join(','));
   }
   if (body.adminId !== undefined && body.adminId !== null && body.adminId !== '') {
     const adminId = uuid(body.adminId);
@@ -605,18 +737,17 @@ async function auditLog(db, body) {
   }
 
   const { data: rows, error, count } = await q;
-  if (error) throw error;
+  if (error) throw mapDbError(error, 'The Audit Log', { route: 'horses.stable-admin' });
 
-  // Resolve the admin ids to names in one round trip. A join through PostgREST
+  // Resolve the admin ids to names, 200 ids per .in(). A join through PostgREST
   // needs a declared FK that admin_audit_log does not have, and one lookup per
   // row would be N+1 across a 500-row page.
   const ids = [...new Set((rows || []).map((r) => r.admin_user_id).filter(Boolean))];
   let names = {};
   if (ids.length) {
-    const { data: profiles } = await db
-      .from('profiles')
-      .select('id, username, display_name, email, role')
-      .in('id', ids);
+    const { rows: profiles } = await readByIds(db, ids, (part) =>
+      db.from('profiles').select('id, username, display_name, email, role').in('id', part)
+    );
     names = Object.fromEntries((profiles || []).map((pr) => [pr.id, pr]));
   }
 
@@ -628,8 +759,9 @@ async function auditLog(db, body) {
   }));
 
   const total = count ?? null;
+  const actorRead = await readActors(db);
   return {
-    actors: await readActors(db),
+    actors: actorRead.actors,
     entries,
     rows: entries,
     total,
@@ -637,13 +769,47 @@ async function auditLog(db, body) {
     offset: start,
     page: limit > 0 ? Math.floor(start / limit) : 0,
     hasMore: typeof total === 'number' ? start + entries.length < total : entries.length === limit,
+    truncated: typeof total === 'number' ? total > entries.length : entries.length === limit,
+    actionPrefixes: prefixes,
+    // Named, generic, and never database text: the dropdown can say why it is
+    // empty instead of looking like there have never been any operators.
+    failedSources: actorRead.failed ? ['audit_actors read failed'] : undefined,
   };
 }
+
+/**
+ * THE PERMISSION EACH ACTION ACTUALLY NEEDS.
+ *
+ * The route used to declare `permission: CONTENT_WRITE` at the wrapper, which
+ * meant `requireOperator` refused a caller without content.write BEFORE the
+ * inner check for `audit_log` (audit.read) or `set_ticket_status`
+ * (support.write) could run. The file's own header promised those two could be
+ * narrowed in Phase 2 without splitting it, and they could not be: a read-only
+ * compliance operator was refused at the door of a read.
+ *
+ * The wrapper cannot see `body.action`, so the route-level gate is the console
+ * floor (console.read - you must be an operator at all) and EVERY action then
+ * asks for the permission it really needs, from this map, before it touches
+ * anything. Today all three legacy roles hold every permission, so behaviour is
+ * unchanged; in Phase 2 this table is the whole story.
+ */
+const ACTION_PERMISSIONS = Object.freeze({
+  create_horse: PERMISSIONS.CONTENT_WRITE,
+  update_horse: PERMISSIONS.CONTENT_WRITE,
+  set_active: PERMISSIONS.CONTENT_WRITE,
+  bulk_active: PERMISSIONS.CONTENT_WRITE,
+  delete_horse: PERMISSIONS.CONTENT_WRITE,
+  bulk_delete: PERMISSIONS.CONTENT_WRITE,
+  save_settings: PERMISSIONS.CONTENT_WRITE,
+  set_ticket_status: PERMISSIONS.SUPPORT_WRITE,
+  audit_log: PERMISSIONS.AUDIT_READ,
+});
 
 export const spec = {
   name: 'horses.stable-admin',
   methods: ['POST'],
-  permission: PERMISSIONS.CONTENT_WRITE,
+  // The floor. The real gate is ACTION_PERMISSIONS, checked below.
+  permission: PERMISSIONS.CONSOLE_READ,
   limit: 'write',
 };
 
@@ -651,21 +817,13 @@ export async function handle({ req, op, db, body }) {
   const action = enumOf(body.action, ACTIONS);
   if (!action) throw badRequest('Unknown Action');
 
-  // Two actions in this route are not content operations. They ask for their
-  // own permission here so Phase 2 can hand the Audit tab to compliance and
-  // the ticket toggle to support without splitting the file.
-  if (action === 'audit_log') {
-    if (!hasPermission(op.permissions, PERMISSIONS.AUDIT_READ)) {
-      throw forbidden('Permission Required: ' + PERMISSIONS.AUDIT_READ, 'permission_denied');
-    }
-    return auditLog(db, body);
+  const required = ACTION_PERMISSIONS[action];
+  if (!required || !hasPermission(op.permissions, required)) {
+    throw forbidden('Permission Required: ' + (required || 'unknown'), 'permission_denied');
   }
-  if (action === 'set_ticket_status') {
-    if (!hasPermission(op.permissions, PERMISSIONS.SUPPORT_WRITE)) {
-      throw forbidden('Permission Required: ' + PERMISSIONS.SUPPORT_WRITE, 'permission_denied');
-    }
-    return setTicketStatus(db, op, req, body);
-  }
+
+  if (action === 'audit_log') return auditLog(db, body);
+  if (action === 'set_ticket_status') return setTicketStatus(db, op, req, body);
 
   if (action === 'create_horse') return createHorse(db, op, req, body);
   if (action === 'update_horse') return updateHorse(db, op, req, body);

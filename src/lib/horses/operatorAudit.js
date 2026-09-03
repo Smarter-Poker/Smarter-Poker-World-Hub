@@ -30,14 +30,32 @@ export function isValidAuditAction(action) {
   return typeof action === 'string' && ACTION_RE.test(action);
 }
 
+/**
+ * The caller's address, resolved the same way the rest of the codebase resolves
+ * it (src/lib/antiAbuse.js extractClientIP, pages/api/admin/execute-sql.js).
+ *
+ * THE HOP THAT MATTERS IS THE FIRST ONE. x-forwarded-for is appended to by
+ * every proxy in the chain, so with more than one hop the LAST entry is the
+ * proxy nearest this server and the FIRST is the client. This function used to
+ * read the last entry, which meant an operator behind two proxies was filed in
+ * admin_audit_log under an infrastructure address, and the two rows written for
+ * a single cashout (this helper plus club-arena/auditLogger.extractIP) carried
+ * different addresses for the same request.
+ *
+ * x-real-ip is still preferred when present: on Vercel it is set by the
+ * platform to the true client address and cannot be appended to by an upstream
+ * proxy, so where both exist it is the more trustworthy of the two and equals
+ * the first x-forwarded-for hop anyway. Neither header is authenticated, so a
+ * value here is evidence, not proof.
+ */
 function clientIp(req) {
   const h = req?.headers || {};
   const real = h['x-real-ip'];
   if (typeof real === 'string' && real.trim()) return real.trim().slice(0, 64);
   const fwd = h['x-forwarded-for'];
   if (typeof fwd === 'string' && fwd.trim()) {
-    const parts = fwd.split(',');
-    return parts[parts.length - 1].trim().slice(0, 64);
+    const first = fwd.split(',')[0].trim();
+    if (first) return first.slice(0, 64);
   }
   return req?.socket?.remoteAddress || null;
 }
@@ -64,19 +82,50 @@ export function buildAuditRow(op, req, spec = {}) {
 }
 
 /**
+ * The row to file when the caller passed an action name buildAuditRow refuses.
+ * The mutation has already happened by the time we are called, so the answer to
+ * a bad name is a row filed under a name the Audit tab can still find, with the
+ * rejected name carried in details - never a lost row, and never a throw.
+ */
+function fallbackRow(op, req, spec) {
+  console.error('[operatorAudit] invalid audit action, filing as unknown.action:', String(spec?.action));
+  return buildAuditRow(op, req, {
+    ...spec,
+    action: 'unknown.action',
+    details: {
+      ...(spec?.details && typeof spec.details === 'object' ? spec.details : {}),
+      invalid_action: String(spec?.action),
+    },
+  });
+}
+
+/**
  * Write the audit row. Uses the SECURITY DEFINER RPC first (it stamps
  * created_at server-side and needs no INSERT grant), then a direct
  * service-role insert if the RPC is unavailable, so a row is never dropped
  * because one path is down.
+ *
+ * THIS FUNCTION NEVER THROWS (contract addendum item 20). Every caller runs it
+ * AFTER the mutation it records, and several of those mutations move chips, so
+ * a failure to audit must never turn a completed write into a 500 the operator
+ * reads as "it did not happen". buildAuditRow is therefore called INSIDE the
+ * try: its one throw (an action name failing ACTION_RE) used to escape into the
+ * response path, which is exactly the shape of failure the comments in the
+ * calling routes promised could not occur.
  */
 export async function auditOperatorAction(op, req, spec) {
-  const row = buildAuditRow(op, req, spec);
-  const db = op?.db;
-  if (!db) {
-    console.error('[operatorAudit] no db on operator context; audit row dropped:', row.action);
-    return { ok: false, row };
-  }
+  let row = null;
   try {
+    try {
+      row = buildAuditRow(op, req, spec);
+    } catch {
+      row = fallbackRow(op, req, spec);
+    }
+    const db = op?.db;
+    if (!db) {
+      console.error('[operatorAudit] no db on operator context; audit row dropped:', row.action);
+      return { ok: false, row };
+    }
     const { error } = await db.rpc('fn_log_admin_action', {
       p_admin_user_id: row.admin_user_id,
       p_action: row.action,
@@ -101,7 +150,7 @@ export async function auditOperatorAction(op, req, spec) {
     }
     return { ok: true, row };
   } catch (err) {
-    console.error('[operatorAudit] audit threw:', err?.message, row.action);
+    console.error('[operatorAudit] audit threw:', err?.message, row?.action ?? String(spec?.action));
     return { ok: false, row };
   }
 }

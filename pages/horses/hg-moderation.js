@@ -1,6 +1,6 @@
 /**
  * /horses/hg-moderation - Platform-staff Home Games moderation surface
- * 4 tabs: Reports · Appeals · Onboarding lookup · GDPR scrub
+ * 4 tabs: Reports - Appeals - Onboarding lookup - GDPR scrub
  * Admin-gated (admin|superadmin|god).
  *
  * Colour: every value comes from T (src/lib/horsesAdminTokens.js), which is
@@ -21,6 +21,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { T } from '../../src/lib/horsesAdminTokens';
+import { pagerModel } from '../../src/components/horses/pagerModel';
 import styles from './horses.module.css';
 
 const TABS = ['Reports', 'Appeals', 'Onboarding', 'GDPR Scrub'];
@@ -74,7 +75,7 @@ const PAGE_CSS = `
  *
  * The previous version read the token once from storage inside a mount effect.
  * If the session had not hydrated by first paint the token stayed null forever,
- * every tab's load() returned early, and the page sat on "Verifying access…"
+ * every tab's load() returned early, and the page sat on "Verifying access..."
  * with no error. getSession() is awaited, and onAuthStateChange keeps the token
  * current across silent refreshes and sign-out.
  */
@@ -197,46 +198,64 @@ function Modal({ title, onClose, children }) {
  * Previous / Next over an offset the route already accepts, plus the one line
  * that makes a truncated queue distinguishable from a complete one.
  *
- * `total` may be null: hg-appeals did not return one for a while, and a list
- * whose route has not caught up must still be usable. When it is null the
- * range is stated without a denominator rather than an invented one, and Next
- * falls back to the same honest heuristic the flagged-hands table uses - a
- * full page MIGHT have more behind it.
+ * `total` may be null, and per PHASE1-CONTRACTS addendum 15 that is now the
+ * NORMAL case for both hg routes: they return `total: null` when the RPC does
+ * not report a count, rather than the fabricated `offset + rows.length` that
+ * used to make `last < total` false on every page and disable Next forever.
+ * When total is null the range is stated without a denominator and Next comes
+ * from the route's own `hasMore`.
+ *
+ * The arithmetic itself lives in src/components/horses/pagerModel.js, shared
+ * with the console's own Pager component and unit tested there; this one is
+ * presentation only, because the page is inline-styled and cannot use the
+ * CSS-module Pager.
  */
-function Pager({ offset, count, total, pageSize, onOffset, busy, noun }) {
-  const knowTotal = Number.isFinite(total);
-  const first = count === 0 ? 0 : offset + 1;
-  const last = offset + count;
-  const hasPrev = offset > 0;
-  const hasMore = knowTotal ? last < total : count === pageSize;
+function Pager({ offset, count, total, pageSize, onOffset, busy, noun, hasMore }) {
+  const { hasPrevious, hasNext, label } = pagerModel({
+    offset, count, total, hasMore, noun, limit: pageSize,
+  });
+  const prevOffset = Math.max(0, offset - pageSize);
+  const nextOffset = Math.max(0, offset) + pageSize;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
       <button
         type="button"
-        style={{ ...S.btnGhost, opacity: hasPrev && !busy ? 1 : 0.5, cursor: hasPrev && !busy ? 'pointer' : 'not-allowed' }}
-        disabled={!hasPrev || busy}
-        onClick={() => onOffset(Math.max(0, offset - pageSize))}
+        style={{ ...S.btnGhost, opacity: hasPrevious && !busy ? 1 : 0.5, cursor: hasPrevious && !busy ? 'pointer' : 'not-allowed' }}
+        disabled={!hasPrevious || busy}
+        onClick={() => onOffset(prevOffset)}
       >
         Previous
       </button>
       <button
         type="button"
-        style={{ ...S.btnGhost, opacity: hasMore && !busy ? 1 : 0.5, cursor: hasMore && !busy ? 'pointer' : 'not-allowed' }}
-        disabled={!hasMore || busy}
-        onClick={() => onOffset(offset + pageSize)}
+        style={{ ...S.btnGhost, opacity: hasNext && !busy ? 1 : 0.5, cursor: hasNext && !busy ? 'pointer' : 'not-allowed' }}
+        disabled={!hasNext || busy}
+        onClick={() => onOffset(nextOffset)}
       >
         Next
       </button>
       <span aria-live="polite" style={{ fontSize: 13, color: T.muted }}>
-        {count === 0
-          ? `No ${noun} On This Page`
-          : knowTotal
-            ? `Showing ${first}-${last} Of ${total}`
-            : `Showing ${first}-${last} (Total Not Reported By The Route)`}
+        {label}
       </span>
     </div>
   );
+}
+
+/**
+ * True when the page on screen is empty but the offset says we are past the
+ * start - the state you land in after resolving the last report on the last
+ * page and refreshing. The queue shrank underneath the offset, and the only
+ * control that could recover it was Previous, next to a Next that was
+ * (correctly) disabled and a line reading "No Reports On This Page".
+ *
+ * A failed load is deliberately NOT evidence of a shorter queue: an error
+ * empties the rows too, and rewinding on it would walk the operator back to
+ * page one for a network blip.
+ */
+function shouldRewind({ offset, count, loading, error }) {
+  if (loading || error) return false;
+  return offset > 0 && count === 0;
 }
 
 // ── Key/value rendering ────────────────────────────────────────────────────
@@ -271,12 +290,23 @@ function renderValue(value) {
   return str === '' ? '-' : str;
 }
 
-function KeyValueRows({ data, rawLabel }) {
-  const entries = data && typeof data === 'object' && !Array.isArray(data) ? Object.entries(data) : [];
+/**
+ * `emptyLabel` is not decoration. Both callers render a RECEIPT - one for an
+ * irreversible GDPR erasure, one for an onboarding lookup - and a payload that
+ * is null, or an empty object, has to say which of those happened in words. It
+ * must never be a blank panel. An ARRAY payload is described as a list rather
+ * than as "no fields", because the Raw disclosure below is plainly showing one.
+ */
+function KeyValueRows({ data, rawLabel, emptyLabel = 'The Response Carried No Fields.' }) {
+  const isList = Array.isArray(data);
+  const entries = data && typeof data === 'object' && !isList ? Object.entries(data) : [];
+  const emptyCopy = isList
+    ? `The Response Was A List Of ${data.length} ${data.length === 1 ? 'Entry' : 'Entries'} (See Raw).`
+    : emptyLabel;
   return (
     <div>
       {entries.length === 0 ? (
-        <div style={{ fontSize: 13, color: T.muted }}>The Response Carried No Fields.</div>
+        <div style={{ fontSize: 13, color: T.muted }}>{emptyCopy}</div>
       ) : (
         <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(140px, max-content) 1fr', gap: '6px 16px' }}>
           {entries.map(([k, v]) => (
@@ -353,7 +383,7 @@ function ReportedContentPanel({ reportedType, loading, error, detail, onRetry })
         Reported Content{reportedType ? ` (${reportedType})` : ''}
       </div>
 
-      {loading && <div style={S.contentDim}>Loading The Reported Content…</div>}
+      {loading && <div style={S.contentDim}>Loading The Reported Content...</div>}
 
       {!loading && error && (
         <div>
@@ -429,7 +459,14 @@ function ReportsTab({ token }) {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState('');
+  // `total` is null whenever the route does not know the queue size, and null
+  // is the route's documented answer (addendum 15) rather than a fabricated
+  // number. Anything non-numeric is treated as unknown for the same reason:
+  // a string or an object would otherwise render as the queue size.
   const [total, setTotal] = useState(null);
+  // The route's own "there is another page" flag, which is the only signal
+  // available when total is unknown.
+  const [hasMore, setHasMore] = useState(false);
   // The route pages with limit/offset and returns `total`. The queue used to
   // ask for 100 and stop there, so row 101 was unreachable and only a count
   // hinted it existed.
@@ -455,13 +492,25 @@ function ReportsTab({ token }) {
       // reports.map throw and white-screened this tab -- the default one -- on
       // every load). Keeping the shape check here means an older cached bundle
       // or a future RPC change degrades to an empty queue instead of a crash.
-      setReports(Array.isArray(d.reports) ? d.reports : (d.reports?.reports ?? []));
-      setTotal(d.total ?? null);
+      const rows = Array.isArray(d.reports) ? d.reports : (d.reports?.reports ?? []);
+      setReports(rows);
+      setTotal(Number.isFinite(d.total) ? d.total : null);
+      setHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : rows.length === PAGE_SIZE);
     } catch (e) { setErr(e.message); }
     setLoading(false);
   }, [token, status, offset]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Resolve the last report on the last page, refresh, and the offset now
+  // points past the end of a shorter queue: an empty page whose only exit is
+  // Previous. Step back instead, one page per load, until rows appear or the
+  // offset reaches zero.
+  useEffect(() => {
+    if (shouldRewind({ offset, count: reports.length, loading, error: err })) {
+      setOffset((o) => Math.max(0, o - PAGE_SIZE));
+    }
+  }, [offset, reports.length, loading, err]);
 
   // A status change is a different queue, so it starts at the top. Without
   // this, switching filters on page 4 lands on page 4 of the new queue, which
@@ -556,7 +605,7 @@ function ReportsTab({ token }) {
         )}
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
-      {loading ? <div style={S.dim}>Loading…</div> : reports.length === 0 ? (
+      {loading ? <div style={S.dim}>Loading...</div> : reports.length === 0 ? (
         <div style={S.empty}>No Reports Found.</div>
       ) : (
         <div style={S.tableWrap}>
@@ -589,6 +638,7 @@ function ReportsTab({ token }) {
         onOffset={setOffset}
         busy={loading}
         noun="Reports"
+        hasMore={hasMore}
       />
 
       {resolving && (
@@ -620,7 +670,7 @@ function ReportsTab({ token }) {
           </label>
           {!contentSeen && (
             <p style={S.gateNote}>
-              {detailLoading ? 'Waiting for the reported content…' : 'Load the reported content before resolving this report.'}
+              {detailLoading ? 'Waiting for the reported content...' : 'Load the reported content before resolving this report.'}
             </p>
           )}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -631,7 +681,7 @@ function ReportsTab({ token }) {
               onClick={handleResolve}
               disabled={submitting || !contentSeen}
             >
-              {submitting ? 'Saving…' : 'Submit'}
+              {submitting ? 'Saving...' : 'Submit'}
             </button>
           </div>
         </Modal>
@@ -653,10 +703,11 @@ function AppealsTab({ token }) {
   const [modalErr, setModalErr] = useState('');
   const [offset, setOffset] = useState(0);
   // The list route accepts limit/offset and returns `total` alongside the
-  // legacy `appeals` field. `total` is read defensively because this page
-  // shipped against a version of the route that did not send one; the pager
-  // states an honest range either way rather than inventing a denominator.
+  // legacy `appeals` field. `total` is read defensively because the route
+  // returns null whenever the RPC reports no count; the pager states an honest
+  // range either way rather than inventing a denominator.
   const [total, setTotal] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -666,13 +717,23 @@ function AppealsTab({ token }) {
         `/api/horses/hg-appeals?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`,
         token
       );
-      setAppeals(d.appeals || d.rows || []);
+      const rows = d.appeals || d.rows || [];
+      setAppeals(rows);
       setTotal(Number.isFinite(d.total) ? d.total : null);
+      setHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : rows.length === PAGE_SIZE);
     } catch (e) { setErr(e.message); }
     setLoading(false);
   }, [token, status, offset]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Same rewind as the reports queue: an approved appeal can empty the last
+  // page underneath the offset.
+  useEffect(() => {
+    if (shouldRewind({ offset, count: appeals.length, loading, error: err })) {
+      setOffset((o) => Math.max(0, o - PAGE_SIZE));
+    }
+  }, [offset, appeals.length, loading, err]);
 
   // A different status is a different queue; start it at the top.
   const changeStatus = (next) => { setOffset(0); setStatus(next); };
@@ -713,7 +774,7 @@ function AppealsTab({ token }) {
         )}
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
-      {loading ? <div style={S.dim}>Loading…</div> : appeals.length === 0 ? (
+      {loading ? <div style={S.dim}>Loading...</div> : appeals.length === 0 ? (
         <div style={S.empty}>No Appeals Found.</div>
       ) : (
         <div style={S.tableWrap}>
@@ -745,6 +806,7 @@ function AppealsTab({ token }) {
         onOffset={setOffset}
         busy={loading}
         noun="Appeals"
+        hasMore={hasMore}
       />
 
       {reviewing && (
@@ -763,7 +825,7 @@ function AppealsTab({ token }) {
           </label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button type="button" style={S.btnGhost} onClick={() => setReviewing(null)}>Cancel</button>
-            <button type="button" style={S.btnPrimary} onClick={handleReview} disabled={submitting}>{submitting ? 'Saving…' : 'Submit'}</button>
+            <button type="button" style={S.btnPrimary} onClick={handleReview} disabled={submitting}>{submitting ? 'Saving...' : 'Submit'}</button>
           </div>
         </Modal>
       )}
@@ -775,15 +837,21 @@ function AppealsTab({ token }) {
 function OnboardingTab({ token }) {
   const [userId, setUserId] = useState('');
   const [result, setResult] = useState(null);
+  // Completion is tracked separately from the payload. hg-onboarding-status
+  // returns `{ status: null }` for a user with no onboarding row, and keying
+  // the panel on `result` meant a successful lookup rendered NOTHING - no
+  // answer, no error, just the form again.
+  const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
   const lookup = async () => {
     if (!userId.trim()) return;
-    setLoading(true); setErr(''); setResult(null);
+    setLoading(true); setErr(''); setResult(null); setDone(false);
     try {
       const d = await apiFetch(`/api/horses/hg-onboarding-status?userId=${encodeURIComponent(userId.trim())}`, token);
-      setResult(d.status);
+      setResult(d.status ?? null);
+      setDone(true);
     } catch (e) { setErr(e.message); }
     setLoading(false);
   };
@@ -799,15 +867,19 @@ function OnboardingTab({ token }) {
           aria-label="User UUID to look up"
           style={{ ...S.select, flex: 1, minWidth: 180 }}
         />
-        <button onClick={lookup} style={S.btn} disabled={loading}>{loading ? '…' : 'Look Up'}</button>
+        <button onClick={lookup} style={S.btn} disabled={loading}>{loading ? '...' : 'Look Up'}</button>
       </div>
       {err && <div role="alert" style={S.err}>{err}</div>}
-      {result && (
+      {done && (
         <div style={{ background: T.inset, border: `1px solid ${T.line}`, borderRadius: 10, padding: 16, overflowX: 'auto' }}>
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: T.accent, marginBottom: 10 }}>
             Onboarding Status
           </div>
-          <KeyValueRows data={result} rawLabel="Raw Onboarding Payload" />
+          <KeyValueRows
+            data={result}
+            rawLabel="Raw Onboarding Payload"
+            emptyLabel="No Onboarding Record For That User. The Lookup Succeeded; The Route Returned No Status."
+          />
         </div>
       )}
     </div>
@@ -820,19 +892,25 @@ function GdprTab({ token }) {
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  // An erasure that succeeded is a legal receipt and MUST be rendered even
+  // when the RPC reports no counts. Keying the panel on the payload meant an
+  // irreversible erase could complete and leave the operator with a blank
+  // panel - no receipt, no error, nothing to record against the request.
+  const [done, setDone] = useState(false);
   const [err, setErr] = useState('');
 
   const handleErase = async () => {
     if (!confirmed) { setErr('Check The Confirmation Box First.'); return; }
     // Deliberate destructive-action guard - this one stays a native confirm.
     if (!window.confirm(`IRREVERSIBLE: Anonymize all Home Games content for user ${userId}?`)) return;
-    setLoading(true); setErr(''); setResult(null);
+    setLoading(true); setErr(''); setResult(null); setDone(false);
     try {
       const d = await apiFetch('/api/horses/hg-gdpr-erase', token, {
         method: 'POST',
         body: { userId, confirmed: true },
       });
-      setResult(d.counts);
+      setResult(d.counts ?? null);
+      setDone(true);
     } catch (e) { setErr(e.message); }
     setLoading(false);
   };
@@ -858,17 +936,23 @@ function GdprTab({ token }) {
           I Confirm This Action Is Authorized And Irreversible
         </label>
         <button onClick={handleErase} disabled={loading || !userId || !confirmed} style={{ ...S.btnPrimary, background: T.danger, color: T.text, maxWidth: 200 }}>
-          {loading ? 'Erasing…' : 'Erase User Content'}
+          {loading ? 'Erasing...' : 'Erase User Content'}
         </button>
       </div>
       {err && <div style={{ ...S.err, marginTop: 16, marginBottom: 0 }}>{err}</div>}
-      {result && (
+      {done && (
         <div style={{ marginTop: 16, background: T.accentSoft, border: `1px solid ${T.accentLine}`, borderRadius: 8, padding: 12, overflowX: 'auto' }}>
           <div style={{ color: T.accent, fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Erasure Complete</div>
           {/* One labelled row per table touched. This is the receipt for a
               legal request, so the counts have to be readable without
-              anyone parsing JSON; Raw stays for the record itself. */}
-          <KeyValueRows data={result} rawLabel="Raw Erasure Counts" />
+              anyone parsing JSON; Raw stays for the record itself. When the
+              route reports no counts the panel says so in words - a blank
+              panel after an irreversible erase is not an acceptable receipt. */}
+          <KeyValueRows
+            data={result}
+            rawLabel="Raw Erasure Counts"
+            emptyLabel="The Erase Completed But The Route Returned No Counts. Record The Request Id From The Network Log Against This Erasure."
+          />
         </div>
       )}
     </div>
@@ -923,7 +1007,7 @@ export default function HgModerationPage() {
     return () => { active = false; };
   }, [token, ready, router]);
 
-  if (!authChecked) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.dim }}>Verifying Access…</div>;
+  if (!authChecked) return <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.dim }}>Verifying Access...</div>;
   if (!authed && authFailure) return (
     <div className={styles.tokenScope} style={{ minHeight: '100vh', background: T.page, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>

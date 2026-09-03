@@ -44,11 +44,19 @@ export const spec = {
  */
 function unwrapList(data, key) {
   if (Array.isArray(data)) return { rows: data, total: null };
+  if (data && typeof data === 'object' && !Array.isArray(data[key])) {
+    // An envelope keyed something else would render an empty queue, which on
+    // this surface reads as "nothing has been reported".
+    console.warn(`[hg-reports] rpc envelope has no ${key} array; keys:`, Object.keys(data).join(','));
+  }
   return { rows: data?.[key] ?? [], total: typeof data?.total === 'number' ? data.total : null };
 }
 
 async function handleGet({ userDb, op, query }) {
-  if (query.id !== undefined) {
+  // `?id=` with an empty value is a list request, not a malformed detail
+  // request: the original treated it as falsy and listed. Only a non-empty id
+  // is validated as a uuid.
+  if (query.id) {
     const reportId = uuid(query.id);
     if (!reportId) throw badRequest('A Valid Report Id Is Required', 'invalid_report_id');
     const { data, error } = await userDb.rpc('get_home_content_report_detail', {
@@ -75,14 +83,18 @@ async function handleGet({ userDb, op, query }) {
     throw new ApiError(500, 'Reports Could Not Be Loaded', 'reports_read_failed');
   }
 
+  // Contract addendum item 15: `total` is null when the jsonb envelope carries
+  // no numeric count, never page.offset + rows.length. Reports is the DEFAULT
+  // tab, and a fabricated total capped it at one page with a label that agreed
+  // with itself and with nothing else.
   const { rows, total: rpcTotal } = unwrapList(data, 'reports');
-  const total = rpcTotal === null ? page.offset + rows.length : rpcTotal;
+  const total = rpcTotal;
   return {
     rows,
     total,
     limit: page.limit,
     offset: page.offset,
-    hasMore: rpcTotal === null ? rows.length === page.limit : page.offset + rows.length < total,
+    hasMore: rpcTotal === null ? rows.length === page.limit : page.offset + rows.length < rpcTotal,
     // Legacy field name the moderation page already reads.
     reports: rows,
   };

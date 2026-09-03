@@ -48,7 +48,15 @@ import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { badRequest, notFound } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
-import { paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { runPaged, fetchAll } from '../../../src/lib/horses/paged.js';
+import {
+  pageFor,
+  readByIds,
+  shapeList,
+  shapeUnknownTotal,
+  sourceCollector,
+} from '../../../src/lib/horses/listShape.js';
+import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
 import { uuid, enumOf, searchTerm } from '../../../src/lib/horses/validate.js';
 
 /**
@@ -93,15 +101,50 @@ const CASHOUT_SUM_CAP = 1000;
 /** fn_unaccounted_seat_exits takes no row limit, so the route caps what it ships. */
 const RPC_ROW_CAP = 200;
 
-const PAGE_OPTS = { defaultLimit: 50, max: 200 };
+/**
+ * ROW CAPS, RESTORED AND EXPLICIT (review addendum item 10).
+ *
+ * The Phase 1 rebuild routed every list through one shared
+ * `{ defaultLimit: 50, max: 200 }`, which silently shrank eight lists that the
+ * console renders WITHOUT a pager: clubs 200 -> 50, unions 100 -> 50, cashouts
+ * 100 -> 50, members 300 -> 50. Members drive "Chips On Books", so a money
+ * figure quietly became the sum of the first fifty members.
+ *
+ * Every list now names its own default here, next to its own `max`, so a
+ * console-wide change can never move one of them by accident. Each is paged
+ * INDEPENDENTLY through `pageFor(query, key, opts)`: `membersOffset=300` moves
+ * the members list alone, while the shared `limit`/`offset` the client sends
+ * today still applies to whatever list is being rendered.
+ */
+const PAGE_OPTS = {
+  clubs: { defaultLimit: 200, max: 500 },
+  unions: { defaultLimit: 100, max: 500 },
+  cashouts: { defaultLimit: 100, max: 500 },
+  transactions: { defaultLimit: 100, max: 500 },
+  members: { defaultLimit: 300, max: 500 },
+  agents: { defaultLimit: 200, max: 500 },
+  tables: { defaultLimit: 200, max: 500 },
+  memberships: { defaultLimit: 100, max: 500 },
+  critical: { defaultLimit: 200, max: 500 },
+  warn: { defaultLimit: 200, max: 500 },
+  search: { defaultLimit: 50, max: 200 },
+  tickets: { defaultLimit: 50, max: 200 },
+  revenue: { defaultLimit: 50, max: 500 },
+};
 
-function collector() {
-  const failed = [];
-  const check = (label, r) => {
-    if (r?.error) failed.push(`${label}: ${r.error.message}`);
-  };
-  return { failed, check, list: () => (failed.length ? failed : undefined) };
-}
+/**
+ * chip_transactions is past a million rows, so `count: 'exact'` on it is a full
+ * scan the operator waits for. Addendum item 10 names it, diamond_transactions
+ * and hand_history as planned-count tables: the total is the planner's estimate
+ * and the response says so in `countMode`.
+ */
+const PLANNED = { count: 'planned' };
+const EXACT = { count: 'exact' };
+
+/** Every member's chip_balance is read in pages of this size for the sum. */
+const MEMBER_SUM_PAGE = 1000;
+/** A club with more members than this has its chip sum reported as truncated. */
+const MEMBER_SUM_MAX = 20000;
 
 /**
  * Resolve a set of user ids to display names in ONE round trip.
@@ -111,14 +154,17 @@ function collector() {
  * showing "Unknown" for every member.
  */
 async function resolveProfiles(db, ids) {
-  const unique = [...new Set((ids || []).filter(Boolean))];
-  if (unique.length === 0) return {};
-  const { data } = await db
-    .from('profiles')
-    .select('id, display_name, username, email, player_number, avatar_url')
-    .in('id', unique.slice(0, 500));
+  // Chunked at 200 ids per .in(): a PostgREST .in() list travels in the URL,
+  // and three 200-row lists on one club page could put 500 uuids (about 19 KB)
+  // into a single query string.
+  const { rows } = await readByIds(db, ids, (part) =>
+    db
+      .from('profiles')
+      .select('id, display_name, username, email, player_number, avatar_url')
+      .in('id', part)
+  );
   const map = {};
-  for (const p of data || []) map[p.id] = p;
+  for (const p of rows) map[p.id] = p;
   return map;
 }
 
@@ -128,14 +174,11 @@ async function resolveProfiles(db, ids) {
  * first page while looking like the club simply had no name.
  */
 async function resolveClubs(db, ids) {
-  const unique = [...new Set((ids || []).filter(Boolean))];
-  if (unique.length === 0) return {};
-  const { data } = await db
-    .from('clubs')
-    .select('id, name, club_id')
-    .in('id', unique.slice(0, 500));
+  const { rows } = await readByIds(db, ids, (part) =>
+    db.from('clubs').select('id, name, club_id').in('id', part)
+  );
   const map = {};
-  for (const c of data || []) map[c.id] = c;
+  for (const c of rows) map[c.id] = c;
   return map;
 }
 
@@ -146,15 +189,19 @@ function nameOf(profile, fallbackId) {
   );
 }
 
-/** pagedResult with the rows replaced by their decorated form. */
-function pageOf(result, page, rows) {
-  const shaped = pagedResult(result, page);
-  return { ...shaped, rows };
+/** shapeList with the rows replaced by their decorated form. */
+function pageOf(result, page, rows, extra) {
+  return shapeList(result, page, rows, extra);
 }
 
 // -- SECTION: OVERVIEW -------------------------------------------------------
-async function sectionOverview(db, page) {
+async function sectionOverview(db, query, c) {
   const since24h = new Date(Date.now() - 86400000).toISOString();
+
+  const clubsPage = pageFor(query, 'clubs', PAGE_OPTS.clubs);
+  const unionsPage = pageFor(query, 'unions', PAGE_OPTS.unions);
+  const cashoutsPage = pageFor(query, 'cashouts', PAGE_OPTS.cashouts);
+  const txnsPage = pageFor(query, 'transactions', PAGE_OPTS.transactions);
 
   const [
     clubsCount,
@@ -176,26 +223,24 @@ async function sectionOverview(db, page) {
     runPaged(
       db
         .from('cashout_requests')
-        .select(CASHOUT_FIELDS, { count: 'exact' })
+        .select(CASHOUT_FIELDS, EXACT)
         .eq('status', 'pending')
         .order('created_at', { ascending: false }),
-      page
+      cashoutsPage
     ),
     // The headline sum is deliberately independent of the page the operator is
     // looking at: a total that shrinks when you press Next is not a total.
     db.from('cashout_requests').select('amount').eq('status', 'pending').limit(CASHOUT_SUM_CAP),
     runPaged(
-      db.from('clubs').select(CLUB_FIELDS, { count: 'exact' }).order('created_at', { ascending: false }),
-      page
+      db.from('clubs').select(CLUB_FIELDS, EXACT).order('created_at', { ascending: false }),
+      clubsPage
     ),
     runPaged(
       db
         .from('unions')
-        .select('id, name, code, union_code, club_count, member_count, chip_balance, created_at', {
-          count: 'exact',
-        })
+        .select('id, name, code, union_code, club_count, member_count, chip_balance, created_at', EXACT)
         .order('created_at', { ascending: false }),
-      page
+      unionsPage
     ),
     db
       .from('chip_transactions')
@@ -203,17 +248,18 @@ async function sectionOverview(db, page) {
       .in('transaction_type', MINT_TYPES)
       .gte('created_at', since24h)
       .limit(1000),
+    // Planned count: chip_transactions is past a million rows and an exact
+    // count of it is a full scan on every load of this tab.
     runPaged(
       db
         .from('chip_transactions')
-        .select(TXN_FIELDS, { count: 'exact' })
+        .select(TXN_FIELDS, PLANNED)
         .order('created_at', { ascending: false }),
-      page
+      txnsPage
     ),
   ]);
 
   // Surface real failures rather than rendering a confident zero.
-  const c = collector();
   c.check('clubs_count', clubsCount);
   c.check('members_count', membersCount);
   c.check('tables_count', tablesCount);
@@ -277,20 +323,49 @@ async function sectionOverview(db, page) {
       pendingCashoutTotal,
     },
     pages: {
-      clubs: pageOf(clubsRes, page, clubRows),
-      unions: pageOf(unionsRes, page, unionRows),
-      cashouts: pageOf(cashoutsRes, page, cashoutRows),
-      transactions: pageOf(txnsRes, page, txnRows),
+      clubs: pageOf(clubsRes, clubsPage, clubRows),
+      unions: pageOf(unionsRes, unionsPage, unionRows),
+      cashouts: pageOf(cashoutsRes, cashoutsPage, cashoutRows),
+      transactions: pageOf(txnsRes, txnsPage, txnRows, { countMode: 'planned' }),
     },
-    limit: page.limit,
-    offset: page.offset,
+    limit: clubsPage.limit,
+    offset: clubsPage.offset,
     failedSources: c.list(),
   };
 }
 
 // -- SECTION: SINGLE CLUB ----------------------------------------------------
-async function sectionClub(db, clubId, page) {
-  const [membersRes, agentsRes, tablesRes, cashoutsRes, txnsRes] = await Promise.all([
+/**
+ * Review addendum item 11. "Chips On Books" used to be the client summing
+ * `chip_balance` over whatever members it happened to receive - which the Phase
+ * 1 rebuild had quietly cut to fifty. A money figure derived from a page is not
+ * a figure at all, so the sum is computed HERE, over every member of the club,
+ * in reads of 1,000 rows that carry one numeric column each. `memberCount` is
+ * the exact count from the same table, and `memberChipTotalTruncated` says so
+ * if a club ever exceeds the scan ceiling instead of letting a floor pass as a
+ * total.
+ */
+async function memberChipTotal(db, clubId, c) {
+  const { rows, error, truncated } = await fetchAll(
+    () => db.from('club_members').select('chip_balance').eq('club_id', clubId),
+    { size: MEMBER_SUM_PAGE, maxRows: MEMBER_SUM_MAX }
+  );
+  if (error) {
+    c.fail('club_members_chip_total', error);
+    return { total: null, rowsRead: rows.length, truncated: false, available: false };
+  }
+  const total = rows.reduce((s, m) => s + (Number(m.chip_balance) || 0), 0);
+  return { total, rowsRead: rows.length, truncated: Boolean(truncated), available: true };
+}
+
+async function sectionClub(db, clubId, query, c) {
+  const membersPage = pageFor(query, 'members', PAGE_OPTS.members);
+  const agentsPage = pageFor(query, 'agents', PAGE_OPTS.agents);
+  const tablesPage = pageFor(query, 'tables', PAGE_OPTS.tables);
+  const cashoutsPage = pageFor(query, 'cashouts', PAGE_OPTS.cashouts);
+  const txnsPage = pageFor(query, 'transactions', PAGE_OPTS.transactions);
+
+  const [membersRes, agentsRes, tablesRes, cashoutsRes, txnsRes, chipTotal] = await Promise.all([
     // club_members has a COMPOSITE key (club_id, user_id) and NO id column.
     // The dead horse-flag column this select used to carry is gone: it was
     // read on every club load and surfaced nowhere.
@@ -299,56 +374,52 @@ async function sectionClub(db, clubId, page) {
         .from('club_members')
         .select(
           'club_id, user_id, role, status, chip_balance, joined_at, created_at, last_active_at, hands_played, display_name, nickname',
-          { count: 'exact' }
+          EXACT
         )
         .eq('club_id', clubId)
         .order('created_at', { ascending: false }),
-      page
+      membersPage
     ),
     runPaged(
       db
         .from('agents')
         .select(
           'id, user_id, club_id, role, commission_rate, credit_limit, credit_used, status, total_players, created_at',
-          { count: 'exact' }
+          EXACT
         )
         .eq('club_id', clubId)
         .order('created_at', { ascending: false }),
-      page
+      agentsPage
     ),
     // `max_players`, NOT max_seats.
     runPaged(
       db
         .from('tables')
-        .select('id, name, game_type, stakes, max_players, current_players, status, created_at', {
-          count: 'exact',
-        })
+        .select('id, name, game_type, stakes, max_players, current_players, status, created_at', EXACT)
         .eq('club_id', clubId)
         .order('created_at', { ascending: false }),
-      page
+      tablesPage
     ),
     runPaged(
       db
         .from('cashout_requests')
-        .select(CASHOUT_FIELDS, { count: 'exact' })
+        .select(CASHOUT_FIELDS, EXACT)
         .eq('club_id', clubId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false }),
-      page
+      cashoutsPage
     ),
     runPaged(
       db
         .from('chip_transactions')
-        .select('id, amount, transaction_type, notes, created_at, from_user_id, to_user_id', {
-          count: 'exact',
-        })
+        .select('id, amount, transaction_type, notes, created_at, from_user_id, to_user_id', PLANNED)
         .eq('club_id', clubId)
         .order('created_at', { ascending: false }),
-      page
+      txnsPage
     ),
+    memberChipTotal(db, clubId, c),
   ]);
 
-  const c = collector();
   c.check('members', membersRes);
   c.check('agents', agentsRes);
   c.check('tables', tablesRes);
@@ -384,27 +455,46 @@ async function sectionClub(db, clubId, page) {
     player_name: nameOf(profileMap[x.player_id], x.player_id),
   }));
 
+  const membersShaped = pageOf(membersRes, membersPage, memberRows);
+
   return {
     members: memberRows,
     agents: agentRows,
     tables,
     pendingCashouts: cashoutRows,
     recentTxns: txns,
+    // Addendum item 11: the two figures the club header renders, computed over
+    // every member rather than over the page.
+    memberCount: typeof membersRes.count === 'number' ? membersRes.count : null,
+    memberChipTotal: chipTotal.total,
+    memberChipTotalScope: 'all members',
+    memberChipTotalTruncated: chipTotal.truncated,
+    memberChipTotalRowsRead: chipTotal.rowsRead,
+    agentCount: typeof agentsRes.count === 'number' ? agentsRes.count : null,
+    tableCount: typeof tablesRes.count === 'number' ? tablesRes.count : null,
     pages: {
-      members: pageOf(membersRes, page, memberRows),
-      agents: pageOf(agentsRes, page, agentRows),
-      tables: pageOf(tablesRes, page, tables),
-      cashouts: pageOf(cashoutsRes, page, cashoutRows),
-      transactions: pageOf(txnsRes, page, txns),
+      members: membersShaped,
+      agents: pageOf(agentsRes, agentsPage, agentRows),
+      tables: pageOf(tablesRes, tablesPage, tables),
+      cashouts: pageOf(cashoutsRes, cashoutsPage, cashoutRows),
+      transactions: pageOf(txnsRes, txnsPage, txns, { countMode: 'planned' }),
     },
-    limit: page.limit,
-    offset: page.offset,
+    limit: membersPage.limit,
+    offset: membersPage.offset,
     failedSources: c.list(),
   };
 }
 
 // -- SECTION: USER SEARCH ----------------------------------------------------
-async function sectionUserSearch(db, rawQuery, page) {
+/**
+ * NO COUNT ON THIS PATH (review addendum item 10). The Phase 1 rebuild added
+ * `count: 'exact'` behind three LEADING-wildcard ilike filters on `profiles`,
+ * which is a full scan Postgres cannot index, on a query the console fires from
+ * a search box. The original had no count at all. `total` is therefore null -
+ * an honest "not counted" - and the pager takes Next from `hasMore`.
+ */
+async function sectionUserSearch(db, rawQuery, query, c) {
+  const page = pageFor(query, 'search', PAGE_OPTS.search);
   const q = searchTerm(rawQuery, { max: 60 });
   if (!q || q.length < 2) {
     return {
@@ -415,6 +505,7 @@ async function sectionUserSearch(db, rawQuery, page) {
       limit: page.limit,
       offset: page.offset,
       hasMore: false,
+      truncated: false,
     };
   }
 
@@ -426,22 +517,24 @@ async function sectionUserSearch(db, rawQuery, page) {
     db
       .from('profiles')
       .select(
-        'id, display_name, username, email, player_number, role, is_vip, vip_tier, diamonds, created_at, last_active, avatar_url',
-        { count: 'exact' }
+        'id, display_name, username, email, player_number, role, is_vip, vip_tier, diamonds, created_at, last_active, avatar_url'
       )
       .or(filters.join(','))
       .order('created_at', { ascending: false }),
     page
   );
 
-  const c = collector();
   c.check('user_search', result);
-  const shaped = pagedResult(result, page);
+  const shaped = shapeUnknownTotal(result.data || [], page, { countMode: 'none' });
   return { ...shaped, results: shaped.rows, users: shaped.rows, failedSources: c.list() };
 }
 
 // -- SECTION: SINGLE USER ----------------------------------------------------
-async function sectionUser(db, userId, page) {
+async function sectionUser(db, userId, query, c) {
+  const membershipsPage = pageFor(query, 'memberships', PAGE_OPTS.memberships);
+  const cashoutsPage = pageFor(query, 'cashouts', PAGE_OPTS.cashouts);
+  const txnsPage = pageFor(query, 'transactions', PAGE_OPTS.transactions);
+
   const [profileRes, membershipsRes, cashoutsRes, txnsRes] = await Promise.all([
     db
       .from('profiles')
@@ -453,20 +546,18 @@ async function sectionUser(db, userId, page) {
     runPaged(
       db
         .from('club_members')
-        .select('club_id, user_id, role, status, chip_balance, joined_at, created_at, hands_played', {
-          count: 'exact',
-        })
+        .select('club_id, user_id, role, status, chip_balance, joined_at, created_at, hands_played', EXACT)
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      page
+      membershipsPage
     ),
     runPaged(
       db
         .from('cashout_requests')
-        .select('id, club_id, amount, status, agent_note, created_at', { count: 'exact' })
+        .select('id, club_id, amount, status, agent_note, created_at', EXACT)
         .eq('player_id', userId)
         .order('created_at', { ascending: false }),
-      page
+      cashoutsPage
     ),
     // chip_transactions has from_user_id / to_user_id - there is no user_id
     // column. One .or() rather than two reads merged in JS, so the page and
@@ -475,16 +566,15 @@ async function sectionUser(db, userId, page) {
     runPaged(
       db
         .from('chip_transactions')
-        .select(TXN_FIELDS, { count: 'exact' })
+        .select(TXN_FIELDS, PLANNED)
         .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
         .order('created_at', { ascending: false }),
-      page
+      txnsPage
     ),
   ]);
 
   // sectionUser was the ONLY section with no error collection, so five failed
   // reads rendered as five empty panels and looked like a quiet account.
-  const c = collector();
   c.check('profile', profileRes);
   c.check('memberships', membershipsRes);
   c.check('cashouts', cashoutsRes);
@@ -523,12 +613,12 @@ async function sectionUser(db, userId, page) {
     cashouts: cashoutRows,
     txns,
     pages: {
-      memberships: pageOf(membershipsRes, page, membershipRows),
-      cashouts: pageOf(cashoutsRes, page, cashoutRows),
-      txns: pageOf(txnsRes, page, txns),
+      memberships: pageOf(membershipsRes, membershipsPage, membershipRows),
+      cashouts: pageOf(cashoutsRes, cashoutsPage, cashoutRows),
+      txns: pageOf(txnsRes, txnsPage, txns, { countMode: 'planned' }),
     },
-    limit: page.limit,
-    offset: page.offset,
+    limit: membershipsPage.limit,
+    offset: membershipsPage.offset,
     failedSources: c.list(),
   };
 }
@@ -541,19 +631,19 @@ async function sectionUser(db, userId, page) {
  * profiles by id, exactly as every other list in this file does it, because a
  * PostgREST embed that silently fails renders as "Unknown" forever.
  */
-async function sectionTickets(db, query, page) {
+async function sectionTickets(db, query, c) {
+  const page = pageFor(query, 'tickets', PAGE_OPTS.tickets);
   const status = enumOf(query.status, [...TICKET_STATUS, 'all'], { fallback: 'all' });
   const q = searchTerm(query.q, { max: 60 });
 
   let base = db
     .from('live_help_tickets')
-    .select(TICKET_FIELDS, { count: 'exact' })
+    .select(TICKET_FIELDS, EXACT)
     .order('created_at', { ascending: false });
   if (status !== 'all') base = base.eq('status', status);
   if (q) base = base.or(`subject.ilike.%${q}%,description.ilike.%${q}%`);
 
   const result = await runPaged(base, page);
-  const c = collector();
   c.check('tickets', result);
 
   const rows = result.data || [];
@@ -591,11 +681,20 @@ async function sectionTickets(db, query, page) {
  * Neither RPC takes a row limit (fn_unaccounted_seat_exits takes a window and a
  * grace period; fn_club_chip_circulation takes a club id), so their output is
  * capped here and the cap is reported as `truncated` rather than hidden.
+ *
+ * ORDERING (review, 2026-09-02). `critical` used to be fetched by `run_ts desc`
+ * and then re-sorted by |drift| INSIDE the page, so page 2 was a different 200
+ * rows re-sorted again and the "largest drift" list was neither stable nor
+ * complete. PostgREST cannot order by abs(drift) and there is no generated
+ * column for it, so the in-page re-sort is gone: the list is what it says it is,
+ * the most recent critical rows, in run order. `sampledCriticalDrift` sums the
+ * page and `sampleSize` says how many rows that was.
  */
-async function sectionLedger(db, page) {
-  const c = collector();
+async function sectionLedger(db, query, c) {
+  const criticalPage = pageFor(query, 'critical', PAGE_OPTS.critical);
+  const warnPage = pageFor(query, 'warn', PAGE_OPTS.warn);
 
-  const [latestRunRes, criticalRes, warnRes, exitsRes, circulationRes] = await Promise.all([
+  const [latestRunRes, criticalRes, warnRes, exitsRes, circulationRes, exitCount] = await Promise.all([
     db
       .from('ledger_reconcile_log')
       .select('run_date, run_ts')
@@ -607,19 +706,19 @@ async function sectionLedger(db, page) {
         .from('ledger_reconcile_log')
         .select(
           'id, run_date, run_ts, entity_type, entity_id, ledger_balance, stored_balance, drift, severity, notes',
-          { count: 'exact' }
+          EXACT
         )
         .eq('severity', 'critical')
         .order('run_ts', { ascending: false }),
-      page
+      criticalPage
     ),
     runPaged(
       db
         .from('ledger_reconcile_log')
-        .select('id, run_date, entity_type, entity_id, drift, severity', { count: 'exact' })
+        .select('id, run_date, entity_type, entity_id, drift, severity', EXACT)
         .eq('severity', 'warn')
         .order('run_ts', { ascending: false }),
-      page
+      warnPage
     ),
     // fn_unaccounted_seat_exits() is the meaningful signal, not the raw table:
     // it returns only the exits of a non-zero stack that have NO matching
@@ -627,6 +726,9 @@ async function sectionLedger(db, page) {
     db.rpc('fn_unaccounted_seat_exits'),
     // p_club_id defaults to NULL, which reports every club.
     db.rpc('fn_club_chip_circulation'),
+    // In the Promise.all, not awaited after it: it used to cost a serial round
+    // trip on every load of this tab for one number.
+    db.from('ca_seat_stack_exits').select('id', { count: 'exact', head: true }),
   ]);
 
   c.check('latest_run', latestRunRes);
@@ -642,7 +744,6 @@ async function sectionLedger(db, page) {
   const allCirculation = Array.isArray(circulationRes.data) ? circulationRes.data : null;
   const circulation = allCirculation ? allCirculation.slice(0, RPC_ROW_CAP) : circulationRes.data ?? null;
 
-  const exitCount = await db.from('ca_seat_stack_exits').select('id', { count: 'exact', head: true });
   c.check('seat_exits_count', exitCount);
 
   const profileMap = await resolveProfiles(db, [
@@ -650,12 +751,12 @@ async function sectionLedger(db, page) {
     ...exits.map((e) => e.user_id),
   ]);
 
-  const sortedCritical = [...critical]
-    .sort((a, b) => Math.abs(Number(b.drift || 0)) - Math.abs(Number(a.drift || 0)))
-    .map((r) => ({
-      ...r,
-      entity_name: r.entity_type === 'player_wallet' ? nameOf(profileMap[r.entity_id], r.entity_id) : null,
-    }));
+  // Decorated, NOT re-sorted: the order is the query's order, so page 2
+  // continues page 1 instead of being a different set sorted differently.
+  const criticalRows = critical.map((r) => ({
+    ...r,
+    entity_name: r.entity_type === 'player_wallet' ? nameOf(profileMap[r.entity_id], r.entity_id) : null,
+  }));
 
   const exitRows = exits.map((e) => ({ ...e, player_name: nameOf(profileMap[e.user_id], e.user_id) }));
 
@@ -666,11 +767,18 @@ async function sectionLedger(db, page) {
       warn: warnRes.count ?? null,
       seatExitsTotal: exitCount.count ?? null,
       unaccountedSeatExits: allExits.length,
+      // The circulation list is capped at RPC_ROW_CAP and the console renders
+      // "Showing N Of Total" from this number whenever `circulationTruncated`
+      // is true. It was computed here (to set that flag) and never shipped, so
+      // the capped list said how many rows it had and never how many there
+      // were. Same treatment as unaccountedSeatExits directly above.
+      circulation: allCirculation ? allCirculation.length : null,
     },
     // Sum of the sampled rows only, and labelled as such at the call site.
-    sampledCriticalDrift: sortedCritical.reduce((s, r) => s + Math.abs(Number(r.drift || 0)), 0),
-    sampleSize: sortedCritical.length,
-    critical: sortedCritical,
+    sampledCriticalDrift: criticalRows.reduce((s, r) => s + Math.abs(Number(r.drift || 0)), 0),
+    sampleSize: criticalRows.length,
+    criticalOrder: 'run_ts desc',
+    critical: criticalRows,
     warn,
     // Every one of these is a non-zero stack that left a seat with no wallet
     // credit to match it. CLAUDE.md section 11.5: this is the loud failure.
@@ -680,11 +788,11 @@ async function sectionLedger(db, page) {
     circulationTruncated: Boolean(allCirculation && allCirculation.length > circulation.length),
     rpcRowCap: RPC_ROW_CAP,
     pages: {
-      critical: pageOf(criticalRes, page, sortedCritical),
-      warn: pageOf(warnRes, page, warn),
+      critical: pageOf(criticalRes, criticalPage, criticalRows),
+      warn: pageOf(warnRes, warnPage, warn),
     },
-    limit: page.limit,
-    offset: page.offset,
+    limit: criticalPage.limit,
+    offset: criticalPage.offset,
     failedSources: c.list(),
   };
 }
@@ -701,8 +809,8 @@ async function sectionLedger(db, page) {
  */
 const REVENUE_PAGE = 5000;
 
-async function sectionRevenue(db, page) {
-  const c = collector();
+async function sectionRevenue(db, query, c) {
+  const page = pageFor(query, 'revenue', PAGE_OPTS.revenue);
 
   const now = Date.now();
   const since24h = new Date(now - 86400000).toISOString();
@@ -775,10 +883,16 @@ async function sectionRevenue(db, page) {
     byAgent[key].rows += 1;
   }
   const agentProfiles = await resolveProfiles(db, Object.keys(byAgent));
-  const agentRows = Object.values(byAgent)
+  const agentsSorted = Object.values(byAgent)
     .map((a) => ({ ...a, agent_name: nameOf(agentProfiles[a.user_id], a.user_id) }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 50);
+    .sort((a, b) => b.amount - a.amount);
+  // The legacy field the console renders today: the top fifty by amount owed.
+  const agentRows = agentsSorted.slice(0, 50);
+  // The pager envelope is REAL: these rows are the slice `page` asks for, out
+  // of the whole derived list, so `hasMore` can actually be acted on. It used
+  // to claim `hasMore: true` on a list the route always truncated to 50 with no
+  // way to request the rest.
+  const agentPageRows = agentsSorted.slice(page.offset, page.offset + page.limit);
 
   const clubRows = Object.values(byClub).sort((a, b) => b.rake - a.rake);
 
@@ -805,22 +919,28 @@ async function sectionRevenue(db, page) {
       byAgent: agentRows,
     },
     pages: {
+      // Derived in memory from the 24h rake read, so the whole list ships and
+      // the envelope says exactly that rather than pretending to be a page.
       byClub: {
         rows: clubRows,
         total: clubRows.length,
-        limit: page.limit,
+        limit: clubRows.length,
         offset: 0,
         hasMore: false,
+        truncated: rake24.length >= REVENUE_PAGE,
       },
       byAgent: {
-        rows: agentRows,
-        total: Object.keys(byAgent).length,
+        rows: agentPageRows,
+        total: agentsSorted.length,
         limit: page.limit,
-        offset: 0,
-        hasMore: Object.keys(byAgent).length > agentRows.length,
+        offset: page.offset,
+        hasMore: page.offset + agentPageRows.length < agentsSorted.length,
+        truncated: agentsSorted.length > agentPageRows.length,
       },
     },
     pageSize: REVENUE_PAGE,
+    limit: page.limit,
+    offset: page.offset,
     failedSources: c.list(),
   };
 }
@@ -837,13 +957,12 @@ async function sectionRevenue(db, page) {
  *
  * Every figure here is a `count exact, head` - no rows cross the wire.
  */
-async function sectionPlatform(db) {
+async function sectionPlatform(db, c) {
   const now = Date.now();
   const h1 = new Date(now - 3600000).toISOString();
   const h24 = new Date(now - 86400000).toISOString();
   const d7 = new Date(now - 7 * 86400000).toISOString();
 
-  const c = collector();
   const val = (r) => (r?.error ? null : r.count ?? null);
 
   const [
@@ -862,8 +981,10 @@ async function sectionPlatform(db) {
     db.from('tables').select('id', { count: 'exact', head: true }).in('status', ['running', 'active']),
     db.from('tables').select('id', { count: 'exact', head: true }).eq('status', 'waiting'),
     db.from('table_seats').select('id', { count: 'exact', head: true }).is('left_at', null),
-    db.from('hand_history').select('id', { count: 'exact', head: true }).gte('created_at', h1),
-    db.from('hand_history').select('id', { count: 'exact', head: true }).gte('created_at', h24),
+    // hand_history is the other million-row table (addendum item 10): the count
+    // is planned, so this pulse is a fast estimate rather than a full scan.
+    db.from('hand_history').select('id', { count: 'planned', head: true }).gte('created_at', h1),
+    db.from('hand_history').select('id', { count: 'planned', head: true }).gte('created_at', h24),
     db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', h24),
     db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', d7),
     db.from('profiles').select('id', { count: 'exact', head: true }).gte('last_active', h24),
@@ -875,7 +996,7 @@ async function sectionPlatform(db) {
     // rather than sitting there with nothing to compare against.
     db
       .from('hand_history')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'planned', head: true })
       .gte('created_at', new Date(now - 2 * 86400000).toISOString())
       .lt('created_at', h24),
     db.from('live_help_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
@@ -907,6 +1028,7 @@ async function sectionPlatform(db) {
       activeUsers24h: val(activeUsers24h),
       liveTournaments: val(liveTournaments),
       openTickets: val(openTickets),
+      handsCountMode: 'planned',
     },
     failedSources: c.list(),
   };
@@ -952,7 +1074,9 @@ async function setClubStatus(db, op, req, body) {
     .eq('id', clubId)
     .select('id, status')
     .maybeSingle();
-  if (error) throw error;
+  // Addendum item 17: a Supabase error becomes the status that describes it,
+  // never a raw throw that the wrapper can only turn into an opaque 500.
+  if (error) throw mapDbError(error, 'That Club', { route: 'horses.club-arena-admin' });
   if (!data) throw notFound('Club Not Found');
 
   await auditOperatorAction(op, req, {
@@ -974,7 +1098,7 @@ export const spec = {
   limit: { GET: 'read', POST: 'write' },
 };
 
-export async function handle({ req, op, db, body, query, method }) {
+export async function handle({ req, op, db, body, query, method, requestId }) {
   if (method === 'POST') {
     if (body.action !== 'set_club_status') throw badRequest('Unknown Action');
     return setClubStatus(db, op, req, body);
@@ -982,25 +1106,29 @@ export async function handle({ req, op, db, body, query, method }) {
 
   const section = enumOf(query.section || 'overview', SECTIONS);
   if (!section) throw badRequest('Unknown Section');
-  const page = paging(query, PAGE_OPTS);
 
-  if (section === 'overview') return sectionOverview(db, page);
+  // One collector per request. Addendum item 16: a failed source is named and
+  // the database sentence behind it is logged under this request id, never
+  // shipped to the browser.
+  const c = sourceCollector({ requestId, route: 'horses.club-arena-admin' });
+
+  if (section === 'overview') return sectionOverview(db, query, c);
   if (section === 'club') {
     const clubId = uuid(query.clubId);
     if (!clubId) throw badRequest('A Valid Club Id Is Required');
-    return sectionClub(db, clubId, page);
+    return sectionClub(db, clubId, query, c);
   }
   if (section === 'user') {
     const userId = uuid(query.userId);
     if (!userId) throw badRequest('A Valid User Id Is Required');
-    return sectionUser(db, userId, page);
+    return sectionUser(db, userId, query, c);
   }
-  if (section === 'user_search') return sectionUserSearch(db, query.q, page);
-  if (section === 'tickets') return sectionTickets(db, query, page);
-  if (section === 'ledger') return sectionLedger(db, page);
-  if (section === 'revenue') return sectionRevenue(db, page);
+  if (section === 'user_search') return sectionUserSearch(db, query.q, query, c);
+  if (section === 'tickets') return sectionTickets(db, query, c);
+  if (section === 'ledger') return sectionLedger(db, query, c);
+  if (section === 'revenue') return sectionRevenue(db, query, c);
   if (section === 'badges') return sectionBadges(db);
-  return sectionPlatform(db);
+  return sectionPlatform(db, c);
 }
 
 export default withOperatorRoute(spec, handle);

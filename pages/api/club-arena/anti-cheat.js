@@ -147,8 +147,13 @@ try {
       // user agent, request id and before/after stamp every other console
       // write now carries.
       const auditOp = {
+        // The caller's REAL role. `|| 'admin'` fabricated a platform privilege
+        // for the common case here: a club agent with a null profiles.role who
+        // is authorised through club_members. When there is no platform role
+        // the club membership role found below is filled in instead, and if
+        // there is neither the row says null rather than inventing one.
         user: { id: userId },
-        role: callerProfile?.role || 'admin',
+        role: callerProfile?.role || null,
         db: getSupabase(),
         requestId: requestIdOf(req),
       };
@@ -168,6 +173,9 @@ try {
         if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
           return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
         }
+        // This caller acted on their club membership, so that is the role the
+        // audit row should name.
+        if (!auditOp.role) auditOp.role = `club_${membership.role}`;
       }
 
       switch (action) {
@@ -469,7 +477,10 @@ try {
 
           // Admin console audit trail. A kick removes a seated player.
           await auditOperatorAction(auditOp, req, {
-            action: 'anticheat.kick_session',
+            // kick_player, not kick_session: the target is a player id, and a
+            // name that says session made this row answer queries for
+            // session-scoped events it is not.
+            action: 'anticheat.kick_player',
             targetType: 'player',
             targetId: targetPlayerId,
             details: {

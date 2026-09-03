@@ -25,6 +25,16 @@ import styles from './shared.module.css';
 
 export const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
+/** Is this element actually rendered? checkVisibility() where the browser has
+ *  it, otherwise "does it occupy any box at all" - both are true tests of the
+ *  layout rather than a guess from the offset parent chain. */
+export function isVisible(el) {
+  if (!el) return false;
+  if (typeof el.checkVisibility === 'function') return el.checkVisibility();
+  if (typeof el.getClientRects === 'function') return el.getClientRects().length > 0;
+  return true;
+}
+
 export default function Modal({
   title,
   onClose,
@@ -59,8 +69,13 @@ export default function Modal({
         return;
       }
       if (e.key !== 'Tab' || !boxRef.current) return;
+      // Visibility is measured, not inferred from offsetParent. offsetParent
+      // is null for anything inside a `position: fixed` subtree, so the moment
+      // the dialog box itself became fixed - or a future caller nested a fixed
+      // element in it - every candidate would have been filtered out and the
+      // trap would have silently stopped trapping.
       const items = Array.from(boxRef.current.querySelectorAll(FOCUSABLE))
-        .filter((el) => el.offsetParent !== null || el === document.activeElement);
+        .filter((el) => isVisible(el) || el === document.activeElement);
       if (items.length === 0) return;
       const firstEl = items[0];
       const lastEl = items[items.length - 1];

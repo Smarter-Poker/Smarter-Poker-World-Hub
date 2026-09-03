@@ -17,8 +17,9 @@
  * whole table, which is what the header tile shows.
  *
  * SEARCH (Phase 1 contract item 3): ?q= searches SERVER-SIDE with ilike over
- * review_text and reviewer_name. It used to filter only the current 100-row
- * page in the browser, which is a search that lies.
+ * review_text, the denormalised reviewer_name, and profiles.username (resolved
+ * to user ids first). It used to filter only the current 100-row page in the
+ * browser, which is a search that lies.
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
@@ -72,17 +73,50 @@ function ratingOf(query) {
   return rating;
 }
 
-/** The ilike pattern for a free-text search, with PostgREST grammar stripped. */
-function searchFilter(term) {
-  return `review_text.ilike.%${term}%,reviewer_name.ilike.%${term}%`;
+/** How many matching usernames a single search resolves to ids. Beyond this the
+ *  term is too broad to be a username search and the text columns carry it. */
+const USERNAME_MATCH_CAP = 200;
+
+/**
+ * Contract item 3 says the search covers review_text AND THE REVIEWER USERNAME,
+ * and the console's own help text tells the operator so. venue_reviews only
+ * carries the denormalised `reviewer_name`, which is whatever was stamped on
+ * the row when it was written, so searching it alone missed every reviewer
+ * whose profiles.username differs from it. Usernames are resolved to user ids
+ * first and folded into the same .or() as `user_id.in.(...)`.
+ *
+ * Best effort: a failure here narrows the search back to the two text columns
+ * and is logged, rather than failing a list the operator can still use.
+ */
+async function reviewerIdsForTerm(db, term) {
+  if (!term) return [];
+  const { data, error } = await db
+    .from('profiles')
+    .select('id')
+    .ilike('username', `%${term}%`)
+    .limit(USERNAME_MATCH_CAP);
+  if (error) {
+    console.warn('[admin-reviews GET] username lookup failed, searching text only:', error.message || error);
+    return [];
+  }
+  return (data || []).map((r) => uuid(r.id)).filter(Boolean);
 }
 
-function applyFilters(query, { venueId, rating, flaggedOnly, term }) {
+/** The ilike pattern for a free-text search, with PostgREST grammar stripped. */
+function searchFilter(term, reviewerIds = []) {
+  const clauses = [`review_text.ilike.%${term}%`, `reviewer_name.ilike.%${term}%`];
+  // Every id came back through uuid(), so nothing in this list can carry the
+  // filter grammar the term itself was stripped of.
+  if (reviewerIds.length > 0) clauses.push(`user_id.in.(${reviewerIds.join(',')})`);
+  return clauses.join(',');
+}
+
+function applyFilters(query, { venueId, rating, flaggedOnly, term, reviewerIds }) {
   let q = query;
   if (venueId) q = q.eq('venue_id', venueId);
   if (rating !== null) q = q.eq('rating', rating);
   if (flaggedOnly) q = q.eq('is_flagged', true);
-  if (term) q = q.or(searchFilter(term));
+  if (term) q = q.or(searchFilter(term, reviewerIds));
   return q;
 }
 
@@ -108,7 +142,8 @@ async function handleGet({ db, query }) {
   const term = searchTerm(query.q);
   const sort = enumOf(query.sort, SORTS, { fallback: 'newest' });
   const page = paging(query, { defaultLimit: 100, max: 500 });
-  const filters = { venueId, rating, flaggedOnly, term };
+  const reviewerIds = await reviewerIdsForTerm(db, term);
+  const filters = { venueId, rating, flaggedOnly, term, reviewerIds };
 
   let listQuery = db.from('venue_reviews').select(REVIEW_COLUMNS, { count: 'exact' });
   listQuery = applyFilters(listQuery, filters);
@@ -194,12 +229,19 @@ async function handleGet({ db, query }) {
 async function sendModerationNotice(userId, message) {
   const base =
     process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';
+  // Without the secret the hop authenticates with an empty header, 401s, and
+  // the only trace is a console.warn: an operator reads that as "the reviewer
+  // was told" when nobody was. Do not make the call, and report it.
+  if (!process.env.ADMIN_ROUTE_SECRET) {
+    console.warn('[admin-reviews] ADMIN_ROUTE_SECRET is not set; the reviewer was NOT notified');
+    return false;
+  }
   try {
     const notifyRes = await fetch(`${base}/api/notifications/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+        'x-admin-secret': process.env.ADMIN_ROUTE_SECRET,
       },
       body: JSON.stringify({
         externalUserIds: [userId],
@@ -265,6 +307,7 @@ async function handleDelete({ req, op, db, query }) {
 
   let reviewerSuspended = false;
   let deletedReviewsCount = null;
+  let noticeDelivered = null;
   if (existing?.user_id) {
     const { data: prof } = await db
       .from('profiles')
@@ -281,7 +324,7 @@ async function handleDelete({ req, op, db, query }) {
       const { error: profErr } = await db.from('profiles').update(updateObj).eq('id', existing.user_id);
       if (profErr) console.warn('[admin-reviews DELETE] reviewer update failed:', profErr.message);
 
-      await sendModerationNotice(
+      noticeDelivered = await sendModerationNotice(
         existing.user_id,
         reviewerSuspended
           ? 'Your review was removed. Due to repeated violations of Community Guidelines, ' +
@@ -296,11 +339,13 @@ async function handleDelete({ req, op, db, query }) {
     targetType: 'venue_review',
     targetId: reviewId,
     details: {
+      // reviewer_user_id is deliberately NOT repeated here: `before` already
+      // carries the row, and an audit row should hold each identifier once.
       reviewer_name: existing?.reviewer_name ?? null,
       venue_id: existing?.venue_id ?? null,
-      reviewer_user_id: existing?.user_id ?? null,
       deleted_reviews_count: deletedReviewsCount,
       reviewer_suspended: reviewerSuspended,
+      notice_delivered: noticeDelivered,
     },
     before: existing || null,
     after: null,
@@ -310,6 +355,7 @@ async function handleDelete({ req, op, db, query }) {
     deleted_id: reviewId,
     reviewer_suspended: reviewerSuspended,
     deleted_reviews_count: deletedReviewsCount,
+    notice_delivered: noticeDelivered,
   };
 }
 
