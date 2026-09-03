@@ -654,15 +654,25 @@ test('every shared component file obeys the house rules', async () => {
   assert.ok(!EMOJI.test(css), 'shared.module.css: no emoji');
 });
 
-test('tabRegistry exports the sixteen tabs the console renders', async () => {
+/**
+ * UPDATED IN PHASE 2, and this is the one legitimate reason to touch it: the
+ * registry now carries EIGHTEEN tabs, because Phase 2 shipped `staff` and
+ * `approvals` (PHASE2-CONTRACTS section 3). The sixteen Phase 1 tabs are
+ * still asserted in the same order, so a Phase 1 tab being renamed, reordered
+ * or dropped still fails here - which is what this test was written to catch.
+ * Only the two new entries at the end are new.
+ */
+test('tabRegistry exports the sixteen Phase 1 tabs plus the two from Phase 2', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
   const ids = [...src.matchAll(/\{ id: '([a-z]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
     'stable', 'grinder', 'pipeline', 'settings', 'stats', 'merch', 'promo',
     'economy', 'mint', 'antiabuse', 'clubarena', 'bugreports', 'geeves',
     'reviews', 'scrapers', 'audit',
+    // Phase 2.
+    'staff', 'approvals',
   ]);
-  assert.equal(ids.length, 16);
+  assert.equal(ids.length, 18);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
 });

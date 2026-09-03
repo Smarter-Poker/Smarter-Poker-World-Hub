@@ -145,9 +145,15 @@ const ACTIONS = [
 /** Audit Log reader. A page has to fit in one response; 500 is the ceiling. */
 const AUDIT_PAGE_DEFAULT = 100;
 const AUDIT_PAGE_MAX = 500;
+/**
+ * PHASE 2 CONTRACT, SECTION 2. `user_agent` joins ip_address and request_id on
+ * every row. All three are already WRITTEN by operatorAudit.buildAuditRow, and
+ * the Audit tab could not read one of them: an audit trail that records the
+ * browser and then refuses to show it is a column, not evidence.
+ */
 const AUDIT_FIELDS =
   'id, admin_user_id, action, target_type, target_id, details, before_state, after_state, ' +
-  'ip_address, actor_role, request_id, created_at';
+  'ip_address, user_agent, actor_role, request_id, created_at';
 
 /**
  * The actor list used to rescan up to 5,000 audit rows on EVERY page load of
@@ -712,9 +718,15 @@ async function auditLog(db, body) {
     if (!adminId) throw badRequest('A Valid Admin Id Is Required');
     q = q.eq('admin_user_id', adminId);
   }
-  if (body.targetType) {
-    const targetType = text(body.targetType, { min: 1, max: 80 });
-    if (targetType) q = q.eq('target_type', targetType);
+  // PHASE 2 CONTRACT, SECTION 2: targetType and targetId are EXACT filters, and
+  // a malformed one is a 400 rather than a silent no-op. The previous version
+  // dropped an unusable targetType on the floor, so an operator who pasted a
+  // 200-character string got the whole unfiltered log back and no way to tell
+  // that their filter had not been applied.
+  if (body.targetType !== undefined && body.targetType !== null && body.targetType !== '') {
+    const targetType = text(String(body.targetType), { min: 1, max: 80 });
+    if (!targetType) throw badRequest('A Valid Target Type Is Required');
+    q = q.eq('target_type', targetType);
   }
   if (body.targetId !== undefined && body.targetId !== null && body.targetId !== '') {
     const targetId = text(String(body.targetId), { min: 1, max: 200 });

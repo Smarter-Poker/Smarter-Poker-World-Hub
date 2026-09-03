@@ -458,3 +458,302 @@
         box-shadow: none;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PHASE 2 - Staff And Roles, Approvals
+   --------------------------------------------------------------------------
+   The two Phase 2 tabs are their own modules, so they cannot reach the page
+   stylesheet's classes. These are the handful of primitives they need, built
+   from the same inherited custom properties as everything above: no raw
+   colour, and a plain rgba fallback so a panel rendered outside .dashboard
+   degrades to something legible instead of transparent.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.panel {
+    display: block;
+}
+
+.panelHead {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+@media (min-width: 768px) {
+    .panelHead {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+}
+
+.panelTitle {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text, rgba(243, 244, 246, 1));
+}
+
+.panelIntro {
+    margin: 4px 0 0;
+    max-width: 70ch;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+}
+
+.card {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+    background: var(--bg-panel, rgba(17, 24, 39, 1));
+}
+
+.cardTitle {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text, rgba(243, 244, 246, 1));
+}
+
+.cardNote {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+}
+
+.filterRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+    flex: 1 1 180px;
+}
+
+.fieldLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+}
+
+.fieldHint {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-muted, rgba(139, 147, 161, 1));
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text, rgba(243, 244, 246, 1));
+    background: var(--bg-inset, rgba(13, 21, 32, 1));
+    border: 1px solid var(--line-strong, rgba(255, 255, 255, 0.16));
+}
+
+.textarea {
+    min-height: 92px;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.btn {
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text, rgba(243, 244, 246, 1));
+    background: var(--bg-surface, rgba(23, 32, 46, 1));
+    border: 1px solid var(--line-strong, rgba(255, 255, 255, 0.16));
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btnGo {
+    color: var(--accent, rgba(0, 212, 255, 1));
+    background: var(--accent-soft, rgba(0, 212, 255, 0.12));
+    border-color: var(--accent-line, rgba(0, 212, 255, 0.3));
+}
+
+.btnDanger {
+    color: var(--danger, rgba(239, 68, 68, 1));
+    background: var(--danger-wash, rgba(239, 68, 68, 0.12));
+    border-color: var(--danger-line, rgba(239, 68, 68, 0.35));
+}
+
+.rowActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pillRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.blockedNote {
+    display: block;
+    max-width: 34ch;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted, rgba(139, 147, 161, 1));
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+    background: var(--surface-tint, rgba(255, 255, 255, 0.03));
+}
+
+.legendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.held {
+    font-weight: 700;
+    color: var(--accent, rgba(0, 212, 255, 1));
+}
+
+.notHeld {
+    color: var(--text-muted, rgba(139, 147, 161, 1));
+}
+
+.policyGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+@media (min-width: 768px) {
+    .policyGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.checkRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text, rgba(243, 244, 246, 1));
+}
+
+.checkRow input {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.warnNote {
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--warn, rgba(245, 158, 11, 1));
+    background: var(--warn-soft, rgba(245, 158, 11, 0.12));
+    border: 1px solid var(--warn, rgba(245, 158, 11, 1));
+}
+
+.infoNote {
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+    background: var(--surface-tint, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.errorNote {
+    margin: 12px 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--danger, rgba(239, 68, 68, 1));
+    background: var(--danger-wash, rgba(239, 68, 68, 0.12));
+    border: 1px solid var(--danger-line, rgba(239, 68, 68, 0.35));
+}
+
+.stateNote {
+    padding: 20px 0;
+    font-size: 14px;
+    color: var(--text-dim, rgba(156, 163, 175, 1));
+}
+
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    word-break: break-all;
+    color: var(--text-muted, rgba(139, 147, 161, 1));
+}
+
+.trailBlock {
+    margin: 0;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+    color: var(--text, rgba(243, 244, 246, 1));
+    background: var(--bg-page, rgba(9, 14, 22, 1));
+}
+
+.trailEntry {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.trailEntry:last-child {
+    border-bottom: 0;
+}
+
+.trailHead {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text, rgba(243, 244, 246, 1));
+}

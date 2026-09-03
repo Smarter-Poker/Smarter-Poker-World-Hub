@@ -24,6 +24,12 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { loadOperatorPolicy } from '../../../src/lib/horses/operatorAuth.js';
+import {
+  requireApproval,
+  markApprovalExecuted,
+  approvalPendingResponse,
+} from '../../../src/lib/horses/approvals.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -189,6 +195,12 @@ export default async function handler(req, res) {
       // above; this only gives the audit row the same actor, role, ip, user
       // agent, request id and before/after stamp every other console write now
       // carries.
+      // PHASE 2. The operator policy is also what requireApproval reads. It is
+      // cached 30s and falls back to the default (approvals OFF) whenever
+      // ca_operator_policy cannot be read, so a missing Phase 2 migration
+      // cannot stop a cashout that works today.
+      const cashoutPolicy = await loadOperatorPolicy(supabaseAdmin);
+
       const auditOp = {
         // The caller's REAL role, or null. `|| 'admin'` fabricated a platform
         // privilege for every agent whose profiles.role is null - which is the
@@ -196,6 +208,7 @@ export default async function handler(req, res) {
         user: { id: user.id },
         role: callerProfile?.role || null,
         db: supabaseAdmin,
+        policy: cashoutPolicy,
         requestId: requestIdOf(req),
       };
 
@@ -206,6 +219,56 @@ export default async function handler(req, res) {
       // APPROVE: Held chips → treasury (agent settles fiat off-platform)
       // ═════════════════════════════════════════════════════════════
       if (action === 'approve') {
+        // PHASE 2 MAKER-CHECKER, before any chips move. Only the APPROVE branch
+        // is gated: cancel returns held chips to the player, and putting a
+        // second operator in front of giving a player their own money back
+        // would be a narrowing, which PHASE2-CONTRACTS.md section 0 forbids.
+        //
+        // The opId is derived from the cashout id, so a retry of the same
+        // cashout re-uses the same approval row rather than raising a second
+        // one - ca_operator_approvals.op_id is unique where not null.
+        let approval;
+        try {
+          approval = await requireApproval(auditOp, req, {
+            kind: 'cashout',
+            amount: Number(cashout.amount || 0),
+            asset: 'chips',
+            targetType: 'cashout_request',
+            targetId: cashoutId,
+            reason: note || 'Approved',
+            opId: `cashout:${cashoutId}`,
+            payload: {
+              cashoutId,
+              clubId: cashout.club_id,
+              playerId: cashout.player_id,
+              agentId: cashout.agent_id,
+              amount: cashout.amount,
+              note: note || null,
+            },
+          });
+        } catch (approvalErr) {
+          return res.status(approvalErr?.status || 503).json({
+            success: false,
+            error: approvalErr?.message || 'Approvals Are Unavailable',
+            code: approvalErr?.code || 'approval_unavailable',
+          });
+        }
+
+        if (approval.required) {
+          await auditOperatorAction(auditOp, req, {
+            action: 'cashout.request_approval',
+            targetType: 'cashout_request',
+            targetId: cashoutId,
+            before: { status: cashout.status },
+            after: { status: approval.status, approval_id: approval.approvalId },
+            details: { amount: cashout.amount, club_id: cashout.club_id, threshold: approval.threshold },
+          });
+          return approvalPendingResponse(res, approval, {
+            requestId: auditOp.requestId,
+            message: 'Sent For Approval. Another Operator Must Approve This Cashout Before Any Chips Move',
+          });
+        }
+
         // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_approve_cashout_atomic', {
           p_cashout_id: cashoutId,
@@ -225,6 +288,14 @@ export default async function handler(req, res) {
           `[OK] Cashout approved! ${amountText} chips`,
           'approve'
         );
+
+        // The chips have moved. Close the approval row out; this never throws.
+        await markApprovalExecuted(auditOp, approval.approvalId, {
+          ok: true,
+          cashout_id: cashoutId,
+          amount: cashout.amount,
+          club_id: cashout.club_id,
+        });
 
         logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved', platformAdminOverride: viaPlatformOverride } });
 

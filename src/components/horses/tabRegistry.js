@@ -45,6 +45,25 @@ export const TABS = [
   { id: 'reviews', label: 'Reviews', permission: 'reviews.moderate', legacy: true },
   { id: 'scrapers', label: 'Scrapers', permission: 'scrapers.read', legacy: true },
   { id: 'audit', label: 'Audit Log', permission: 'audit.read', legacy: true },
+
+  // ── Phase 2. The first two tabs that are their OWN modules ────────────────
+  //
+  // Both declare `console.read`, which is the permission that lets an account
+  // open this console at all, because SEEING who holds what and what is
+  // waiting for a decision is not itself a privileged act. The privileged
+  // halves declare their own permissions inside the panels: `admin.manage`
+  // gates granting, revoking and the policy panel, and deciding a request
+  // needs whatever permission the underlying kind needs (money.write for
+  // mint/burn/fund, cashier.write for cashout - approvalModel.js owns that
+  // table). PHASE2-CONTRACTS section 3.
+  //
+  // `load` makes them code-split: index.js wraps it in next/dynamic. dynamic()
+  // is deliberately not imported here so this module stays importable by a
+  // plain `node --test` with no node_modules.
+  { id: 'staff', label: 'Staff And Roles', permission: 'console.read',
+    load: () => import('./StaffPanel') },
+  { id: 'approvals', label: 'Approvals', permission: 'console.read',
+    load: () => import('./ApprovalsPanel') },
 ];
 
 export const DEFAULT_TAB = 'stable';

@@ -52,11 +52,31 @@
  * time. A double-click cannot double the money. If the client omits it we mint
  * nothing - we do not invent a key here, because a key invented per-request is
  * not an idempotency key at all.
+ *
+ * PHASE 2 (2026-09-03): MAKER-CHECKER
+ *
+ * `requireApproval` runs BEFORE fn_ca_mint / fn_ca_burn and
+ * `markApprovalExecuted` runs after the chips have moved. With
+ * ca_operator_policy.approvals_enabled false - which is the default and the
+ * state of production today - the call records an auto_approved row and returns
+ * required:false, so this route behaves exactly as it did before. When Dan turns
+ * approvals on, an operation at or over the threshold returns 202 with
+ * { success: true, pending: true, approvalId, status, message } and touches no
+ * money at all.
+ *
+ * The approval row carries the SAME opId, which is what makes an approved
+ * request execute exactly once: the key the approval was raised under is the key
+ * fn_ca_mint claims when it finally runs.
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import {
+  requireApproval,
+  markApprovalExecuted,
+  approvalPendingResponse,
+} from '../../../src/lib/horses/approvals.js';
 import { paging, runPaged } from '../../../src/lib/horses/paged.js';
 import {
   pageFor,
@@ -369,8 +389,51 @@ const REASON_TEXT = {
   that_would_take_the_union_bank_below_zero: 'That Is More Than The Union Bank Holds.',
 };
 
-async function handleIssuance(db, op, req, body) {
+async function handleIssuance(db, op, req, res, body) {
   const { action, asset, target, targetId, amount, reason, opId } = validateIssuance(body);
+
+  // PHASE 2 MAKER-CHECKER. This runs BEFORE the money RPC and never after it.
+  //
+  // With approvals off (the default, and the state of production today) it
+  // records an auto_approved row and returns required:false, so this route
+  // behaves exactly as it did yesterday - PHASE2-CONTRACTS.md section 0.
+  //
+  // The approval row carries THE SAME opId the RPC claims. That is the whole
+  // exactly-once story: the browser generates opId once, it travels on the
+  // approval, and when the approved request is finally executed fn_ca_mint
+  // claims that same key. A request that is approved, retried, and approved
+  // again still mints once.
+  const approval = await requireApproval(op, req, {
+    kind: action === 'mint' ? 'mint' : 'burn',
+    amount,
+    asset,
+    targetType: target,
+    targetId,
+    reason,
+    opId,
+    payload: { action, asset, target, targetId, amount, reason, opId },
+  });
+
+  if (approval.required) {
+    // 202, and NOT ONE CHIP MOVES. The audit row is filed here rather than
+    // after the RPC because from the operator's point of view this request did
+    // happen; it is simply waiting.
+    await auditOperatorAction(op, req, {
+      action: 'mint.request_approval',
+      targetType: target,
+      targetId,
+      before: { status: 'none' },
+      after: { status: approval.status, approval_id: approval.approvalId },
+      details: { operation: action, asset, amount, reason, opId, threshold: approval.threshold },
+    });
+    return approvalPendingResponse(res, approval, {
+      requestId: op.requestId,
+      message:
+        action === 'mint'
+          ? 'Sent For Approval. Another Operator Must Approve This Issuance Before Any Chips Are Created'
+          : 'Sent For Approval. Another Operator Must Approve This Retirement Before Any Chips Are Removed',
+    });
+  }
 
   // fn_ca_mint takes a destination; fn_ca_burn takes a source. Same six values,
   // opposite direction, and the parameter names say which way the chips move.
@@ -412,6 +475,17 @@ async function handleIssuance(db, op, req, body) {
     throw new ApiError(409, `Mint Refused: ${code}`, code);
   }
 
+  // The money has moved. Close the approval row out. markApprovalExecuted never
+  // throws for the same reason auditOperatorAction never does: telling an
+  // operator a completed mint failed is how a mint happens twice.
+  await markApprovalExecuted(op, approval.approvalId, {
+    ok: true,
+    ledger_id: data.ledger_id ?? null,
+    balance_after: data.balance_after ?? null,
+    supply_after: data.supply_after ?? null,
+    replayed: data.replayed === true,
+  });
+
   await auditOperatorAction(op, req, {
     action: action === 'mint' ? 'mint.issue' : 'mint.retire',
     targetType: target,
@@ -425,10 +499,25 @@ async function handleIssuance(db, op, req, body) {
       supply_after: data.supply_after ?? null,
       replayed: data.replayed === true,
     },
-    details: { asset, target, amount, reason, opId, ledgerId: data.ledger_id ?? null },
+    details: {
+      asset,
+      target,
+      amount,
+      reason,
+      opId,
+      ledgerId: data.ledger_id ?? null,
+      approvalId: approval.approvalId,
+      approvalStatus: approval.status,
+      approvalBlockedReason: approval.blockedReason,
+    },
   });
 
-  return { result: data, performedBy: op.user.id };
+  return {
+    result: data,
+    performedBy: op.user.id,
+    approvalId: approval.approvalId,
+    approvalStatus: approval.status,
+  };
 }
 
 export const spec = {
@@ -441,8 +530,8 @@ export const spec = {
   durable: { POST: { max: 20, windowSeconds: 60 } },
 };
 
-export async function handle({ req, op, db, body, query, method, requestId }) {
-  if (method === 'POST') return handleIssuance(db, op, req, body);
+export async function handle({ req, res, op, db, body, query, method, requestId }) {
+  if (method === 'POST') return handleIssuance(db, op, req, res, body);
 
   const section = enumOf(String(query.section || 'overview'), SECTIONS);
   if (!section) throw badRequest('Unknown Section');

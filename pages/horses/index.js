@@ -111,6 +111,20 @@ import {
 import {
   AUDIT_FILTER_GROUPS, auditActionFilter,
 } from '../../src/components/horses/auditFilters';
+// ── Phase 2 ────────────────────────────────────────────────────────────────
+// Permissions decide what the NAV shows, never what the server allows; the
+// server is the enforcement point. permittedTabs answers "show everything"
+// for an operator whose permissions nobody has told us about yet, which is
+// the Phase 2 safety rule (PHASE2-CONTRACTS section 0) written as code.
+import {
+  permittedTabs, permissionsFromPayload, operatorIdFromPayload,
+} from '../../src/components/horses/operatorPermissions';
+import {
+  thresholdDecision, isPendingApproval, normalizePolicy,
+} from '../../src/components/horses/approvalModel';
+import {
+  auditTrailUrl, policyUrl, rowsOf,
+} from '../../src/components/horses/operatorAdmin';
 import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
 import Modal from '../../src/components/horses/Modal';
 import ConfirmDialog from '../../src/components/horses/ConfirmDialog';
@@ -274,6 +288,11 @@ function ShowingOf({ truncated, count, total, noun = 'Rows' }) {
 /** Rows per request while an export walks every page. */
 const EXPORT_PAGE_SIZE = 500;
 
+/** One page of a single record's audit trail (the "Trail" dialog). Small on
+ *  purpose: it is read inside a modal, and a modal that scrolls for a hundred
+ *  rows is a modal nobody reads to the bottom of. */
+const AUDIT_TRAIL_PAGE_SIZE = 25;
+
 /** The bulk routes accept up to 500 ids per call (PHASE1-CONTRACTS item 6). */
 const BULK_CHUNK = 500;
 
@@ -303,6 +322,22 @@ export default function HorsesAdmin() {
 
   const [activeTab, setActiveTab] = useState(DEFAULT_TAB);
   const [notification, setNotification] = useState(null);
+
+  // ── Operator context (Phase 2) ──
+  //
+  // `operatorPermissions` stays NULL until a route has actually told us what
+  // this account holds, and null means "show everything". That is the safety
+  // rule (PHASE2-CONTRACTS section 0): production has three operator accounts
+  // and none of them may lose a tab because /api/horses/operator-admin is not
+  // deployed yet, or answered slowly, or failed. A permission list narrows
+  // the nav only once it exists.
+  //
+  // `operatorPolicy` is null for the same reason, and a null policy is read
+  // everywhere as approvals OFF - which is the shipped default and the state
+  // production is in, so the Mint behaves exactly as it does today.
+  const [operatorPermissions, setOperatorPermissions] = useState(null);
+  const [operatorPolicy, setOperatorPolicy] = useState(null);
+  const [operatorId, setOperatorId] = useState(null);
 
   // ── Stable ──
   const [personas, setPersonas] = useState([]);
@@ -597,6 +632,45 @@ export default function HorsesAdmin() {
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
 
+  /**
+   * WHO THIS OPERATOR IS, IN PHASE 2 TERMS.
+   *
+   * One read of /api/horses/operator-admin?section=policy, which answers with
+   * the policy row and - per PHASE2-CONTRACTS section 2 - the operator
+   * envelope this console needs: the permissions the account holds and its
+   * own user id. Both are used to DECIDE WHAT TO SHOW, never to decide what
+   * is allowed; every route re-checks for itself.
+   *
+   * THE CATCH BLOCK IS THE SAFETY RULE. A failure here - the route not
+   * deployed, a 403, a timeout - leaves permissions null and the policy null,
+   * and both of those mean "carry on exactly as before": every tab visible,
+   * maker-checker off. A console that hides the Mint because a fetch failed
+   * would be a worse outage than the one it is reacting to.
+   */
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const body = await authFetch(policyUrl());
+        if (cancelled) return;
+        // normalizePolicy, not the raw row: the route answers in camelCase
+        // and the contract, the table and every RPC argument are snake_case.
+        // Reading only one spelling would report maker-checker as OFF while
+        // it is on, which is the wrong way round to be wrong about money.
+        setOperatorPolicy(normalizePolicy(body && body.policy));
+        setOperatorPermissions(permissionsFromPayload(body));
+        setOperatorId(operatorIdFromPayload(body, user.id));
+      } catch {
+        if (cancelled) return;
+        setOperatorPermissions(null);
+        setOperatorPolicy(null);
+        setOperatorId(user.id || null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, authFetch]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -631,6 +705,9 @@ export default function HorsesAdmin() {
     // Clear every cached surface - signing out used to leave the previous
     // admin's clubs, members and transactions in memory for the next sign-in.
     setUser(null); setRole(null);
+    // The Phase 2 context is per account too: leaving one operator's
+    // permissions in memory would decide the next operator's nav.
+    setOperatorPermissions(null); setOperatorPolicy(null); setOperatorId(null);
     setPersonas([]); setPipelineRuns([]); setPromoCodes([]);
     setEconomyData(null); setEconomyLoaded(false);
     setAbuseData(null); setAbuseLoaded(false);
@@ -1008,10 +1085,23 @@ export default function HorsesAdmin() {
       amount,
       reason: mintReason.trim(),
       projected: balance === null ? null : mintAction === 'mint' ? balance + amount : balance - amount,
+      // WILL THIS EXECUTE, OR WILL IT WAIT? Decided here, from the policy the
+      // console read on sign-in, so the sentence the operator reads back is
+      // the sentence about what is actually going to happen. With no policy
+      // (route not deployed, read failed) thresholdDecision answers "This
+      // Will Execute Immediately", which is what the console has always done.
+      approval: thresholdDecision({
+        policy: operatorPolicy,
+        // Issue and retire are both the Mint and both read mint_threshold.
+        kind: 'mint',
+        amount,
+        asset: mintAsset,
+      }),
     });
   }, [
     mintAmount, mintAsset, mintTargetId, mintReason, mintTargetKind, mintTargets,
     mintPickedPlayer, mintAction, mintOpId, newMintOpId, showNotification,
+    operatorPolicy,
   ]);
 
   const submitMint = useCallback(async () => {
@@ -1030,6 +1120,39 @@ export default function HorsesAdmin() {
           opId: mintConfirm.opId,
         }),
       });
+
+      // ── 202: SENT FOR APPROVAL, NOTHING MOVED ──────────────────────────
+      //
+      // requireApproval answers 202 { success: true, pending: true,
+      // approvalId, message } and does not touch money (PHASE2-CONTRACTS
+      // section 2). `pending` is the branch that has to be read FIRST and
+      // read exactly: a body without it is an ordinary execution, and
+      // treating one as the other either reports a real mint as "waiting"
+      // (so the operator mints it again) or reports a queued request as done
+      // (so nobody ever approves it). isPendingApproval owns that test.
+      //
+      // The ledger is deliberately NOT reloaded here: no row was written to
+      // it, and re-reading would only make the panel look like it had
+      // checked something.
+      if (isPendingApproval(body)) {
+        setMintReceipt({
+          pending: true,
+          approvalId: body.approvalId,
+          action: mintConfirm.action,
+          asset: mintConfirm.asset,
+          amount: mintConfirm.amount,
+          target_label: mintConfirm.label,
+          target_id: mintConfirm.targetId,
+          op_id: mintConfirm.opId,
+        });
+        setMintConfirm(null);
+        showNotification(
+          body.message || 'Sent For Approval. Nothing Has Moved Yet.',
+          'info',
+        );
+        resetMintForm();
+        return;
+      }
 
       const result = body.result || {};
       // THE RECEIPT IS BUILT FROM WHAT THIS CONSOLE COMPOSED, merged with the
@@ -1940,10 +2063,29 @@ export default function HorsesAdmin() {
   // question an audit log exists to answer and the tab could not express it.
   // From/To make the window explicit rather than "the last N days from now".
   const [auditTarget, setAuditTarget] = useState('');
+  // Target TYPE alongside target id (PHASE2-CONTRACTS section 2). An id on its
+  // own is ambiguous across tables; "club" plus that id is one record.
+  const [auditTargetType, setAuditTargetType] = useState('');
   const [auditFrom, setAuditFrom] = useState('');
   const [auditTo, setAuditTo] = useState('');
   const [auditExporting, setAuditExporting] = useState(null);
   const AUDIT_PAGE_SIZE = 100;
+
+  // ── One record's full history (the "Trail" action) ──
+  //
+  // A row of the audit log answers "what happened at 14:02". The question an
+  // investigation actually asks is "everything that has ever happened to THIS
+  // club", and the log could not express it: filtering by target id required
+  // copying an id out of one row and pasting it into a filter, which loses
+  // the target TYPE and therefore matches other tables' ids too. This reads
+  // fn_ca_operator_audit_trail for the exact (type, id) pair on the row.
+  const [auditTrailFor, setAuditTrailFor] = useState(null); // { targetType, targetId }
+  const [auditTrailRows, setAuditTrailRows] = useState([]);
+  const [auditTrailTotal, setAuditTrailTotal] = useState(null);
+  const [auditTrailHasMore, setAuditTrailHasMore] = useState(undefined);
+  const [auditTrailOffset, setAuditTrailOffset] = useState(0);
+  const [auditTrailLoading, setAuditTrailLoading] = useState(false);
+  const [auditTrailError, setAuditTrailError] = useState(null);
 
   /** The filter set as the route wants it (PHASE1-CONTRACTS item 4). Explicit
    *  From/To win over the quick range; `days` is only sent when neither is set,
@@ -1957,12 +2099,13 @@ export default function HorsesAdmin() {
       ...auditActionFilter(auditPrefix),
       adminId: auditAdmin || undefined,
       targetId: auditTarget.trim() || undefined,
+      targetType: auditTargetType.trim() || undefined,
     };
     if (auditFrom) q.from = auditFrom;
     if (auditTo) q.to = auditTo;
     if (!auditFrom && !auditTo && auditDays) q.days = auditDays;
     return q;
-  }, [auditPrefix, auditAdmin, auditTarget, auditFrom, auditTo, auditDays]);
+  }, [auditPrefix, auditAdmin, auditTarget, auditTargetType, auditFrom, auditTo, auditDays]);
 
   /** Monotonic sequence guard. A filter change resets the page AND reloads, so
    *  two requests can be in flight at once; without this the slower one wins
@@ -2038,7 +2181,11 @@ export default function HorsesAdmin() {
           ['action', 'Action'],
           ['target_type', 'Target Type'],
           ['target_id', 'Target'],
+          // WHERE FROM, WITH WHAT, AND WHICH REQUEST. The route returns all
+          // three on every row now (PHASE2-CONTRACTS section 2), and an
+          // export that drops them cannot answer "was that the same session".
           ['ip_address', 'IP'],
+          ['user_agent', 'User Agent'],
           ['request_id', 'Request'],
           ['details', 'Details'],
           ['before_state', 'Before State'],
@@ -2057,6 +2204,64 @@ export default function HorsesAdmin() {
       setAuditExporting(null);
     }
   }, [authFetch, auditQuery, auditTotal, showNotification]);
+
+  /**
+   * One page of a single record's trail.
+   *
+   * auditTrailUrl returns NULL when there is no target id, and that is the
+   * whole guard: a trail request with no id is a request for every audit row
+   * ever written, which is not what a per-row button means. The dialog says
+   * so rather than opening onto a list of the wrong thing.
+   */
+  const loadAuditTrail = useCallback(async (target, offset) => {
+    const url = auditTrailUrl({
+      targetType: target?.targetType,
+      targetId: target?.targetId,
+      limit: AUDIT_TRAIL_PAGE_SIZE,
+      offset,
+    });
+    if (!url) {
+      setAuditTrailRows([]);
+      setAuditTrailTotal(null);
+      setAuditTrailHasMore(undefined);
+      setAuditTrailError('This Entry Records No Target Type And Id, So It Names No Record To Trail.');
+      return;
+    }
+    setAuditTrailLoading(true);
+    setAuditTrailError(null);
+    try {
+      const d = await authFetch(url);
+      setAuditTrailRows(rowsOf(d, 'entries', 'trail'));
+      setAuditTrailTotal(typeof d.total === 'number' ? d.total : null);
+      setAuditTrailHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : undefined);
+    } catch (err) {
+      setAuditTrailRows([]);
+      setAuditTrailHasMore(undefined);
+      setAuditTrailError(err.message || 'The Trail Could Not Be Read.');
+    } finally {
+      setAuditTrailLoading(false);
+    }
+  }, [authFetch]);
+
+  const openAuditTrail = useCallback((entry) => {
+    const target = {
+      targetType: entry?.target_type || '',
+      targetId: entry?.target_id || '',
+    };
+    setAuditTrailFor(target);
+    setAuditTrailOffset(0);
+    setAuditTrailRows([]);
+    setAuditTrailTotal(null);
+    setAuditTrailHasMore(undefined);
+    setAuditTrailError(null);
+    loadAuditTrail(target, 0);
+  }, [loadAuditTrail]);
+
+  const goAuditTrailPage = useCallback((offset) => {
+    const next = Math.max(0, offset);
+    setAuditTrailOffset(next);
+    if (auditTrailFor) loadAuditTrail(auditTrailFor, next);
+  }, [auditTrailFor, loadAuditTrail]);
 
   // Goes through /api/horses/stable-admin rather than straight to PostgREST.
   // The direct call it replaces was the last unaudited mutation in this
@@ -2392,7 +2597,7 @@ export default function HorsesAdmin() {
   // loaders cover the rest.
   useEffect(() => {
     setAuditPage(0);
-  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo]);
+  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditTargetType, auditFrom, auditTo]);
 
   useEffect(() => { setReviewsPage(0); }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly, reviewsQuery]);
 
@@ -2404,7 +2609,7 @@ export default function HorsesAdmin() {
   useEffect(() => {
     if (activeTab === 'audit' && auditLoaded) loadAuditLog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditFrom, auditTo, auditPage]);
+  }, [auditPrefix, auditAdmin, auditDays, auditTarget, auditTargetType, auditFrom, auditTo, auditPage]);
 
   // ── Debounced searches ──
   // Both of these hit a route now rather than filtering an array in memory, so
@@ -2561,7 +2766,39 @@ export default function HorsesAdmin() {
    * cheap. The mobile scroll strip is untouched - the effect above still
    * scrolls whatever becomes active into view.
    */
-  const navTabs = useMemo(() => visibleTabs(TABS), []);
+  /**
+   * The tabs this operator may see.
+   *
+   * visibleTabs drops anything registered but not shipped; permittedTabs then
+   * drops anything whose declared permission this account does not hold. With
+   * `operatorPermissions` null - nobody has told us yet - permittedTabs is
+   * the identity function, so the nav is exactly what it has always been.
+   */
+  const navTabs = useMemo(
+    () => permittedTabs(visibleTabs(TABS), operatorPermissions),
+    [operatorPermissions],
+  );
+
+  /** A deep link, a bookmark or a revoked permission can leave `activeTab`
+   *  naming a tab this operator cannot see. Land on the first tab they CAN
+   *  see rather than on an empty panel with a nav that does not highlight
+   *  anything. */
+  useEffect(() => {
+    if (navTabs.length === 0) return;
+    if (navTabs.some((tab) => tab.id === activeTab)) return;
+    setActiveTab(navTabs[0].id);
+  }, [navTabs, activeTab]);
+
+  /**
+   * Move to another tab as a real navigation.
+   *
+   * Only `activeTab` is set here on purpose: the URL write effect above owns
+   * every write to the query string, and it pushes through nextUrlQuery. A
+   * second router.push from this callback would either race that effect or
+   * leave two history entries for one jump, so the jump goes through the one
+   * door that already knows how to make it a real navigation.
+   */
+  const goToTab = useCallback((tabId) => { setActiveTab(tabId); }, []);
   const onTabKeyDown = useCallback((e) => {
     const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
     if (!keys.includes(e.key)) return;
@@ -2903,8 +3140,21 @@ export default function HorsesAdmin() {
             resetKey={activeTab}
             label={activeTabEntry?.label || 'This Tab'}
           >
+          {/* A registry tab is its own module and gets the operator context
+              as props rather than reading it again: two fetches for one
+              answer is how two panels end up disagreeing about whether
+              maker-checker is on. onPolicyChange flows the Staff tab's save
+              back up so the Mint's confirmation sentence changes in the same
+              session, without a reload. */}
           {RegistryPanel && (
-            <RegistryPanel authFetch={authFetch} showNotification={showNotification} />
+            <RegistryPanel
+              authFetch={authFetch}
+              showNotification={showNotification}
+              permissions={operatorPermissions}
+              operatorId={operatorId}
+              policy={operatorPolicy}
+              onPolicyChange={setOperatorPolicy}
+            />
           )}
 
           {activeTab === 'merch' && <MerchCatalogAdmin authFetch={authFetch} />}
@@ -4422,8 +4672,43 @@ export default function HorsesAdmin() {
                     </div>
                   </div>
 
+                  {/* ── RECEIPT: SENT FOR APPROVAL ─────────────────────────── */}
+                  {/* A 202 is not a success and it is not a failure, and the
+                      receipt has to say which of the two it is not. It names
+                      the approval id an operator can quote, and the button
+                      goes to the queue the request is now sitting in - a real
+                      navigation through the URL, so Back returns here. */}
+                  {mintReceipt && mintReceipt.pending && (
+                    <div className={styles.card} style={{ marginTop: 20, borderColor: T.warn }}>
+                      <h3 className={styles.sectionTitle}>Sent For Approval</h3>
+                      <p style={{ color: T.dim, margin: '4px 0 12px' }}>
+                        Nothing Has Moved. This Request To{' '}
+                        {mintReceipt.action === 'mint' ? 'Issue' : 'Retire'}{' '}
+                        <strong style={{ color: T.text }}>{num(mintReceipt.amount)}</strong>{' '}
+                        {mintReceipt.asset}{' '}
+                        {mintReceipt.action === 'mint' ? 'to' : 'from'}{' '}
+                        <strong style={{ color: T.text }}>{mintReceipt.target_label || mintReceipt.target_id}</strong>{' '}
+                        Is Waiting For A Second Operator To Decide It.
+                      </p>
+                      <p style={{ color: T.muted, fontSize: 12, margin: 0, wordBreak: 'break-all' }}>
+                        Approval {mintReceipt.approvalId}
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        <button
+                          className={styles.actionBtn}
+                          onClick={() => { setMintReceipt(null); goToTab('approvals'); }}
+                        >
+                          Open The Approvals Tab
+                        </button>
+                        <button className={styles.actionBtn} onClick={() => setMintReceipt(null)}>
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── RECEIPT OF THE LAST OPERATION ──────────────────────── */}
-                  {mintReceipt && (
+                  {mintReceipt && !mintReceipt.pending && (
                     <div className={styles.card} style={{ marginTop: 20, borderColor: T.accentLine }}>
                       <h3 className={styles.sectionTitle}>
                         {mintReceipt.replayed ? 'Already Recorded' : 'Done'}
@@ -4683,7 +4968,9 @@ export default function HorsesAdmin() {
                       busy={mintSubmitting}
                       sticky={mintSubmitting}
                       blockEscape={mintSubmitting}
-                      confirmLabel={`Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${num(mintConfirm.amount)}`}
+                      confirmLabel={mintConfirm.approval?.willRequest
+                        ? 'Yes, Send For Approval'
+                        : `Yes, ${mintConfirm.action === 'mint' ? 'Issue' : 'Retire'} ${num(mintConfirm.amount)}`}
                       requireTyped={String(mintConfirm.asset).toUpperCase()}
                       onConfirm={submitMint}
                       onCancel={() => setMintConfirm(null)}
@@ -4706,6 +4993,28 @@ export default function HorsesAdmin() {
                       <p style={{ color: T.dim, fontStyle: 'italic', margin: 0 }}>
                         Reason: {mintConfirm.reason}
                       </p>
+                      {/* WHAT PRESSING THE BUTTON ACTUALLY DOES. With
+                          maker-checker off this reads "This Will Execute
+                          Immediately", which is what has always happened; with
+                          it on and the amount at or over the threshold it says
+                          the operation is going to a second operator instead.
+                          The sentence comes from approvalModel.thresholdDecision
+                          so it cannot drift from the rule the server applies. */}
+                      {mintConfirm.approval && (
+                        <p
+                          style={{
+                            margin: '12px 0 0',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            background: mintConfirm.approval.willRequest ? T.warnSoft : T.surfaceTint,
+                            color: mintConfirm.approval.willRequest ? T.warn : T.dim,
+                            border: `1px solid ${mintConfirm.approval.willRequest ? T.warn : T.line}`,
+                          }}
+                        >
+                          <strong>{mintConfirm.approval.headline}.</strong>{' '}
+                          {mintConfirm.approval.detail}
+                        </p>
+                      )}
                     </ConfirmDialog>
                   )}
 
@@ -6821,6 +7130,19 @@ export default function HorsesAdmin() {
                     were in state, threaded into the query and into the page
                     reset, and NO input rendered any of them. The route has
                     accepted targetId, from and to all along. */}
+                {/* Target TYPE narrows the id to one table. An id filter on
+                    its own matches the same uuid wherever it appears, which
+                    is how a club's trail picks up a user's rows. */}
+                <label className={styles.srOnly} htmlFor="audit-target-type">Target Type</label>
+                <input
+                  id="audit-target-type"
+                  type="search"
+                  className={styles.searchInput}
+                  style={{ minWidth: 160 }}
+                  placeholder="Target type (club, user)"
+                  value={auditTargetType}
+                  onChange={(e) => setAuditTargetType(e.target.value)}
+                />
                 <label className={styles.srOnly} htmlFor="audit-target">Target ID</label>
                 <input
                   id="audit-target"
@@ -6852,12 +7174,13 @@ export default function HorsesAdmin() {
                   onChange={(e) => setAuditTo(e.target.value)}
                   aria-label="To date"
                 />
-                {(auditTarget || auditFrom || auditTo || auditPrefix || auditAdmin) && (
+                {(auditTarget || auditTargetType || auditFrom || auditTo || auditPrefix || auditAdmin) && (
                   <button
                     type="button"
                     className={styles.filterBtn}
                     onClick={() => {
-                      setAuditTarget(''); setAuditFrom(''); setAuditTo('');
+                      setAuditTarget(''); setAuditTargetType('');
+                      setAuditFrom(''); setAuditTo('');
                       setAuditPrefix(''); setAuditAdmin('');
                     }}
                   >
@@ -6895,6 +7218,13 @@ export default function HorsesAdmin() {
                           <th scope="col">Admin</th>
                           <th scope="col">Action</th>
                           <th scope="col">Target</th>
+                          {/* THE THREE COLUMNS THAT ANSWER "WAS THAT THE SAME
+                              SESSION". They were written to admin_audit_log
+                              and rendered nowhere but inside an expanded row,
+                              so scanning a page for one IP was impossible. */}
+                          <th scope="col">IP</th>
+                          <th scope="col">User Agent</th>
+                          <th scope="col">Request ID</th>
                           <th scope="col">Detail</th>
                         </tr>
                       </thead>
@@ -6922,19 +7252,49 @@ export default function HorsesAdmin() {
                                   </div>
                                 )}
                               </td>
+                              <td style={{ color: T.dim, fontSize: 13, whiteSpace: 'nowrap' }}>
+                                {entry.ip_address || '-'}
+                              </td>
+                              {/* Truncated in the cell and complete in the
+                                  title, because a full user agent is 140
+                                  characters and would own the table. */}
+                              <td
+                                style={{ color: T.muted, fontSize: 12, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title={entry.user_agent || ''}
+                              >
+                                {entry.user_agent || '-'}
+                              </td>
+                              <td style={{ color: T.muted, fontSize: 12, wordBreak: 'break-all' }}>
+                                {entry.request_id || '-'}
+                              </td>
                               <td>
-                                <button
-                                  className={styles.actionBtn}
-                                  onClick={() => setAuditExpanded(auditExpanded === entry.id ? null : entry.id)}
-                                  aria-expanded={auditExpanded === entry.id}
-                                >
-                                  {auditExpanded === entry.id ? 'Hide' : 'View'}
-                                </button>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                  <button
+                                    className={styles.actionBtn}
+                                    onClick={() => setAuditExpanded(auditExpanded === entry.id ? null : entry.id)}
+                                    aria-expanded={auditExpanded === entry.id}
+                                  >
+                                    {auditExpanded === entry.id ? 'Hide' : 'View'}
+                                  </button>
+                                  {/* "Everything that has ever happened to
+                                      THIS record", which is the question the
+                                      log existed to answer and could not. */}
+                                  <button
+                                    className={styles.actionBtn}
+                                    onClick={() => openAuditTrail(entry)}
+                                    disabled={!entry.target_id || !entry.target_type}
+                                    title={entry.target_id && entry.target_type
+                                      ? 'Show the full history of this record'
+                                      : 'This entry records no target type and id, so it names no record to trail'}
+                                  >
+                                    Trail
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                             {auditExpanded === entry.id && (
                               <tr>
-                                <td colSpan={5} style={{ background: T.inset, padding: 16 }}>
+                                <td colSpan={8} style={{ background: T.inset, padding: 16 }}>
                                   <div style={{ display: 'grid', gap: 12 }}>
                                     <div style={{ color: T.muted, fontSize: 12 }}>
                                       IP {entry.ip_address || 'not recorded'}
@@ -6976,6 +7336,68 @@ export default function HorsesAdmin() {
                     onNext={() => setAuditPage((p) => p + 1)}
                   />
                 </>
+              )}
+
+              {/* ── ONE RECORD'S FULL HISTORY ─────────────────────────────── */}
+              {/* The shared Modal, so it has a dialog role, an accessible
+                  name, a focus trap and Escape - the same shell the Mint
+                  confirmation uses. Paged, because a club that has been
+                  edited for a year has more history than one dialog. */}
+              {auditTrailFor && (
+                <Modal
+                  title={`Trail: ${auditTrailFor.targetType || 'Record'} ${auditTrailFor.targetId || ''}`.trim()}
+                  onClose={() => setAuditTrailFor(null)}
+                  wide
+                >
+                  {auditTrailError ? (
+                    <div className={shared.errorNote} role="alert">{auditTrailError}</div>
+                  ) : auditTrailLoading && auditTrailRows.length === 0 ? (
+                    <div className={shared.stateNote}>Loading The Trail</div>
+                  ) : auditTrailRows.length === 0 ? (
+                    <div className={shared.stateNote}>
+                      Nothing Else Has Been Recorded Against This Record.
+                    </div>
+                  ) : (
+                    <div>
+                      {auditTrailRows.map((row, i) => (
+                        <div key={row.id || `${auditTrailOffset}-${i}`} className={shared.trailEntry}>
+                          <div className={shared.trailHead}>
+                            <strong>{row.action || 'unknown.action'}</strong>
+                            <span style={{ color: T.dim }}>{when(row.created_at, true)}</span>
+                            <span style={{ color: T.muted }}>
+                              {row.admin_name || 'System / Cron'}
+                              {row.admin_role ? ` (${row.admin_role})` : ''}
+                            </span>
+                          </div>
+                          <div className={shared.mono}>
+                            IP {row.ip_address || 'not recorded'}
+                            {row.request_id ? ` - request ${row.request_id}` : ''}
+                          </div>
+                          {[['Details', row.details], ['Before', row.before_state], ['After', row.after_state]]
+                            .filter(([, v]) => v && Object.keys(v).length)
+                            .map(([label, v]) => (
+                              <div key={label} style={{ marginTop: 8 }}>
+                                <div style={{ color: T.dim, fontSize: 12, marginBottom: 4 }}>{label}</div>
+                                <pre className={shared.trailBlock}>{JSON.stringify(v, null, 2)}</pre>
+                              </div>
+                            ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Pager
+                    offset={auditTrailOffset}
+                    limit={AUDIT_TRAIL_PAGE_SIZE}
+                    count={auditTrailRows.length}
+                    total={auditTrailTotal}
+                    hasMore={auditTrailHasMore}
+                    loading={auditTrailLoading}
+                    noun="Entries"
+                    onPrevious={() => goAuditTrailPage(auditTrailOffset - AUDIT_TRAIL_PAGE_SIZE)}
+                    onNext={() => goAuditTrailPage(auditTrailOffset + AUDIT_TRAIL_PAGE_SIZE)}
+                  />
+                </Modal>
               )}
             </div>
           )}
