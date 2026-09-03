@@ -10,7 +10,19 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onNotifCleared }) {
+export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onNotifCleared, children }) {
+    /**
+     * NATIVE MODE. Pass `children` and this renders them in place of the
+     * iframe, reusing every piece of chrome around it — the topbar, Escape,
+     * the scroll lock, the focus handling.
+     *
+     * Notifications takes this path as of 2026-09-02, because framing that page
+     * booted a second Next.js application on top of the warm one before the
+     * feed request could start. Messenger, Settings and the Diamond Store still
+     * frame, and that is fine: they are opened rarely and the alternative is
+     * pulling three more page trees into the app shell's bundle.
+     */
+    const isNative = !!children;
     const [loaded, setLoaded] = useState(false);
     const iframeRef = useRef(null);
     const closeButtonRef = useRef(null);
@@ -225,6 +237,15 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                     box-sizing: border-box;
                 }
 
+                /* In native mode the wrapper is the scroller: a framed page
+                   scrolls itself inside the iframe, a rendered component has
+                   nothing to scroll in unless we give it something. */
+                .fsp-content-native {
+                    overflow-y: auto;
+                    -webkit-overflow-scrolling: touch;
+                    overscroll-behavior: contain;
+                }
+
                 .fsp-iframe {
                     width: 100%;
                     height: 100%;
@@ -282,21 +303,30 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                     </button>
                 </div>
 
-                {/* Iframe content area */}
-                <div className="fsp-iframe-wrap">
-                    {/* Loading spinner until iframe loads */}
-                    <div className={`fsp-loader ${loaded ? 'hidden' : ''}`}>
-                        <div className="fsp-spinner" />
-                    </div>
+                {/* Content area. Native children when given, otherwise a frame.
+                    There is no spinner in native mode because there is nothing
+                    to wait for — the component renders on the same frame as the
+                    tap, which is the entire reason for the native path. */}
+                <div className={`fsp-iframe-wrap${isNative ? ' fsp-content-native' : ''}`}>
+                    {isNative ? (
+                        children
+                    ) : (
+                        <>
+                            {/* Loading spinner until iframe loads */}
+                            <div className={`fsp-loader ${loaded ? 'hidden' : ''}`}>
+                                <div className="fsp-spinner" />
+                            </div>
 
-                    <iframe
-                        ref={iframeRef}
-                        src={url}
-                        className="fsp-iframe"
-                        title={title || 'Page Content'}
-                        onLoad={() => setLoaded(true)}
-                        allow="autoplay; camera; microphone"
-                    />
+                            <iframe
+                                ref={iframeRef}
+                                src={url}
+                                className="fsp-iframe"
+                                title={title || 'Page Content'}
+                                onLoad={() => setLoaded(true)}
+                                allow="autoplay; camera; microphone"
+                            />
+                        </>
+                    )}
                 </div>
             </div>
         </>
