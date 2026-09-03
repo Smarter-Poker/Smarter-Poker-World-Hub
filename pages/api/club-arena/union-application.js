@@ -5,13 +5,13 @@
  * Union leads (union_lead role) OR platform admins review/approve/reject their union's applications.
  *
  * Actions:
- *   apply    — Club owner submits an application (POST)
- *   list     — Union lead or platform admin lists applications for a union (POST)
- *   approve  — Union lead or platform admin approves + integrates club into union (POST)
- *   reject   — Union lead or platform admin rejects application (POST)
- *   status   — Club owner checks their own application status (POST)
+ *   apply    - Club owner submits an application (POST)
+ *   list     - Union lead or platform admin lists applications for a union (POST)
+ *   approve  - Union lead or platform admin approves + integrates club into union (POST)
+ *   reject   - Union lead or platform admin rejects application (POST)
+ *   status   - Club owner checks their own application status (POST)
  *
- * "Midway Union" is resolved dynamically — the union whose name ILIKE '%midway%'.
+ * "Midway Union" is resolved dynamically - the union whose name ILIKE '%midway%'.
  * For list/approve/reject: if unionId is provided, scoped to that union.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -19,9 +19,12 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency } from '../../../src/lib/club-arena/idempotency';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 
-// Lazy accessor — a module-scope createClient() throws at IMPORT time when the
+// Lazy accessor - a module-scope createClient() throws at IMPORT time when the
 // service-role key is missing, which takes the whole route down before any
 // request handler can report why.
 let _supabase = null;
@@ -46,16 +49,29 @@ async function getMidwayUnionId() {
   return data || null;
 }
 
-// Check if caller is platform admin (has admin/superadmin/god in profiles.role)
-async function isPlatformAdmin(userId) {
+// The caller's real profiles.role, or null. Read once per request and passed
+// down so the authorisation check and the audit row agree about who this is.
+async function fetchProfileRole(userId) {
   const { data } = await getSupabase()
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .maybeSingle();
-  // 'god' is the role the real owner accounts carry — omitting it locked
-  // them out of every union review action.
-  return ['admin', 'superadmin', 'god'].includes(data?.role);
+  return data?.role ?? null;
+}
+
+// Is the caller platform staff for union review? Whoever holds clubs.write,
+// resolved the way the console resolves it (re-verification M-3): the three
+// legacy profile roles ('god' is the one the real owner accounts carry, and
+// omitting it once locked them out of every union review action) carry it
+// until enforce_named_roles is on, a granted finance or operations operator
+// carries it through the grant, and a narrowed legacy account does not. The
+// resolver fails open to the legacy set when its RPC is unreachable. Union
+// leads are authorised through union_admins below exactly as before.
+async function isPlatformAdmin(userId, knownRole) {
+  const role = knownRole !== undefined ? knownRole : await fetchProfileRole(userId);
+  const gate = await operatorHoldsPermission(getSupabase(), { userId, profileRole: role }, PERMISSIONS.CLUBS_WRITE);
+  return gate.ok === true;
 }
 
 // Check if caller is union_lead for the given unionId
@@ -70,9 +86,9 @@ async function isUnionLead(userId, unionId) {
 }
 
 // Check if caller can administer this union (platform admin OR union_lead)
-async function canAdminUnion(userId, unionId) {
+async function canAdminUnion(userId, unionId, knownRole) {
   const [admin, lead] = await Promise.all([
-    isPlatformAdmin(userId),
+    isPlatformAdmin(userId, knownRole),
     isUnionLead(userId, unionId),
   ]);
   return admin || lead;
@@ -103,7 +119,27 @@ export default async function handler(req, res) {
   const { action } = req.body;
   if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
-  // Zod validation — reject malformed payloads before DB queries
+  // The operator context the shared audit helper wants. Auth is unchanged
+  // (canAdminUnion still decides every branch below); this only gives the audit
+  // rows the same actor, role, ip, user agent, request id and before/after
+  // stamp every other console write now carries.
+  //
+  // `role` is the caller's REAL profiles.role, never a literal. canAdminUnion
+  // also authorises union leads and union owners who hold no platform role at
+  // all, and filing every one of their decisions as `admin` made the audit row
+  // assert a privilege the actor may not have. A union lead with no platform
+  // role is filed with their actual role (often null) and the union authority
+  // that let them act is recorded in `union_authority`.
+  const actorRole = await fetchProfileRole(user.id);
+  const auditOp = {
+    user: { id: user.id },
+    role: actorRole,
+    db: getSupabase(),
+    requestId: requestIdOf(req),
+  };
+  const platformAdmin = await isPlatformAdmin(user.id, actorRole);
+
+  // Zod validation - reject malformed payloads before DB queries
   const validation = validateUnionApplication(req.body);
   if (!validation.success) {
     return res.status(400).json({ success: false, error: validation.error });
@@ -123,7 +159,7 @@ export default async function handler(req, res) {
 
   try {
     // ═══════════════════════════════════════════════════════════════
-    // APPLY — Club owner submits application to Midway Union
+    // APPLY - Club owner submits application to Midway Union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'apply') {
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
@@ -197,7 +233,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STATUS — Club owner checks their application status
+    // STATUS - Club owner checks their application status
     // ═══════════════════════════════════════════════════════════════
     if (action === 'status') {
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
@@ -226,7 +262,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // LIST — Union lead or platform admin lists applications for a union
+    // LIST - Union lead or platform admin lists applications for a union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'list') {
       // Resolve target union: caller-provided unionId (for union dashboard) or Midway Union (for horses)
@@ -237,7 +273,7 @@ export default async function handler(req, res) {
         targetUnionId = midway.id;
       }
 
-      if (!(await canAdminUnion(user.id, targetUnionId))) {
+      if (!(await canAdminUnion(user.id, targetUnionId, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -257,7 +293,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // APPROVE — Union lead or platform admin approves + integrates club into union
+    // APPROVE - Union lead or platform admin approves + integrates club into union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'approve') {
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
@@ -272,7 +308,7 @@ export default async function handler(req, res) {
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
 
-      if (!(await canAdminUnion(user.id, app.union_id))) {
+      if (!(await canAdminUnion(user.id, app.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -329,7 +365,7 @@ export default async function handler(req, res) {
         );
       if (err_union_clubs_dam40) {
         // FAIL-LOUD 2026-08-19: union_clubs and clubs.union_id are a PAIR. If
-        // one lands and the other does not, the club is half-joined — and that
+        // one lands and the other does not, the club is half-joined - and that
         // exact divergence is what sent Club JAQK's rake to its own treasury
         // for months instead of the union's, because rake routing reads the
         // clubs mirror while settlement reads union_clubs. The club's tables
@@ -359,7 +395,7 @@ export default async function handler(req, res) {
         // The membership row landed but the mirror did not. Leaving this to a
         // console.warn is how the mirror drifts. trg_union_clubs_sync_mirror
         // repairs the INSERT path, but an upsert that hits onConflict takes the
-        // UPDATE path where the trigger does not fire — so this must be loud.
+        // UPDATE path where the trigger does not fire - so this must be loud.
         console.error('[union-application] clubs mirror update failed:', err_clubs_akfss);
         return res.status(500).json({
           success: false,
@@ -378,7 +414,7 @@ export default async function handler(req, res) {
       if (err_union_applications_0zcko) {
         // The club IS in the union at this point; only the paperwork failed.
         // Report it rather than claiming success, or the application stays
-        // 'pending' and the whole approval replays — closing tables again.
+        // 'pending' and the whole approval replays - closing tables again.
         console.error('[union-application] marking application approved failed:', err_union_applications_0zcko);
         return res.status(500).json({
           success: false,
@@ -389,14 +425,15 @@ export default async function handler(req, res) {
         });
       }
 
-      // Admin console audit trail — the club is now fully in the union and
+      // Admin console audit trail - the club is now fully in the union and
       // its own tables have been closed and refunded.
-      await logAdminAction(getSupabase(), {
-        admin_user_id: user.id,
-        action: 'union.application_approved',
-        target_type: 'union_application',
-        target_id: applicationId,
+      await auditOperatorAction(auditOp, req, {
+        action: 'union.review_application',
+        targetType: 'union_application',
+        targetId: applicationId,
         details: {
+          decision: 'approved',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: app.club_id,
           club_name: app.club_name,
           union_id: app.union_id,
@@ -407,7 +444,6 @@ export default async function handler(req, res) {
         },
         before: { status: app.status },
         after: { status: 'approved' },
-        req,
       });
 
       return res.status(200).json({
@@ -423,7 +459,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // REJECT — Union lead or platform admin rejects application
+    // REJECT - Union lead or platform admin rejects application
     // ═══════════════════════════════════════════════════════════════
     if (action === 'reject') {
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
@@ -437,7 +473,7 @@ export default async function handler(req, res) {
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
 
-      if (!(await canAdminUnion(user.id, app.union_id))) {
+      if (!(await canAdminUnion(user.id, app.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -457,12 +493,13 @@ export default async function handler(req, res) {
       }
 
       // Admin console audit trail.
-      await logAdminAction(getSupabase(), {
-        admin_user_id: user.id,
-        action: 'union.application_rejected',
-        target_type: 'union_application',
-        target_id: applicationId,
+      await auditOperatorAction(auditOp, req, {
+        action: 'union.review_application',
+        targetType: 'union_application',
+        targetId: applicationId,
         details: {
+          decision: 'rejected',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: app.club_id,
           club_name: app.club_name,
           union_id: app.union_id,
@@ -470,14 +507,13 @@ export default async function handler(req, res) {
         },
         before: { status: app.status },
         after: { status: 'rejected' },
-        req,
       });
 
       return res.status(200).json({ success: true, message: `${app.club_name} application rejected` });
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // LIST_LEAVE_REQUESTS — Union lead or platform admin lists clubs
+    // LIST_LEAVE_REQUESTS - Union lead or platform admin lists clubs
     // asking to leave the union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'list_leave_requests') {
@@ -488,7 +524,7 @@ export default async function handler(req, res) {
         targetUnionId = midway.id;
       }
 
-      if (!(await canAdminUnion(user.id, targetUnionId))) {
+      if (!(await canAdminUnion(user.id, targetUnionId, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -529,7 +565,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // APPROVE_LEAVE — Union lead or platform admin lets a club out of
+    // APPROVE_LEAVE - Union lead or platform admin lets a club out of
     // the union. Reverses exactly what `approve` writes: the
     // union_clubs membership row AND the clubs mirror. Both, or the
     // club is half-out and rake routes to the wrong treasury.
@@ -546,7 +582,7 @@ export default async function handler(req, res) {
       if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
       if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
 
-      if (!(await canAdminUnion(user.id, lr.union_id))) {
+      if (!(await canAdminUnion(user.id, lr.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -593,21 +629,21 @@ export default async function handler(req, res) {
         });
       }
 
-      // Admin console audit trail — the club has been removed from the union
+      // Admin console audit trail - the club has been removed from the union
       // and its rake routing has moved back to its own treasury.
-      await logAdminAction(getSupabase(), {
-        admin_user_id: user.id,
-        action: 'union.leave_approved',
-        target_type: 'union_leave_request',
-        target_id: leaveRequestId,
+      await auditOperatorAction(auditOp, req, {
+        action: 'union.review_leave_request',
+        targetType: 'union_leave_request',
+        targetId: leaveRequestId,
         details: {
+          decision: 'approved',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: lr.club_id,
           club_name: lr.club_name,
           union_id: lr.union_id,
         },
         before: { status: lr.status },
         after: { status: 'approved' },
-        req,
       });
 
       return res.status(200).json({
@@ -617,7 +653,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // REJECT_LEAVE — Union lead or platform admin denies a leave request
+    // REJECT_LEAVE - Union lead or platform admin denies a leave request
     // ═══════════════════════════════════════════════════════════════
     if (action === 'reject_leave') {
       if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
@@ -631,7 +667,7 @@ export default async function handler(req, res) {
       if (!lr) return res.status(404).json({ success: false, error: 'Leave request not found' });
       if (lr.status !== 'pending') return res.status(400).json({ success: false, error: `Leave request is already ${lr.status}` });
 
-      if (!(await canAdminUnion(user.id, lr.union_id))) {
+      if (!(await canAdminUnion(user.id, lr.union_id, actorRole))) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
@@ -648,19 +684,20 @@ export default async function handler(req, res) {
         });
       }
 
-      // NOTE: union_leave_requests has no review-note column — the club's own
+      // NOTE: union_leave_requests has no review-note column - the club's own
       // `reason` lives there and must not be overwritten. The reviewer's
       // reason is echoed back and logged, not stored.
       if (reason) console.warn(`[union-application] leave request ${leaveRequestId} denied, reason: ${reason}`);
 
       // Admin console audit trail. The reviewer's reason has no column on
       // union_leave_requests, so the audit row is the only record of it.
-      await logAdminAction(getSupabase(), {
-        admin_user_id: user.id,
-        action: 'union.leave_rejected',
-        target_type: 'union_leave_request',
-        target_id: leaveRequestId,
+      await auditOperatorAction(auditOp, req, {
+        action: 'union.review_leave_request',
+        targetType: 'union_leave_request',
+        targetId: leaveRequestId,
         details: {
+          decision: 'denied',
+          union_authority: platformAdmin ? 'platform_admin' : 'union_lead',
           club_id: lr.club_id,
           club_name: lr.club_name,
           union_id: lr.union_id,
@@ -668,7 +705,6 @@ export default async function handler(req, res) {
         },
         before: { status: lr.status },
         after: { status: 'denied' },
-        req,
       });
 
       return res.status(200).json({

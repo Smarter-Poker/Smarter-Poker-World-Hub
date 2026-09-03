@@ -1,28 +1,39 @@
 /* HORSES ADMIN - NEXT.JS CSS MODULE */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS — smarter.poker / Club Arena palette
+   DESIGN TOKENS - smarter.poker / Club Arena palette
    ───────────────────────────────────────────────────────────────────────────
    Single source of colour for this panel. Mirrors the Club Arena club page
    (~/Documents/club-arena/src/styles/design-tokens.css). No purples, no
    greens: cyan is THE accent and cyan is also SUCCESS / ACTIVE / ONLINE.
-   Every rule below references these vars — never a raw hex.
+   Every rule below references these vars - never a raw hex.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* NOTE ON THE HOST SELECTOR — do not "simplify" this back to `:root`.
+/* NOTE ON THE HOST SELECTOR - do not "simplify" this back to `:root`.
    Next.js runs CSS Modules through css-loader in `mode: 'pure'`
    (next/dist/build/webpack/config/blocks/css/loaders/modules.js). Pure mode
-   REJECTS any selector without a local class or id, so a bare `:root {}` —
-   and `:global(:root) {}` too — fails the build outright with
+   REJECTS any selector without a local class or id, so a bare `:root {}`,
+   and `:global(:root) {}` too, fails the build outright with
    "Selector ':root' is not pure". Verified against this repo's own Next
    16.3.2 loaders; this is also why no other *.module.css in the tree has one.
    Custom properties inherit, so declaring them on every top-level container
    of this module reaches every descendant. The fixed-position surfaces
    (.modalOverlay, .notification) are listed explicitly so the tokens still
    resolve if they are ever rendered outside the .dashboard subtree. */
+/* NOTE ON .tokenScope - the three /horses SUB-PAGES (sql-console,
+   hg-moderation, hand-reviews) are inline-styled and do not render inside
+   .dashboard, so nothing above reaches them and every var() they use would
+   resolve to nothing. Each of those pages imports this module and puts
+   .tokenScope on EVERY top-level element it can return (the loading state,
+   the auth-failure state, the 403 state and the page itself), which declares
+   the same custom properties at that root. That is what lets an inline style
+   in those files reference T from src/lib/horsesAdminTokens.js instead of a
+   raw hex. Adding a root there and forgetting the class renders that state
+   uncoloured, so add the class in the same edit. */
 .loading,
 .loginContainer,
 .dashboard,
+.tokenScope,
 .modalOverlay,
 .notification {
     /* ─── Surfaces ─── */
@@ -60,7 +71,7 @@
     --line: rgba(255, 255, 255, 0.08);
     --line-strong: rgba(255, 255, 255, 0.15);
 
-    /* ─── Derived (alpha-only variants of the above — no new hues) ─── */
+    /* ─── Derived (alpha-only variants of the above, no new hues) ─── */
     --bg-panel-90: rgba(17, 24, 39, 0.90);
     --bg-panel-80: rgba(17, 24, 39, 0.80);
     --bg-page-80: rgba(10, 14, 23, 0.80);
@@ -72,11 +83,23 @@
     --muted-soft: rgba(107, 114, 128, 0.18);
     --shadow-drop: rgba(0, 0, 0, 0.4);
     --shadow-drop-strong: rgba(0, 0, 0, 0.5);
+
+    /* Panel at 55%, for a card that sits translucent over the page ground.
+       hg-moderation's tab panel was rgba(17,24,39,.55) inline. */
+    --bg-panel-55: rgba(17, 24, 39, 0.55);
+    /* The faintest surface lift there is - a quoted block, a tab strip.
+       Sits BELOW --line (8%), so it reads as fill and never as an edge.
+       Collapses the 3% and 4% one-off tints the sub-pages carried. */
+    --surface-tint: rgba(255, 255, 255, 0.04);
+    /* Danger at 12%: the WASH behind an error message or a leak-tag chip.
+       --danger-soft (20%) is the filled state. Both existed inline; keeping
+       both means replacing the literals does not shift any colour. */
+    --danger-wash: rgba(239, 68, 68, 0.12);
 }
 
-/* SPINNER KEYFRAME — deliberately NOT defined here.
+/* SPINNER KEYFRAME - deliberately NOT defined here.
    pages/horses/index.js applies `animation: 'spin 0.8s linear infinite'` from an
-   INLINE style, which can only see a GLOBAL keyframe — a keyframe declared in a
+   INLINE style, which can only see a GLOBAL keyframe - a keyframe declared in a
    CSS Module is renamed (`spin` -> `horses_spin__hash`) and would never match.
    A module cannot escape that: under Next's pure mode BOTH
    `:global(@keyframes spin)` and `@keyframes :global(spin)` are build errors
@@ -84,7 +107,7 @@
    It does not need to. `src/index.css` line ~622 already declares a global
    `@keyframes spin { to { transform: rotate(360deg); } }`, and _app.js imports
    that file app-wide, so the inline spinner in index.js already animates.
-   If that global is ever removed, the spinner stops — fix it there, not here. */
+   If that global is ever removed, the spinner stops - fix it there, not here. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BASE & LOADING
@@ -1306,12 +1329,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MISSING CLASSES — added 2026-08-26 during the /horses deep audit.
+   MISSING CLASSES - added 2026-08-26 during the /horses deep audit.
 
    Every selector in this block was already referenced from pages/horses/index.js
    and did NOT exist in this file. A CSS-module lookup that misses returns
    `undefined`, and `className={undefined}` renders a completely unstyled
-   element — so the Bug Reports filter bar and its table, the Social Horses
+   element - so the Bug Reports filter bar and its table, the Social Horses
    container, the Pipeline RSS/recent-run panels and the "Playing" status pill
    have all been shipping raw and unstyled. Verified by grepping every
    `styles.X` in index.js against the selectors defined here.
@@ -1664,7 +1687,7 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROUND TWO — bulk selection, screen-reader utilities, and the mobile pass.
+   ROUND TWO - bulk selection, screen-reader utilities, and the mobile pass.
 
    Everything below either lives inside a media query, inside
    @media (pointer: coarse), or is purely additive. The >=769px desktop layout
@@ -2056,7 +2079,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   375px, round three — from an actual screenshot rather than reasoning.
+   375px, round three - from an actual screenshot rather than reasoning.
 
    The three stat boxes are a plain flex row. Below 768px .stableStats already
    wraps, so at 375px each box took a full row: Total / Active / Resting alone

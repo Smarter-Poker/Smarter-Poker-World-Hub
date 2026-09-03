@@ -1,34 +1,61 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
+/**
+ * MERCHANDISE CATALOG ADMIN
+ *   GET    - the whole catalog, shaped with Printful mapping state
+ *   POST   - create an item or a variant
+ *   PATCH  - update an item or a variant
+ *   DELETE - archive (is_active = false); nothing here ever hard-deletes
+ *
+ * Built on withOperatorRoute. Every validation, every Printful mapping rule and
+ * every zero-row check below is unchanged; what moved is the auth preamble, the
+ * rate limit, the response envelope and the audit shape.
+ *
+ * A variant id is validated with the shared uuid() helper, which accepts every
+ * RFC 4122 layout. The regex that used to live here only accepted v1 to v5, so
+ * a v7 variant id was rejected with a 400 that named no real problem.
+ */
+import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
+import { ApiError } from '../../../src/lib/horses/apiEnvelope.js';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
+import { uuid } from '../../../src/lib/horses/validate.js';
 const { isPrintfulReady, resolvePrintfulMapping } = require('../../../src/lib/store/printfulFulfillment');
 
-const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 const CATEGORIES = ['apparel', 'headwear', 'eyewear', 'tabletop', 'accessories', 'lifestyle'];
 const PROVIDERS = ['printful', 'provider_pending', 'manual'];
 const FULFILLMENT_STATUSES = ['mapping_required', 'mapped', 'provider_required', 'paused', 'disabled'];
 const ITEM_ID_RE = /^[a-z0-9][a-z0-9-]{2,63}$/;
 const SKU_RE = /^[A-Z0-9][A-Z0-9-]{2,63}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-class CatalogInputError extends Error {
+/** A 400 the operator can act on. Extends ApiError so the wrapper keeps its
+ *  status and its message instead of scrubbing it as an unknown throw. */
+class CatalogInputError extends ApiError {
   constructor(message) {
-    super(message);
+    super(400, message, 'invalid_catalog_input');
     this.name = 'CatalogInputError';
   }
 }
 
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for merchandise administration');
-    _supabase = createClient(url, key);
+/**
+ * Turn the Postgres error codes this table actually produces into operator-safe
+ * 400s. An unmapped error used to be re-thrown raw and reach the shared
+ * scrubber, whose heuristic list does not match, for example, `value too long
+ * for type character varying(64)` - so that text was echoed to the browser
+ * verbatim. Anything not named here now goes through mapDbError (addendum
+ * item 17): the database sentence is logged, and the operator gets a status
+ * that describes the failure with a request id to find it by.
+ */
+function catalogWriteError(error) {
+  if (error?.code === '22001') {
+    return new CatalogInputError('One Of Those Values Is Too Long For Its Column');
   }
-  return _supabase;
+  if (error?.code === '23514') {
+    return new CatalogInputError('One Of Those Values Is Outside What This Catalog Allows');
+  }
+  if (error?.code === '22P02' || error?.code === '22003') {
+    return new CatalogInputError('One Of Those Values Is Not A Number This Column Accepts');
+  }
+  return mapDbError(error, 'That Catalog Record');
 }
 
 function cleanString(value, maxLength, { required = false } = {}) {
@@ -200,25 +227,13 @@ function variantPayload(body, { creating = false } = {}) {
   return payload;
 }
 
-async function authorize(req) {
-  const supabase = getSupabase();
-  const { user, error } = await getServerUserWithFallback(req, supabase);
-  if (error || !user) return { status: 401, error: 'Unauthorized' };
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles').select('role').eq('id', user.id).maybeSingle();
-  if (profileError || !profile || !ADMIN_ROLES.includes(profile.role)) {
-    return { status: 403, error: 'Platform Admin Access Required' };
-  }
-  return { user, role: profile.role, supabase };
-}
-
 async function loadCatalog(supabase) {
   const [{ data: items, error: itemError }, { data: variants, error: variantError }] = await Promise.all([
     supabase.from('merchandise_items').select('*').order('sort_order').order('name').limit(500),
     supabase.from('merchandise_item_variants').select('*').order('sort_order').order('sku').limit(5000),
   ]);
-  if (itemError) throw itemError;
-  if (variantError) throw variantError;
+  if (itemError) throw mapDbError(itemError, 'That Catalog Record');
+  if (variantError) throw mapDbError(variantError, 'That Catalog Record');
 
   const variantsByItem = new Map();
   for (const variant of variants || []) {
@@ -251,128 +266,170 @@ async function loadCatalog(supabase) {
   };
 }
 
-async function syncHasVariants(supabase, itemId) {
+/**
+ * Recompute merchandise_items.has_variants from the live variant rows.
+ *
+ * NEVER THROWS (re-verification M-5). This runs AFTER the primary write has
+ * landed and been audited: a variant is already archived, created or updated
+ * by the time it is called. It used to throw, and it used to run BEFORE the
+ * audit row, so a failed count or item update turned a completed write into a
+ * 500 with no record of itself. Now the outcome is returned and the route
+ * reports it as `hasVariantsSynced`; the database sentence is logged under
+ * the request id and never returned.
+ *
+ * Returns { synced: boolean, hasVariants: boolean|null, reason: string|null }.
+ */
+async function syncHasVariants(supabase, itemId, requestId) {
+  const tag = `[merch-catalog-admin] ${requestId || ''} has_variants sync for ${itemId}`.replace('  ', ' ');
   const { count, error } = await supabase
     .from('merchandise_item_variants')
     .select('id', { count: 'exact', head: true })
     .eq('item_id', itemId)
     .eq('is_active', true);
-  if (error) throw error;
+  if (error) {
+    console.error(`${tag}: variant count failed:`, error.message || error);
+    return { synced: false, hasVariants: null, reason: 'variant_count_failed' };
+  }
+  const hasVariants = Number(count || 0) > 0;
   const { data: updatedItem, error: updateError } = await supabase
     .from('merchandise_items')
-    .update({ has_variants: Number(count || 0) > 0 })
+    .update({ has_variants: hasVariants })
     .eq('id', itemId)
     .select('id')
     .maybeSingle();
-  if (updateError) throw updateError;
-  if (!updatedItem) throw new Error('Product variant state could not be verified');
+  if (updateError) {
+    console.error(`${tag}: item update failed:`, updateError.message || updateError);
+    return { synced: false, hasVariants, reason: 'item_update_failed' };
+  }
+  if (!updatedItem) {
+    console.error(`${tag}: item update matched no row`);
+    return { synced: false, hasVariants, reason: 'item_not_found' };
+  }
+  return { synced: true, hasVariants, reason: null };
 }
 
-export default async function handler(req, res) {
-  if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)) {
-    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+export const spec = {
+  name: 'horses.merch-catalog-admin',
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  permission: {
+    GET: PERMISSIONS.CONSOLE_READ,
+    POST: PERMISSIONS.CATALOG_WRITE,
+    PATCH: PERMISSIONS.CATALOG_WRITE,
+    DELETE: PERMISSIONS.CATALOG_WRITE,
+  },
+  limit: { GET: 'read', POST: 'write', PATCH: 'write', DELETE: 'write' },
+};
+
+export async function handle({ req, res, op, db, method, body: rawBody }) {
+  const supabase = db;
+
+  if (method === 'GET') {
+    const catalog = await loadCatalog(supabase);
+    res.setHeader('Cache-Control', 'no-store');
+    return catalog;
   }
-  if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
 
-  try {
-    const auth = await authorize(req);
-    if (auth.error) return res.status(auth.status).json({ success: false, error: auth.error });
-    const { supabase, user } = auth;
+  const body = rawBody && typeof rawBody === 'object' ? rawBody : {};
+  const entity = body.entity;
+  if (!['item', 'variant'].includes(entity)) {
+    throw new CatalogInputError('Entity Must Be Item Or Variant');
+  }
 
-    if (req.method === 'GET') {
-      const catalog = await loadCatalog(supabase);
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ success: true, ...catalog });
-    }
-
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
-    const entity = body.entity;
-    if (!['item', 'variant'].includes(entity)) {
-      return res.status(400).json({ success: false, error: 'Entity must be item or variant' });
-    }
-
-    if (req.method === 'POST') {
-      if (entity === 'item') {
-        const payload = itemPayload(body, { creating: true });
-        payload.metadata = mergeMetadata({}, body.metadata || {});
-        const { data, error } = await supabase.from('merchandise_items').insert(payload).select().maybeSingle();
-        if (error) {
-          if (error.code === '23505') return res.status(409).json({ success: false, error: 'That Product ID already exists' });
-          throw error;
-        }
-        if (!data) return res.status(500).json({ success: false, error: 'Product Creation Could Not Be Verified' });
-        await logAdminAction(supabase, {
-          admin_user_id: user.id, action: 'merchandise.item_created', target_type: 'merchandise_item',
-          target_id: data.id, after: data, req,
-        });
-        return res.status(201).json({ success: true, item: data });
-      }
-
-      const payload = variantPayload(body, { creating: true });
+  if (method === 'POST') {
+    if (entity === 'item') {
+      const payload = itemPayload(body, { creating: true });
       payload.metadata = mergeMetadata({}, body.metadata || {});
-      const { data, error } = await supabase.from('merchandise_item_variants').insert(payload).select().maybeSingle();
+      const { data, error } = await supabase.from('merchandise_items').insert(payload).select().maybeSingle();
       if (error) {
-        if (error.code === '23505') return res.status(409).json({ success: false, error: 'That SKU already exists' });
-        if (error.code === '23503') return res.status(404).json({ success: false, error: 'Product Not Found' });
-        throw error;
+        if (error.code === '23505') throw new ApiError(409, 'That Product ID Already Exists', 'duplicate_item_id');
+        throw catalogWriteError(error);
       }
-      if (!data) return res.status(500).json({ success: false, error: 'Variant Creation Could Not Be Verified' });
-      await syncHasVariants(supabase, data.item_id);
-      await logAdminAction(supabase, {
-        admin_user_id: user.id, action: 'merchandise.variant_created', target_type: 'merchandise_variant',
-        target_id: data.id, details: { item_id: data.item_id, sku: data.sku }, after: data, req,
+      if (!data) throw new ApiError(500, 'Product Creation Could Not Be Verified', 'create_unverified');
+      await auditOperatorAction(op, req, {
+        action: 'merchandise.item_created',
+        targetType: 'merchandise_item',
+        targetId: data.id,
+        after: data,
       });
-      return res.status(201).json({ success: true, variant: data });
+      return { item: data };
     }
 
-    const id = cleanString(body.id, 64, { required: true });
-    if (!id || (entity === 'item' ? !ITEM_ID_RE.test(id) : !UUID_RE.test(id))) {
-      return res.status(400).json({ success: false, error: 'A valid record ID is required' });
-    }
-    const table = entity === 'item' ? 'merchandise_items' : 'merchandise_item_variants';
-    const { data: before, error: beforeError } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
-    if (beforeError) throw beforeError;
-    if (!before) return res.status(404).json({ success: false, error: 'Record Not Found' });
-
-    if (req.method === 'DELETE') {
-      const { data, error } = await supabase.from(table).update({ is_active: false }).eq('id', id).select().maybeSingle();
-      if (error) throw error;
-      if (!data) return res.status(409).json({ success: false, error: 'Record Changed Before It Could Be Archived' });
-      if (entity === 'variant') await syncHasVariants(supabase, before.item_id);
-      await logAdminAction(supabase, {
-        admin_user_id: user.id, action: `merchandise.${entity}_archived`, target_type: `merchandise_${entity}`,
-        target_id: id, before, after: data, req,
-      });
-      return res.status(200).json({ success: true, record: data });
-    }
-
-    const payload = entity === 'item' ? itemPayload(body) : variantPayload(body);
-    if (body.metadata !== undefined) payload.metadata = mergeMetadata(before.metadata, body.metadata || {});
-    if (Object.keys(payload).length === 0) {
-      return res.status(400).json({ success: false, error: 'No Editable Fields Supplied' });
-    }
-    const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().maybeSingle();
+    const payload = variantPayload(body, { creating: true });
+    payload.metadata = mergeMetadata({}, body.metadata || {});
+    const { data, error } = await supabase.from('merchandise_item_variants').insert(payload).select().maybeSingle();
     if (error) {
-      if (error.code === '23505') return res.status(409).json({ success: false, error: 'That SKU already exists' });
-      throw error;
+      if (error.code === '23505') throw new ApiError(409, 'That SKU Already Exists', 'duplicate_sku');
+      if (error.code === '23503') throw new ApiError(404, 'Product Not Found', 'item_not_found');
+      throw catalogWriteError(error);
     }
-    if (!data) return res.status(409).json({ success: false, error: 'Record Changed Before It Could Be Updated' });
-    if (entity === 'variant') await syncHasVariants(supabase, before.item_id);
-    await logAdminAction(supabase, {
-      admin_user_id: user.id, action: `merchandise.${entity}_updated`, target_type: `merchandise_${entity}`,
-      target_id: id, before, after: data, req,
+    if (!data) throw new ApiError(500, 'Variant Creation Could Not Be Verified', 'create_unverified');
+    // The audit row is filed for the write that LANDED, before anything
+    // derived from it runs (re-verification M-5).
+    await auditOperatorAction(op, req, {
+      action: 'merchandise.variant_created',
+      targetType: 'merchandise_variant',
+      targetId: data.id,
+      details: { item_id: data.item_id, sku: data.sku },
+      after: data,
     });
-    return res.status(200).json({ success: true, record: data });
-  } catch (error) {
-    console.warn('[merch-catalog-admin] request failed:', error?.message || error);
-    if (error instanceof CatalogInputError) {
-      return res.status(400).json({ success: false, error: error.message });
-    }
-    reportApiError(error, req, { route: '/api/horses/merch-catalog-admin', method: req.method });
-    const safeMessage = error?.message && !/supabase|postgres|relation|column|constraint/i.test(error.message)
-      ? error.message
-      : 'Merchandise Catalog Request Failed';
-    return res.status(500).json({ success: false, error: safeMessage });
+    const sync = await syncHasVariants(supabase, data.item_id, op?.requestId);
+    return { variant: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
   }
+
+  const rawId = cleanString(body.id, 64, { required: true });
+  // uuid() accepts every RFC 4122 layout, v7 included. The old inline regex
+  // only matched v1 to v5, so a v7 variant id 400'd for no real reason.
+  const id = entity === 'item' ? (rawId && ITEM_ID_RE.test(rawId) ? rawId : null) : uuid(rawId);
+  if (!id) throw new CatalogInputError('A Valid Record ID Is Required');
+
+  const table = entity === 'item' ? 'merchandise_items' : 'merchandise_item_variants';
+  const { data: before, error: beforeError } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
+  if (beforeError) throw mapDbError(beforeError, 'That Catalog Record');
+  if (!before) throw new ApiError(404, 'Record Not Found', 'not_found');
+
+  if (method === 'DELETE') {
+    const { data, error } = await supabase.from(table).update({ is_active: false }).eq('id', id).select().maybeSingle();
+    if (error) throw mapDbError(error, 'That Catalog Record');
+    if (!data) throw new ApiError(409, 'Record Changed Before It Could Be Archived', 'stale_record');
+    // Audit the archive that landed FIRST; the derived has_variants sync
+    // reports its own outcome and cannot un-record the write.
+    await auditOperatorAction(op, req, {
+      action: `merchandise.${entity}_archived`,
+      targetType: `merchandise_${entity}`,
+      targetId: id,
+      before,
+      after: data,
+    });
+    if (entity === 'variant') {
+      const sync = await syncHasVariants(supabase, before.item_id, op?.requestId);
+      return { record: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
+    }
+    return { record: data };
+  }
+
+  const payload = entity === 'item' ? itemPayload(body) : variantPayload(body);
+  if (body.metadata !== undefined) payload.metadata = mergeMetadata(before.metadata, body.metadata || {});
+  if (Object.keys(payload).length === 0) {
+    throw new CatalogInputError('No Editable Fields Supplied');
+  }
+  const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().maybeSingle();
+  if (error) {
+    if (error.code === '23505') throw new ApiError(409, 'That SKU Already Exists', 'duplicate_sku');
+    throw catalogWriteError(error);
+  }
+  if (!data) throw new ApiError(409, 'Record Changed Before It Could Be Updated', 'stale_record');
+  await auditOperatorAction(op, req, {
+    action: `merchandise.${entity}_updated`,
+    targetType: `merchandise_${entity}`,
+    targetId: id,
+    before,
+    after: data,
+  });
+  if (entity === 'variant') {
+    const sync = await syncHasVariants(supabase, before.item_id, op?.requestId);
+    return { record: data, hasVariantsSynced: sync.synced, hasVariants: sync.hasVariants };
+  }
+  return { record: data };
 }
+
+export default withOperatorRoute(spec, handle);

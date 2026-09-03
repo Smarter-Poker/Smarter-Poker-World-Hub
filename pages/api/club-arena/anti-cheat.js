@@ -5,15 +5,15 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Anti-cheat administration for club owners/admins.
  * 
  * Actions:
- *   get_flags       — Get open flags for a club (with filters)
- *   get_events      — Get recent anti-cheat events
- *   get_sessions    — Get active table sessions
- *   review_flag     — Mark a flag as reviewed/dismissed/actioned
- *   kick_player     — Remove a player from a table for anti-cheat violation
- *   get_player_history — Get all flags/events for a specific player
- *   get_stats       — Anti-cheat summary for dashboard
- *   get_collusion_pairs — Detect chip-dumping / collusion between player pairs
- *   get_anomalies   — Detect folding-the-nuts and other suspicious plays
+ *   get_flags       - Get open flags for a club (with filters)
+ *   get_events      - Get recent anti-cheat events
+ *   get_sessions    - Get active table sessions
+ *   review_flag     - Mark a flag as reviewed/dismissed/actioned
+ *   kick_player     - Remove a player from a table for anti-cheat violation
+ *   get_player_history - Get all flags/events for a specific player
+ *   get_stats       - Anti-cheat summary for dashboard
+ *   get_collusion_pairs - Detect chip-dumping / collusion between player pairs
+ *   get_anomalies   - Detect folding-the-nuts and other suspicious plays
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -21,7 +21,10 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
-const { logAdminAction } = require('../../../src/lib/antiAbuse');
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
+import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
+import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
+import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 
 let _supabase = null;
 function getSupabase() {
@@ -48,7 +51,7 @@ try {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  // Idempotency guard - prevents duplicate mutations from laggy mobile networks
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     if (checkIdempotency(req, res)) return;
   }
@@ -64,7 +67,7 @@ try {
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, clubId, ...params } = req.body;
-      const userId = user.id; // From JWT, not body — NEVER trust req.body.user_id
+      const userId = user.id; // From JWT, not body - NEVER trust req.body.user_id
 
       // ── EXPLOIT DEFENSE: Strip any spoofed user_id from body ──
       if (req.body.user_id || req.body.userId) {
@@ -139,11 +142,38 @@ try {
         .select('role')
         .eq('id', userId)
         .maybeSingle();
-      const isPlatformAdmin = ['admin', 'superadmin', 'god'].includes(callerProfile?.role);
+      // Platform staff here is whoever holds moderation.write, resolved the
+      // way the console resolves it (re-verification M-3): the legacy profile
+      // roles carry it until enforce_named_roles is on, a granted compliance or
+      // operations operator carries it through the grant, and a narrowed
+      // legacy account does not. Club owners, admins and super agents are
+      // authorised through club_members below exactly as before.
+      const platformGate = await operatorHoldsPermission(
+        getSupabase(),
+        { userId, profileRole: callerProfile?.role || null },
+        PERMISSIONS.MODERATION_WRITE
+      );
+      const isPlatformAdmin = platformGate.ok === true;
+
+      // The operator context the shared audit helper wants. Auth below is
+      // unchanged; this only gives the audit rows the same actor, role, ip,
+      // user agent, request id and before/after stamp every other console
+      // write now carries.
+      const auditOp = {
+        // The caller's REAL role. `|| 'admin'` fabricated a platform privilege
+        // for the common case here: a club agent with a null profiles.role who
+        // is authorised through club_members. When there is no platform role
+        // the club membership role found below is filled in instead, and if
+        // there is neither the row says null rather than inventing one.
+        user: { id: userId },
+        role: callerProfile?.role || null,
+        db: getSupabase(),
+        requestId: requestIdOf(req),
+      };
 
       // Verify caller is club owner / admin / super_agent.
       // Round 72: dropped 'manager' (0 rows in production), added
-      // 'super_agent' (the de-facto admin role used elsewhere — waitlist,
+      // 'super_agent' (the de-facto admin role used elsewhere - waitlist,
       // club-analytics, lobby-ordering all gate on this trio).
       if (!isPlatformAdmin) {
         const { data: membership } = await getSupabase()
@@ -156,11 +186,14 @@ try {
         if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
           return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
         }
+        // This caller acted on their club membership, so that is the role the
+        // audit row should name.
+        if (!auditOp.role) auditOp.role = `club_${membership.role}`;
       }
 
       switch (action) {
         // ─────────────────────────────────────────────────
-        // GET FLAGS — Open flags for this club
+        // GET FLAGS - Open flags for this club
         // ─────────────────────────────────────────────────
         case 'get_flags': {
           const { status = 'open', severity, flagType, limit = 50, offset = 0 } = params;
@@ -197,7 +230,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET EVENTS — Recent anti-cheat events
+        // GET EVENTS - Recent anti-cheat events
         // ─────────────────────────────────────────────────
         case 'get_events': {
           const { limit = 50, offset = 0, eventType, playerId } = params;
@@ -222,7 +255,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET SESSIONS — Active table sessions
+        // GET SESSIONS - Active table sessions
         // ─────────────────────────────────────────────────
         case 'get_sessions': {
           const { tableId } = params;
@@ -265,7 +298,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // REVIEW FLAG — Atomic conditional update (TOCTOU-safe)
+        // REVIEW FLAG - Atomic conditional update (TOCTOU-safe)
         // Uses .eq('status', 'open') to prevent double-review race.
         // Two admins clicking "Review" at the same time: only one
         // succeeds, the other gets 409 Conflict.
@@ -284,7 +317,7 @@ try {
             return res.status(400).json({ error: 'newStatus must be reviewed, dismissed, or actioned' });
           }
 
-          // ATOMIC: Only update if flag is still 'open' — prevents TOCTOU double-review
+          // ATOMIC: Only update if flag is still 'open' - prevents TOCTOU double-review
           const { data, error } = await getSupabase()
             .from('anti_cheat_flags')
             .update({
@@ -312,7 +345,7 @@ try {
             if (!existing) {
               return res.status(404).json({ error: 'Flag not found' });
             }
-            // Flag exists but was already reviewed — 409 Conflict
+            // Flag exists but was already reviewed - 409 Conflict
             return res.status(409).json({
               error: 'Flag already reviewed',
               current_status: existing.status,
@@ -334,11 +367,10 @@ try {
 
           // Admin console audit trail. The conditional update above only
           // matches rows still in 'open', so that is the prior status.
-          await logAdminAction(getSupabase(), {
-            admin_user_id: userId,
-            action: 'anticheat.flag_reviewed',
-            target_type: 'anti_cheat_flag',
-            target_id: flagId,
+          await auditOperatorAction(auditOp, req, {
+            action: 'anticheat.review_flag',
+            targetType: 'anti_cheat_flag',
+            targetId: flagId,
             details: {
               club_id: clubId,
               player_id: data.player_id,
@@ -350,14 +382,13 @@ try {
             },
             before: { status: 'open', reviewed_by: null, reviewed_at: null },
             after: { status, reviewed_by: userId, reviewed_at: data.reviewed_at },
-            req,
           });
 
           return res.status(200).json({ success: true, flag: data });
         }
 
         // ─────────────────────────────────────────────────
-        // KICK PLAYER — Recovery-tracked multi-step operation
+        // KICK PLAYER - Recovery-tracked multi-step operation
         // Each step records its completion. If any step fails,
         // the recovery log allows manual or automated rollback.
         // Idempotency key prevents double-kicks from fat-fingers.
@@ -454,15 +485,17 @@ try {
             if (kickLogErr) throw kickLogErr;
           } catch (logErr) {
             console.warn('[AntiCheat] kick log failed:', logErr?.message || logErr);
-            // Non-fatal — kick already succeeded server-side
+            // Non-fatal - kick already succeeded server-side
           }
 
-          // Admin console audit trail — a kick removes a seated player.
-          await logAdminAction(getSupabase(), {
-            admin_user_id: userId,
-            action: 'anticheat.player_kicked',
-            target_type: 'player',
-            target_id: targetPlayerId,
+          // Admin console audit trail. A kick removes a seated player.
+          await auditOperatorAction(auditOp, req, {
+            // kick_player, not kick_session: the target is a player id, and a
+            // name that says session made this row answer queries for
+            // session-scoped events it is not.
+            action: 'anticheat.kick_player',
+            targetType: 'player',
+            targetId: targetPlayerId,
             details: {
               club_id: clubId,
               table_id: tableId,
@@ -470,7 +503,7 @@ try {
               source: tableId ? 'engine_admin_kick' : 'no_active_table',
               engine_result: engineResult,
             },
-            req,
+            after: { kicked: true, table_id: tableId },
           });
 
           return res.status(200).json({
@@ -483,7 +516,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET PLAYER HISTORY — All flags/events for a player
+        // GET PLAYER HISTORY - All flags/events for a player
         // ─────────────────────────────────────────────────
         case 'get_player_history': {
           const { playerId: targetPlayerId } = params;
@@ -530,7 +563,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET STATS — Anti-cheat summary for dashboard
+        // GET STATS - Anti-cheat summary for dashboard
         // ─────────────────────────────────────────────────
         case 'get_stats': {
           const [openFlags, recentBlocks, activeSessions] = await Promise.all([
@@ -575,7 +608,7 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET COLLUSION PAIRS — Chip-dumping ratio detection
+        // GET COLLUSION PAIRS - Chip-dumping ratio detection
         // ORB-7 Mandate: Track Win/Loss chip-dumping ratios
         // between specific player pairs
         // ─────────────────────────────────────────────────
@@ -583,7 +616,7 @@ try {
           const { threshold = 0.75, minHands = 5, limit = 500 } = params;
 
           // Round 68 fix: read from live hand_history (was reading the stale
-          // mv_hand_histories MV — 4 rows from 2026-03-03, never refreshed).
+          // mv_hand_histories MV - 4 rows from 2026-03-03, never refreshed).
           // hand_history is the canonical engine output and has the same
           // logical fields under different column names: players + winners
           // are JSONB arrays, pot_size replaces pot_total, ended_at replaces
@@ -637,7 +670,7 @@ try {
               return { id, netResult };
             });
 
-            // Skip chops (multi-winner) — net attribution becomes ambiguous
+            // Skip chops (multi-winner) - net attribution becomes ambiguous
             if (winnerIds.size !== 1) continue;
 
             // Track net results between each pair
@@ -700,14 +733,14 @@ try {
         }
 
         // ─────────────────────────────────────────────────
-        // GET ANOMALIES — Folding-the-nuts detection
+        // GET ANOMALIES - Folding-the-nuts detection
         // ORB-7 Mandate: Auto-flag folding the nuts on the river
         // ─────────────────────────────────────────────────
         case 'get_anomalies': {
           const { limit = 500 } = params;
 
           // Round 68 fix: read from live hand_history (was reading the stale
-          // mv_hand_histories MV — 4 rows from 2026-03-03). Map the new
+          // mv_hand_histories MV - 4 rows from 2026-03-03). Map the new
           // column shape: actions JSONB has stage='river' + action='fold';
           // hand_name carries the strong-hand label.
           const { data: clubTables } = await getSupabase()
