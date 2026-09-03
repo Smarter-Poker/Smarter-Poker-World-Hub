@@ -43,7 +43,7 @@ const ALIAS_PREFERENCES = new Set(['username', 'alias', 'poker_alias']);
 
 /** Trim, and treat blank / whitespace-only as absent. */
 function clean(value) {
-    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 /**
@@ -53,7 +53,7 @@ function clean(value) {
  * value — means the real name, because that is the World Hub default.
  */
 function wantsAlias(subject) {
-    return ALIAS_PREFERENCES.has(String(subject?.display_name_preference || '').toLowerCase());
+  return ALIAS_PREFERENCES.has(String(subject?.display_name_preference || '').toLowerCase());
 }
 
 /**
@@ -61,7 +61,7 @@ function wantsAlias(subject) {
  * proper; `username` is the login credential and is the older fallback.
  */
 function handleName(subject) {
-    return clean(subject?.alias) || clean(subject?.username) || null;
+  return clean(subject?.alias) || clean(subject?.username) || null;
 }
 
 /**
@@ -69,10 +69,10 @@ function handleName(subject) {
  * first/last pair is assembled when only those exist.
  */
 function realName(subject) {
-    const full = clean(subject?.full_name);
-    if (full) return full;
-    const parts = [clean(subject?.first_name), clean(subject?.last_name)].filter(Boolean);
-    return parts.length ? parts.join(' ') : null;
+  const full = clean(subject?.full_name);
+  if (full) return full;
+  const parts = [clean(subject?.first_name), clean(subject?.last_name)].filter(Boolean);
+  return parts.length ? parts.join(' ') : null;
 }
 
 /**
@@ -81,14 +81,14 @@ function realName(subject) {
  * @returns {string} - never empty
  */
 export function getDisplayName(user) {
-    if (!user) return 'Anonymous';
+  if (!user) return 'Anonymous';
 
-    if (wantsAlias(user)) {
-        return handleName(user) || realName(user) || clean(user.display_name) || 'Anonymous';
-    }
+  if (wantsAlias(user)) {
+    return handleName(user) || realName(user) || clean(user.display_name) || 'Anonymous';
+  }
 
-    // The default: the real name.
-    return realName(user) || clean(user.display_name) || handleName(user) || 'Anonymous';
+  // The default: the real name.
+  return realName(user) || clean(user.display_name) || handleName(user) || 'Anonymous';
 }
 
 /**
@@ -96,27 +96,27 @@ export function getDisplayName(user) {
  * Handles both author.name and author.full_name patterns.
  */
 export function getAuthorDisplayName(author) {
-    if (!author) return 'Anonymous';
+  if (!author) return 'Anonymous';
 
-    if (wantsAlias(author)) {
-        return (
-            handleName(author) ||
-            realName(author) ||
-            clean(author.display_name) ||
-            clean(author.name) ||
-            'Anonymous'
-        );
-    }
-
-    // The default: the real name. `name` sits between display_name and the
-    // handle because some callers pre-resolve a label into it.
+  if (wantsAlias(author)) {
     return (
-        realName(author) ||
-        clean(author.display_name) ||
-        clean(author.name) ||
-        handleName(author) ||
-        'Anonymous'
+      handleName(author) ||
+      realName(author) ||
+      clean(author.display_name) ||
+      clean(author.name) ||
+      'Anonymous'
     );
+  }
+
+  // The default: the real name. `name` sits between display_name and the
+  // handle because some callers pre-resolve a label into it.
+  return (
+    realName(author) ||
+    clean(author.display_name) ||
+    clean(author.name) ||
+    handleName(author) ||
+    'Anonymous'
+  );
 }
 
 /**
@@ -128,4 +128,4 @@ export function getAuthorDisplayName(author) {
  * default, and a query that omits `full_name` degrades silently to a handle.
  */
 export const SOCIAL_NAME_COLUMNS =
-    'username,full_name,display_name,alias,first_name,last_name,display_name_preference';
+  'username,full_name,display_name,alias,first_name,last_name,display_name_preference';

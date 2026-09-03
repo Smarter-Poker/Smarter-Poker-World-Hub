@@ -86,10 +86,10 @@ const ShareStreakLeaderboard = dynamic(
   () => import('../../../src/components/social/ShareStreakLeaderboard'),
   { ssr: false }
 );
-const ClubPageDashboard = dynamic(() => import("../../../src/components/social/ClubPageDashboard"));
-const PublicGameBoard = dynamic(() => import("../../../src/components/social/PublicGameBoard"));
-const ChatWindow = dynamic(() => import("../../../src/components/social/ChatWindow"));
-const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubPagesView"));
+const ClubPageDashboard = dynamic(() => import('../../../src/components/social/ClubPageDashboard'));
+const PublicGameBoard = dynamic(() => import('../../../src/components/social/PublicGameBoard'));
+const ChatWindow = dynamic(() => import('../../../src/components/social/ChatWindow'));
+const ClubPagesView = dynamic(() => import('../../../src/components/social/ClubPagesView'));
 
 // Shared utilities — single source of truth (extracted from this file)
 import {
@@ -568,7 +568,11 @@ const PostCard = React.memo(
             .eq('post_id', post.id)
             .eq('user_id', currentUserId)
             .eq('interaction_type', 'bookmark');
-          if (err_social_interactions_1yi55) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_1yi55.message);
+          if (err_social_interactions_1yi55)
+            console.warn(
+              '[Supabase] Silent mutation failed in social_interactions:',
+              err_social_interactions_1yi55.message
+            );
           const { error } = await supabase
             .from('social_interactions')
             .insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' });
@@ -899,13 +903,19 @@ const PostCard = React.memo(
           try {
             // Trigger reply notification
             if (parentInfo && parentInfo.authorId !== currentUserId) {
-              const { error: err_notifications_h99dp } = await supabase.from('notifications').insert({
-                user_id: parentInfo.authorId,
-                type: 'reply',
-                message: `replied to your comment`,
-                data: { actor_id: currentUserId, reference_id: post.id },
-              });
-              if (err_notifications_h99dp) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_h99dp.message);
+              const { error: err_notifications_h99dp } = await supabase
+                .from('notifications')
+                .insert({
+                  user_id: parentInfo.authorId,
+                  type: 'reply',
+                  message: `replied to your comment`,
+                  data: { actor_id: currentUserId, reference_id: post.id },
+                });
+              if (err_notifications_h99dp)
+                console.warn(
+                  '[Supabase] Silent mutation failed in notifications:',
+                  err_notifications_h99dp.message
+                );
             }
 
             // Phase 28 Fix: Trigger mention notifications
@@ -927,8 +937,14 @@ const PostCard = React.memo(
                     data: { actor_id: currentUserId, reference_id: post.id },
                   }));
                 if (notifications.length > 0) {
-                  const { error: err_notifications_fvbj9 } = await supabase.from('notifications').insert(notifications);
-                  if (err_notifications_fvbj9) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_fvbj9.message);
+                  const { error: err_notifications_fvbj9 } = await supabase
+                    .from('notifications')
+                    .insert(notifications);
+                  if (err_notifications_fvbj9)
+                    console.warn(
+                      '[Supabase] Silent mutation failed in notifications:',
+                      err_notifications_fvbj9.message
+                    );
                 }
               }
             }
@@ -1039,7 +1055,9 @@ const PostCard = React.memo(
                   color: C.textSec,
                   fontSize: 16,
                 }}
-              >🗑</button>
+              >
+                🗑
+              </button>
             </div>
           )}
           {post.authorId !== currentUserId && currentUserId && (
@@ -1055,7 +1073,11 @@ const PostCard = React.memo(
                       .eq('post_id', post.id)
                       .eq('user_id', currentUserId)
                       .eq('interaction_type', 'report');
-                    if (err_social_interactions_wwcu4) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_wwcu4.message);
+                    if (err_social_interactions_wwcu4)
+                      console.warn(
+                        '[Supabase] Silent mutation failed in social_interactions:',
+                        err_social_interactions_wwcu4.message
+                      );
                     const { error } = await supabase.from('social_interactions').insert({
                       post_id: post.id,
                       user_id: currentUserId,
@@ -2214,7 +2236,9 @@ const PostCard = React.memo(
                     : (Object.values(typists || {}).length - 1) * 12,
               }}
             >
-              <span>{(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing</span>
+              <span>
+                {(Object.values(typists || {})[0]?.name || 'Someone').split(' ')[0]} Is Typing
+              </span>
               <div style={{ display: 'flex' }}>
                 <TypingDot delay="-0.32s" />
                 <TypingDot delay="-0.16s" />
@@ -3676,7 +3700,15 @@ function SocialMediaPage() {
   // Club Pages View State — hydration-safe: read URL param after mount
   const [showClubPages, setShowClubPages] = useState(false);
   // Identity context for feed filter
-  const { activeIdentity, switchToPersonal, switchToClub, isClubMode, clubPage, hasClubPage, ownedPages } = useActiveIdentity();
+  const {
+    activeIdentity,
+    switchToPersonal,
+    switchToClub,
+    isClubMode,
+    clubPage,
+    hasClubPage,
+    ownedPages,
+  } = useActiveIdentity();
   const [showClubPostsOnly, setShowClubPostsOnly] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3794,7 +3826,15 @@ function SocialMediaPage() {
   // block feed render on this. Auth required server-side so this can't
   // be hammered anonymously.
   useEffect(() => {
-    const token = typeof localStorage !== 'undefined' && (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token || (() => { const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token')); return k ? JSON.parse(localStorage.getItem(k) || '{}')?.access_token : null; })());
+    const token =
+      typeof localStorage !== 'undefined' &&
+      (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token ||
+        (() => {
+          const k = Object.keys(localStorage).find(
+            (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+          );
+          return k ? JSON.parse(localStorage.getItem(k) || '{}')?.access_token : null;
+        })());
     fetch('/api/live/cleanup-stale', {
       method: 'POST',
       headers: {
@@ -3808,7 +3848,7 @@ function SocialMediaPage() {
   }, []);
 
   // Intro video removed by request
-    
+
   // BUG FIX (2026-04-30 per Dan): on iOS Safari, simply unmounting the
   // <video> element does NOT free a queued audio buffer that the browser
   // had been waiting to play. The next user gesture (e.g. tapping
@@ -4634,7 +4674,9 @@ function SocialMediaPage() {
           try {
             const { data: p } = await supabase
               .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)')
+              .select(
+                '*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)'
+              )
               .eq('id', postId)
               .eq('is_deleted', false)
               .maybeSingle();
@@ -4663,7 +4705,12 @@ function SocialMediaPage() {
                 link_site_name: p.link_site_name || null,
                 metadata: meta,
                 author: {
-                  name: meta.page_name || p.author?.display_name || p.author?.full_name || p.author?.username || 'Player',
+                  name:
+                    meta.page_name ||
+                    p.author?.display_name ||
+                    p.author?.full_name ||
+                    p.author?.username ||
+                    'Player',
                   username: p.author?.username || null,
                   avatar: meta.page_avatar_url || p.author?.avatar_url || null,
                 },
@@ -4702,7 +4749,14 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
+  }, [
+    user,
+    router.query.createPage,
+    router.query.ref,
+    router.query.viewPage,
+    router.query.stream,
+    router.query.post,
+  ]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
@@ -5471,8 +5525,14 @@ function SocialMediaPage() {
               mentioned_user_id: u.id,
               mentioned_by_id: user.id,
             }));
-            const { error: err_mentions_zgy35 } = await supabase.from('mentions').insert(mentionInserts);
-            if (err_mentions_zgy35) console.warn('[Supabase] Silent mutation failed in mentions:', err_mentions_zgy35.message);
+            const { error: err_mentions_zgy35 } = await supabase
+              .from('mentions')
+              .insert(mentionInserts);
+            if (err_mentions_zgy35)
+              console.warn(
+                '[Supabase] Silent mutation failed in mentions:',
+                err_mentions_zgy35.message
+              );
           }
         }
 
@@ -5500,7 +5560,11 @@ function SocialMediaPage() {
             like_count: 0,
           });
 
-          if (err_social_reels_g3lht) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_g3lht.message);
+          if (err_social_reels_g3lht)
+            console.warn(
+              '[Supabase] Silent mutation failed in social_reels:',
+              err_social_reels_g3lht.message
+            );
         }
       } catch (secondaryErr) {
         console.warn('[App] Handled exception:', secondaryErr?.message || secondaryErr);
@@ -5571,7 +5635,11 @@ function SocialMediaPage() {
             .from('social_likes')
             .update({ reaction_type: type || 'like' })
             .eq('id', existing.id);
-          if (err_social_likes_x89sm) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_x89sm.message);
+          if (err_social_likes_x89sm)
+            console.warn(
+              '[Supabase] Silent mutation failed in social_likes:',
+              err_social_likes_x89sm.message
+            );
 
           // Notify other views/tabs of reaction swap (added:null = no count change)
           busEmit.socialPostLiked(postId, user.id, { added: null, reactionType: type || 'like' });
@@ -5852,7 +5920,7 @@ function SocialMediaPage() {
   }, [user?.id]);
 
   // Only show loading skeleton if intro is done and still loading
-  if (loading )
+  if (loading)
     return (
       <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
         <style>{`
@@ -5935,7 +6003,6 @@ function SocialMediaPage() {
 
   return (
     <PageTransition>
-      
       <SEOHead
         title="Social Hub - Poker Community & Feed"
         description="Connect With Poker Players Worldwide. Share Updates, Follow Friends, Join Discussions, And Build Your Poker Network On The Smarter.Poker Social Hub."
@@ -5960,50 +6027,83 @@ function SocialMediaPage() {
 
       {/* Slide-out Sidebar Panel */}
       {sidebarOpen && (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: 320,
-          background: C.card,
-          zIndex: 1000,
-          boxShadow: '2px 0 10px rgba(0,0,0,0.2)',
-          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s ease',
-          overflowY: 'auto',
-          paddingBottom: 80,
-        }}
-      >
-        {/* Close button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              background: '#f0f0f0',
-              border: 'none',
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              cursor: 'pointer',
-              fontSize: 16,
-            }}
-          >
-            ×
-          </button>
-        </div>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: 320,
+            background: C.card,
+            zIndex: 1000,
+            boxShadow: '2px 0 10px rgba(0,0,0,0.2)',
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s ease',
+            overflowY: 'auto',
+            paddingBottom: 80,
+          }}
+        >
+          {/* Close button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                background: '#f0f0f0',
+                border: 'none',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                cursor: 'pointer',
+                fontSize: 16,
+              }}
+            >
+              ×
+            </button>
+          </div>
 
-        {/* Active Identity Switcher */}
-        {user && (
-          <div style={{ margin: '0 12px 16px', background: C.card, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.15)', border: '1px solid ' + C.border, overflow: 'hidden' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: ownedPages.length > 0 ? `1px solid ${C.border}` : 'none' }}>
-                <Avatar src={isClubMode && clubPage ? clubPage.avatar_url : user.avatar} name={isClubMode && clubPage ? clubPage.name : user.name} size={48} />
+          {/* Active Identity Switcher */}
+          {user && (
+            <div
+              style={{
+                margin: '0 12px 16px',
+                background: C.card,
+                borderRadius: 12,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                border: '1px solid ' + C.border,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 16px',
+                  borderBottom: ownedPages.length > 0 ? `1px solid ${C.border}` : 'none',
+                }}
+              >
+                <Avatar
+                  src={isClubMode && clubPage ? clubPage.avatar_url : user.avatar}
+                  name={isClubMode && clubPage ? clubPage.name : user.name}
+                  size={48}
+                />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 17, color: isClubMode ? C.blue : 'inherit' }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 17,
+                      color: isClubMode ? C.blue : 'inherit',
+                    }}
+                  >
                     {isClubMode && clubPage ? clubPage.name : user.name}
                   </div>
-                  <Link href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
+                  <Link
+                    href={
+                      isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`
+                    }
+                    onClick={() => setSidebarOpen(false)}
+                    style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}
+                  >
                     View Profile
                   </Link>
                 </div>
@@ -6012,675 +6112,763 @@ function SocialMediaPage() {
                   if (!unread || isClubMode) return null; // Notifications are for personal right now
                   return (
                     <div
-                      style={{ background: C.blue, color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 }}
+                      style={{
+                        background: C.blue,
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: 24,
+                        height: 24,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
                     >
                       {unread > 9 ? '9+' : unread}
                     </div>
                   );
                 })()}
-             </div>
-             
-             {/* Switch Options (if any owned pages) */}
-             {ownedPages.length > 0 && (
-                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 0' }}>
-                     <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 600, color: C.textSec, textTransform: 'uppercase' }}>Switch Account</div>
-                     
-                     {isClubMode && (
-                         <div 
-                           onClick={() => { switchToPersonal(); setSidebarOpen(false); }}
-                           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
-                           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                         >
-                            <Avatar src={user.avatar} name={user.name} size={32} />
-                            <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{user.name} (Personal)</div>
-                         </div>
-                     )}
-                     
-                     {ownedPages.map(page => {
-                         if (isClubMode && clubPage?.id === page.id) return null;
-                         return (
-                             <div 
-                               key={page.id}
-                               onClick={() => { switchToClub(page); setSidebarOpen(false); }}
-                               style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
-                               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                             >
-                                <Avatar src={page.avatar_url} name={page.name} size={32} />
-                                <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{page.name}</div>
-                             </div>
-                         );
-                     })}
-                 </div>
-             )}
-          </div>
-        )}
-
-        {/* Poker Resume - Show when HendonMob is linked */}
-        {user?.hendon && (
-          <Link
-            href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
-            onClick={() => setSidebarOpen(false)}
-            style={{ textDecoration: 'none', display: 'block' }}
-          >
-            <div
-              style={{
-                margin: '0 12px 16px',
-                padding: 16,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
-                border: '1px solid rgba(255, 215, 0, 0.3)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 24 }}>Trophy</span>
-                <div>
-                  <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>
-                    POKER RESUME
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
-                    Tournament Stats
-                  </div>
-                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>
-                    {user.hendon.cashes || '-'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>
-                    ${user.hendon.earnings?.toLocaleString() || '-'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>
-                    {user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '-'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
-                </div>
-              </div>
-            </div>
-          </Link>
-        )}
 
-        {/* Your Shortcuts - Dynamic from Owned Pages */}
-        {ownedPages.length > 0 && (
-          <div style={{ padding: '0 16px', marginBottom: 24 }}>
-            <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>
-              Your Shortcuts
-            </h4>
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
-              {ownedPages.slice(0, 3).map((page) => (
-                <Link
-                  key={page.id}
-                  href={`/hub/social-pages/${page.id}`}
-                  onClick={() => setSidebarOpen(false)}
-                  style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
-                >
+              {/* Switch Options (if any owned pages) */}
+              {ownedPages.length > 0 && (
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 0' }}>
                   <div
                     style={{
-                      width: 56,
-                      height: 56,
-                      margin: '0 auto',
-                      borderRadius: 12,
-                      background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
-                      border: '1px solid ' + C.border,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: 700,
+                      padding: '0 16px 8px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: C.textSec,
+                      textTransform: 'uppercase',
                     }}
                   >
-                    {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                    Switch Account
                   </div>
-                  <div style={{ fontSize: 11, marginTop: 6, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {page.name}
+
+                  {isClubMode && (
+                    <div
+                      onClick={() => {
+                        switchToPersonal();
+                        setSidebarOpen(false);
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <Avatar src={user.avatar} name={user.name} size={32} />
+                      <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>
+                        {user.name} (Personal)
+                      </div>
+                    </div>
+                  )}
+
+                  {ownedPages.map((page) => {
+                    if (isClubMode && clubPage?.id === page.id) return null;
+                    return (
+                      <div
+                        key={page.id}
+                        onClick={() => {
+                          switchToClub(page);
+                          setSidebarOpen(false);
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
+                        }
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <Avatar src={page.avatar_url} name={page.name} size={32} />
+                        <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{page.name}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Poker Resume - Show when HendonMob is linked */}
+          {user?.hendon && (
+            <Link
+              href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
+              onClick={() => setSidebarOpen(false)}
+              style={{ textDecoration: 'none', display: 'block' }}
+            >
+              <div
+                style={{
+                  margin: '0 12px 16px',
+                  padding: 16,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 24 }}>Trophy</span>
+                  <div>
+                    <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>
+                      POKER RESUME
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
+                      Tournament Stats
+                    </div>
                   </div>
-                </Link>
-              ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>
+                      {user.hendon.cashes || '-'}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>
+                      ${user.hendon.earnings?.toLocaleString() || '-'}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>
+                      {user.hendon.biggestCash
+                        ? `$${user.hendon.biggestCash.toLocaleString()}`
+                        : '-'}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Your Shortcuts - Dynamic from Owned Pages */}
+          {ownedPages.length > 0 && (
+            <div style={{ padding: '0 16px', marginBottom: 24 }}>
+              <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>
+                Your Shortcuts
+              </h4>
+              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+                {ownedPages.slice(0, 3).map((page) => (
+                  <Link
+                    key={page.id}
+                    href={`/hub/social-pages/${page.id}`}
+                    onClick={() => setSidebarOpen(false)}
+                    style={{
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      flexShrink: 0,
+                      width: 64,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        margin: '0 auto',
+                        borderRadius: 12,
+                        background: page.avatar_url
+                          ? `url(${page.avatar_url}) center/cover`
+                          : 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
+                        border: '1px solid ' + C.border,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        marginTop: 6,
+                        color: C.textSec,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {page.name}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Menu Grid - Custom AI-Generated Smarter.Poker Icons */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 8,
+              padding: '0 16px',
+              marginBottom: 16,
+            }}
+          >
+            {/* Friends - Custom AI icon */}
+            <Link
+              href="/hub/friends"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <img
+                src="/icons/friends.png"
+                alt=""
+                style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
+            </Link>
+            {/* Club Arena - Purple columns SVG (fallback) */}
+            <Link
+              href="/hub/club-arena"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ marginBottom: 8 }}
+              >
+                <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
+                <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
+                <rect x="16" y="6" width="6" height="14" rx="1" fill="#c4b5fd" />
+                <ellipse cx="12" cy="20" rx="10" ry="2" fill="#ddd6fe" opacity="0.5" />
+              </svg>
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
+            </Link>
+            {/* Diamond Store - Custom AI icon */}
+            <Link
+              href="/hub/diamond-store"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <img
+                src="/icons/diamond.png"
+                alt=""
+                style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
+            </Link>
+            {/* Tournaments - Custom AI icon */}
+            <Link
+              href="/hub/tournaments"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <img
+                src="/icons/tournaments.png"
+                alt=""
+                style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
+            </Link>
+            {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
+            <div
+              onClick={() => {
+                setShowClubPages(true);
+                setSidebarOpen(false);
+                router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+                cursor: 'pointer',
+              }}
+            >
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ marginBottom: 8 }}
+              >
+                <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
+                <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" opacity="0.3" />
+                <circle cx="8" cy="14" r="2" fill="#1877F2" />
+                <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
+                <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
+              </svg>
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
+            </div>
+            {/* GTO Training - Custom AI icon */}
+            <Link
+              href="/hub/gto-trainer"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <img
+                src="/icons/gto.png"
+                alt=""
+                style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
+            </Link>
+            {/* Reels - Custom AI icon */}
+            <Link
+              href="/hub/reels"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 12px',
+                background: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                border: '1px solid #dadde1',
+              }}
+            >
+              <img
+                src="/icons/reels.png"
+                alt=""
+                style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
+            </Link>
+          </div>
+
+          {/* Additional Navigation Items */}
+          <div style={{ padding: '0 16px', marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <Link
+                href="/hub/profile"
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
+                  <circle cx="12" cy="9" r="4" fill="#1877f2" />
+                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
+              </Link>
+              <Link
+                href="/hub/messenger"
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <path
+                    d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
+                    fill="#0084ff"
+                  />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Messenger</span>
+              </Link>
+              <Link
+                href="/hub/lives"
+                prefetch={false}
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <circle cx="12" cy="12" r="11" fill="#ff4444" />
+                  <circle cx="12" cy="12" r="5" fill="white" />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
+              </Link>
+              <Link
+                href="/hub/news"
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <rect x="3" y="4" width="18" height="16" rx="2" fill="#4267B2" />
+                  <rect x="6" y="8" width="6" height="4" fill="white" />
+                  <rect x="6" y="14" width="12" height="2" fill="white" opacity="0.7" />
+                  <rect x="14" y="8" width="4" height="2" fill="white" opacity="0.7" />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
+              </Link>
+              <Link
+                href="/hub/poker-near-me/lobby"
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <path
+                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                    fill="#ea4335"
+                  />
+                  <circle cx="12" cy="9" r="3" fill="white" />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>
+                  Poker Near Me
+                </span>
+              </Link>
+              <div
+                onClick={() => {
+                  setSidebarOpen(false);
+                  setShowNotifications(true);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
+                  <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>
+                  Notifications
+                </span>
+              </div>
+              {/* Invite Friends Card */}
+              <div
+                onClick={() => {
+                  if (!user) {
+                    toast.error('Please log in to invite friends.');
+                    return;
+                  }
+                  setShowInviteModal(true);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  padding: '14px 12px',
+                  background: '#fff',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  border: '1px solid #dadde1',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ marginBottom: 8 }}
+                >
+                  <circle cx="9" cy="7" r="4" fill="#1877F2" />
+                  <path d="M2 21v-2a7 7 0 0114 0v2" fill="#1877F2" opacity="0.5" />
+                  <line
+                    x1="19"
+                    y1="8"
+                    x2="19"
+                    y2="14"
+                    stroke="#1877F2"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1="16"
+                    y1="11"
+                    x2="22"
+                    y2="11"
+                    stroke="#1877F2"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>
+                  Invite Friends
+                </span>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Menu Grid - Custom AI-Generated Smarter.Poker Icons */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-            padding: '0 16px',
-            marginBottom: 16,
-          }}
-        >
-          {/* Friends - Custom AI icon */}
-          <Link
-            href="/hub/friends"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <img
-              src="/icons/friends.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
-          </Link>
-          {/* Club Arena - Purple columns SVG (fallback) */}
-          <Link
-            href="/hub/club-arena"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-              <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
-              <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
-              <rect x="16" y="6" width="6" height="14" rx="1" fill="#c4b5fd" />
-              <ellipse cx="12" cy="20" rx="10" ry="2" fill="#ddd6fe" opacity="0.5" />
-            </svg>
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
-          </Link>
-          {/* Diamond Store - Custom AI icon */}
-          <Link
-            href="/hub/diamond-store"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <img
-              src="/icons/diamond.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
-          </Link>
-          {/* Tournaments - Custom AI icon */}
-          <Link
-            href="/hub/tournaments"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <img
-              src="/icons/tournaments.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
-          </Link>
-          {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
-          <div
-            onClick={() => {
-              setShowClubPages(true);
-              setSidebarOpen(false);
-              router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-              <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
-              <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" opacity="0.3" />
-              <circle cx="8" cy="14" r="2" fill="#1877F2" />
-              <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
-              <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
-            </svg>
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
-          </div>
-          {/* GTO Training - Custom AI icon */}
-          <Link
-            href="/hub/gto-trainer"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <img
-              src="/icons/gto.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
-          </Link>
-          {/* Reels - Custom AI icon */}
-          <Link
-            href="/hub/reels"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
-          >
-            <img
-              src="/icons/reels.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
-          </Link>
-        </div>
-
-        {/* Additional Navigation Items */}
-        <div style={{ padding: '0 16px', marginBottom: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {/* Bottom Links */}
+          <div style={{ padding: '0 16px' }}>
             <Link
-              href="/hub/profile"
+              href="/hub/help"
               onClick={() => setSidebarOpen(false)}
               style={{
+                padding: '12px 0',
+                borderTop: `1px solid ${C.border}`,
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
+                alignItems: 'center',
+                gap: 12,
+                cursor: 'pointer',
                 textDecoration: 'none',
-                border: '1px solid #dadde1',
+                color: 'inherit',
               }}
             >
               <svg
-                width="36"
-                height="36"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                style={{ marginBottom: 8 }}
+                stroke="#65676b"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
-                <circle cx="12" cy="9" r="4" fill="#1877f2" />
-                <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
               </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
+              <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>
+                Live Support And Help
+              </span>
+              <span style={{ color: C.textSec }}>›</span>
             </Link>
             <Link
-              href="/hub/messenger"
+              href="/hub/settings"
               onClick={() => setSidebarOpen(false)}
               style={{
+                padding: '12px 0',
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
+                alignItems: 'center',
+                gap: 12,
+                cursor: 'pointer',
                 textDecoration: 'none',
-                border: '1px solid #dadde1',
+                color: 'inherit',
               }}
             >
               <svg
-                width="36"
-                height="36"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                style={{ marginBottom: 8 }}
+                stroke="#65676b"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
-                  fill="#0084ff"
-                />
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
               </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Messenger</span>
+              <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>
+                Settings
+              </span>
+              <span style={{ color: C.textSec }}>›</span>
             </Link>
-            <Link
-              href="/hub/lives"
-              prefetch={false}
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
-                textDecoration: 'none',
-                border: '1px solid #dadde1',
-              }}
-            >
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ marginBottom: 8 }}
-              >
-                <circle cx="12" cy="12" r="11" fill="#ff4444" />
-                <circle cx="12" cy="12" r="5" fill="white" />
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
-            </Link>
-            <Link
-              href="/hub/news"
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
-                textDecoration: 'none',
-                border: '1px solid #dadde1',
-              }}
-            >
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ marginBottom: 8 }}
-              >
-                <rect x="3" y="4" width="18" height="16" rx="2" fill="#4267B2" />
-                <rect x="6" y="8" width="6" height="4" fill="white" />
-                <rect x="6" y="14" width="12" height="2" fill="white" opacity="0.7" />
-                <rect x="14" y="8" width="4" height="2" fill="white" opacity="0.7" />
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
-            </Link>
-            <Link
-              href="/hub/poker-near-me/lobby"
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
-                textDecoration: 'none',
-                border: '1px solid #dadde1',
-              }}
-            >
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ marginBottom: 8 }}
-              >
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill="#ea4335"
-                />
-                <circle cx="12" cy="9" r="3" fill="white" />
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
-            </Link>
-            <div
+            <button
               onClick={() => {
                 setSidebarOpen(false);
-                setShowNotifications(true);
+                supabase.auth.signOut().finally(() => {
+                  // BUG FIX (Bug #11): match the full cache purge from settings.js handleLogout.
+                  // Missing keys (sp-cached-header-user, sp-vip-status, etc.) left stale avatar
+                  // and VIP badge data visible after switching accounts.
+                  try {
+                    localStorage.removeItem('sp-social-user');
+                  } catch (_) {}
+                  try {
+                    localStorage.removeItem('sp-vip-status');
+                  } catch (_) {}
+                  try {
+                    localStorage.removeItem('smarter-poker-auth');
+                  } catch (_) {}
+                  try {
+                    localStorage.removeItem('sp-cached-header-user');
+                  } catch (_) {}
+                  try {
+                    localStorage.removeItem('sp-cached-settings-profile');
+                  } catch (_) {}
+                  try {
+                    localStorage.removeItem('sp-notif-count');
+                  } catch (_) {}
+                  window.top.location.href = '/';
+                });
               }}
               style={{
+                padding: '12px 0',
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
-                textDecoration: 'none',
-                border: '1px solid #dadde1',
+                alignItems: 'center',
+                gap: 12,
                 cursor: 'pointer',
+                background: 'none',
+                border: 'none',
+                width: '100%',
+                textAlign: 'left',
+                color: 'inherit',
+                fontFamily: 'inherit',
               }}
             >
               <svg
-                width="36"
-                height="36"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                style={{ marginBottom: 8 }}
+                stroke="#65676b"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
-            </div>
-            {/* Invite Friends Card */}
-            <div
-              onClick={() => {
-                if (!user) {
-                  toast.error('Please log in to invite friends.');
-                  return;
-                }
-                setShowInviteModal(true);
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '14px 12px',
-                background: '#fff',
-                borderRadius: 8,
-                textDecoration: 'none',
-                border: '1px solid #dadde1',
-                cursor: 'pointer',
-              }}
-            >
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ marginBottom: 8 }}
-              >
-                <circle cx="9" cy="7" r="4" fill="#1877F2" />
-                <path d="M2 21v-2a7 7 0 0114 0v2" fill="#1877F2" opacity="0.5" />
-                <line
-                  x1="19"
-                  y1="8"
-                  x2="19"
-                  y2="14"
-                  stroke="#1877F2"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="16"
-                  y1="11"
-                  x2="22"
-                  y2="11"
-                  stroke="#1877F2"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>
-                Invite Friends
+              <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>
+                Log Out
               </span>
-            </div>
+            </button>
           </div>
         </div>
-
-        {/* Bottom Links */}
-        <div style={{ padding: '0 16px' }}>
-          <Link
-            href="/hub/help"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              padding: '12px 0',
-              borderTop: `1px solid ${C.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              cursor: 'pointer',
-              textDecoration: 'none',
-              color: 'inherit',
-            }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#65676b"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
-              <path d="M12 17h.01" />
-            </svg>
-            <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>Live Support And Help</span>
-            <span style={{ color: C.textSec }}>›</span>
-          </Link>
-          <Link
-            href="/hub/settings"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              padding: '12px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              cursor: 'pointer',
-              textDecoration: 'none',
-              color: 'inherit',
-            }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#65676b"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-            </svg>
-            <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>Settings</span>
-            <span style={{ color: C.textSec }}>›</span>
-          </Link>
-          <button
-            onClick={() => {
-              setSidebarOpen(false);
-              supabase.auth.signOut().finally(() => {
-                // BUG FIX (Bug #11): match the full cache purge from settings.js handleLogout.
-                // Missing keys (sp-cached-header-user, sp-vip-status, etc.) left stale avatar
-                // and VIP badge data visible after switching accounts.
-                try {
-                  localStorage.removeItem('sp-social-user');
-                } catch (_) {}
-                try {
-                  localStorage.removeItem('sp-vip-status');
-                } catch (_) {}
-                try {
-                  localStorage.removeItem('smarter-poker-auth');
-                } catch (_) {}
-                try {
-                  localStorage.removeItem('sp-cached-header-user');
-                } catch (_) {}
-                try {
-                  localStorage.removeItem('sp-cached-settings-profile');
-                } catch (_) {}
-                try {
-                  localStorage.removeItem('sp-notif-count');
-                } catch (_) {}
-                window.top.location.href = '/';
-              });
-            }}
-            style={{
-              padding: '12px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              width: '100%',
-              textAlign: 'left',
-              color: 'inherit',
-              fontFamily: 'inherit',
-            }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#65676b"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span style={{ flex: 1, fontSize: 15, color: '#1c1e21', textAlign: 'left' }}>Log Out</span>
-          </button>
-        </div>
-      </div>
       )}
 
       <div
@@ -7535,8 +7723,6 @@ function SocialMediaPage() {
                     </div>
                   )}
 
-
-
                   {/* Posts Feed */}
                   {posts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
@@ -7943,8 +8129,8 @@ function SocialMediaPage() {
               Delete This Post?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              This Post Will Be Removed From The Feed. You Can Tap The
-              &ldquo;Post Deleted&rdquo; Message Within 5 Seconds To Undo.
+              This Post Will Be Removed From The Feed. You Can Tap The &ldquo;Post Deleted&rdquo;
+              Message Within 5 Seconds To Undo.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button

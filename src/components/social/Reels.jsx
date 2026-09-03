@@ -91,14 +91,20 @@ export function ReelsViewer({ onClose }) {
     // is allowed without gesture); after the first gesture the preference
     // flips and persists indefinitely.
     if (typeof window === 'undefined') return true;
-    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
-    catch (_) { return true; }
+    try {
+      return localStorage.getItem('sp:reels:muted') !== '0';
+    } catch (_) {
+      return true;
+    }
   });
   // Persist muted preference across reloads — see useState initializer above.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
-    catch (_) { /* sandboxed contexts may throw */ }
+    try {
+      localStorage.setItem('sp:reels:muted', muted ? '1' : '0');
+    } catch (_) {
+      /* sandboxed contexts may throw */
+    }
   }, [muted]);
   const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
   const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
@@ -971,10 +977,7 @@ export function ReelsViewer({ onClose }) {
          none. Without this top-up, `combined.length === 0` below reads that
          as "the library is exhausted" and ends the feed on a full library. */
       if (moreRows.length < 60) {
-        const wrap = await moreWindow(
-          '00000000-0000-0000-0000-000000000000',
-          60 - moreRows.length
-        );
+        const wrap = await moreWindow('00000000-0000-0000-0000-000000000000', 60 - moreRows.length);
         const seen = new Set(moreRows.map((r) => r.id));
         moreRows = moreRows.concat((wrap.data || []).filter((r) => !seen.has(r.id)));
       }
@@ -1696,7 +1699,12 @@ export function ReelsViewer({ onClose }) {
     const handleKey = (e) => {
       const tag = e.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      if (
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'ArrowLeft'
+      ) {
         // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
         // Chrome accepts the unMute postMessage for the next iframe.
         // The global gesture-capture effect unmutes the CURRENT media, but
@@ -1711,7 +1719,9 @@ export function ReelsViewer({ onClose }) {
             sendYTCmd('unMute');
             sendYTCmd('setVolume', [100]);
             setMuted(false);
-          } catch (_) { /* best-effort */ }
+          } catch (_) {
+            /* best-effort */
+          }
         }
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
@@ -1828,7 +1838,10 @@ export function ReelsViewer({ onClose }) {
           // without touching src: pause + drop buffered position.
           const evictEl = container.querySelector(`[data-reel-index="${newIdx - 2}"] video`);
           if (evictEl) {
-            try { evictEl.pause(); evictEl.currentTime = 0; } catch (_) {}
+            try {
+              evictEl.pause();
+              evictEl.currentTime = 0;
+            } catch (_) {}
           }
         });
       },
