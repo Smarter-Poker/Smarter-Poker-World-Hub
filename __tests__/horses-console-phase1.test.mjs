@@ -327,17 +327,59 @@ test('the Mint receipt is built from what the console composed', async () => {
   assert.match(src, /op_id: mintConfirm\.opId/);
 });
 
-test('the Fleet Status panel reads the field names the status branch returns', async () => {
+/**
+ * REWRITTEN IN PHASE 3, and this is the one legitimate reason to touch it.
+ *
+ * This used to assert that index.js read the five field names
+ * /api/club-arena/horse-launch returns from its `status` branch, because Phase
+ * 1 blocker 3 was a Fleet Status panel still reading the RETIRED launch_all
+ * response, so every tile rendered a dash.
+ *
+ * That panel does not exist any more. Phase 3 replaced the Grinder tab with
+ * Fleet Command, which reads /api/horses/fleet-admin, and the horse-launch
+ * snapshot went with it BECAUSE it answered the same four questions from
+ * different tables: profiles.horse_status against the engine's state mirror,
+ * and a `tables` count against fn_ca_fleet_overview's capacity. Two Horses
+ * Seated on one console, disagreeing whenever the mirror lagged, is a worse
+ * failure than the one this test was written for.
+ *
+ * So the assertion becomes the rule that replaced it: this page asks about the
+ * fleet in exactly ONE place, and that place is the panel. The route itself is
+ * unchanged and its own tests still cover the field names and the legacy
+ * aliases (PHASE1-CONTRACTS addendum item 13).
+ */
+test('the console has exactly one source for every fleet number', async () => {
   const src = await read(INDEX);
-  for (const field of ['activeTables', 'seatedHorses', 'activeTournaments', 'checkedAt', 'totalHorses']) {
-    assert.ok(
-      src.includes(`fleetStatus.${field}`),
-      `Fleet Status must read fleetStatus.${field}`,
-    );
+  const code = stripComments(src);
+
+  // Neither fleet route is called from this page any more.
+  assert.ok(
+    !code.includes('/api/horses/grinder-stats'),
+    'the fleet roster and totals come from /api/horses/fleet-admin now',
+  );
+  assert.ok(
+    !code.includes('/api/club-arena/horse-launch'),
+    'the horse-launch status snapshot was a second opinion on seated horses',
+  );
+  // And nothing is left of the panel that read them.
+  for (const dead of ['fleetStatus', 'loadFleetStatus', 'grinderData', 'loadGrinderData']) {
+    assert.ok(!code.includes(dead), `${dead} belonged to the retired Grinder panel`);
   }
-  // failedSources is surfaced: an incomplete reading must not render as four
-  // confident tiles.
-  assert.match(src, /fleetStatus\.failedSources/);
+
+  // The tab is registered as its own module, so index.js renders it through
+  // the registry seam rather than inline.
+  const registry = await read(`${COMPONENT_DIR}tabRegistry.js`);
+  assert.match(registry, /id: 'fleet', label: 'Fleet Command'/);
+  assert.match(registry, /load: \(\) => import\('\.\/FleetPanel'\)/);
+  assert.match(src, /RegistryPanel &&/, 'a registry tab renders through panelComponentFor');
+
+  // The panel talks to the fleet route and to nothing else.
+  const panel = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
+  assert.match(panel, /from '\.\/fleetAdmin'/);
+  assert.ok(
+    !panel.includes('grinder-stats') && !panel.includes('horse-launch'),
+    'Fleet Command reads /api/horses/fleet-admin only',
+  );
 });
 
 test('the disposable-email caveat reads the path the route actually uses', async () => {
@@ -345,14 +387,34 @@ test('the disposable-email caveat reads the path the route actually uses', async
   assert.match(src, /abuseData\.abuse\?\.stats\?\.disposableScope/);
 });
 
-test('the grinder roster is paged by the route, not sliced client-side', async () => {
+/**
+ * ALSO REWRITTEN IN PHASE 3, same reason. The rule this test defends is
+ * addendum item 12 - the fleet roster is paged by the ROUTE and never sliced
+ * client-side over a response that does not contain those rows - and the rule
+ * did not change when the roster moved from the Grinder tab to Fleet Command.
+ * Only the file it lives in did.
+ */
+test('the fleet roster is paged by the route, not sliced client-side', async () => {
+  const panel = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
+  // usePagedList owns limit, offset, total and hasMore, and the URL is built
+  // by the shared request module rather than assembled at the call site.
+  assert.match(panel, /usePagedList\(\{/);
+  assert.match(panel, /fetchPage: fetchRosterPage/);
+  assert.match(panel, /rosterUrl\(\{ filters, limit, offset \}\)/);
+  assert.match(panel, /<Pager/);
+  assert.match(panel, /const ROSTER_PAGE_SIZE = \d+;/);
+  // No client-side slice of a list the route never sent, in either direction.
+  assert.ok(!panel.includes('.slice('), 'the roster table must not slice rows');
+  // The CSV export walks the whole FILTERED set through the route, not the
+  // page on screen.
+  assert.match(panel, /exportAllCsv\(\{/);
+  assert.match(panel, /filters: roster\.filters/);
+
   const src = await read(INDEX);
-  assert.match(src, /const GRINDER_ROSTER_PAGE_SIZE = \d+;/);
-  assert.match(src, /\/api\/horses\/grinder-stats\?\$\{params\.toString\(\)\}/);
-  assert.match(src, /goGrinderRosterPage/);
-  // The two independent paginations over one list are gone.
-  assert.ok(!src.includes('pagedGrinderPersonas'), 'the client-side roster slice must be deleted');
-  assert.ok(!src.includes('grinderPersonas'), 'the client-side roster list must be deleted');
+  const code = stripComments(src);
+  assert.ok(!code.includes('GRINDER_ROSTER_PAGE_SIZE'), 'the old page size must be deleted');
+  assert.ok(!code.includes('pagedGrinderPersonas'), 'the client-side roster slice must be deleted');
+  assert.ok(!code.includes('grinderPersonas'), 'the client-side roster list must be deleted');
 });
 
 test('Club Arena counts come from the route, never from a page length', async () => {
@@ -666,18 +728,30 @@ test('every shared component file obeys the house rules', async () => {
 });
 
 /**
- * UPDATED IN PHASE 2, and this is the one legitimate reason to touch it: the
- * registry now carries EIGHTEEN tabs, because Phase 2 shipped `staff` and
- * `approvals` (PHASE2-CONTRACTS section 3). The sixteen Phase 1 tabs are
- * still asserted in the same order, so a Phase 1 tab being renamed, reordered
- * or dropped still fails here - which is what this test was written to catch.
- * Only the two new entries at the end are new.
+ * UPDATED IN PHASE 2 AND AGAIN IN PHASE 3, and a registry change is the one
+ * legitimate reason to touch it.
+ *
+ * Phase 2 added `staff` and `approvals`, taking the bar to EIGHTEEN tabs
+ * (PHASE2-CONTRACTS section 3). Phase 3 renamed one: `grinder` became `fleet`,
+ * label "Fleet Command", in the same slot, with `grinder` kept as an ALIAS so
+ * an old bookmark still lands (PHASE3-CONTRACTS section 3). The count is
+ * unchanged because nothing was added or dropped.
+ *
+ * The ORDER is still asserted in full, so a tab being reordered or dropped
+ * fails here - which is what this test was written to catch - and every
+ * declared permission is checked against the real vocabulary, so a rename can
+ * never smuggle in a permission no role holds. That is the failure mode the
+ * Phase 2 review found: thirteen tabs asking for invented names, invisible to
+ * a `god`, suite green throughout.
  */
-test('tabRegistry exports the sixteen Phase 1 tabs plus the two from Phase 2', async () => {
+test('tabRegistry exports eighteen tabs in order, and Fleet Command replaced Grinder', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
   const ids = [...src.matchAll(/\{ id: '([a-z]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
-    'stable', 'grinder', 'pipeline', 'settings', 'stats', 'merch', 'promo',
+    'stable',
+    // Phase 3: was 'grinder'.
+    'fleet',
+    'pipeline', 'settings', 'stats', 'merch', 'promo',
     'economy', 'mint', 'antiabuse', 'clubarena', 'bugreports', 'geeves',
     'reviews', 'scrapers', 'audit',
     // Phase 2.
@@ -686,6 +760,29 @@ test('tabRegistry exports the sixteen Phase 1 tabs plus the two from Phase 2', a
   assert.equal(ids.length, 18);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
+
+  // The retired id is a promise, not a second tab: it appears as an alias and
+  // never as an entry of its own.
+  assert.ok(!ids.includes('grinder'), 'grinder is an alias now, not a tab');
+  assert.match(src, /aliases: \['grinder'\]/);
+
+  // EVERY declared permission is a real one. The vocabulary is imported from
+  // the server module that defines it rather than copied into this file.
+  const { ALL_PERMISSIONS } = await import('../src/lib/horses/permissions.js');
+  const { TABS } = await import(`../${COMPONENT_DIR}tabRegistry.js`);
+  assert.equal(TABS.length, 18);
+  assert.deepEqual(TABS.map((t) => t.id), ids, 'the parsed order is the exported order');
+  for (const tab of TABS) {
+    assert.ok(
+      ALL_PERMISSIONS.includes(tab.permission),
+      `tab ${tab.id} declares "${tab.permission}", which no role can hold`,
+    );
+  }
+  const fleet = TABS.find((t) => t.id === 'fleet');
+  assert.equal(fleet.label, 'Fleet Command');
+  assert.equal(fleet.permission, 'fleet.read');
+  assert.equal(typeof fleet.load, 'function', 'Fleet Command is its own code-split module');
+  assert.notEqual(fleet.legacy, true, 'it is not rendered inline by index.js any more');
 });
 
 test('every paged list on the page renders a real Pager', async () => {

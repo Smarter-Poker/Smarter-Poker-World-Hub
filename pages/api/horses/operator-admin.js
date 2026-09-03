@@ -21,15 +21,23 @@
  * operator could not resubmit under the approved row's key either. With
  * approvals on and `mint_threshold` at 0 that is 100% of issuance frozen, by
  * design, with no exit. `decide_approval` therefore EXECUTES an approved mint,
- * burn or fund_club: it re-reads the row inside the same request, validates the
- * stored payload against the shape the RPC expects, calls that RPC under the
- * ROW's op_id so it happens exactly once, marks the row executed, and audits the
- * execution as its own row. A failure records `failed` with the error in
- * `result` and says so out loud; `execute_approval` re-drives such a row.
+ * burn, fund_club or fleet_policy: it re-reads the row inside the same request,
+ * validates the stored payload against the shape the RPC expects, calls that RPC
+ * under the ROW's op_id so it happens exactly once, marks the row executed, and
+ * audits the execution as its own row. A failure records `failed` with the error
+ * in `result` and says so out loud; `execute_approval` re-drives such a row.
+ *
+ * PHASE 3 (2026-09-03) added `fleet_policy` to that list, and it is the first
+ * executable kind that moves NO MONEY: an approved material fleet policy change
+ * re-drives fn_ca_fleet_set_policy under the approval's own op_id and under the
+ * operator who RAISED it, which is what the payload carries. The message an
+ * operator reads is per kind for that reason - "The Money Has Moved" over a
+ * quota change would describe something that did not happen.
  *
  * `cashout` is decision-only here and says so in its answer: its execution lives
  * behind /api/club-arena/approve-cashout, with the settlement lock, the step-up
- * MFA gate and the player notifications that route owns.
+ * MFA gate and the player notifications that route owns. `sanction` is
+ * decision-only for now and will be wired in its own phase.
  *
  * RE-VERIFICATION, 2026-09-03 (docs/horses/reverify-2026-09-03/server-db.md).
  * A requester may WITHDRAW their own pending request: `decide_approval` with
@@ -85,11 +93,14 @@ import {
   KIND_PERMISSION,
   canDecideApproval,
   canWithdrawApproval,
+  executionDoneText,
+  executionUnavailableText,
   isExecutableKind,
   markApprovalExecuted,
   payloadFor,
   DECISION_REFUSAL_TEXT,
 } from '../../../src/lib/horses/approvals.js';
+import { FLEET_POLICY_REFUSAL_TEXT } from '../../../src/lib/horses/fleetPolicy.js';
 import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
 import { runPaged } from '../../../src/lib/horses/paged.js';
 import { pageFor, readByIds, shapeList } from '../../../src/lib/horses/listShape.js';
@@ -1101,9 +1112,12 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
   requirePermission(op, needed);
 
   if (!isExecutableKind(kind)) {
-    // cashout, fleet_policy and sanction. The decision is real; the execution
-    // is not this route's, and the answer says so rather than letting an
-    // operator read "approved" as "paid".
+    // cashout and sanction. The decision is real; the execution is not this
+    // route's, and the answer says so rather than letting an operator read
+    // "approved" as "paid". (fleet_policy USED to be in this list and is not
+    // any more: isExecutableKind('fleet_policy') has been true since Phase 3
+    // wired it, so naming it here described the opposite of what the code
+    // does - review L-7.)
     return {
       attempted: false,
       ok: false,
@@ -1112,7 +1126,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
       message:
         kind === 'cashout'
           ? 'Approved. The Cashout Itself Is Still Completed From The Cashout Screen, So No Chips Have Moved Yet'
-          : 'Approved. This Kind Is Not Carried Out From This Console, So Nothing Has Moved Yet',
+          : 'Approved. This Kind Is Not Carried Out From This Console, So Nothing Has Changed Yet',
     };
   }
 
@@ -1163,7 +1177,9 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     await recordExecutionFailure(db, op, req, row, {
       via,
       reason: 'execution_unavailable',
-      message: 'The Money Operation Could Not Be Reached',
+      // PER KIND (review M-4). A fleet policy change is not a money operation
+      // and must not be described as one, in the row or in front of anybody.
+      message: executionUnavailableText(kind),
     });
     throw new ApiError(
       503,
@@ -1172,15 +1188,35 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     );
   }
   if (!result || result.ok !== true) {
-    const code = typeof result?.reason === 'string' ? result.reason : 'execution_refused';
+    // BOTH SPELLINGS OF A REFUSAL (review M-4). fn_ca_mint reports one as
+    // `{ ok:false, reason }`; fn_ca_fleet_set_policy reports one as
+    // `{ ok:false, error, message }`, with twelve distinct codes. Reading
+    // `reason` alone collapsed every fleet refusal to the generic
+    // `execution_refused`, so the real code - unknown_field, negative_cap,
+    // bias_out_of_range, actor_required - never reached the operator's 409,
+    // the failed row's result, or the audit row, and Run Again reproduced the
+    // same opaque refusal forever.
+    const code = typeof result?.reason === 'string'
+      ? result.reason
+      : typeof result?.error === 'string'
+        ? result.error
+        : 'execution_refused';
+    // And the sentence is per kind, because a fleet quota change is not a
+    // money operation. FLEET_POLICY_REFUSAL_TEXT already turns those codes
+    // into English and the executor never reached it.
+    const refusalText = kind === 'fleet_policy'
+      ? FLEET_POLICY_REFUSAL_TEXT[code] || `Refused: ${code}`
+      : 'The Money Operation Refused The Approved Request';
     await recordExecutionFailure(db, op, req, row, {
       via,
       reason: code,
-      message: 'The Money Operation Refused The Approved Request',
+      message: refusalText,
     });
     throw new ApiError(
       409,
-      `Approved, But The Operation Was Refused: ${code}. Nothing Moved`,
+      kind === 'fleet_policy'
+        ? `Approved, But The Fleet Policy Was Refused: ${code}. ${refusalText}. Nothing Changed And No Seated Horse Was Touched`
+        : `Approved, But The Operation Was Refused: ${code}. Nothing Moved`,
       code
     );
   }
@@ -1189,10 +1225,18 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     ok: true,
     via,
     rpc: shaped.rpc,
-    op_id: shaped.summary.opId,
+    // A fleet policy change has no idempotency key of its own, so the key it
+    // ran under is the approval's. Money kinds carry it in their args under
+    // whichever parameter the RPC names, so the shaped summary is the one
+    // place that always holds it.
+    op_id: shaped.summary.opId ?? row.op_id ?? null,
     ledger_id: result.ledger_id ?? null,
     balance_after: result.balance_after ?? null,
     supply_after: result.supply_after ?? null,
+    // PHASE 3: what fn_ca_fleet_set_policy answers. Kept on the approval row
+    // so the queue can show what the approved change actually did.
+    material: result.material ?? null,
+    material_reasons: result.material_reasons ?? null,
     replayed: result.replayed === true,
   });
 
@@ -1206,7 +1250,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
       approval_id: approvalId,
       kind,
       rpc: shaped.rpc,
-      op_id: shaped.summary.opId,
+      op_id: shaped.summary.opId ?? row.op_id ?? null,
       amount: row.amount ?? null,
       asset: row.asset ?? null,
       via,
@@ -1223,13 +1267,14 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     ok: true,
     kind,
     rpc: shaped.rpc,
-    opId: shaped.summary.opId,
+    opId: shaped.summary.opId ?? row.op_id ?? null,
     status: marked.ok ? 'executed' : 'executed_unrecorded',
     trailClosed: marked.ok === true,
     result,
-    message: marked.ok
-      ? 'Approved And Carried Out. The Money Has Moved'
-      : 'Approved And Carried Out. The Money Has Moved, But The Approval Row Could Not Be Closed. Check The Audit Trail',
+    // PER KIND. `fleet_policy` moves no money at all, and telling an operator
+    // "The Money Has Moved" about a quota change is a sentence about
+    // something that did not happen.
+    message: executionDoneText(kind, { trailClosed: marked.ok === true }),
   };
 }
 

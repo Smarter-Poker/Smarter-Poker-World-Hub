@@ -280,12 +280,14 @@ test('M-2: the audit target type and id inputs debounce 300 ms into the query', 
 // M-3  sequence guards on the grinder roster and the Mint ledger
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('M-3: loadGrinderData and loadMintLedger drop a superseded response', async () => {
+test('M-3: the mint ledger drops a superseded response, and the grinder loader it named is gone', async () => {
   const src = await read(INDEX);
-  const grinder = block(src, 'const loadGrinderData = useCallback(async (offset = 0) => {', 1400);
-  assert.match(grinder, /const seq = \+\+grinderSeqRef\.current;/);
-  assert.match(grinder, /if \(seq !== grinderSeqRef\.current\) return;/);
-  assert.match(grinder, /if \(seq === grinderSeqRef\.current\) setGrinderLoading\(false\);/);
+  // Phase 3 replaced the grinder tab with Fleet Command, whose roster is paged
+  // by usePagedList (its own monotonic sequence plus an AbortController), so
+  // the loader this finding hardened no longer exists to harden. Both halves
+  // are asserted: the loader is gone AND nothing left behind refers to it.
+  assert.ok(!src.includes('const loadGrinderData ='), 'the grinder loader belongs to Fleet Command now');
+  assert.ok(!src.includes('grinderSeqRef'), 'and its sequence guard went with it');
 
   const ledger = block(src, 'const loadMintLedger = useCallback(async (asset = ', 1000);
   assert.match(ledger, /const seq = \+\+mintLedgerSeqRef\.current;/);

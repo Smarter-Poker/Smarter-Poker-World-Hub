@@ -1,9 +1,14 @@
 /**
  * HORSES ADMIN - /horses
  *
- * Platform staff console: content stable, grinder fleet, pipeline, economy,
+ * Platform staff console: content stable, the horse fleet, pipeline, economy,
  * anti-abuse, Club Arena oversight, bug reports, Geeves KB, review moderation
  * and scraper health.
+ *
+ * PHASE 3 (2026-09-03): the Grinder tab became Fleet Command, which is its own
+ * code-split module (src/components/horses/FleetPanel.jsx) reading
+ * /api/horses/fleet-admin. Every fleet reading this file used to hold went with
+ * it, so no number about the fleet is computed here any more.
  *
  * --- 2026-08-26 DEEP AUDIT - what changed and why --------------------------
  *
@@ -80,8 +85,9 @@
  *    Total" when the route reports `truncated`; every count comes from the
  *    route's own total (memberChipTotal, memberCount, pages.<list>.total,
  *    caStats.pendingCashouts) instead of the length of the array that fitted.
- *    The grinder roster is paged by the ROUTE, not sliced client-side over a
- *    response that never contained those rows.
+ *    The fleet roster is paged by the ROUTE, not sliced client-side over a
+ *    response that never contained those rows (it is Fleet Command's table
+ *    since Phase 3, still server-paged, now by /api/horses/fleet-admin).
  *
  * H. THE MINT'S IDEMPOTENCY KEY IS BOUND TO ITS PAYLOAD. It rotates the moment
  *    any field of the composed operation changes and is stable across retries
@@ -130,7 +136,6 @@ import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
 import Modal from '../../src/components/horses/Modal';
 import ConfirmDialog from '../../src/components/horses/ConfirmDialog';
 import DataTable from '../../src/components/horses/DataTable';
-import KpiTile from '../../src/components/horses/KpiTile';
 import StatusPill from '../../src/components/horses/StatusPill';
 import Pager from '../../src/components/horses/Pager';
 import NotBuiltYet from '../../src/components/horses/NotBuiltYet';
@@ -215,9 +220,12 @@ const EMPTY_ABUSE_DATA = {
  * link to it from anywhere - and it lives in its own module so a Phase 2+ tab
  * can be its own code-split component instead of another thousand lines here.
  *
- * The sixteen entries in that registry are the sixteen tabs below, in this
- * order, each still rendered inline by this component (registry `legacy: true`)
- * with the panel bodies unchanged. That includes
+ * EIGHTEEN entries, and three of them are no longer this file's problem: the
+ * registry marks a tab `legacy: true` while its panel is still rendered inline
+ * here, and gives it a `load` thunk once it is its own module. `staff` and
+ * `approvals` (Phase 2) and `fleet` (Phase 3, which replaced `grinder`) carry
+ * `load`; the other fifteen are still inline below, in registry order, with
+ * their panel bodies unchanged. That includes
  * { id: 'merch', label: 'Merch Catalog' }, whose panel is the already-extracted
  * MerchCatalogAdmin component.
  */
@@ -264,13 +272,6 @@ const MINT_LEDGER_PAGE_SIZE = 50;
 
 /** How many tickets a page of Bug Reports shows. */
 const TICKETS_PER_PAGE = 50;
-
-/** One page of the grinder roster. grinder-stats pages the roster SERVER side
- *  and caps `limit` at 500 (PHASE1-CONTRACTS addendum item 12). The client used
- *  to fetch the route's default first page and then paginate the full 1,000-row
- *  persona list over the top of it, so every row past 50 rendered another
- *  horse's blank stats. */
-const GRINDER_ROSTER_PAGE_SIZE = 50;
 
 /**
  * EXPLICIT ROW CAPS for the lists this console renders WITHOUT a pager.
@@ -414,13 +415,10 @@ export default function HorsesAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(0);
-  // The Grinder roster used to reuse searchTerm/filter/page from the Social
-  // Horses tab, so a search typed there silently filtered a table on a
-  // different tab with no visible control explaining why. It has its own
-  // controls now, and the PAGE is the route's (grinderOffset), not a slice of
-  // a list the route never sent.
-  const [grinderSearch, setGrinderSearch] = useState('');
-  const [grinderOffset, setGrinderOffset] = useState(0);
+  // searchTerm, filter and page belong to the Social Horses roster and to
+  // nothing else. The Grinder tab used to share all three, so a search typed
+  // here silently filtered a table on another tab; that table is Fleet
+  // Command's now (Phase 3) and it owns its own filters, offset and pager.
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [personaForm, setPersonaForm] = useState(EMPTY_PERSONA);
@@ -560,14 +558,13 @@ export default function HorsesAdmin() {
   // "Showing" made it look like a whole-table figure.
   const [reviewsPage, setReviewsPage] = useState(0);
 
-  // ── Grinder ──
-  const [grinderData, setGrinderData] = useState(null);
-  const [grinderLoading, setGrinderLoading] = useState(false);
-  const [grinderError, setGrinderError] = useState(null);
-  // Read-only: { action: 'status' } is the one branch of horse-launch this
-  // console still calls. Launch and shutdown are retired (410 Gone).
-  const [fleetStatus, setFleetStatus] = useState(null);
-  const [fleetStatusLoading, setFleetStatusLoading] = useState(false);
+  // ── The fleet ──
+  //
+  // Nothing here any more. Phase 3 moved every fleet reading this page used to
+  // hold - the grinder-stats totals and roster, and the horse-launch status
+  // snapshot - into src/components/horses/FleetPanel.jsx, which reads
+  // /api/horses/fleet-admin and holds its own state. There is one source for
+  // each fleet number and it is that route.
 
   // ── Bug reports ──
   // The rows, total, paging and error live in usePagedList now (declared below
@@ -844,7 +841,9 @@ export default function HorsesAdmin() {
     setAnalyticsData(null); setAnalyticsLoaded(false);
     setGeevesAnalytics({ summary: null, questions: [] }); setGeevesLoaded(false);
     setReviewsData([]); setReviewsLoaded(false);
-    setGrinderData(null); setFleetStatus(null); setScraperHealth(null);
+    // The fleet reading is Fleet Command's own state now, and it unmounts with
+    // the panel, so there is nothing to clear for it here.
+    setScraperHealth(null);
     // Tickets carry a reporter's display name and avatar. Clear them with
     // everything else rather than leaving them for the next sign-in.
     tickets.reset(); setBugReportsSearch('');
@@ -1375,60 +1374,17 @@ export default function HorsesAdmin() {
     }
   }, [authFetch]);
 
-  /** Monotonic, like auditSeqRef. goGrinderRosterPage sets the offset and
-   *  then awaits the fetch; two quick presses of Next were two requests, and
-   *  the slower one used to win, so page 2's rows sat under page 3's pager. */
-  const grinderSeqRef = useRef(0);
-
   /**
-   * Fleet totals plus ONE PAGE of the grinder roster.
+   * THE GRINDER LOADER IS GONE (Phase 3).
    *
-   * The route pages the roster itself (PHASE1-CONTRACTS addendum item 12) and
-   * this sent no limit and no offset, so it received the default first 50 rows
-   * and the table then paginated the full 1,000-row persona list on top of
-   * them. Every row past the 50th looked up a horse the response did not
-   * contain and silently rendered 0/4 tables, no hands, no profit and status
-   * Idle. Two independent paginations over the same list; there is one now,
-   * and it is the route's.
-   *
-   * `currentlyPlaying`, `totalHands` and `totalProfit` are WHOLE-FLEET figures
-   * (`totalsScope: 'fleet'`), not sums of the page, which is why the KPI row
-   * above the table does not move when the pager does.
+   * loadGrinderData and goGrinderRosterPage read /api/horses/grinder-stats for
+   * the fleet totals and one page of its roster. Fleet Command reads the same
+   * fleet from /api/horses/fleet-admin - the roster from the engine's state
+   * mirror, hands and profit from the daily rows on its P And L - and it pages
+   * that roster with usePagedList. This page fetches nothing about the fleet
+   * any more, so there is exactly one number per figure and one route to blame
+   * when it looks wrong.
    */
-  const loadGrinderData = useCallback(async (offset = 0) => {
-    const seq = ++grinderSeqRef.current;
-    setGrinderLoading(true);
-    setGrinderError(null);
-    try {
-      const params = new URLSearchParams({
-        limit: String(GRINDER_ROSTER_PAGE_SIZE),
-        offset: String(Math.max(0, offset)),
-      });
-      const data = await authFetch(`/api/horses/grinder-stats?${params.toString()}`);
-      if (seq !== grinderSeqRef.current) return;
-      // `roster` at the TOP LEVEL is the paged envelope
-      // ({ rows, total, limit, offset, hasMore, truncated }); `stats.roster` is
-      // the bare array of that same page. The envelope wins, so the table has
-      // the route's total and its hasMore rather than the length of whatever
-      // it happened to receive.
-      setGrinderData(data.stats
-        ? { ...data.stats, roster: data.roster ?? data.stats.roster ?? [] }
-        : null);
-    } catch (err) {
-      if (seq !== grinderSeqRef.current) return;
-      setGrinderError(err.message);
-    } finally {
-      if (seq === grinderSeqRef.current) setGrinderLoading(false);
-    }
-  }, [authFetch]);
-
-  /** Move the roster pager and load that page, so the offset in state and the
-   *  offset on screen can never disagree. */
-  const goGrinderRosterPage = useCallback((nextOffset) => {
-    const offset = Math.max(0, nextOffset);
-    setGrinderOffset(offset);
-    loadGrinderData(offset);
-  }, [loadGrinderData]);
 
   /**
    * One page of support tickets.
@@ -2279,28 +2235,17 @@ export default function HorsesAdmin() {
   // now, which owns the trap, the scroll lock and the restore.
 
   /**
-   * Fleet status.
+   * FLEET STATUS IS GONE FROM THIS FILE (Phase 3).
    *
-   * launch_all and shutdown are GONE from this console. Fleet seeding is owned
-   * by the engine (HorseFleetManager); the two buttons that used to be here
-   * drove /api/club-arena/horse-launch, which created 117 duplicate cash tables
-   * per press with no cleanup and performed 700 to 1,500 sequential round trips
-   * inside one serverless invocation. That route now answers 410 Gone for both
-   * (PHASE1-CONTRACTS item 7). `status` still works and is what this reads.
+   * It read /api/club-arena/horse-launch, action status, which counts horses by
+   * profiles.horse_status and live tables by a `tables` count. Fleet Command
+   * answers the same four questions from fn_ca_fleet_overview, so keeping this
+   * would have put two Horses Seated and two Cash Tables Live on one console,
+   * from two different tables, disagreeing whenever the engine's state mirror
+   * lagged behind the seats. The route is unchanged and still returns both the
+   * new names and its legacy aliases (PHASE1-CONTRACTS addendum item 13); this
+   * console just has one place it asks about the fleet now.
    */
-  const loadFleetStatus = useCallback(async () => {
-    setFleetStatusLoading(true);
-    try {
-      const data = await authFetch('/api/club-arena/horse-launch', {
-        method: 'POST', body: JSON.stringify({ action: 'status' }),
-      });
-      setFleetStatus(data);
-    } catch (err) {
-      showNotification(err.message, 'error');
-    } finally {
-      setFleetStatusLoading(false);
-    }
-  }, [authFetch, showNotification]);
 
   // ── AUDIT LOG ─────────────────────────────────────────────────────────
   //
@@ -2831,7 +2776,8 @@ export default function HorsesAdmin() {
   // Lazy tab loads, in one place instead of scattered across 14 onClick handlers.
   useEffect(() => {
     if (!user) return;
-    if (activeTab === 'grinder' && !grinderData && !grinderLoading) loadGrinderData();
+    // The fleet tab is not listed here: Fleet Command loads its own sections
+    // when it mounts and when the operator moves between them.
     if (activeTab === 'stats' && !analyticsLoaded) loadAnalytics();
     if (activeTab === 'stats' && !platform && !platformLoading) loadPlatform();
     if (activeTab === 'economy' && !economyLoaded && !economyLoading) loadEconomyData();
@@ -3144,9 +3090,10 @@ export default function HorsesAdmin() {
     () => navTabs.find((t) => t.id === activeTab) || null,
     [navTabs, activeTab],
   );
-  /** Registry tabs that are their own module render here; the sixteen legacy
-   *  panels below are still inline and unchanged. Today every entry is legacy,
-   *  so this is null on every tab - it is the seam Phase 2 writes into. */
+  /** Registry tabs that are their own module render here; the legacy panels
+   *  below are still inline and unchanged. Three tabs use this seam now:
+   *  Staff And Roles, Approvals (Phase 2) and Fleet Command (Phase 3). It is
+   *  null on every other tab, so exactly one panel renders. */
   const RegistryPanel = activeTabEntry ? panelComponentFor(activeTabEntry) : null;
 
   // ── Derived ──
@@ -3171,8 +3118,8 @@ export default function HorsesAdmin() {
    * the wrong one. `content_authors` also holds 39 social-only personas from
    * 2026-03-10 that carry no `profile_id`: they post, but they have no wallet,
    * no club membership and cannot be dealt a hand. Counting them as horses
-   * overstates the fleet, and the Grinder tab underneath reads "the same
-   * horses, second job" - a persona with no profile has no second job.
+   * overstates the fleet: a persona with no profile has no wallet, no seat and
+   * no second job.
    *
    * The roster LIST still shows everything, so a social-only persona stays
    * visible and manageable. Only the counts are narrowed to actual horses.
@@ -3184,48 +3131,6 @@ export default function HorsesAdmin() {
   const safePage = Math.min(page, totalPages - 1);
   const pagedPersonas = filteredPersonas.slice(safePage * HORSES_PER_PAGE, (safePage + 1) * HORSES_PER_PAGE);
   useEffect(() => { setPage(0); }, [searchTerm, filter]);
-
-  // ── Grinder roster: ONE page, and it is the route's ──
-  //
-  // `roster` is the paged envelope { rows, total, limit, offset, hasMore }; an
-  // older deploy answers with the bare array, which is read as a single page
-  // rather than as a total.
-  const grinderRoster = grinderData?.roster;
-  const grinderRosterRows = useMemo(() => (
-    Array.isArray(grinderRoster) ? grinderRoster : (grinderRoster?.rows || [])
-  ), [grinderRoster]);
-  const grinderRosterTotal = Array.isArray(grinderRoster)
-    ? grinderRoster.length
-    : (typeof grinderRoster?.total === 'number' ? grinderRoster.total : null);
-  const grinderRosterHasMore = Array.isArray(grinderRoster)
-    ? undefined
-    : (typeof grinderRoster?.hasMore === 'boolean' ? grinderRoster.hasMore : undefined);
-
-  // The display fields (name, alias, avatar, specialty, voice) live on
-  // content_authors, which this component already holds; the roster row from
-  // the route carries the play stats. Joined by id - one index rather than a
-  // `roster.find(...)` inside a map, which was ~26,000 comparisons on every
-  // keystroke anywhere in this component.
-  const personaById = useMemo(() => {
-    const map = new Map();
-    for (const p of personas) map.set(p.id, p);
-    return map;
-  }, [personas]);
-
-  // A PAGE-SCOPED filter, and the control says so. grinder-stats pages the
-  // roster and does not search it, so this narrows the rows on screen and
-  // nothing else; pretending otherwise is how the old cross-tab search box
-  // made row 51 unfindable while looking like a roster search.
-  const visibleGrinderRows = useMemo(() => {
-    const q = grinderSearch.trim().toLowerCase();
-    if (!q) return grinderRosterRows;
-    return grinderRosterRows.filter((r) => {
-      const p = personaById.get(r.horse_id) || {};
-      const name = String(r.name || p.name || '').toLowerCase();
-      const alias = String(r.alias || p.alias || '').toLowerCase();
-      return name.includes(q) || alias.includes(q);
-    });
-  }, [grinderRosterRows, grinderSearch, personaById]);
 
   // ── Bulk selection ──
   const allPagedSelected = pagedPersonas.length > 0 && pagedPersonas.every((p) => selectedIds.has(p.id));
@@ -3737,315 +3642,61 @@ export default function HorsesAdmin() {
             </div>
           )}
 
-          {/* ─────────────────────────── GRINDER HORSES ─────────────────────── */}
-          {activeTab === 'grinder' && (
-            <div className={styles.grinderView}>
-              <div className={styles.grinderHeader}>
-                <h2>Grinder Horses</h2>
-                <p className={styles.grinderSubtitle}>
-                  The Same Horses, Second Job: Playing Poker Across The Midway Union Clubs.
-                </p>
-              </div>
+          {/* ─────────────────────── FLEET COMMAND (PHASE 3) ───────────────────
+              The Grinder panel that used to be here is GONE, and Fleet Command
+              (src/components/horses/FleetPanel.jsx, code-split through the tab
+              registry's `load` thunk) is what renders in its place. It owns its
+              own data through /api/horses/fleet-admin.
 
-              {grinderError && (
-                <div className={styles.errorState}>
-                  <div>Grinder Stats Unavailable: {grinderError}</div>
-                  {/* Not bound bare: onClick would hand the React synthetic
-                      event to the loader as its offset. */}
-                  <button className={styles.actionBtn} onClick={() => loadGrinderData(grinderOffset)}>Retry</button>
-                </div>
-              )}
+              WHAT WAS REMOVED WITH IT, AND WHY THERE IS NOW ONE ANSWER PER
+              NUMBER. The old panel reported the fleet from two routes that
+              neither of them own it:
 
-              {/* `derivation` used to be returned as a sibling of `stats`, so
-                  this never rendered -- and it was an OBJECT, so if it ever
-                  had, React would have thrown. It is a string on stats now. */}
-              {grinderData?.derivationNote && (
-                <div className={styles.warnBanner}>{grinderData.derivationNote}</div>
-              )}
+                - /api/horses/grinder-stats gave Active Grinders, Currently
+                  Playing, Active Tables, Hands Played and Fleet Profit, plus a
+                  per-horse roster of hands and profit. Fleet Command reports
+                  the same five from the engine's own state mirror
+                  (ca_horse_fleet_state) on its Health section, the roster from
+                  the same table, and hands and profit on its P And L from the
+                  daily rows the platform already keeps.
+                - /api/club-arena/horse-launch, action status, gave Cash Tables
+                  Live, Horses Seated, Horses In The Fleet and Tournaments Live
+                  by counting profiles.horse_status and tables directly. Fleet
+                  Command's Capacity tiles count tables and table_seats through
+                  fn_ca_fleet_overview.
 
-              {/* These five are WHOLE-FLEET figures, computed server-side over
-                  every horse profile id (addendum item 12), which is why they
-                  do not move when the roster pager below does. Said out loud
-                  because a KPI row sitting on top of a paged table reads as a
-                  sum of that page until something says otherwise. */}
-              {grinderData?.totalsScope === 'fleet' && (
-                <p style={{ color: T.dim, fontSize: 12, margin: '0 0 8px' }}>
-                  Totals Below Cover The Whole Fleet, Not The Roster Page.
-                </p>
-              )}
-              {grinderData?.performanceTruncated && (
-                <div className={styles.warnBanner}>
-                  The Fleet ID Scan Hit Its Ceiling, So Hands Played And Fleet Profit Are A Floor
-                  Rather Than A Total.
-                </div>
-              )}
-              <div className={styles.grinderStats}>
-                <div className={styles.statBox}>
-                  {/* This used to render personas.length while the API returned
-                      its own, smaller, active-only count under the same label.
-                      No client-side fallback either: activeCount counts a
-                      different population, and quietly substituting it put two
-                      different numbers under one label. */}
-                  <span className={styles.statNumber}>{num(grinderData?.totalGrinders)}</span>
-                  <span className={styles.statLabel}>Active Grinders</span>
-                </div>
-                <div className={`${styles.statBox} ${styles.activeBox}`}>
-                  <span className={styles.statNumber}>{num(grinderData?.currentlyPlaying)}</span>
-                  <span className={styles.statLabel}>Currently Playing</span>
-                </div>
-                <div className={styles.statBox}>
-                  <span className={styles.statNumber}>{num(grinderData?.activeTables)}</span>
-                  <span className={styles.statLabel}>Active Tables</span>
-                </div>
-                <div className={styles.statBox}>
-                  <span className={styles.statNumber}>{num(grinderData?.totalHands)}</span>
-                  <span className={styles.statLabel}>Hands Played</span>
-                </div>
-                <div className={styles.statBox}>
-                  <span className={styles.statNumber}
-                    style={{ color: Number(grinderData?.totalProfit || 0) >= 0 ? T.accent : T.danger }}>
-                    {grinderData?.totalProfit === null || grinderData?.totalProfit === undefined
-                      ? '-' : signed(grinderData.totalProfit)}
-                  </span>
-                  <span className={styles.statLabel}>Fleet Profit</span>
-                </div>
-              </div>
+              Keeping either would have put two Horses Seated and two Tables
+              Live on one console, computed from different tables, differing
+              whenever the engine's mirror lagged - and an operator cannot act
+              on a number that has a second opinion. So the console reads the
+              fleet from fleet-admin and from nowhere else. Both routes still
+              work and are still tested; this page simply no longer calls them.
+              Fleet Command states loudly when the engine has never published a
+              heartbeat, which is the honest answer for that state and better
+              than a confident second reading from a source the engine does not
+              write.
 
-              <div className={styles.grinderControls}>
-                <h3>Fleet Status</h3>
-                <p style={{ color: T.dim, fontSize: 13, margin: '0 0 12px' }}>
-                  Fleet Seeding Is Owned By The Engine (HorseFleetManager). The Launch And
-                  Shutdown Buttons That Used To Be Here Were Retired In Phase 1: Each Press Of
-                  Launch Created 117 Duplicate Cash Tables With No Cleanup, And The Route Made
-                  Up To 1,500 Sequential Round Trips Inside One Serverless Invocation, So A
-                  Timeout Left The Database Half Written. Reading The Fleet Is Still Here.
-                </p>
-                <div className={styles.clubActions}>
-                  <button className={styles.actionBtn} onClick={loadFleetStatus} disabled={fleetStatusLoading}>
-                    {fleetStatusLoading ? 'Reading Fleet Status' : 'Refresh Fleet Status'}
-                  </button>
-                </div>
-                {/* THESE ARE THE FIELD NAMES THE STATUS BRANCH RETURNS.
-                    They used to be cashTables / horsesSeated / tournaments /
-                    timestamp - the shape of the RETIRED launch_all response -
-                    so every tile on this panel rendered a dash. The status
-                    branch returns totalHorses, seatedHorses, activeTables,
-                    activeTournaments and checkedAt (addendum item 13); the
-                    legacy aliases are kept by the route and read as a fallback
-                    so a stale deploy degrades instead of blanking. */}
-                {fleetStatus && (
-                  <>
-                    <div className={styles.kpiGrid} style={{ marginTop: 14 }}>
-                      <KpiTile
-                        label="Cash Tables Live"
-                        value={num(fleetStatus.activeTables ?? fleetStatus.cashTables)}
-                        tone="accent"
-                      />
-                      <KpiTile
-                        label="Horses Seated"
-                        value={num(fleetStatus.seatedHorses ?? fleetStatus.horsesSeated)}
-                        hint="Of The Whole Stable, Not Of This Page."
-                      />
-                      <KpiTile
-                        label="Horses In The Fleet"
-                        value={num(fleetStatus.totalHorses)}
-                      />
-                      <KpiTile
-                        label="Tournaments Live"
-                        value={num(fleetStatus.activeTournaments ?? fleetStatus.tournaments)}
-                      />
-                      <KpiTile
-                        label="Status Read At"
-                        value={when(fleetStatus.checkedAt ?? fleetStatus.timestamp, true)}
-                        hint="Straight From /api/club-arena/horse-launch, Action Status."
-                      />
-                    </div>
-                    {/* A fleet reading with a source missing is not a fleet
-                        reading. The route names what it could not read and the
-                        panel has to say so, or four confident tiles describe a
-                        fleet nobody actually counted. */}
-                    {(fleetStatus.failedSources || []).length > 0 && (
-                      <div className={styles.warnBanner} role="alert">
-                        This Reading Is Incomplete. These Sources Could Not Be Read:{' '}
-                        {(fleetStatus.failedSources || [])
-                          .map((f) => (typeof f === 'string' ? f : `${f.source}${f.requestId ? ` (request ${f.requestId})` : ''}`))
-                          .join('; ')}
-                      </div>
-                    )}
-                  </>
-                )}
+              The four grinder_* controls moved to the Settings tab, under
+              Grinder Horses: they are content_settings rows, not the fleet
+              policy, so Fleet Command does not supersede them and they are
+              labelled there to say which is which.
 
-                <h3 style={{ marginTop: 24 }}>Club Management</h3>
-                <NotBuiltYet
-                  items={[
-                    'Add All Horses To Shark Club',
-                    'Add All Horses To Club JAQK',
-                    'Start Auto-Join',
-                    'Stop All Horses',
-                  ]}
-                >
-                  These Four Actions Were Buttons That Could Never Be Pressed. They Are Listed
-                  Rather Than Rendered Disabled, Because A Greyed-Out Button Says The Feature
-                  Exists And You Simply Cannot Use It Right Now. It Does Not Exist:
-                  The Grinder Stats Route Answers 501 For Every One Of Them. Seating Horses
-                  And Granting Chips Is Real Money Movement And Will Not Be Implemented
-                  Speculatively.
-                </NotBuiltYet>
-              </div>
+              The panel's Club Management "Not Built Yet" list (Add All Horses
+              To Shark Club, Add All Horses To Club JAQK, Start Auto-Join, Stop
+              All Horses) went with the panel and is NOT reproduced anywhere.
+              Phase 1 listed those four honestly because grinder-stats answers
+              501 for them. Phase 3 answers the question they were waiting on:
+              seating horses and granting chips is not something this console
+              does, and PHASE3-CONTRACTS section 0 forbids inventing an
+              eviction or a funding control here at all. "Not built yet" would
+              now be the dishonest sentence, because it promises a later build.
+              What replaces it is on the panel itself, in the intro and on the
+              policy dialogs: the only lever is how many horses take seats, and
+              nothing here reaches inside a hand.
 
-              <div className={styles.grinderSettings}>
-                <h3>Grinder Settings</h3>
-                <div className={styles.settingsRow}>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-max-tables">Max Tables Per Horse</label>
-                    <select id="g-max-tables" value={settings.grinder_max_tables ?? 4}
-                      onChange={(e) => updateSetting('grinder_max_tables', parseInt(e.target.value, 10))}>
-                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'Table' : 'Tables'}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-hours">Daily Play Hours</label>
-                    <select id="g-hours" value={settings.grinder_daily_hours ?? 16}
-                      onChange={(e) => updateSetting('grinder_daily_hours', parseInt(e.target.value, 10))}>
-                      {[8, 12, 16, 24].map((n) => <option key={n} value={n}>{n} Hours</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-chips">Starting Chips</label>
-                    <input
-                      id="g-chips" type="number" min="1000" max="100000" step="500"
-                      value={settings.grinder_starting_chips ?? 10000}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (Number.isFinite(v)) updateSetting('grinder_starting_chips', v);
-                      }}
-                    />
-                  </div>
-                  <div className={styles.settingItem}>
-                    <label htmlFor="g-model">AI Model</label>
-                    <select id="g-model" value={settings.grinder_ai_model ?? 'gpt-4o'}
-                      onChange={(e) => updateSetting('grinder_ai_model', e.target.value)}>
-                      <option value="gpt-4o">GPT-4o (Best)</option>
-                      <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.grinderTable}>
-                <h3 className={styles.sectionTitle}>
-                  Horse Roster
-                  {/* The route's total, not the length of the page. */}
-                  <span className={styles.countPill}>{num(grinderRosterTotal)}</span>
-                  {/* PAGE-SCOPED, and the label says so. The roster is paged by
-                      the route; this box narrows the rows already on screen and
-                      cannot reach row 51. It used to be filtered and paged by
-                      the search box ON A DIFFERENT TAB, with no control here to
-                      explain it. */}
-                  <input
-                    type="search" value={grinderSearch}
-                    onChange={(e) => setGrinderSearch(e.target.value)}
-                    placeholder="Filter This Page" className={styles.searchInput}
-                    aria-label="Filter The Rows On This Page Of The Grinder Roster"
-                    style={{ marginLeft: 'auto', maxWidth: 240 }}
-                  />
-                </h3>
-                {grinderSearch.trim() && (
-                  <p style={{ color: T.dim, fontSize: 12, margin: '0 0 8px' }}>
-                    Filtering The {num(grinderRosterRows.length, '0')} Rows On This Page Only.
-                    Use The Pager To Reach The Rest Of The Roster.
-                  </p>
-                )}
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th scope="col">Horse</th><th scope="col">Specialty</th><th scope="col">Play Style</th>
-                        <th scope="col">Tables</th><th scope="col">Hands</th><th scope="col">Profit</th><th scope="col">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Driven by the ROUTE'S page. The stats row is the
-                          record; content_authors supplies the display fields
-                          the roster row does not carry. Nothing here slices a
-                          client-side list, so a row can no longer be a horse
-                          the response never mentioned. */}
-                      {visibleGrinderRows.map((stats) => {
-                        const persona = personaById.get(stats.horse_id) || {};
-                        const name = stats.name || persona.name || 'Unknown';
-                        const alias = stats.alias || persona.alias || 'no-alias';
-                        const avatarUrl = stats.avatar_url || persona.avatar_url;
-                        return (
-                          <tr key={stats.horse_id || persona.id}>
-                            <td>
-                              <div className={styles.horseCell}>
-                                {avatarUrl
-                                  ? <img src={avatarUrl} alt="" className={styles.tableCellAvatar} loading="lazy" />
-                                  : <span className={styles.avatarFallback} aria-hidden="true">{name.charAt(0).toUpperCase()}</span>}
-                                <div>
-                                  <strong>{name}</strong>
-                                  <small>@{alias}</small>
-                                </div>
-                              </div>
-                            </td>
-                            <td>{(stats.specialty || persona.specialty)?.replace(/_/g, ' ') || '-'}</td>
-                            <td><span className={styles.voiceTag}>{stats.voice || persona.voice || 'casual'}</span></td>
-                            <td>{num(stats.tables, '0')}/{num(settings.grinder_max_tables ?? 4)}</td>
-                            {/* hands and profit are null, not 0, when they cannot be derived. */}
-                            <td>{num(stats.hands)}</td>
-                            <td style={{
-                              fontWeight: 700,
-                              color: stats.profit === null || stats.profit === undefined
-                                ? T.dim : (Number(stats.profit) >= 0 ? T.accent : T.danger),
-                            }}>
-                              {stats.profit === null || stats.profit === undefined ? '-' : signed(stats.profit)}
-                            </td>
-                            <td>
-                              {/* THREE STATUSES, NOT TWO. grinder-stats emits
-                                  'playing' | 'idle' | 'unknown', and 'unknown'
-                                  is what it sends when the seat read did not
-                                  complete for the whole fleet. Folding it into
-                                  Idle reported a horse as off the tables on the
-                                  one run where nothing had actually looked. */}
-                              {stats.status === 'playing'
-                                ? <span className={styles.statusActive}>Playing</span>
-                                : stats.status === 'unknown'
-                                  ? <span className={styles.statusIdle} title="The Seat Read Did Not Complete For The Whole Fleet.">Unknown</span>
-                                  : <span className={styles.statusIdle}>Idle</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Loading and empty stay distinct here too. */}
-                {visibleGrinderRows.length === 0 && (
-                  <div className={grinderLoading ? styles.loadingSpinner : styles.emptyState}>
-                    {grinderLoading
-                      ? 'Loading The Roster'
-                      : grinderSearch.trim()
-                        ? 'No Rows On This Page Match That Filter.'
-                        : 'No Horses On This Page.'}
-                  </div>
-                )}
-                {/* The route's pager, on the route's own limit and offset. The
-                    client-side slice this replaces paged a list the response
-                    did not contain. */}
-                <Pager
-                  offset={grinderOffset}
-                  limit={GRINDER_ROSTER_PAGE_SIZE}
-                  count={grinderRosterRows.length}
-                  total={grinderRosterTotal}
-                  hasMore={grinderRosterHasMore}
-                  loading={grinderLoading}
-                  noun="Horses"
-                  onPrevious={() => goGrinderRosterPage(grinderOffset - GRINDER_ROSTER_PAGE_SIZE)}
-                  onNext={() => goGrinderRosterPage(grinderOffset + GRINDER_ROSTER_PAGE_SIZE)}
-                />
-              </div>
-            </div>
-          )}
+              The Pipeline tab's Not Built Yet panel stays, per the same
+              contract section: its trigger genuinely is unbuilt work waiting
+              for its own phase. */}
 
           {/* ─────────────────────────── PIPELINE ──────────────────────────── */}
           {activeTab === 'pipeline' && (
@@ -4173,6 +3824,54 @@ export default function HorsesAdmin() {
                       value={Math.round(Number(settings.temperature ?? 0.8) * 100)}
                       onChange={(e) => updateSetting('temperature', Number(e.target.value) / 100)}
                     />
+                  </div>
+                </div>
+
+                {/* MOVED HERE FROM THE GRINDER TAB IN PHASE 3, unchanged.
+                    These four are content_settings rows, which is a different
+                    thing from the fleet policy: Fleet Command edits
+                    ca_horse_fleet_policy through /api/horses/fleet-admin, and
+                    nothing on this card steers seating. They are labelled to
+                    say so, because two screens carrying a number called "max
+                    tables" is exactly the confusion Phase 3 set out to end. */}
+                <div className={styles.settingCard}>
+                  <h3>Grinder Horses</h3>
+                  <p style={{ color: T.dim, fontSize: 12, margin: '0 0 10px' }}>
+                    Content Settings, Not The Fleet Policy. The Caps, The Kill Switch And The
+                    Per-Club Quotas That Decide How Many Horses Take Seats Live On Fleet Command.
+                  </p>
+                  <div className={styles.settingItem}>
+                    <label htmlFor="g-max-tables">Max Tables Per Horse</label>
+                    <select id="g-max-tables" value={settings.grinder_max_tables ?? 4}
+                      onChange={(e) => updateSetting('grinder_max_tables', parseInt(e.target.value, 10))}>
+                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'Table' : 'Tables'}</option>)}
+                    </select>
+                  </div>
+                  <div className={styles.settingItem}>
+                    <label htmlFor="g-hours">Daily Play Hours</label>
+                    <select id="g-hours" value={settings.grinder_daily_hours ?? 16}
+                      onChange={(e) => updateSetting('grinder_daily_hours', parseInt(e.target.value, 10))}>
+                      {[8, 12, 16, 24].map((n) => <option key={n} value={n}>{n} Hours</option>)}
+                    </select>
+                  </div>
+                  <div className={styles.settingItem}>
+                    <label htmlFor="g-chips">Starting Chips</label>
+                    <input
+                      id="g-chips" type="number" min="1000" max="100000" step="500"
+                      value={settings.grinder_starting_chips ?? 10000}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (Number.isFinite(v)) updateSetting('grinder_starting_chips', v);
+                      }}
+                    />
+                  </div>
+                  <div className={styles.settingItem}>
+                    <label htmlFor="g-model">AI Model</label>
+                    <select id="g-model" value={settings.grinder_ai_model ?? 'gpt-4o'}
+                      onChange={(e) => updateSetting('grinder_ai_model', e.target.value)}>
+                      <option value="gpt-4o">GPT-4o (Best)</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                    </select>
                   </div>
                 </div>
 

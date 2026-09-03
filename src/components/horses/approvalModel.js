@@ -103,7 +103,14 @@ export function permissionForKind(kind) {
  * An unknown kind is NOT executable: "nothing moves here" is the safe way to
  * be wrong about a kind this console has not met.
  */
-export const EXECUTABLE_KINDS = ['mint', 'burn', 'fund_club'];
+/**
+ * The kinds /api/horses/operator-admin can carry out itself when an approval
+ * is approved. Mirrors EXECUTABLE_APPROVAL_KINDS in src/lib/horses/approvals.js
+ * member for member (a test compares the two), so the Approve dialog and the
+ * Run Again button never promise an execution the route cannot perform, and
+ * never withhold one it can. `fleet_policy` joined the list in Phase 3.
+ */
+export const EXECUTABLE_KINDS = ['mint', 'burn', 'fund_club', 'fleet_policy'];
 
 export function isExecutableKind(kind) {
   return EXECUTABLE_KINDS.includes(String(kind || '').toLowerCase());

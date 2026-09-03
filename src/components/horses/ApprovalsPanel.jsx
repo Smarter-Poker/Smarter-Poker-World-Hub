@@ -119,9 +119,16 @@ function canRunAgain(row, permissions) {
  * chips move from the Cashout screen. An operator who read "carried out" did
  * not go back to that screen, and the player was not paid.
  */
+const MONEY_KINDS = ['mint', 'burn', 'fund_club'];
+
 function approveSentence(kind) {
-  if (isExecutableKind(kind)) {
+  const k = String(kind || '').toLowerCase();
+  if (MONEY_KINDS.includes(k)) {
     return 'Approving Carries The Operation Out. It Is Executed Once And Only Once, Against The Operation ID This Request Already Holds.';
+  }
+  if (isExecutableKind(k)) {
+    // Executable, but nothing moves in a wallet: Phase 3's fleet policy.
+    return 'Approving Applies The Change. It Is Applied Once And Only Once, Against The Operation ID This Request Already Holds.';
   }
   if (String(kind || '').toLowerCase() === 'cashout') {
     return 'Approving Records Your Decision. The Cashout Itself Is Still Completed From The Cashout Screen, So No Chips Move Here.';

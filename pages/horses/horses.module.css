@@ -1200,133 +1200,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   GRINDER HORSES VIEW
+   Removed 2026-09-03 (Phase 3): the GRINDER HORSES VIEW block, eighteen rule
+   blocks whose classes lost their last reference when the Grinder panel was
+   replaced by Fleet Command.
+
+   .grinderView, .grinderSubtitle, .grinderHeader, .grinderStats,
+   .grinderControls, .clubActions, .grinderSettings, .settingsRow,
+   .grinderTable, .horseCell (and its five descendant rules), .statusIdle and
+   .statusActive. Fleet Command is src/components/horses/FleetPanel.jsx and is
+   styled by src/components/horses/shared.module.css, which is where every
+   panel that is its own module gets its rules. The four grinder_* settings
+   controls moved to the Settings tab and use .settingCard / .settingItem,
+   which that tab already had.
+
+   .tableCellAvatar (line ~606, outside that block) lost its last reference in
+   the same edit and is LEFT IN PLACE: it is a generic table-cell avatar rule,
+   not a grinder one, and it sits with the table rules it belongs to.
+
+   Verified the same way the 2026-08-26 removal below was: every `styles.X` in
+   pages/horses/index.js, hand-reviews.js, hg-moderation.js and sql-console.js
+   cross-referenced against every selector here, allowing for the nine looked
+   up dynamically (styles[notification.type] and styles[run.run_type]).
    ═══════════════════════════════════════════════════════════════════════════ */
-
-.grinderView h2 {
-    font-size: 24px;
-    margin-bottom: 8px;
-}
-
-.grinderSubtitle {
-    color: var(--text-muted);
-    font-size: 14px;
-    margin-bottom: 32px;
-}
-
-.grinderHeader {
-    margin-bottom: 24px;
-}
-
-.grinderStats {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
-}
-
-.grinderControls {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 24px;
-}
-
-.grinderControls h3 {
-    font-size: 16px;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.clubActions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.grinderSettings {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 24px;
-}
-
-.grinderSettings h3 {
-    font-size: 16px;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.settingsRow {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-    gap: 16px;
-}
-
-.grinderTable {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 24px;
-}
-
-.grinderTable h3 {
-    font-size: 16px;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.horseCell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.horseCell span {
-    font-size: 24px;
-}
-
-.horseCell div {
-    display: flex;
-    flex-direction: column;
-}
-
-.horseCell strong {
-    font-weight: 600;
-}
-
-.horseCell small {
-    font-size: 12px;
-    color: var(--accent);
-}
-
-.statusIdle {
-    background: var(--muted-soft);
-    color: var(--text-muted);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-@media (max-width: 768px) {
-    .grinderStats {
-        flex-direction: column;
-    }
-
-    .clubActions {
-        flex-direction: column;
-    }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MISSING CLASSES - added 2026-08-26 during the /horses deep audit.
@@ -1341,7 +1236,6 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .stableView,
-.grinderView,
 .pipelineView,
 .settingsView,
 .statsView {
@@ -1430,12 +1324,6 @@
 
 .table tbody tr:hover {
     background: var(--bg-hairline);
-}
-
-/* ─── Status pills ─── */
-.statusActive {
-    color: var(--positive);
-    font-weight: 700;
 }
 
 /* ─── Pipeline panel ───
@@ -2089,8 +1977,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
 
-    .stableStats,
-    .grinderStats {
+    .stableStats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
@@ -2109,11 +1996,6 @@
     .statBox .statLabel {
         font-size: 10px;
         letter-spacing: 0.2px;
-    }
-
-    /* The grinder row carries five boxes, not three. */
-    .grinderStats {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     /* The controls row stacked every control full width; the select and the

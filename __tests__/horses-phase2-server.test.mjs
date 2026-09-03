@@ -864,10 +864,20 @@ test('payloadFor: the executable kinds shape a real RPC call and the rest refuse
   assert.equal(isExecutableKind('mint'), true);
   assert.equal(isExecutableKind('burn'), true);
   assert.equal(isExecutableKind('fund_club'), true);
-  // cashout is decided here and carried out by the club-arena route; the other
-  // two are not wired to anything yet. None of them may be assembled into a
-  // money call from this console.
-  for (const kind of ['cashout', 'fleet_policy', 'sanction', 'teleport']) {
+  // UPDATED IN PHASE 3: `fleet_policy` is executable now. It is the first
+  // executable kind that moves NO money - an approved material fleet policy
+  // change re-drives fn_ca_fleet_set_policy under the approval's own op_id
+  // (PHASE3-CONTRACTS section 3) - and it is executable for the same reason
+  // mint is: a queue that can approve a change and then has no way to apply it
+  // is a control with no exit. Its executor is exercised in
+  // __tests__/horses-phase3-client.test.mjs.
+  assert.equal(isExecutableKind('fleet_policy'), true);
+  assert.equal(typeof payloadFor('fleet_policy'), 'function');
+
+  // cashout is decided here and carried out by the club-arena route, which owns
+  // the settlement lock, the MFA gate and the notifications; `sanction` is not
+  // wired to anything yet. Neither may be assembled into a call from here.
+  for (const kind of ['cashout', 'sanction', 'teleport']) {
     assert.equal(isExecutableKind(kind), false);
     assert.equal(payloadFor(kind), null, `${kind} must have no executor`);
   }

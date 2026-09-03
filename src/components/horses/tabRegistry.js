@@ -54,7 +54,21 @@
 export const TABS = [
   // The fleet: three views of the same horses, so one read permission.
   { id: 'stable', label: 'Social Horses', permission: 'fleet.read', legacy: true },
-  { id: 'grinder', label: 'Grinder Horses', permission: 'fleet.read', legacy: true },
+  // ── Phase 3. The Grinder tab BECAME Fleet Command ─────────────────────────
+  //
+  // Same slot in the bar, same read permission, its own module. The panel it
+  // replaces read /api/horses/grinder-stats and /api/club-arena/horse-launch;
+  // Fleet Command reads /api/horses/fleet-admin, which is the one route that
+  // answers "what is the fleet doing" now. Two panels reporting seated horses
+  // from two different tables is how a console starts disagreeing with itself.
+  //
+  // `aliases` keeps every /horses?tab=grinder bookmark working (see
+  // resolveTabFromQuery below). The id changed because the tab is not the
+  // grinder roster any more, and a bookmark is not a reason to keep a name
+  // that has stopped being true.
+  { id: 'fleet', label: 'Fleet Command', permission: 'fleet.read',
+    aliases: ['grinder'],
+    load: () => import('./FleetPanel') },
   { id: 'pipeline', label: 'Pipeline', permission: 'fleet.read', legacy: true },
   // The only tab whose view IS its write: there is no settings.read, and the
   // panel is the form.
@@ -133,18 +147,53 @@ export function findTab(id, tabs = TABS) {
 }
 
 /**
+ * A tab's retired ids, as a list.
+ *
+ * A tab that was RENAMED carries the id it used to answer to. Nothing else
+ * may: an alias is a promise that an old link still works, not a second name
+ * a new tab may invent for itself.
+ */
+export function aliasesOf(tab) {
+  return Array.isArray(tab?.aliases) ? tab.aliases.filter((a) => typeof a === 'string' && a) : [];
+}
+
+/**
+ * Find the tab that answers to a retired id, or null.
+ *
+ * A real id always wins: if some future tab is registered under an id that is
+ * also somebody's alias, the tab that OWNS the id gets it, because `findTab`
+ * runs first in `resolveTabFromQuery`.
+ */
+export function findTabByAlias(id, tabs = TABS) {
+  const wanted = String(id || '').trim();
+  if (!wanted) return null;
+  return visibleTabs(tabs).find((tab) => aliasesOf(tab).includes(wanted)) || null;
+}
+
+/**
  * Validate a ?tab= value against the registry.
  *
  * A URL is operator input: a stale bookmark, a hand-edited query string or a
  * tab that has since been renamed must land on the default, never on a blank
  * panel. Arrays (?tab=a&tab=b) take the first value, which is what Next's
  * router hands over.
+ *
+ * THE ALIAS STEP IS PHASE 3 (2026-09-03). `grinder` became `fleet`, and an
+ * operator's bookmark is not a thing this console is allowed to break: an
+ * unknown id resolves to the DEFAULT tab, so without this step every
+ * /horses?tab=grinder link would have quietly landed on Social Horses - the
+ * same silent relocation the Phase 1 deep-link blocker was about, arriving by
+ * a rename instead of by a permission. A retired id resolves to the tab that
+ * took it over; only an id nobody claims falls through to the default.
  */
 export function resolveTabFromQuery(value, tabs = TABS) {
   const raw = Array.isArray(value) ? value[0] : value;
   if (typeof raw !== 'string' || !raw) return DEFAULT_TAB;
-  const found = findTab(raw.trim(), tabs);
-  return found ? found.id : DEFAULT_TAB;
+  const wanted = raw.trim();
+  const found = findTab(wanted, tabs);
+  if (found) return found.id;
+  const aliased = findTabByAlias(wanted, tabs);
+  return aliased ? aliased.id : DEFAULT_TAB;
 }
 
 /** Same rule for the Club Arena ?section= value. */
