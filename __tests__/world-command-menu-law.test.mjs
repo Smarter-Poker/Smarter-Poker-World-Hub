@@ -21,24 +21,41 @@ const auditInventory = JSON.parse(
 );
 
 const EXPECTED_WORLDS = [
-  'personal-assistant', 'training', 'news', 'trivia', 'social-media',
-  'diamond-arena', 'my-clubs', 'video-library', 'odds-calculator',
-  'bankroll-manager', 'toke-tracker', 'preflop-charts', 'poker-near-me',
+  'personal-assistant',
+  'training',
+  'news',
+  'trivia',
+  'social-media',
+  'diamond-arena',
+  'my-clubs',
+  'video-library',
+  'odds-calculator',
+  'bankroll-manager',
+  'toke-tracker',
+  'preflop-charts',
+  'poker-near-me',
   'marketplace',
 ];
 
-const walk = (directory) => readdirSync(directory).flatMap((name) => {
-  const file = join(directory, name);
-  return statSync(file).isDirectory() ? walk(file) : [file];
-});
+const walk = (directory) =>
+  readdirSync(directory).flatMap((name) => {
+    const file = join(directory, name);
+    return statSync(file).isDirectory() ? walk(file) : [file];
+  });
 
-const isTitleCased = (value) => String(value).split(/\s+/).every((word) => {
-  const normalized = word.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
-  return !normalized || !/^[a-z]/.test(normalized);
-});
+const isTitleCased = (value) =>
+  String(value)
+    .split(/\s+/)
+    .every((word) => {
+      const normalized = word.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
+      return !normalized || !/^[a-z]/.test(normalized);
+    });
 
 test('all 14 World Hub families share one canonical command identity with the footer', () => {
-  assert.deepEqual(registry.worlds.map((world) => world.id), EXPECTED_WORLDS);
+  assert.deepEqual(
+    registry.worlds.map((world) => world.id),
+    EXPECTED_WORLDS
+  );
   assert.match(menuRegistrySource, /footerRegistry\.worlds\.map/);
   assert.match(menuRegistrySource, /primaryItems/);
   assert.match(menuRegistrySource, /resolveWorldMenu/);
@@ -62,12 +79,22 @@ test('all 14 World Hub families share one canonical command identity with the fo
 
 test('every family has a real adaptive menu configuration', () => {
   for (const menuKey of [
-    'personal-assistant', 'training', 'news', 'trivia', 'social',
-    'diamond-arena', 'my-clubs', 'video-library', 'odds-calculator',
-    'bankroll-manager', 'toke-tracker', 'preflop-charts', 'poker-near-me',
+    'personal-assistant',
+    'training',
+    'news',
+    'trivia',
+    'social',
+    'diamond-arena',
+    'my-clubs',
+    'video-library',
+    'odds-calculator',
+    'bankroll-manager',
+    'toke-tracker',
+    'preflop-charts',
+    'poker-near-me',
     'marketplace',
   ]) {
-    assert.match(menuSource, new RegExp(`^    '${menuKey}': `, 'm'));
+    assert.match(menuSource, new RegExp(`^\\s+'?${menuKey}'?: `, 'm'));
   }
   assert.match(menuSource, /worldPrimaryDeck/);
   assert.match(menuSource, /removePrimaryDuplicates/);
@@ -82,6 +109,7 @@ test('every family has a real adaptive menu configuration', () => {
   assert.match(drawerSource, /sp-menu-recents/);
   assert.match(drawerSource, /role="dialog"/);
   assert.match(drawerSource, /aria-modal="true"/);
+  assert.match(drawerSource, /data-world-primary-commands/);
   assert.match(drawerSource, /e\.key === 'Escape'/);
   assert.match(drawerSource, /minHeight: 44/);
 });
@@ -92,6 +120,7 @@ test('the command-grid trigger covers routes without duplicating an approved hea
   assert.match(headerSource, /data-world-menu-trigger="approved-header"/);
   assert.match(headerSource, /data-menu-symbol="command-grid"/);
   assert.match(headerSource, /flex: 0 0 auto;/);
+  assert.match(headerSource, /z-index: 10050;/);
   assert.match(headerSource, /resolvedHeaderWorld\?\.id === 'social-media'/);
   assert.match(headerSource, /onMenuClick && !ownsCanonicalMenu/);
   assert.match(socialSource, /canonical command menu is the only global navigation surface/);

@@ -13,34 +13,35 @@ const commander = readFileSync(
 );
 const appRoot = readFileSync(join(root, 'pages/_app.js'), 'utf8');
 
-const walk = (dir) => readdirSync(dir).flatMap((name) => {
-  const path = join(dir, name);
-  return statSync(path).isDirectory()
-    ? walk(path)
-    : /\.(js|jsx|tsx)$/.test(name)
-      ? [path]
-      : [];
-});
+const walk = (dir) =>
+  readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    return statSync(path).isDirectory() ? walk(path) : /\.(js|jsx|tsx)$/.test(name) ? [path] : [];
+  });
 
 const pageRoute = (file) => {
   const route = `/${relative(join(root, 'pages'), file)}`
-    .split(sep).join('/')
+    .split(sep)
+    .join('/')
     .replace(/\.(js|jsx|tsx)$/, '')
     .replace(/\/index$/, '');
   return route || '/';
 };
 
 const moduleExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-const sharedHeaderRender = /<(?:UniversalHeader|CommanderLayout|CommanderPageShell|DiscoveryLayout|HubLayout)\b/;
+const sharedHeaderRender =
+  /<(?:UniversalHeader|CommanderLayout|CommanderPageShell|DiscoveryLayout|HubLayout)\b/;
 
 const resolveRelativeModule = (fromFile, specifier) => {
   if (!specifier.startsWith('.')) return null;
   const base = resolve(dirname(fromFile), specifier);
-  return [
-    base,
-    ...moduleExtensions.map((extension) => `${base}${extension}`),
-    ...moduleExtensions.map((extension) => join(base, `index${extension}`)),
-  ].find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) || null;
+  return (
+    [
+      base,
+      ...moduleExtensions.map((extension) => `${base}${extension}`),
+      ...moduleExtensions.map((extension) => join(base, `index${extension}`)),
+    ].find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) || null
+  );
 };
 
 const moduleOwnsHeader = (entryFile, seen = new Set()) => {
@@ -49,9 +50,11 @@ const moduleOwnsHeader = (entryFile, seen = new Set()) => {
   const source = readFileSync(entryFile, 'utf8');
   if (sharedHeaderRender.test(source)) return true;
 
-  const imports = [...source.matchAll(
-    /(?:import\s+(?:[^'";]+?\s+from\s+)?|export\s+(?:\*|\{[^}]*\})\s+from\s+|import\s*\(|require\s*\()\s*['"]([^'"]+)['"]/g
-  )];
+  const imports = [
+    ...source.matchAll(
+      /(?:import\s+(?:[^'";]+?\s+from\s+)?|export\s+(?:\*|\{[^}]*\})\s+from\s+|import\s*\(|require\s*\()\s*['"]([^'"]+)['"]/g
+    ),
+  ];
   return imports.some((match) => {
     const dependency = resolveRelativeModule(entryFile, match[1]);
     return dependency ? moduleOwnsHeader(dependency, seen) : false;
@@ -84,8 +87,10 @@ test('World Hub header wires all approved controls and replaces the profile icon
   assert.match(header, /router\.push\('\/hub\/messenger'\)/);
   assert.match(header, /openOverlay\('notifications'\)/);
 
+  assert.match(header, /`Open \$\{resolvedHeaderWorld\.label\} Command Menu`/);
+  assert.match(header, /: 'Open Menu'/);
+
   for (const label of [
-    'Open Menu',
     'Go back',
     'Go to the Hub',
     'My Profile',
@@ -100,9 +105,18 @@ test('World Hub header wires all approved controls and replaces the profile icon
 
 test('World Hub hard-locks the live avatar as an oval inside the profile frame', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
-  assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
-  assert.match(header, /\.approved-global-header__avatar-slot\s*\{[\s\S]*?width: 58%;[\s\S]*?aspect-ratio: \.78;[\s\S]*?border-radius: 50%;/);
-  assert.match(header, /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/);
+  assert.match(
+    header,
+    /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/
+  );
+  assert.match(
+    header,
+    /\.approved-global-header__avatar-slot\s*\{[\s\S]*?width: 58%;[\s\S]*?aspect-ratio: \.78;[\s\S]*?border-radius: 50%;/
+  );
+  assert.match(
+    header,
+    /\.approved-global-header__avatar-slot > \.approved-global-header__avatar\s*\{[\s\S]*?inset: 0 !important;[\s\S]*?width: 100% !important;[\s\S]*?height: 100% !important;/
+  );
   assert.match(header, /contextAvatar\?\.imageUrl \|\| user\?\.avatar/);
 });
 

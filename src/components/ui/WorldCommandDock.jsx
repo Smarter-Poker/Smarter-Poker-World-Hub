@@ -25,12 +25,29 @@ export default function WorldCommandDock() {
     }
 
     let frame = 0;
+    let absenceTimer = 0;
     const inspect = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setHasHeaderTrigger(
-          Boolean(document.querySelector('[data-world-menu-trigger="approved-header"]'))
+        const approvedTrigger = document.querySelector(
+          '[data-world-menu-trigger="approved-header"]'
         );
+        if (approvedTrigger) {
+          window.clearTimeout(absenceTimer);
+          setHasHeaderTrigger(true);
+          return;
+        }
+
+        // Per-page headers remount during route hydration. Treat a short DOM
+        // absence as a transition, not proof that the page needs a fallback;
+        // otherwise both controls can coexist for a frame after the header
+        // returns. A truly headerless route still receives its dock promptly.
+        window.clearTimeout(absenceTimer);
+        absenceTimer = window.setTimeout(() => {
+          setHasHeaderTrigger(
+            Boolean(document.querySelector('[data-world-menu-trigger="approved-header"]'))
+          );
+        }, 120);
       });
     };
     inspect();
@@ -38,6 +55,7 @@ export default function WorldCommandDock() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(absenceTimer);
       observer.disconnect();
     };
   }, [world, router.pathname]);
@@ -63,7 +81,9 @@ export default function WorldCommandDock() {
           style={{ '--world-command-accent': world.accent }}
         >
           <span className="sp-world-command-trigger__nodes" aria-hidden="true">
-            {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            {Array.from({ length: 6 }, (_, index) => (
+              <i key={index} />
+            ))}
           </span>
           <span className="sp-world-command-trigger__copy">
             <small>World Command</small>
@@ -84,7 +104,9 @@ export default function WorldCommandDock() {
         />
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .sp-world-command-trigger {
           --world-command-accent: #2e9bff;
           position: fixed;
@@ -150,7 +172,9 @@ export default function WorldCommandDock() {
         @media (prefers-reduced-motion: reduce) {
           .sp-world-command-trigger { transition: none; }
         }
-      ` }} />
+      `,
+        }}
+      />
     </>
   );
 }

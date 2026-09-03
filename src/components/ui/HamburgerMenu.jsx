@@ -55,7 +55,11 @@ const lsGet = (key, fallback) => {
   }
 };
 const lsSet = (key, value) => {
-  try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* quota / private mode */ }
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (_) {
+    /* quota / private mode */
+  }
 };
 
 const ACTIONABLE = new Set(['navigation', 'action', 'toggle', 'grid']);
@@ -90,7 +94,14 @@ function collectLinkables(items) {
     if (item?.type === 'navigation' && item.href) out.push(item);
     if (item?.type === 'grid') {
       (item.items || []).forEach((g) => {
-        if (g?.href) out.push({ type: 'navigation', label: g.label, href: g.href, icon: g.icon, hardNav: g.hardNav });
+        if (g?.href)
+          out.push({
+            type: 'navigation',
+            label: g.label,
+            href: g.href,
+            icon: g.icon,
+            hardNav: g.hardNav,
+          });
       });
     }
   });
@@ -109,12 +120,12 @@ export default function HamburgerMenu({
   bottomLinks: providedBottomLinks = [],
   width = 320,
   shortcuts = null, // External shortcuts array: [{ id, name, avatar_url, href, isArena, page }]
-  menuKey = null,   // Optional stable key for persisting collapse/favourite state
+  menuKey = null, // Optional stable key for persisting collapse/favourite state
 }) {
   const router = useRouter();
   const activeWorld = useMemo(
     () => resolveWorldMenu(router?.asPath || router?.pathname || ''),
-    [router?.asPath, router?.pathname],
+    [router?.asPath, router?.pathname]
   );
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
@@ -145,24 +156,31 @@ export default function HamburgerMenu({
   // Latch: only mount the heavy in-drawer widgets once the menu has been opened.
   const [everOpened, setEverOpened] = useState(false);
 
-  useEffect(() => { setLocalUser(getAuthUser()); }, []);
-  useEffect(() => { if (isOpen) setEverOpened(true); }, [isOpen]);
+  useEffect(() => {
+    setLocalUser(getAuthUser());
+  }, []);
+  useEffect(() => {
+    if (isOpen) setEverOpened(true);
+  }, [isOpen]);
 
   const activeUser = user || localUser;
   const automaticConfig = useMemo(
     () => getMenuConfigForPath(router?.asPath || router?.pathname || '/', activeUser),
-    [router?.asPath, router?.pathname, activeUser],
+    [router?.asPath, router?.pathname, activeUser]
   );
   const usesAutomaticConfig = providedMenuItems.length === 0;
   const providedConfig = useMemo(
-    () => applyWorldMenuDeck(
-      { menuItems: providedMenuItems, bottomLinks: providedBottomLinks },
-      activeWorld
-    ),
+    () =>
+      applyWorldMenuDeck(
+        { menuItems: providedMenuItems, bottomLinks: providedBottomLinks },
+        activeWorld
+      ),
     [providedMenuItems, providedBottomLinks, activeWorld]
   );
   const menuItems = usesAutomaticConfig ? automaticConfig.menuItems : providedConfig.menuItems;
-  const bottomLinks = usesAutomaticConfig ? automaticConfig.bottomLinks : providedConfig.bottomLinks;
+  const bottomLinks = usesAutomaticConfig
+    ? automaticConfig.bottomLinks
+    : providedConfig.bottomLinks;
 
   // ── Persisted state ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -209,19 +227,33 @@ export default function HamburgerMenu({
     } catch (e) {
       console.warn('Signout warning:', e);
     } finally {
-      ['sp-social-user', 'sp-vip-status', 'smarter-poker-auth', 'sp-cached-header-user',
-        'sp-cached-settings-profile', 'sp-notif-count'].forEach((k) => {
-        try { localStorage.removeItem(k); } catch (_) {}
+      [
+        'sp-social-user',
+        'sp-vip-status',
+        'smarter-poker-auth',
+        'sp-cached-header-user',
+        'sp-cached-settings-profile',
+        'sp-notif-count',
+      ].forEach((k) => {
+        try {
+          localStorage.removeItem(k);
+        } catch (_) {}
       });
       // window.top throws a SecurityError inside a cross-origin iframe.
-      try { window.top.location.href = '/'; } catch (_) { window.location.href = '/'; }
+      try {
+        window.top.location.href = '/';
+      } catch (_) {
+        window.location.href = '/';
+      }
     }
   }, []);
 
   // ── Close on ESC ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return undefined;
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
@@ -230,13 +262,19 @@ export default function HamburgerMenu({
   useEffect(() => {
     if (isOpen) {
       restoreFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
-      const t = setTimeout(() => { try { closeBtnRef.current?.focus(); } catch (_) {} }, 60);
+      const t = setTimeout(() => {
+        try {
+          closeBtnRef.current?.focus();
+        } catch (_) {}
+      }, 60);
       return () => clearTimeout(t);
     }
     const prev = restoreFocusRef.current;
     restoreFocusRef.current = null;
     if (prev && typeof prev.focus === 'function') {
-      try { prev.focus(); } catch (_) {}
+      try {
+        prev.focus();
+      } catch (_) {}
     }
     setQuery('');
     setEditFavs(false);
@@ -245,19 +283,28 @@ export default function HamburgerMenu({
 
   const trapTab = useCallback((e) => {
     if (e.key !== 'Tab' || !drawerRef.current) return;
-    const nodes = Array.from(drawerRef.current.querySelectorAll(FOCUSABLE))
-      .filter((n) => n.offsetParent !== null || n === document.activeElement);
+    const nodes = Array.from(drawerRef.current.querySelectorAll(FOCUSABLE)).filter(
+      (n) => n.offsetParent !== null || n === document.activeElement
+    );
     if (!nodes.length) return;
     const first = nodes[0];
     const last = nodes[nodes.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }, []);
 
   // ── Swipe-to-close (axis aware, ignores horizontal scrollers) ─────────────
   const touchStartRef = useRef(null);
   const handleTouchStart = (e) => {
-    if (e.target?.closest?.('[data-hscroll]')) { touchStartRef.current = null; return; }
+    if (e.target?.closest?.('[data-hscroll]')) {
+      touchStartRef.current = null;
+      return;
+    }
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
   };
@@ -303,26 +350,46 @@ export default function HamburgerMenu({
   const colors = useMemo(() => {
     if (theme === 'light' || isFacebookMenu) {
       return {
-        bg: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1',
-        blue: worldAccent, blueHover: activeWorld?.menuPalette?.accentPressed || '#166FE5',
-        cardBg: '#F0F2F5', hoverBg: '#E7F3FF',
-        tileBg: '#FFFFFF', inputBg: '#F0F2F5', danger: '#D93025',
+        bg: '#FFFFFF',
+        text: '#050505',
+        textSec: '#65676B',
+        border: '#DADDE1',
+        blue: worldAccent,
+        blueHover: activeWorld?.menuPalette?.accentPressed || '#166FE5',
+        cardBg: '#F0F2F5',
+        hoverBg: '#E7F3FF',
+        tileBg: '#FFFFFF',
+        inputBg: '#F0F2F5',
+        danger: '#D93025',
       };
     }
     if (theme === 'pa') {
       return {
-        bg: T.bg, text: T.text, textSec: T.textMuted, border: T.border,
-        blue: T.accent, blueHover: T.accentPress, cardBg: T.surface,
-        hoverBg: 'rgba(69,153,255,0.12)', tileBg: T.surface, inputBg: T.surface2,
+        bg: T.bg,
+        text: T.text,
+        textSec: T.textMuted,
+        border: T.border,
+        blue: T.accent,
+        blueHover: T.accentPress,
+        cardBg: T.surface,
+        hoverBg: 'rgba(69,153,255,0.12)',
+        tileBg: T.surface,
+        inputBg: T.surface2,
         danger: T.danger,
       };
     }
     return {
-      bg: '#03070b', text: '#edf4fb',
-      textSec: '#8b9aaa', border: 'rgba(174, 194, 212, 0.24)', blue: worldAccent,
-      blueHover: worldAccent, cardBg: 'rgba(12, 19, 26, 0.96)',
-      hoverBg: `${worldAccent}18`, tileBg: 'linear-gradient(145deg, rgba(25, 34, 43, 0.96), rgba(4, 8, 12, 0.98))',
-      inputBg: 'rgba(2, 6, 10, 0.94)', danger: '#ff697f',
+      bg: '#03070b',
+      text: '#edf4fb',
+      textSec: '#8b9aaa',
+      border: 'rgba(174, 194, 212, 0.24)',
+      blue: worldAccent,
+      blueHover: worldAccent,
+      cardBg: 'rgba(12, 19, 26, 0.96)',
+      hoverBg: `${worldAccent}18`,
+      tileBg: 'linear-gradient(145deg, rgba(25, 34, 43, 0.96), rgba(4, 8, 12, 0.98))',
+      inputBg: 'rgba(2, 6, 10, 0.94)',
+      danger: '#ff697f',
     };
   }, [theme, worldAccent, isFacebookMenu, activeWorld?.menuPalette?.accentPressed]);
 
@@ -335,23 +402,29 @@ export default function HamburgerMenu({
   const currentPath = router?.asPath || '';
 
   const groupHasActiveRoute = useCallback(
-    (group) => group.items.some(({ item }) => item?.href && currentPath.split('?')[0] === item.href.split('?')[0]),
-    [currentPath],
+    (group) =>
+      group.items.some(
+        ({ item }) => item?.href && currentPath.split('?')[0] === item.href.split('?')[0]
+      ),
+    [currentPath]
   );
 
-  const isCollapsed = useCallback((group, groupIdx) => {
-    if (!group.label) return false;
-    if (Object.prototype.hasOwnProperty.call(collapseOverrides, group.label)) {
-      return !!collapseOverrides[group.label];
-    }
-    if (!autoCollapse) return false;
-    // Long menus (>20 rows) open with only the first two sections expanded so
-    // the drawer is scannable on a 667px screen; everything else is one tap or
-    // one search away, and the choice persists per menu.
-    const firstLabeled = groups.findIndex((g) => g.label);
-    if (firstLabeled >= 0 && groupIdx <= firstLabeled + 1) return false;
-    return !groupHasActiveRoute(group);
-  }, [collapseOverrides, autoCollapse, groups, groupHasActiveRoute]);
+  const isCollapsed = useCallback(
+    (group, groupIdx) => {
+      if (!group.label) return false;
+      if (Object.prototype.hasOwnProperty.call(collapseOverrides, group.label)) {
+        return !!collapseOverrides[group.label];
+      }
+      if (!autoCollapse) return false;
+      // Long menus (>20 rows) open with only the first two sections expanded so
+      // the drawer is scannable on a 667px screen; everything else is one tap or
+      // one search away, and the choice persists per menu.
+      const firstLabeled = groups.findIndex((g) => g.label);
+      if (firstLabeled >= 0 && groupIdx <= firstLabeled + 1) return false;
+      return !groupHasActiveRoute(group);
+    },
+    [collapseOverrides, autoCollapse, groups, groupHasActiveRoute]
+  );
 
   const toggleSection = (label) => {
     setCollapseOverrides((prev) => {
@@ -377,8 +450,10 @@ export default function HamburgerMenu({
     if (!item?.href) return;
     const entry = { href: item.href, label: labelOf(item) };
     if (!entry.label) return;
-    const next = [entry, ...(lsGet('sp-menu-recents', []) || []).filter((r) => r?.href !== entry.href)]
-      .slice(0, 5);
+    const next = [
+      entry,
+      ...(lsGet('sp-menu-recents', []) || []).filter((r) => r?.href !== entry.href),
+    ].slice(0, 5);
     lsSet('sp-menu-recents', next);
     setRecents(next);
   }, []);
@@ -392,7 +467,14 @@ export default function HamburgerMenu({
         (item.items || []).forEach((g, gi) => {
           if (`${labelOf(g)} ${g?.description || ''}`.toLowerCase().includes(q)) {
             out.push({
-              item: { type: g.href ? 'navigation' : 'action', label: g.label, href: g.href, icon: g.icon, onClick: g.onClick, hardNav: g.hardNav },
+              item: {
+                type: g.href ? 'navigation' : 'action',
+                label: g.label,
+                href: g.href,
+                icon: g.icon,
+                onClick: g.onClick,
+                hardNav: g.hardNav,
+              },
               index: `g-${index}-${gi}`,
             });
           }
@@ -400,31 +482,30 @@ export default function HamburgerMenu({
         return;
       }
       if (!ACTIONABLE.has(item?.type)) return;
-      if (`${labelOf(item)} ${item?.description || ''}`.toLowerCase().includes(q)) out.push({ item, index });
+      if (`${labelOf(item)} ${item?.description || ''}`.toLowerCase().includes(q))
+        out.push({ item, index });
     });
     return out;
   }, [query, menuItems]);
 
   const favItems = useMemo(
     () => favs.map((href) => linkables.find((l) => l.href === href)).filter(Boolean),
-    [favs, linkables],
+    [favs, linkables]
   );
 
   const recentItems = useMemo(
-    () => (recents || [])
-      .filter((r) => r?.href && r.href.split('?')[0] !== currentPath.split('?')[0])
-      .slice(0, 4),
-    [recents, currentPath],
+    () =>
+      (recents || [])
+        .filter((r) => r?.href && r.href.split('?')[0] !== currentPath.split('?')[0])
+        .slice(0, 4),
+    [recents, currentPath]
   );
 
   // Offline is ADVISORY, not a lock. This is an installed PWA: the service
   // worker serves cached routes, so hard-disabling every link offline made the
   // whole menu dead. Destinations that genuinely need the network opt in with
   // `requiresNetwork: true` and only those are blocked.
-  const isBlockedOffline = useCallback(
-    (item) => !online && !!item?.requiresNetwork,
-    [online],
-  );
+  const isBlockedOffline = useCallback((item) => !online && !!item?.requiresNetwork, [online]);
 
   // ── Row renderers ─────────────────────────────────────────────────────────
   const rowBase = {
@@ -454,14 +535,30 @@ export default function HamburgerMenu({
         {/* Reserve the icon slot so every label shares one left edge */}
         <span
           aria-hidden="true"
-          style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.danger ? colors.danger : 'inherit' }}
+          style={{
+            width: 24,
+            height: 24,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: item.danger ? colors.danger : 'inherit',
+          }}
         >
           {item.icon || null}
         </span>
         <span className="sp-menu-row-copy" style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{item.label}</span>
           {item.description ? (
-            <span style={{ display: 'block', marginTop: 3, color: colors.textSec, fontSize: 11, lineHeight: 1.3 }}>
+            <span
+              style={{
+                display: 'block',
+                marginTop: 3,
+                color: colors.textSec,
+                fontSize: 11,
+                lineHeight: 1.3,
+              }}
+            >
               {item.description}
             </span>
           ) : null}
@@ -469,10 +566,18 @@ export default function HamburgerMenu({
         {item.badge ? (
           <span
             style={{
-              background: colors.blue, color: '#fff', borderRadius: 10,
-              minWidth: 20, height: 20, padding: '0 6px',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, flexShrink: 0,
+              background: colors.blue,
+              color: '#fff',
+              borderRadius: 10,
+              minWidth: 20,
+              height: 20,
+              padding: '0 6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              fontWeight: 700,
+              flexShrink: 0,
             }}
           >
             {Number(item.badge) > 99 ? '99+' : item.badge}
@@ -496,7 +601,9 @@ export default function HamburgerMenu({
       color: item.danger ? colors.danger : colors.text,
       background: isCurrent && !editFavs ? colors.hoverBg : 'transparent',
       opacity: disabled ? 0.45 : 1,
-      ...(item.danger ? { marginTop: 8, borderTop: `1px solid ${colors.border}`, borderRadius: 0, paddingTop: 16 } : null),
+      ...(item.danger
+        ? { marginTop: 8, borderTop: `1px solid ${colors.border}`, borderRadius: 0, paddingTop: 16 }
+        : null),
     };
 
     const onActivate = (e) => {
@@ -505,7 +612,10 @@ export default function HamburgerMenu({
         toggleFav(item.href);
         return;
       }
-      if (disabled) { e.preventDefault(); return; }
+      if (disabled) {
+        e.preventDefault();
+        return;
+      }
       if (item.onClick) item.onClick();
       rememberRecent(item);
       onClose?.();
@@ -516,25 +626,49 @@ export default function HamburgerMenu({
       'aria-disabled': disabled ? 'true' : undefined,
       'aria-label': editFavs
         ? `${pinned ? 'Unpin' : 'Pin'} ${item.label}`
-        : (item.badge ? `${item.label}, ${item.badge} new` : undefined),
+        : item.badge
+          ? `${item.label}, ${item.badge} new`
+          : undefined,
     };
 
     if (editFavs) {
       return (
-        <button key={key} type="button" className="sp-menu-row" style={style} onClick={onActivate} {...aria}>
+        <button
+          key={key}
+          type="button"
+          className="sp-menu-row"
+          style={style}
+          onClick={onActivate}
+          {...aria}
+        >
           {content}
         </button>
       );
     }
     if (needsHardNav(item)) {
       return (
-        <a key={key} href={item.href} className="sp-menu-row" style={style} onClick={onActivate} {...aria}>
+        <a
+          key={key}
+          href={item.href}
+          className="sp-menu-row"
+          style={style}
+          onClick={onActivate}
+          {...aria}
+        >
           {content}
         </a>
       );
     }
     return (
-      <Link key={key} href={item.href} prefetch={false} className="sp-menu-row" style={style} onClick={onActivate} {...aria}>
+      <Link
+        key={key}
+        href={item.href}
+        prefetch={false}
+        className="sp-menu-row"
+        style={style}
+        onClick={onActivate}
+        {...aria}
+      >
         {content}
       </Link>
     );
@@ -547,7 +681,9 @@ export default function HamburgerMenu({
         return renderNavigation(item, key);
 
       case 'toggle': {
-        const hintId = item.hint ? `sp-hint-${String(key).replace(/[^a-zA-Z0-9]/g, '')}` : undefined;
+        const hintId = item.hint
+          ? `sp-hint-${String(key).replace(/[^a-zA-Z0-9]/g, '')}`
+          : undefined;
         return (
           <button
             key={key}
@@ -560,10 +696,22 @@ export default function HamburgerMenu({
             onClick={() => item.onChange && item.onChange(!item.checked)}
             style={{ ...rowBase, color: colors.text, alignItems: 'center' }}
           >
-            <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 24,
+                height: 24,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               {item.icon || null}
             </span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span
+              style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
               <span style={{ fontSize: 15, fontWeight: 500 }}>{item.label}</span>
               {item.hint ? (
                 <span id={hintId} style={{ fontSize: 12, lineHeight: 1.35, color: colors.textSec }}>
@@ -574,15 +722,24 @@ export default function HamburgerMenu({
             <span
               aria-hidden="true"
               style={{
-                width: 52, height: 28, borderRadius: 999, padding: 2, flexShrink: 0,
+                width: 52,
+                height: 28,
+                borderRadius: 999,
+                padding: 2,
+                flexShrink: 0,
                 backgroundColor: item.checked ? '#22C55E' : '#64748b',
                 transition: reduceMotion ? 'none' : 'background-color .2s ease',
-                display: 'flex', alignItems: 'center', boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box',
               }}
             >
               <span
                 style={{
-                  width: 24, height: 24, borderRadius: '50%', backgroundColor: '#fff',
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  backgroundColor: '#fff',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                   transform: item.checked ? 'translateX(24px)' : 'translateX(0)',
                   transition: reduceMotion ? 'none' : 'transform .2s ease',
@@ -617,31 +774,49 @@ export default function HamburgerMenu({
               ...rowBase,
               padding: isFlat ? '10px 0' : '8px 16px',
               background: item.primary ? colors.blue : 'transparent',
-              border: item.primary || isFlat ? '1px solid transparent' : `1px solid ${colors.border}`,
+              border:
+                item.primary || isFlat ? '1px solid transparent' : `1px solid ${colors.border}`,
               borderRadius: isFlat ? 0 : 8,
               color: item.primary ? '#fff' : colors.text,
               opacity: isStub ? 0.45 : 1,
               cursor: isStub ? 'not-allowed' : 'pointer',
             }}
           >
-            <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 24,
+                height: 24,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               {item.icon || null}
             </span>
-            <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontWeight: 500 }}>{item.label}</span>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontWeight: 500 }}>
+              {item.label}
+            </span>
             {isStub ? (
-              <span style={{ fontSize: 12, color: colors.textSec, flexShrink: 0 }}>Unavailable</span>
+              <span style={{ fontSize: 12, color: colors.textSec, flexShrink: 0 }}>
+                Unavailable
+              </span>
             ) : null}
           </button>
         );
       }
 
       case 'divider':
-        return <div key={key} style={{ height: 1, background: colors.border, margin: '12px 16px' }} />;
+        return (
+          <div key={key} style={{ height: 1, background: colors.border, margin: '12px 16px' }} />
+        );
 
       case 'grid':
         return (
           <div
             key={key}
+            data-world-primary-commands={item.worldPrimary ? activeWorld?.id : undefined}
             style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${item.columns || 2}, minmax(0, 1fr))`,
@@ -652,26 +827,64 @@ export default function HamburgerMenu({
           >
             {(item.items || []).map((gridItem, gridIndex) => {
               const tileStyle = {
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                justifyContent: 'center', gap: 6,
-                minHeight: 84, padding: '12px 11px', minWidth: 0,
-                background: colors.tileBg, borderRadius: 3, textDecoration: 'none',
-                border: `1px solid ${colors.border}`, color: colors.text,
-                fontSize: 14, fontWeight: 600, textAlign: 'left', cursor: 'pointer',
-                boxSizing: 'border-box', fontFamily: 'inherit',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                gap: 6,
+                minHeight: 84,
+                padding: '12px 11px',
+                minWidth: 0,
+                background: colors.tileBg,
+                borderRadius: 3,
+                textDecoration: 'none',
+                border: `1px solid ${colors.border}`,
+                color: colors.text,
+                fontSize: 14,
+                fontWeight: 600,
+                textAlign: 'left',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
               };
               const iconSlot = gridItem.icon ? (
-                <span aria-hidden="true" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   {gridItem.icon}
                 </span>
               ) : null;
               const labelSlot = (
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: colors.text, lineHeight: 1.2, overflowWrap: 'anywhere' }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: colors.text,
+                      lineHeight: 1.2,
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
                     {gridItem.label}
                   </span>
                   {gridItem.description ? (
-                    <span style={{ display: 'block', marginTop: 4, color: colors.textSec, fontSize: 10, lineHeight: 1.25 }}>
+                    <span
+                      style={{
+                        display: 'block',
+                        marginTop: 4,
+                        color: colors.textSec,
+                        fontSize: 10,
+                        lineHeight: 1.25,
+                      }}
+                    >
                       {gridItem.description}
                     </span>
                   ) : null}
@@ -692,7 +905,11 @@ export default function HamburgerMenu({
                       gridItem.onClick();
                       onClose?.();
                     }}
-                    style={{ ...tileStyle, opacity: stub ? 0.45 : 1, cursor: stub ? 'not-allowed' : 'pointer' }}
+                    style={{
+                      ...tileStyle,
+                      opacity: stub ? 0.45 : 1,
+                      cursor: stub ? 'not-allowed' : 'pointer',
+                    }}
                   >
                     {iconSlot}
                     {labelSlot}
@@ -702,14 +919,24 @@ export default function HamburgerMenu({
 
               const tileBlocked = isBlockedOffline(gridItem);
               const onTile = (e) => {
-                if (tileBlocked) { e.preventDefault(); return; }
+                if (tileBlocked) {
+                  e.preventDefault();
+                  return;
+                }
                 if (gridItem.onClick) gridItem.onClick();
                 rememberRecent(gridItem);
                 onClose?.();
               };
               if (needsHardNav(gridItem)) {
                 return (
-                  <a key={gridIndex} href={gridItem.href} className="sp-grid-tile" style={{ ...tileStyle, opacity: tileBlocked ? 0.45 : 1 }} onClick={onTile} aria-disabled={tileBlocked ? 'true' : undefined}>
+                  <a
+                    key={gridIndex}
+                    href={gridItem.href}
+                    className="sp-grid-tile"
+                    style={{ ...tileStyle, opacity: tileBlocked ? 0.45 : 1 }}
+                    onClick={onTile}
+                    aria-disabled={tileBlocked ? 'true' : undefined}
+                  >
                     {iconSlot}
                     {labelSlot}
                   </a>
@@ -742,8 +969,14 @@ export default function HamburgerMenu({
     <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
       <span
         style={{
-          fontSize: 13, fontWeight: 700, color: colors.textSec, margin: 0,
-          textTransform: 'uppercase', letterSpacing: '0.6px', flex: 1, minWidth: 0,
+          fontSize: 13,
+          fontWeight: 700,
+          color: colors.textSec,
+          margin: 0,
+          textTransform: 'uppercase',
+          letterSpacing: '0.6px',
+          flex: 1,
+          minWidth: 0,
         }}
       >
         {label}
@@ -756,7 +989,7 @@ export default function HamburgerMenu({
   const finalLinks = useMemo(() => {
     const links = [...(bottomLinks || [])];
     const hasSignOut = [...links, ...(menuItems || [])].some(
-      (i) => matchesId(i, 'sign-out') || looksLikeSignOut(i),
+      (i) => matchesId(i, 'sign-out') || looksLikeSignOut(i)
     );
     if (!hasSignOut) {
       links.push({
@@ -765,7 +998,17 @@ export default function HamburgerMenu({
         action: true,
         onClick: handleLogout,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
@@ -784,10 +1027,10 @@ export default function HamburgerMenu({
       avatar_url: p.avatar_url,
       href:
         p.page_type === 'home_game'
-          // audit 2026-08-14: `p.slug || p.id` pushed a social_pages.id into
-          // the slug-only route — a 404. homeGamePageUrl falls back to
-          // /hub/social-pages/<id>, which SSR-resolves and redirects.
-          ? homeGamePageUrl(p)
+          ? // audit 2026-08-14: `p.slug || p.id` pushed a social_pages.id into
+            // the slug-only route — a 404. homeGamePageUrl falls back to
+            // /hub/social-pages/<id>, which SSR-resolves and redirects.
+            homeGamePageUrl(p)
           : p.page_type === 'club'
             ? '/hub/commander'
             : `/hub/social-pages/${p.id}`,
@@ -806,7 +1049,9 @@ export default function HamburgerMenu({
         aria-hidden="true"
         className="sp-command-backdrop"
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0, 2, 5, 0.86)',
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 2, 5, 0.86)',
           zIndex: 10099,
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
@@ -867,10 +1112,21 @@ export default function HamburgerMenu({
       >
         {/* World command identity and utilities. The symbol is a six-node
             command grid. Horizontal menu bars are prohibited by design. */}
-        <div className="sp-command-utility-rail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px 9px' }}>
+        <div
+          className="sp-command-utility-rail"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 12px 9px',
+          }}
+        >
           <div className="sp-command-brand">
             <span className="sp-command-grid-mark" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+              {Array.from({ length: 6 }, (_, index) => (
+                <i key={index} />
+              ))}
             </span>
             <span>
               <span className="sp-command-eyebrow">World Command</span>
@@ -878,43 +1134,69 @@ export default function HamburgerMenu({
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <button
-            type="button"
-            className="sp-icon-btn"
-            onClick={() => setEditFavs((v) => !v)}
-            aria-pressed={editFavs}
-            aria-label={editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'}
-            style={{
-              width: 44, height: 44, borderRadius: 3, border: `1px solid ${colors.border}`, padding: 0,
-              background: editFavs ? colors.blue : ((theme === 'light' || isFacebookMenu) ? '#f0f0f0' : 'rgba(255,255,255,0.1)'),
-              color: editFavs ? '#fff' : colors.text,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
-            {editFavs ? <Star size={18} aria-hidden="true" /> : <Pencil size={18} aria-hidden="true" />}
-          </button>
-          <button
-            ref={closeBtnRef}
-            type="button"
-            className="sp-icon-btn"
-            onClick={onClose}
-            aria-label="Close menu"
-            style={{
-              width: 72, height: 44, borderRadius: 3, border: `1px solid ${colors.border}`, padding: 0,
-              background: (theme === 'light' || isFacebookMenu) ? '#f0f0f0' : 'rgba(255, 255, 255, 0.1)',
-              color: colors.text,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
-            <X size={18} aria-hidden="true" />
-            <span className="sp-command-close-label">Close</span>
-          </button>
+            <button
+              type="button"
+              className="sp-icon-btn"
+              onClick={() => setEditFavs((v) => !v)}
+              aria-pressed={editFavs}
+              aria-label={editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 3,
+                border: `1px solid ${colors.border}`,
+                padding: 0,
+                background: editFavs
+                  ? colors.blue
+                  : theme === 'light' || isFacebookMenu
+                    ? '#f0f0f0'
+                    : 'rgba(255,255,255,0.1)',
+                color: editFavs ? '#fff' : colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              {editFavs ? (
+                <Star size={18} aria-hidden="true" />
+              ) : (
+                <Pencil size={18} aria-hidden="true" />
+              )}
+            </button>
+            <button
+              ref={closeBtnRef}
+              type="button"
+              className="sp-icon-btn"
+              onClick={onClose}
+              aria-label="Close menu"
+              style={{
+                width: 72,
+                height: 44,
+                borderRadius: 3,
+                border: `1px solid ${colors.border}`,
+                padding: 0,
+                background:
+                  theme === 'light' || isFacebookMenu ? '#f0f0f0' : 'rgba(255, 255, 255, 0.1)',
+                color: colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} aria-hidden="true" />
+              <span className="sp-command-close-label">Close</span>
+            </button>
           </div>
         </div>
 
         {activeWorld ? (
           <div className="sp-command-context" style={{ '--world-accent': worldAccent }}>
-            <span className="sp-command-status"><i aria-hidden="true" />{online ? 'Connected' : 'Offline Cache'}</span>
+            <span className="sp-command-status">
+              <i aria-hidden="true" />
+              {online ? 'Connected' : 'Offline Cache'}
+            </span>
             <p>{activeWorld.purpose}</p>
           </div>
         ) : null}
@@ -924,21 +1206,44 @@ export default function HamburgerMenu({
           <div
             role="status"
             style={{
-              margin: '0 16px 12px', padding: '10px 12px', borderRadius: 8,
-              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
-              color: colors.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
+              margin: '0 16px 12px',
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: 'rgba(239,68,68,0.15)',
+              border: '1px solid rgba(239,68,68,0.4)',
+              color: colors.text,
+              fontSize: 13,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
             }}
           >
             <WifiOff size={18} aria-hidden="true" color={colors.danger} />
-            <span style={{ minWidth: 0 }}>You are offline. Cached pages still open — anything that needs the network will wait.</span>
+            <span style={{ minWidth: 0 }}>
+              You are offline. Cached pages still open — anything that needs the network will wait.
+            </span>
           </div>
         )}
 
         {/* Search */}
         {showSearch && (
-          <div className="sp-command-search" style={{ padding: '0 14px 12px', position: 'sticky', top: 0, zIndex: 4, background: colors.bg }}>
+          <div
+            className="sp-command-search"
+            style={{
+              padding: '0 14px 12px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 4,
+              background: colors.bg,
+            }}
+          >
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={18} aria-hidden="true" color={colors.textSec} style={{ position: 'absolute', left: 12 }} />
+              <Search
+                size={18}
+                aria-hidden="true"
+                color={colors.textSec}
+                style={{ position: 'absolute', left: 12 }}
+              />
               <input
                 type="search"
                 value={query}
@@ -946,10 +1251,16 @@ export default function HamburgerMenu({
                 placeholder="Search menu"
                 aria-label="Search menu"
                 style={{
-                  width: '100%', minHeight: 44, boxSizing: 'border-box',
-                  padding: '0 40px 0 38px', borderRadius: 8,
-                  border: `1px solid ${colors.border}`, background: colors.inputBg,
-                  color: colors.text, fontSize: 16, fontFamily: 'inherit',
+                  width: '100%',
+                  minHeight: 44,
+                  boxSizing: 'border-box',
+                  padding: '0 40px 0 38px',
+                  borderRadius: 8,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.inputBg,
+                  color: colors.text,
+                  fontSize: 16,
+                  fontFamily: 'inherit',
                 }}
               />
               {query ? (
@@ -959,9 +1270,18 @@ export default function HamburgerMenu({
                   aria-label="Clear search"
                   className="sp-icon-btn"
                   style={{
-                    position: 'absolute', right: 0, width: 44, height: 44, borderRadius: '50%',
-                    border: 'none', background: 'transparent', color: colors.textSec,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    position: 'absolute',
+                    right: 0,
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'transparent',
+                    color: colors.textSec,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
                   }}
                 >
                   <X size={18} aria-hidden="true" />
@@ -974,7 +1294,15 @@ export default function HamburgerMenu({
         {searching ? (
           <div style={{ flex: 1 }}>
             {searchResults.length === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: colors.textSec, fontSize: 14, lineHeight: 1.45 }}>
+              <div
+                style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  color: colors.textSec,
+                  fontSize: 14,
+                  lineHeight: 1.45,
+                }}
+              >
                 <div style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 6 }}>
                   No matches
                 </div>
@@ -995,9 +1323,12 @@ export default function HamburgerMenu({
                 <div
                   data-hscroll="true"
                   style={{
-                    display: 'flex', gap: 12, overflowX: 'auto',
+                    display: 'flex',
+                    gap: 12,
+                    overflowX: 'auto',
                     padding: '0 16px 16px',
-                    scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+                    scrollSnapType: 'x mandatory',
+                    WebkitOverflowScrolling: 'touch',
                   }}
                 >
                   {shortcutItems.slice(0, 6).map((sc) => {
@@ -1006,13 +1337,22 @@ export default function HamburgerMenu({
                       <>
                         <div
                           style={{
-                            width: 56, height: 56, margin: '0 auto', borderRadius: 12,
+                            width: 56,
+                            height: 56,
+                            margin: '0 auto',
+                            borderRadius: 12,
                             background: 'linear-gradient(135deg, #1e3a5f 0%, #0e2440 100%)',
                             border: `2px solid ${colors.border}`,
                             boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontWeight: 700, fontSize: 20, flexShrink: 0,
-                            position: 'relative', overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: 20,
+                            flexShrink: 0,
+                            position: 'relative',
+                            overflow: 'hidden',
                           }}
                         >
                           <span aria-hidden="true">{initial}</span>
@@ -1020,15 +1360,27 @@ export default function HamburgerMenu({
                             <img
                               src={sc.avatar_url}
                               alt=""
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
                             />
                           ) : null}
                         </div>
                         <div
                           style={{
-                            fontSize: 12, marginTop: 6, color: colors.textSec,
-                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            fontSize: 12,
+                            marginTop: 6,
+                            color: colors.textSec,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                             maxWidth: 72,
                           }}
                         >
@@ -1037,8 +1389,12 @@ export default function HamburgerMenu({
                       </>
                     );
                     const tileStyle = {
-                      textAlign: 'center', textDecoration: 'none', color: 'inherit',
-                      flexShrink: 0, width: 72, scrollSnapAlign: 'start',
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      flexShrink: 0,
+                      width: 72,
+                      scrollSnapAlign: 'start',
                     };
                     if (sc.isArena) {
                       return (
@@ -1084,15 +1440,25 @@ export default function HamburgerMenu({
                       aria-label="See all your pages"
                       onClick={() => onClose?.()}
                       style={{
-                        textAlign: 'center', textDecoration: 'none', color: colors.textSec,
-                        flexShrink: 0, width: 72, scrollSnapAlign: 'start',
+                        textAlign: 'center',
+                        textDecoration: 'none',
+                        color: colors.textSec,
+                        flexShrink: 0,
+                        width: 72,
+                        scrollSnapAlign: 'start',
                       }}
                     >
                       <div
                         style={{
-                          width: 56, height: 56, margin: '0 auto', borderRadius: 12,
-                          border: `2px dashed ${colors.border}`, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', color: colors.textSec,
+                          width: 56,
+                          height: 56,
+                          margin: '0 auto',
+                          borderRadius: 12,
+                          border: `2px dashed ${colors.border}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: colors.textSec,
                         }}
                       >
                         <ChevronRight size={20} aria-hidden="true" />
@@ -1109,7 +1475,7 @@ export default function HamburgerMenu({
               <div
                 style={{
                   margin: '0 12px 16px',
-                  background: (theme === 'light' || isFacebookMenu) ? colors.bg : colors.cardBg,
+                  background: theme === 'light' || isFacebookMenu ? colors.bg : colors.cardBg,
                   borderRadius: 12,
                   boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                   border: `1px solid ${colors.border}`,
@@ -1118,7 +1484,10 @@ export default function HamburgerMenu({
               >
                 <div
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 16px',
                     borderBottom: ownedPages.length > 0 ? `1px solid ${colors.border}` : 'none',
                   }}
                 >
@@ -1129,26 +1498,45 @@ export default function HamburgerMenu({
                         : activeUser.avatar || FALLBACK_AVATAR
                     }
                     alt=""
-                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
-                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_AVATAR;
+                    }}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
-                        fontWeight: 700, fontSize: 16, color: isClubMode ? colors.blue : colors.text,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: isClubMode ? colors.blue : colors.text,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {isClubMode && clubPage ? clubPage.name : activeUser.name}
                     </div>
                     <Link
-                      href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'}
+                      href={
+                        isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'
+                      }
                       prefetch={false}
                       onClick={() => onClose?.()}
                       className="sp-menu-row"
                       style={{
-                        display: 'inline-flex', alignItems: 'center', minHeight: 32,
-                        fontSize: 13, color: colors.textSec, textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 32,
+                        fontSize: 13,
+                        color: colors.textSec,
+                        textDecoration: 'none',
                       }}
                     >
                       View Profile
@@ -1162,10 +1550,18 @@ export default function HamburgerMenu({
                         aria-label={`${unread} unread notifications`}
                         role="status"
                         style={{
-                          background: colors.blue, color: '#fff', borderRadius: 999,
-                          minWidth: 24, height: 24, padding: '0 6px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700, flexShrink: 0,
+                          background: colors.blue,
+                          color: '#fff',
+                          borderRadius: 999,
+                          minWidth: 24,
+                          height: 24,
+                          padding: '0 6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          flexShrink: 0,
                         }}
                       >
                         {unread > 9 ? '9+' : unread}
@@ -1178,11 +1574,23 @@ export default function HamburgerMenu({
                 {ownedPages.length > 0 && (
                   <div
                     style={{
-                      background: (theme === 'light' || isFacebookMenu) ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.2)',
+                      background:
+                        theme === 'light' || isFacebookMenu
+                          ? 'rgba(0,0,0,0.02)'
+                          : 'rgba(0,0,0,0.2)',
                       padding: '8px 0',
                     }}
                   >
-                    <div style={{ padding: '0 16px 8px', fontSize: 12, fontWeight: 700, color: colors.textSec, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                    <div
+                      style={{
+                        padding: '0 16px 8px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: colors.textSec,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.6px',
+                      }}
+                    >
                       Switch Account
                     </div>
 
@@ -1190,16 +1598,36 @@ export default function HamburgerMenu({
                       <button
                         type="button"
                         className="sp-menu-row"
-                        onClick={() => { switchToPersonal(); onClose?.(); }}
+                        onClick={() => {
+                          switchToPersonal();
+                          onClose?.();
+                        }}
                         style={{ ...rowBase, minHeight: 48, color: colors.text }}
                       >
                         <img
                           src={activeUser.avatar || FALLBACK_AVATAR}
                           alt=""
-                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
-                          style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = FALLBACK_AVATAR;
+                          }}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            flexShrink: 0,
+                          }}
                         />
-                        <span style={{ fontSize: 14, fontWeight: 500, flex: 1, minWidth: 0, textAlign: 'left' }}>
+                        <span
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 500,
+                            flex: 1,
+                            minWidth: 0,
+                            textAlign: 'left',
+                          }}
+                        >
                           {activeUser.name} (Personal)
                         </span>
                       </button>
@@ -1228,13 +1656,28 @@ export default function HamburgerMenu({
                           <img
                             src={page.avatar_url || FALLBACK_AVATAR}
                             alt=""
-                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_AVATAR; }}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = FALLBACK_AVATAR;
+                            }}
                             style={{
-                              width: 32, height: 32, borderRadius: '50%', objectFit: 'cover',
-                              background: (theme === 'light' || isFacebookMenu) ? '#eee' : '#333', flexShrink: 0,
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              background: theme === 'light' || isFacebookMenu ? '#eee' : '#333',
+                              flexShrink: 0,
                             }}
                           />
-                          <span style={{ fontSize: 14, fontWeight: 500, flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              flex: 1,
+                              minWidth: 0,
+                              textAlign: 'left',
+                            }}
+                          >
                             {page.name}
                           </span>
                         </button>
@@ -1253,8 +1696,16 @@ export default function HamburgerMenu({
               <div role="group" aria-label="Favourites">
                 {renderSectionTitle('Favourites')}
                 {favItems.length === 0 ? (
-                  <div style={{ padding: '0 16px 12px', fontSize: 13, color: colors.textSec, lineHeight: 1.45 }}>
-                    Tap any link below to pin it here, then tap the star button again when you are done.
+                  <div
+                    style={{
+                      padding: '0 16px 12px',
+                      fontSize: 13,
+                      color: colors.textSec,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Tap any link below to pin it here, then tap the star button again when you are
+                    done.
                   </div>
                 ) : (
                   favItems.map((item, i) => renderNavigation(item, `fav-${i}`))
@@ -1268,9 +1719,14 @@ export default function HamburgerMenu({
                 {renderSectionTitle('Jump Back In')}
                 {recentItems.map((r, i) =>
                   renderNavigation(
-                    { type: 'navigation', label: r.label, href: r.href, icon: <Clock size={18} aria-hidden="true" /> },
-                    `rec-${i}`,
-                  ),
+                    {
+                      type: 'navigation',
+                      label: r.label,
+                      href: r.href,
+                      icon: <Clock size={18} aria-hidden="true" />,
+                    },
+                    `rec-${i}`
+                  )
                 )}
               </div>
             )}
@@ -1303,12 +1759,24 @@ export default function HamburgerMenu({
                         color: colors.textSec,
                       }}
                     >
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'left' }}>
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.6px',
+                          textAlign: 'left',
+                        }}
+                      >
                         {group.label}
                       </span>
-                      {collapsed
-                        ? <ChevronRight size={16} aria-hidden="true" />
-                        : <ChevronDown size={16} aria-hidden="true" />}
+                      {collapsed ? (
+                        <ChevronRight size={16} aria-hidden="true" />
+                      ) : (
+                        <ChevronDown size={16} aria-hidden="true" />
+                      )}
                     </button>
                     {!collapsed && (
                       <div id={panelId}>
@@ -1320,14 +1788,23 @@ export default function HamburgerMenu({
               })}
 
               {menuItems.length === 0 && (
-                <div style={{ padding: '24px 16px', textAlign: 'center', color: colors.textSec, fontSize: 14, lineHeight: 1.45 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 6 }}>
+                <div
+                  style={{
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    color: colors.textSec,
+                    fontSize: 14,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <div
+                    style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 6 }}
+                  >
                     Nothing here yet
                   </div>
                   Use the links below to get back to the hub.
                 </div>
               )}
-
             </div>
           </>
         )}
@@ -1348,14 +1825,32 @@ export default function HamburgerMenu({
           <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${colors.border}` }}>
             {finalLinks.map((link, index) => {
               const commonStyle = {
-                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                minHeight: 48, padding: '10px 0', boxSizing: 'border-box',
-                textDecoration: 'none', color: colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                minHeight: 48,
+                padding: '10px 0',
+                boxSizing: 'border-box',
+                textDecoration: 'none',
+                color: colors.text,
                 borderTop: index > 0 ? `1px solid ${colors.border}` : 'none',
-                fontSize: 15, fontFamily: 'inherit', textAlign: 'left',
+                fontSize: 15,
+                fontFamily: 'inherit',
+                textAlign: 'left',
               };
               const iconSlot = (
-                <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   {link.icon || null}
                 </span>
               );
@@ -1379,10 +1874,18 @@ export default function HamburgerMenu({
                       if (link.onClick) link.onClick();
                       onClose?.();
                     }}
-                    style={{ ...commonStyle, background: 'none', border: 'none', cursor: stub ? 'not-allowed' : 'pointer', opacity: stub ? 0.45 : 1 }}
+                    style={{
+                      ...commonStyle,
+                      background: 'none',
+                      border: 'none',
+                      cursor: stub ? 'not-allowed' : 'pointer',
+                      opacity: stub ? 0.45 : 1,
+                    }}
                   >
                     {iconSlot}
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, textAlign: 'left' }}>{link.label}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, textAlign: 'left' }}>
+                      {link.label}
+                    </span>
                     <ChevronRight size={16} aria-hidden="true" color={colors.textSec} />
                   </button>
                 );
@@ -1390,7 +1893,13 @@ export default function HamburgerMenu({
 
               if (needsHardNav(link)) {
                 return (
-                  <a key={index} href={link.href} className="sp-menu-row" onClick={() => onClose?.()} style={commonStyle}>
+                  <a
+                    key={index}
+                    href={link.href}
+                    className="sp-menu-row"
+                    onClick={() => onClose?.()}
+                    style={commonStyle}
+                  >
                     {iconSlot}
                     <span style={{ flex: 1, minWidth: 0, fontSize: 15 }}>{link.label}</span>
                     <ChevronRight size={16} aria-hidden="true" color={colors.textSec} />
@@ -1404,7 +1913,10 @@ export default function HamburgerMenu({
                   href={link.href}
                   prefetch={false}
                   className="sp-menu-row"
-                  onClick={() => { rememberRecent(link); onClose?.(); }}
+                  onClick={() => {
+                    rememberRecent(link);
+                    onClose?.();
+                  }}
                   style={commonStyle}
                 >
                   {iconSlot}
@@ -1437,7 +1949,9 @@ export default function HamburgerMenu({
           win same-specificity ties against head stylesheets they used to lose. If a
           rule ever needs to lose such a tie, bump the other rule's specificity
           explicitly instead of relying on document order. */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .sp-command-backdrop {
           backdrop-filter: blur(7px) saturate(.72);
           -webkit-backdrop-filter: blur(7px) saturate(.72);
@@ -1634,7 +2148,9 @@ export default function HamburgerMenu({
           .sp-sc-tile:active,
           .sp-icon-btn:active { transform: none; }
         }
-      ` }} />
+      `,
+        }}
+      />
     </>
   );
 }

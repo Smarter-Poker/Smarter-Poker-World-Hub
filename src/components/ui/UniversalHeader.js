@@ -1200,7 +1200,9 @@ export default function UniversalHeader({
                 .approved-global-header {
                     position: sticky;
                     top: 0;
-                    z-index: 100;
+                    /* Global navigation stays reachable above page-owned tours
+                       and modal scrims; the command drawer itself is 10100+. */
+                    z-index: 10050;
                     flex: 0 0 auto;
                     width: 100%;
                     box-sizing: border-box;
@@ -1358,12 +1360,12 @@ export default function UniversalHeader({
             className="approved-global-header__button approved-global-header__menu"
             data-world-menu-trigger="approved-header"
             data-menu-symbol="command-grid"
-            onClick={() => (
-              onMenuClick && !ownsCanonicalMenu
-                ? onMenuClick()
-                : setFallbackMenuOpen(true)
-            )}
-            aria-label="Open Menu"
+            onClick={() =>
+              onMenuClick && !ownsCanonicalMenu ? onMenuClick() : setFallbackMenuOpen(true)
+            }
+            aria-label={
+              resolvedHeaderWorld ? `Open ${resolvedHeaderWorld.label} Command Menu` : 'Open Menu'
+            }
           />
           <button
             type="button"
@@ -1441,7 +1443,6 @@ export default function UniversalHeader({
           </button>
         </div>
       </header>
-
 
       {/* Live Help Panel */}
       <LiveHelpPanel {...liveHelp} />
