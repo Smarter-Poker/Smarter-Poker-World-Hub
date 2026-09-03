@@ -1617,10 +1617,10 @@ def main():
     # 2026-08-16: job ids must be unique per REGISTRATION, not per path.
     #
     # id was `path.replace('/', '_')`, but a path may legitimately appear more
-    # than once with different triggers -- /api/cron/mlb-analytics-noon is
+    # than once with different triggers -- one retired path was
     # registered three times (13:00, 16:00, 17:00 UTC) as deliberate
     # safety-nets. The second one raised
-    #     ConflictingIdError: 'Job identifier (api_cron_mlb-analytics-noon)
+    #     ConflictingIdError: 'Job identifier (api_cron_<path>)
     #                          conflicts with an existing job'
     # from inside scheduler.start(), killing the process with exit 1 before a
     # single job could fire. Combined with deploy-openclaw.sh being unrunnable

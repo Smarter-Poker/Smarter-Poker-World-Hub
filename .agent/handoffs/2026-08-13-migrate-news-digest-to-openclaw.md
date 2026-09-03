@@ -17,30 +17,20 @@ Everything added to `scripts/openclaw-cron-dispatcher.py` since then exists
 
 | Commit | Date | What it added |
 |---|---|---|
-| `7664c76` | 2026-06-16 | migrate MLB Analytics engine cron to Open Claw |
-| `74a61cd` | 2026-06-17 | `mlb-analytics-intraday` cron |
-| `0e2996c` | 2026-06-19 | widen MLB intraday window to 10am–11pm CDT |
-| `234e237` | 2026-06-21 | MLB HR tracker + `mlb-hr-cache-refresh` |
-| `c7975f2` | 2026-06-29 | MLB noon safety-net predict runs |
 | `7dea8fd` | 2026-08-13 | weekly news digest (this session) |
 
-Four MLB cron paths are affected: `mlb-analytics-daily`,
-`mlb-analytics-intraday`, `mlb-analytics-noon`, `mlb-hr-cache-refresh`.
 
 **They are not scheduled anywhere else.** `vercel.json` has 15 crons and
-**zero** MLB entries, and commit `7664c76` only touched the dispatcher — it
 never removed anything from `vercel.json`, because they were never there.
 Open Claw is their only scheduler.
 
 So unless someone has been running `scripts/deploy-openclaw.sh` by hand from
-the Mac, the MLB Analytics prediction and HR-cache jobs have **not run since
 they were written in June**.
 
 ## Caveat — what I proved vs. what I inferred
 
 - **Proven:** every `deploy-openclaw.yml` run since 2026-05-17 failed. Last
   success is run #7, `25990315663`, 2026-05-17, commit `b397036`.
-- **Proven:** the MLB paths are absent from `vercel.json`.
 - **NOT proven:** the actual state of the VM. I have no network from the agent
   shell (`connect: Network is unreachable`), so I cannot ssh in and read
   `/opt/openclaw/dispatcher.py` or `journalctl -u openclaw`. If someone ran
@@ -70,11 +60,9 @@ signup drifting 500 diamonds (fixed, migration `20260813040000`).
 ssh openclaw@<HETZNER_HOST>
 sudo systemctl status openclaw.service
 grep -c "api/cron" /opt/openclaw/dispatcher.py     # job count
-grep -n "mlb-analytics-noon\|news/digest" /opt/openclaw/dispatcher.py
 sudo journalctl -u openclaw.service -n 50 --no-pager
 ```
 
-If `mlb-analytics-noon` is missing, the June work never landed and MLB
 analytics has been dead for ~2 months. If `news/digest` is missing, that is
 expected — it was pushed today and its deploy failed.
 
@@ -116,7 +104,6 @@ error message will be in the step log and should name the cause immediately.
 
 Re-run `deploy-openclaw.yml` via **workflow_dispatch**. On success its last
 step tails `journalctl -u openclaw.service -n 30`. Confirm the registered-job
-list includes both `/api/cron/mlb-analytics-*` and `/api/news/digest?days=7`.
 
 ### 4. Only then, finish the news-digest migration
 

@@ -781,7 +781,7 @@ GitHub's environment to execute:
   created, so it aborted at its prereq check every run — no deploy had ever
   succeeded, which is also why the dispatcher drifted 6 jobs behind the repo.
   The dispatcher additionally crashed on boot with `ConflictingIdError`
-  because `mlb-analytics-noon` is registered 3x and job ids came from the
+  because one path was registered 3x and job ids came from the
   path alone. Both fixed; deployed with 85 jobs, 0 errors. The digest now
   runs solely from Open Claw at tue 14:00 UTC. Do not re-add a GitHub
   `schedule:` for it — two schedulers at the same instant mail the real

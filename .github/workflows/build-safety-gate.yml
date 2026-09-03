@@ -861,7 +861,7 @@ jobs:
           # created, so the script aborted at its own prereq check on every
           # invocation and no deploy had ever succeeded. The dispatcher then
           # crashed on start with ConflictingIdError, because
-          # mlb-analytics-noon is registered three times and job ids were
+          # one path was registered three times and job ids were
           # derived from the path alone. Both fixed; dispatcher deployed with
           # 85 jobs and 0 errors, and it now registers
           #   /api/news/digest?days=7  [tue 14:00 UTC]
