@@ -28,22 +28,55 @@
 /** The single role tier that exists today. */
 export const OPERATOR_PERMISSION = 'operator.console';
 
+/**
+ * EVERY `permission` BELOW IS A MEMBER OF THE VOCABULARY IN
+ * src/lib/horses/permissions.js, AND A TEST ASSERTS IT.
+ *
+ * It has to be, because Phase 2 turned this field from documentation into a
+ * live nav filter. Until Phase 2 nothing read it, so thirteen of these tabs
+ * carried invented names (`mint.write`, `stable.read`, `clubarena.read`,
+ * `economy.read` ...) that no role has ever held and no route has ever
+ * checked. The moment `section=policy` started answering with a populated
+ * permission list, those thirteen names became thirteen tabs that a `god`
+ * could not see - including the default tab, which then made the stranding
+ * guard relocate and rewrite the URL on every single load.
+ *
+ * TWO RULES KEEP IT FIXED:
+ *
+ *   1. A TAB DECLARES THE PERMISSION THAT LETS AN OPERATOR *LOOK*, never the
+ *      one that lets them act. The Mint is `money.read` because reading the
+ *      supply is not moving it; issuing chips is `money.write` and the route
+ *      checks that for itself. Promo Codes is `console.read` because the list
+ *      is a list; writing a code is `promo.write`, gated inside the panel.
+ *      A tab hidden behind its write permission is a report a read-only
+ *      auditor cannot open, which is a narrowing nobody asked for.
+ *   2. THE NAME MUST EXIST. `isKnownPermission` is the check, and
+ *      `hasPermission` refuses to hide a tab whose permission it does not
+ *      recognise, so a future typo costs a failing test rather than a tab.
+ */
 export const TABS = [
-  { id: 'stable', label: 'Social Horses', permission: 'stable.read', legacy: true },
-  { id: 'grinder', label: 'Grinder Horses', permission: 'grinder.read', legacy: true },
-  { id: 'pipeline', label: 'Pipeline', permission: 'pipeline.read', legacy: true },
+  // The fleet: three views of the same horses, so one read permission.
+  { id: 'stable', label: 'Social Horses', permission: 'fleet.read', legacy: true },
+  { id: 'grinder', label: 'Grinder Horses', permission: 'fleet.read', legacy: true },
+  { id: 'pipeline', label: 'Pipeline', permission: 'fleet.read', legacy: true },
+  // The only tab whose view IS its write: there is no settings.read, and the
+  // panel is the form.
   { id: 'settings', label: 'Settings', permission: 'settings.write', legacy: true },
-  { id: 'stats', label: 'Statistics', permission: 'stats.read', legacy: true },
-  { id: 'merch', label: 'Merch Catalog', permission: 'merch.write', legacy: true },
-  { id: 'promo', label: 'Promo Codes', permission: 'promo.write', legacy: true },
-  { id: 'economy', label: 'Economy', permission: 'economy.read', legacy: true },
-  { id: 'mint', label: 'The Mint', permission: 'mint.write', legacy: true },
-  { id: 'antiabuse', label: 'Anti-Abuse', permission: 'abuse.read', legacy: true },
-  { id: 'clubarena', label: 'Club Arena', permission: 'clubarena.read', legacy: true },
-  { id: 'bugreports', label: 'Bug Reports', permission: 'support.read', legacy: true },
-  { id: 'geeves', label: 'Geeves KB', permission: 'geeves.read', legacy: true },
-  { id: 'reviews', label: 'Reviews', permission: 'reviews.moderate', legacy: true },
-  { id: 'scrapers', label: 'Scrapers', permission: 'scrapers.read', legacy: true },
+  // Statistics and Economy both report money. Reading them is money.read.
+  { id: 'stats', label: 'Statistics', permission: 'money.read', legacy: true },
+  { id: 'merch', label: 'Merch Catalog', permission: 'console.read', legacy: true },
+  { id: 'promo', label: 'Promo Codes', permission: 'console.read', legacy: true },
+  { id: 'economy', label: 'Economy', permission: 'money.read', legacy: true },
+  { id: 'mint', label: 'The Mint', permission: 'money.read', legacy: true },
+  // Anti-Abuse and Bug Reports are both player records read side by side.
+  { id: 'antiabuse', label: 'Anti-Abuse', permission: 'players.read', legacy: true },
+  { id: 'clubarena', label: 'Club Arena', permission: 'clubs.read', legacy: true },
+  { id: 'bugreports', label: 'Bug Reports', permission: 'players.read', legacy: true },
+  // Geeves and Reviews moderate content; moderation.write gates the buttons
+  // inside them, console.read opens the page.
+  { id: 'geeves', label: 'Geeves KB', permission: 'console.read', legacy: true },
+  { id: 'reviews', label: 'Reviews', permission: 'console.read', legacy: true },
+  { id: 'scrapers', label: 'Scrapers', permission: 'console.read', legacy: true },
   { id: 'audit', label: 'Audit Log', permission: 'audit.read', legacy: true },
 
   // ── Phase 2. The first two tabs that are their OWN modules ────────────────

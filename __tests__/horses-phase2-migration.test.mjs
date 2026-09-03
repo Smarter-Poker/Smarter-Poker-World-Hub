@@ -35,12 +35,22 @@ const FOLLOWUP_PATH = join(
   repo,
   'supabase/migrations/20260903121500_ca_operator_read_fns_do_not_audit.sql'
 );
+/** The second follow-up: the one that made the approval gate exact after an
+ *  adversarial review found B-2, B-3, H-2 and H-4 inside the APPLIED
+ *  migration. See the GATE section near the bottom of this file. */
+const GATE_PATH = join(
+  repo,
+  'supabase/migrations/20260903140000_ca_operator_approval_gate_is_exact.sql'
+);
 const SIM_PATH = join(repo, 'docs/horses/PHASE2-SIM.sql');
+const SIM2_PATH = join(repo, 'docs/horses/PHASE2-SIM-2.sql');
 const CONTRACT_PATH = join(repo, 'docs/horses/PHASE2-CONTRACTS.md');
 
 const sql = readFileSync(MIGRATION_PATH, 'utf8');
 const followup = readFileSync(FOLLOWUP_PATH, 'utf8');
+const gate = readFileSync(GATE_PATH, 'utf8');
 const sim = readFileSync(SIM_PATH, 'utf8');
+const sim2 = readFileSync(SIM2_PATH, 'utf8');
 const contract = readFileSync(CONTRACT_PATH, 'utf8');
 
 /** The migration with every `--` comment line removed, so a check for a
@@ -60,15 +70,23 @@ const followupCode = followup
   .filter((line) => !line.trim().startsWith('--'))
   .join('\n');
 
+/** The gate migration, comment lines stripped the same way. */
+const gateCode = gate
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('--'))
+  .join('\n');
+
 /**
  * The body of one function as the DATABASE would end up with it: from the
- * follow-up when the follow-up replaces it, from the original otherwise.
- * Two migrations, one live definition per function, and it is the LIVE
- * definition every audit assertion below is about.
+ * newest migration that replaces it, from the original otherwise. Three
+ * migrations, one live definition per function, and it is the LIVE
+ * definition every audit assertion below is about. NEWEST FIRST, so a
+ * later CREATE OR REPLACE that dropped a mutator's audit write has to fail
+ * these tests rather than hide behind the original file.
  */
 function liveBody(fn) {
   const marker = `create or replace function public.${fn}`;
-  for (const text of [followupCode, code]) {
+  for (const text of [gateCode, followupCode, code]) {
     const start = text.lastIndexOf(marker);
     if (start === -1) continue;
     return text.slice(start, text.indexOf('$fn$;', start) + 5);
@@ -832,6 +850,549 @@ test('the contract records all three non-auditing read functions as a post-build
     /admin_user_id/,
     'the contract does not say why staff and audit_trail cannot audit'
   );
+});
+
+// ------------------------------------------ gate fix: 20260903140000
+
+/**
+ * THE FOLLOW-UP THAT MADE THE APPROVAL GATE EXACT.
+ *
+ * An adversarial review of the APPLIED migration (review2/server-db.md,
+ * 2026-09-03, verified with two production probes that ended in RAISE
+ * EXCEPTION so every write rolled back) found eight defects living inside
+ * 20260903120000's function bodies. Four of them are the reason this file
+ * exists:
+ *
+ *   B-2  the idempotent branch answered `required := status = 'pending'`,
+ *        so a REJECTED or EXPIRED row came back required:false and the
+ *        route moved the money against a refused request;
+ *   B-3  the same branch never compared the replay's kind, amount, asset
+ *        or target against the stored row, so an approved 500 chip
+ *        request could be replayed as 999999 to another club;
+ *   H-2  the SQL gated on `>` while approvals.js, the console copy and
+ *        the test all say `>=`, and requireApproval ANDs the two, so an
+ *        amount exactly equal to the threshold went through unwatched;
+ *   H-4  enforcement could strip admin.manage from the only account able
+ *        to turn enforcement off.
+ *
+ * These tests are about the SHAPE of that correction, the same way the
+ * rest of this file is about the shape of the migration: that it replaces
+ * exactly the five functions it claims and changes no signature, that the
+ * new comparison and the new branches are really in the bodies, that the
+ * ACL travels with them so the file stands alone, and that the assertion
+ * block proves the behaviour against the database inside something it
+ * rolls back. The behaviour itself is proved by docs/horses/PHASE2-SIM-2.sql.
+ */
+
+/** The five functions the gate migration replaces. Nothing else. */
+const GATE_FUNCTIONS = [
+  'fn_ca_operator_permissions',
+  'fn_ca_operator_grant',
+  'fn_ca_operator_set_policy',
+  'fn_ca_operator_request_approval',
+  'fn_ca_operator_decide_approval',
+];
+
+/** The parameter list of one function definition, whitespace normalised. */
+function signatureIn(text, fn) {
+  const start = text.indexOf(`create or replace function public.${fn}`);
+  assert.ok(start > -1, `${fn} is not defined in that migration`);
+  const open = text.indexOf('(', start);
+  const returns = text.indexOf('returns', start);
+  assert.ok(open > -1 && returns > open, `${fn} has no parameter list`);
+  return text
+    .slice(open, text.lastIndexOf(')', returns) + 1)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** The gate migration's assertion block, which is where its probes live. */
+function gateAssertBlock() {
+  const start = gateCode.lastIndexOf('do $assert$');
+  assert.ok(start > -1, 'the gate migration has no assertion block');
+  return gateCode.slice(start);
+}
+
+test('the gate migration replaces exactly the five intended functions', () => {
+  assert.ok(gate.length > 0, 'the gate migration is empty');
+
+  const replaced = [...gateCode.matchAll(/create or replace function public\.([a-z_]+)\s*\(/g)].map(
+    (m) => m[1]
+  );
+  assert.deepEqual(
+    [...replaced].sort(),
+    [...GATE_FUNCTIONS].sort(),
+    `the gate migration replaces [${replaced.join(', ')}], expected exactly [${GATE_FUNCTIONS.join(', ')}]`
+  );
+
+  // The four it must NOT touch. mark_executed is already exactly-once,
+  // has_second_approver is the single copy of the alone rule, and the two
+  // read functions are owned by 20260903121500 - replacing one here would
+  // silently put its dead audit write back.
+  for (const fn of [
+    'fn_ca_operator_mark_executed',
+    'fn_ca_operator_has_second_approver',
+    'fn_ca_operator_audit_trail',
+    'fn_ca_operator_staff',
+    'fn_ca_operator_revoke',
+  ]) {
+    assert.ok(
+      !replaced.includes(fn),
+      `the gate migration replaces ${fn}, which is not one of its five`
+    );
+  }
+});
+
+test('the gate migration changes no signature: Tier 2, not Tier 3', () => {
+  for (const fn of GATE_FUNCTIONS) {
+    assert.equal(
+      signatureIn(gateCode, fn),
+      signatureIn(code, fn),
+      `${fn} has a different parameter list from its 20260903120000 definition, which would create an OVERLOAD rather than replace it`
+    );
+  }
+  // And each one still returns jsonb, which every caller reads keys off.
+  for (const fn of GATE_FUNCTIONS) {
+    const start = gateCode.indexOf(`create or replace function public.${fn}`);
+    const head = gateCode.slice(start, gateCode.indexOf('as $fn$', start));
+    assert.match(head, /returns jsonb/, `${fn} no longer returns jsonb`);
+    assert.match(head, /security definer/, `${fn} is not SECURITY DEFINER`);
+    assert.match(head, /set search_path = public, pg_temp/, `${fn} does not pin search_path`);
+  }
+});
+
+test('the gate migration creates nothing and alters nothing', () => {
+  // Five CREATE OR REPLACE FUNCTIONs, their ACL lines and one assertion
+  // block. A follow-up that quietly carried a table change, an index, a
+  // policy or a grant to somebody new would be a different migration
+  // wearing this one's name.
+  assert.ok(!/create\s+table/i.test(gateCode), 'the gate migration creates a table');
+  assert.ok(!/alter\s+table/i.test(gateCode), 'the gate migration alters a table');
+  assert.ok(!/drop\s+/i.test(gateCode), 'the gate migration drops an object');
+  assert.ok(!/create\s+(unique\s+)?index/i.test(gateCode), 'the gate migration creates an index');
+  assert.ok(!/create\s+policy/i.test(gateCode), 'the gate migration creates a policy');
+  assert.match(gateCode, /set local lock_timeout/, 'the gate migration runs without a lock timeout');
+});
+
+test('H-2: the threshold comparison is >= and the loose one is gone', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+  assert.match(
+    body,
+    /v_required\s*:=\s*p_amount\s*>=\s*v_threshold/,
+    'the threshold is not compared with >=, so an amount equal to it is not gated'
+  );
+  assert.ok(
+    !/v_required\s*:=\s*p_amount\s*>\s*v_threshold/.test(body),
+    'the old `p_amount > v_threshold` comparison is still in the body'
+  );
+  // The old one really was the other way round, so this test is about a
+  // change and not about a coincidence.
+  assert.match(
+    bodyIn(code, 'fn_ca_operator_request_approval'),
+    /v_required\s*:=\s*p_amount\s*>\s*v_threshold/,
+    'the applied migration did not gate on >, so this test is asserting the wrong history'
+  );
+  // And the module it has to agree with still gates at >=.
+  const approvals = readFileSync(join(repo, 'src/lib/horses/approvals.js'), 'utf8');
+  assert.match(
+    approvals,
+    /if \(amt < threshold\)/,
+    'src/lib/horses/approvals.js no longer gates at >=, so the two layers disagree again'
+  );
+});
+
+test('B-3: the idempotent branch compares the material fields and refuses a mismatch', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+  for (const [field, param] of [
+    ['kind', 'p_kind'],
+    ['amount', 'p_amount'],
+    ['asset', 'p_asset'],
+    ['target_type', 'p_target_type'],
+    ['target_id', 'p_target_id'],
+  ]) {
+    assert.match(
+      body,
+      new RegExp(`v_existing\\.${field} is distinct from ${param}`),
+      `the replay does not compare ${field}: a different operation could reuse the key`
+    );
+  }
+  assert.match(body, /'error', 'payload_mismatch'/, 'there is no payload_mismatch refusal');
+  assert.match(body, /'mismatch', to_jsonb\(v_mismatch\)/, 'the refusal does not name the fields that differ');
+
+  // The mismatch check must come BEFORE the status branch, or a laundered
+  // replay of an approved row reaches the required:false answer first.
+  const mismatchAt = body.indexOf("'error', 'payload_mismatch'");
+  const statusAt = body.indexOf("v_existing.status in ('approved', 'auto_approved')");
+  assert.ok(mismatchAt > -1 && statusAt > mismatchAt, 'the status branch runs before the mismatch check');
+});
+
+test('B-2: every stored status has its own branch, and only two answer required:false', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+
+  // The defect itself, gone.
+  assert.ok(
+    !/'required',\s*v_existing\.status = 'pending'/.test(body),
+    "the idempotent branch still answers required := (status = 'pending'), which is B-2"
+  );
+  // And it really was there before, so this is a change and not a hope.
+  assert.match(
+    bodyIn(code, 'fn_ca_operator_request_approval'),
+    /'required',\s*v_existing\.status = 'pending'/,
+    'the applied migration did not carry the B-2 expression, so this test asserts the wrong history'
+  );
+
+  // Cleared to proceed: the only two statuses that may say required:false.
+  assert.match(body, /v_existing\.status in \('approved', 'auto_approved'\)/);
+  // Executed: required:false WITH already_executed, so the caller's own
+  // op_id claim is what replays.
+  assert.match(body, /v_existing\.status = 'executed'/);
+  assert.match(body, /'already_executed', true/);
+  // Pending: still waiting.
+  assert.match(body, /v_existing\.status = 'pending'/);
+  // Refused outright, with their own codes.
+  assert.match(body, /v_existing\.status in \('rejected', 'expired'\)/);
+  assert.match(body, /'approval_rejected'/);
+  assert.match(body, /'approval_expired'/);
+  assert.match(body, /'refused', true/);
+  // Failed: a fresh request under the same key, re-opened in place
+  // because op_id is unique.
+  assert.match(body, /v_retry_failed\s*:=\s*true/);
+  assert.match(body, /'retried_after_failure'/);
+
+  // A refusal never says required:false. Every jsonb_build_object that
+  // carries a refusal code carries required true beside it.
+  for (const code_ of ['payload_mismatch', 'approval_rejected']) {
+    const at = body.indexOf(`'${code_}'`);
+    const around = body.slice(Math.max(0, at - 400), at + 400);
+    assert.match(
+      around,
+      /'required', true/,
+      `the ${code_} refusal does not also answer required:true, so a caller reading only \`required\` would proceed`
+    );
+  }
+});
+
+test('M-5: a pending row past its TTL is closed on sight rather than answered forever', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+  assert.match(
+    body,
+    /v_existing\.status = 'pending'[\s\S]{0,200}v_existing\.expires_at <= now\(\)[\s\S]{0,200}set status = 'expired'/,
+    'a timed-out pending row is not marked expired when it is replayed'
+  );
+});
+
+test('M-3 and M-4: both lost-update races are closed with ON CONFLICT', () => {
+  const request = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+  assert.match(
+    request,
+    /on conflict \(op_id\) where op_id is not null do nothing/,
+    'the approval insert can still raise 23505 on a concurrent same-op_id request'
+  );
+  assert.match(request, /'raced', true/, 'the loser of the op_id race does not re-read the winner row');
+
+  const grant = bodyIn(gateCode, 'fn_ca_operator_grant');
+  assert.match(
+    grant,
+    /on conflict \(user_id, role_key\) where revoked_at is null do nothing/,
+    'the grant insert can still raise 23505 on a concurrent identical grant'
+  );
+});
+
+test('L-4: an auto_approved row with no decider gets no decision time', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_request_approval');
+  // decided_by and decided_at are now guarded by the SAME condition.
+  const guards = [...body.matchAll(/case when v_status = 'auto_approved'([^\n]*)then/g)].map((m) =>
+    m[1].trim()
+  );
+  assert.ok(guards.length >= 2, 'the decided_by and decided_at guards are not both there');
+  for (const guard of guards) {
+    assert.match(
+      guard,
+      /and v_alone/,
+      'decided_at is stamped on rows that had no decider, which reads as a decision that happened'
+    );
+  }
+});
+
+test('H-4: fn_ca_operator_permissions carries the admin.manage recovery floor', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_permissions');
+  assert.match(body, /v_is_legacy/, 'the floor is not gated on the profile role being legacy');
+  assert.match(
+    body,
+    /if v_is_legacy and not \(coalesce\(v_permissions[\s\S]{0,120}admin\.manage/,
+    'there is no admin.manage floor for legacy accounts'
+  );
+  assert.match(
+    body,
+    /'admin_manage_floor', v_floor/,
+    'the result does not report whether the floor was applied'
+  );
+  // The floor may only ever ADD. A narrowing here would breach contract
+  // section 0 on the three accounts production actually has.
+  assert.ok(
+    !/v_permissions\s*:=\s*array_remove/.test(body),
+    'the permission resolver removes a permission, which can only narrow somebody'
+  );
+  // And the reason is written down where the next reader will find it.
+  assert.match(gate, /RECOVERY HATCH/, 'the recovery hatch is never named as such');
+});
+
+test('H-4: fn_ca_operator_set_policy refuses the lockout instead of committing it', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_set_policy');
+  assert.match(
+    body,
+    /if coalesce\(\(p_patch ->> 'enforce_named_roles'\)::boolean, false\) then/,
+    'the guard does not fire on a patch that turns enforcement on'
+  );
+  assert.match(body, /'admin\.manage'/, 'the guard never counts admin.manage holders');
+  assert.match(
+    body,
+    /'error', 'enforce_named_roles_would_lock_out'/,
+    'there is no refusal code for the lockout'
+  );
+  assert.match(body, /'admin_manage_holders', v_holders/, 'the refusal does not say how many holders were counted');
+  // The guard has to run BEFORE the update, or it refuses a flag it has
+  // already written.
+  const guardAt = body.indexOf("enforce_named_roles_would_lock_out");
+  const updateAt = body.indexOf('update public.ca_operator_policy');
+  assert.ok(guardAt > -1 && updateAt > guardAt, 'the lockout guard runs after the policy row is written');
+});
+
+test('M-2: fn_ca_operator_decide_approval checks the decider holds the permission', () => {
+  const body = bodyIn(gateCode, 'fn_ca_operator_decide_approval');
+  assert.match(
+    body,
+    /fn_ca_operator_permissions\(p_decided_by\)[\s\S]{0,120}\? v_permission/,
+    'the decision RPC never resolves the decider permissions'
+  );
+  assert.match(body, /'error', 'permission_denied'/, 'there is no permission_denied refusal');
+  assert.match(body, /'required_permission', v_permission/, 'the refusal does not name the permission needed');
+  // It must sit after the dead-row branches, so a decision on an expired
+  // or already-decided row still says so.
+  const expiredAt = body.indexOf("'error', 'expired'");
+  const permAt = body.indexOf("'error', 'permission_denied'");
+  assert.ok(expiredAt > -1 && permAt > expiredAt, 'the permission check hides the expired and already-decided branches');
+  // And the applied migration genuinely had no such check.
+  assert.ok(
+    !/fn_ca_operator_permissions/.test(bodyIn(code, 'fn_ca_operator_decide_approval')),
+    'the applied decide_approval already checked permissions, so this test asserts the wrong history'
+  );
+});
+
+test('the gate migration restates the ACL for all five functions', () => {
+  const signatures = {
+    fn_ca_operator_permissions: '\\(uuid\\)',
+    fn_ca_operator_grant: '\\(uuid, text, uuid, text\\)',
+    fn_ca_operator_set_policy: '\\(jsonb, uuid\\)',
+    fn_ca_operator_request_approval:
+      '\\(text, jsonb, uuid, numeric, text, text, text, text, text, text\\)',
+    fn_ca_operator_decide_approval: '\\(uuid, text, uuid, text\\)',
+  };
+  for (const [fn, args] of Object.entries(signatures)) {
+    assert.match(
+      gateCode,
+      new RegExp(`revoke all on function public\\.${fn}\\s*${args}[\\s\\S]{0,40}?from public, anon, authenticated;`),
+      `${fn} has no REVOKE in the gate migration`
+    );
+    assert.match(
+      gateCode,
+      new RegExp(`grant execute on function public\\.${fn}\\s*${args}[\\s\\S]{0,40}?to service_role;`),
+      `${fn} has no GRANT EXECUTE TO service_role in the gate migration`
+    );
+  }
+  // Exactly five grants, all to service_role and to nothing else. A
+  // CREATE OR REPLACE keeps the existing ACL, so a stray grant here would
+  // be a real widening, which contract section 0 forbids.
+  const grants = gateCode.match(/grant execute on function[\s\S]*?to ([a-z_, ]+);/g) || [];
+  assert.equal(grants.length, GATE_FUNCTIONS.length, 'unexpected number of GRANT EXECUTE statements');
+  for (const g of grants) {
+    assert.match(g, /to service_role;$/, `granted to something other than service_role: ${g}`);
+  }
+});
+
+test('the four mutators the gate replaced still file their audit row', () => {
+  // liveBody reads the NEWEST definition, so this is about what the
+  // database ends up holding, not about what any one file says.
+  for (const fn of GATE_FUNCTIONS.filter((f) => f !== 'fn_ca_operator_permissions')) {
+    const body = liveBody(fn);
+    assert.match(body, /perform public\.fn_log_admin_action\(/, `${fn} lost its audit row in the gate migration`);
+    assert.match(
+      body,
+      /exception when others then/,
+      `${fn} does not guard its audit write: a failed audit must never fail the action`
+    );
+  }
+  // And the read still does not audit.
+  assert.ok(
+    !/fn_log_admin_action/.test(liveBody('fn_ca_operator_permissions')),
+    'the gate migration gave permission resolution an audit write, which would bury the trail'
+  );
+});
+
+test('the gate header explains each defect, how it was found, and what it does not fix', () => {
+  const header = gate.slice(0, gate.indexOf('set local lock_timeout'));
+  assert.match(header, /WHAT THIS IS/);
+  assert.match(header, /HOW THESE WERE FOUND/);
+  assert.match(header, /adversarial review/i, 'the header does not say an adversarial review found these');
+  assert.match(header, /already applied/i, 'the header does not say the migration was already applied');
+  assert.match(header, /probe/i, 'the header does not mention the production probes');
+  assert.match(header, /RAISE EXCEPTION/, 'the header does not say the probes were rolled back by an abort');
+  for (const finding of ['B-2', 'B-3', 'H-2', 'H-4', 'M-2', 'M-3', 'M-4', 'M-5', 'L-4']) {
+    assert.ok(header.includes(finding), `the header never explains finding ${finding}`);
+  }
+  // The ones it deliberately leaves alone are named too, so the next
+  // reader knows they were considered.
+  assert.match(header, /WHAT THIS FILE DELIBERATELY DOES NOT FIX/);
+  for (const finding of ['B-1', 'H-1', 'H-3', 'M-1', 'M-6', 'M-7', 'M-8']) {
+    assert.ok(header.includes(finding), `the header never says why ${finding} is not fixed here`);
+  }
+  // And contract section 0 is argued, not assumed.
+  assert.match(header, /CONTRACT SECTION 0/);
+  assert.match(header, /Tier 2/);
+});
+
+test('the gate migration proves the new behaviour in a savepoint it rolls back', () => {
+  const block = gateAssertBlock();
+  // A subtransaction with a sentinel, so every row the probe writes is
+  // undone inside the migration itself.
+  assert.match(block, /ROLLBACK_PROBE/, 'the assertion block has no rollback sentinel');
+  assert.match(
+    block,
+    /if sqlerrm <> 'ROLLBACK_PROBE' then\s*\n\s*raise;/,
+    'the sentinel handler swallows real failures instead of re-raising them'
+  );
+  // The behaviours the review said were unprovable from the file text.
+  for (const [finding, needle] of [
+    ['H-2', 'ASSERT FAILED (H-2)'],
+    ['B-2', 'ASSERT FAILED (B-2)'],
+    ['B-3', 'ASSERT FAILED (B-3)'],
+    ['M-2', 'ASSERT FAILED (M-2)'],
+    ['M-4', 'ASSERT FAILED (M-4)'],
+    ['H-4', 'ASSERT FAILED (H-4)'],
+    ['L-4', 'ASSERT FAILED (L-4)'],
+  ]) {
+    assert.ok(block.includes(needle), `the assertion block never checks ${finding}`);
+  }
+  // Rolled back means rolled back: it re-reads the policy row and the
+  // probe rows afterwards and refuses to finish if anything survived.
+  assert.match(block, /the probe changed the policy row and it was not rolled back/);
+  assert.match(block, /probe approval row\(s\) survived the rollback/);
+  assert.match(block, /probe grant row\(s\) survived the rollback/);
+  const raises = block.match(/raise exception/g) || [];
+  assert.ok(raises.length >= 15, `only ${raises.length} assertions in the gate migration`);
+  // Synthetic actors only, in the same reserved block the sims use, and
+  // never a write to profiles.
+  const uuids = block.match(/'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/gi) || [];
+  assert.ok(uuids.length > 0, 'the assertion block uses no synthetic uuids');
+  for (const u of uuids) {
+    assert.match(u, /^'00000000-0000-4000-8000-0000000000[0-9a-f]{2}'$/, `uuid outside the reserved block: ${u}`);
+  }
+  assert.ok(!/update\s+public\.profiles/i.test(gateCode), 'the gate migration writes to profiles');
+  assert.ok(!/insert\s+into\s+public\.profiles/i.test(gateCode), 'the gate migration writes to profiles');
+});
+
+test('the gate migration carries a commented ROLLBACK naming the previous definitions', () => {
+  assert.match(gate, /^-- ROLLBACK$/m, 'no `-- ROLLBACK` section');
+  const section = gate.slice(gate.indexOf('-- ROLLBACK'));
+  const prose = section
+    .split('\n')
+    .map((l) => l.trim().replace(/^--\s?/, ''))
+    .join(' ')
+    .replace(/\s+/g, ' ');
+
+  assert.match(
+    prose,
+    /20260903120000_ca_operator_rbac_and_approvals\.sql/,
+    'the section does not name the file the previous definitions live in'
+  );
+  assert.match(prose, /VERBATIM/, 'the section does not say the definitions are re-applied verbatim');
+  for (const [fn, section_] of [
+    ['fn_ca_operator_permissions', '5.1'],
+    ['fn_ca_operator_grant', '5.2'],
+    ['fn_ca_operator_set_policy', '5.4'],
+    ['fn_ca_operator_request_approval', '5.5'],
+    ['fn_ca_operator_decide_approval', '5.6'],
+  ]) {
+    assert.ok(prose.includes(fn), `the ROLLBACK section does not name ${fn}`);
+    assert.ok(prose.includes(`section ${section_}`), `the ROLLBACK section does not point at section ${section_}`);
+  }
+  // It says what rolling back would restore, so nobody runs it casually.
+  assert.match(prose, /required:false for a REJECTED request/i);
+  assert.match(prose, /approvals_enabled/, 'the section does not offer the faster remedy');
+  // Nothing in it is runnable, the same rule both earlier migrations follow.
+  for (const line of section.split('\n')) {
+    if (line.trim() === '') continue;
+    assert.ok(line.trim().startsWith('--'), `the ROLLBACK section has a live statement: ${line}`);
+  }
+});
+
+test('the gate migration and the second simulation are ascii and free of em dashes', () => {
+  for (const [name, text] of [['gate migration', gate], ['second simulation', sim2]]) {
+    const bad = [...text].filter((ch) => ch.codePointAt(0) > 126);
+    assert.deepEqual(
+      [...new Set(bad)],
+      [],
+      `${name} contains non-ascii characters: ${JSON.stringify([...new Set(bad)])}`
+    );
+    // Escaped, so this test file does not itself contain the character
+    // it forbids.
+    assert.ok(!text.includes('\u2014'), `${name} contains an em dash`);
+  }
+});
+
+test('the second simulation is wrapped in a transaction it rolls back', () => {
+  assert.match(sim2, /^begin;$/m, 'the second simulation does not open a transaction');
+  assert.match(sim2, /^rollback;$/m, 'the second simulation does not roll back');
+  assert.ok(!/^commit;$/m.test(sim2), 'the second simulation commits, which would leave the policy changed');
+  assert.match(sim2, /ROLLED BACK/i, 'the second simulation does not say at the top that it must be rolled back');
+  // It stages a zero-holder world by clearing is_legacy, which is only
+  // safe because it is rolled back, so it has to say so at the top.
+  assert.match(sim2, /is_legacy/, 'the second simulation never mentions the flag it clears');
+  const uuids = sim2.match(/'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/gi) || [];
+  assert.ok(uuids.length > 0, 'the second simulation uses no synthetic uuids');
+  for (const u of uuids) {
+    assert.match(u, /^'00000000-0000-4000-8000-0000000000[0-9a-f]{2}'$/, `uuid outside the reserved block: ${u}`);
+  }
+  assert.ok(!/update\s+public\.profiles/i.test(sim2), 'the second simulation writes to profiles');
+  assert.ok(!/insert\s+into\s+public\.profiles/i.test(sim2), 'the second simulation writes to profiles');
+  assert.ok(!/delete\s+from/i.test(sim2), 'the second simulation deletes rows');
+  assert.ok(!/drop\s+/i.test(sim2), 'the second simulation drops an object');
+});
+
+test('the second simulation proves every fix, with a notice per step', () => {
+  for (const step of [
+    'STEP 1', 'STEP 2', 'STEP 3', 'STEP 4', 'STEP 5', 'STEP 6',
+    'STEP 7', 'STEP 8', 'STEP 9', 'STEP 10', 'STEP 12',
+  ]) {
+    assert.ok(sim2.includes(`${step} OK`), `the second simulation never reports ${step} OK`);
+  }
+  // STEP 11 stages a world with nobody holding admin.manage, which it can
+  // only do when no active grant carries it, so it reports OK or SKIPPED.
+  assert.ok(
+    sim2.includes('STEP 11 OK') && sim2.includes('STEP 11 SKIPPED'),
+    'STEP 11 does not handle both the provable and the unstageable case'
+  );
+  for (const finding of ['H-2', 'B-2', 'B-3', 'M-2', 'M-3', 'M-4', 'M-5', 'H-4', 'L-4']) {
+    assert.ok(sim2.includes(finding), `the second simulation never mentions ${finding}`);
+  }
+  for (const claim of [
+    'payload_mismatch',
+    'approval_rejected',
+    'approval_expired',
+    'already_executed',
+    'permission_denied',
+    'enforce_named_roles_would_lock_out',
+    'admin_manage_floor',
+    'retried_after_failure',
+  ]) {
+    assert.ok(sim2.includes(claim), `the second simulation does not cover: ${claim}`);
+  }
+  // Each claim is checked, not just narrated.
+  const failures = sim2.match(/raise exception/g) || [];
+  assert.ok(failures.length >= 20, `only ${failures.length} assertions in the second simulation`);
+  for (const fn of GATE_FUNCTIONS) {
+    assert.ok(sim2.includes(`public.${fn}(`), `the second simulation never exercises ${fn}`);
+  }
 });
 
 // ------------------------------------------------------------- additive

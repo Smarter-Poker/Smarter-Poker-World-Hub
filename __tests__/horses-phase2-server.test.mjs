@@ -52,6 +52,7 @@ import {
   isLegacyRole,
 } from '../src/lib/horses/permissions.js';
 import {
+  requireOperator,
   resolveOperatorPermissions,
   loadOperatorPolicy,
   normalizeOperatorPolicy,
@@ -69,7 +70,10 @@ import {
   approvalPendingBody,
   approvalPendingResponse,
   canDecideApproval,
+  cashoutAuthPath,
   isApprovalKind,
+  isExecutableKind,
+  payloadFor,
 } from '../src/lib/horses/approvals.js';
 
 const source = (file) => fs.readFileSync(file, 'utf8');
@@ -207,7 +211,12 @@ function fakeDb(tables = {}, rpcs = {}) {
       const scripted = rpcs[name];
       if (typeof scripted === 'function') return scripted(args);
       if (scripted) return scripted;
-      return { data: null, error: null };
+      // AN UNSCRIPTED RPC IS A HOLE IN THE TEST, NOT A QUIET SUCCESS.
+      // This used to answer { data: null, error: null }, which satisfied every
+      // `if (data && data.ok === false) throw ...` branch in every route
+      // vacuously: grant, revoke and decide all have one and none of them was
+      // ever exercised against a refusal.
+      throw new Error(`unscripted RPC: ${name}`);
     },
   };
 }
@@ -264,6 +273,67 @@ function opFor(db, { role = 'admin', permissions, policy, id = OPERATOR_ID } = {
 
 const logRpc = { fn_log_admin_action: async () => ({ data: true, error: null }) };
 
+/**
+ * A ca_operator_approvals row and the three RPCs that write it, each APPLYING
+ * what it is handed rather than nodding at it: `decide` flips the row and
+ * refuses a second decision, `mark_executed` refuses a row that was never
+ * approved and merges the result, and every read in the same test sees what
+ * those writes did. Without that, "an approved mint executes" is a test of the
+ * script rather than of the route.
+ */
+function approvalWorld(seed = {}) {
+  const row = { ...APPROVAL_ROW, ...seed };
+  const rpcs = {
+    ...logRpc,
+    fn_ca_operator_has_second_approver: async () => ({ data: false, error: null }),
+    fn_ca_operator_decide_approval: async (args) => {
+      if (args.p_approval_id !== row.id) {
+        return { data: { ok: false, error: 'approval_not_found' }, error: null };
+      }
+      if (row.status !== 'pending') {
+        return { data: { ok: false, error: 'already_decided', status: row.status }, error: null };
+      }
+      row.status = args.p_decision === 'approve' ? 'approved' : 'rejected';
+      row.decided_by = args.p_decided_by;
+      row.decided_at = '2026-09-03T00:00:00Z';
+      return { data: { ok: true, status: row.status, approval_id: row.id }, error: null };
+    },
+    fn_ca_operator_mark_executed: async (args) => {
+      if (args.p_approval_id !== row.id) {
+        return { data: { ok: false, error: 'approval_not_found' }, error: null };
+      }
+      if (!['approved', 'auto_approved', 'failed'].includes(row.status)) {
+        return { data: { ok: false, error: 'not_approved', status: row.status }, error: null };
+      }
+      row.status = args.p_status;
+      row.result = { ...(row.result || {}), ...(args.p_result || {}) };
+      if (args.p_status === 'executed') row.executed_at = '2026-09-03T00:01:00Z';
+      return { data: { ok: true, status: args.p_status }, error: null };
+    },
+  };
+  const db = (extra = {}) =>
+    fakeDb(
+      {
+        ca_operator_approvals: { rows: () => [row] },
+        ca_operator_policy: { rows: [{ id: true }] },
+        profiles: { rows: [] },
+      },
+      { ...rpcs, ...extra }
+    );
+  return { row, rpcs, db };
+}
+
+/** The payload /api/horses/mint stores on a chips issuance to a club. */
+const MINT_PAYLOAD = Object.freeze({
+  action: 'mint',
+  asset: 'chips',
+  target: 'club',
+  targetId: CLUB_ID,
+  amount: 5000,
+  reason: 'Seeding the new club treasury for launch',
+  opId: 'op-mint-1',
+});
+
 // ---------------------------------------------------------------- permissions
 
 test('phase 2 adds the named roles and admin.manage without narrowing the legacy three', () => {
@@ -275,7 +345,12 @@ test('phase 2 adds the named roles and admin.manage without narrowing the legacy
   }
   for (const role of NAMED_OPERATOR_ROLES) {
     assert.ok(isKnownRole(role), `${role} must be a known role`);
-    assert.ok(isOperatorRole(role), `${role} must reach the console`);
+    // ...and must NOT reach the console just by appearing in profiles.role.
+    // profiles.role is free text this feature does not own: `owner` is a value
+    // any future club or venue work is likely to write, and on the day it
+    // appeared that account would have held the whole owner set, admin.manage
+    // included. A named role reaches the console through a GRANT.
+    assert.equal(isOperatorRole(role), false, `${role} must not be a console entry role`);
     assert.ok(ROLE_PERMISSIONS[role].length > 0, `${role} must hold something`);
     assert.ok(ROLE_META[role], `${role} must have a label for the matrix`);
     assert.ok(
@@ -294,6 +369,67 @@ test('admin.manage is held by owner and the legacy roles and by nobody else', ()
   for (const role of ['operations', 'finance', 'compliance', 'support', 'read_only']) {
     assert.equal(hasPermission(permissionsForRole(role), PERMISSIONS.ADMIN_MANAGE), false);
   }
+});
+
+/**
+ * WHO GETS THROUGH THE DOOR (review M-6).
+ *
+ * A legacy profile role opens it. A Phase 2 role NAME sitting in profiles.role
+ * does not, because that column is free text this feature does not own. An
+ * active grant does, because somebody filed it with a reason.
+ */
+test('console entry: legacy role or a grant, never a Phase 2 name in profiles.role', async () => {
+  const verifier = async () => ({ user: { id: OPERATOR_ID, email: 'op@example.com' }, error: null });
+  const authed = () =>
+    fakeReq({ method: 'GET', headers: { authorization: `Bearer ${'x'.repeat(40)}`, 'user-agent': 'node-test' } });
+  const world = (role, rpcPayload) =>
+    fakeDb(
+      {
+        profiles: { rows: [{ id: OPERATOR_ID, role, username: 'op', display_name: 'Op' }] },
+        ca_operator_policy: { rows: [{ id: true }] },
+      },
+      { fn_ca_operator_permissions: async () => ({ data: rpcPayload, error: null }) }
+    );
+
+  _resetOperatorCachesForTests();
+  const legacyDb = world('admin', { role: 'admin', roles: ['admin'], permissions: [], source: 'legacy' });
+  const legacy = await requireOperator(authed(), fakeRes(), {
+    permission: PERMISSIONS.MONEY_WRITE,
+    deps: { getServerUserWithFallback: verifier, getDb: async () => legacyDb },
+  });
+  assert.ok(legacy, 'a legacy admin must still reach the console');
+  assert.ok(hasPermission(legacy.permissions, PERMISSIONS.ADMIN_MANAGE));
+
+  // profiles.role = 'owner' is a string in a column, not an operator grant.
+  _resetOperatorCachesForTests();
+  const namedRes = fakeRes();
+  const namedDb = world('owner', { role: 'owner', roles: [], permissions: [], source: 'legacy' });
+  assert.equal(
+    await requireOperator(authed(), namedRes, {
+      permission: PERMISSIONS.CONSOLE_READ,
+      deps: { getServerUserWithFallback: verifier, getDb: async () => namedDb },
+    }),
+    null
+  );
+  assert.equal(namedRes.statusCode, 403);
+  assert.equal(namedRes.body.code, 'forbidden');
+
+  // The same account WITH a finance grant gets in, holding the finance set.
+  _resetOperatorCachesForTests();
+  const grantedDb = world('user', {
+    role: 'user',
+    roles: ['finance'],
+    permissions: permissionsForRole('finance'),
+    source: 'granted',
+  });
+  const granted = await requireOperator(authed(), fakeRes(), {
+    permission: PERMISSIONS.MONEY_WRITE,
+    deps: { getServerUserWithFallback: verifier, getDb: async () => grantedDb },
+  });
+  assert.ok(granted, 'an active grant is what reaches the console');
+  assert.deepEqual(granted.grantedRoles, ['finance']);
+  assert.equal(hasPermission(granted.permissions, PERMISSIONS.ADMIN_MANAGE), false);
+  _resetOperatorCachesForTests();
 });
 
 test('the narrow roles hold exactly the writes their job needs', () => {
@@ -375,12 +511,62 @@ test('resolveOperatorPermissions: enforce_named_roles is the only thing that nar
   const granted = permissionsForRole('read_only');
   const db = fakeDb(
     { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: true }] } },
-    permissionRpc({ role: 'admin', roles: ['admin', 'read_only'], permissions: granted, source: 'granted' })
+    permissionRpc({ role: 'support', roles: ['support', 'read_only'], permissions: granted, source: 'granted' })
   );
-  const resolved = await resolveOperatorPermissions(db, OPERATOR_ID, 'admin');
+  const { value: resolved } = await quiet(() =>
+    resolveOperatorPermissions(db, OPERATOR_ID, 'support')
+  );
   assert.deepEqual(resolved.permissions, orderPermissions(granted));
   assert.equal(resolved.enforced, true);
   assert.equal(hasPermission(resolved.permissions, PERMISSIONS.MONEY_WRITE), false);
+});
+
+/**
+ * THE FLOOR UNDER THE NARROWING (review H-4).
+ *
+ * Grant a god `read_only`, turn `enforce_named_roles` on, and the database
+ * describes that account by the grant alone: 21 permissions down to 6, and the
+ * one that goes is `admin.manage` - the only permission that can turn the flag
+ * back off. Recovery from that is direct SQL. Whatever the database says, a
+ * legacy profile role keeps admin.manage.
+ */
+test('resolveOperatorPermissions: a legacy account never loses admin.manage, whatever the database says', async () => {
+  for (const role of LEGACY_ADMIN_ROLES) {
+    _resetOperatorCachesForTests();
+    const narrow = permissionsForRole('read_only');
+    const db = fakeDb(
+      { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: true }] } },
+      permissionRpc({ role, roles: [role, 'read_only'], permissions: narrow, source: 'granted' })
+    );
+    const { value: resolved, logged } = await quiet(() =>
+      resolveOperatorPermissions(db, OPERATOR_ID, role)
+    );
+    assert.equal(resolved.enforced, true, 'enforcement still applies to everything else');
+    assert.ok(
+      hasPermission(resolved.permissions, PERMISSIONS.ADMIN_MANAGE),
+      `a ${role} account must keep the permission that undoes this`
+    );
+    // The narrowing is real everywhere else: this is a floor, not an escape.
+    assert.equal(hasPermission(resolved.permissions, PERMISSIONS.MONEY_WRITE), false);
+    assert.ok(
+      logged.some((line) => /restoring it so the policy panel cannot lock/.test(line)),
+      'the floor must say out loud that it fired'
+    );
+  }
+  // A named role holder is NOT given the floor: they never had it to lose.
+  _resetOperatorCachesForTests();
+  const db = fakeDb(
+    { ca_operator_policy: { rows: [{ id: true, enforce_named_roles: true }] } },
+    permissionRpc({
+      role: 'support',
+      roles: ['finance'],
+      permissions: permissionsForRole('finance'),
+      source: 'granted',
+    })
+  );
+  const resolved = await resolveOperatorPermissions(db, OPERATOR_ID, 'support');
+  assert.equal(hasPermission(resolved.permissions, PERMISSIONS.ADMIN_MANAGE), false);
+  _resetOperatorCachesForTests();
 });
 
 test('resolveOperatorPermissions: enforcement needs a policy row that actually loaded', async () => {
@@ -581,6 +767,62 @@ test('the approval kind vocabulary matches the contract and maps to permissions'
   assert.equal(isApprovalKind('teleport'), false);
 });
 
+test('payloadFor: the executable kinds shape a real RPC call and the rest refuse to', () => {
+  assert.equal(isExecutableKind('mint'), true);
+  assert.equal(isExecutableKind('burn'), true);
+  assert.equal(isExecutableKind('fund_club'), true);
+  // cashout is decided here and carried out by the club-arena route; the other
+  // two are not wired to anything yet. None of them may be assembled into a
+  // money call from this console.
+  for (const kind of ['cashout', 'fleet_policy', 'sanction', 'teleport']) {
+    assert.equal(isExecutableKind(kind), false);
+    assert.equal(payloadFor(kind), null, `${kind} must have no executor`);
+  }
+
+  const mint = payloadFor('mint')(
+    { action: 'mint', asset: 'chips', target: 'club', targetId: CLUB_ID, amount: '250.50', reason: 'Launch float for the club' },
+    'op-key-1'
+  );
+  assert.equal(mint.ok, true);
+  assert.equal(mint.rpc, 'fn_ca_mint');
+  assert.equal(mint.args.p_amount, 250.5, 'the amount is parsed from the string, so 250.50 survives');
+  assert.equal(mint.args.p_destination, 'club');
+  assert.equal(mint.args.p_op_id, 'op-key-1');
+
+  // Dan's law, at the executor: chips never reach a person, diamonds never
+  // reach a club, and diamonds are whole numbers.
+  const toPerson = payloadFor('mint')(
+    { asset: 'chips', target: 'player', targetId: CLUB_ID, amount: 10, reason: 'A reason long enough' },
+    'op-key-2'
+  );
+  assert.equal(toPerson.ok, false);
+  assert.equal(toPerson.reason, 'payload_target_invalid');
+  const fractionalDiamonds = payloadFor('mint')(
+    { asset: 'diamonds', target: 'player', targetId: CLUB_ID, amount: '1.50', reason: 'A reason long enough' },
+    'op-key-3'
+  );
+  assert.equal(fractionalDiamonds.ok, false);
+  assert.equal(fractionalDiamonds.reason, 'payload_amount_invalid');
+
+  const fund = payloadFor('fund_club')(
+    { clubId: CLUB_ID, amount: 100, reason: 'Topping up the club treasury', opId: 'op-key-4' },
+    'op-key-4'
+  );
+  assert.equal(fund.ok, true);
+  assert.equal(fund.rpc, 'fn_ca_fund_club');
+  assert.deepEqual(fund.args, {
+    p_club_id: CLUB_ID,
+    p_amount: 100,
+    p_reason: 'Topping up the club treasury',
+    p_op_id: 'op-key-4',
+  });
+
+  // Every refusal carries an operator-facing sentence, not just a code.
+  const missing = payloadFor('burn')(null, 'op-key-5');
+  assert.equal(missing.ok, false);
+  assert.match(missing.message, /^[A-Z]/);
+});
+
 // ------------------------------------------------------- requireApproval
 
 const requestRpc = (payload) => ({
@@ -683,6 +925,131 @@ test('requireApproval: a failed REQUIRED approval refuses with 503 and moves not
   );
 });
 
+/**
+ * A REJECTED OR EXPIRED REPLAY IS A REFUSAL, NOT A PERMISSION (review B-2).
+ *
+ * `op_id` is unique, so a retry is answered with the row the key already names.
+ * Only auto_approved, approved and executed mean "the money may move now".
+ * Reading `required: false` off a rejected row is how a rejected mint executes
+ * on retry with the trail still reading `rejected`.
+ */
+test('requireApproval: a rejected, expired or failed replay is a 409, and no money follows', async () => {
+  const cases = [
+    { status: 'rejected', code: 'approval_rejected', text: /Rejected/ },
+    { status: 'expired', code: 'approval_expired', text: /Expired/ },
+    { status: 'failed', code: 'failed', text: /Failed/ },
+  ];
+  for (const { status, code, text: expected } of cases) {
+    for (const payload of [
+      // The shape the follow-up migration returns (ok:false with a code, and
+      // `required` left TRUE so a caller reading only that field still holds),
+      // and a bare status with no `ok` at all. Both must refuse.
+      { ok: false, refused: true, required: true, error: code, approval_id: APPROVAL_ID, status },
+      { required: false, approval_id: APPROVAL_ID, status, idempotent: true },
+    ]) {
+      const db = fakeDb({}, requestRpc(payload));
+      const op = opFor(db, { policy: policyOf({ approvalsEnabled: true, mintThreshold: 0 }) });
+      await quiet(() =>
+        assert.rejects(
+          requireApproval(op, fakeReq(), { kind: 'mint', amount: 500, opId: 'op-replay' }),
+          (err) => {
+            assert.equal(err.status, 409);
+            assert.ok(err.code === code || err.code === status, `unexpected code ${err.code}`);
+            assert.match(err.message, expected);
+            assert.match(err.message, /^[A-Z]/, 'operator-facing text is Title Case');
+            return true;
+          }
+        )
+      );
+    }
+  }
+});
+
+test('requireApproval: a payload that does not match the key it is reusing is a 409', async () => {
+  const db = fakeDb({}, requestRpc({ ok: false, error: 'payload_mismatch', approval_id: APPROVAL_ID }));
+  const op = opFor(db, { policy: policyOf({ approvalsEnabled: true, mintThreshold: 0 }) });
+  await quiet(() =>
+    assert.rejects(
+      requireApproval(op, fakeReq(), { kind: 'mint', amount: 999_999, opId: 'op-laundered' }),
+      (err) => {
+        assert.equal(err.status, 409);
+        assert.equal(err.code, 'payload_mismatch');
+        assert.match(err.message, /Different Request/);
+        return true;
+      }
+    )
+  );
+  // And an unknown refusal code is still a refusal, never a pass.
+  const odd = fakeDb({}, requestRpc({ ok: false, error: 'something_new', approval_id: APPROVAL_ID }));
+  await quiet(() =>
+    assert.rejects(
+      requireApproval(opFor(odd, { policy: policyOf({ approvalsEnabled: true }) }), fakeReq(), {
+        kind: 'mint',
+        amount: 1,
+        opId: 'op-odd',
+      }),
+      (err) => err.status === 409 && err.code === 'something_new'
+    )
+  );
+});
+
+test('requireApproval: only auto_approved, approved and executed release the money', async () => {
+  const on = policyOf({ approvalsEnabled: true, mintThreshold: 0 });
+  for (const status of ['auto_approved', 'approved', 'executed']) {
+    const db = fakeDb({}, requestRpc({ required: false, approval_id: APPROVAL_ID, status }));
+    const result = await requireApproval(opFor(db, { policy: on }), fakeReq(), {
+      kind: 'mint',
+      amount: 10,
+      opId: `op-${status}`,
+    });
+    assert.equal(result.required, false, `${status} must let the operation proceed`);
+    assert.equal(result.status, status);
+  }
+  // A status this module does not recognise HOLDS rather than passes, even
+  // when the database says required:false.
+  const db = fakeDb({}, requestRpc({ required: false, approval_id: APPROVAL_ID, status: 'pending' }));
+  const held = await requireApproval(opFor(db, { policy: on }), fakeReq(), {
+    kind: 'mint',
+    amount: 10,
+    opId: 'op-pending',
+  });
+  assert.equal(held.required, true, 'a pending row must not read as a release');
+});
+
+/**
+ * THE BOUNDARY, ON BOTH SIDES (review H-2).
+ *
+ * The module comment, the console copy and the JS all gate at `>=`; the
+ * shipped SQL gated at `>`, and requireApproval ANDs the two, so an amount
+ * exactly equal to the threshold went through unwatched. The follow-up
+ * migration moves the SQL to `>=`; this asserts that an amount AT the
+ * threshold is gated end to end, and that a database still answering the old
+ * way cannot release it.
+ */
+test('requireApproval: an amount exactly at the threshold is gated end to end', async () => {
+  const on = policyOf({ approvalsEnabled: true, mintThreshold: 1000 });
+  assert.equal(requiresApproval(on, 'mint', 1000).required, true, 'the JS gates at >=');
+  assert.equal(requiresApproval(on, 'mint', 999.99).required, false);
+
+  const fixed = fakeDb({}, requestRpc({ required: true, approval_id: APPROVAL_ID, status: 'pending' }));
+  const gated = await requireApproval(opFor(fixed, { policy: on }), fakeReq(), {
+    kind: 'mint',
+    amount: 1000,
+    opId: 'op-boundary',
+  });
+  assert.equal(gated.required, true);
+
+  // The old SQL answered required:false at the boundary with a pending row.
+  // The status is what decides, so the ceiling cannot be talked past.
+  const legacy = fakeDb({}, requestRpc({ required: false, approval_id: APPROVAL_ID, status: 'pending' }));
+  const still = await requireApproval(opFor(legacy, { policy: on }), fakeReq(), {
+    kind: 'mint',
+    amount: 1000,
+    opId: 'op-boundary-2',
+  });
+  assert.equal(still.required, true, 'an amount at the threshold must not slip through');
+});
+
 test('requireApproval: an unknown kind is a route misconfiguration, not a silent pass', async () => {
   const db = fakeDb({}, requestRpc({ required: false }));
   await assert.rejects(
@@ -703,11 +1070,13 @@ test('markApprovalExecuted runs once, closes the row, and never throws', async (
     },
   });
   const ok = await markApprovalExecuted(opFor(db), APPROVAL_ID, { ledger_id: 'l1' });
-  assert.deepEqual(ok, { ok: true, skipped: false });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.skipped, false);
+  assert.equal(ok.refused, false);
   assert.equal(calls, 1);
 
   // No approval id (the row was never recorded) is a skip, not a call.
-  assert.deepEqual(await markApprovalExecuted(opFor(db), null, {}), { ok: false, skipped: true });
+  assert.equal((await markApprovalExecuted(opFor(db), null, {})).skipped, true);
   assert.equal(calls, 1);
 
   // And a failure is swallowed: the chips already moved.
@@ -716,8 +1085,35 @@ test('markApprovalExecuted runs once, closes the row, and never throws', async (
   });
   const { value: bad } = await quiet(() => markApprovalExecuted(opFor(broken), APPROVAL_ID, {}));
   assert.equal(bad.ok, false);
+  assert.equal(bad.refused, false, 'a transport failure is not a refusal');
   const { value: threw } = await quiet(() => markApprovalExecuted({ db: null }, APPROVAL_ID, {}));
   assert.equal(threw.ok, false);
+});
+
+/**
+ * THE ONE SIGNAL THAT MUST NOT BE SWALLOWED (review M-8).
+ *
+ * `{ ok: false, error: 'not_approved' }` means chips moved against a row nobody
+ * approved. It used to be discarded - only `error` was read, never `data.ok` -
+ * and the route reported a clean success over the top of it.
+ */
+test('markApprovalExecuted reports a refusal instead of reporting success over it', async () => {
+  const db = fakeDb({}, {
+    fn_ca_operator_mark_executed: async () => ({
+      data: { ok: false, error: 'not_approved', status: 'rejected' },
+      error: null,
+    }),
+  });
+  const { value: result, logged } = await quiet(() =>
+    markApprovalExecuted(opFor(db), APPROVAL_ID, { ok: true })
+  );
+  assert.equal(result.ok, false, 'a refusal is not a success');
+  assert.equal(result.refused, true);
+  assert.equal(result.reason, 'not_approved');
+  assert.ok(
+    logged.some((line) => /REFUSED approval/.test(line)),
+    'the disagreement between the row and the money must be loud'
+  );
 });
 
 test('the pending envelope is the contract shape and a 202', () => {
@@ -752,10 +1148,45 @@ test('canDecideApproval: self approval is refused once Dan turns the alone-rule 
   const strict = canDecideApproval(approval, OPERATOR_ID, policyOf({ allowSelfApproveWhenAlone: false }));
   assert.deepEqual(strict, { allowed: false, reason: 'self_approval' });
 
-  // Default ON, because one operator cannot four-eyes anything.
-  const alone = canDecideApproval(approval, OPERATOR_ID, policyOf({}));
+  // Default ON, and the operator IS alone: one operator cannot four-eyes
+  // anything, so the rule clears their own request.
+  const alone = canDecideApproval(approval, OPERATOR_ID, policyOf({}), { eligibleApprovers: 0 });
   assert.deepEqual(alone, { allowed: true, reason: 'alone_rule' });
-  assert.deepEqual(canDecideApproval(approval, OPERATOR_ID, undefined), {
+});
+
+/**
+ * THE ALONE-RULE HAS TO COUNT (review H-3).
+ *
+ * fn_ca_operator_decide_approval clears a self-decision only when
+ * fn_ca_operator_has_second_approver says there is nobody else. Production has
+ * three legacy operators, so with the old copy of the rule the console rendered
+ * an enabled Approve button on the operator's own request, the RPC answered
+ * self_approval_refused, and the audit row's `alone_rule: true` was false.
+ */
+test('canDecideApproval: the alone-rule refuses while another approver exists', () => {
+  const mine = { status: 'pending', requested_by: OPERATOR_ID };
+  for (const eligibleApprovers of [1, 2, 12]) {
+    assert.deepEqual(
+      canDecideApproval(mine, OPERATOR_ID, policyOf({}), { eligibleApprovers }),
+      { allowed: false, reason: 'self_approval' },
+      `${eligibleApprovers} other approvers means the requester is not alone`
+    );
+  }
+  // Somebody else's request is unaffected by the count.
+  assert.deepEqual(
+    canDecideApproval({ status: 'pending', requested_by: OTHER_ID }, OPERATOR_ID, policyOf({}), {
+      eligibleApprovers: 2,
+    }),
+    { allowed: true, reason: 'second_operator' }
+  );
+  // An UNKNOWN count fails open: section 0 says an unreadable roster must not
+  // freeze a platform that would otherwise move, and the RPC still refuses at
+  // write time if it disagrees.
+  assert.deepEqual(canDecideApproval(mine, OPERATOR_ID, policyOf({}), { eligibleApprovers: null }), {
+    allowed: true,
+    reason: 'alone_rule',
+  });
+  assert.deepEqual(canDecideApproval(mine, OPERATOR_ID, policyOf({})), {
     allowed: true,
     reason: 'alone_rule',
   });
@@ -1082,10 +1513,16 @@ test('operator-admin: set_policy validates every switch and threshold, then audi
   assert.throws(() => validatePolicyPatch({ mintThreshold: -5 }), (err) => err.status === 400);
   assert.throws(() => validatePolicyPatch({ approvalTtlMinutes: 1 }), (err) => err.status === 400);
 
+  // No fn_ca_operator_set_policy in this world, which is production between
+  // this deploy and the follow-up migration: the direct write is the fallback,
+  // and it still has to carry the whole patch and the actor.
   _resetOperatorCachesForTests();
   const db = adminDb();
   const owner = opFor(db, { role: 'owner' });
-  await adminPost(db, owner, { action: 'set_policy', approvalsEnabled: true, mintThreshold: '1000' });
+  const { value: fallback } = await quiet(() =>
+    adminPost(db, owner, { action: 'set_policy', approvalsEnabled: true, mintThreshold: '1000' })
+  );
+  assert.equal(fallback.policy.approvals_enabled, false, 'the fallback answers with the row it read back');
   const update = db.calls.find((c) => c.table === 'ca_operator_policy' && c.update);
   assert.equal(update.update.approvals_enabled, true);
   assert.equal(update.update.mint_threshold, 1000);
@@ -1096,13 +1533,160 @@ test('operator-admin: set_policy validates every switch and threshold, then audi
   _resetOperatorCachesForTests();
 });
 
-test('operator-admin: decide_approval needs the permission the KIND needs', async () => {
-  const rpcs = {
-    fn_ca_operator_decide_approval: async () => ({ data: { ok: true, status: 'approved' }, error: null }),
-  };
+const okMint = (over = {}) => ({
+  fn_ca_mint: async () => ({
+    data: { ok: true, ledger_id: 'l1', balance_before: 0, balance_after: 5000, supply_after: 5000 },
+    error: null,
+  }),
+  ...over,
+});
 
+/**
+ * THE SILENT-WRITE GUARD (review M-1).
+ *
+ * An UPDATE that matches no row answers { data: null, error: null }. The route
+ * used to echo the patch back as if it had been stored, so the panel said
+ * "approvals on" over a table that still said off. The old test asserted the
+ * update object that was COMPOSED, which passes either way.
+ */
+/**
+ * set_policy goes through fn_ca_operator_set_policy, which is where the H-4
+ * lockout guard lives: turning `enforce_named_roles` on when nobody would still
+ * hold admin.manage is a one-way door, and the panel that could turn it back
+ * off is the one that disappears.
+ */
+test('operator-admin: set_policy uses the guarded RPC and surfaces its refusal', async () => {
+  _resetOperatorCachesForTests();
+  let sent = null;
+  const db = adminDb({}, {
+    fn_ca_operator_set_policy: async (args) => {
+      sent = args;
+      return {
+        data: {
+          ok: true,
+          policy: { id: true, approvals_enabled: true, mint_threshold: 1000, enforce_named_roles: false },
+        },
+        error: null,
+      };
+    },
+  });
+  const payload = await adminPost(db, opFor(db, { role: 'owner' }), {
+    action: 'set_policy',
+    approvalsEnabled: true,
+    mintThreshold: '1000',
+  });
+  assert.deepEqual(sent.p_patch, { approvals_enabled: true, mint_threshold: 1000 });
+  assert.equal(sent.p_updated_by, OPERATOR_ID);
+  assert.equal(payload.policy.approvals_enabled, true);
+  assert.equal(payload.policy.mint_threshold, 1000);
+  assert.ok(
+    !db.calls.some((c) => c.table === 'ca_operator_policy' && c.update),
+    'the RPC upserts the singleton, so the route must not also write the row'
+  );
+
+  _resetOperatorCachesForTests();
+  const lockedOut = adminDb({}, {
+    fn_ca_operator_set_policy: async () => ({
+      data: { ok: false, reason: 'enforce_named_roles_would_lock_out', admin_manage_holders: 0 },
+      error: null,
+    }),
+  });
+  await assert.rejects(
+    adminPost(lockedOut, opFor(lockedOut, { role: 'owner' }), {
+      action: 'set_policy',
+      enforceNamedRoles: true,
+    }),
+    (err) => {
+      assert.equal(err.status, 409);
+      assert.equal(err.code, 'enforce_named_roles_would_lock_out');
+      assert.match(err.message, /admin\.manage/);
+      return true;
+    }
+  );
+  _resetOperatorCachesForTests();
+});
+
+test('operator-admin: set_policy refuses when the update matched no row', async () => {
+  _resetOperatorCachesForTests();
+  const db = adminDb({ ca_operator_policy: { rows: [] } });
+  const { value } = await quiet(() =>
+    assert.rejects(
+      adminPost(db, opFor(db, { role: 'owner' }), { action: 'set_policy', approvalsEnabled: true }),
+      (err) => {
+        assert.equal(err.status, 409);
+        assert.equal(err.code, 'policy_row_missing');
+        assert.match(err.message, /Nothing Was Saved/);
+        return true;
+      }
+    )
+  );
+  assert.equal(value, undefined);
+  assert.ok(
+    !db.calls.some((c) => c.rpc === 'fn_log_admin_action'),
+    'a write that did not happen must not be audited as if it had'
+  );
+  _resetOperatorCachesForTests();
+});
+
+/**
+ * EVERY WRITE ACTION HAS AN `ok: false` BRANCH AND NONE OF THEM WAS TESTED
+ * (review T-5), because the fake answered { data: null, error: null } to any
+ * RPC it had not been given, which satisfies `if (data && data.ok === false)`
+ * vacuously. The fake now throws on an unscripted RPC, so these are the real
+ * refusals.
+ */
+test('operator-admin: a refusal from the database is a 409, not a success envelope', async () => {
+  const grantDb = adminDb({}, {
+    fn_ca_operator_grant: async () => ({ data: { ok: false, reason: 'role_not_found' }, error: null }),
+  });
+  await assert.rejects(
+    adminPost(grantDb, opFor(grantDb, { role: 'owner' }), {
+      action: 'grant_role',
+      userId: OTHER_ID,
+      roleKey: 'finance',
+      reason: 'Runs the treasury desk',
+    }),
+    (err) => err.status === 409 && err.code === 'role_not_found'
+  );
+
+  const revokeDb = adminDb({}, {
+    fn_ca_operator_revoke: async () => ({ data: { ok: false, reason: 'already_revoked' }, error: null }),
+  });
+  await assert.rejects(
+    adminPost(revokeDb, opFor(revokeDb, { role: 'owner' }), {
+      action: 'revoke_role',
+      grantId: APPROVAL_ID,
+      reason: 'Moved off the finance desk',
+    }),
+    (err) => err.status === 409 && err.code === 'already_revoked'
+  );
+
+  const world = approvalWorld({ payload: MINT_PAYLOAD });
+  const decideDb = world.db({
+    ...okMint(),
+    fn_ca_operator_decide_approval: async () => ({
+      data: { ok: false, reason: 'self_approval_refused' },
+      error: null,
+    }),
+  });
+  await assert.rejects(
+    adminPost(decideDb, opFor(decideDb, { role: 'finance' }), {
+      action: 'decide_approval',
+      approvalId: APPROVAL_ID,
+      decision: 'approve',
+    }),
+    (err) => err.status === 409 && err.code === 'self_approval_refused'
+  );
+  assert.ok(
+    !decideDb.rpcNames().includes('fn_ca_mint'),
+    'a refused decision must never reach the money RPC'
+  );
+});
+
+test('operator-admin: decide_approval needs the permission the KIND needs', async () => {
   // A finance operator holds money.write, so a mint approval is theirs to make.
-  const financeDb = adminDb({}, rpcs);
+  const finance = approvalWorld({ payload: MINT_PAYLOAD });
+  const financeDb = finance.db(okMint());
   const payload = await adminPost(financeDb, opFor(financeDb, { role: 'finance' }), {
     action: 'decide_approval',
     approvalId: APPROVAL_ID,
@@ -1113,15 +1697,17 @@ test('operator-admin: decide_approval needs the permission the KIND needs', asyn
   const decide = financeDb.calls.find((c) => c.rpc === 'fn_ca_operator_decide_approval');
   assert.equal(decide.args.p_decision, 'approve');
   assert.equal(decide.args.p_decided_by, OPERATOR_ID);
-  const audit = financeDb.calls.find((c) => c.rpc === 'fn_log_admin_action');
-  assert.equal(audit.args.p_action, 'operator.decide_approval');
+  const audit = financeDb.calls.find(
+    (c) => c.rpc === 'fn_log_admin_action' && c.args.p_action === 'operator.decide_approval'
+  );
   assert.equal(audit.args.p_details.permission, PERMISSIONS.MONEY_WRITE);
   assert.equal(audit.args.p_details.kind, 'mint');
   assert.equal(audit.args.p_before_state.status, 'pending');
   assert.equal(audit.args.p_after_state.status, 'approved');
 
   // A support operator does not, and is refused after the row is read.
-  const supportDb = adminDb({}, rpcs);
+  const support = approvalWorld({ payload: MINT_PAYLOAD });
+  const supportDb = support.db(okMint());
   await assert.rejects(
     adminPost(supportDb, opFor(supportDb, { role: 'support' }), {
       action: 'decide_approval',
@@ -1131,13 +1717,12 @@ test('operator-admin: decide_approval needs the permission the KIND needs', asyn
     (err) => err.status === 403 && /money\.write/.test(err.message)
   );
   assert.ok(!supportDb.rpcNames().includes('fn_ca_operator_decide_approval'));
+  assert.equal(support.row.status, 'pending', 'nothing may be decided without the permission');
 
   // And a cashout approval wants cashier.write, which finance also holds and
   // operations does not.
-  const cashoutDb = adminDb(
-    { ca_operator_approvals: { rows: [{ ...APPROVAL_ROW, kind: 'cashout' }], count: 1 } },
-    rpcs
-  );
+  const cashout = approvalWorld({ kind: 'cashout' });
+  const cashoutDb = cashout.db();
   await assert.rejects(
     adminPost(cashoutDb, opFor(cashoutDb, { role: 'operations' }), {
       action: 'decide_approval',
@@ -1149,9 +1734,8 @@ test('operator-admin: decide_approval needs the permission the KIND needs', asyn
 });
 
 test('operator-admin: an operator cannot decide their own request once the alone-rule is off', async () => {
-  const db = adminDb({ ca_operator_approvals: { rows: [{ ...APPROVAL_ROW, requested_by: OPERATOR_ID }] } }, {
-    fn_ca_operator_decide_approval: async () => ({ data: { ok: true }, error: null }),
-  });
+  const strictWorld = approvalWorld({ requested_by: OPERATOR_ID, payload: MINT_PAYLOAD });
+  const db = strictWorld.db(okMint());
   const strict = opFor(db, {
     role: 'finance',
     policy: policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: false }),
@@ -1166,12 +1750,13 @@ test('operator-admin: an operator cannot decide their own request once the alone
     }
   );
   assert.ok(!db.rpcNames().includes('fn_ca_operator_decide_approval'));
+  assert.ok(!db.rpcNames().includes('fn_ca_mint'), 'and nothing may be minted');
 
-  // With the alone-rule on (the default, and the only way one operator ships
-  // anything) the same call goes through and the audit row says the rule fired.
-  const aloneDb = adminDb({ ca_operator_approvals: { rows: [{ ...APPROVAL_ROW, requested_by: OPERATOR_ID }] } }, {
-    fn_ca_operator_decide_approval: async () => ({ data: { ok: true, status: 'approved' }, error: null }),
-  });
+  // With the alone-rule on AND nobody else able to approve - the only way one
+  // operator ships anything - the same call goes through and the audit row says
+  // the rule fired.
+  const aloneWorld = approvalWorld({ requested_by: OPERATOR_ID, payload: MINT_PAYLOAD });
+  const aloneDb = aloneWorld.db(okMint());
   const alone = opFor(aloneDb, {
     role: 'finance',
     policy: policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: true }),
@@ -1182,8 +1767,313 @@ test('operator-admin: an operator cannot decide their own request once the alone
     decision: 'approve',
   });
   assert.equal(payload.aloneRule, true);
-  const audit = aloneDb.calls.find((c) => c.rpc === 'fn_log_admin_action');
+  const audit = aloneDb.calls.find(
+    (c) => c.rpc === 'fn_log_admin_action' && c.args.p_action === 'operator.decide_approval'
+  );
   assert.equal(audit.args.p_details.alone_rule, true);
+  const asked = aloneDb.calls.find((c) => c.rpc === 'fn_ca_operator_has_second_approver');
+  assert.equal(asked.args.p_permission, PERMISSIONS.MONEY_WRITE, 'the rule must be asked, not assumed');
+});
+
+/**
+ * H-3 AT THE ROUTE. Production runs three legacy operators, so the requester is
+ * never alone: their own request must be refused here exactly as the RPC would
+ * refuse it, rather than offered and then bounced.
+ */
+test('operator-admin: the alone-rule does not fire while somebody else can approve', async () => {
+  const world = approvalWorld({ requested_by: OPERATOR_ID, payload: MINT_PAYLOAD });
+  const db = world.db({
+    ...okMint(),
+    fn_ca_operator_has_second_approver: async () => ({ data: true, error: null }),
+  });
+  const op = opFor(db, {
+    role: 'finance',
+    policy: policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: true }),
+  });
+  await assert.rejects(
+    adminPost(db, op, { action: 'decide_approval', approvalId: APPROVAL_ID, decision: 'approve' }),
+    (err) => {
+      assert.equal(err.status, 409);
+      assert.equal(err.code, 'self_approval');
+      return true;
+    }
+  );
+  assert.equal(world.row.status, 'pending');
+  assert.ok(!db.rpcNames().includes('fn_ca_mint'));
+
+  // And the queue says the same thing about the same row, so the console never
+  // renders a button the decision endpoint will refuse.
+  const queueDb = world.db({
+    fn_ca_operator_has_second_approver: async () => ({ data: true, error: null }),
+  });
+  const page = await adminGet(queueDb, opFor(queueDb, {
+    role: 'finance',
+    policy: policyOf({ approvalsEnabled: true, allowSelfApproveWhenAlone: true }),
+  }), { section: 'approvals' });
+  assert.equal(page.rows[0].can_decide, false);
+  assert.equal(page.rows[0].decide_blocked_reason, 'self_approval');
+  assert.equal(page.rows[0].alone_rule, false);
+});
+
+// ------------------------------------------------- executing what was approved
+
+/**
+ * B-1, THE BLOCKER THIS PHASE SHIPPED WITH.
+ *
+ * Approving a mint used to mark a row and stop: nothing read `payload`,
+ * nothing re-drove fn_ca_mint, and the console rotates the browser's
+ * idempotency key on every payload change so the operator could not resubmit
+ * under the approved row's key either. These assert the money actually moves,
+ * under the row's own key, from the row's own stored payload.
+ */
+test('operator-admin: approving a mint RUNS it, with the stored payload and the row op_id', async () => {
+  const world = approvalWorld({ payload: MINT_PAYLOAD, op_id: 'op-mint-1' });
+  let minted = null;
+  const db = world.db({
+    fn_ca_mint: async (args) => {
+      minted = args;
+      return { data: { ok: true, ledger_id: 'l-9', balance_after: 5000, supply_after: 5000 }, error: null };
+    },
+  });
+  const payload = await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'approve',
+    note: 'Treasury plan signed off',
+  });
+
+  assert.ok(minted, 'an approved mint must reach fn_ca_mint');
+  assert.deepEqual(minted, {
+    p_asset: 'chips',
+    p_destination: 'club',
+    p_target_id: CLUB_ID,
+    p_amount: 5000,
+    p_reason: MINT_PAYLOAD.reason,
+    p_op_id: 'op-mint-1',
+  });
+  assert.equal(payload.execution.ok, true);
+  assert.equal(payload.execution.attempted, true);
+  assert.equal(payload.execution.opId, 'op-mint-1', 'exactly once, under the key it was approved with');
+  assert.equal(payload.execution.result.ledger_id, 'l-9');
+  assert.match(payload.message, /The Money Has Moved/);
+
+  // The row is closed out, and the execution is its own audit row.
+  assert.equal(world.row.status, 'executed');
+  assert.equal(world.row.result.ledger_id, 'l-9');
+  const actions = db.calls
+    .filter((c) => c.rpc === 'fn_log_admin_action')
+    .map((c) => c.args.p_action);
+  assert.deepEqual(actions, ['operator.decide_approval', 'operator.execute_approval']);
+  const exec = db.calls.find(
+    (c) => c.rpc === 'fn_log_admin_action' && c.args.p_action === 'operator.execute_approval'
+  );
+  assert.equal(exec.args.p_details.op_id, 'op-mint-1');
+  assert.equal(exec.args.p_details.rpc, 'fn_ca_mint');
+  assert.equal(exec.args.p_details.trail_closed, true);
+  assert.equal(exec.args.p_after_state.status, 'executed');
+});
+
+test('operator-admin: approving a burn runs fn_ca_burn, from a source rather than a destination', async () => {
+  const world = approvalWorld({
+    kind: 'burn',
+    op_id: 'op-burn-1',
+    payload: { ...MINT_PAYLOAD, action: 'burn', target: 'union', opId: 'op-burn-1' },
+  });
+  let burned = null;
+  const db = world.db({
+    fn_ca_burn: async (args) => {
+      burned = args;
+      return { data: { ok: true, ledger_id: 'l-b' }, error: null };
+    },
+  });
+  await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'approve',
+  });
+  assert.equal(burned.p_source, 'union');
+  assert.equal(burned.p_op_id, 'op-burn-1');
+  assert.equal(burned.p_target_id, CLUB_ID);
+  assert.equal(world.row.status, 'executed');
+});
+
+test('operator-admin: rejecting runs nothing and says so', async () => {
+  const world = approvalWorld({ payload: MINT_PAYLOAD });
+  const db = world.db(okMint());
+  const payload = await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'reject',
+    note: 'Not this month',
+  });
+  assert.equal(payload.execution.attempted, false);
+  assert.match(payload.execution.message, /Nothing Moved/);
+  assert.equal(world.row.status, 'rejected');
+  assert.ok(!db.rpcNames().includes('fn_ca_mint'));
+});
+
+/**
+ * A stored payload is INPUT: jsonb written by a deploy that may be weeks old.
+ * `payloadFor` is what stands between it and fn_ca_mint.
+ */
+test('operator-admin: a stored payload that does not match the RPC refuses instead of calling it', async () => {
+  const cases = [
+    [{ ...MINT_PAYLOAD, asset: 'gold' }, 'payload_asset_invalid'],
+    [{ ...MINT_PAYLOAD, target: 'player' }, 'payload_target_invalid'],
+    [{ ...MINT_PAYLOAD, targetId: 'not-a-uuid' }, 'payload_target_invalid'],
+    [{ ...MINT_PAYLOAD, amount: -5 }, 'payload_amount_invalid'],
+    [{ ...MINT_PAYLOAD, amount: '1.005' }, 'payload_amount_invalid'],
+    [{ ...MINT_PAYLOAD, reason: 'short' }, 'payload_reason_invalid'],
+    [{ ...MINT_PAYLOAD, action: 'burn' }, 'payload_kind_mismatch'],
+    [{ ...MINT_PAYLOAD, opId: 'a-different-key' }, 'payload_op_id_mismatch'],
+    [null, 'payload_missing'],
+  ];
+  for (const [payload, code] of cases) {
+    const world = approvalWorld({ payload, op_id: 'op-mint-1' });
+    const db = world.db(okMint());
+    await quiet(() =>
+      assert.rejects(
+        adminPost(db, opFor(db, { role: 'finance' }), {
+          action: 'decide_approval',
+          approvalId: APPROVAL_ID,
+          decision: 'approve',
+        }),
+        (err) => {
+          assert.equal(err.status, 409, `${code} must be a 409`);
+          assert.equal(err.code, code);
+          assert.match(err.message, /Nothing Moved/);
+          return true;
+        }
+      )
+    );
+    assert.ok(!db.rpcNames().includes('fn_ca_mint'), `${code} must never reach the money RPC`);
+    // The decision stands, the attempt is recorded as failed, and the row can
+    // be run again once somebody fixes what is wrong with it.
+    assert.equal(world.row.status, 'failed');
+    assert.equal(world.row.result.error, code);
+  }
+});
+
+test('operator-admin: a refused or unreachable money RPC records failed and never reports success', async () => {
+  // The RPC answers a refusal.
+  const refusedWorld = approvalWorld({ payload: MINT_PAYLOAD, op_id: 'op-mint-1' });
+  const refusedDb = refusedWorld.db({
+    fn_ca_mint: async () => ({ data: { ok: false, reason: 'club_not_found' }, error: null }),
+  });
+  await assert.rejects(
+    adminPost(refusedDb, opFor(refusedDb, { role: 'finance' }), {
+      action: 'decide_approval',
+      approvalId: APPROVAL_ID,
+      decision: 'approve',
+    }),
+    (err) => {
+      assert.equal(err.status, 409);
+      assert.equal(err.code, 'club_not_found');
+      assert.match(err.message, /Nothing Moved/);
+      return true;
+    }
+  );
+  assert.equal(refusedWorld.row.status, 'failed');
+  assert.equal(refusedWorld.row.result.error, 'club_not_found');
+  assert.equal(refusedWorld.row.result.ok, false);
+
+  // The RPC cannot be reached at all. No database text may reach the browser.
+  const downWorld = approvalWorld({ payload: MINT_PAYLOAD, op_id: 'op-mint-1' });
+  const downDb = downWorld.db({
+    fn_ca_mint: async () => ({ data: null, error: { message: 'relation "ca_mint_ledger" does not exist' } }),
+  });
+  await quiet(() =>
+    assert.rejects(
+      adminPost(downDb, opFor(downDb, { role: 'finance' }), {
+        action: 'decide_approval',
+        approvalId: APPROVAL_ID,
+        decision: 'approve',
+      }),
+      (err) => {
+        assert.equal(err.status, 503);
+        assert.equal(err.code, 'execution_unavailable');
+        assert.doesNotMatch(err.message, /relation/);
+        assert.match(err.message, /Try Running It Again/);
+        return true;
+      }
+    )
+  );
+  assert.equal(downWorld.row.status, 'failed');
+});
+
+test('operator-admin: execute_approval re-drives a failed row, and refuses one that is not approved', async () => {
+  const world = approvalWorld({ payload: MINT_PAYLOAD, op_id: 'op-mint-1', status: 'failed' });
+  let calls = 0;
+  const db = world.db({
+    fn_ca_mint: async () => {
+      calls += 1;
+      return { data: { ok: true, ledger_id: 'l-retry' }, error: null };
+    },
+  });
+  const payload = await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'execute_approval',
+    approvalId: APPROVAL_ID,
+  });
+  assert.equal(calls, 1);
+  assert.equal(payload.execution.ok, true);
+  assert.equal(world.row.status, 'executed');
+
+  // A second run is refused: the row is executed and the money has moved.
+  await assert.rejects(
+    adminPost(db, opFor(db, { role: 'finance' }), { action: 'execute_approval', approvalId: APPROVAL_ID }),
+    (err) => err.status === 409 && err.code === 'already_executed'
+  );
+  assert.equal(calls, 1, 'exactly once');
+
+  // A pending row is not an approved one.
+  const pending = approvalWorld({ payload: MINT_PAYLOAD });
+  const pendingDb = pending.db(okMint());
+  await assert.rejects(
+    adminPost(pendingDb, opFor(pendingDb, { role: 'finance' }), {
+      action: 'execute_approval',
+      approvalId: APPROVAL_ID,
+    }),
+    (err) => err.status === 409 && err.code === 'not_approved'
+  );
+  assert.ok(!pendingDb.rpcNames().includes('fn_ca_mint'));
+
+  // And it needs the permission the kind needs, same as the decision does.
+  const supportWorld = approvalWorld({ payload: MINT_PAYLOAD, status: 'approved' });
+  const supportDb = supportWorld.db(okMint());
+  await assert.rejects(
+    adminPost(supportDb, opFor(supportDb, { role: 'support' }), {
+      action: 'execute_approval',
+      approvalId: APPROVAL_ID,
+    }),
+    (err) => err.status === 403 && /money\.write/.test(err.message)
+  );
+});
+
+/**
+ * A CASHOUT DECISION IS A DECISION, AND SAYS SO.
+ *
+ * Its execution lives behind /api/club-arena/approve-cashout, with the
+ * settlement lock, the step-up MFA gate and the player notifications that route
+ * owns. An operator must not read "Approved" here as "the player has been paid".
+ */
+test('operator-admin: approving a cashout does not claim the money moved', async () => {
+  const world = approvalWorld({ kind: 'cashout', op_id: `cashout:${CLUB_ID}` });
+  const db = world.db();
+  const payload = await adminPost(db, opFor(db, { role: 'finance' }), {
+    action: 'decide_approval',
+    approvalId: APPROVAL_ID,
+    decision: 'approve',
+  });
+  assert.equal(payload.execution.attempted, false);
+  assert.equal(payload.execution.ok, false);
+  assert.match(payload.execution.message, /No Chips Have Moved Yet/);
+  assert.equal(world.row.status, 'approved', 'the decision stands, the execution is elsewhere');
+  assert.ok(!db.rpcNames().includes('fn_ca_operator_mark_executed'));
+  assert.equal(
+    db.calls.filter((c) => c.rpc === 'fn_log_admin_action').length,
+    1,
+    'nothing was executed, so there is no execution row'
+  );
 });
 
 test('operator-admin: a decided approval and a missing one are refused, not re-decided', async () => {
@@ -1631,6 +2521,60 @@ test('operator-admin: unknown sections and actions are refused before anything r
   assert.equal(db.calls.length, 0);
 });
 
+// -------------------------------------------------------- approve-cashout
+
+/**
+ * H-1. Maker-checker was bolted onto a route whose callers are mostly not
+ * operators. A club agent cannot see the Approvals queue (console.read),
+ * cannot clear it (cashier.write), and is not counted by
+ * fn_ca_operator_has_second_approver, so the alone rule never releases their
+ * request either. With cashout_threshold at 0 that was every cashout on the
+ * platform, frozen behind a queue the people filing them cannot see.
+ */
+test('approve-cashout: only the platform-override path is gated, and the row says which path it took', () => {
+  const agent = cashoutAuthPath({ isPlatformAdmin: false, isAgent: true });
+  assert.equal(agent.gated, false, 'a club agent keeps exactly the behaviour they have today');
+  assert.equal(agent.path, 'club_agent');
+  assert.equal(agent.viaPlatformOverride, false);
+
+  const clubAdmin = cashoutAuthPath({ isClubAdmin: true });
+  assert.equal(clubAdmin.gated, false);
+  assert.equal(clubAdmin.path, 'club_admin');
+
+  const union = cashoutAuthPath({ isUnionAdmin: true });
+  assert.equal(union.gated, false);
+  assert.equal(union.path, 'union_admin');
+
+  const platform = cashoutAuthPath({ isPlatformAdmin: true });
+  assert.equal(platform.gated, true, 'the operator overriding from /horses is the one this gate is for');
+  assert.equal(platform.path, 'platform_operator');
+  assert.equal(platform.viaPlatformOverride, true);
+
+  // A platform admin who is ALSO this club's agent is acting as the agent, and
+  // the agent path is the one that works today.
+  const both = cashoutAuthPath({ isPlatformAdmin: true, isAgent: true });
+  assert.equal(both.gated, false);
+  assert.equal(both.path, 'club_agent');
+  const alsoUnion = cashoutAuthPath({ isPlatformAdmin: true, isUnionAdmin: true });
+  assert.equal(alsoUnion.gated, false);
+  assert.equal(alsoUnion.path, 'union_admin');
+
+  assert.equal(cashoutAuthPath({}).path, 'unauthorized');
+  assert.equal(cashoutAuthPath().gated, false);
+});
+
+test('contract: approve-cashout raises an approval only inside the platform-override branch', () => {
+  const text = source(path.join(ROOT, 'pages', 'api', 'club-arena', 'approve-cashout.js'));
+  const guard = text.indexOf('if (viaPlatformOverride) {');
+  const request = text.indexOf('await requireApproval(');
+  assert.ok(guard > -1, 'the gate must be explicit in the source');
+  assert.ok(request > guard, 'requireApproval must sit inside that branch, not in front of every caller');
+  // The audit rows carry the path, so the trail can say in what capacity a
+  // cashout was actioned rather than only by whom.
+  assert.match(text, /auth_path: authPath/);
+  assert.match(text, /approval_gated: viaPlatformOverride/);
+});
+
 // ---------------------------------------------------------- stable-admin
 
 const { handle: stableHandle, _resetActorCacheForTests } = await import(
@@ -1692,6 +2636,50 @@ test('stable-admin audit_log: exact targetType + targetId filters and the full e
   assert.ok(call.filters.some(([o, c, v]) => o === 'eq' && c === 'target_type' && v === 'club'));
   assert.ok(call.filters.some(([o, c, v]) => o === 'eq' && c === 'target_id' && v === CLUB_ID));
   assert.match(call.select, /user_agent/, 'the select must ask for user_agent');
+  _resetActorCacheForTests();
+});
+
+/**
+ * L-1. `to` is a date input's YYYY-MM-DD, which parses to midnight, so "up to
+ * the 2nd" silently excluded everything that happened on the 2nd - the day an
+ * operator reading a log is most likely to be asking about. operator-admin's
+ * approvals filter was fixed for this; the audit log was not.
+ */
+test('stable-admin audit_log: a bare To date covers the whole day it names', async () => {
+  _resetActorCacheForTests();
+  const rows = [
+    { id: 1, admin_user_id: OPERATOR_ID, action: 'mint.issue', details: {}, created_at: '2026-09-01T09:00:00Z' },
+    { id: 2, admin_user_id: OPERATOR_ID, action: 'mint.issue', details: {}, created_at: '2026-09-02T18:30:00Z' },
+    { id: 3, admin_user_id: OPERATOR_ID, action: 'mint.issue', details: {}, created_at: '2026-09-03T01:00:00Z' },
+  ];
+  const db = fakeDb({ admin_audit_log: { rows }, profiles: { rows: [] } });
+  const op = opFor(db, { permissions: [PERMISSIONS.AUDIT_READ] });
+
+  const payload = await stableHandle({
+    req: fakeReq(),
+    op,
+    db,
+    body: { action: 'audit_log', from: '2026-09-01', to: '2026-09-02' },
+  });
+  assert.deepEqual(
+    payload.entries.map((e) => e.id),
+    [1, 2],
+    'the evening of the day the operator named must be inside the window'
+  );
+  const call = db.calls.find((c) => c.table === 'admin_audit_log' && c.countMode);
+  const upper = call.filters.find(([o, c]) => o === 'lte' && c === 'created_at');
+  assert.match(upper[2], /^2026-09-02T23:59:59/);
+
+  // A full timestamp is still taken exactly as given.
+  const exact = fakeDb({ admin_audit_log: { rows }, profiles: { rows: [] } });
+  await stableHandle({
+    req: fakeReq(),
+    op,
+    db: exact,
+    body: { action: 'audit_log', to: '2026-09-02T12:00:00Z' },
+  });
+  const exactCall = exact.calls.find((c) => c.table === 'admin_audit_log' && c.countMode);
+  assert.match(exactCall.filters.find(([o, c]) => o === 'lte' && c === 'created_at')[2], /^2026-09-02T12:00:00/);
   _resetActorCacheForTests();
 });
 
@@ -1832,6 +2820,30 @@ test('contract: the Phase 2 files obey the house rules', () => {
   assert.match(auth, /fails OPEN|fail-open|fail open/i, 'the fail-open rule must be written down');
   const approvals = source(path.join(ROOT, 'src', 'lib', 'horses', 'approvals.js'));
   assert.match(approvals, /NEVER THROWS/);
+});
+
+/**
+ * B-1 AS A PROPERTY OF THE SOURCE. An approval that is approved and then never
+ * executed is the shape of the blocker this phase shipped with, and it is
+ * invisible to any test that stubs the executor out.
+ */
+test('contract: operator-admin reads the stored payload and re-drives the money RPC', () => {
+  const text = source(path.join(ROUTE_DIR, 'operator-admin.js'));
+  assert.match(text, /payload/, 'the executor must read ca_operator_approvals.payload');
+  assert.match(text, /APPROVAL_EXECUTION_FIELDS/, 'the execution read asks for the payload explicitly');
+  assert.match(text, /payloadFor\(kind\)\(row\.payload, row\.op_id\)/, 'the payload is validated, and against the ROW op_id');
+  assert.match(text, /db\.rpc\(shaped\.rpc, shaped\.args\)/, 'the stored payload is what reaches the RPC');
+  assert.match(text, /await markApprovalExecuted\(/, 'the row is closed out after the money moves');
+  assert.match(text, /'operator\.execute_approval'/, 'the execution is audited separately from the decision');
+  // The payload never leaves for the browser on the queue read.
+  assert.doesNotMatch(
+    text,
+    /const APPROVAL_FIELDS =\s*\n?[^;]*payload/,
+    'the queue must not ship the stored payload to the console'
+  );
+  const iValidate = text.indexOf('payloadFor(kind)(row.payload');
+  const iRpc = text.indexOf('db.rpc(shaped.rpc, shaped.args)');
+  assert.ok(iValidate > -1 && iRpc > iValidate, 'validation must come before the call');
 });
 
 test('contract: operator-admin permissions are exactly what the contract says', () => {

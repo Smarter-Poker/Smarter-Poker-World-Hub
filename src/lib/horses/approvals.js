@@ -42,8 +42,18 @@
  * markApprovalExecuted never throws at all - it runs AFTER the chips have
  * already moved, and an operator told "it failed" about a completed mint is how
  * money gets minted twice.
+ *
+ * ONE MORE DELIBERATE REFUSAL, ADDED 2026-09-03 (review B-2 / B-3).
+ *
+ * An op_id that already names a row is answered by the database with that row.
+ * Only three of its statuses mean "the money may move now": auto_approved,
+ * approved and executed. A `rejected` or `expired` replay, and a replay whose
+ * material fields do not match the row the key was raised under, are REFUSALS
+ * (409), not permissions - the alternative is a rejected request executing on
+ * retry, with the trail still reading `rejected`.
  */
 import { ApiError, requestIdOf } from './apiEnvelope.js';
+import { enumOf, money2dp, text, uuid } from './validate.js';
 
 /** ca_operator_approvals.kind. The last two exist for phases that wire them. */
 export const APPROVAL_KINDS = Object.freeze([
@@ -147,8 +157,22 @@ export function requiresApproval(policy, kind, amount) {
  * their own request and the audit row says so. Dan turns that off when there
  * are two operators. The RPC enforces the same rule; this is the copy that lets
  * the console say why rather than showing a bare refusal.
+ *
+ * THE ALONE-RULE NEEDS TO KNOW THAT THE OPERATOR IS ALONE (review H-3).
+ *
+ * `fn_ca_operator_decide_approval` clears a self-decision only when
+ * `fn_ca_operator_has_second_approver` says there is nobody else, so a copy of
+ * the rule that never counts anybody renders an enabled Approve button on the
+ * operator's own request and then watches the RPC refuse it. `eligibleApprovers`
+ * is that count, of OTHER accounts holding the permission this kind needs:
+ *
+ *   0        -> the alone-rule applies and the requester may decide
+ *   above 0  -> refused as a self approval, which is what the RPC will say
+ *   null     -> the roster could not be counted. The rule FAILS OPEN, because
+ *               section 0 says an unreadable roster must not freeze a platform
+ *               that would otherwise move, and the RPC still has the last word.
  */
-export function canDecideApproval(approval, operatorId, policy) {
+export function canDecideApproval(approval, operatorId, policy, { eligibleApprovers = null } = {}) {
   const p = approvalPolicy(policy);
   if (!approval || typeof approval !== 'object') return { allowed: false, reason: 'not_found' };
   const status = typeof approval.status === 'string' ? approval.status : null;
@@ -160,7 +184,49 @@ export function canDecideApproval(approval, operatorId, policy) {
   const isSelf = Boolean(approval.requested_by) && approval.requested_by === operatorId;
   if (!isSelf) return { allowed: true, reason: 'second_operator' };
   if (!p.allowSelfApproveWhenAlone) return { allowed: false, reason: 'self_approval' };
+  const count = Number.isFinite(Number(eligibleApprovers)) && eligibleApprovers !== null
+    ? Number(eligibleApprovers)
+    : null;
+  if (count !== null && count > 0) return { allowed: false, reason: 'self_approval' };
   return { allowed: true, reason: 'alone_rule' };
+}
+
+/**
+ * WHICH DOOR A CASHOUT CALLER CAME THROUGH, AND WHETHER THE GATE APPLIES.
+ *
+ * /api/club-arena/approve-cashout has four of them and only one belongs to
+ * platform staff: the assigned agent, a club owner or admin, a union admin or
+ * union owner, and a platform operator overriding from /horses.
+ *
+ * REVIEW H-1. Phase 2 put `requireApproval` in front of all four. A club agent
+ * cannot see the Approvals queue (that needs console.read), cannot clear it
+ * (that needs cashier.write), and is not counted by
+ * fn_ca_operator_has_second_approver, so the alone rule never releases their
+ * request either. With cashout_threshold at 0, turning approvals on would have
+ * frozen every cashout on the platform behind a queue invisible to the people
+ * who file them - exactly what PHASE2-CONTRACTS.md section 0 forbids. It also
+ * filed approval rows whose requested_by was not an operator at all.
+ *
+ * So the gate is the platform-override path and nothing else. A caller who is
+ * platform staff AND the club's own agent is acting as the agent, and the agent
+ * path is the one that works today.
+ *
+ * Pure, and here rather than in the route, because the route imports
+ * `src/lib/serverAuth` without a file extension and therefore cannot be loaded
+ * by a plain `node --test` process at all.
+ */
+export function cashoutAuthPath({ isPlatformAdmin, isAgent, isClubAdmin, isUnionAdmin } = {}) {
+  const viaPlatformOverride = Boolean(isPlatformAdmin) && !isAgent && !isClubAdmin && !isUnionAdmin;
+  const path = isAgent
+    ? 'club_agent'
+    : isClubAdmin
+      ? 'club_admin'
+      : isUnionAdmin
+        ? 'union_admin'
+        : viaPlatformOverride
+          ? 'platform_operator'
+          : 'unauthorized';
+  return { path, viaPlatformOverride, gated: viaPlatformOverride };
 }
 
 /** Operator-safe sentence for a refusal code. Title Case, house rule. */
@@ -171,7 +237,7 @@ export const DECISION_REFUSAL_TEXT = Object.freeze({
   self_approval: 'Another Operator Must Decide This. You Raised It',
 });
 
-function payloadFor(spec) {
+function requestPayload(spec) {
   const given = spec.payload && typeof spec.payload === 'object' ? spec.payload : null;
   if (given) return given;
   return {
@@ -182,6 +248,202 @@ function payloadFor(spec) {
     target_id: spec.targetId ?? null,
     op_id: spec.opId ?? null,
   };
+}
+
+// -- EXECUTING AN APPROVED REQUEST -------------------------------------------
+//
+// The kinds whose stored payload names a money RPC this console can drive.
+// `cashout` is deliberately absent: its execution lives behind
+// /api/club-arena/approve-cashout, which owns the settlement lock, the MFA
+// gate, the notifications and the club-side authorisation, and none of that
+// can be replayed from here.
+export const EXECUTABLE_APPROVAL_KINDS = Object.freeze(['mint', 'burn', 'fund_club']);
+
+export function isExecutableKind(kind) {
+  return EXECUTABLE_APPROVAL_KINDS.includes(kind);
+}
+
+/** Dan's law, mirrored from /api/horses/mint. Chips never reach a person. */
+const EXECUTION_TARGETS = Object.freeze({ chips: ['club', 'union'], diamonds: ['player'] });
+
+const refuse = (reason, message) => ({ ok: false, reason, message });
+
+/**
+ * mint and burn: the payload /api/horses/mint stored, checked field by field
+ * against what fn_ca_mint / fn_ca_burn will accept. Same six values, opposite
+ * direction, and the parameter name says which way the chips move.
+ */
+function issuanceValidator(kind) {
+  const rpc = kind === 'mint' ? 'fn_ca_mint' : 'fn_ca_burn';
+  const directionKey = kind === 'mint' ? 'p_destination' : 'p_source';
+  return (payload, opId) => {
+    const p = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
+    if (!p) return refuse('payload_missing', 'That Approval Has No Stored Request To Run');
+
+    const action = typeof p.action === 'string' ? p.action.trim().toLowerCase() : kind;
+    if (action !== kind) {
+      return refuse('payload_kind_mismatch', 'The Stored Request Does Not Match The Approval Kind');
+    }
+    const asset = enumOf(String(p.asset ?? '').toLowerCase(), ['chips', 'diamonds']);
+    if (!asset) return refuse('payload_asset_invalid', 'The Stored Request Names No Valid Asset');
+
+    const target = enumOf(
+      String(p.target ?? p.targetType ?? p.target_type ?? '').toLowerCase(),
+      EXECUTION_TARGETS[asset]
+    );
+    if (!target) {
+      return refuse(
+        'payload_target_invalid',
+        asset === 'chips'
+          ? 'The Stored Request Sends Chips Somewhere Chips Cannot Go'
+          : 'The Stored Request Sends Diamonds Somewhere Diamonds Cannot Go'
+      );
+    }
+    const targetId = uuid(p.targetId ?? p.target_id);
+    if (!targetId) return refuse('payload_target_invalid', 'The Stored Request Names No Valid Destination');
+
+    const amount = money2dp(p.amount);
+    if (amount === null) return refuse('payload_amount_invalid', 'The Stored Request Has No Usable Amount');
+    if (asset === 'diamonds' && !Number.isInteger(amount)) {
+      return refuse('payload_amount_invalid', 'Diamonds Are Whole Numbers, And The Stored Amount Is Not');
+    }
+    const reason = text(p.reason, { min: 10, max: 500 });
+    if (!reason) return refuse('payload_reason_invalid', 'The Stored Request Has No Usable Reason');
+
+    const key = executionKey(p, opId);
+    if (!key.ok) return key;
+
+    return {
+      ok: true,
+      kind,
+      rpc,
+      args: {
+        p_asset: asset,
+        [directionKey]: target,
+        p_target_id: targetId,
+        p_amount: amount,
+        p_reason: reason,
+        p_op_id: key.opId,
+      },
+      summary: { kind, asset, target, targetId, amount, opId: key.opId },
+    };
+  };
+}
+
+/**
+ * fund_club. Declared in the vocabulary and in the policy thresholds since
+ * Phase 2 shipped; no route raises one yet (review L-2), so this is the shape
+ * the executor will demand on the day one does, rather than a call assembled
+ * from whatever happens to be in the row.
+ */
+function fundClubValidator(payload, opId) {
+  const p = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
+  if (!p) return refuse('payload_missing', 'That Approval Has No Stored Request To Run');
+  const clubId = uuid(p.clubId ?? p.club_id ?? p.targetId ?? p.target_id);
+  if (!clubId) return refuse('payload_target_invalid', 'The Stored Request Names No Valid Club');
+  const amount = money2dp(p.amount);
+  if (amount === null) return refuse('payload_amount_invalid', 'The Stored Request Has No Usable Amount');
+  const reason = text(p.reason, { min: 10, max: 500 });
+  if (!reason) return refuse('payload_reason_invalid', 'The Stored Request Has No Usable Reason');
+  const key = executionKey(p, opId);
+  if (!key.ok) return key;
+  return {
+    ok: true,
+    kind: 'fund_club',
+    rpc: 'fn_ca_fund_club',
+    args: { p_club_id: clubId, p_amount: amount, p_reason: reason, p_op_id: key.opId },
+    summary: { kind: 'fund_club', clubId, amount, opId: key.opId },
+  };
+}
+
+/**
+ * The key the operation runs under is the key the APPROVAL was raised under,
+ * so an approved request executes exactly once however many times it is
+ * driven. A payload carrying a different key is a payload that does not belong
+ * to this row.
+ */
+function executionKey(payload, opId) {
+  const rowKey = text(opId == null ? '' : String(opId), { min: 1, max: 200 });
+  const stored = payload.opId ?? payload.op_id;
+  const storedKey = stored == null ? null : text(String(stored), { min: 1, max: 200 });
+  if (!rowKey && !storedKey) {
+    return refuse(
+      'payload_op_id_missing',
+      'That Approval Has No Idempotency Key, So It Cannot Be Run Exactly Once'
+    );
+  }
+  if (rowKey && storedKey && rowKey !== storedKey) {
+    return refuse(
+      'payload_op_id_mismatch',
+      'The Stored Request Carries A Different Idempotency Key To The Approval'
+    );
+  }
+  return { ok: true, opId: rowKey || storedKey };
+}
+
+const PAYLOAD_VALIDATORS = Object.freeze({
+  mint: issuanceValidator('mint'),
+  burn: issuanceValidator('burn'),
+  fund_club: fundClubValidator,
+});
+
+/**
+ * The validator for one approval kind, or null when this console cannot
+ * execute that kind at all.
+ *
+ *   const validate = payloadFor(row.kind);
+ *   const shaped = validate(row.payload, row.op_id);
+ *   if (!shaped.ok) ... refuse, and never call the RPC with junk ...
+ *   await db.rpc(shaped.rpc, shaped.args);
+ *
+ * `ca_operator_approvals.payload` is jsonb written by a route that may have
+ * been deployed weeks earlier, so it is INPUT, not internal state. It is
+ * validated exactly as a request body would be.
+ */
+export function payloadFor(kind) {
+  return PAYLOAD_VALIDATORS[kind] || null;
+}
+
+/**
+ * The only three statuses that mean "this request may move money now".
+ * `approved` is included because a decided row is exactly what the executor
+ * drives; `executed` because a retry of an executed key replays through the
+ * money RPC's own claim and mints nothing twice.
+ */
+const RELEASED_STATUSES = new Set(['auto_approved', 'approved', 'executed']);
+
+/** Statuses that are a refusal on a replay, not a decision to wait for. */
+const REPLAY_REFUSAL_STATUSES = new Set(['rejected', 'expired', 'failed']);
+
+/** Operator-safe sentences for a refused replay. Title Case, house rule. */
+export const REPLAY_REFUSAL_TEXT = Object.freeze({
+  // The two codes fn_ca_operator_request_approval returns, and the bare
+  // statuses, because a caller reading either spelling means the same thing.
+  approval_rejected: 'That Request Was Rejected. Raise A New One, It Cannot Be Retried',
+  approval_expired: 'That Request Expired Before It Was Decided. Raise A New One',
+  rejected: 'That Request Was Rejected. Raise A New One, It Cannot Be Retried',
+  expired: 'That Request Expired Before It Was Decided. Raise A New One',
+  failed: 'That Request Already Failed When It Ran. Raise A New One',
+  payload_mismatch: 'That Idempotency Key Was Raised For A Different Request. Reload The Panel And Try Again',
+  op_id_reused: 'That Idempotency Key Was Raised For A Different Request. Reload The Panel And Try Again',
+  default: 'That Request Cannot Be Raised Again Under The Same Key',
+});
+
+/**
+ * The refusal code in an RPC answer, or null when the answer is usable.
+ *
+ * Both shapes are read: an explicit `ok: false` with a code (what the follow-up
+ * migration returns for a mismatched payload on a reused op_id), and a status
+ * that is itself a refusal. Reading only one of the two would leave whichever
+ * the database chose to send unhandled.
+ */
+function replayRefusalOf(data, status) {
+  if (data && data.ok === false) {
+    const code = data.error || data.reason || data.refused_reason;
+    return typeof code === 'string' && code ? code : 'approval_refused';
+  }
+  if (status && REPLAY_REFUSAL_STATUSES.has(status)) return status;
+  return null;
 }
 
 /**
@@ -211,7 +473,7 @@ export async function requireApproval(op, req, spec = {}) {
     if (!db || typeof db.rpc !== 'function') throw new Error('no operator database on the request');
     const res = await db.rpc('fn_ca_operator_request_approval', {
       p_kind: kind,
-      p_payload: payloadFor(spec),
+      p_payload: requestPayload(spec),
       p_requested_by: op?.user?.id || null,
       p_amount: amount,
       p_asset: spec.asset ?? null,
@@ -264,11 +526,28 @@ export async function requireApproval(op, req, spec = {}) {
   const approvalId = data.approval_id ?? data.approvalId ?? null;
   const blockedReason = data.blocked_reason ?? data.blockedReason ?? null;
   const dbRequired = data.required === true;
+  const rawStatus = typeof data.status === 'string' && data.status ? data.status : null;
+
+  // A REPLAY THAT IS NOT A PERMISSION. The key already names a row, and that
+  // row is rejected, expired, failed, or was raised for a different request.
+  // None of those is "go ahead", and reading `required: false` off any of them
+  // is how a rejected mint executes on retry with the trail still saying
+  // rejected.
+  const refusal = replayRefusalOf(data, rawStatus);
+  if (refusal) {
+    console.warn(
+      `[approvals] ${requestId} ${kind} replay refused (${refusal}) for op_id ${spec.opId ?? 'none'}`
+    );
+    throw new ApiError(409, REPLAY_REFUSAL_TEXT[refusal] || REPLAY_REFUSAL_TEXT.default, refusal);
+  }
+
   // The ceiling rule. The database may say a gated move is NOT required (the
-  // alone-rule cleared it); it may not say an ungated move IS.
-  const required = decision.required && dbRequired;
-  const status =
-    typeof data.status === 'string' && data.status ? data.status : required ? 'pending' : 'auto_approved';
+  // alone-rule cleared it); it may not say an ungated move IS. Within that
+  // ceiling only the three RELEASED statuses mean the money may move now, so a
+  // status this module does not recognise HOLDS rather than passes.
+  const released = rawStatus === null || RELEASED_STATUSES.has(rawStatus);
+  const required = decision.required && (dbRequired || !released);
+  const status = rawStatus || (required ? 'pending' : 'auto_approved');
 
   return {
     required,
@@ -314,24 +593,41 @@ export function approvalPendingResponse(res, approval, { requestId, message, ext
  * runs the chips are already where they are going, and an exception here would
  * turn a completed mint into a 500 the operator reads as "it did not happen"
  * and retries.
+ *
+ * NEVER THROWS IS NOT NEVER NOTICES (review M-8). `fn_ca_operator_mark_executed`
+ * answers `{ ok: false, error: 'not_approved' }` when the row it was handed was
+ * never approved - which is the single loudest signal this system can produce,
+ * because it means chips moved against a row nobody approved. It used to be
+ * discarded: only `error` was read, `data.ok` never was, and the caller was
+ * told the row closed cleanly. It is now read, logged at error level, and
+ * RETURNED, so the route can put it in the audit row and in front of the
+ * operator.
  */
 export async function markApprovalExecuted(op, approvalId, result, { status = 'executed' } = {}) {
-  if (!approvalId) return { ok: false, skipped: true };
+  if (!approvalId) return { ok: false, skipped: true, refused: false, reason: 'no_approval_id' };
   try {
     const db = op?.db;
     if (!db || typeof db.rpc !== 'function') throw new Error('no operator database on the request');
-    const { error } = await db.rpc('fn_ca_operator_mark_executed', {
+    const { data, error } = await db.rpc('fn_ca_operator_mark_executed', {
       p_approval_id: approvalId,
       p_result: result && typeof result === 'object' ? result : { result: result ?? null },
       p_status: status,
     });
     if (error) throw error;
-    return { ok: true, skipped: false };
+    if (data && typeof data === 'object' && data.ok === false) {
+      const reason = data.error || data.reason || 'unknown';
+      console.error(
+        `[approvals] fn_ca_operator_mark_executed REFUSED approval ${approvalId} as ${status} (${reason}). ` +
+          'The operation it belongs to has already run, so this row and the money now disagree.'
+      );
+      return { ok: false, skipped: false, refused: true, reason };
+    }
+    return { ok: true, skipped: false, refused: false, reason: null };
   } catch (err) {
     console.error(
       `[approvals] could not mark approval ${approvalId} as ${status}:`,
       err?.message || err
     );
-    return { ok: false, skipped: false };
+    return { ok: false, skipped: false, refused: false, reason: 'mark_executed_unavailable' };
   }
 }

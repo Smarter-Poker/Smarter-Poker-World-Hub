@@ -20,9 +20,11 @@
  * fake database. Production callers never pass it.
  */
 import {
+  PERMISSIONS,
   permissionsForRole,
   hasPermission,
   isKnownPermission,
+  isLegacyRole,
   isOperatorRole,
   mergePermissions,
   orderPermissions,
@@ -128,6 +130,10 @@ export function normalizeOperatorPolicy(row) {
 
 let _policyCache = { at: 0, value: null };
 const _permissionCache = new Map();
+/** Bounded, so a long-lived lambda cannot grow one entry per account it ever
+ *  saw (review L-3). Entries are dropped oldest-first, which for a Map is
+ *  insertion order, and a dropped entry costs one extra RPC. */
+const PERMISSION_CACHE_MAX = 200;
 
 /** Test seam, and what set_policy calls so the panel shows what it just saved. */
 export function _resetOperatorCachesForTests() {
@@ -176,6 +182,30 @@ export async function loadOperatorPolicy(db, { now = Date.now(), force = false }
 }
 
 /**
+ * THE FLOOR UNDER THE ONE NARROWING (review H-4).
+ *
+ * Under enforcement an account holding any grant is described by that grant
+ * alone. Grant a god `read_only`, flip `enforce_named_roles`, and the god drops
+ * from 21 permissions to 6 - losing `admin.manage`, which is the only
+ * permission that can flip the flag back. Recovery from that is direct SQL.
+ *
+ * So whatever the database says, an account whose PROFILE ROLE is one of the
+ * legacy three keeps `admin.manage`. It is belt and braces, not the whole
+ * belt: the SQL should not hand back a narrowed legacy set in the first place,
+ * and the console still shows the narrowed set everywhere else. This is the one
+ * permission that has to survive, because it is the one that undoes the mistake.
+ */
+function withAdminManageFloor(profileRole, permissions) {
+  if (!isLegacyRole(profileRole)) return permissions;
+  if (permissions.includes(PERMISSIONS.ADMIN_MANAGE)) return permissions;
+  console.warn(
+    `[operatorAuth] the resolved set for a ${profileRole} account carried no ${PERMISSIONS.ADMIN_MANAGE}; ` +
+      'restoring it so the policy panel cannot lock the platform out of itself'
+  );
+  return mergePermissions(permissions, [PERMISSIONS.ADMIN_MANAGE]);
+}
+
+/**
  * Merge the legacy profile role with whatever ca_operator_grants gives this
  * user, via fn_ca_operator_permissions. Cached 30s per (user, profile role).
  *
@@ -201,7 +231,7 @@ export async function resolveOperatorPermissions(
     role: profileRole || null,
     roles: profileRole ? [profileRole] : [],
     grantedRoles: [],
-    permissions: legacy,
+    permissions: withAdminManageFloor(profileRole, legacy),
     source: 'legacy',
     enforced: false,
     degraded: true,
@@ -223,7 +253,10 @@ export async function resolveOperatorPermissions(
     // THE ONLY NARROWING IN THE FILE, and it needs a policy row that actually
     // loaded plus an explicit true.
     const enforced = pol.loaded === true && pol.enforceNamedRoles === true;
-    const permissions = enforced ? granted : mergePermissions(legacy, granted);
+    const permissions = withAdminManageFloor(
+      profileRole,
+      enforced ? granted : mergePermissions(legacy, granted)
+    );
     const roles = [];
     for (const r of [profileRole, ...rpcRoles]) if (r && !roles.includes(r)) roles.push(r);
     value = {
@@ -243,6 +276,10 @@ export async function resolveOperatorPermissions(
     value = legacyOnly;
   }
 
+  if (_permissionCache.size >= PERMISSION_CACHE_MAX && !_permissionCache.has(cacheKey)) {
+    const oldest = _permissionCache.keys().next();
+    if (!oldest.done) _permissionCache.delete(oldest.value);
+  }
   _permissionCache.set(cacheKey, { at: now, value });
   return value;
 }
@@ -300,16 +337,23 @@ export async function requireOperator(req, res, { permission, deps } = {}) {
   }
 
   const role = profile?.role || null;
-  if (!isOperatorRole(role)) {
-    sendFail(res, 403, 'Operator Access Required', 'forbidden', requestId);
-    return null;
-  }
 
   // Phase 2. Both of these fail open to the legacy behaviour, so a console that
   // worked a minute before this deploy still works a minute after it.
   const policy = await loadOperatorPolicy(db);
   const resolved = await resolveOperatorPermissions(db, user.id, role, { policy });
   const permissions = resolved.permissions;
+
+  // WHO REACHES THE CONSOLE AT ALL (review M-6). One of the three legacy
+  // profile roles, or an account somebody deliberately GRANTED an operator
+  // role to. `profiles.role` is free text this feature does not own, so a
+  // string in it that happens to match a Phase 2 role key is not an operator;
+  // a row in ca_operator_grants is, because it has a granter and a reason.
+  const grantedEntry = Array.isArray(resolved.grantedRoles) && resolved.grantedRoles.length > 0;
+  if (!isOperatorRole(role) && !grantedEntry) {
+    sendFail(res, 403, 'Operator Access Required', 'forbidden', requestId);
+    return null;
+  }
 
   if (!hasPermission(permissions, permission)) {
     sendFail(res, 403, 'Permission Required: ' + permission, 'permission_denied', requestId, { permission });

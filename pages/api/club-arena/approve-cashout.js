@@ -29,6 +29,7 @@ import {
   requireApproval,
   markApprovalExecuted,
   approvalPendingResponse,
+  cashoutAuthPath,
 } from '../../../src/lib/horses/approvals.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -153,10 +154,10 @@ export default async function handler(req, res) {
 
       const isAgent = cashout.agent_id === user.id;
       const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
+      let unionAuth = false;
       if (!isPlatformAdmin && !isAgent && !isAdmin) {
         // Union admin fallback
         const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
-        let unionAuth = false;
         if (clubInfo?.union_id) {
           const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
@@ -189,7 +190,15 @@ export default async function handler(req, res) {
 
       // True only when NEITHER the club nor the agent relationship authorized
       // this caller - i.e. the action went through purely on platform role.
-      const viaPlatformOverride = isPlatformAdmin && !isAgent && !isAdmin;
+      // The audit rows below carry `auth_path` because "who approved this
+      // cashout" and "in what capacity" are different questions and the trail
+      // could only answer the first.
+      const { path: authPath, viaPlatformOverride } = cashoutAuthPath({
+        isPlatformAdmin,
+        isAgent,
+        isClubAdmin: isAdmin,
+        isUnionAdmin: unionAuth,
+      });
 
       // The operator context the shared audit helper wants. Auth is unchanged
       // above; this only gives the audit row the same actor, role, ip, user
@@ -224,34 +233,61 @@ export default async function handler(req, res) {
         // second operator in front of giving a player their own money back
         // would be a narrowing, which PHASE2-CONTRACTS.md section 0 forbids.
         //
+        // AND ONLY THE PLATFORM-OVERRIDE PATH IS GATED (review H-1).
+        //
+        // Maker-checker was bolted onto a route whose callers are mostly NOT
+        // platform staff. A club agent approving their own player's cashout,
+        // and a union admin doing the same, cannot see the Approvals queue
+        // (that needs console.read), cannot clear it (that needs
+        // cashier.write), and are not counted by
+        // fn_ca_operator_has_second_approver, so the alone rule never releases
+        // it either. With cashout_threshold at 0, turning approvals on would
+        // have frozen every cashout on the platform behind a queue invisible to
+        // the people who file them - the exact shape section 0 forbids. It also
+        // filed approval rows whose requested_by was not an operator at all.
+        //
+        // So the gate applies to the platform operator overriding from /horses
+        // and to nobody else. Everyone else keeps today's behaviour exactly,
+        // and the audit row below says which path was taken.
+        //
         // The opId is derived from the cashout id, so a retry of the same
         // cashout re-uses the same approval row rather than raising a second
         // one - ca_operator_approvals.op_id is unique where not null.
-        let approval;
-        try {
-          approval = await requireApproval(auditOp, req, {
-            kind: 'cashout',
-            amount: Number(cashout.amount || 0),
-            asset: 'chips',
-            targetType: 'cashout_request',
-            targetId: cashoutId,
-            reason: note || 'Approved',
-            opId: `cashout:${cashoutId}`,
-            payload: {
-              cashoutId,
-              clubId: cashout.club_id,
-              playerId: cashout.player_id,
-              agentId: cashout.agent_id,
-              amount: cashout.amount,
-              note: note || null,
-            },
-          });
-        } catch (approvalErr) {
-          return res.status(approvalErr?.status || 503).json({
-            success: false,
-            error: approvalErr?.message || 'Approvals Are Unavailable',
-            code: approvalErr?.code || 'approval_unavailable',
-          });
+        let approval = {
+          required: false,
+          approvalId: null,
+          status: 'not_gated',
+          blockedReason: null,
+          recorded: false,
+          threshold: null,
+          policyReason: 'caller_is_not_a_platform_operator',
+        };
+        if (viaPlatformOverride) {
+          try {
+            approval = await requireApproval(auditOp, req, {
+              kind: 'cashout',
+              amount: Number(cashout.amount || 0),
+              asset: 'chips',
+              targetType: 'cashout_request',
+              targetId: cashoutId,
+              reason: note || 'Approved',
+              opId: `cashout:${cashoutId}`,
+              payload: {
+                cashoutId,
+                clubId: cashout.club_id,
+                playerId: cashout.player_id,
+                agentId: cashout.agent_id,
+                amount: cashout.amount,
+                note: note || null,
+              },
+            });
+          } catch (approvalErr) {
+            return res.status(approvalErr?.status || 503).json({
+              success: false,
+              error: approvalErr?.message || 'Approvals Are Unavailable',
+              code: approvalErr?.code || 'approval_unavailable',
+            });
+          }
         }
 
         if (approval.required) {
@@ -261,7 +297,12 @@ export default async function handler(req, res) {
             targetId: cashoutId,
             before: { status: cashout.status },
             after: { status: approval.status, approval_id: approval.approvalId },
-            details: { amount: cashout.amount, club_id: cashout.club_id, threshold: approval.threshold },
+            details: {
+              amount: cashout.amount,
+              club_id: cashout.club_id,
+              threshold: approval.threshold,
+              auth_path: authPath,
+            },
           });
           return approvalPendingResponse(res, approval, {
             requestId: auditOp.requestId,
@@ -313,6 +354,10 @@ export default async function handler(req, res) {
             agent_id: cashout.agent_id,
             agent_note: note || 'Approved',
             platform_admin_override: viaPlatformOverride,
+            auth_path: authPath,
+            approval_gated: viaPlatformOverride,
+            approval_id: approval.approvalId,
+            approval_status: approval.status,
           },
           before: { status: cashout.status },
           after: { status: 'approved' },
@@ -369,6 +414,7 @@ export default async function handler(req, res) {
             player_new_balance: playerNewBalance,
             agent_note: note || 'Cancelled by agent',
             platform_admin_override: viaPlatformOverride,
+            auth_path: authPath,
           },
           before: { status: cashout.status },
           after: { status: 'cancelled' },

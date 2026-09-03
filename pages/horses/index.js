@@ -117,13 +117,13 @@ import {
 // for an operator whose permissions nobody has told us about yet, which is
 // the Phase 2 safety rule (PHASE2-CONTRACTS section 0) written as code.
 import {
-  permittedTabs, permissionsFromPayload, operatorIdFromPayload,
+  permittedTabs, permissionsFromPayload, operatorIdFromPayload, relocationTarget,
 } from '../../src/components/horses/operatorPermissions';
 import {
   thresholdDecision, isPendingApproval, normalizePolicy,
 } from '../../src/components/horses/approvalModel';
 import {
-  auditTrailUrl, policyUrl, rowsOf,
+  auditTrailUrl, policyUrl, rowsOf, trailActor,
 } from '../../src/components/horses/operatorAdmin';
 import ErrorBoundary from '../../src/components/horses/ErrorBoundary';
 import Modal from '../../src/components/horses/Modal';
@@ -338,6 +338,15 @@ export default function HorsesAdmin() {
   const [operatorPermissions, setOperatorPermissions] = useState(null);
   const [operatorPolicy, setOperatorPolicy] = useState(null);
   const [operatorId, setOperatorId] = useState(null);
+  // The route counts eligible approvers for us (`aloneRule`), because only it
+  // can: it needs the roster. Without it the Mint's confirm dialog promised
+  // "nothing moves until a second operator approves it" for an operation the
+  // server was about to execute on the spot under the alone-rule.
+  const [operatorAloneRule, setOperatorAloneRule] = useState(null);
+  // True when the route had to fall back to the LEGACY permission set because
+  // fn_ca_operator_permissions did not answer, so a granted role may be
+  // missing from the list the nav is filtered by. Surfaced on the Staff tab.
+  const [operatorDegraded, setOperatorDegraded] = useState(false);
 
   // ── Stable ──
   const [personas, setPersonas] = useState([]);
@@ -661,11 +670,15 @@ export default function HorsesAdmin() {
         setOperatorPolicy(normalizePolicy(body && body.policy));
         setOperatorPermissions(permissionsFromPayload(body));
         setOperatorId(operatorIdFromPayload(body, user.id));
+        setOperatorAloneRule(body && body.aloneRule ? body.aloneRule : null);
+        setOperatorDegraded(!!(body && body.operator && body.operator.degraded === true));
       } catch {
         if (cancelled) return;
         setOperatorPermissions(null);
         setOperatorPolicy(null);
         setOperatorId(user.id || null);
+        setOperatorAloneRule(null);
+        setOperatorDegraded(false);
       }
     })();
     return () => { cancelled = true; };
@@ -708,6 +721,7 @@ export default function HorsesAdmin() {
     // The Phase 2 context is per account too: leaving one operator's
     // permissions in memory would decide the next operator's nav.
     setOperatorPermissions(null); setOperatorPolicy(null); setOperatorId(null);
+    setOperatorAloneRule(null); setOperatorDegraded(false);
     setPersonas([]); setPipelineRuns([]); setPromoCodes([]);
     setEconomyData(null); setEconomyLoaded(false);
     setAbuseData(null); setAbuseLoaded(false);
@@ -1096,12 +1110,17 @@ export default function HorsesAdmin() {
         kind: 'mint',
         amount,
         asset: mintAsset,
+        // AND WHETHER THIS OPERATOR IS ALONE. With approvals on, the amount
+        // over the threshold and one eligible approver, requireApproval
+        // answers `required: false` and the money moves the moment Confirm is
+        // pressed. The dialog has to say that, not "nothing moves".
+        aloneRule: operatorAloneRule,
       }),
     });
   }, [
     mintAmount, mintAsset, mintTargetId, mintReason, mintTargetKind, mintTargets,
     mintPickedPlayer, mintAction, mintOpId, newMintOpId, showNotification,
-    operatorPolicy,
+    operatorPolicy, operatorAloneRule,
   ]);
 
   const submitMint = useCallback(async () => {
@@ -2086,6 +2105,9 @@ export default function HorsesAdmin() {
   const [auditTrailOffset, setAuditTrailOffset] = useState(0);
   const [auditTrailLoading, setAuditTrailLoading] = useState(false);
   const [auditTrailError, setAuditTrailError] = useState(null);
+  /** Monotonic, so a trail request for one record can never land under
+   *  another record's dialog. Bumped by every open and every page. */
+  const auditTrailSeqRef = useRef(0);
 
   /** The filter set as the route wants it (PHASE1-CONTRACTS item 4). Explicit
    *  From/To win over the quick range; `days` is only sent when neither is set,
@@ -2214,6 +2236,13 @@ export default function HorsesAdmin() {
    * so rather than opening onto a list of the wrong thing.
    */
   const loadAuditTrail = useCallback(async (target, offset) => {
+    // ONE SEQUENCE NUMBER, SO THE SLOWER ANSWER LOSES. Click Trail on row A,
+    // then on row B, and without this the slower answer for A lands under the
+    // dialog titled B: one record shown with another record's history, on the
+    // dialog an operator opens precisely to establish what happened to a
+    // record. usePagedList has had this guard since Phase 1.
+    auditTrailSeqRef.current += 1;
+    const seq = auditTrailSeqRef.current;
     const url = auditTrailUrl({
       targetType: target?.targetType,
       targetId: target?.targetId,
@@ -2231,15 +2260,17 @@ export default function HorsesAdmin() {
     setAuditTrailError(null);
     try {
       const d = await authFetch(url);
+      if (seq !== auditTrailSeqRef.current) return;
       setAuditTrailRows(rowsOf(d, 'entries', 'trail'));
       setAuditTrailTotal(typeof d.total === 'number' ? d.total : null);
       setAuditTrailHasMore(typeof d.hasMore === 'boolean' ? d.hasMore : undefined);
     } catch (err) {
+      if (seq !== auditTrailSeqRef.current) return;
       setAuditTrailRows([]);
       setAuditTrailHasMore(undefined);
       setAuditTrailError(err.message || 'The Trail Could Not Be Read.');
     } finally {
-      setAuditTrailLoading(false);
+      if (seq === auditTrailSeqRef.current) setAuditTrailLoading(false);
     }
   }, [authFetch]);
 
@@ -2779,15 +2810,30 @@ export default function HorsesAdmin() {
     [operatorPermissions],
   );
 
-  /** A deep link, a bookmark or a revoked permission can leave `activeTab`
-   *  naming a tab this operator cannot see. Land on the first tab they CAN
-   *  see rather than on an empty panel with a nav that does not highlight
-   *  anything. */
+  /**
+   * A deep link, a bookmark or a revoked permission can leave `activeTab`
+   * naming a tab this operator cannot see. Land on the first tab they CAN see
+   * rather than on an empty panel with a nav that does not highlight anything.
+   *
+   * EVERY CONDITION LIVES IN `relocationTarget`, which is a pure function and
+   * is unit tested against a real `god` permission set - because the version
+   * of this guard that trusted `navTabs` unconditionally relocated EVERY
+   * operator on EVERY load (the registry was asking for permissions nobody
+   * held) and the URL write effect below then rewrote `?tab=`, which is the
+   * Phase 1 destroyed-deep-links blocker arriving by a second route. It
+   * returns null - leave them exactly where they are - unless the route has
+   * actually sent a populated permission list AND the tab they are on
+   * declares a permission the vocabulary knows AND they genuinely do not hold
+   * it. A legacy operator satisfies none of those, so this cannot fire on one.
+   */
   useEffect(() => {
-    if (navTabs.length === 0) return;
-    if (navTabs.some((tab) => tab.id === activeTab)) return;
-    setActiveTab(navTabs[0].id);
-  }, [navTabs, activeTab]);
+    const target = relocationTarget({
+      activeTab,
+      tabs: visibleTabs(TABS),
+      permissions: operatorPermissions,
+    });
+    if (target) setActiveTab(target);
+  }, [operatorPermissions, activeTab]);
 
   /**
    * Move to another tab as a real navigation.
@@ -3153,6 +3199,7 @@ export default function HorsesAdmin() {
               permissions={operatorPermissions}
               operatorId={operatorId}
               policy={operatorPolicy}
+              permissionsDegraded={operatorDegraded}
               onPolicyChange={setOperatorPolicy}
             />
           )}
@@ -4694,12 +4741,18 @@ export default function HorsesAdmin() {
                         Approval {mintReceipt.approvalId}
                       </p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                        <button
-                          className={styles.actionBtn}
-                          onClick={() => { setMintReceipt(null); goToTab('approvals'); }}
-                        >
-                          Open The Approvals Tab
-                        </button>
+                        {/* Only when that tab is actually in this operator's
+                            nav. Offering a jump the guard would bounce them
+                            straight back off is a button that reports a
+                            failure as a navigation. */}
+                        {navTabs.some((tab) => tab.id === 'approvals') && (
+                          <button
+                            className={styles.actionBtn}
+                            onClick={() => { setMintReceipt(null); goToTab('approvals'); }}
+                          >
+                            Open The Approvals Tab
+                          </button>
+                        )}
                         <button className={styles.actionBtn} onClick={() => setMintReceipt(null)}>
                           Dismiss
                         </button>
@@ -7284,8 +7337,8 @@ export default function HorsesAdmin() {
                                     onClick={() => openAuditTrail(entry)}
                                     disabled={!entry.target_id || !entry.target_type}
                                     title={entry.target_id && entry.target_type
-                                      ? 'Show the full history of this record'
-                                      : 'This entry records no target type and id, so it names no record to trail'}
+                                      ? 'Show The Full History Of This Record'
+                                      : 'This Entry Records No Target Type And Id, So It Names No Record To Trail'}
                                   >
                                     Trail
                                   </button>
@@ -7364,9 +7417,20 @@ export default function HorsesAdmin() {
                           <div className={shared.trailHead}>
                             <strong>{row.action || 'unknown.action'}</strong>
                             <span style={{ color: T.dim }}>{when(row.created_at, true)}</span>
+                            {/* fn_ca_operator_audit_trail selects
+                                admin_user_id and actor_role; the enriched
+                                admin_name / admin_role pair only exists on
+                                the stable-admin audit_log route. Reading only
+                                that pair attributed every entry in this
+                                dialog to "System / Cron" with no role, on the
+                                one surface whose entire purpose is who did
+                                what to this record. trailActor reads both
+                                shapes and shows the id when there is no name,
+                                because a uuid is not friendly but it is the
+                                answer. */}
                             <span style={{ color: T.muted }}>
-                              {row.admin_name || 'System / Cron'}
-                              {row.admin_role ? ` (${row.admin_role})` : ''}
+                              {trailActor(row).label}
+                              {trailActor(row).role ? ` (${trailActor(row).role})` : ''}
                             </span>
                           </div>
                           <div className={shared.mono}>

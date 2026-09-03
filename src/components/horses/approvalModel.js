@@ -70,6 +70,13 @@ export const APPROVAL_STATUSES = [
  * the legacy roles hold every permission, so the fallback cannot lock out any
  * operator who exists today, and the server refuses anything this is wrong
  * about.
+ *
+ * EVERY VALUE HERE IS A REAL PERMISSION AND MATCHES
+ * `src/lib/horses/approvals.js#KIND_PERMISSION` EXACTLY, and a test compares
+ * the two tables kind by kind. `sanction` used to say `sanction.write`, which
+ * exists in neither table nor vocabulary, so the local check refused every
+ * sanction row - including for a `god` - and told the operator the refusal
+ * was about a permission that has never existed.
  */
 export const KIND_PERMISSIONS = {
   mint: 'money.write',
@@ -77,7 +84,7 @@ export const KIND_PERMISSIONS = {
   fund_club: 'money.write',
   cashout: 'cashier.write',
   fleet_policy: 'fleet.write',
-  sanction: 'sanction.write',
+  sanction: 'moderation.write',
 };
 
 export function permissionForKind(kind) {
@@ -92,6 +99,35 @@ export function kindLabel(kind) {
 export function statusLabel(status) {
   const found = APPROVAL_STATUSES.find(([id]) => id === String(status || '').toLowerCase());
   return found ? found[1] : (status ? String(status) : 'Unknown');
+}
+
+/**
+ * `blocked_reason` in words.
+ *
+ * The column is an enum the database writes and the History table used to
+ * print it raw, so an operator read `no_second_approver` in a cell headed
+ * Note. The vocabulary already exists twice on the same screen (the row state
+ * machine below and the route's refusal names); this is the one place it is
+ * turned into a sentence fragment, so all three agree.
+ */
+export const BLOCKED_REASON_LABELS = {
+  no_second_approver: 'No Second Approver',
+  self_approval: 'Raised By The Same Operator',
+  already_decided: 'Already Decided',
+  expired: 'Window Expired',
+  no_permission: 'Permission Required',
+  approvals_disabled: 'Approvals Were Off',
+  under_threshold: 'Under The Threshold',
+};
+
+export function blockedReasonLabel(reason, fallback = '-') {
+  const key = String(reason || '').toLowerCase();
+  if (!key) return fallback;
+  if (BLOCKED_REASON_LABELS[key]) return BLOCKED_REASON_LABELS[key];
+  // An enum this console has not met yet is still shown, because hiding it
+  // would lose the only thing the row has to say. Underscores out, so it at
+  // least reads as words.
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /** Statuses that still tint as "needs a human". */
@@ -250,6 +286,26 @@ export function serverDecision(row, policy = null) {
 }
 
 /**
+ * IS THIS REFUSAL THE NEWS THAT THE QUEUE ON SCREEN IS OUT OF DATE?
+ *
+ * `decide_approval` refuses a row somebody else has already decided, and one
+ * whose window has closed, with a 409 and a code. Both mean the same thing to
+ * this console: the page it is holding is stale, and the fix is to re-read it
+ * rather than to leave a live Approve button over a request that no longer
+ * exists in that state.
+ *
+ * The code is read first and the status second; the message is not parsed,
+ * because copy changes and a refusal handler that turns on an English
+ * sentence breaks the day somebody rewords it.
+ */
+export function isStaleRowRefusal(err) {
+  if (!err) return false;
+  const code = String(err.code || '').toLowerCase();
+  if (code === 'already_decided' || code === 'expired' || code === 'conflict') return true;
+  return Number(err.status) === 409;
+}
+
+/**
  * Everything the queue needs to know about one row and one operator.
  *
  * @returns {{ canDecide: boolean, reason: string, label: string, note: string }}
@@ -383,6 +439,20 @@ export function thresholdForKind(policy, kind) {
 }
 
 /**
+ * Does the route say this operator is currently the only eligible approver?
+ *
+ * `section=policy` answers `aloneRule { permission, eligibleApprovers,
+ * applies }`, and `applies` is already the whole test: approvals on, the
+ * alone-rule allowed, and zero OTHER eligible approvers. A null count means
+ * the roster could not be read, and the route sets `applies` false for it, so
+ * an unknown is never reported as "you are alone".
+ */
+export function aloneRuleIsInForce(aloneRule) {
+  if (!aloneRule || typeof aloneRule !== 'object') return false;
+  return aloneRule.applies === true;
+}
+
+/**
  * The sentence the confirm dialog owes the operator before money moves.
  *
  * "At or over" is the comparison, not "over": the DB default threshold is 0,
@@ -391,12 +461,23 @@ export function thresholdForKind(policy, kind) {
  *
  * With approvals off - which is the default and the state production is in -
  * this returns exactly what the console has always said: it executes now.
+ *
+ * THE ALONE-RULE IS THE THIRD ANSWER, and leaving it out made the dialog lie.
+ * With approvals ON, the amount at or over the threshold, and one eligible
+ * approver, `requireApproval` returns `required: false` and the money moves
+ * the instant the operator confirms - while this said "Nothing Moves Until A
+ * Second Operator Approves It" over a button labelled "Yes, Send For
+ * Approval". That is not a copy defect: it is a dialog telling an operator
+ * their money move is reversible when it is about to be irreversible. The
+ * route is the only party that can count approvers, it already sends the
+ * count, and now this reads it.
  */
 export function thresholdDecision({
   policy = null,
   kind = 'mint',
   amount = null,
   asset = null,
+  aloneRule = null,
 } = {}) {
   const approvalsEnabled = !!(policy && policy.approvals_enabled === true);
   const rawThreshold = thresholdForKind(policy, kind);
@@ -408,22 +489,35 @@ export function thresholdDecision({
     ? NaN
     : Number(amount);
   const atOrOver = Number.isFinite(value) && value >= threshold;
-  const willRequest = approvalsEnabled && atOrOver;
+  const gated = approvalsEnabled && atOrOver;
+  const alone = gated && aloneRuleIsInForce(aloneRule);
+  // `willRequest` keeps its meaning: it is TRUE only when the operation stops
+  // and waits for somebody else. Under the alone-rule it does not stop, so it
+  // is false, and every caller that renders "waiting" from it is right again.
+  const willRequest = gated && !alone;
 
   const assetWord = asset ? ` ${asset}` : '';
+  let headline = 'This Will Execute Immediately';
+  let detail = 'Maker-Checker Is Off, So This Operation Is Recorded And Executed As Soon As You Confirm.';
+  if (willRequest) {
+    headline = 'This Will Be Sent For Approval';
+    detail = `Maker-Checker Is On And ${threshold.toLocaleString()}${assetWord} Is The Threshold For This Operation. Nothing Moves Until A Second Operator Approves It.`;
+  } else if (alone) {
+    headline = 'This Will Execute Now And Be Recorded As Self Approved';
+    detail = `Maker-Checker Is On And This Is At Or Over The ${threshold.toLocaleString()}${assetWord} Threshold, But You Are The Only Eligible Approver. The Alone Rule Applies, So This Executes When You Confirm And The Audit Row Says You Approved Your Own Request.`;
+  } else if (approvalsEnabled) {
+    detail = `Maker-Checker Is On, But ${threshold.toLocaleString()}${assetWord} Is The Threshold And This Operation Is Under It.`;
+  }
+
   return {
     approvalsEnabled,
     threshold,
     atOrOver,
+    gated,
+    aloneRuleApplies: alone,
     willRequest,
-    headline: willRequest
-      ? 'This Will Be Sent For Approval'
-      : 'This Will Execute Immediately',
-    detail: willRequest
-      ? `Maker-Checker Is On And ${threshold.toLocaleString()}${assetWord} Is The Threshold For This Operation. Nothing Moves Until A Second Operator Approves It.`
-      : (approvalsEnabled
-        ? `Maker-Checker Is On, But ${threshold.toLocaleString()}${assetWord} Is The Threshold And This Operation Is Under It.`
-        : 'Maker-Checker Is Off, So This Operation Is Recorded And Executed As Soon As You Confirm.'),
+    headline,
+    detail,
   };
 }
 

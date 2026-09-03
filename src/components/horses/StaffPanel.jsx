@@ -28,32 +28,44 @@
  * screen that does not explain that a revoke currently takes nothing away is
  * a screen that gets used in the belief that it does.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import StatusPill from './StatusPill';
 import styles from './shared.module.css';
-import { when } from '../../lib/horsesAdminTokens';
+import { num, when } from '../../lib/horsesAdminTokens';
+import { ROLE_META } from '../../lib/horses/permissions';
 import { normalizePolicy } from './approvalModel';
 import { ADMIN_MANAGE, canManageOperators } from './operatorPermissions';
 import {
-  MIN_REASON_LENGTH, grantRoleBody, permissionMatrix, policyUrl, reasonIsValid,
-  revokeRoleBody, rolesUrl, rowsOf, setPolicyBody, staffUrl, OPERATOR_ADMIN,
+  MIN_REASON_LENGTH, TTL_DEFAULT_MINUTES, TTL_MAX_MINUTES, TTL_MIN_MINUTES,
+  approvalsStateLabel, grantRoleBody, listMeta, permissionMatrix, policyIsKnown,
+  policyUrl, reasonIsValid, revokeRoleBody, rolesUrl, rowsOf, setPolicyBody,
+  staffUrl, OPERATOR_ADMIN,
 } from './operatorAdmin';
 
-/** The one place the policy form's defaults are written down. A missing
- *  policy row is treated as the shipped default - approvals OFF - which is
- *  also what the database defaults to. */
+/** The one place the policy form's defaults are written down. These are the
+ *  values a BLANK form starts from; they are never presented as the saved
+ *  policy and they are never saved on their own behalf - see policyKnown
+ *  below. `enforce_named_roles` is deliberately absent: this form does not
+ *  render it and `setPolicyBody` does not send it, and a field in a default
+ *  that nothing reads is a field somebody will one day believe is wired. */
 const DEFAULT_POLICY = {
   approvals_enabled: false,
   allow_self_approve_when_alone: true,
-  enforce_named_roles: false,
   mint_threshold: 0,
   fund_threshold: 0,
   cashout_threshold: 0,
-  approval_ttl_minutes: 1440,
+  approval_ttl_minutes: TTL_DEFAULT_MINUTES,
 };
+
+/** A role key as a human reads it. ROLE_META is the same table the matrix
+ *  headers already use; the pills were printing the raw enum beside it. */
+function roleLabel(key) {
+  const meta = ROLE_META[String(key || '')];
+  return meta ? meta.label : String(key || 'Unknown');
+}
 
 function mfaPill(value) {
   if (value === true) return <StatusPill status="active" label="MFA On" tone="good" />;
@@ -123,9 +135,11 @@ export default function StaffPanel({
   showNotification,
   permissions = null,
   policy = null,
+  permissionsDegraded = false,
   onPolicyChange,
 }) {
   const [staff, setStaff] = useState(null);
+  const [staffMeta, setStaffMeta] = useState(null);
   const [rolesPayload, setRolesPayload] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -145,14 +159,46 @@ export default function StaffPanel({
 
   const mayManage = canManageOperators(permissions);
 
+  /**
+   * HAS A POLICY ACTUALLY BEEN READ?
+   *
+   * The parent sets `policy` to null in exactly one case - the bootstrap read
+   * threw - and null is the whole of what this panel can see. So null is
+   * treated as "not known", never as the shipped defaults: the form is
+   * disabled, the state reads "Not Known", and Save refuses. It used to seed
+   * the form from DEFAULT_POLICY and present it AS the current policy, and
+   * because setPolicyBody sent every field on every save, one press of Save
+   * over a failed read turned approvals off and zeroed all three thresholds
+   * and the TTL. That is the control this whole phase exists to add, disabled
+   * by a fetch that timed out.
+   */
+  const policyKnown = policyIsKnown(policy);
+
   // The draft follows the saved policy, and only the saved policy. Seeding it
   // from a fetch inside this component as well would give two writers to one
   // form and lose whatever the operator had typed when the parent refreshed.
+  // normalizePolicy on the way IN, because a caller handing over the raw route
+  // row (which carries camelCase too) would otherwise render approvals as Off.
   useEffect(() => {
-    setPolicyDraft({ ...DEFAULT_POLICY, ...(policy || {}) });
+    setPolicyDraft(policy
+      ? { ...DEFAULT_POLICY, ...(normalizePolicy(policy) || {}) }
+      : DEFAULT_POLICY);
   }, [policy]);
 
+  /**
+   * ONE SEQUENCE NUMBER, SO THE SLOWER ANSWER LOSES.
+   *
+   * Refresh twice and the first response could land after the second and
+   * replace a newer roster with an older one; the same pair of setState calls
+   * after an unmount is a React warning and a leak. `usePagedList` has had
+   * this guard since Phase 1 and these three fetches did not.
+   */
+  const loadSeqRef = useRef(0);
+  useEffect(() => () => { loadSeqRef.current += 1; }, []);
+
   const load = useCallback(async () => {
+    loadSeqRef.current += 1;
+    const seq = loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -160,13 +206,17 @@ export default function StaffPanel({
         authFetch(staffUrl()),
         authFetch(rolesUrl()),
       ]);
-      setStaff(rowsOf(staffBody, 'staff', 'operators'));
+      if (seq !== loadSeqRef.current) return;
+      const rows = rowsOf(staffBody, 'staff', 'operators');
+      setStaff(rows);
+      setStaffMeta(listMeta(staffBody, rows.length));
       setRolesPayload(rolesBody);
       setLoaded(true);
     } catch (err) {
+      if (seq !== loadSeqRef.current) return;
       setError(err.message || 'Staff Could Not Be Read.');
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) setLoading(false);
     }
   }, [authFetch]);
 
@@ -185,10 +235,24 @@ export default function StaffPanel({
       if (typeof onPolicyChange === 'function') {
         onPolicyChange(normalizePolicy(body && body.policy));
       }
+      return true;
     } catch {
       // A failed re-read is not a failed write. The write already reported.
+      return false;
     }
   }, [authFetch, onPolicyChange]);
+
+  /** The Retry beside the "could not be read" state. Separate from
+   *  refreshPolicy only because this one is allowed to say it failed. */
+  const retryPolicy = useCallback(async () => {
+    setBusy(true);
+    try {
+      const ok = await refreshPolicy();
+      if (!ok) showNotification('The Approval Policy Still Could Not Be Read.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [refreshPolicy, showNotification]);
 
   const submitGrant = useCallback(async () => {
     const body = grantRoleBody({
@@ -237,12 +301,26 @@ export default function StaffPanel({
   }, [authFetch, revokeGrantId, revokeReason, load, showNotification]);
 
   const submitPolicy = useCallback(async () => {
+    // THE REFUSAL. Without a policy that has actually been read there is
+    // nothing to diff against, so every field would be sent - and the values
+    // would be this form's blank defaults, not the live row.
+    if (!policyKnown) {
+      showNotification(
+        'The Approval Policy Has Not Been Read, So It Cannot Be Saved. Retry The Read First.',
+        'error',
+      );
+      setPolicyConfirm(false);
+      return;
+    }
+    const body = setPolicyBody(policyDraft, policy);
+    if (!body) {
+      showNotification('Nothing Changed, So Nothing Was Saved.', 'info');
+      setPolicyConfirm(false);
+      return;
+    }
     setBusy(true);
     try {
-      await authFetch(OPERATOR_ADMIN, {
-        method: 'POST',
-        body: JSON.stringify(setPolicyBody(policyDraft)),
-      });
+      await authFetch(OPERATOR_ADMIN, { method: 'POST', body: JSON.stringify(body) });
       showNotification('Policy Saved.', 'success');
       setPolicyConfirm(false);
       await refreshPolicy();
@@ -251,7 +329,7 @@ export default function StaffPanel({
     } finally {
       setBusy(false);
     }
-  }, [authFetch, policyDraft, refreshPolicy, showNotification]);
+  }, [authFetch, policy, policyDraft, policyKnown, refreshPolicy, showNotification]);
 
   const staffColumns = useMemo(() => {
     const columns = [
@@ -273,7 +351,9 @@ export default function StaffPanel({
           <StatusPill
             status="info"
             tone="info"
-            label={row.profile_role || row.role || 'None'}
+            label={row.profile_role || row.role
+              ? roleLabel(row.profile_role || row.role)
+              : 'None'}
           />
         ),
       },
@@ -286,7 +366,11 @@ export default function StaffPanel({
           return (
             <span className={styles.pillRow}>
               {list.map((entry) => (
-                <StatusPill key={entry.grantId || entry.key} tone="neutral" label={entry.key} />
+                <StatusPill
+                  key={entry.grantId || entry.key}
+                  tone="neutral"
+                  label={roleLabel(entry.key)}
+                />
               ))}
             </span>
           );
@@ -370,6 +454,19 @@ export default function StaffPanel({
 
   const revokeOptions = revokeFor ? revocableGrants(revokeFor) : [];
 
+  /** Is there anything to send, and is it inside the route's bounds? Both
+   *  asked through the same builder the save uses, so the button and the
+   *  request can never disagree about what "changed" means. */
+  const policyPatch = useMemo(
+    () => (policyKnown ? setPolicyBody(policyDraft, policy) : null),
+    [policyDraft, policy, policyKnown],
+  );
+  const policyDirty = !!policyPatch;
+  const ttlInRange = useMemo(() => {
+    const n = Number(policyDraft.approval_ttl_minutes);
+    return Number.isFinite(n) && n >= TTL_MIN_MINUTES && n <= TTL_MAX_MINUTES;
+  }, [policyDraft.approval_ttl_minutes]);
+
   return (
     <div className={styles.panel}>
       <div className={styles.panelHead}>
@@ -393,6 +490,18 @@ export default function StaffPanel({
         </div>
       )}
 
+      {/* The permission list this console is filtering the nav with may be
+          the LEGACY fallback rather than the resolved one. The route says so
+          and nothing was reading it, which left an operator looking at a nav
+          that could be missing a granted role with no way to know. */}
+      {permissionsDegraded && (
+        <div className={styles.warnNote}>
+          The Permission Resolver Did Not Answer, So This Session Is Using The Permissions
+          The Profile Role Carries. A Role Granted On This Screen May Not Be Reflected In
+          The Nav Until You Sign In Again.
+        </div>
+      )}
+
       <DataTable
         columns={staffColumns}
         rows={Array.isArray(staff) ? staff : []}
@@ -402,6 +511,18 @@ export default function StaffPanel({
         empty="No Operator Accounts Were Returned."
         getRowKey={(row, i) => operatorIdOf(row) || i}
       />
+
+      {/* PHASE1-CONTRACTS addendum item 10. The roster is capped server-side,
+          and a capped list rendered without saying so reads as the whole
+          roster - which on THIS table means "these are all the accounts that
+          can open the console". */}
+      {staffMeta && staffMeta.truncated && staffMeta.total !== null && (
+        <div className={styles.warnNote}>
+          Showing {num(Array.isArray(staff) ? staff.length : 0)} Of {num(staffMeta.total)}{' '}
+          Operator Accounts. This Table Is Capped By The Route, So It Is A Page And Not
+          The Whole Roster.
+        </div>
+      )}
 
       {/* ── THE PERMISSION MATRIX ─────────────────────────────────────────── */}
       <div className={styles.card}>
@@ -439,21 +560,47 @@ export default function StaffPanel({
       </div>
 
       {/* ── THE POLICY PANEL ──────────────────────────────────────────────── */}
+      {/* THREE STATES, NOT TWO. On, Off, and "the read failed so nobody
+          knows" - and the third one is never printed as Off. Reporting an
+          unknown as Off is reporting a money control as disabled when it may
+          be enabled, which is the wrong way round to be wrong. */}
       {!mayManage ? (
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Approval Policy</h3>
           <p className={styles.cardNote}>
             Maker-Checker Is Currently{' '}
-            <strong>{policyDraft.approvals_enabled ? 'On' : 'Off'}</strong>.
-            Changing It Needs {ADMIN_MANAGE}, Which This Account Does Not Hold.
+            <strong>{approvalsStateLabel(policy)}</strong>.
+            {policyKnown
+              ? ` Changing It Needs ${ADMIN_MANAGE}, Which This Account Does Not Hold.`
+              : ' The Policy Could Not Be Read, So This Console Cannot Say Whether It Is On Or Off.'}
           </p>
+        </div>
+      ) : !policyKnown ? (
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>Approval Policy</h3>
+          <div className={styles.errorNote} role="alert">
+            The Approval Policy Could Not Be Read. This Console Does Not Know Whether
+            Maker-Checker Is On Or Off, And It Will Not Save A Policy It Has Not Read:
+            Saving Blank Defaults Over The Live Row Would Turn Approvals Off And Zero
+            Every Threshold.
+          </div>
+          <button
+            type="button"
+            className={styles.btn}
+            style={{ marginTop: 14 }}
+            onClick={retryPolicy}
+            disabled={busy}
+          >
+            {busy ? 'Reading' : 'Read The Policy Again'}
+          </button>
         </div>
       ) : (
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Approval Policy</h3>
           <p className={styles.cardNote}>
             This Is The Switch That Decides Whether A Money Move Executes When An
-            Operator Confirms It Or Stops And Waits For A Second Operator.
+            Operator Confirms It Or Stops And Waits For A Second Operator. It Is
+            Currently <strong>{approvalsStateLabel(policy)}</strong>.
           </p>
 
           <div className={styles.policyGrid}>
@@ -542,18 +689,24 @@ export default function StaffPanel({
               <label className={styles.fieldLabel} htmlFor="policy-ttl">
                 Approval Window (Minutes)
               </label>
+              {/* The bounds are the ROUTE'S bounds, named once in
+                  operatorAdmin. min="1" here accepted a value the route then
+                  refused with "Between 5 And 43200 Minutes", so the console
+                  took a number it could not save and said nothing about it. */}
               <input
                 id="policy-ttl"
                 className={styles.input}
                 type="number"
-                min="1"
+                min={TTL_MIN_MINUTES}
+                max={TTL_MAX_MINUTES}
                 value={policyDraft.approval_ttl_minutes}
                 onChange={(e) => setPolicyDraft((p) => ({
                   ...p, approval_ttl_minutes: e.target.value,
                 }))}
               />
               <span className={styles.fieldHint}>
-                How Long A Pending Request Stays Decidable Before It Expires.
+                How Long A Pending Request Stays Decidable Before It Expires. Between{' '}
+                {num(TTL_MIN_MINUTES)} And {num(TTL_MAX_MINUTES)} Minutes.
               </span>
             </div>
           </div>
@@ -563,10 +716,19 @@ export default function StaffPanel({
             className={`${styles.btn} ${styles.btnGo}`}
             style={{ marginTop: 14 }}
             onClick={() => setPolicyConfirm(true)}
-            disabled={busy}
+            disabled={busy || !policyDirty || !ttlInRange}
           >
             Save Policy
           </button>
+          {!ttlInRange && (
+            <span className={styles.fieldHint}>
+              {' '}The Approval Window Must Be Between {num(TTL_MIN_MINUTES)} And{' '}
+              {num(TTL_MAX_MINUTES)} Minutes.
+            </span>
+          )}
+          {ttlInRange && !policyDirty && (
+            <span className={styles.fieldHint}> Nothing Has Been Changed Yet.</span>
+          )}
         </div>
       )}
 
@@ -575,6 +737,7 @@ export default function StaffPanel({
         <Modal
           title={`Grant A Role To ${grantFor.display_name || grantFor.email || 'This Operator'}`}
           onClose={busy ? undefined : () => setGrantFor(null)}
+          hideClose={busy}
           sticky={busy}
           blockEscape={busy}
         >
@@ -636,6 +799,7 @@ export default function StaffPanel({
         <Modal
           title={`Revoke A Role From ${revokeFor.display_name || revokeFor.email || 'This Operator'}`}
           onClose={busy ? undefined : () => setRevokeFor(null)}
+          hideClose={busy}
           sticky={busy}
           blockEscape={busy}
         >
@@ -654,7 +818,7 @@ export default function StaffPanel({
             >
               <option value="">Pick A Grant</option>
               {revokeOptions.map((entry) => (
-                <option key={entry.grantId} value={entry.grantId}>{entry.key}</option>
+                <option key={entry.grantId} value={entry.grantId}>{roleLabel(entry.key)}</option>
               ))}
             </select>
           </div>

@@ -23,7 +23,7 @@
  * because "may this person press this button" is exactly the decision that
  * must not be re-derived differently in three places.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
 import DataTable from './DataTable';
 import Pager from './Pager';
@@ -33,12 +33,12 @@ import exportAllCsv from './exportAllCsv';
 import styles from './shared.module.css';
 import { num, when } from '../../lib/horsesAdminTokens';
 import {
-  APPROVAL_KINDS, APPROVAL_STATUSES, approvalRowState, formatAge, formatExpiresIn,
-  kindLabel, statusLabel, toneForApprovalStatus,
+  APPROVAL_KINDS, APPROVAL_STATUSES, approvalRowState, blockedReasonLabel, formatAge,
+  formatExpiresIn, isStaleRowRefusal, kindLabel, statusLabel, toneForApprovalStatus,
 } from './approvalModel';
 import {
-  MIN_REASON_LENGTH, approvalsUrl, decideApprovalBody, reasonIsValid, rowsOf,
-  OPERATOR_ADMIN,
+  MIN_REASON_LENGTH, approvalsUrl, decideApprovalBody, policyIsKnown, reasonIsValid,
+  rowsOf, OPERATOR_ADMIN,
 } from './operatorAdmin';
 
 const HISTORY_PAGE_SIZE = 50;
@@ -96,20 +96,34 @@ export default function ApprovalsPanel({
     return () => clearInterval(id);
   }, []);
 
+  /**
+   * ONE SEQUENCE NUMBER, SO THE SLOWER ANSWER LOSES. Refresh, then decide,
+   * then refresh again and the first answer could land last and put a decided
+   * row back in the queue with live buttons on it. `usePagedList` has carried
+   * this guard since Phase 1; this fetch did not. The same counter is bumped
+   * on unmount, which is what stops the setState-after-unmount.
+   */
+  const pendingSeqRef = useRef(0);
+  useEffect(() => () => { pendingSeqRef.current += 1; }, []);
+
   const loadPending = useCallback(async () => {
+    pendingSeqRef.current += 1;
+    const seq = pendingSeqRef.current;
     setPendingLoading(true);
     setPendingError(null);
     try {
       const body = await authFetch(approvalsUrl({
         status: 'pending', limit: PENDING_LIMIT, offset: 0,
       }));
+      if (seq !== pendingSeqRef.current) return;
       setPending(rowsOf(body, 'approvals', 'pending'));
       setPendingTotal(typeof body.total === 'number' ? body.total : null);
       setPendingLoaded(true);
     } catch (err) {
+      if (seq !== pendingSeqRef.current) return;
       setPendingError(err.message || 'The Queue Could Not Be Read.');
     } finally {
-      setPendingLoading(false);
+      if (seq === pendingSeqRef.current) setPendingLoading(false);
     }
   }, [authFetch]);
 
@@ -167,6 +181,17 @@ export default function ApprovalsPanel({
       history.refresh();
     } catch (err) {
       showNotification(err.message, 'error');
+      // A ROW SOMEBODY ELSE ALREADY DECIDED. The queue is loaded once and
+      // refreshed only after this operator's own decision, so a 409 used to
+      // leave the stale row, the open modal and a live Approve button exactly
+      // where they were - and the next press produced the same refusal. The
+      // refusal IS the news that this page is out of date, so it reloads.
+      if (isStaleRowRefusal(err)) {
+        setDecideFor(null);
+        setNote('');
+        await loadPending();
+        history.refresh();
+      }
     } finally {
       setBusy(false);
     }
@@ -179,7 +204,6 @@ export default function ApprovalsPanel({
         filenamePrefix: 'operator-approvals',
         limit: EXPORT_PAGE_SIZE,
         onProgress: (p) => setExporting(p),
-        jsonColumns: ['payload', 'result'],
         fetchPage: async (offset, limit) => {
           const body = await authFetch(approvalsUrl({
             status: history.filters.status || '',
@@ -212,8 +236,11 @@ export default function ApprovalsPanel({
           ['reason', 'Reason'],
           ['op_id', 'Operation Id'],
           ['request_id', 'Request Id'],
-          ['payload', 'Payload'],
-          ['result', 'Result'],
+          // NO Payload AND NO Result COLUMN. `section=approvals` selects
+          // APPROVAL_FIELDS, which contains neither, so both columns exported
+          // blank on every row - and a blank Payload cell reads as "this
+          // request carried none", which is a statement the export cannot
+          // support. A column the route cannot fill is not a column.
         ],
       });
       showNotification(
@@ -309,8 +336,13 @@ export default function ApprovalsPanel({
    * page in front of you is the Phase 1 audit-tab bug.
    */
   const visibleHistory = useMemo(() => {
-    const from = history.filters.from ? Date.parse(`${history.filters.from}T00:00:00`) : NaN;
-    const to = history.filters.to ? Date.parse(`${history.filters.to}T23:59:59.999`) : NaN;
+    // UTC, BECAUSE THE ROUTE IS UTC. isoDate parses 'YYYY-MM-DD' as UTC
+    // midnight and the `to` bound is a literal T23:59:59.999Z, so parsing
+    // these in the browser's local zone made the belt disagree with the route
+    // by the offset: west of UTC it deleted rows the route had correctly
+    // returned, east of UTC it clipped the last day.
+    const from = history.filters.from ? Date.parse(`${history.filters.from}T00:00:00Z`) : NaN;
+    const to = history.filters.to ? Date.parse(`${history.filters.to}T23:59:59.999Z`) : NaN;
     if (Number.isNaN(from) && Number.isNaN(to)) return history.rows;
     return history.rows.filter((row) => {
       const at = row.requested_at ? Date.parse(row.requested_at) : NaN;
@@ -322,6 +354,13 @@ export default function ApprovalsPanel({
   }, [history.rows, history.filters.from, history.filters.to]);
 
   const datesSet = !!(history.filters.from || history.filters.to);
+
+  /** Is the WHOLE filtered set empty? `history.rows.length === 0` is only
+   *  ever a fact about the page on screen, and gating the export on it
+   *  disabled Export CSV on page two of a set with rows on page one. */
+  const historyIsEmpty = !history.loaded
+    || history.total === 0
+    || (history.total === null && history.rows.length === 0 && history.offset === 0);
 
   const historyColumns = useMemo(() => ([
     { key: 'requested_at', header: 'Requested', render: (row) => when(row.requested_at, true) },
@@ -354,13 +393,15 @@ export default function ApprovalsPanel({
       key: 'decided',
       header: 'Decided',
       render: (row) => (row.decided_at
-        ? `${when(row.decided_at, true)} by ${row.decided_by_label || 'Unknown'}`
+        ? `${when(row.decided_at, true)} By ${row.decided_by_label || 'Unknown'}`
         : '-'),
     },
     {
       key: 'blocked_reason',
       header: 'Note',
-      render: (row) => row.blocked_reason || '-',
+      // The raw enum (`no_second_approver`) used to reach the operator in a
+      // cell headed Note, on a screen whose every other cell is written out.
+      render: (row) => blockedReasonLabel(row.blocked_reason),
     },
   ]), []);
 
@@ -381,7 +422,16 @@ export default function ApprovalsPanel({
         </button>
       </div>
 
-      {!policy || policy.approvals_enabled !== true ? (
+      {/* AN UNKNOWN IS NOT AN OFF. With the policy read failed, `policy` is
+          null, and this used to print the flat statement "Maker-Checker Is
+          Currently Off" over a control that may well be on. */}
+      {!policyIsKnown(policy) ? (
+        <div className={styles.warnNote}>
+          The Approval Policy Could Not Be Read, So This Console Cannot Say Whether
+          Maker-Checker Is On Or Off. Anything Below Is The Queue As The Route Returned
+          It; The Route Decides Every Request Either Way.
+        </div>
+      ) : policy.approvals_enabled !== true ? (
         <div className={styles.infoNote}>
           Maker-Checker Is Currently Off. Turn It On From Staff And Roles When There Are
           Two Operators To Share A Decision.
@@ -472,8 +522,10 @@ export default function ApprovalsPanel({
             type="button"
             className={styles.btn}
             onClick={exportHistory}
-            disabled={!!exporting || history.rows.length === 0}
-            title="Exports every row matching the kind, status and date filters, across all pages, not just the page on screen."
+            // Gated on the WHOLE filtered set, not on the page in front of
+            // you: page two of an empty page one still has rows to export.
+            disabled={!!exporting || historyIsEmpty}
+            title="Exports Every Row Matching The Kind, Status And Date Filters, Across All Pages, Not Just The Page On Screen."
           >
             {exporting ? 'Exporting' : 'Export CSV'}
           </button>
@@ -499,8 +551,10 @@ export default function ApprovalsPanel({
           <div className={styles.warnNote}>
             This Page Came Back With {num(history.rows.length)} Rows And{' '}
             {num(history.rows.length - visibleHistory.length)} Of Them Fall Outside The
-            Dates, So They Were Removed Here Rather Than By The Route. The Totals And The
-            Export Below Are Not Narrowed By Date. Page Through To Reach Older Requests.
+            Dates, So They Were Hidden Here. The Route Does Narrow The Total And The
+            Export By Date, So Nothing Below Is Missing Because Of This: The Rows Were
+            Returned By A Route Whose Idea Of These Dates Differs From This Console's.
+            Report It Rather Than Paging For Them.
           </div>
         )}
 
@@ -517,7 +571,7 @@ export default function ApprovalsPanel({
         <Pager
           offset={history.offset}
           limit={history.limit}
-          count={history.rows.length}
+          count={visibleHistory.length}
           total={history.total}
           hasMore={history.hasMore}
           loading={history.loading}
@@ -532,6 +586,7 @@ export default function ApprovalsPanel({
         <Modal
           title={decideFor.decision === 'approve' ? 'Approve This Request' : 'Reject This Request'}
           onClose={busy ? undefined : () => setDecideFor(null)}
+          hideClose={busy}
           sticky={busy}
           blockEscape={busy}
         >
@@ -539,7 +594,7 @@ export default function ApprovalsPanel({
             {kindLabel(decideFor.row.kind)}
             {decideFor.row.amount === null || decideFor.row.amount === undefined
               ? ''
-              : ` of ${num(decideFor.row.amount)} ${decideFor.row.asset || ''}`}
+              : ` Of ${num(decideFor.row.amount)} ${decideFor.row.asset || ''}`}
             {' '}For <strong>{targetLabel(decideFor.row)}</strong>, Raised By{' '}
             <strong>{requesterLabel(decideFor.row)}</strong>{' '}
             {formatAge(decideFor.row.requested_at, now)} Ago.
@@ -557,8 +612,13 @@ export default function ApprovalsPanel({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="decision-note">
+              {/* THIS CONSOLE'S RULE, SAID AS THIS CONSOLE'S RULE. The route
+                  accepts a note of one character and treats it as optional;
+                  the ten-character minimum on a rejection is a house rule, and
+                  presenting a house rule as the system's is how an operator
+                  ends up believing a shorter note was refused by the server. */}
               Note{decideFor.decision === 'reject'
-                ? ` (Required, At Least ${MIN_REASON_LENGTH} Characters)`
+                ? ` (This Console Requires At Least ${MIN_REASON_LENGTH} Characters)`
                 : ' (Optional)'}
             </label>
             <textarea

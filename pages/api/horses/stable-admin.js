@@ -669,6 +669,13 @@ function cleanPrefixes(list, single) {
   return out;
 }
 
+/** A bare YYYY-MM-DD covers the whole day it names, not just its first instant. */
+function endOfDayIfDateOnly(raw, iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(raw).trim())
+    ? `${String(raw).trim()}T23:59:59.999Z`
+    : iso;
+}
+
 async function auditLog(db, body) {
   const limit = Math.min(int(body.limit, { min: 1, fallback: AUDIT_PAGE_DEFAULT }), AUDIT_PAGE_MAX);
   // A malformed offset used to fall back to 0 and, because `body.offset !==
@@ -741,7 +748,13 @@ async function auditLog(db, body) {
   if (body.to !== undefined && body.to !== null && body.to !== '') {
     const to = isoDate(body.to);
     if (!to) throw badRequest('To Must Be A Date');
-    q = q.lte('created_at', to);
+    // A BARE DATE COVERS THE WHOLE DAY IT NAMES (review L-1). The console sends
+    // a date input's YYYY-MM-DD, which parses to midnight, so "up to the 3rd"
+    // silently excluded everything that happened on the 3rd - the one day an
+    // operator reading a log is most likely to be asking about.
+    // operator-admin's approvals filter was fixed for exactly this; the audit
+    // log, which Phase 2 also touched, was not.
+    q = q.lte('created_at', endOfDayIfDateOnly(body.to, to));
   }
   if (body.days !== undefined && body.days !== null && body.days !== '') {
     const days = int(body.days, { min: 1, max: 365 });

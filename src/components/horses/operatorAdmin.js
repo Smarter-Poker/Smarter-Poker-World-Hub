@@ -108,27 +108,63 @@ export function revokeRoleBody({ grantId, reason } = {}) {
   return { action: 'revoke_role', grantId: String(grantId), reason: String(reason).trim() };
 }
 
+/** The TTL bounds the route enforces (`int(value, { min: 5, max: 43200 })`).
+ *  Stated here so the input, the hint and the guard all read one number and
+ *  the console cannot accept a value it then fails to save. */
+export const TTL_MIN_MINUTES = 5;
+export const TTL_MAX_MINUTES = 43_200;
+export const TTL_DEFAULT_MINUTES = 1440;
+
 /**
- * The policy row, normalised.
+ * The policy row, normalised - and a PATCH when there is something to diff
+ * against.
  *
  * Numbers are sent as numbers: a threshold typed into a text input arrives as
  * a string, and a string threshold compared against an amount is the kind of
  * bug that only shows up above 9.
+ *
+ * WHY THE SECOND ARGUMENT EXISTS. `set_policy` on the route is a genuine
+ * patch: it skips every field the body omits and refuses an empty one. This
+ * used to send all six fields on every save regardless, which made two
+ * things possible that should not be. Two operators editing the policy in the
+ * same window silently overwrote each other's thresholds; and a save composed
+ * over a FAILED policy read wrote the shipped defaults onto the live row -
+ * approvals off, every threshold zero - which is the exact control Phase 2
+ * exists to add, turned off by a fetch that timed out. Passing the loaded
+ * policy makes the body carry only what this operator actually changed.
+ *
+ * Returns NULL when nothing changed, so the caller says "Nothing Changed"
+ * rather than sending a body the route answers 400 to.
  */
-export function setPolicyBody(policy = {}) {
+export function setPolicyBody(policy = {}, saved = null) {
   const int = (value, fallback) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
   };
-  return {
-    action: 'set_policy',
+  const draft = {
     approvalsEnabled: policy.approvals_enabled === true,
     allowSelfApproveWhenAlone: policy.allow_self_approve_when_alone === true,
     mintThreshold: int(policy.mint_threshold, 0),
     fundThreshold: int(policy.fund_threshold, 0),
     cashoutThreshold: int(policy.cashout_threshold, 0),
-    approvalTtlMinutes: int(policy.approval_ttl_minutes, 1440),
+    approvalTtlMinutes: int(policy.approval_ttl_minutes, TTL_DEFAULT_MINUTES),
   };
+  if (!saved || typeof saved !== 'object') return { action: 'set_policy', ...draft };
+
+  const current = {
+    approvalsEnabled: saved.approvals_enabled === true,
+    allowSelfApproveWhenAlone: saved.allow_self_approve_when_alone === true,
+    mintThreshold: int(saved.mint_threshold, 0),
+    fundThreshold: int(saved.fund_threshold, 0),
+    cashoutThreshold: int(saved.cashout_threshold, 0),
+    approvalTtlMinutes: int(saved.approval_ttl_minutes, TTL_DEFAULT_MINUTES),
+  };
+  const patch = {};
+  for (const key of Object.keys(draft)) {
+    if (draft[key] !== current[key]) patch[key] = draft[key];
+  }
+  if (Object.keys(patch).length === 0) return null;
+  return { action: 'set_policy', ...patch };
 }
 
 export function decideApprovalBody({ approvalId, decision, note } = {}) {
@@ -259,6 +295,71 @@ export function permissionMatrix(payload) {
     permissions: Array.from(permissionSet).sort(),
     grid,
   };
+}
+
+/**
+ * WHO DID THIS, from a trail row.
+ *
+ * `fn_ca_operator_audit_trail` selects `a.admin_user_id, a.actor_role` and the
+ * route passes the rows through untouched. The dialog read `admin_name` and
+ * `admin_role`, which only the `stable-admin` audit_log route synthesises from
+ * a profile join - so every entry in a per-record trail was attributed to
+ * "System / Cron" with no role, on the one dialog whose entire purpose is
+ * "who did what to this record".
+ *
+ * Both shapes are read, the enriched one first, and the id is shown when
+ * there is no name: a uuid is not friendly but it IS the answer, and
+ * "System / Cron" over a row that names an admin perfectly well is the
+ * console withholding what it has. "System / Cron" survives for the rows that
+ * genuinely have no actor - a cron writes those, and `admin_user_id` is null.
+ */
+export function trailActor(row) {
+  if (!row || typeof row !== 'object') {
+    return { label: 'Not Recorded', role: '', isId: false };
+  }
+  const name = row.admin_name || row.admin_label || row.admin_display_name || '';
+  const id = row.admin_user_id || row.adminUserId || row.admin_id || '';
+  const role = row.admin_role || row.actor_role || row.actorRole || '';
+  if (name) return { label: String(name), role: String(role || ''), isId: false };
+  if (id) return { label: String(id), role: String(role || ''), isId: true };
+  return { label: 'System / Cron', role: String(role || ''), isId: false };
+}
+
+/**
+ * MAKER-CHECKER IS ON, OFF, OR NOT KNOWN - and the third one is a real state.
+ *
+ * A failed policy read leaves `policy` null, and both surfaces printed that
+ * as the flat sentence "Maker-Checker Is Currently Off". If approvals are in
+ * fact ON, the console has told three operators the opposite about a money
+ * control, from an absence. An unknown is not an off.
+ */
+export function approvalsStateLabel(policy) {
+  if (!policy || typeof policy !== 'object') return 'Not Known';
+  return policy.approvals_enabled === true ? 'On' : 'Off';
+}
+
+/** True only when a policy row has actually been read. */
+export function policyIsKnown(policy) {
+  return !!policy && typeof policy === 'object';
+}
+
+/**
+ * The rest of the paged envelope: what the route said about the WHOLE set.
+ *
+ * PHASE1-CONTRACTS addendum item 10: every list response carries `total` and
+ * `truncated`, and the client renders "Showing N Of Total" wherever
+ * `truncated` is true. The Staff table read `rows` and nothing else, so a
+ * roster over the 200 cap would have rendered as if it were the whole roster.
+ * A fabricated total is worse than none, so an absent one stays null.
+ */
+export function listMeta(payload, rowCount = 0) {
+  const meta = { total: null, truncated: false, hasMore: undefined, shown: rowCount };
+  if (!payload || typeof payload !== 'object') return meta;
+  if (typeof payload.total === 'number') meta.total = payload.total;
+  if (typeof payload.hasMore === 'boolean') meta.hasMore = payload.hasMore;
+  if (payload.truncated === true) meta.truncated = true;
+  else if (meta.total !== null && meta.total > rowCount) meta.truncated = true;
+  return meta;
 }
 
 /** The paged envelope, read whichever field name the route used. */

@@ -57,6 +57,13 @@ declare
   v_total      int;
   v_res        jsonb;
   v_grant_id   uuid;
+  -- The two decider grants STEP 6 and STEP 7 need. Since
+  -- 20260903140000_ca_operator_approval_gate_is_exact.sql,
+  -- fn_ca_operator_decide_approval checks that the decider really holds
+  -- the permission the kind needs (review finding M-2), and these
+  -- synthetic actors have no profiles row and so no legacy role.
+  v_grant_maker   uuid;
+  v_grant_checker uuid;
   v_expected   text[];
   v_actual     text[];
   v_approval   uuid;
@@ -219,6 +226,18 @@ begin
   raise notice 'STEP 5 OK: 500 chips returns required=true, row % is % (blocked_reason=%)',
     v_approval, v_status, coalesce(v_blocked, 'none');
 
+  -- Both deciders below need money.write of their own. Neither has a
+  -- profiles row, so neither carries a legacy role, and since
+  -- 20260903140000 fn_ca_operator_decide_approval refuses a decider who
+  -- does not hold the kind's permission. Granting `finance` here is what
+  -- a real operator gets from their profile role, and both grants are
+  -- revoked again before STEP 6b, which needs c_fresh to be the only
+  -- nominated approver under enforcement.
+  v_res := public.fn_ca_operator_grant(c_maker, 'finance', v_god, 'sim decider permission');
+  v_grant_maker := (v_res ->> 'grant_id')::uuid;
+  v_res := public.fn_ca_operator_grant(c_checker, 'finance', v_god, 'sim decider permission');
+  v_grant_checker := (v_res ->> 'grant_id')::uuid;
+
   -- ------------------------------------------------------------------
   -- STEP 6. The maker cannot check their own work.
   -- Legacy operators still count as approvers here (enforce is off), so
@@ -273,6 +292,10 @@ begin
   -- With enforce_named_roles on, only a holder of an active named grant
   -- is a nominated approver. Only c_fresh holds one, so c_fresh is alone.
   -- ------------------------------------------------------------------
+  -- The two decider grants go away again, or c_fresh would not be alone.
+  perform public.fn_ca_operator_revoke(v_grant_maker, v_god, 'sim decider permission done');
+  perform public.fn_ca_operator_revoke(v_grant_checker, v_god, 'sim decider permission done');
+
   v_res := public.fn_ca_operator_grant(c_fresh, 'finance', v_god, 'sim alone rule');
   perform public.fn_ca_operator_set_policy(
     jsonb_build_object('enforce_named_roles', true, 'allow_self_approve_when_alone', true),

@@ -261,14 +261,24 @@ export function hasPermission(permissions, permission) {
 }
 
 /**
- * True when the role reaches the console at all.
+ * True when this PROFILE ROLE reaches the console on its own.
  *
- * Phase 2 widens this to the named roles as well. That is additive by
- * construction: a profiles.role of 'support' reached nothing before, so nobody
- * loses access, and anyone who gains it gains only the support set.
+ * Only the legacy three do. Phase 2 briefly widened this to every named role,
+ * and that was wrong (review M-6): `profiles.role` is free text this feature
+ * does not own, and `owner` in particular is a value any future club or venue
+ * work is likely to write. The day such a row appeared, that account would
+ * silently hold the whole `owner` set, `admin.manage` included, because a
+ * string in a column nobody guards happened to match a key in this file.
+ *
+ * A named role reaches the console through an ACTIVE GRANT in
+ * ca_operator_grants, which is a record with a granter, a reason and a revoke
+ * path - see operatorAuth.requireOperator, which admits a caller holding one.
+ * Nothing is lost by narrowing this: production holds only user, player,
+ * venue_owner, admin and god today, so no account reached the console through
+ * this function that does not still reach it.
  */
 export function isOperatorRole(role) {
-  return isKnownRole(role);
+  return LEGACY_ADMIN_ROLES.includes(role);
 }
 
 /** role x permission, for the Staff And Roles matrix. */

@@ -29,18 +29,31 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
-import { TABS, visibleTabs } from '../src/components/horses/tabRegistry.js';
+import {
+  DEFAULT_TAB, TABS, resolveTabFromQuery, visibleTabs,
+} from '../src/components/horses/tabRegistry.js';
 import {
   ADMIN_MANAGE,
   canManageOperators,
   hasPermission,
+  isKnownPermission,
   operatorIdFromPayload,
   permissionsFromPayload,
   permittedTabs,
+  relocationTarget,
 } from '../src/components/horses/operatorPermissions.js';
+import {
+  ALL_PERMISSIONS,
+  OPERATOR_ROLE_KEYS,
+  permissionsForRole,
+} from '../src/lib/horses/permissions.js';
+import { KIND_PERMISSION as SERVER_KIND_PERMISSION } from '../src/lib/horses/approvals.js';
 import {
   aloneRuleApplies,
   approvalRowState,
+  blockedReasonLabel,
+  isStaleRowRefusal,
+  KIND_PERMISSIONS,
   formatAge,
   formatDuration,
   formatExpiresIn,
@@ -57,18 +70,24 @@ import {
 } from '../src/components/horses/approvalModel.js';
 import {
   MIN_REASON_LENGTH,
+  TTL_MAX_MINUTES,
+  TTL_MIN_MINUTES,
+  approvalsStateLabel,
   approvalsUrl,
   auditTrailUrl,
   decideApprovalBody,
   grantRoleBody,
+  listMeta,
   operatorAdminUrl,
   permissionMatrix,
+  policyIsKnown,
   policyUrl,
   reasonIsValid,
   revokeRoleBody,
   rowsOf,
   setPolicyBody,
   staffUrl,
+  trailActor,
 } from '../src/components/horses/operatorAdmin.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -118,24 +137,97 @@ test('THE SAFETY RULE: an unknown permission set shows every tab', () => {
   assert.equal(permittedTabs(all, null).length, all.length);
   assert.equal(permittedTabs(all, undefined).length, all.length);
   assert.equal(permittedTabs(all, []).length, all.length);
-  assert.equal(hasPermission(null, 'mint.write'), true);
-  assert.equal(hasPermission([], 'mint.write'), true);
+  assert.equal(hasPermission(null, 'money.read'), true);
+  assert.equal(hasPermission([], 'money.read'), true);
+});
+
+test('THE BLOCKER THIS SUITE MISSED: a god sees EVERY tab', () => {
+  // Phase 2 turned tabRegistry's dormant `permission` field into a live nav
+  // filter while thirteen of the sixteen legacy tabs still declared names
+  // that are in no role and in no vocabulary (mint.write, stable.read,
+  // clubarena.read, economy.read ...). The result was a `god` - the account
+  // that runs this platform - seeing 5 tabs of 18, with the default tab
+  // hidden, so the stranding guard relocated and rewrote the URL on every
+  // single load. The suite was green throughout, because the one test that
+  // exercised the filter invented a permission set that nobody holds.
+  //
+  // This is that test written against a set somebody actually holds. It is
+  // the assertion that must never be "fixed" by narrowing the expectation.
+  const all = visibleTabs(TABS);
+  const god = permittedTabs(all, permissionsForRole('god'));
+  assert.equal(
+    god.length,
+    all.length,
+    `a god must see every tab; missing: ${all.filter((t) => !god.includes(t)).map((t) => t.id).join(', ')}`,
+  );
+  // And the same for every other role that is defined as the full superset.
+  for (const role of ['superadmin', 'admin', 'owner']) {
+    assert.equal(
+      permittedTabs(all, permissionsForRole(role)).length,
+      all.length,
+      `${role} holds ALL_PERMISSIONS, so it must see every tab`,
+    );
+  }
+  // The DEFAULT tab in particular, because hiding that one is what made the
+  // guard fire on every load.
+  assert.ok(god.some((tab) => tab.id === DEFAULT_TAB), 'the default tab must be visible to a god');
+});
+
+test('EVERY tab.permission is a real permission, so a typo can never hide a tab', () => {
+  for (const tab of TABS) {
+    assert.ok(
+      isKnownPermission(tab.permission),
+      `tab ${tab.id} declares "${tab.permission}", which is not in ALL_PERMISSIONS`,
+    );
+    assert.ok(
+      ALL_PERMISSIONS.includes(tab.permission),
+      `tab ${tab.id} declares "${tab.permission}", which is not in ALL_PERMISSIONS`,
+    );
+  }
+});
+
+test('every named role reaches the console, and only settings.write narrows one', () => {
+  // A sanity check on the mapping rather than a snapshot of it: a tab
+  // declares the permission that lets an operator LOOK, so every role that
+  // holds the console floor sees most of the console, and the one tab whose
+  // view IS its write (Settings) is the only one a read-only role loses.
+  const all = visibleTabs(TABS);
+  for (const role of OPERATOR_ROLE_KEYS) {
+    const ids = permittedTabs(all, permissionsForRole(role)).map((t) => t.id);
+    assert.ok(ids.includes('staff'), `${role} holds console.read, so Staff is visible`);
+    assert.ok(ids.includes('approvals'), `${role} holds console.read, so Approvals is visible`);
+    assert.ok(ids.includes('audit'), `${role} holds audit.read, so the Audit Log is visible`);
+  }
+  const readOnly = permittedTabs(all, permissionsForRole('read_only')).map((t) => t.id);
+  assert.ok(!readOnly.includes('settings'), 'read_only holds no settings.write');
+  assert.ok(readOnly.includes('mint'), 'read_only holds money.read, so it may LOOK at the Mint');
 });
 
 test('a populated permission set filters the nav down to what it names', () => {
   const all = visibleTabs(TABS);
-  const permissions = ['console.read', 'audit.read', 'mint.write'];
-  const ids = permittedTabs(all, permissions).map((t) => t.id);
-
-  // The two Phase 2 tabs declare console.read, so both survive.
+  // A real, narrow set: the console floor and nothing else.
+  const ids = permittedTabs(all, ['console.read']).map((t) => t.id);
   assert.ok(ids.includes('staff'));
   assert.ok(ids.includes('approvals'));
-  assert.ok(ids.includes('audit'));
-  assert.ok(ids.includes('mint'));
+  assert.ok(ids.includes('merch'));
   // And everything this operator does not hold is gone.
-  assert.ok(!ids.includes('stable'));
-  assert.ok(!ids.includes('clubarena'));
+  assert.ok(!ids.includes('stable'), 'stable needs fleet.read');
+  assert.ok(!ids.includes('clubarena'), 'clubarena needs clubs.read');
+  assert.ok(!ids.includes('audit'), 'audit needs audit.read');
   assert.ok(ids.length < all.length);
+});
+
+test('a permission the vocabulary does not define can never hide anything', () => {
+  // The other half of the blocker fix. A name no role has ever held is not
+  // something a permission list can meaningfully "leave out", so reading its
+  // absence as a refusal turns one typo in a registry into an operator
+  // lockout. The vocabulary is the enforcement surface; the test above is
+  // what keeps the typo visible.
+  assert.equal(isKnownPermission('mint.write'), false);
+  assert.equal(hasPermission(['console.read'], 'mint.write'), true);
+  assert.equal(hasPermission(['console.read'], 'money.write'), false);
+  const tabs = [{ id: 'invented', label: 'Invented', permission: 'nothing.real' }];
+  assert.equal(permittedTabs(tabs, ['console.read']).length, 1);
 });
 
 test('a wildcard permission holds everything', () => {
@@ -898,10 +990,102 @@ test('goToTab is a state move, so the URL write effect owns the navigation', asy
   assert.match(src, /nextUrlQuery\(\{ activeTab, caSection \}, router\.query\)/);
 });
 
-test('an operator can never be stranded on a tab they cannot see', async () => {
+test('THE GUARD CANNOT FIRE ON A LEGACY OPERATOR', () => {
+  // This test used to assert that index.js contained two literal source
+  // lines. It passed while the guard it was describing relocated every
+  // operator on every load, because a string in a file says nothing about
+  // what the code does. The whole decision is `relocationTarget` now, and
+  // this exercises it.
+  const all = visibleTabs(TABS);
+  for (const role of ['god', 'superadmin', 'admin', 'owner']) {
+    const permissions = permissionsForRole(role);
+    for (const tab of all) {
+      assert.equal(
+        relocationTarget({ activeTab: tab.id, tabs: all, permissions }),
+        null,
+        `${role} holds every permission, so nothing may move them off ${tab.id}`,
+      );
+    }
+  }
+});
+
+test('A DEEP LINK SURVIVES THE GUARD', () => {
+  // /horses?tab=mint used to land on Settings and lose the link: the mint tab
+  // asked for a permission nobody held, so the guard relocated and the URL
+  // write effect rewrote ?tab= behind it. Both halves are checked here - the
+  // URL resolves to the tab it names, and the guard leaves it alone.
+  const all = visibleTabs(TABS);
+  for (const role of ['god', 'superadmin', 'admin']) {
+    const permissions = permissionsForRole(role);
+    for (const id of ['mint', 'clubarena', 'economy', 'stable', 'audit', 'approvals']) {
+      assert.equal(resolveTabFromQuery(id, TABS), id, `?tab=${id} must resolve to ${id}`);
+      assert.equal(
+        relocationTarget({ activeTab: id, tabs: all, permissions }),
+        null,
+        `${role} must stay on ${id}`,
+      );
+    }
+  }
+  // A stale bookmark still lands on the default rather than a blank panel.
+  assert.equal(resolveTabFromQuery('a-tab-that-was-renamed', TABS), DEFAULT_TAB);
+});
+
+test('the guard stays put unless the route has actually answered', () => {
+  const all = visibleTabs(TABS);
+  // Null and [] are both "nobody has told us yet". Relocating on either is
+  // how a slow fetch turns into a lost deep link.
+  assert.equal(relocationTarget({ activeTab: 'settings', tabs: all, permissions: null }), null);
+  assert.equal(relocationTarget({ activeTab: 'settings', tabs: all, permissions: [] }), null);
+  assert.equal(
+    relocationTarget({ activeTab: 'settings', tabs: all, permissions: undefined }),
+    null,
+  );
+});
+
+test('the guard stays put when the tab asks for a permission nobody could hold', () => {
+  // A registry typo is this repo's bug and must not cost an operator their
+  // tab. It is caught by the ALL_PERMISSIONS assertion above, not by moving
+  // somebody off the page they are reading.
+  const tabs = [
+    { id: 'typo', label: 'Typo', permission: 'invented.read' },
+    { id: 'staff', label: 'Staff And Roles', permission: 'console.read' },
+  ];
+  assert.equal(
+    relocationTarget({ activeTab: 'typo', tabs, permissions: ['console.read'] }),
+    null,
+  );
+});
+
+test('the guard DOES move an operator off a tab a populated list really refuses', () => {
+  // The half that has to keep working: a genuinely narrow role landing on a
+  // deep link it cannot open gets the first tab it CAN open, not a blank
+  // panel under a nav that highlights nothing.
+  const all = visibleTabs(TABS);
+  const target = relocationTarget({
+    activeTab: 'settings',
+    tabs: all,
+    permissions: permissionsForRole('read_only'),
+  });
+  assert.ok(target, 'read_only holds no settings.write, so it must be moved');
+  const allowed = permittedTabs(all, permissionsForRole('read_only')).map((t) => t.id);
+  assert.ok(allowed.includes(target));
+  assert.notEqual(target, 'settings');
+  // And once they are somewhere they can be, it stops.
+  assert.equal(
+    relocationTarget({ activeTab: target, tabs: all, permissions: permissionsForRole('read_only') }),
+    null,
+  );
+});
+
+test('the stranding guard is wired to relocationTarget, not to an inline condition', async () => {
   const src = await read(INDEX);
-  assert.match(src, /if \(navTabs\.some\(\(tab\) => tab\.id === activeTab\)\) return;/);
-  assert.match(src, /setActiveTab\(navTabs\[0\]\.id\);/);
+  assert.match(src, /const target = relocationTarget\(\{/);
+  assert.match(src, /if \(target\) setActiveTab\(target\);/);
+  // The unconditional version is gone with it.
+  assert.ok(
+    !src.includes('setActiveTab(navTabs[0].id);'),
+    'the guard must not relocate off a bare navTabs miss',
+  );
 });
 
 test('the operator context is cleared on logout', async () => {
@@ -913,9 +1097,14 @@ test('a failed operator-context read leaves everything visible', async () => {
   const src = await read(INDEX);
   const start = src.indexOf('const body = await authFetch(policyUrl());');
   assert.ok(start > 0, 'the console must read the policy section');
-  const block = src.slice(start, start + 800);
+  const block = src.slice(start, start + 1600);
   assert.match(block, /catch \{[\s\S]*setOperatorPermissions\(null\)/);
   assert.match(block, /setOperatorPolicy\(null\)/);
+  // The two Phase 2 additions clear the same way, for the same reason: an
+  // alone-rule left over from the last successful read would let the Mint's
+  // confirm dialog claim a self-approval this console can no longer verify.
+  assert.match(block, /setOperatorAloneRule\(null\)/);
+  assert.match(block, /setOperatorDegraded\(false\)/);
 });
 
 test('the Audit tab sends targetType and targetId, and renders inputs for both', async () => {
@@ -1105,6 +1294,307 @@ test('every React hook imported by the Phase 2 panels is called', async () => {
       if (!hook) continue;
       assert.match(src, new RegExp(`${hook}\\(`), `${file}: ${hook} is imported but never called`);
     }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BEHAVIOUR - the findings this review pass fixed
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('the kind/permission table is IDENTICAL to the server\'s, for all six kinds', () => {
+  // The client said sanction -> `sanction.write`, which is in neither the
+  // server table nor the vocabulary, so the local check refused every
+  // sanction row - including for a god - and explained the refusal in terms
+  // of a permission that has never existed.
+  const kinds = Object.keys(SERVER_KIND_PERMISSION);
+  assert.ok(kinds.length >= 6);
+  for (const kind of kinds) {
+    assert.equal(
+      KIND_PERMISSIONS[kind],
+      SERVER_KIND_PERMISSION[kind],
+      `${kind}: the client and the server must ask for the same permission`,
+    );
+    assert.equal(permissionForKind(kind), SERVER_KIND_PERMISSION[kind]);
+    assert.ok(
+      isKnownPermission(SERVER_KIND_PERMISSION[kind]),
+      `${kind} maps to ${SERVER_KIND_PERMISSION[kind]}, which must be a real permission`,
+    );
+  }
+  assert.equal(permissionForKind('sanction'), 'moderation.write');
+
+  // A god could not decide a sanction row at all before this, because the
+  // local check asked for a permission no role has ever held.
+  const asGod = approvalRowState({
+    row: pendingRow({ kind: 'sanction' }),
+    operatorId: ME,
+    permissions: permissionsForRole('god'),
+    now: NOW,
+  });
+  assert.equal(asGod.canDecide, true);
+
+  // And an account that genuinely lacks it is refused in terms of the
+  // permission that actually gates the decision.
+  const asSupport = approvalRowState({
+    row: pendingRow({ kind: 'sanction' }),
+    operatorId: ME,
+    permissions: permissionsForRole('support'),
+    now: NOW,
+  });
+  assert.equal(asSupport.canDecide, false);
+  assert.equal(asSupport.reason, 'permission');
+  assert.match(asSupport.note, /moderation\.write/);
+  assert.ok(!/sanction\.write/.test(asSupport.note));
+});
+
+test('UNDER THE ALONE-RULE THE DIALOG SAYS THE MONEY MOVES', () => {
+  // With approvals on, a threshold breach and one eligible approver,
+  // requireApproval answers `required: false` and the money moves the moment
+  // Confirm is pressed - while the dialog said "Nothing Moves Until A Second
+  // Operator Approves It" over a button reading "Yes, Send For Approval".
+  const policy = normalizePolicy({ approvals_enabled: true, mint_threshold: 1000 });
+  const alone = { permission: 'money.write', eligibleApprovers: 0, applies: true };
+
+  const d = thresholdDecision({ policy, kind: 'mint', amount: 5000, asset: 'chips', aloneRule: alone });
+  assert.equal(d.gated, true, 'the threshold is still breached');
+  assert.equal(d.aloneRuleApplies, true);
+  assert.equal(d.willRequest, false, 'nothing is waiting for anybody');
+  assert.match(d.headline, /Execute/);
+  assert.ok(!/Nothing Moves/.test(d.detail));
+  assert.match(d.detail, /Self Approved|Only Eligible Approver/);
+
+  // With a second approver in the roster it goes back to waiting.
+  const shared = thresholdDecision({
+    policy, kind: 'mint', amount: 5000, asset: 'chips',
+    aloneRule: { permission: 'money.write', eligibleApprovers: 1, applies: false },
+  });
+  assert.equal(shared.willRequest, true);
+  assert.match(shared.headline, /Sent For Approval/);
+  assert.match(shared.detail, /Nothing Moves/);
+});
+
+test('an unreadable roster is never reported as "you are alone"', () => {
+  const policy = normalizePolicy({ approvals_enabled: true, mint_threshold: 0 });
+  // The route sets applies:false when it could not count, and a missing
+  // aloneRule is the same unknown. Both must keep saying "sent for approval",
+  // which is the answer that does NOT promise an execution.
+  for (const aloneRule of [null, undefined, {}, { eligibleApprovers: null, applies: false }]) {
+    const d = thresholdDecision({ policy, kind: 'mint', amount: 10, aloneRule });
+    assert.equal(d.willRequest, true, 'an unknown must not be read as alone');
+    assert.equal(d.aloneRuleApplies, false);
+  }
+});
+
+test('with approvals off the alone-rule changes nothing', () => {
+  const policy = normalizePolicy({ approvals_enabled: false, mint_threshold: 0 });
+  const d = thresholdDecision({
+    policy, kind: 'mint', amount: 10,
+    aloneRule: { eligibleApprovers: 0, applies: true },
+  });
+  assert.equal(d.gated, false);
+  assert.equal(d.aloneRuleApplies, false);
+  assert.equal(d.willRequest, false);
+  assert.match(d.headline, /Execute Immediately/);
+});
+
+test('THE TRAIL NAMES WHO DID IT, from the fields the RPC actually returns', () => {
+  // fn_ca_operator_audit_trail selects admin_user_id and actor_role; only the
+  // stable-admin audit_log route synthesises admin_name / admin_role. Reading
+  // just that pair attributed every entry to "System / Cron" with no role, on
+  // the one dialog whose whole purpose is who did what to this record.
+  const rpcRow = {
+    admin_user_id: '11111111-2222-3333-4444-555555555555',
+    actor_role: 'god',
+    action: 'operator.role.grant',
+  };
+  const actor = trailActor(rpcRow);
+  assert.equal(actor.label, '11111111-2222-3333-4444-555555555555');
+  assert.equal(actor.role, 'god');
+  assert.equal(actor.isId, true);
+  assert.ok(actor.label !== 'System / Cron');
+
+  // The enriched shape still wins where a route sends it.
+  assert.deepEqual(
+    trailActor({ admin_name: 'Dan', admin_role: 'god' }),
+    { label: 'Dan', role: 'god', isId: false },
+  );
+  // A genuinely actorless row - a cron writes those - still says so.
+  assert.equal(trailActor({ action: 'cron.sweep' }).label, 'System / Cron');
+  assert.equal(trailActor(null).label, 'Not Recorded');
+});
+
+test('A FAILED POLICY READ IS NEVER RENDERED AS "OFF"', () => {
+  assert.equal(approvalsStateLabel(null), 'Not Known');
+  assert.equal(approvalsStateLabel(undefined), 'Not Known');
+  assert.equal(approvalsStateLabel(normalizePolicy({ approvals_enabled: false })), 'Off');
+  assert.equal(approvalsStateLabel(normalizePolicy({ approvalsEnabled: true })), 'On');
+  assert.equal(policyIsKnown(null), false);
+  assert.equal(policyIsKnown(normalizePolicy({})), true);
+});
+
+test('SAVE POLICY OVER AN UNREAD POLICY WOULD ZERO THE LIVE ROW, so it is refused', () => {
+  // The failure this guards: with the bootstrap read failed the panel seeded
+  // its form from DEFAULT_POLICY and presented it AS the current policy, and
+  // setPolicyBody sent every field, so one Save turned approvals off and
+  // zeroed all three thresholds and the TTL - the exact control Phase 2 adds.
+  // The builder is a patch when there is something to diff against...
+  const saved = normalizePolicy({
+    approvals_enabled: true,
+    allow_self_approve_when_alone: true,
+    mint_threshold: 10000,
+    fund_threshold: 5000,
+    cashout_threshold: 2500,
+    approval_ttl_minutes: 120,
+  });
+  const draft = { ...saved, mint_threshold: 25000 };
+  const patch = setPolicyBody(draft, saved);
+  assert.deepEqual(patch, { action: 'set_policy', mintThreshold: 25000 });
+  assert.ok(!('approvalsEnabled' in patch), 'an untouched switch is not resent');
+  assert.ok(!('cashoutThreshold' in patch), 'an untouched threshold is not resent');
+
+  // ...and null when nothing changed, so the console says so rather than
+  // sending a body the route answers 400 to.
+  assert.equal(setPolicyBody({ ...saved }, saved), null);
+
+  // Turning approvals off is a change like any other, and travels alone.
+  assert.deepEqual(
+    setPolicyBody({ ...saved, approvals_enabled: false }, saved),
+    { action: 'set_policy', approvalsEnabled: false },
+  );
+});
+
+test('the TTL bounds the console offers are the bounds the route enforces', () => {
+  assert.equal(TTL_MIN_MINUTES, 5);
+  assert.equal(TTL_MAX_MINUTES, 43200);
+});
+
+test('the staff list reads total and truncated, so a capped roster says so', () => {
+  const capped = listMeta({ rows: [], total: 412, truncated: true, hasMore: true }, 200);
+  assert.equal(capped.total, 412);
+  assert.equal(capped.truncated, true);
+  assert.equal(capped.hasMore, true);
+  // truncated is inferred where the route only sent a total.
+  assert.equal(listMeta({ total: 412 }, 200).truncated, true);
+  assert.equal(listMeta({ total: 3 }, 3).truncated, false);
+  // A missing total stays null. A fabricated one is the Phase 1 addendum
+  // item 15 bug.
+  assert.equal(listMeta({ rows: [] }, 0).total, null);
+  assert.equal(listMeta(null, 0).total, null);
+});
+
+test('a blocked_reason enum never reaches an operator raw', () => {
+  assert.equal(blockedReasonLabel('no_second_approver'), 'No Second Approver');
+  assert.equal(blockedReasonLabel('self_approval'), 'Raised By The Same Operator');
+  assert.equal(blockedReasonLabel(null), '-');
+  assert.equal(blockedReasonLabel(''), '-');
+  // An enum this console has not met is still shown - hiding it loses the
+  // only thing the row has to say - but not with underscores in it.
+  assert.equal(blockedReasonLabel('some_new_reason'), 'Some New Reason');
+});
+
+test('a refusal that means "your queue is stale" is recognised as one', () => {
+  assert.equal(isStaleRowRefusal({ code: 'already_decided' }), true);
+  assert.equal(isStaleRowRefusal({ code: 'expired' }), true);
+  assert.equal(isStaleRowRefusal({ status: 409 }), true);
+  assert.equal(isStaleRowRefusal({ code: 'no_permission', status: 403 }), false);
+  assert.equal(isStaleRowRefusal(null), false);
+  // The message is deliberately not parsed: copy changes.
+  assert.equal(isStaleRowRefusal(new Error('That Approval Has Already Been Decided')), false);
+});
+
+test('the approvals CSV declares no column the route cannot fill', async () => {
+  const src = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
+  // section=approvals selects APPROVAL_FIELDS, which carries neither payload
+  // nor result, so both columns exported blank on every row - and a blank
+  // Payload cell reads as "this request carried none".
+  assert.ok(!/\['payload', 'Payload'\]/.test(src), 'no Payload column');
+  assert.ok(!/\['result', 'Result'\]/.test(src), 'no Result column');
+  assert.ok(!/jsonColumns/.test(src), 'and no jsonColumns registration for them');
+});
+
+test('the history belt parses its dates in UTC, like the route', async () => {
+  const src = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
+  assert.match(src, /T00:00:00Z/);
+  assert.match(src, /T23:59:59\.999Z/);
+  assert.ok(
+    !/T00:00:00`/.test(src) && !/T23:59:59\.999`/.test(src),
+    'a local-time bound disagrees with the route by the offset',
+  );
+  // And the surviving note no longer claims the route ignores the dates.
+  assert.ok(!/Are Not Narrowed By Date/.test(src));
+});
+
+test('the history pager counts the rows the table actually renders', async () => {
+  const src = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
+  assert.match(src, /count=\{visibleHistory\.length\}/);
+  assert.ok(
+    !/count=\{history\.rows\.length\}/.test(src),
+    'counting rows the belt removed labels 43 visible rows "Showing 1-50"',
+  );
+});
+
+test('a decision refused as stale reloads the queue instead of leaving the row', async () => {
+  const src = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
+  assert.match(src, /isStaleRowRefusal\(err\)/);
+  const start = src.indexOf('isStaleRowRefusal(err)');
+  const branch = src.slice(start, start + 300);
+  assert.match(branch, /setDecideFor\(null\)/, 'the open modal closes');
+  assert.match(branch, /loadPending\(\)/, 'the queue is re-read');
+});
+
+test('the three unguarded fetches now carry a sequence guard', async () => {
+  const index = await read(INDEX);
+  assert.match(index, /auditTrailSeqRef\.current \+= 1;/);
+  assert.match(index, /if \(seq !== auditTrailSeqRef\.current\) return;/);
+  const staff = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
+  assert.match(staff, /loadSeqRef\.current \+= 1;/);
+  assert.match(staff, /if \(seq !== loadSeqRef\.current\) return;/);
+  const approvals = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
+  assert.match(approvals, /pendingSeqRef\.current \+= 1;/);
+  assert.match(approvals, /if \(seq !== pendingSeqRef\.current\) return;/);
+});
+
+test('the Staff panel refuses to save a policy it has not read', async () => {
+  const src = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
+  assert.match(src, /const policyKnown = policyIsKnown\(policy\);/);
+  assert.match(src, /if \(!policyKnown\) \{/);
+  // The form is replaced by an honest third state, not seeded with defaults.
+  assert.match(src, /The Approval Policy Could Not Be Read/);
+  // The prop is normalised on the way in, so a raw camelCase row cannot read
+  // as approvals-off.
+  assert.match(src, /normalizePolicy\(policy\)/);
+  // And the body is composed as a patch against the loaded policy.
+  assert.match(src, /setPolicyBody\(policyDraft, policy\)/);
+});
+
+test('the Staff panel surfaces a degraded permission list and a capped roster', async () => {
+  const src = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
+  assert.match(src, /permissionsDegraded/);
+  assert.match(src, /staffMeta && staffMeta\.truncated/);
+  const index = await read(INDEX);
+  assert.match(index, /permissionsDegraded=\{operatorDegraded\}/);
+  assert.match(index, /operator\.degraded === true/);
+});
+
+test('the Mint dialog is handed the route\'s aloneRule', async () => {
+  const src = await read(INDEX);
+  assert.match(src, /setOperatorAloneRule\(body && body\.aloneRule \? body\.aloneRule : null\)/);
+  assert.match(src, /aloneRule: operatorAloneRule/);
+  // And the 202 jump is only offered when that tab is in this nav.
+  assert.match(src, /navTabs\.some\(\(tab\) => tab\.id === 'approvals'\)/);
+});
+
+test('the Trail dialog renders through trailActor', async () => {
+  const src = await read(INDEX);
+  assert.match(src, /trailActor\(row\)\.label/);
+  assert.match(src, /trailActor\(row\)\.role/);
+});
+
+test('a write in flight hides the Close control rather than deadening it', async () => {
+  for (const file of [`${COMPONENT_DIR}StaffPanel.jsx`, `${COMPONENT_DIR}ApprovalsPanel.jsx`]) {
+    const src = await read(file);
+    const opens = (src.match(/onClose=\{busy \? undefined :/g) || []).length;
+    const hidden = (src.match(/hideClose=\{busy\}/g) || []).length;
+    assert.equal(hidden, opens, `${file}: every busy-disabled Close must also be hidden`);
   }
 });
 
