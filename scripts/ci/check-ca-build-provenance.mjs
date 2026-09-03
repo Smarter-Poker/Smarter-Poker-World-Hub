@@ -64,7 +64,7 @@ import path from 'node:path';
 
 // ca-provenance.json is written by the Club Arena build itself and carries the
 // SOURCE commit + its committer time. build-info.json is the older file written
-// by build-for-world-hub.yml; it records ca_sha and BUILD time, and build time
+// by publish-club-arena.yml; it records ca_sha and BUILD time, and build time
 // cannot order deploys (a stale checkout builds "now" from ancient source), so
 // it is only ever a fallback that warns.
 const REL = 'public/hub/club-arena/ca-provenance.json';
@@ -208,7 +208,7 @@ if (tIn < tOut) {
       `  the one you noticed — disappears from production.\n\n` +
       `  FIX: in the Club Arena checkout run\n` +
       `         git pull --rebase origin main\n` +
-      `       then rebuild, or let build-for-world-hub sync from canonical main.\n\n` +
+      `       then rebuild, or let publish-club-arena sync from canonical main.\n\n` +
       `  Deliberately rolling back? Re-run with ALLOW_CA_ROLLBACK=1.\n`
   );
   if (process.env.ALLOW_CA_ROLLBACK === '1') {

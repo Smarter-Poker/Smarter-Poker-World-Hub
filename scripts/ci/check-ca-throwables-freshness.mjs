@@ -33,7 +33,7 @@
  * HOW TO FIX A FAILURE (do not delete this gate)
  * The bundle is stale, not the source. On the machine that produced it:
  *     cd ~/Documents/club-arena && git pull
- * then rebuild, or simply let the Club Arena repo's build-for-world-hub
+ * then rebuild, or simply let the Club Arena repo's publish-club-arena
  * workflow sync from canonical main — that is the only sanctioned path per
  * CLAUDE.md section 1.1. Never "fix" this by editing public/hub/club-arena
  * by hand; that directory is build output.
@@ -56,7 +56,7 @@ function fail(lines) {
       '  local checkout that never pulled main was rebuilt over the synced\n' +
       '  output.\n\n' +
       '  FIX: `git pull` in the Club Arena checkout and rebuild, or let\n' +
-      '  build-for-world-hub sync from canonical main (CLAUDE.md 1.1).\n' +
+      '  publish-club-arena sync from canonical main (CLAUDE.md 1.1).\n' +
       '  Do NOT hand-edit public/hub/club-arena — it is build output.\n'
   );
   process.exit(1);
