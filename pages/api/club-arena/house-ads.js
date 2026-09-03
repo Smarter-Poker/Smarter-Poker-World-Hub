@@ -240,9 +240,16 @@ export default async function handler(req, res) {
                    that reported "Saved." and changed nothing on the surface
                    actually serving. The panel cannot show what it never
                    fetched. */
-                .select('id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url', {
-                    count: 'exact',
-                })
+                /* image_url too (2026-09-03): the creative lives on the
+                   placement now - the lobby strip is 6:1 and the session
+                   summary 3:1, and one picture cannot serve both - and the
+                   resolver serves COALESCE(pl.image_url, c.image_url). */
+                .select(
+                    'id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url, image_url',
+                    {
+                        count: 'exact',
+                    }
+                )
                 .limit(1000);
             if (plErr) console.warn('[house-ads] placement read failed:', plErr.message);
 
@@ -530,6 +537,15 @@ export default async function handler(req, res) {
                     error: `Not A Site Path: ${clean(b.target_url, 60)}`,
                 });
             }
+            /* The per-surface creative, same rule as the campaign's own image:
+               a rooted site path or nothing. */
+            const newImage = readSitePath(b.image_url);
+            if (newImage === false) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Site Path: ${clean(b.image_url, 60)}`,
+                });
+            }
 
             const { data: placed, error: plErr } = await getSupabase()
                 .from('ad_placement')
@@ -540,6 +556,7 @@ export default async function handler(req, res) {
                     audience: newAudience,
                     daily_cap: normaliseDailyCap(b.daily_cap),
                     target_url: newTarget,
+                    image_url: newImage,
                     is_active: b.is_active !== false,
                 })
                 .select('id')
@@ -615,6 +632,18 @@ export default async function handler(req, res) {
                     });
                 }
                 patch.target_url = t;
+            }
+            /* Same shape for the creative: '' clears it (the placement falls
+               back to the campaign's picture), absent leaves it alone. */
+            if (b.image_url !== undefined) {
+                const img = readSitePath(b.image_url);
+                if (img === false) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Site Path: ${clean(b.image_url, 60)}`,
+                    });
+                }
+                patch.image_url = img;
             }
             if (Object.keys(patch).length === 0) {
                 return res.status(400).json({ success: false, error: 'Nothing to change' });

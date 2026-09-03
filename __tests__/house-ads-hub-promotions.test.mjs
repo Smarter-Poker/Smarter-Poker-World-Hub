@@ -481,7 +481,7 @@ test('an insert that could not be read back is not a bare 500', () => {
 
 test('the placement read includes the override the resolver prefers', () => {
     const route = read('pages/api/club-arena/house-ads.js');
-    assert.match(route, /'id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url'/);
+    assert.match(route, /'id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url, image_url'/);
 });
 
 test('both placement verbs write the override, through the same check', () => {
@@ -502,7 +502,42 @@ test('a placement destination is refused by the same rule as the campaign one', 
     const route = read('pages/api/club-arena/house-ads.js');
     assert.equal(
         route.match(/Not A Site Path: /g)?.length,
-        6,
-        'target and image on the ad verbs, plus target on both placement verbs'
+        8,
+        'target and image on the ad verbs, plus target AND image on both placement verbs'
     );
+});
+
+test('the creative lives on the placement, and the API reads and writes it (2026-09-03)', () => {
+    /* One picture cannot serve a 6:1 strip and a 3:1 session summary. The
+       resolver serves COALESCE(pl.image_url, c.image_url); a panel that
+       could not read or write the placement's own picture would be editing a
+       fallback and calling it the creative. */
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /'id, ad_id, slot, club_id, audience, daily_cap, is_active, target_url, image_url'/);
+    const create = route.slice(
+        route.indexOf("String(req.query.kind) === 'placement'"),
+        route.indexOf("String(req.query.kind) === 'placement'", route.indexOf("String(req.query.kind) === 'placement'") + 1)
+    );
+    assert.match(create, /const newImage = readSitePath\(b\.image_url\);/);
+    assert.match(create, /image_url: newImage,/);
+    const patch = route.slice(route.lastIndexOf("String(req.query.kind) === 'placement'"));
+    assert.match(patch, /if \(b\.image_url !== undefined\) \{/);
+    assert.match(patch, /patch\.image_url = img;/);
+});
+
+test('uploaded creatives resolve on this origin: /ad-creatives/* is rewritten to the bucket', () => {
+    /* The three same-origin locks (ad_catalog CHECK, readSitePath here,
+       isSafeAdImage at render) all insist on a rooted path. A club owner's
+       upload lands in the ad-creatives storage bucket, whose public URL is on
+       supabase.co. This rewrite is the only reason `/ad-creatives/club/<id>/
+       <file>` is a real picture and not a 404 behind a passing check. */
+    const config = read('next.config.js');
+    assert.match(
+        config,
+        /source: '\/ad-creatives\/:path\*',\s*destination:\s*'https:\/\/kuklfnapbkmacvwxktbh\.supabase\.co\/storage\/v1\/object\/public\/ad-creatives\/:path\*'/
+    );
+    // In afterFiles: a real file under public/ad-creatives would still win, and none may exist.
+    const after = config.slice(config.indexOf('afterFiles:'), config.indexOf('fallback:'));
+    assert.ok(after.includes('/ad-creatives/:path*'), 'the ad-creatives rewrite is not in afterFiles');
+    assert.equal(existsSync(join(ROOT, 'public/ad-creatives')), false, 'public/ad-creatives would shadow the bucket');
 });
