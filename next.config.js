@@ -1045,6 +1045,21 @@ const nextConfig = {
       afterFiles: [
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
+        /* AD CREATIVES ARE SAME-ORIGIN (2026-09-03). A club owner's advert
+           picture is uploaded to the `ad-creatives` storage bucket and stored
+           on the campaign as `/ad-creatives/club/<club id>/<file>` - a rooted
+           path on smarter.poker, never the bucket's own hostname. That is what
+           lets the three same-origin locks on ad images (the ad_catalog CHECK,
+           this repo's house-ads readSitePath, and isSafeAdImage at render)
+           keep refusing anything that would hand a player's IP to another
+           host. This rewrite is where the path actually resolves. The bucket
+           is public-read; writes are storage-RLS'd to the club's own staff.
+           Pinned by __tests__/house-ads-hub-promotions.test.mjs. */
+        {
+          source: '/ad-creatives/:path*',
+          destination:
+            'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/ad-creatives/:path*',
+        },
       ],
       fallback: [],
     };
