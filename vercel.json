@@ -4,7 +4,12 @@
     "pdx1"
   ],
   "git": {
-    "deploymentEnabled": true
+    "deploymentEnabled": {
+      "ci-marker/**": false,
+      "backup/**": false,
+      "build/**": false,
+      "agent/**": false
+    }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
   "buildCommand": "bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
