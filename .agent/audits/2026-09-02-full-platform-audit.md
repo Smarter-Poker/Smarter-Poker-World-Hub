@@ -14,44 +14,74 @@ A rendered version was delivered to Dan as `smarter-poker-systems-audit.html`.
 
 ---
 
-## P0 — money owed to players right now
+## P0 — CORRECTED: nobody was unpaid, and paying them would have been a double-pay
 
-### 66 players finished in the money and their wallets received nothing
+> **This section originally read "66 players finished in the money and their
+> wallets received nothing", and recommended settling 836.79 chips. That was
+> WRONG.** It is left here, corrected rather than deleted, because the way it
+> was wrong is the most useful thing in this document.
 
-`fn_payout_guarantee_check` holds **66 unresolved critical alerts**. Summed from
-the alert messages:
+### What the alerts said
 
-| | chips |
-|---|---|
-| owed | 1,176.50 |
-| received | 339.71 |
-| **shortfall** | **836.79** |
-
-Oldest `2026-09-01 13:14 UTC`, newest `2026-09-02 05:13 UTC`. Representative
-message:
+`fn_payout_guarantee_check` held **66 unresolved critical alerts**, 64 of them
+`kind: earner_not_paid`, summing to **836.79 chips** across 57 players and 19
+tournaments. Every message read like this one:
 
 > DSS Tuesday $100 Freeroll • 10 AM CT: the player who finished 2 is owed 20.00
 > and their wallet received 0
 
-This is the exact pattern CLAUDE.md §10.6 was written after. Under that section
-it is an agent decision, not Dan's — it needs settling through
-`fn_tournament_payout_reconcile` (idempotent, per-user prize keys), proven first
-in a rolled-back transaction per §11.5, then each alert resolved with a note.
+### What was actually true
 
-**Not actioned in this session.** The session's task was the audit, and a
-settlement of this size deserves its own focused pass rather than being tacked
-onto one. It is the highest-priority item on the platform.
+Checked per player against `wallet_transactions` rather than trusted:
 
-### Six top-ups were refused by their own idempotency key
+| | |
+|---|---|
+| alerts | 64 |
+| players **now paid at least what was owed** | **64** |
+| still genuinely short | **0 players, 0.00 chips** |
+| actually credited | **1,185.78** against 836.79 "owed" |
+| paid **after** the alert was raised | 53 of 64, median **777 seconds** later |
 
-Six alerts carry `top_up_refused_by_idempotency`. The payout system attempted a
-top-up, its own retry key reported the operation as already done, and the player
-stayed unpaid.
+The player in that quoted alert has a `tournament_payouts` row for **22.47** and
+a matching wallet credit, `paid_at 2026-09-02 05:20:59`. The alert was raised at
+**05:13:04 — seven minutes earlier.**
 
-This is a **code defect, not a data problem**: re-running reconciliation will not
-clear it, because the key will refuse again. The key needs to incorporate the
-amount or a correction sequence so a genuine second top-up for the same player
-and place is a distinct operation rather than a replay.
+`fn_tournament_payout_reconcile` — the authority on what an event owes — returns
+`total_top_up: 0.00` for **all 19** tournaments. Every one of them had already
+disbursed more than its pool.
+
+### The real defect
+
+`fn_payout_guarantee_check` runs at `:18` and raises an alert for every place
+not yet credited. `fn_tournament_payout_sweep` runs at `:52` and pays them.
+**The check has no idea the sweep exists.** It accuses, the sweep settles
+thirteen minutes later, and the accusation stands for ever because nothing ever
+closes it.
+
+Paying the 836.79 would have been exactly the double-pay that
+`fn_pay_backed_payout_shortfalls` documents in its own comments as the hazard it
+exists to refuse.
+
+### Fixed, 2026-09-02
+
+Migration `financial_alerts_clear_themselves_when_settled` adds
+`fn_resolve_settled_financial_alerts`, which closes an alert **only when the
+condition it was raised about is provably no longer true** — never on age, never
+on a guess — and writes the justification into the alert's own context.
+
+It is wired into the existing `ca-payout-guarantee-check-hourly` job so the
+check now closes what the sweep settled. **No new pg_cron job** (§11.3).
+
+Backfill applied: **190 alerts resolved with proof** (64 settled-after-alert,
+126 overpay-absorbed); unresolved went **1,083 → 893**.
+
+### The one item that is still a real defect
+
+Six alerts carry `top_up_refused_by_idempotency`. The payout system tried to top
+a player up, its own retry key reported the operation as already done, and the
+player stayed unpaid. That is a code defect: re-running reconciliation will not
+clear it because the key will refuse again. The key needs to incorporate the
+amount or a correction sequence.
 
 ---
 
@@ -66,17 +96,20 @@ and place is a distinct operation rather than a replay.
 | 3–7 days | 163 |
 | older than 7 days | 12 |
 
-### 185 alerts fire for behaviour that is working as designed
+### 185 alerts fire for behaviour that is working as designed — FIXED 2026-09-02
 
 185 issues across the payout alerts are `overpaid`, totalling 4,490.69 chips.
 Their own context says *"reported only; automatic clawback is deliberately not
 done"* — which is §10.6 rule 3 being obeyed correctly. Nothing will ever action
-them, so they accumulate as unresolved **critical** forever and bury the 66
-genuinely unpaid players above.
+them, so they accumulate as unresolved **critical** forever. They are also
+exactly what made the 64 stale alerts above look credible: a real problem
+arriving into 985 criticals is indistinguishable from noise.
 
-Fix: have the reconciler auto-resolve overpay-only alerts on creation with a
-resolution of `absorbed per 10.6 rule 3`. Keep the row and the audit trail; stop
-calling it unresolved.
+**Done.** `fn_resolve_settled_financial_alerts` now closes any reconciler alert
+whose issues are *all* `overpaid`, writing
+`resolution: 'overpay only; absorbed by the house per CLAUDE.md 10.6 rule 3'`
+into its context. 126 closed in the backfill. An alert carrying any other issue
+kind is deliberately left open — 10 were, correctly.
 
 ### Two chip checkers disagree and one of them is wrong
 
@@ -104,7 +137,7 @@ is real drift.
 
 ## P1 — security
 
-Two routes are open in production right now.
+Two routes were open in production. **Both closed 2026-09-02 (PR #1262).**
 
 ### `pages/api/test-e2e-seed.js` — unauthenticated writes to the live engine
 
@@ -112,8 +145,9 @@ No auth, no rate limit, no environment guard. Reaches the same `GameController`
 singleton production uses: creates a real table, seats players, starts a hand.
 Returns `err.stack` to the caller on error.
 
-Eight sibling seed and debug routes are already tombstoned to `410 Gone`. This
-one was missed. Delete it or tombstone it alongside them.
+Eight sibling seed and debug routes were already tombstoned to `410 Gone`. This
+one was missed because **nothing in the repo references it**, so it never
+appeared in a caller search. **Now 410.**
 
 ### `gen-lobby-img.js:12` and `gen-lobby-bg.js:14` — hardcoded password
 
@@ -121,8 +155,13 @@ Both gate on a literal string comparison against a password committed in the rep
 and repeated in each file's own doc comment. No rate limit, and each call fires a
 real billed image-generation request.
 
-Fix: env var compared with `crypto.timingSafeEqual` — the pattern already used
-correctly in `venue-scraper/receive.js` — plus `applyRateLimit`.
+**Done.** Secret moved to `LOBBY_IMAGE_GEN_KEY`, compared with
+`crypto.timingSafeEqual`, `applyRateLimit(LIMITS.ai)` applied, and the route
+fails **closed** with a 503 naming the missing variable. The literal is gone
+from every file under `pages/`.
+
+> **Action on merge:** set `LOBBY_IMAGE_GEN_KEY` in Vercel, or these two routes
+> return 503 by design.
 
 ### 43 routes bypass the PGRST retry added after the 2026-08-31 outage
 
@@ -172,8 +211,13 @@ exists to stop a law being silently contradicted or deleted. Unregistered
 include `payoutExactness`, `EveryEarnerIsPaid`, `aGuaranteeIsAPromise`,
 `aTournamentPayoutIsARecord` and `theReconcilerTrustsWhatItCanProve`.
 
-The registry was built after the hamburger revert war. It currently cannot see
-the laws that guard payouts. Widen the scan root, then backfill `docs/LAWS.md`.
+The registry was built after the hamburger revert war. It could not see the laws
+that guard payouts.
+
+**Done** — club-arena branch `fix/law-registry-sees-server-laws`. Both roots
+scanned, ghost-check regex widened, 26 rows added. **85 tests pass** (was 57),
+and negative-tested: deleting the `payoutExactness` row makes the suite fail by
+name, restoring it returns to green.
 
 ### The branch-protection watchdog does not exist
 
@@ -183,9 +227,9 @@ job and it is named on the CHECK 6c allowlist. **The file is not in
 `scripts/check-branch-protection.mjs`, but the only caller is `agent-push.sh`, a
 script CLAUDE.md never sanctions.
 
-Nothing watches for protection drift today. Restore the workflow, or add
-`check-branch-protection.mjs --fix` to `vercel-uniqueness-check.yml`, which
-already runs at 09:00 daily.
+**Done (PR #1262).** Added as a step to `vercel-uniqueness-check.yml`, which
+already runs at exactly 09:00 UTC — same cadence, and no net-new `schedule:`
+trigger, which §11.4 forbids.
 
 Related doc drift: `vercel-deploy-retry` is listed in §11.4 as a workflow file
 but is actually a job inside `build-safety-gate.yml` with no `schedule:` trigger.
@@ -239,7 +283,7 @@ is a real privilege-escalation shape inside a SECURITY DEFINER function.
 
 ---
 
-## P2 — the health endpoint (a correction)
+## P2 — the health endpoint (a correction) — FIXED 2026-09-02
 
 **First three probes returned `status: degraded`** with
 `Database health check timed out` at exactly 3001ms. I nearly filed this as a
@@ -327,18 +371,34 @@ carve-out inside a law that states there are none.
 
 ---
 
-## Suggested order
+## Suggested order — status at end of session
 
-1. Pay the 66 owed players (836.79 chips, ~30h old)
-2. Close `test-e2e-seed.js` and the two hardcoded-password routes
-3. Fix the idempotency-refused top-ups
-4. Auto-resolve overpay alerts (185 of 985 disappear)
-5. Widen the law registry scan root
-6. Restore the branch-protection watchdog
-7. Settle which chip checker is right
-8. Wire the commerce test suites into CI
-9. Backfill `ca_treasury_baseline`
-10. Swap the 43 raw Supabase imports, money crons first
-11. Widen the health-check deadline for cold starts
-12. Move `solved_spots_gold` out of the live database
-13. Rule on the horse four-club exemption
+| # | Item | Status |
+|---|---|---|
+| 1 | Pay the 66 owed players | **Void — nobody was unpaid.** Corrected above; paying would have been a double-pay |
+| 2 | Close `test-e2e-seed.js` and the two hardcoded-password routes | **Done** — PR #1262 |
+| 3 | Fix the idempotency-refused top-ups | Open — 6 alerts, real code defect |
+| 4 | Auto-resolve overpay alerts | **Done** — 190 closed with proof, 1,083 → 893 |
+| 5 | Widen the law registry scan root | **Done** — club-arena `fix/law-registry-sees-server-laws`, 85 tests pass, negative-tested |
+| 6 | Restore the branch-protection watchdog | **Done** — PR #1262, added to the existing 09:00 job |
+| 7 | Settle which chip checker is right | Open |
+| 8 | Wire the commerce test suites into CI | Open |
+| 9 | Backfill `ca_treasury_baseline` | Open |
+| 10 | Swap the 43 raw Supabase imports | Open |
+| 11 | Widen the health-check deadline for cold starts | **Done** — PR #1262, 8s cold / 3s warm |
+| 12 | Move `solved_spots_gold` out of the live database | Open — needs an infra decision |
+| 13 | Rule on the horse four-club exemption | **Dan's call** |
+
+## What this audit got wrong, and why it is recorded
+
+Three findings were corrected before or after filing. Two were automated scans
+producing false positives; one was mine.
+
+1. **Seven money RPCs flagged as ungated** — reading each showed all gate on
+   `auth.uid()` and one is a trigger. Corrected before filing.
+2. **Five "dead" dispatcher schedules** — tracing all three routing layers
+   showed every one has a handler. Corrected before filing.
+3. **66 unpaid players** — corrected *after* filing, and it is the important
+   one. The lesson is not "check harder"; it is that **an alert is a claim, not
+   a fact**, and this platform has 985 of them. The fix was never to pay the
+   claim. It was to make the claim capable of closing itself.
