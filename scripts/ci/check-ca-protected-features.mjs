@@ -28,7 +28,7 @@
  *
  * ON A FAILURE: do not weaken the registry. The bundle is wrong, not the rule.
  * Rebuild from a current Club Arena checkout (`git pull --rebase origin main`)
- * or let build-for-world-hub sync from canonical main.
+ * or let publish-club-arena sync from canonical main.
  */
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -139,7 +139,7 @@ if (failures.length) {
       '  is a build from a checkout that never pulled (the 2026-08-21 regression),\n' +
       '  which silently reverts whatever landed since.\n\n' +
       '  FIX: in the Club Arena checkout run `git pull --rebase origin main` and\n' +
-      '  rebuild, or let build-for-world-hub sync from canonical main.\n' +
+      '  rebuild, or let publish-club-arena sync from canonical main.\n' +
       '  Do NOT delete the registry entry to go green — that hides the loss.\n'
   );
   process.exit(1);

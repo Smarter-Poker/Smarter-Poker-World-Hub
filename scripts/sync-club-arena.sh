@@ -167,7 +167,7 @@ fi
 # VITE_SUPABASE_URL undefined; the only publish check was "index.html exists",
 # it passed, and smarter.poker served a BLANK PAGE to every visitor ("Uncaught
 # supabaseUrl is required"). CI never had this bug because
-# .github/workflows/build-for-world-hub.yml passes these explicitly. Same
+# .github/workflows/publish-club-arena.yml passes these explicitly. Same
 # values, same place in the pipeline — the local path is no longer the weak one.
 # These are the PUBLIC anon/publishable values that ship inside the bundle; the
 # service-role key is never referenced here.

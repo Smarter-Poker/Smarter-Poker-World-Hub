@@ -90,7 +90,7 @@ if echo "$CHANGED_FILES" | grep -q '^public/hub/club-arena/'; then
       echo "     Sync ~/Documents/club-arena (fetch + fast-forward, or"
       echo "     scripts/git-unstick.sh — its pre-rebase hook refuses a"
       echo "     replaying 'git pull --rebase origin main' by design), then"
-      echo "     rebuild — or let build-for-world-hub sync from canonical main."
+      echo "     rebuild — or let publish-club-arena sync from canonical main."
       ERRORS=$((ERRORS + 1))
     fi
   fi
