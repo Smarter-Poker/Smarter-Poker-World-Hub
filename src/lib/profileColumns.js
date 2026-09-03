@@ -30,16 +30,44 @@
 
 // Every column on public.profiles EXCEPT phone and email.
 // Mirror this string when reading another user's profile via direct table query.
+/*
+ * REVOKED 2026-09-03: is_horse, horse_status, horse_profile.
+ *
+ * `authenticated` has NO table-level SELECT on public.profiles - reads are
+ * carried entirely by column-level grants - and those three columns are not
+ * among them. Postgres does not refuse the column, it refuses the statement:
+ *
+ *   403 {"code":"42501","message":"permission denied for table profiles"}
+ *
+ * so ONE ungranted name in this list fails the WHOLE read. Every consumer of
+ * this constant takes the `error || !data` branch, and the profile page renders
+ * "User Not Found" for a user who plainly exists. Verified live against
+ * production the same afternoon: this list returned 42501 for `kingfish`, and
+ * the identical list minus these three returned the row.
+ *
+ * They also do not belong here on the merits. This is the allow-list for
+ * reading a STRANGER's profile, and whether an account is a house horse is not
+ * a stranger's business - which is why the grant was removed in the first
+ * place. Nothing that reads this constant used them.
+ *
+ * BEFORE ADDING A COLUMN HERE, CHECK THE GRANT:
+ *
+ *   select column_name from information_schema.column_privileges
+ *    where table_schema='public' and table_name='profiles'
+ *      and grantee='authenticated' and privilege_type='SELECT';
+ *
+ * A name missing from that result takes every profile read down with it.
+ */
 export const SAFE_PROFILE_COLUMNS =
     'id, full_name, display_name, first_name, last_name, username, bio, city, state, alias, ' +
-    'avatar_url, arena_avatar_url, use_avatar_as_profile_pic, role, status, is_vip, is_horse, ' +
+    'avatar_url, arena_avatar_url, use_avatar_as_profile_pic, role, status, is_vip, ' +
     'is_admin, is_online, player_number, diamonds, diamond_balance, diamond_multiplier, level, ' +
     'tier, skill_tier, login_streak, streak_days, settings, preferences, social_page_id, ' +
     'favorite_venue, home_poker_club, referred_by, friends_count, hendon_total_cashes, ' +
     'hendon_total_earnings, email_verified, phone_verified, onboarding_complete, last_login, ' +
     'last_login_date, last_seen, created_at, updated_at, training_view_mode, last_trivia_date, ' +
-    'trivia_streak, trivia_high_score, total_hands_played, referral_code, horse_status, ' +
-    'horse_profile, sounds_enabled, vibrations_enabled, show_stack_bb, birth_year, ' +
+    'trivia_streak, trivia_high_score, total_hands_played, referral_code, ' +
+    'sounds_enabled, vibrations_enabled, show_stack_bb, birth_year, ' +
     'favorite_hand_type, card_back_preference, country, website, twitter, instagram, hendon_url, ' +
     'favorite_game, favorite_hand, home_casino, cover_photo_url, favorite_hand_plo, ' +
     'app_settings, display_name_preference, cover_photo_position, tiktok, telegram, birthday, ' +
