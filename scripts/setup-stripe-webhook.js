@@ -14,7 +14,13 @@ const WEBHOOK_EVENTS = [
     'customer.subscription.deleted',
     'invoice.payment_succeeded',
     'invoice.payment_failed',
-    'charge.refunded'
+    'charge.refunded',
+    // D10 (Diamond Accounting Standard, Lane D). Without these three the
+    // endpoint never hears about a chargeback: the money goes back at Stripe
+    // and the diamonds it bought stay in the player's balance forever.
+    'charge.dispute.created',
+    'charge.dispute.funds_withdrawn',
+    'charge.dispute.closed'
 ];
 
 async function setupWebhook() {

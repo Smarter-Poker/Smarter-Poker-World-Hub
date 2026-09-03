@@ -167,6 +167,16 @@ export default async function handler(req, res) {
                   await handleRefund(event.data.object);
                   break;
 
+              // D10. A dispute is not a refund and was handled by nothing: a
+              // chargeback took the money back at Stripe and the diamonds it
+              // bought stayed in the player's balance forever. These three are
+              // the whole lifecycle Stripe sends.
+              case 'charge.dispute.created':
+              case 'charge.dispute.funds_withdrawn':
+              case 'charge.dispute.closed':
+                  await handleDispute(event.data.object, event.type);
+                  break;
+
               default:
           }
 
@@ -783,6 +793,99 @@ async function handleInvoicePaymentFailed(invoice) {
     // a miss here leaves the subscription ledger stale, which is worth
     // seeing but must not 500 a webhook and trigger three days of retries.
     if (err_vip_subscriptions_gg0nj) console.error('[stripe-webhook] vip_subscriptions past_due write failed:', err_vip_subscriptions_gg0nj.message);
+    }
+}
+
+// -------------------------------------------------------------------------
+// DISPUTES (Diamond Accounting Standard D10 / Lane D)
+//
+// `charge.dispute.*` was neither subscribed at Stripe nor handled here, so a
+// chargeback took the money back and the diamonds it bought stayed in the
+// player's balance forever. Nothing froze, nothing reversed, and nothing even
+// recorded that a dispute existed. A dispute lost by silence is a money defect.
+//
+// The database side is `fn_diamond_purchase_dispute`, which is idempotent on
+// (dispute id, event) by primary key and does the work:
+//   created          freezes the purchase lot and files a critical incident
+//                    carrying the evidence deadline
+//   funds_withdrawn  runs the SAME pro-rata reversal a refund runs
+//   closed           won unfreezes, lost leaves the reversal standing
+//
+// Correlation is byte-for-byte the shape `handleRefund` uses: the payment
+// intent first, then the Checkout Sessions listing as a fallback, because both
+// completed diamond purchases in production carry a NULL payment intent and the
+// primary lookup cannot find them.
+// -------------------------------------------------------------------------
+
+/**
+ * Find the diamond purchase behind a Stripe payment intent, or null.
+ * Payment intent first, Checkout Sessions listing second.
+ */
+async function correlateDiamondPurchase(paymentIntent) {
+    if (!paymentIntent) return null;
+
+    const { data: purchase, error: purchaseReadError } = await getSupabase()
+        .from('diamond_purchases')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntent)
+        .maybeSingle();
+    if (purchaseReadError) throw purchaseReadError;
+    if (purchase) return purchase.id;
+
+    const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 10 });
+    const checkoutSession = sessions.data.find((entry) => entry.metadata?.purchase_id);
+    if (checkoutSession?.metadata?.type === 'diamonds' && checkoutSession.metadata.purchase_id) {
+        const { data: recovered, error: recoveredError } = await getSupabase()
+            .from('diamond_purchases')
+            .select('id')
+            .eq('id', checkoutSession.metadata.purchase_id)
+            .maybeSingle();
+        if (recoveredError) throw recoveredError;
+        if (recovered) return recovered.id;
+    }
+    return null;
+}
+
+async function handleDispute(dispute, eventType) {
+    const paymentIntent = typeof dispute?.payment_intent === 'string'
+        ? dispute.payment_intent
+        : dispute?.payment_intent?.id;
+    const disputeId = String(dispute?.id || '');
+    if (!disputeId) {
+        throw new Error('Stripe dispute arrived without an id');
+    }
+
+    const purchaseId = await correlateDiamondPurchase(paymentIntent);
+    if (!purchaseId) {
+        // Disputes are raised against merchandise, VIP and subscription charges
+        // as well, and those are not this handler's business. Not correlating is
+        // a normal outcome, not a failure: throwing here would make Stripe retry
+        // a merchandise dispute forever.
+        console.warn(`[stripe-webhook] ${eventType} ${disputeId} did not correlate to a diamond purchase; nothing frozen, nothing reversed`);
+        return;
+    }
+
+    // `closed` carries its outcome in `status`. The RPC takes it as part of the
+    // event name so won and lost are separate rows under the idempotency key.
+    // Anything that is not explicitly 'won' is treated as lost, which leaves the
+    // reversal standing: the safe direction.
+    const eventName = eventType === 'charge.dispute.closed'
+        ? `charge.dispute.closed:${dispute?.status === 'won' ? 'won' : 'lost'}`
+        : eventType;
+
+    const rawAmount = Number(dispute?.amount);
+    const amountCents = Number.isSafeInteger(rawAmount) && rawAmount >= 0 ? rawAmount : null;
+
+    const { data: result, error: disputeError } = await getSupabase()
+        .rpc('fn_diamond_purchase_dispute', {
+            p_purchase_id: purchaseId,
+            p_dispute_id: disputeId,
+            p_event: eventName,
+            p_amount_cents: amountCents,
+        });
+    if (disputeError) throw disputeError;
+    if (!result?.success) {
+        throw new Error(`Diamond dispute handling failed: ${result?.error || 'unknown_error'}`);
     }
 }
 
