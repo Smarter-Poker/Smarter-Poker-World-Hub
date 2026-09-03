@@ -665,11 +665,11 @@ const VC3_CARD_STYLES = `
                     .vc3-header { flex-wrap: nowrap; gap: 6px; }
                     .vc3-right-stack { gap: 2px; }
                 }
-                .vc3-checkin-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; animation: vc3-fade-in 0.15s ease; }
+                .vc3-checkin-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: max(env(safe-area-inset-top, 0px), 20px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px); box-sizing: border-box; animation: vc3-fade-in 0.15s ease; }
                 @keyframes vc3-fade-in { from { opacity: 0; } to { opacity: 1; } }
                 .vc3-checkin-modal { background: linear-gradient(180deg,#1a2744 0%,#0d1626 100%); border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
                 .vc3-checkin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 700; color: #22d3ee; }
-                .vc3-checkin-close { background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; }
+                .vc3-checkin-close { background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
                 .vc3-checkin-close:hover { color: #fff; }
                 .vc3-checkin-textarea { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(34,211,238,0.2); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; padding: 10px 12px; resize: vertical; min-height: 80px; line-height: 1.5; }
                 .vc3-checkin-textarea:focus { outline: none; border-color: rgba(34,211,238,0.5); }
@@ -1688,7 +1688,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     >
                         <div className="vc3-checkin-header">
                             <span>Check In At {venue.name}</span>
-                            <button className="vc3-checkin-close" aria-label="Close" onClick={() => setCheckinModal(false)}>×</button>
+                            <button className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={() => setCheckinModal(false)}>×</button>
                         </div>
                         {checkinDone ? (
                             <div className="vc3-checkin-done">✓ Checked In!</div>

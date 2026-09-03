@@ -411,7 +411,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       <div className="loc-modal" role="dialog" aria-modal="true" aria-labelledby="loc-modal-title" onClick={e => e.stopPropagation()}>
         <div className="loc-modal-header">
           <h2 id="loc-modal-title">Change Location</h2>
-          <button className="loc-close" onClick={onClose} aria-label="Close location picker"><XIcon /></button>
+          <button className="loc-close sp-icon-btn" onClick={onClose} aria-label="Close"><XIcon /></button>
         </div>
 
         {locError && (
@@ -1567,6 +1567,9 @@ export default function EventsCalendarPage({ fallbackData }) {
           position: fixed; inset: 0; z-index: 1000;
           background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
           display: flex; align-items: center; justify-content: center; padding: 20px;
+          padding-top: max(env(safe-area-inset-top, 0px), 20px);
+          padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+          box-sizing: border-box;
         }
         .loc-modal {
           background: #0f172a; border: 1px solid rgba(255,255,255,0.15);
@@ -1575,7 +1578,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .loc-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .loc-modal-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
-        .loc-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 4px; }
+        .loc-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 4px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .loc-gps-btn {
           width: 100%; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
           background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);

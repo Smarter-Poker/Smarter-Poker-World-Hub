@@ -1034,6 +1034,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    padding-top: max(env(safe-area-inset-top, 0px), 12px);
+                    padding-bottom: env(safe-area-inset-bottom, 0px);
+                    box-sizing: border-box;
                     background: rgba(0, 0, 0, 0.75);
                     backdrop-filter: blur(6px);
                     animation: gateFadeIn 0.2s ease;
@@ -1139,7 +1142,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     right: 20%;
                     width: 9%;
                     height: 8.5%;
+                    min-width: 44px;
+                    min-height: 44px;
                     border-radius: 50%;
+                    touch-action: manipulation;
+                    -webkit-tap-highlight-color: transparent;
                 }
 
                 .dm-vip {

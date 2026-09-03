@@ -1698,12 +1698,12 @@ const pageStyles = `
 .hgs-game-rsvp{padding:8px 14px;background:rgba(14,165,233,.18);color:#7dd3fc;border:1px solid rgba(14,165,233,.45);border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;align-self:center;flex-shrink:0;transition:background .15s ease,transform .1s ease}
 .hgs-game-rsvp:hover{background:rgba(14,165,233,.28);color:#fff}
 .hgs-game-rsvp:active{transform:scale(.97)}
-.hgs-seat-backdrop{position:fixed;inset:0;background:rgba(5,8,15,.78);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:hgs-seat-fade .15s ease-out}
+.hgs-seat-backdrop{position:fixed;inset:0;background:rgba(5,8,15,.78);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:max(env(safe-area-inset-top,0px),20px);padding-bottom:max(env(safe-area-inset-bottom,0px),20px);box-sizing:border-box;animation:hgs-seat-fade .15s ease-out}
 @keyframes hgs-seat-fade{from{opacity:0}to{opacity:1}}
 .hgs-seat-modal{background:linear-gradient(180deg,#152036 0%,#0d1626 100%);border:1px solid rgba(148,163,184,.16);border-radius:16px;padding:24px;max-width:480px;width:100%;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:hgs-seat-rise .18s ease-out}
-.hgs-seat-modal-wide{max-width:720px;max-height:92vh;overflow-y:auto;padding:20px}
+.hgs-seat-modal-wide{max-width:720px;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 24px);overflow-y:auto;padding:20px}
 .hgs-seat-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
-.hgs-seat-close{background:transparent;border:none;color:#94a3b8;font-size:28px;line-height:1;cursor:pointer;padding:0 4px;margin:-4px -4px 0 0}
+.hgs-seat-close{background:transparent;border:none;color:#94a3b8;font-size:28px;line-height:1;cursor:pointer;padding:0 4px;margin:-4px -4px 0 0;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .hgs-seat-close:hover{color:#fff}
 @keyframes hgs-seat-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .hgs-seat-title{font-size:20px;font-weight:700;margin:0 0 6px !important;color:#fff;line-height:1.3}

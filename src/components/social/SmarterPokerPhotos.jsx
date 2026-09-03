@@ -141,7 +141,7 @@ export const PhotoLightbox = ({
     return (
         <div className="sp-lightbox">
             {/* Close Button */}
-            <button className="close-btn" onClick={onClose}>✕</button>
+            <button className="close-btn sp-icon-btn" onClick={onClose} aria-label="Close">✕</button>
 
             {/* Main Image Area */}
             <div className="lightbox-main">
@@ -233,11 +233,16 @@ export const PhotoLightbox = ({
                 }
 
                 .close-btn {
+                    /* Below the status bar, 44x44 tap target (mobile phase 0b). */
                     position: absolute;
-                    top: 16px;
-                    left: 16px;
-                    width: 40px;
-                    height: 40px;
+                    top: calc(env(safe-area-inset-top, 0px) + 12px);
+                    left: 12px;
+                    width: 44px;
+                    height: 44px;
+                    min-width: 44px;
+                    min-height: 44px;
+                    touch-action: manipulation;
+                    -webkit-tap-highlight-color: transparent;
                     background: rgba(255, 255, 255, 0.1);
                     border: none;
                     border-radius: 50%;
@@ -453,7 +458,7 @@ export const PhotoLightbox = ({
 
                 .photo-counter {
                     position: absolute;
-                    bottom: 16px;
+                    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
                     left: 50%;
                     transform: translateX(-50%);
                     background: rgba(0, 0, 0, 0.6);

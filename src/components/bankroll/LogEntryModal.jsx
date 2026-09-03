@@ -4,6 +4,7 @@
  */
 
 import { memo,  useState, useEffect, useRef } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { createLedgerEntry, updateLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
@@ -43,6 +44,16 @@ const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed',
 
 function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit }) {
   const isEditMode = !!editEntry;
+  // Phone back gesture closes the sheet instead of leaving the page (mobile
+  // phase 0a). The modal is mounted only while open, so isOpen is constant;
+  // the unmount cleanup pops our history entry if it is still on top so an
+  // X-close never leaves a dead "back" behind.
+  useModalHistory(true, onClose);
+  useEffect(() => () => {
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
+    } catch (_) { /* history unavailable */ }
+  }, []);
   const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -267,7 +278,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
-  // Detect active trip — auto-assign trip_id and location
+  // Detect active trip - auto-assign trip_id and location
   useEffect(() => {
     if (!userId || isEditMode) return;
     getActiveTrip(userId).then(trip => {
@@ -504,7 +515,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   };
 
   const renderCategorySelector = () => (
-    <div style={styles.categoryGrid}>
+    <div style={{ ...styles.categoryGrid, paddingBottom: 24 }}>
       {CATEGORIES.map((cat) => (
         <button
           key={cat.id}
@@ -593,6 +604,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               <label style={styles.label}>Amount ($)</label>
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 value={formData.gross_in}
                 onChange={(e) => handleInputChange('gross_in', e.target.value)}
@@ -608,6 +620,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Buy-In ($)</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   step="0.01"
                   value={formData.gross_in}
                   onChange={(e) => handleInputChange('gross_in', e.target.value)}
@@ -621,6 +634,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Cash-Out ($)</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   step="0.01"
                   value={formData.gross_out}
                   onChange={(e) => handleInputChange('gross_out', e.target.value)}
@@ -735,12 +749,13 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               </select>
             </div>
 
-            {/* Bounties Collected — only for bounty types */}
+            {/* Bounties Collected - only for bounty types */}
             {['bounty', 'mystery_bounty', 'pko'].includes(formData.tournament_type) && (
               <div style={styles.formGroup}>
                 <label style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ($)</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   step="0.01"
                   value={formData.bounties_collected}
                   onChange={(e) => handleInputChange('bounties_collected', e.target.value)}
@@ -755,6 +770,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Finish Position</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   value={formData.finish_position}
                   onChange={(e) => handleInputChange('finish_position', e.target.value)}
                   style={styles.input}
@@ -764,6 +780,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Field Size</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   value={formData.field_size}
                   onChange={(e) => handleInputChange('field_size', e.target.value)}
                   style={styles.input}
@@ -786,6 +803,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                   >-</button>
                   <input
                     type="number"
+                inputMode="decimal"
                     min="0"
                     value={formData.reentry_count}
                     onChange={(e) => handleInputChange('reentry_count', e.target.value)}
@@ -805,6 +823,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Add-On ($)</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   step="0.01"
                   value={formData.add_on_amount}
                   onChange={(e) => handleInputChange('add_on_amount', e.target.value)}
@@ -833,7 +852,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               return null;
             })()}
 
-            {/* Swap Deductions — Collapsible */}
+            {/* Swap Deductions - Collapsible */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
@@ -889,6 +908,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       <label style={styles.label}>Swap Amount ($)</label>
                       <input
                         type="number"
+                inputMode="decimal"
                         step="0.01"
                         value={formData.swap_amount}
                         onChange={(e) => handleInputChange('swap_amount', e.target.value)}
@@ -902,7 +922,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               )}
             </div>
 
-            {/* Staking Deductions — Collapsible */}
+            {/* Staking Deductions - Collapsible */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
@@ -958,6 +978,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       <label style={styles.label}>Amount Paid ($)</label>
                       <input
                         type="number"
+                inputMode="decimal"
                         step="0.01"
                         value={formData.staker_amount}
                         onChange={(e) => handleInputChange('staker_amount', e.target.value)}
@@ -971,7 +992,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               )}
             </div>
 
-            {/* Sold Action — Collapsible */}
+            {/* Sold Action - Collapsible */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
@@ -997,6 +1018,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       <label style={styles.label}>% Sold</label>
                       <input
                         type="number"
+                inputMode="decimal"
                         step="1"
                         value={formData.action_percentage}
                         onChange={(e) => handleInputChange('action_percentage', e.target.value)}
@@ -1009,6 +1031,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       <label style={styles.label}>Markup %</label>
                       <input
                         type="number"
+                inputMode="decimal"
                         step="1"
                         value={formData.action_markup}
                         onChange={(e) => handleInputChange('action_markup', e.target.value)}
@@ -1019,6 +1042,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       <label style={styles.label}>Amount Received ($)</label>
                       <input
                         type="number"
+                inputMode="decimal"
                         step="0.01"
                         value={formData.action_amount}
                         onChange={(e) => handleInputChange('action_amount', e.target.value)}
@@ -1226,7 +1250,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             </div>
           )}
           {activeTrip && !isEditMode ? (
-            /* Active trip auto-assigned — dropdown not needed, banner above suffices */
+            /* Active trip auto-assigned - dropdown not needed, banner above suffices */
             null
           ) : trips.length > 0 && (
             <div style={styles.formGroup}>
@@ -1325,7 +1349,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           </select>
         </div>
 
-        {/* Inline Expense — available on all non-expense categories */}
+        {/* Inline Expense - available on all non-expense categories */}
         {!isExpense && (
           <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
             <label style={{ ...styles.label, fontSize: 14, color: '#b0b3b8', marginBottom: 8 }}>Session Expense (Optional)</label>
@@ -1349,6 +1373,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 <label style={styles.label}>Amount ($)</label>
                 <input
                   type="number"
+                inputMode="decimal"
                   step="0.01"
                   value={formData.inline_expense_amount}
                   onChange={(e) => handleInputChange('inline_expense_amount', e.target.value)}
@@ -1419,7 +1444,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         </div>
 
 
-        {/* Rule Warnings — SmarterPoker Dark Theme */}
+        {/* Rule Warnings - SmarterPoker Dark Theme */}
         {ruleWarnings.length > 0 && (
           <div style={styles.warningBox}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -1450,8 +1475,8 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           </div>
         )}
 
-        {/* Actions */}
-        <div style={styles.actions}>
+        {/* Actions: sticky above the keyboard-safe bottom of the sheet */}
+        <div className="bankroll-modal-footer" style={styles.actions}>
           <button
             type="button"
             onClick={() => setStep('category')}
@@ -1476,6 +1501,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
   return (
     <motion.div
+      className="bankroll-modal-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -1483,13 +1509,17 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       onClick={onClose}
     >
       <motion.div
+        className="bankroll-modal"
+        role="dialog"
+        aria-modal="true"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         style={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={styles.header}>
+        <div className="bankroll-sheet-handle" aria-hidden="true" />
+        <div className="bankroll-modal-header" style={styles.header}>
           <h2 style={styles.title}>
             {isEditMode
               ? `Edit ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`
@@ -1497,12 +1527,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 ? 'Log Session'
                 : `Log ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`}
           </h2>
-          <button onClick={onClose} style={styles.closeButton}>
+          <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={styles.closeButton}>
             ×
           </button>
         </div>
 
-        <div style={styles.content}>
+        <div className="bankroll-modal-body" style={styles.content}>
           {step === 'category' ? renderCategorySelector() : renderDetailsForm()}
         </div>
       </motion.div>
@@ -1527,7 +1557,8 @@ const styles = {
   modal: {
     width: '100%',
     maxWidth: 480,
-    maxHeight: '90vh',
+    maxHeight: '90dvh',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     background: '#1a2a44',
     borderRadius: 16,
     border: '2px solid rgba(255, 255, 255, 0.12)',
@@ -1552,9 +1583,13 @@ const styles = {
     margin: 0,
   },
   closeButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
     borderRadius: '50%',
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
     background: 'rgba(255, 255, 255, 0.1)',
     border: 'none',
     color: '#fff',
@@ -1565,7 +1600,7 @@ const styles = {
     justifyContent: 'center',
   },
   content: {
-    padding: 24,
+    padding: '24px 24px 0',
     overflowY: 'auto',
     flex: 1,
   },
@@ -1624,7 +1659,8 @@ const styles = {
     border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
+    minHeight: 44,
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
@@ -1635,7 +1671,8 @@ const styles = {
     border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
+    minHeight: 44,
     outline: 'none',
     cursor: 'pointer',
     width: '100%',
@@ -1647,7 +1684,7 @@ const styles = {
     border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     outline: 'none',
     minHeight: 80,
     resize: 'vertical',
@@ -1706,6 +1743,10 @@ const styles = {
     display: 'flex',
     gap: 12,
     marginTop: 8,
+    background: '#1a2a44',
+    margin: '8px -24px 0',
+    padding: '12px 24px 16px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
   },
   backButton: {
     flex: 1,

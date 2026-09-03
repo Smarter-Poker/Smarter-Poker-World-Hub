@@ -4023,8 +4023,12 @@ export default function NewsHub() {
                         position: absolute;
                         top: 12px;
                         right: 12px;
-                        width: 28px;
-                        height: 28px;
+                        width: 44px;
+                        height: 44px;
+                        min-width: 44px;
+                        min-height: 44px;
+                        touch-action: manipulation;
+                        -webkit-tap-highlight-color: transparent;
                         background: rgba(255, 255, 255, 0.1);
                         border: none;
                         border-radius: 50%;
@@ -4284,10 +4288,12 @@ export default function NewsHub() {
                         {/* Close button - subtle, top-left */}
                         <button
                             onClick={() => setReelViewerOpen(false)}
-                            aria-label="Close reel viewer"
+                            aria-label="Close"
+                            className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
                             style={{
-                                position: 'absolute', top: 16, left: 16, zIndex: 10,
-                                width: 44, height: 44, borderRadius: '50%',
+                                position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 12, zIndex: 10,
+                                width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
+                                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                                 background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
                                 border: 'none', color: 'white', fontSize: 18, cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',

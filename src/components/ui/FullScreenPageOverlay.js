@@ -194,8 +194,13 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                 }
 
                 .fsp-close-btn {
-                    width: 36px;
-                    height: 36px;
+                    /* 44x44: the iOS minimum tap target (phase 0b). */
+                    width: 44px;
+                    height: 44px;
+                    min-width: 44px;
+                    min-height: 44px;
+                    touch-action: manipulation;
+                    -webkit-tap-highlight-color: transparent;
                     border-radius: 50%;
                     border: none;
                     background: rgba(255,255,255,0.1);

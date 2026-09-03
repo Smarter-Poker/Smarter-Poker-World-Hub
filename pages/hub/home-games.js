@@ -956,7 +956,7 @@ export default function HomeGamesPage() {
                                     {/* MAP */}
                                     <div className={`hg-map-card${mapFullscreen ? ' hg-map-fullscreen' : ''}`}>
                                         {mapFullscreen && (
-                                            <div className="hg-map-collapse" onClick={() => setMapFullscreen(false)}>
+                                            <div className="hg-map-collapse" role="button" tabIndex={0} aria-label="Collapse Map" onClick={() => setMapFullscreen(false)}>
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
                                                     <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
@@ -1358,8 +1358,8 @@ export default function HomeGamesPage() {
                         border-radius: 0;
                         border: none;
                         margin: 0;
-                        min-height: 100vh;
-                        height: 100vh;
+                        min-height: 100dvh;
+                        height: 100dvh;
                     }
                     .hg-map-card.hg-map-fullscreen .leaflet-container,
                     .hg-map-card.hg-map-fullscreen > div:last-child {
@@ -1374,13 +1374,17 @@ export default function HomeGamesPage() {
                         pointer-events: none;
                     }
                     .hg-map-collapse {
+                        /* Fullscreen map exit: below the status bar, 44px tall (mobile phase 0b). */
                         position: absolute;
-                        top: 12px;
+                        top: calc(env(safe-area-inset-top, 0px) + 12px);
                         right: 12px;
                         z-index: 99991;
                         display: flex;
                         align-items: center;
                         gap: 6px;
+                        min-height: 44px;
+                        touch-action: manipulation;
+                        -webkit-tap-highlight-color: transparent;
                         padding: 8px 14px;
                         background: rgba(10,10,21,0.88);
                         backdrop-filter: blur(8px);

@@ -1251,7 +1251,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 aria-label="Diamond Wallet"
                 style={{
                     position: 'fixed',
-                    top: 60, left: 0, right: 0, bottom: 0,
+                    // 60 is the UniversalHeader height; the header itself grows by
+                    // the status-bar inset, so the modal must too (mobile phase 0b).
+                    top: 'calc(env(safe-area-inset-top, 0px) + 60px)', left: 0, right: 0, bottom: 0,
                     zIndex: 90,
                     background: `radial-gradient(ellipse at 50% -10%, rgba(0,100,220,0.25) 0%, rgba(2,8,20,0.4) 100%), url('/images/diamond-wallet-bg-new.png') center/cover no-repeat`,
                     display: 'flex',
@@ -1266,13 +1268,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* Close button */}
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        className="sp-icon-btn"
                         style={{
                             background: 'rgba(255, 255, 255, 0.08)',
                             border: '1px solid rgba(255, 255, 255, 0.1)',
                             borderRadius: 8,
                             color: 'rgba(255, 255, 255, 0.6)',
                             fontSize: 18,
-                            width: 36, height: 36,
+                            width: 44, height: 44, minWidth: 44, minHeight: 44,
+                            touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',

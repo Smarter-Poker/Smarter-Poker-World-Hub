@@ -138,7 +138,9 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                 right: 0,
                                 width: '100%',
                                 maxWidth: 400,
-                                height: '100vh',
+                                height: '100dvh',
+                                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                                boxSizing: 'border-box',
                                 background: '#242526',
                                 boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.3)',
                                 zIndex: 1002,
@@ -146,9 +148,10 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                 flexDirection: 'column'
                             }}
                         >
-                            {/* Header */}
+                            {/* Header. Below the status bar so the X is reachable (mobile phase 0b). */}
                             <div style={{
                                 padding: '20px 24px',
+                                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                                 display: 'flex',
                                 justifyContent: 'space-between',
@@ -164,11 +167,17 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                 </h2>
                                 <button
                                     onClick={closeCart}
+                                    aria-label="Close"
+                                    className="sp-icon-btn"
                                     style={{
                                         background: 'none',
                                         border: 'none',
                                         cursor: 'pointer',
                                         padding: 8,
+                                        minWidth: 44,
+                                        minHeight: 44,
+                                        touchAction: 'manipulation',
+                                        WebkitTapHighlightColor: 'transparent',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center'

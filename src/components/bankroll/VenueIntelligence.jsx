@@ -1,12 +1,13 @@
 /**
  * VENUE INTELLIGENCE
  * ═══════════════════════════════════════════════════════════════
- * Career analytics derived from completed gigs — zero new DB queries
- * SmarterPoker Dark UI — matches TokeTracker pattern
+ * Career analytics derived from completed gigs - zero new DB queries
+ * SmarterPoker Dark UI - matches TokeTracker pattern
  * ═══════════════════════════════════════════════════════════════
  */
 
 import { useState, useMemo } from 'react';
+import ResponsiveTable from '../ui/ResponsiveTable';
 
 const METAL = {
     base: '#1C1E21', mid: '#242526', elevated: '#3A3B3C', darkest: '#18191A',
@@ -38,7 +39,7 @@ function computeGigStats(gig) {
     let totalHours = 0;
     for (const down of downs) {
         totalTokes += down.toke_amount || 0;
-        // Only count dealing downs for hours (not breaks — they inflate the denominator unfairly)
+        // Only count dealing downs for hours (not breaks - they inflate the denominator unfairly)
         const isDealing = down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
         if (isDealing && down.started_at && down.ended_at) {
             totalHours += (new Date(down.ended_at) - new Date(down.started_at)) / (1000 * 60 * 60);
@@ -203,26 +204,16 @@ export default function VenueIntelligence({ gigs = [] }) {
                             </button>
                             {gameOpen && (
                                 <div style={s.tableWrapper}>
-                                    <table style={s.table}>
-                                        <thead>
-                                            <tr style={s.thead}>
-                                                <th style={s.th}>Game</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>Total $</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>Downs</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>$/Down</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {gameTypeStats.map((gt, i) => (
-                                                <tr key={gt.gameType} style={i % 2 === 0 ? s.trEven : s.trOdd}>
-                                                    <td style={s.td}>{GAME_TYPE_MAP[gt.gameType] || gt.gameType}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right', color: METAL.success }}>${gt.totalTokes.toFixed(0)}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right' }}>{gt.totalDowns}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right', fontWeight: 700, color: METAL.textPrimary }}>${gt.avgTokePerDown.toFixed(2)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <ResponsiveTable
+                                        keyField="gameType"
+                                        rows={gameTypeStats}
+                                        columns={[
+                                            { key: 'gameType', label: 'Game', render: (gt) => GAME_TYPE_MAP[gt.gameType] || gt.gameType },
+                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (gt) => <span style={{ color: METAL.success }}>${gt.totalTokes.toFixed(0)}</span> },
+                                            { key: 'totalDowns', label: 'Downs', align: 'right' },
+                                            { key: 'avgTokePerDown', label: '$/Down', align: 'right', render: (gt) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>${gt.avgTokePerDown.toFixed(2)}</span> },
+                                        ]}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -237,28 +228,16 @@ export default function VenueIntelligence({ gigs = [] }) {
                             </button>
                             {tourneyOpen && (
                                 <div style={s.tableWrapper}>
-                                    <table style={s.table}>
-                                        <thead>
-                                            <tr style={s.thead}>
-                                                <th style={s.th}>Buy-In</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>Downs</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>Total $</th>
-                                                <th style={{ ...s.th, textAlign: 'right' }}>Avg $/Down</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {tournamentBrackets.map((b, i) => (
-                                                <tr key={b.label} style={i % 2 === 0 ? s.trEven : s.trOdd}>
-                                                    <td style={{ ...s.td, fontWeight: 700, color: METAL.textPrimary }}>{b.label}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right' }}>{b.totalDowns}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right', color: METAL.success }}>${b.totalTokes.toFixed(0)}</td>
-                                                    <td style={{ ...s.td, textAlign: 'right', fontWeight: 700, color: b.avgTokePerDown >= 20 ? METAL.success : METAL.warn }}>
-                                                        ${b.avgTokePerDown.toFixed(2)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <ResponsiveTable
+                                        keyField="label"
+                                        rows={tournamentBrackets}
+                                        columns={[
+                                            { key: 'label', label: 'Buy-In', render: (b) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>{b.label}</span> },
+                                            { key: 'totalDowns', label: 'Downs', align: 'right' },
+                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (b) => <span style={{ color: METAL.success }}>${b.totalTokes.toFixed(0)}</span> },
+                                            { key: 'avgTokePerDown', label: 'Avg $/Down', align: 'right', render: (b) => <span style={{ fontWeight: 700, color: b.avgTokePerDown >= 20 ? METAL.success : METAL.warn }}>${b.avgTokePerDown.toFixed(2)}</span> },
+                                        ]}
+                                    />
                                     <div style={s.tourneyNote}>
                                         Log Buy-In Amounts When Starting Tournament Downs To Populate This Table
                                     </div>
@@ -303,7 +282,7 @@ const s = {
     tableWrapper: { padding: '0 16px 12px' },
     table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
     thead: { background: METAL.darkest },
-    th: { padding: '8px 10px', fontSize: 11, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' },
+    th: { padding: '8px 10px', fontSize: 12, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' },
     td: { padding: '10px 10px', fontSize: 14, color: METAL.textSecondary, borderBottom: '1px solid rgba(255,255,255,0.04)' },
     trEven: { background: 'transparent' },
     trOdd: { background: 'rgba(0,0,0,0.15)' },

@@ -973,6 +973,9 @@ export default function DailyTournaments() {
                         align-items: center;
                         justify-content: center;
                         padding: 20px;
+                        padding-top: max(env(safe-area-inset-top, 0px), 20px);
+                        padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+                        box-sizing: border-box;
                     }
                     .cal-modal {
                         background: #0d1117;

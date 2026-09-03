@@ -2,11 +2,12 @@
  * ADJUST BANKROLL MODAL
  * ═══════════════════════════════════════════════════════════════
  * Deposit (add money) or Withdraw (remove money) from bankroll
- * For outside sources — e.g. paycheck deposit or bills withdrawal
+ * For outside sources - e.g. paycheck deposit or bills withdrawal
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import { motion } from 'framer-motion';
 import { adjustBankroll } from '../../lib/bankroll/bankrollSelectors';
 import toast from '../../stores/toastStore';
@@ -16,12 +17,21 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
+    // open, so isOpen is constant; the unmount cleanup pops our entry if an
+    // X-close left it on top.
+    useModalHistory(true, onClose);
+    useEffect(() => () => {
+        try {
+            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
+        } catch (_) { /* history unavailable */ }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const value = parseFloat(amount);
         if (!value || value <= 0) {
-            toast.error('Please enter a valid amount');
+            toast.error('Please Enter A Valid Amount');
             return;
         }
 
@@ -30,12 +40,12 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
             await adjustBankroll(userId, value, type, reason);
             toast.success(
                 type === 'deposit'
-                    ? `$${value.toLocaleString()} added to bankroll 💵`
-                    : `$${value.toLocaleString()} withdrawn from bankroll`
+                    ? `$${value.toLocaleString()} Added To Bankroll`
+                    : `$${value.toLocaleString()} Withdrawn From Bankroll`
             );
             onComplete();
         } catch (err) {
-            toast.error(err.message || 'Failed to adjust bankroll');
+            toast.error(err.message || 'Failed To Adjust Bankroll');
         } finally {
             setIsSubmitting(false);
         }
@@ -43,6 +53,7 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
 
     return (
         <motion.div
+            className="bankroll-modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -50,13 +61,23 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
             onClick={onClose}
         >
             <motion.div
+                className="bankroll-modal"
+                role="dialog"
+                aria-modal="true"
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 style={styles.modal}
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 style={styles.title}>Adjust Bankroll</h2>
+                <div className="bankroll-sheet-handle" aria-hidden="true" />
+                <div className="bankroll-modal-header" style={styles.headerRow}>
+                    <h2 style={styles.title}>Adjust Bankroll</h2>
+                    <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={styles.closeBtn}>
+                        ×
+                    </button>
+                </div>
+                <div className="bankroll-modal-body">
                 <p style={styles.subtitle}>
                     Add Or Remove Money From Outside Sources (Not Gambling Results).
                 </p>
@@ -83,7 +104,7 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
                             ...(type === 'withdrawal' ? { borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239, 68, 68, 0.12)' } : {}),
                         }}
                     >
-                        − Withdraw
+                        - Withdraw
                     </button>
                 </div>
 
@@ -125,7 +146,7 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
                         style={styles.reasonInput}
                     />
 
-                    <div style={styles.actions}>
+                    <div className="bankroll-modal-footer" style={styles.actions}>
                         <button
                             type="submit"
                             disabled={isSubmitting || !amount}
@@ -140,14 +161,15 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
                             {isSubmitting
                                 ? 'Processing...'
                                 : type === 'deposit'
-                                    ? '+ Add to Bankroll'
-                                    : '− Remove from Bankroll'}
+                                    ? '+ Add To Bankroll'
+                                    : '- Remove From Bankroll'}
                         </button>
                         <button type="button" onClick={onClose} style={styles.cancelBtn}>
                             Cancel
                         </button>
                     </div>
                 </form>
+                </div>
             </motion.div>
         </motion.div>
     );
@@ -172,16 +194,45 @@ const styles = {
         background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
         border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 16,
-        padding: 28,
+        padding: '0 24px 24px',
         maxWidth: 420,
         width: '100%',
+        maxHeight: '90dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+    },
+    headerRow: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        padding: '10px 0 6px',
+        flexShrink: 0,
+    },
+    closeBtn: {
+        width: 44,
+        height: 44,
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)',
+        border: 'none',
+        color: '#fff',
+        fontSize: 22,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
     },
     title: {
         fontSize: 20,
         fontWeight: 700,
         color: '#fff',
-        margin: '0 0 6px',
-        textAlign: 'center',
+        margin: 0,
+        textAlign: 'left',
     },
     subtitle: {
         fontSize: 14,
@@ -202,11 +253,13 @@ const styles = {
         border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 10,
         padding: '12px 16px',
+        minHeight: 44,
         color: '#94a3b8',
         fontSize: 15,
         fontWeight: 600,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        touchAction: 'manipulation',
     },
     toggleBtnActive: {
         // Colors applied inline based on type
@@ -244,6 +297,8 @@ const styles = {
         fontSize: 24,
         fontWeight: 700,
         padding: '10px 0',
+        minWidth: 0,
+        width: '100%',
     },
     reasonInput: {
         background: 'rgba(0,0,0,0.2)',
@@ -262,23 +317,29 @@ const styles = {
         flexDirection: 'column',
         gap: 8,
         marginTop: 4,
+        background: '#0a1628',
+        padding: '8px 0 0',
     },
     submitBtn: {
         color: '#fff',
         border: 'none',
         borderRadius: 10,
         padding: '14px 24px',
+        minHeight: 48,
         fontSize: 15,
         fontWeight: 600,
         cursor: 'pointer',
+        touchAction: 'manipulation',
     },
     cancelBtn: {
         background: 'transparent',
         border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 10,
         padding: '10px 24px',
+        minHeight: 44,
         color: '#94a3b8',
         fontSize: 14,
         cursor: 'pointer',
+        touchAction: 'manipulation',
     },
 };

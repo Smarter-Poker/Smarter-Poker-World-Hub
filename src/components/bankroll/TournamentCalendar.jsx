@@ -142,7 +142,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                             }}
                         />
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
                         Bankroll Covers {budgetHealth.toFixed(0)}% Of Planned Buy-Ins
                     </div>
                 </div>
@@ -169,7 +169,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         {/* Day Headers */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                <div key={d} style={{ padding: '10px 4px', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{d}</div>
+                                <div key={d} style={{ padding: '10px 4px', textAlign: 'center', fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{d}</div>
                             ))}
                         </div>
                         {/* Day Cells */}
@@ -185,13 +185,13 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                                     }}>
                                         {day && (
                                             <>
-                                                <div style={{ fontSize: 11, fontWeight: isToday ? 900 : 600, color: isToday ? '#00d4ff' : '#94a3b8', textAlign: 'right', padding: '2px 4px' }}>{day}</div>
+                                                <div style={{ fontSize: 12, fontWeight: isToday ? 900 : 600, color: isToday ? '#00d4ff' : '#94a3b8', textAlign: 'right', padding: '2px 4px' }}>{day}</div>
                                                 {dayEvents.map(ev => (
                                                     <div
                                                         key={ev.id}
                                                         onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}
                                                         style={{
-                                                            fontSize: 8, fontWeight: 800, color: '#fff',
+                                                            fontSize: 12, fontWeight: 800, color: '#fff',
                                                             background: `${ev.color}80`, borderRadius: 3,
                                                             padding: '2px 4px', marginTop: 2, cursor: 'pointer',
                                                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -223,13 +223,13 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                                 }}>{ev.series.substring(0, 3)}</div>
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{ev.name}</div>
-                                    <div style={{ fontSize: 11, color: '#64748b' }}>{ev.series} • {ev.location}</div>
+                                    <div style={{ fontSize: 12, color: '#64748b' }}>{ev.series} • {ev.location}</div>
                                 </div>
                             </div>
                             <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>${ev.buyIn.toLocaleString()}</div>
-                                    <div style={{ fontSize: 10, color: '#64748b' }}>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                    <div style={{ fontSize: 12, color: '#64748b' }}>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); toggleInterest(ev.id); }}
@@ -265,17 +265,17 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Start Date</div>
+                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Start Date</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginTop: 4 }}>
                                 {new Date(selectedEvent.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                             </div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Prize Pool</div>
+                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Prize Pool</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.prizePool}</div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
-                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
+                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>% Of Bankroll</div>
                             <div style={{ fontSize: 13, fontWeight: 800, color: bankrollTotal > 0 && (selectedEvent.buyIn / bankrollTotal * 100) > 5 ? '#f87171' : '#e2e8f0', marginTop: 4 }}>
                                 {bankrollTotal > 0 ? (selectedEvent.buyIn / bankrollTotal * 100).toFixed(1) : '-'}%
                             </div>
@@ -294,7 +294,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
             )}
 
             {/* Event count summary */}
-            <div style={{ textAlign: 'center', fontSize: 11, color: '#64748b' }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b' }}>
                 {monthEvents.length} Events In {MONTHS[currentMonth]} • {upcomingEvents.length} Total Upcoming
             </div>
         </div>

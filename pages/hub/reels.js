@@ -4481,12 +4481,18 @@ export default function ReelsPage() {
                 </div>
                 <button
                   onClick={() => setShowShareDescriptionModal(false)}
+                  aria-label="Close"
+                  className="sp-icon-btn"
                   style={{
                     background: 'rgba(255,255,255,0.1)',
                     border: 'none',
                     color: 'white',
-                    width: 32,
-                    height: 32,
+                    width: 44,
+                    height: 44,
+                    minWidth: 44,
+                    minHeight: 44,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                     borderRadius: '50%',
                     cursor: 'pointer',
                     fontSize: 16,
@@ -5597,12 +5603,18 @@ export default function ReelsPage() {
                 </div>
                 <button
                   onClick={() => setTtsOverlay(null)}
+                  aria-label="Close"
+                  className="sp-icon-btn"
                   style={{
                     background: 'rgba(255,255,255,0.07)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 8,
-                    width: 32,
-                    height: 32,
+                    width: 44,
+                    height: 44,
+                    minWidth: 44,
+                    minHeight: 44,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

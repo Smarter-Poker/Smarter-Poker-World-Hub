@@ -2,11 +2,12 @@
  * TAX SUMMARY MODAL
  * ══════════════════════════════════════════════════════════
  * Annual tax summary with print-to-PDF capability
- * SmarterPoker Dark UI — uses window.print() with @media print styles
+ * SmarterPoker Dark UI - uses window.print() with @media print styles
  * ══════════════════════════════════════════════════════════
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ResponsiveTable from '../ui/ResponsiveTable';
 
 const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
 
@@ -96,7 +97,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
             .sort((a, b) => b.tokes - a.tokes);
     }, [yearGigs]);
 
-    // Expense breakdown by category — use gig.expenses[] attached by fetchGigs
+    // Expense breakdown by category - use gig.expenses[] attached by fetchGigs
     const expenseBreakdown = useMemo(() => {
         const map = {};
         for (const gig of yearGigs) {
@@ -176,7 +177,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             ref={closeRef}
                             style={s.closeBtn}
                             onClick={onClose}
-                            className="no-print"
+                            className="no-print sp-icon-btn"
                             aria-label="Close Tax Summary"
                         >✕</button>
                     </div>
@@ -205,57 +206,32 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                         {/* ── Venue Breakdown ── */}
                         <div style={s.section} className="print-section">
                             <div style={s.sectionTitle}>Income By Venue</div>
-                            <table style={s.table}>
-                                <thead>
-                                    <tr style={s.thead}>
-                                        <th style={s.th}>Venue</th>
-                                        <th style={{ ...s.th, textAlign: 'right' }}>Events</th>
-                                        <th style={{ ...s.th, textAlign: 'right' }}>Tokes</th>
-                                        <th style={{ ...s.th, textAlign: 'right' }}>1099?</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {venueBreakdown.map((v, i) => (
-                                        <tr key={v.venue} style={i % 2 === 0 ? {} : { background: 'rgba(0,0,0,0.12)' }}>
-                                            <td style={s.td}>{v.venue}</td>
-                                            <td style={{ ...s.td, textAlign: 'right' }}>{v.events}</td>
-                                            <td style={{ ...s.td, textAlign: 'right', color: METAL.success }}>{fmt(v.tokes)}</td>
-                                            <td style={{ ...s.td, textAlign: 'right' }}>
-                                                {v.tokes >= 600
-                                                    ? <span style={{ color: METAL.warn, fontWeight: 700 }}>Yes</span>
-                                                    : <span style={{ color: METAL.textSecondary }}>No</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <ResponsiveTable
+                                keyField="venue"
+                                rows={venueBreakdown}
+                                columns={[
+                                    { key: 'venue', label: 'Venue' },
+                                    { key: 'events', label: 'Events', align: 'right' },
+                                    { key: 'tokes', label: 'Tokes', align: 'right', render: (v) => <span style={{ color: METAL.success }}>{fmt(v.tokes)}</span> },
+                                    { key: 'form1099', label: '1099?', align: 'right', render: (v) => (v.tokes >= 600
+                                        ? <span style={{ color: METAL.warn, fontWeight: 700 }}>Yes</span>
+                                        : <span style={{ color: METAL.textSecondary }}>No</span>) },
+                                ]}
+                            />
                         </div>
 
                         {/* ── Expense Breakdown ── */}
                         {expenseBreakdown.length > 0 && (
                             <div style={s.section} className="print-section">
                                 <div style={s.sectionTitle}>Deductible Expenses</div>
-                                <table style={s.table}>
-                                    <thead>
-                                        <tr style={s.thead}>
-                                            <th style={s.th}>Category</th>
-                                            <th style={{ ...s.th, textAlign: 'right' }}>Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {expenseBreakdown.map((e, i) => (
-                                            <tr key={e.cat} style={i % 2 === 0 ? {} : { background: 'rgba(0,0,0,0.12)' }}>
-                                                <td style={s.td}>{e.label}</td>
-                                                <td style={{ ...s.td, textAlign: 'right', color: METAL.danger }}>{fmt(e.amt)}</td>
-                                            </tr>
-                                        ))}
-                                        <tr style={{ borderTop: `2px solid ${METAL.elevated}` }}>
-                                            <td style={{ ...s.td, fontWeight: 700 }}>Total Expenses</td>
-                                            <td style={{ ...s.td, textAlign: 'right', fontWeight: 700, color: METAL.danger }}>{fmt(totalExpenses)}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <ResponsiveTable
+                                    keyField="cat"
+                                    rows={[...expenseBreakdown, { cat: '__total', label: 'Total Expenses', amt: totalExpenses, _total: true }]}
+                                    columns={[
+                                        { key: 'label', label: 'Category', render: (e) => <span style={e._total ? { fontWeight: 700 } : undefined}>{e.label}</span> },
+                                        { key: 'amt', label: 'Amount', align: 'right', render: (e) => <span style={{ color: METAL.danger, fontWeight: e._total ? 700 : 400 }}>{fmt(e.amt)}</span> },
+                                    ]}
+                                />
                             </div>
                         )}
 
@@ -274,7 +250,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             <strong>IRS Note:</strong> Tips Received From Casino Players Are Generally Taxable Income. Venues That Paid You ≥$600/Year May Issue A 1099-NEC. Keep This Report And Your Supporting Records. Consult A Tax Professional.
                         </div>
 
-                        {/* ── Print footer (only visible when printing — controlled by CSS .print-footer-row class) ── */}
+                        {/* ── Print footer (only visible when printing - controlled by CSS .print-footer-row class) ── */}
                         <div style={s.printFooter} className="print-footer-row">
                             Generated By Toke Tracker · Smarter.Poker · {selectedYear} Tax Year
                         </div>
@@ -294,7 +270,9 @@ const s = {
     modal: {
         position: 'fixed', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 'min(760px, 95vw)', maxHeight: '90vh',
+        width: 'min(760px, 95vw)',
+        // Never taller than the area between the status bar and the home indicator (mobile phase 0b).
+        maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)',
         background: METAL.mid, border: `1px solid ${METAL.elevated}`,
         borderRadius: 16, overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
@@ -318,6 +296,8 @@ const s = {
     closeBtn: {
         padding: '8px 11px', background: METAL.elevated, border: 'none',
         borderRadius: 8, color: METAL.textSecondary, fontSize: 16, cursor: 'pointer',
+        minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     body: { overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 },
     empty: { padding: 40, textAlign: 'center', color: METAL.textSecondary, fontSize: 15 },
@@ -334,7 +314,7 @@ const s = {
     sectionTitle: { fontSize: 13, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 },
     table: { width: '100%', borderCollapse: 'collapse' },
     thead: { background: METAL.darkest },
-    th: { padding: '8px 12px', fontSize: 11, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: `1px solid ${METAL.elevated}` },
+    th: { padding: '8px 12px', fontSize: 12, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: `1px solid ${METAL.elevated}` },
     td: { padding: '10px 12px', fontSize: 14, color: METAL.textSecondary, borderBottom: `1px solid rgba(255,255,255,0.04)` },
 
     mileageBox: {
@@ -352,6 +332,6 @@ const s = {
     },
     printFooter: {
         display: 'none',  // .print-footer-row selector reveals via @media print in <style> above
-        fontSize: 11, color: '#666', textAlign: 'center', paddingTop: 20,
+        fontSize: 12, color: '#666', textAlign: 'center', paddingTop: 20,
     },
 };

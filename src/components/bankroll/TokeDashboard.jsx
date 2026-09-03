@@ -153,10 +153,10 @@ function TokeDashboard({ userId, refreshTrigger }) {
                         </filter>
                     </defs>
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         interval="equidistantPreserveStart" />
                     <YAxis axisLine={false} tickLine={false} width={58}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
                     <Tooltip content={({ active, payload }) => {
@@ -165,9 +165,9 @@ function TokeDashboard({ userId, refreshTrigger }) {
                         return (
                             <TT>
                                 <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{d.venue}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 6 }}>{d.date}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>{d.date}</div>
                                 <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} Tokes</div>
-                                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 3 }}>
+                                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 3 }}>
                                     {d.hours}h · Running: {fmt(d.cumulative)}
                                 </div>
                             </TT>
@@ -194,10 +194,10 @@ function TokeDashboard({ userId, refreshTrigger }) {
                         </linearGradient>
                     </defs>
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         interval="equidistantPreserveStart" />
                     <YAxis axisLine={false} tickLine={false} width={58}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
@@ -205,9 +205,9 @@ function TokeDashboard({ userId, refreshTrigger }) {
                         return (
                             <TT>
                                 <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{d.venue}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 6 }}>{d.date}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>{d.date}</div>
                                 <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)} Tokes</div>
-                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>{d.hours}h Worked</div>
+                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 }}>{d.hours}h Worked</div>
                             </TT>
                         );
                     }} />
@@ -230,19 +230,19 @@ function TokeDashboard({ userId, refreshTrigger }) {
                         </linearGradient>
                     </defs>
                     <XAxis dataKey="month" axisLine={false} tickLine={false}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         interval={0} />
                     <YAxis axisLine={false} tickLine={false} width={58}
-                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                        tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 12 }}
                         tickFormatter={fmtK} />
                     <Tooltip content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
                         return (
                             <TT>
-                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4 }}>{d.month}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>{d.month}</div>
                                 <div style={{ color: '#34d399', fontWeight: 700, fontSize: 15 }}>{fmt(d.tokes)}</div>
-                                {d.events > 0 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>{d.events} event{d.events !== 1 ? 's' : ''}</div>}
+                                {d.events > 0 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 }}>{d.events} event{d.events !== 1 ? 's' : ''}</div>}
                             </TT>
                         );
                     }} />
@@ -288,7 +288,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                                 <TT>
                                     <div style={{ color: d.color, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{d.name}</div>
                                     <div style={{ color: '#e5e7eb', fontWeight: 700, fontSize: 15 }}>{d.value} Downs</div>
-                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>{pct}% Of Total</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>{pct}% Of Total</div>
                                 </TT>
                             );
                         }} />
@@ -296,9 +296,9 @@ function TokeDashboard({ userId, refreshTrigger }) {
                 </ResponsiveContainer>
                 {/* Center label */}
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Total</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Total</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b', letterSpacing: '-0.5px' }}>{totalDowns}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Downs</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Downs</div>
                 </div>
                 {/* Legend */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 8 }}>
@@ -555,8 +555,8 @@ const S = {
         gap: 10,
     },
     kpiValue: { fontSize: 18, fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 },
-    kpiLabel: { fontSize: 11, color: '#64748b', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
-    kpiSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+    kpiLabel: { fontSize: 12, color: '#64748b', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
+    kpiSub: { fontSize: 12, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 
     tabRow: {
         display: 'flex', gap: 6, flexWrap: 'wrap',

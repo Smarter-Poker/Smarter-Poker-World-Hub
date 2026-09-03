@@ -411,9 +411,12 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
         <button
           onClick={(e) => { e.stopPropagation(); onSkip?.(); }}
           onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onSkip?.(); }}
-          aria-label="Close tutorial"
+          aria-label="Close"
+          className="sp-icon-btn"
           style={{
             position: 'absolute',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
             top: isMobile ? 8 : 12,
             right: isMobile ? 8 : 12,
             // The parent spring enters at scale .95. Use 48px so the effective

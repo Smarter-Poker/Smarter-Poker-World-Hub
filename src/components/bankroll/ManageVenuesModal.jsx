@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useModalHistory } from '../../hooks/useModalHistory';
 import { getUserLocations, renameLocation } from '../../lib/bankroll/locationMemory';
 import { supabase } from '../../lib/supabase';
 import { useToastStore } from '../../stores/toastStore';
 
 /**
- * ManageVenuesModal — edit / rename / delete venues
+ * ManageVenuesModal - edit / rename / delete venues
  */
 export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     const toast = useToastStore.getState();
@@ -14,6 +15,15 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     const [editName, setEditName] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
+    // open, so isOpen is constant; the unmount cleanup pops our entry if an
+    // X-close left it on top.
+    useModalHistory(true, onClose);
+    useEffect(() => () => {
+        try {
+            if (typeof window !== 'undefined' && window.history && window.history.state && window.history.state.spModal) window.history.back();
+        } catch (_) { /* history unavailable */ }
+    }, []);
 
     useEffect(() => { loadVenues(); }, []);
 
@@ -31,13 +41,13 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
         if (!editName.trim()) return;
         try {
             await renameLocation(userId, venueId, editName.trim());
-            toast.success('Venue renamed');
+            toast.success('Venue Renamed');
             setEditingId(null);
             setEditName('');
             await loadVenues();
             onUpdate?.();
         } catch (err) {
-            toast.error('Failed to rename: ' + (err.message || ''));
+            toast.error('Failed To Rename: ' + (err.message || ''));
         }
     };
 
@@ -61,18 +71,18 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
 
             if (error) {
                 console.warn('[ManageVenues] Delete error:', error);
-                toast.error('Failed to delete: ' + (error.message || 'Unknown error'));
+                toast.error('Failed To Delete: ' + (error.message || 'Unknown Error'));
                 return;
             }
 
             // Optimistic removal from local state
             setVenues(prev => prev.filter(v => v.id !== venueId));
-            toast.success('Venue deleted');
+            toast.success('Venue Deleted');
             setConfirmDeleteId(null);
             onUpdate?.();
         } catch (err) {
             console.warn('[ManageVenues] Delete exception:', err);
-            toast.error('Failed to delete: ' + (err.message || ''));
+            toast.error('Failed To Delete: ' + (err.message || ''));
         } finally {
             setDeletingId(null);
         }
@@ -85,16 +95,17 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     };
 
     return (
-        <div style={s.overlay} onClick={onClose}>
-            <div style={s.modal} onClick={(e) => e.stopPropagation()}>
+        <div className="bankroll-modal-overlay" style={s.overlay} onClick={onClose}>
+            <div className="bankroll-modal" role="dialog" aria-modal="true" style={s.modal} onClick={(e) => e.stopPropagation()}>
+                <div className="bankroll-sheet-handle" aria-hidden="true" />
                 {/* Header */}
-                <div style={s.header}>
+                <div className="bankroll-modal-header" style={s.header}>
                     <h2 style={s.title}>Manage Venues</h2>
-                    <button onClick={onClose} style={s.closeBtn}>✕</button>
+                    <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={s.closeBtn}>✕</button>
                 </div>
 
                 {/* Content */}
-                <div style={s.content}>
+                <div className="bankroll-modal-body" style={s.content}>
                     {loading ? (
                         <p style={s.emptyText}>Loading...</p>
                     ) : venues.length === 0 ? (
@@ -141,15 +152,16 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     );
 }
 
-/* —— Styles —— */
+/* -- Styles -- */
 const s = {
     overlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     },
     modal: {
         background: '#1a1d2e', borderRadius: 14, width: '100%', maxWidth: 480,
-        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+        maxHeight: '80dvh', display: 'flex', flexDirection: 'column',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)', boxSizing: 'border-box',
         border: '2px solid rgba(255,255,255,0.1)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
@@ -159,7 +171,10 @@ const s = {
     },
     title: { margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' },
     closeBtn: {
-        background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer',
+        background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer',
+        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     content: { padding: '12px 16px', overflowY: 'auto', flex: 1 },
     emptyText: { color: '#8a8d91', fontSize: 14, textAlign: 'center', padding: '40px 0' },
@@ -172,7 +187,8 @@ const s = {
     actions: { display: 'flex', gap: 4 },
     actionBtn: {
         background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
-        padding: '6px 10px', cursor: 'pointer', fontSize: 14,
+        padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#fff',
+        minHeight: 44, minWidth: 44, touchAction: 'manipulation',
     },
     editRow: {
         display: 'flex', gap: 8, alignItems: 'center', width: '100%', flexWrap: 'wrap',
@@ -180,17 +196,20 @@ const s = {
     editInput: {
         flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8,
         border: '2px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.15)',
-        color: '#fff', fontSize: 14, outline: 'none',
+        color: '#fff', fontSize: 16, outline: 'none', minHeight: 44, boxSizing: 'border-box',
     },
     saveBtn: {
+        minHeight: 44, touchAction: 'manipulation',
         padding: '8px 14px', borderRadius: 8, border: 'none',
         background: '#2374e1', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },
     cancelBtn: {
+        minHeight: 44, touchAction: 'manipulation',
         padding: '8px 14px', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)',
         background: 'transparent', color: '#b0b3b8', fontSize: 14, cursor: 'pointer',
     },
     deleteBtnConfirm: {
+        minHeight: 44, touchAction: 'manipulation',
         padding: '8px 14px', borderRadius: 8, border: 'none',
         background: '#d32f2f', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },

@@ -336,7 +336,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                                     borderColor: (!extractedData.vendor || extractedData.vendor.length < 3) ? 'rgba(239,68,68,0.4)' : styles.dataRow.border?.includes?.('mid') ? undefined : undefined,
                                     ...((!extractedData.vendor || extractedData.vendor.length < 3) ? { border: '2px solid rgba(239,68,68,0.4)' } : {}),
                                 }}>
-                                    <span style={styles.dataLabel}>VENDOR {(!extractedData.vendor || extractedData.vendor.length < 3) && <span style={{ color: '#f87171', fontSize: 10 }}>⚠ REVIEW</span>}</span>
+                                    <span style={styles.dataLabel}>VENDOR {(!extractedData.vendor || extractedData.vendor.length < 3) && <span style={{ color: '#f87171', fontSize: 12 }}>⚠ REVIEW</span>}</span>
                                     <span style={styles.dataValue}>{extractedData.vendor || '-'}</span>
                                 </div>
                             )}
@@ -345,7 +345,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                                     ...styles.dataRow,
                                     ...(parseFloat(extractedData.amount) <= 0 ? { border: '2px solid rgba(239,68,68,0.4)' } : {}),
                                 }}>
-                                    <span style={styles.dataLabel}>AMOUNT {parseFloat(extractedData.amount) <= 0 && <span style={{ color: '#f87171', fontSize: 10 }}>⚠ REVIEW</span>}</span>
+                                    <span style={styles.dataLabel}>AMOUNT {parseFloat(extractedData.amount) <= 0 && <span style={{ color: '#f87171', fontSize: 12 }}>⚠ REVIEW</span>}</span>
                                     <span style={{ ...styles.dataValue, color: '#4ade80' }}>${parseFloat(extractedData.amount).toFixed(2)}</span>
                                 </div>
                             )}

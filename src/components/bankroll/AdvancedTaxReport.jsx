@@ -188,7 +188,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                         background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
                         borderRadius: 12, padding: '14px 16px',
                     }}>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
                         <div style={{ fontSize: 18, fontWeight: 900, color: card.color }}>{card.value}</div>
                     </div>
                 ))}
@@ -202,7 +202,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
             }}>
                 <div>
                     <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Combined Effective Tax Rate</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Federal + {stateInfo.name}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Federal + {stateInfo.name}</div>
                 </div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: '#fff' }}>{effectiveRate}%</div>
             </div>
@@ -223,11 +223,11 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                                 background: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: 14, textAlign: 'center',
                                 border: `1px solid ${net >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`,
                             }}>
-                                <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 8 }}>{q.label}</div>
+                                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 8 }}>{q.label}</div>
                                 <div style={{ fontSize: 16, fontWeight: 900, color: net >= 0 ? '#4ade80' : '#f87171' }}>
                                     {net >= 0 ? '+' : '−'}${Math.abs(net).toLocaleString()}
                                 </div>
-                                <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
+                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                                     W: ${q.income.toLocaleString()} / L: ${q.losses.toLocaleString()}
                                 </div>
                             </div>
@@ -247,7 +247,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                         onClick={() => setShowDeductionForm(!showDeductionForm)}
                         style={{
                             background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)',
-                            color: '#00d4ff', fontSize: 11, fontWeight: 700, padding: '6px 12px',
+                            color: '#00d4ff', fontSize: 12, fontWeight: 700, padding: '6px 12px',
                             borderRadius: 8, cursor: 'pointer',
                         }}
                     >{showDeductionForm ? 'Hide ▲' : 'Edit Deductions ▼'}</button>
@@ -267,7 +267,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                                     }}>
                                         <span style={{ fontSize: 16 }}>{cat.icon}</span>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{cat.label}</div>
+                                            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{cat.label}</div>
                                             <input
                                                 type="number"
                                                 placeholder="$0"

@@ -2388,14 +2388,18 @@ export default function VideoLibraryPage() {
                         ref={modalCloseButtonRef}
                         type="button"
                         onClick={handleCloseVideo}
-                        className="vl-modal-close"
-                        aria-label="Close video"
+                        className="vl-modal-close sp-icon-btn sp-overlay-close"
+                        aria-label="Close"
                         style={{
                             position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            width: 40,
-                            height: 40,
+                            top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                            right: 12,
+                            width: 44,
+                            height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             background: 'rgba(0,0,0,0.65)',
                             border: '1px solid rgba(255,255,255,0.2)',
                             borderRadius: '50%',
@@ -3167,7 +3171,7 @@ export default function VideoLibraryPage() {
             {ttsOverlay && (
                 <div className="vl-tts-sheet" role="presentation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
                     <div onClick={() => setTtsOverlay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: -1 }} />
-                    <div ref={ttsDialogRef} role="dialog" aria-modal="true" aria-labelledby="vl-tts-title" style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
+                    <div ref={ttsDialogRef} role="dialog" aria-modal="true" aria-labelledby="vl-tts-title" style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', paddingBottom: 'env(safe-area-inset-bottom, 0px)', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}><div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} /></div>
                         <div style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))', border: '1.5px solid rgba(0,200,83,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -3177,7 +3181,7 @@ export default function VideoLibraryPage() {
                                 <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
                             </div>
-                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close training recommendations" onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="sp-icon-btn" onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
                         </div>
                         <div style={{ padding: '0 20px 12px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                             <div style={{ width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>

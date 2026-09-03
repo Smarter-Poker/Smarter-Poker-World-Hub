@@ -431,6 +431,43 @@ html.reels-lock {
     max-width: 100%;
     height: auto;
   }
+
+  /* Mobile foundation (Phase 0a, docs/mobile-standard): every control is a
+     touch control. `manipulation` removes the 300ms double-tap-zoom delay
+     and the grey tap flash on iOS. Applies to every button, including
+     .sp-icon-btn, because it changes no geometry. */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Typography floor: NOTHING under 12px is allowed on a phone (standard,
+     "Tokens"). Captions and <small> are the usual offenders; this clamps
+     them without touching anything already at or above 12px. */
+  small,
+  .caption,
+  [data-caption] {
+    font-size: max(12px, 1em);
+  }
+}
+
+/* Press feedback replaces hover on touch devices (standard rule 6: no
+   hover-only affordances). Opt out with .sp-no-press on controls that carry
+   their own transform (carousels, drag handles). Scoped to (hover: none) so
+   a desktop mouse keeps its existing :hover styles untouched. */
+@media (hover: none) {
+  button:not(.sp-no-press):active {
+    transform: scale(0.98);
+  }
+
+  /* Opt-in utility: a desktop-only duplicate of something the phone shows
+     another way (the ONE sanctioned display:none in the standard). This is
+     NOT a global hover kill; desktop pages keep their :hover rules. */
+  .sp-hover-only {
+    display: none !important;
+  }
 }
 
 /* Safe area support for notched devices */

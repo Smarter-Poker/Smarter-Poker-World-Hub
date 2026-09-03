@@ -153,3 +153,45 @@ artwork), through the Toast layer, deduped, nothing auto-closes.
 5. `npx next build` exit 0.
 6. LOOKED AT THE PIXELS at 375px and 390px. "This is the first change this session where I looked at the pixels before claiming anything, which is what Dan asked for." (PR #772)
 7. Changelog under `docs/changelog/YYYY-MM-DD-<slug>.md`.
+
+## Phase 0a: shared foundation
+
+Shipped 2026-09-03 (`docs/changelog/2026-09-03-mobile-phase0a-foundation.md`).
+Every primitive is plain JS/JSX, documented at the top with WHY, and pinned
+by `__tests__/mobile-foundation.test.mjs`. A page adopts them by importing;
+it never re-implements them.
+
+- **`src/components/ui/HubPageShell.jsx`**: the page shell above, as a
+  component. `<HubPageShell className="bankroll" background={C.bg}
+  onMenuClick={...} sidebar={<Contacts/>}>sections</HubPageShell>`. Renders
+  the 100dvh / 100vw-clamped shell, the header (hidden inside an iframe),
+  `{prefix}-page-container > -feed-layout > -feed-column`, and the mandatory
+  900/768 block as a plain `<style>`. No bottom clearance: `_app.js` owns it.
+  Exports `HUB_BREAKPOINTS = { rail: 900, phone: 768, sheet: 600 }`.
+- **`src/hooks/useLoadFailsafe.js`**: `useLoadFailsafe(loading, setLoading)`
+  clears a stuck skeleton after 8s; `useInitialLoadRef()` is the ref that
+  keeps background refreshes from flashing the skeleton.
+- **`src/hooks/useOnlineStatus.js`** + **`src/components/ui/OfflineBar.jsx`**:
+  SSR-safe online flag and the single "You Are Offline / Retry" pill,
+  mounted once in `pages/_app.js`. Pages do not mount their own.
+- **`src/hooks/useModalHistory.js`**: `useModalHistory(isOpen, onClose)`
+  makes the phone back gesture close the modal instead of leaving the page.
+  Every modal, sheet, and lightbox calls it.
+- **`src/hooks/useHaptics.js`**: `const haptic = useHaptics();
+  haptic('light' | 'medium' | 'success')`. The only vibrate call site.
+- **`src/components/ui/ResponsiveTable.jsx`**: `<ResponsiveTable columns=
+  {[{ key, label, align, render }]} rows={rows} keyField="id" />`. A real
+  table above 768px, one labelled card per row at or below it, decided by
+  CSS so it hydrates cleanly. This replaces every sideways-scrolling table.
+- **Global CSS (`src/index.css`, inside the 768 block)**: `touch-action:
+  manipulation` and a transparent tap highlight on `button, a,
+  [role="button"]`; `small, .caption, [data-caption] { font-size:
+  max(12px, 1em) }` (nothing under 12px); under `@media (hover: none)`:
+  `button:not(.sp-no-press):active { transform: scale(0.98) }` and the
+  opt-in `.sp-hover-only { display: none }`. There is no global hover kill;
+  desktop pages keep their `:hover`.
+- **Gold-standard corrections**: `/hub/social-media` is in
+  `bottom-nav-routes.json`, its two shells no longer carry `paddingBottom:
+  70`, and its FAB sits at `calc(56px + 16px + env(safe-area-inset-bottom))`.
+  The `social-pages` loading shells carry one `maxWidth` each (100vw on the
+  shell, 700 on an inner column).

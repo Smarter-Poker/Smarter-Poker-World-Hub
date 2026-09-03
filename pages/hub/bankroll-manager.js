@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 /**
  * BANKROLL MANAGER PAGE
- * /hub/bankroll-manager — Financial Truth Engine
+ * /hub/bankroll-manager - Financial Truth Engine
  * Military-grade tracking with immutable ledger and Personal Assistant
  */
 
@@ -14,8 +14,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HubPageShell from '../../src/components/ui/HubPageShell';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
+import { useLoadFailsafe, useInitialLoadRef } from '../../src/hooks/useLoadFailsafe';
+import { useModalHistory } from '../../src/hooks/useModalHistory';
+import { useHaptics } from '../../src/hooks/useHaptics';
+import { useOnlineStatus } from '../../src/hooks/useOnlineStatus';
 import FeatureGate from '../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -30,39 +34,42 @@ import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter,
 import toast from '../../src/stores/toastStore';
 import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
 
-// Bankroll components
-import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
-const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+// Bankroll components. Eager: the dashboard's first paint (trend chart,
+// Jarvis insights, rules card, stat cards). Everything below the fold or
+// off the dashboard is lazy (mobile phase 1b, PERF): each chunk arrives
+// when its section mounts and shows the same shimmer block until it does.
+// Recharts is never imported at page top level (BankrollTrendChart loads
+// it with its own dynamic() calls).
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
-// QuickLogWidget removed
-
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
-// Phase 2 Components
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
-import LocationAnalytics from '../../src/components/bankroll/LocationAnalytics';
-import BankrollProjection from '../../src/components/bankroll/BankrollProjection';
-import PlayerNotes from '../../src/components/bankroll/PlayerNotes';
-// Phase 4 Components
-import HistoricalComparison from '../../src/components/bankroll/HistoricalComparison';
-import VarianceCalculator from '../../src/components/bankroll/VarianceCalculator';
-// Phase 5 Pro Components
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
-import ReceiptScanner from '../../src/components/bankroll/ReceiptScanner';
-import SavedReceipts from '../../src/components/bankroll/SavedReceipts';
-import TaxReportPanel from '../../src/components/bankroll/TaxReportPanel';
-import StakingTracker from '../../src/components/bankroll/StakingTracker';
-import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
-import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
-import TripTracker from '../../src/components/bankroll/TripTracker';
-import TokeTracker from '../../src/components/bankroll/TokeTracker';
-import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
-// Phase 8: Institutional Integrity Components
-
-import AdvancedTaxReport from '../../src/components/bankroll/AdvancedTaxReport';
-import SocialStakingProfile from '../../src/components/bankroll/SocialStakingProfile';
-import TournamentCalendar from '../../src/components/bankroll/TournamentCalendar';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
+import BankrollTutorial, { hasSeenBankrollTutorial } from '../../src/components/bankroll/BankrollTutorial';
+
+const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 300 }} />;
+const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
+
+const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
+const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
+const BankrollProjection = lazySection(() => import('../../src/components/bankroll/BankrollProjection'));
+const PlayerNotes = lazySection(() => import('../../src/components/bankroll/PlayerNotes'));
+const HistoricalComparison = lazySection(() => import('../../src/components/bankroll/HistoricalComparison'));
+const VarianceCalculator = lazySection(() => import('../../src/components/bankroll/VarianceCalculator'));
+const ReceiptScanner = lazySection(() => import('../../src/components/bankroll/ReceiptScanner'));
+const SavedReceipts = lazySection(() => import('../../src/components/bankroll/SavedReceipts'));
+const TaxReportPanel = lazySection(() => import('../../src/components/bankroll/TaxReportPanel'));
+const StakingTracker = lazySection(() => import('../../src/components/bankroll/StakingTracker'));
+const SeriesTracker = lazySection(() => import('../../src/components/bankroll/SeriesTracker'));
+const SessionHandReview = lazySection(() => import('../../src/components/bankroll/SessionHandReview'));
+const TripTracker = lazySection(() => import('../../src/components/bankroll/TripTracker'));
+const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
+const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
+const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
+const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
+const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
@@ -113,7 +120,7 @@ const CATEGORY_LABELS = {
 
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
-function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) {
+function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
     if (risk === 'MEDIUM') return '#eab308';
@@ -121,7 +128,14 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) 
   };
 
   return (
-    <div style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer' } : {}) }} onClick={onClick}>
+    <div
+      style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 } : {}) }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      data-tutorial={tutorialId}
+    >
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
         <div style={styles.statLoading}>-</div>
@@ -189,7 +203,6 @@ function DayPassCountdown({ expiresAt }) {
       color: '#fff',
       whiteSpace: 'nowrap'
     }}>
-      <span style={{ fontSize: 14 }}>⏱️</span>
       Active Pass: <span style={{ color: '#00D4FF' }}>{timeLeft}</span>
     </div>
   );
@@ -199,10 +212,28 @@ export default function BankrollManagerPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const userId = user?.id;
+  const haptic = useHaptics();
+  const online = useOnlineStatus();
 
   // ─── Hardening: mounted ref + debounce timer ────────
   const isMountedRef = useRef(true);
   const rtTimerRef = useRef(null);
+  // The first load shows the skeleton; every reload after it (realtime
+  // debounce, a mutation's loadData, filter changes) keeps the content on
+  // screen so scroll position survives (mobile phase 0a, useInitialLoadRef).
+  const isInitialLoad = useInitialLoadRef();
+  const sectionPushedRef = useRef(false);
+  const tutorialTimerRef = useRef(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Offline: mutation buttons explain instead of firing (the OfflineBar in
+  // pages/_app.js is the global banner; this is the per-action guard).
+  const requireOnline = useCallback(() => {
+    if (online) return true;
+    toast.error('You Are Offline. Try Again When Connected.');
+    return false;
+  }, [online]);
   useEffect(() => {
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
@@ -232,7 +263,7 @@ export default function BankrollManagerPage() {
   const [editEntry, setEditEntry] = useState(null);
 
   // Handle query parameters for deep linking
-  // Use router.asPath as dependency — it's a string that reliably changes on same-page navigation
+  // Use router.asPath as dependency - it's a string that reliably changes on same-page navigation
   useEffect(() => {
     if (!router.isReady) return;
     if (router.query.view) {
@@ -241,6 +272,7 @@ export default function BankrollManagerPage() {
         setActiveSection('dashboard');
       } else {
         setActiveSection(requestedView);
+        sectionPushedRef.current = true;
       }
     }
     if (router.query.type) {
@@ -250,12 +282,44 @@ export default function BankrollManagerPage() {
       setActiveSection('dashboard'); // Ensure we show the dashboard when filtering
     } else if (!router.query.view) {
       setCategoryFilter('all');
+      // No ?view and we have pushed one before: the phone back gesture has
+      // returned to the bare URL, which is the dashboard (mobile phase 1b,
+      // BACK BUTTON). A first visit with a persisted section keeps it.
+      if (sectionPushedRef.current) setActiveSection('dashboard');
     }
   }, [router.asPath, router.isReady]);
+
+  // On arrival with a persisted non-dashboard section and a bare URL, write
+  // the section into the URL once so the state and the address agree.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.view || router.query.type) return;
+    if (!filters.activeSection || filters.activeSection === 'dashboard') return;
+    if (sectionPushedRef.current) return;
+    sectionPushedRef.current = true;
+    void router.replace(
+      { pathname: router.pathname, query: { view: filters.activeSection } },
+      undefined,
+      { shallow: true, scroll: false },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
+
+  // Every user-driven section change is a shallow history entry, so the
+  // phone back gesture returns to the previous section instead of leaving
+  // the page. `?view=log-session` and `?type=` deep links are untouched.
+  const goToSection = useCallback((sectionId) => {
+    setActiveSection(sectionId);
+    sectionPushedRef.current = true;
+    const query = sectionId === 'dashboard' ? {} : { view: sectionId };
+    void router.push({ pathname: '/hub/bankroll-manager', query }, undefined, { shallow: true, scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  useLoadFailsafe(isLoading, setIsLoading);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
   const [showStartingBankroll, setShowStartingBankroll] = useState(false);
@@ -406,7 +470,8 @@ export default function BankrollManagerPage() {
       return;
     }
 
-    setIsLoading(true);
+    if (isInitialLoad.current) setIsLoading(true);
+    let loadedOk = false;
     try {
       const dateRange = getDateRangeFilter(timeFilter);
 
@@ -461,15 +526,15 @@ export default function BankrollManagerPage() {
       for (var i = 0; i < entriesData.length; i++) {
         var entry = entriesData[i];
         if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
-          // Entry belongs to an active trip/series — HIDE it
+          // Entry belongs to an active trip/series - HIDE it
           continue;
         }
         if (entry.trip_id) {
-          // Entry belongs to a completed trip/series — group for summary
+          // Entry belongs to a completed trip/series - group for summary
           if (!completedTripMap[entry.trip_id]) completedTripMap[entry.trip_id] = [];
           completedTripMap[entry.trip_id].push(entry);
         } else {
-          // Standalone entry — show directly
+          // Standalone entry - show directly
           visible.push(entry);
         }
       }
@@ -507,12 +572,27 @@ export default function BankrollManagerPage() {
       // 5. Sort by date descending
       visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
       setEntries(visible);
+      loadedOk = true;
     } catch (error) {
       console.warn('Error loading bankroll data:', error);
     } finally {
-      if (isMountedRef.current) setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        if (isInitialLoad.current) {
+          isInitialLoad.current = false;
+          setHasLoadedOnce(true);
+          // First-visit walkthrough, 800ms after the first successful load.
+          if (loadedOk && !hasSeenBankrollTutorial()) {
+            if (tutorialTimerRef.current) clearTimeout(tutorialTimerRef.current);
+            tutorialTimerRef.current = setTimeout(() => {
+              if (isMountedRef.current) setShowTutorial(true);
+            }, 800);
+          }
+        }
+      }
     }
   }, [userId, locationFilter, timeFilter]);
+  useEffect(() => () => { if (tutorialTimerRef.current) clearTimeout(tutorialTimerRef.current); }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync
@@ -543,7 +623,7 @@ export default function BankrollManagerPage() {
             // Send server-side OneSignal push (all devices, background-capable)
             sendGeofenceNotification(venue, userId);
             // Also open log modal pre-filled with this venue
-            toast.show(`📍 You're near ${venue.name}! Tap to log a session.`);
+            toast.show(`You Are Near ${venue.name}. Tap To Log A Session.`);
           });
         }
       } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
@@ -620,6 +700,7 @@ export default function BankrollManagerPage() {
     const controller = new AbortController();
     const { signal } = controller;
     if (!userId) { setShowLogModal(true); return; } // Will show login prompt
+    if (!requireOnline()) return;
     // ═══ ACTION GATE: Log entry requires access ═══
     if (!guardAction()) return;
     if (bankrollInitialized === false) {
@@ -633,7 +714,7 @@ export default function BankrollManagerPage() {
       if (!has) { setShowStartingBankroll(true); return; }
     }
     setShowLogModal(true);
-  }, [userId, bankrollInitialized, guardAction]);
+  }, [userId, bankrollInitialized, guardAction, requireOnline]);
 
   // A deep link must use the exact same authorization and initialization gates
   // as the visible Log button. Navigating away also closes stale modal state.
@@ -661,7 +742,8 @@ export default function BankrollManagerPage() {
 
   const handleDeleteEntry = async (entryId) => {
     if (!userId) { toast.error('You Must Be Logged In'); return; }
-    // Optimistic removal — entry disappears immediately
+    if (!requireOnline()) return;
+    // Optimistic removal - entry disappears immediately
     setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
       await deleteLedgerEntry(userId, entryId);
@@ -675,41 +757,51 @@ export default function BankrollManagerPage() {
     }
   };
 
+  const openAdjustModal = () => {
+    haptic('light');
+    if (!requireOnline()) return;
+    setShowAdjustModal(true);
+  };
+
+  const closeScanner = useCallback(() => {
+    setShowScanner(false);
+    setScannerStep('scan');
+    setScannerEntryId(null);
+    setScannerImageUrl(null);
+    setScannerExtractedData(null);
+  }, []);
+
   const handleSidebarClick = (sectionId) => {
+    haptic('light');
     // ═══ ACTION GATE: Pro tool sidebar actions require access ═══
     if (sectionId !== 'dashboard' && !guardAction()) return;
     if (sectionId === 'scan-receipt') {
+      if (!requireOnline()) return;
       setShowScanner(true);
       setScannerStep('scan');
       setScannerEntryId(null);
       setScannerImageUrl(null);
     } else if (sectionId === 'projection') {
       setShowProjection(true);
-    } else if (sectionId === 'staking') {
-      setActiveSection('staking');
     } else if (sectionId === 'toke-tracker') {
       // Navigate to dedicated Toke Tracker landing page
       router.push('/hub/toke-tracker');
       return;
-    } else if (sectionId === 'tax') {
-      setActiveSection('tax');
-    } else if (sectionId === 'receipts') {
-      setActiveSection('receipts');
-
-    } else if (sectionId === 'staking-profile') {
-      setActiveSection('staking-profile');
-    } else if (sectionId === 'tournament-calendar') {
-      setActiveSection('tournament-calendar');
-    } else {
-      setActiveSection(sectionId);
+    } else if (sectionId === 'dashboard') {
       // Reset category filter when going back to Dashboard
-      if (sectionId === 'dashboard') {
-        setCategoryFilter('all');
-        router.push('/hub/bankroll-manager', undefined, { shallow: true });
-        loadData(); // Refresh dashboard data (trips, series banners, stats)
-      }
+      setCategoryFilter('all');
+      goToSection('dashboard');
+      loadData(); // Refresh dashboard data (trips, series banners, stats)
+    } else {
+      goToSection(sectionId);
     }
   };
+
+  // Page-owned overlays: the phone back gesture closes them (mobile phase 0a).
+  useModalHistory(showScanner, closeScanner);
+  useModalHistory(showAllEntries, () => setShowAllEntries(false));
+  useModalHistory(showLogModal && !userId, closeLogModal);
+  useModalHistory(ruleViolations.length > 0, () => setRuleViolations([]));
 
   const selectedLocationName = locationFilter
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
@@ -753,7 +845,7 @@ export default function BankrollManagerPage() {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
-  // Realtime subscription — live updates with debounce
+  // Realtime subscription - live updates with debounce
   useEffect(() => {
     if (!userId) return;
     const debouncedReload = () => {
@@ -773,7 +865,7 @@ export default function BankrollManagerPage() {
     };
   }, [userId, loadData]);
 
-  // Auth state listener — re-load on session refresh
+  // Auth state listener - re-load on session refresh
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && isMountedRef.current) {
@@ -794,9 +886,9 @@ export default function BankrollManagerPage() {
 
       </SEOHead>
 
+      <HubPageShell className="bankroll" maxWidth={960} background="#18191a" onMenuClick={() => setMenuOpen(true)}>
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
         <FeatureGate featureKey="bankroll_pro" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
           {/* Hamburger Menu */}
@@ -820,7 +912,7 @@ export default function BankrollManagerPage() {
                 swipe. The old `.bankroll-mobile-nav` horizontal pill rail
                 (hidden scrollbar, items 5-13 off screen) is deleted. */}
             <nav className="bankroll-sidebar" style={styles.sidebar} aria-label="Bankroll Manager Sections">
-              <div className="bankroll-sidebar-list">
+              <div className="bankroll-sidebar-list" data-tutorial="nav">
                 {SIDEBAR_SECTIONS.map((section) => {
                   const isActive = activeSection === section.id && !section.action;
                   return (
@@ -829,7 +921,7 @@ export default function BankrollManagerPage() {
                       type="button"
                       className={`bankroll-sidebar-item${isActive ? ' active' : ''}`}
                       aria-current={isActive ? 'page' : undefined}
-                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
+                      onClick={() => section.action ? openAdjustModal() : handleSidebarClick(section.id)}
                       style={{
                         ...styles.sidebarItem,
                         ...(isActive ? styles.sidebarItemActive : {}),
@@ -842,7 +934,7 @@ export default function BankrollManagerPage() {
               </div>
 
               {/* Jarvis AI Insights - moved from right panel */}
-              <div className="bankroll-sidebar-insights" style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+              <div className="bankroll-sidebar-insights" data-tutorial="insights" style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
                 <JarvisLeakInsights userId={userId} onRefresh={loadData} />
               </div>
             </nav>
@@ -873,8 +965,17 @@ export default function BankrollManagerPage() {
                   {!isGloballyVip && hasProAccess && proExpiresAt && (
                     <DayPassCountdown expiresAt={proExpiresAt} />
                   )}
+                  <button
+                    type="button"
+                    className="bankroll-tutorial-btn"
+                    style={styles.tutorialButton}
+                    onClick={() => { haptic('light'); setShowTutorial(true); }}
+                    aria-label="Replay The Tutorial"
+                  >
+                    Tutorial
+                  </button>
                   {activeSection === 'dashboard' && categoryFilter === 'all' && (
-                    <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
+                    <button type="button" className="bankroll-log-btn" data-tutorial="add-button" style={styles.logButton} onClick={() => { haptic('light'); handleLogClick(); }}>
                       Add +
                     </button>
                   )}
@@ -889,7 +990,7 @@ export default function BankrollManagerPage() {
                     categoryFilter={categoryFilter}
                     onBack={() => {
                       setCategoryFilter('all');
-                      router.push('/hub/bankroll-manager', undefined, { shallow: true });
+                      goToSection('dashboard');
                     }}
                   />
                 </HubErrorBoundary>
@@ -916,8 +1017,13 @@ export default function BankrollManagerPage() {
                           alignItems: 'center',
                           gap: 14,
                           cursor: 'pointer',
+                          touchAction: 'manipulation',
+                          minHeight: 44,
                         }}
-                        onClick={() => setActiveSection('trips')}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => { haptic('light'); goToSection('trips'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSection('trips'); } }}
                       >
                         <div style={{
                           width: 10,
@@ -947,7 +1053,8 @@ export default function BankrollManagerPage() {
                           </div>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleLogClick(); }}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); haptic('light'); handleLogClick(); }}
                           style={{
                             background: '#3b82f6',
                             color: '#fff',
@@ -982,8 +1089,13 @@ export default function BankrollManagerPage() {
                           alignItems: 'center',
                           gap: 14,
                           cursor: 'pointer',
+                          touchAction: 'manipulation',
+                          minHeight: 44,
                         }}
-                        onClick={() => setActiveSection('series')}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => { haptic('light'); goToSection('series'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSection('series'); } }}
                       >
                         <div style={{
                           width: 10,
@@ -1013,7 +1125,8 @@ export default function BankrollManagerPage() {
                           </div>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setActiveSection('series'); }}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); haptic('light'); goToSection('series'); }}
                           style={{
                             background: '#6366f1',
                             color: '#fff',
@@ -1033,7 +1146,26 @@ export default function BankrollManagerPage() {
                     );
                   })()}
 
+                  {/* First paint only: a skeleton that mirrors the dashboard
+                      (stats grid, chart block, three analytics cards). Background
+                      reloads never show it (isInitialLoad). */}
+                  {isLoading && !hasLoadedOnce && (
+                    <div className="bankroll-dashboard-skeleton" aria-busy="true" aria-label="Loading Bankroll">
+                      <div className="bankroll-skel-stats">
+                        <div className="bankroll-skel" style={{ height: 92 }} />
+                        <div className="bankroll-skel" style={{ height: 92 }} />
+                      </div>
+                      <div className="bankroll-skel" style={{ height: 260, marginBottom: 16 }} />
+                      <div className="bankroll-skel-analytics bankroll-analytics-grid">
+                        <div className="bankroll-skel" style={{ height: 180 }} />
+                        <div className="bankroll-skel" style={{ height: 180 }} />
+                        <div className="bankroll-skel" style={{ height: 180 }} />
+                      </div>
+                    </div>
+                  )}
+
                   {/* === Unified Dashboard Frame === */}
+                  {!(isLoading && !hasLoadedOnce) && (
                   <div style={{
                     background: '#1a1b1e',
                     border: '2px solid rgba(255,255,255,0.08)',
@@ -1043,12 +1175,12 @@ export default function BankrollManagerPage() {
                   }}>
 
                     {/* Stats Cards */}
-                    <div className="bankroll-stats-grid" style={styles.statsGrid}>
+                    <div className="bankroll-stats-grid" data-tutorial="stats" style={styles.statsGrid}>
                       <StatCard
                         title="Bankroll Balance"
                         value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '-'}
                         isLoading={isLoading}
-                        onClick={() => setShowAdjustModal(true)}
+                        onClick={openAdjustModal}
                       />
                       <StatCard
                         title="Net Results"
@@ -1061,10 +1193,9 @@ export default function BankrollManagerPage() {
                       />
                     </div>
 
-                    {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
+                    {/* Bankroll Trend Chart, filtered by gameTypeFilter, always include expenses */}
+                    <div data-tutorial="chart">
                     <BankrollTrendChart entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
-
-
 
                     {/* Filters Row */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -1210,11 +1341,14 @@ export default function BankrollManagerPage() {
                         )}
                       </div>
                     </div>
+                    </div>
 
                   </div>
+                  )}
 
-                  {/* Analytics Grid — horizontal slider on mobile */}
-                  <div style={{ position: 'relative' }}>
+                  {/* Analytics grid */}
+                  {!(isLoading && !hasLoadedOnce) && (
+                  <div style={{ position: 'relative' }} data-tutorial="analytics">
                     {!isVip && (
                       <div style={{
                         position: 'absolute',
@@ -1229,12 +1363,14 @@ export default function BankrollManagerPage() {
                         justifyContent: 'center',
                         gap: 12,
                       }}>
-                        <div style={{ fontSize: 32 }}>👑</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only - Advanced Analytics</div>
                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
-                          onClick={() => router.push('/hub/diamond-store')}
+                          type="button"
+                          onClick={() => { haptic('light'); router.push('/hub/diamond-store'); }}
                           style={{
+                            minHeight: 44,
+                            touchAction: 'manipulation',
                             background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                             color: '#000',
                             border: 'none',
@@ -1271,6 +1407,7 @@ export default function BankrollManagerPage() {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   {/* Recent Activity Section */}
                   <div style={styles.activitySection}>
@@ -1280,8 +1417,11 @@ export default function BankrollManagerPage() {
                       <h2 style={styles.sectionTitle}>Recent Activity</h2>
                       {entries.length > 5 && (
                         <button
-                          onClick={() => setShowAllEntries(true)}
+                          type="button"
+                          onClick={() => { haptic('light'); setShowAllEntries(true); }}
                           style={{
+                            minHeight: 44,
+                            touchAction: 'manipulation',
                             background: 'rgba(59, 130, 246, 0.15)',
                             border: '2px solid rgba(59, 130, 246, 0.3)',
                             borderRadius: 6,
@@ -1297,7 +1437,7 @@ export default function BankrollManagerPage() {
                       )}
                     </div>
 
-                    {/* Ledger Timeline — always shows last 5 */}
+                    {/* Ledger Timeline - always shows last 5 */}
                     <LedgerTimeline
                       entries={entries.slice(0, 5)}
                       isLoading={isLoading}
@@ -1309,6 +1449,7 @@ export default function BankrollManagerPage() {
                   {/* Recent Activity Modal Popup */}
                   {showAllEntries && (
                     <div
+                      className="bankroll-modal-overlay"
                       onClick={() => setShowAllEntries(false)}
                       style={{
                         position: 'fixed',
@@ -1326,50 +1467,62 @@ export default function BankrollManagerPage() {
                       }}
                     >
                       <div
+                        className="bankroll-modal"
+                        role="dialog"
+                        aria-modal="true"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           width: '100%',
                           maxWidth: 600,
-                          maxHeight: '80vh',
+                          maxHeight: '80dvh',
                           background: '#1a1b1e',
                           borderRadius: 16,
                           border: '2px solid rgba(255,255,255,0.1)',
                           overflow: 'hidden',
                           display: 'flex',
                           flexDirection: 'column',
+                          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                          boxSizing: 'border-box',
                         }}
                       >
+                        <div className="bankroll-sheet-handle" aria-hidden="true" />
                         {/* Modal Header */}
-                        <div style={{
+                        <div className="bankroll-modal-header" style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '16px 20px',
+                          padding: '12px 20px',
                           borderBottom: '1px solid rgba(255,255,255,0.08)',
                           flexShrink: 0,
                         }}>
                           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>Recent Activity</h2>
                           <button
+                            type="button"
+                            aria-label="Close"
+                            className="bankroll-modal-close sp-icon-btn"
                             onClick={() => setShowAllEntries(false)}
                             style={{
                               background: 'rgba(255,255,255,0.1)',
                               border: 'none',
-                              borderRadius: 8,
-                              width: 32,
-                              height: 32,
+                              borderRadius: '50%',
+                              width: 44,
+                              height: 44,
+                              minWidth: 44,
+                              minHeight: 44,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: '#fff',
-                              fontSize: 16,
+                              fontSize: 18,
                               cursor: 'pointer',
+                              touchAction: 'manipulation',
                             }}
                           >
                             ✕
                           </button>
                         </div>
                         {/* Scrollable Content */}
-                        <div style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
+                        <div className="bankroll-modal-body" style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
                           <LedgerTimeline
                             entries={entries}
                             isLoading={isLoading}
@@ -1503,8 +1656,10 @@ export default function BankrollManagerPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Export CSV */}
                     <button
+                      type="button"
                       onClick={async () => {
                         if (!userId) return;
+                        if (!requireOnline()) return;
                         try {
                           const res = await fetch('/api/bankroll/export', {
                             method: 'POST',
@@ -1546,8 +1701,10 @@ export default function BankrollManagerPage() {
 
                     {/* Export JSON */}
                     <button
+                      type="button"
                       onClick={async () => {
                         if (!userId) return;
+                        if (!requireOnline()) return;
                         try {
                           const res = await fetch('/api/bankroll/export', {
                             method: 'POST',
@@ -1590,8 +1747,10 @@ export default function BankrollManagerPage() {
 
                     {/* PDF Export */}
                     <button
+                      type="button"
                       onClick={async () => {
                         if (!guardAction()) return;
+                        if (!requireOnline()) return;
                         try {
                           const token = getAccessToken();
                           const res = await fetch('/api/bankroll/export-pdf', {
@@ -1641,14 +1800,16 @@ export default function BankrollManagerPage() {
                     </label>
                   </div>
                   <button
-                    onClick={() => setShowVenueModal(true)}
+                    type="button"
+                    onClick={() => { haptic('light'); setShowVenueModal(true); }}
                     style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
                   >
                     Manage Venues
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
                   <button
-                    onClick={() => setActiveSection('reports')}
+                    type="button"
+                    onClick={() => { haptic('light'); goToSection('reports'); }}
                     style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     Export Data
@@ -1671,7 +1832,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Tax Reports — dedicated view showing only Tax Report Generator */}
+              {/* Tax Reports - dedicated view showing only Tax Report Generator */}
               {activeSection === 'tax' && (
                 <div style={styles.proToolsContainer}>
                   <div style={{ padding: '20px 16px 14px', borderBottom: '2px solid #4e4f50' }}>
@@ -1695,7 +1856,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Staking Tracker — dedicated standalone view */}
+              {/* Staking Tracker - dedicated standalone view */}
               {activeSection === 'staking' && (
                 <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
@@ -1706,7 +1867,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Toke Tracker — Dealer Income & Expense Tracking */}
+              {/* Toke Tracker - Dealer Income & Expense Tracking */}
               {activeSection === 'toke-tracker' && (
                 <div style={styles.activitySection}>
                   <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
@@ -1715,7 +1876,7 @@ export default function BankrollManagerPage() {
 
 
 
-              {/* Phase 8: Advanced Tax Report — State-Level */}
+              {/* Phase 8: Advanced Tax Report - State-Level */}
               {activeSection === 'advanced-tax' && (
                 <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
@@ -1726,7 +1887,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Phase 8: Staking Profile — Public Performance Card */}
+              {/* Phase 8: Staking Profile - Public Performance Card */}
               {activeSection === 'staking-profile' && (
                 <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
@@ -1737,7 +1898,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Phase 8: Tournament Calendar — Series Event Planner */}
+              {/* Phase 8: Tournament Calendar - Series Event Planner */}
               {activeSection === 'tournament-calendar' && (
                 <div style={styles.activitySection}>
                   <HubErrorBoundary name="Tournament Calendar">
@@ -1771,27 +1932,33 @@ export default function BankrollManagerPage() {
           </div>
         </FeatureGate>
       </div>
+      </HubPageShell>
 
       {/* Receipt Scanner Modal */}
       {
         showScanner && (
-          <div style={styles.scannerModal}>
-            <div style={styles.scannerModalContent}>
-              <div style={styles.scannerModalHeader}>
+          <div className="bankroll-modal-overlay" style={styles.scannerModal} onClick={closeScanner}>
+            <div className="bankroll-modal" role="dialog" aria-modal="true" style={styles.scannerModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className="bankroll-sheet-handle" aria-hidden="true" />
+              <div className="bankroll-modal-header" style={styles.scannerModalHeader}>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
                   {scannerStep === 'scan' && 'Scan Receipt'}
                   {scannerStep === 'post-capture' && 'Receipt Saved'}
                   {scannerStep === 'pick-entry' && 'Select Entry'}
                 </h2>
                 <button
-                  onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); setScannerExtractedData(null); }}
+                  type="button"
+                  aria-label="Close"
+                  className="bankroll-modal-close sp-icon-btn"
+                  onClick={closeScanner}
                   style={styles.scannerCloseBtn}
                 >
                   ✕
                 </button>
               </div>
+              <div className="bankroll-modal-body" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
 
-              {/* Step 1: Scan — camera captures first */}
+              {/* Step 1: Scan - camera captures first */}
               {scannerStep === 'scan' && (
                 <div>
                   <ReceiptScanner
@@ -1805,7 +1972,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Step 2: Post-capture — choose what to do */}
+              {/* Step 2: Post-capture - choose what to do */}
               {scannerStep === 'post-capture' && scannerImageUrl && (
                 <div style={{ padding: 20 }}>
                   {/* Receipt thumbnail */}
@@ -1860,10 +2027,11 @@ export default function BankrollManagerPage() {
               {scannerStep === 'pick-entry' && (
                 <div style={{ padding: '0 16px 16px' }}>
                   <button
+                    type="button"
                     onClick={() => setScannerStep('post-capture')}
-                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
+                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, cursor: 'pointer', padding: '12px 4px', fontWeight: 500, minHeight: 44, touchAction: 'manipulation' }}
                   >
-                    ← Back
+                    Back
                   </button>
                   {entries.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
@@ -1881,6 +2049,7 @@ export default function BankrollManagerPage() {
                           <button
                             key={entry.id}
                             onClick={async () => {
+                              if (!requireOnline()) return;
                               try {
                                 // Append receipt URL to entry's media_urls
                                 const existing = entry.media_urls || [];
@@ -1924,6 +2093,7 @@ export default function BankrollManagerPage() {
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
         )
@@ -1999,8 +2169,11 @@ export default function BankrollManagerPage() {
                   Please Sign In To Log Your Poker Sessions And Track Your Bankroll.
                 </p>
                 <button
+                  type="button"
                   onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
                   style={{
+                    minHeight: 44,
+                    touchAction: 'manipulation',
                     padding: '14px 32px',
                     background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
                     border: 'none',
@@ -2015,8 +2188,11 @@ export default function BankrollManagerPage() {
                   Sign In
                 </button>
                 <button
+                  type="button"
                   onClick={closeLogModal}
                   style={{
+                    minHeight: 44,
+                    touchAction: 'manipulation',
                     padding: '14px 24px',
                     background: 'transparent',
                     border: '2px solid rgba(255, 255, 255, 0.2)',
@@ -2111,9 +2287,12 @@ export default function BankrollManagerPage() {
 
               {/* Dismiss */}
               <button
+                type="button"
                 onClick={() => setRuleViolations([])}
                 style={{
                   width: '100%',
+                  minHeight: 44,
+                  touchAction: 'manipulation',
                   padding: '12px',
                   background: 'rgba(255,255,255,0.08)',
                   border: '2px solid rgba(255,255,255,0.15)',
@@ -2147,6 +2326,9 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
 
+      {/* First-visit walkthrough (replayable from the Tutorial button) */}
+      <BankrollTutorial open={showTutorial} onClose={() => setShowTutorial(false)} />
+
       {/* Adjust Bankroll Modal */}
       <AnimatePresence>
         {showAdjustModal && (
@@ -2161,7 +2343,7 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
 
-      {/* Weekly Summary removed — data is already visible on dashboard */}
+      {/* Weekly Summary removed - data is already visible on dashboard */}
 
       {/* Bankroll Projection Modal */}
       <AnimatePresence>
@@ -2180,7 +2362,9 @@ export default function BankrollManagerPage() {
 
 const styles = {
   container: {
-    minHeight: '100dvh',
+    // The shell (HubPageShell) owns 100dvh, the 100vw clamp, overflow and
+    // the header. This is the themed column inside its feed column;
+    // bankroll.css scopes every rule under `.bankroll-page`.
     background: '#18191a',  // SmarterPoker dark background
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
@@ -2188,8 +2372,6 @@ const styles = {
     // every route in src/config/bottom-nav-routes.json (PR #766, #992). A
     // page-owned 70 was ~34px short on home-indicator iPhones.
     width: '100%',
-    maxWidth: '100vw',
-    overflowX: 'hidden',
     boxSizing: 'border-box',
   },
   bgGrid: {
@@ -2227,6 +2409,8 @@ const styles = {
   },
   dropdownButton: {
     padding: '8px 16px',
+    minHeight: 44,
+    touchAction: 'manipulation',
     background: 'rgba(255, 255, 255, 0.05)',
     border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
@@ -2261,6 +2445,8 @@ const styles = {
     display: 'block',
     width: '100%',
     padding: '10px 12px',
+    minHeight: 44,
+    touchAction: 'manipulation',
     background: 'transparent',
     border: 'none',
     borderRadius: 4,
@@ -2281,7 +2467,7 @@ const styles = {
   },
   mainLayout: {
     display: 'flex',
-    minHeight: 'calc(100vh - 140px)',
+    minHeight: 'calc(100dvh - 140px)',
   },
   sidebar: {
     width: 160,
@@ -2292,6 +2478,8 @@ const styles = {
     display: 'block',
     width: '100%',
     padding: '10px 14px',
+    minHeight: 44,
+    touchAction: 'manipulation',
     background: 'transparent',
     border: 'none',
     borderRadius: 8,
@@ -2343,8 +2531,25 @@ const styles = {
     alignItems: 'center',
     gap: 12,
   },
+  tutorialButton: {
+    padding: '10px 16px',
+    minHeight: 44,
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
+    background: 'rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
   logButton: {
     padding: '10px 24px',
+    minHeight: 44,
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
     background: '#2374e1',  // SmarterPoker blue - clean, sleek
     border: 'none',
     borderRadius: 8,
@@ -2514,29 +2719,44 @@ const styles = {
     borderRadius: 16,
     maxWidth: 500,
     width: '100%',
-    maxHeight: '90vh',
-    overflowY: 'auto',
+    maxHeight: '90dvh',
+    display: 'flex',
+    flexDirection: 'column',
     border: '2px solid rgba(255, 255, 255, 0.1)',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    boxSizing: 'border-box',
   },
   scannerModalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px 20px',
+    padding: '12px 20px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    flexShrink: 0,
   },
   scannerCloseBtn: {
-    background: 'none',
+    background: 'rgba(255, 255, 255, 0.08)',
     border: 'none',
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 20,
+    borderRadius: '50%',
+    color: '#fff',
+    fontSize: 18,
     cursor: 'pointer',
-    padding: 4,
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
   },
   scannerChoiceBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: 14,
+    minHeight: 44,
+    touchAction: 'manipulation',
     padding: '16px 18px',
     background: 'rgba(255, 255, 255, 0.04)',
     border: '2px solid rgba(255, 255, 255, 0.1)',
@@ -2549,6 +2769,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 44,
+    touchAction: 'manipulation',
     padding: '10px 14px',
     background: 'rgba(255, 255, 255, 0.03)',
     border: '2px solid rgba(255, 255, 255, 0.06)',
@@ -2598,6 +2820,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 14,
+    minHeight: 44,
+    touchAction: 'manipulation',
     padding: '16px 18px',
     background: 'rgba(255, 255, 255, 0.03)',
     border: '2px solid rgba(255, 255, 255, 0.08)',

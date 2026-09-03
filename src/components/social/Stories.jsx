@@ -561,27 +561,31 @@ function StoryViewer({ storyGroup, onClose, userId }) {
             alignItems: 'center',
             justifyContent: 'center',
         }}>
+            {/* Close: below the status bar, 44x44 (mobile phase 0b). */}
             <button
                 onClick={onClose}
+                aria-label="Close"
+                className="sp-icon-btn sp-overlay-close"
                 style={{
-                    position: 'absolute', top: 20, right: 20,
-                    width: 44, height: 44, borderRadius: '50%',
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 12,
+                    width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.2)',
                     border: 'none', color: 'white', fontSize: 24,
                     cursor: 'pointer', zIndex: 10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                 }}
             >✕</button>
 
             <div style={{
                 width: '100vw',
-                height: '100vh',
+                height: '100dvh',
                 position: 'relative',
                 background: currentStory.background_color || currentStory.media_url ? 'black' : STORY_GRADIENTS[0],
             }}>
                 {/* Progress bars */}
                 <div style={{
-                    position: 'absolute', top: 8, left: 8, right: 8,
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 8px)', left: 8, right: 8,
                     display: 'flex', gap: 4, zIndex: 10,
                 }}>
                     {stories.map((_, i) => (
@@ -601,7 +605,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
 
                 {/* Header */}
                 <div style={{
-                    position: 'absolute', top: 20, left: 12, right: 12,
+                    position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 20px)', left: 12, right: 68,
                     display: 'flex', alignItems: 'center', gap: 12,
                     zIndex: 10,
                 }}>
@@ -974,6 +978,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 {/* Header */}
                 <div style={{
                     padding: '16px 20px',
+                    paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -981,11 +986,17 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 }}>
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        className="sp-icon-btn"
                         style={{
                             background: 'rgba(255,255,255,0.2)',
                             border: 'none',
-                            width: 40,
-                            height: 40,
+                            width: 44,
+                            height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             borderRadius: '50%',
                             fontSize: 20,
                             cursor: 'pointer',

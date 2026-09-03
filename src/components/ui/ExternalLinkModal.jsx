@@ -223,7 +223,7 @@ function ExternalLinkModal({ url, title, onClose }) {
                                 {copied ? '✓ Copied!' : '📋 Copy Link'}
                             </button>
                         )}
-                        <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                        <button onClick={onClose} style={styles.closeBtn} aria-label="Close" className="sp-icon-btn">✕</button>
                     </div>
                 </div>
 
@@ -351,7 +351,7 @@ const styles = {
     },
     modal: {
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         maxWidth: 'none',
         background: '#0a1628',
         borderRadius: 0,
@@ -366,6 +366,8 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '12px 16px',
+        // Below the status bar so the X is reachable on a phone (mobile phase 0b).
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         background: 'rgba(0, 212, 255, 0.1)',
         borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
     },
@@ -424,8 +426,12 @@ const styles = {
         cursor: 'pointer',
     },
     closeBtn: {
-        width: 32,
-        height: 32,
+        width: 44,
+        height: 44,
+        minWidth: 44,
+        minHeight: 44,
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

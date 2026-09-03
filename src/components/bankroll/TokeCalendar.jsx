@@ -492,7 +492,7 @@ const calStyles = {
     },
     monthName: { fontSize: 12, fontWeight: 700, color: '#E4E6EB', letterSpacing: 0.3, flex: 1, textAlign: 'left' },
     monthDot: {
-        fontSize: 10, background: '#f59e0b', color: '#000',
+        fontSize: 12, background: '#f59e0b', color: '#000',
         borderRadius: 10, minWidth: 16, height: 16,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700,
     },
@@ -502,9 +502,9 @@ const calStyles = {
     miniGrid: {
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1,
     },
-    miniDayHeader: { fontSize: 8, color: '#64748b', textAlign: 'center', fontWeight: 600, paddingBottom: 2 },
+    miniDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, paddingBottom: 2 },
     miniDay: {
-        fontSize: 9, color: '#94a3b8', textAlign: 'center', cursor: 'pointer',
+        fontSize: 12, color: '#94a3b8', textAlign: 'center', cursor: 'pointer',
         borderRadius: 3, padding: '1px 0', position: 'relative', lineHeight: '14px',
         transition: 'background 0.15s',
     },
@@ -519,9 +519,9 @@ const calStyles = {
     fullGrid: {
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginTop: 6,
     },
-    fullDayHeader: { fontSize: 11, color: '#64748b', textAlign: 'center', fontWeight: 600, padding: '4px 0' },
+    fullDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, padding: '4px 0' },
     fullDay: {
-        fontSize: 11, color: '#94a3b8', textAlign: 'center', borderRadius: 6,
+        fontSize: 12, color: '#94a3b8', textAlign: 'center', borderRadius: 6,
         padding: '4px 2px', minHeight: 44, cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
         border: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s',
@@ -531,7 +531,7 @@ const calStyles = {
     fullDayPast: { opacity: 0.45 },
     fullDayNum: { fontWeight: 600, lineHeight: 1.3 },
     eventPill: {
-        fontSize: 9, background: 'rgba(245,158,11,0.2)', color: '#f59e0b',
+        fontSize: 12, background: 'rgba(245,158,11,0.2)', color: '#f59e0b',
         borderRadius: 4, padding: '1px 4px', fontWeight: 600, width: '100%',
         textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
     },

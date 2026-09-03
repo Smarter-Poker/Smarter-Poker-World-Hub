@@ -80,23 +80,31 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     flexDirection: 'column',
                 }}
             >
-                {/* Header Bar */}
+                {/* Header Bar. Padded below the status bar so the Back control
+                    is never under the clock on a phone (mobile phase 0b). */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '12px 16px',
+                    paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
                     background: 'rgba(0,0,0,0.8)',
                     borderBottom: '1px solid rgba(255,255,255,0.1)',
                 }}>
                     {/* Close Button */}
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        className="sp-icon-btn"
                         style={{
                             background: 'rgba(255,255,255,0.1)',
                             border: 'none',
                             borderRadius: 8,
                             padding: '8px 16px',
+                            minWidth: 44,
+                            minHeight: 44,
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
                             color: '#FFF',
                             cursor: 'pointer',
                             fontSize: 14,
