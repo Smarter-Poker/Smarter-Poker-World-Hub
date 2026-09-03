@@ -33,8 +33,31 @@
  */
 
 import React, { useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from './FullScreenPageOverlay';
 import { usePageOverlayStore } from '../../stores/pageOverlayStore';
+
+/**
+ * NOTIFICATIONS RENDERS NATIVELY, NOT IN A FRAME (2026-09-02).
+ *
+ * Framing `/hub/notifications` booted a second Next.js application on top of
+ * the warm one every time somebody tapped the bell — fresh document, the Next
+ * runtime, _app, hydration, a second Supabase client, a second realtime
+ * subscription — all serial, all behind a spinner, before the feed request
+ * could start. Club Arena removed exactly that cost on 2026-08-27; this is the
+ * same removal for the Hub.
+ *
+ * Loaded with `dynamic` so the feed is not in the app shell's initial bundle:
+ * every page pays for _app, and most sessions never open notifications. It
+ * arrives on the first open and is cached from then on.
+ *
+ * The other three overlay pages still frame. They are opened rarely, and the
+ * alternative is pulling three more page trees into the shell.
+ */
+const HubNotificationsFeed = dynamic(
+  () => import('../notifications/HubNotificationsFeed'),
+  { ssr: false }
+);
 
 export default function GlobalPageOverlay() {
   const overlayPage = usePageOverlayStore((s) => s.overlayPage);
@@ -72,6 +95,10 @@ export default function GlobalPageOverlay() {
       url={overlayUrl}
       title={overlayTitle}
       onNotifCleared={handleNotifCleared}
-    />
+    >
+      {overlayPage === 'notifications' ? (
+        <HubNotificationsFeed embedded onNotifCleared={handleNotifCleared} />
+      ) : null}
+    </FullScreenPageOverlay>
   );
 }

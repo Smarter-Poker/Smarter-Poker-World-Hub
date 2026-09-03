@@ -215,9 +215,16 @@ test('no resolver output is ever a bare word', () => {
 // while the notifications page had been fixed. Nothing caught that. This does.
 
 test('every notification renderer delegates to the shared resolver', () => {
+    // This list names the files that RENDER notifications, so it has to follow
+    // the rendering. On 2026-09-02 the Hub feed moved out of
+    // pages/hub/notifications.js into the component below, so that the popup
+    // could render it directly instead of framing the page in an iframe. The
+    // page is now a thin route wrapper and renders nothing itself; pointing the
+    // guard at it would check a file with no click handlers in it, which is a
+    // guard that passes while the thing it guards drifts.
     const surfaces = [
         'pages/api/notifications/feed.js',
-        'pages/hub/notifications.js',
+        'src/components/notifications/HubNotificationsFeed.jsx',
         'pages/hub/social-media/index.js',
     ];
     for (const rel of surfaces) {
