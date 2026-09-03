@@ -42,6 +42,31 @@ if [ "$VERCEL_ENV" = "preview" ]; then
       echo "[should-build] previews only queue ahead of production deploys."
       exit 0
       ;;
+    ci-marker/*|backup/*|build/*)
+      # ── AN ORPHAN BRANCH IS NOT AN APPLICATION (2026-09-03) ──────────────
+      #
+      # `agent-open-pr.yml` publishes its outcome to `ci-marker/agent-open-pr-
+      # result`: `git checkout --orphan`, `git rm -rf .`, one text file, force
+      # push. There is no package.json on that branch, so a build cannot do
+      # anything but fail — and it did, on EVERY agent pull request, in every
+      # Vercel-connected repo in the estate. Measured 2026-09-03: every single
+      # ERROR deployment on hub-vanguard, pepnationlab and smarter-poker-
+      # commander was this one ref.
+      #
+      # The commit message carries `[skip ci]` and Vercel builds it regardless:
+      # that convention is honoured by Vercel's own CI detection, not by the
+      # GitHub App deployment path these arrive through (`githubDeployment: 1`).
+      #
+      # `git.deploymentEnabled` in vercel.json now refuses these refs before a
+      # deployment is created at all, which is the real fix. This case stays as
+      # the belt: an ignoreCommand runs even when someone re-enables the ref,
+      # and the gate below CANNOT catch these — `git diff HEAD~1 HEAD` on an
+      # orphan's first commit has no HEAD~1, returns empty, and the "cannot
+      # determine diff, build to be safe" fallback then builds the very thing
+      # that has nothing to build.
+      echo "[should-build] '$VERCEL_GIT_COMMIT_REF' is a marker/backup ref, not an app — SKIPPED."
+      exit 0
+      ;;
   esac
 fi
 
