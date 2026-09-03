@@ -26,6 +26,10 @@ on:
 permissions:
   contents: read
   issues: write
+  # pull-requests: read (2026-09-03) is what lets orphan-work-watchdog.sh tell
+  # a proposed branch from a stranded one. Without it `gh pr list` is refused,
+  # and the sweep reported every branch with a pull request as having none.
+  pull-requests: read
 
 concurrency:
   group: publish-watchdog
