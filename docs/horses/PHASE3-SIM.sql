@@ -14,7 +14,7 @@
 -- # horse at two REAL tables and release one of them, inside this   #
 -- # transaction. The rows are rolled back, but an UNCOMMITTED row   #
 -- # still contends: another session inserting the same              #
--- # (table_id, seat_index) BLOCKS until this transaction ends,      #
+-- # (table_id, seat_number) BLOCKS until this transaction ends,     #
 -- # which is the bottom of this file. The seat index is therefore   #
 -- # derived to be one no live table can be using (see step 10), and #
 -- # the probe prefers a table that is not running. Run these steps  #
@@ -73,13 +73,13 @@
 --
 -- THOSE TWO SEATS CONTEND FOR THE LIFE OF THE TRANSACTION. They are
 -- uncommitted, so no other session can SEE them - but a seat table
--- normally carries a unique index over (table_id, seat_index) to stop
+-- normally carries a unique index over (table_id, seat_number) to stop
 -- two players sharing a seat, and a concurrent insert for the same pair
 -- does not fail against an uncommitted row, it BLOCKS until this
 -- transaction ends. A real player clicking that seat would watch the
 -- table stop responding. So the index is not a plausible number, it is
 -- derived to be one no live table can be using:
---   select coalesce(max(seat_index), 0) + 1000 from public.table_seats
+--   select coalesce(max(seat_number), 0) + 1000 from public.table_seats
 -- and the probe prefers a table whose status is not running or active.
 --
 -- THE ABSENT-SOURCE GUARD IS NOT PROVED HERE. fn_ca_fleet_pnl resolves
@@ -138,9 +138,9 @@ declare
   -- opens two seats for it, both of which are rolled back.
   v_probe_horse uuid;
   -- The seat index the probe sits in. NOT a plausible number: an
-  -- uncommitted row at a (table_id, seat_index) a real player might pick
+  -- uncommitted row at a (table_id, seat_number) a real player might pick
   -- blocks that player until this whole transaction ends. Derived in
-  -- step 10 as max(seat_index) + 1000 over the live seat table, which no
+  -- step 10 as max(seat_number) + 1000 over the live seat table, which no
   -- table with ten seats can ever reach.
   v_probe_seat int;
   v_before   public.ca_horse_fleet_state%rowtype;
@@ -564,21 +564,21 @@ begin
   else
     -- A SEAT INDEX NO LIVE TABLE CAN BE USING. The rows below are
     -- uncommitted, so nobody can see them - but a unique index over
-    -- (table_id, seat_index), which is how a seat table stops two
+    -- (table_id, seat_number), which is how a seat table stops two
     -- players sharing a seat, makes a concurrent insert for the same
     -- pair BLOCK on this transaction rather than fail. It would stay
     -- blocked until the rollback at the bottom of this file, and to the
     -- player the table would simply stop responding. Hard-coding a
     -- plausible seat number (this was 8) is therefore the defect; the
     -- index is derived to be one no real seating can reach.
-    select coalesce(max(seat_index), 0) + 1000 into v_probe_seat
+    select coalesce(max(seat_number), 0) + 1000 into v_probe_seat
     from public.table_seats;
     if v_probe_seat is null then
       v_probe_seat := 1000;
     end if;
 
     begin
-      insert into public.table_seats (table_id, user_id, seat_index, stack)
+      insert into public.table_seats (table_id, user_id, seat_number, stack)
       values (v_table_a, v_probe_horse, v_probe_seat, 500),
              (v_table_b, v_probe_horse, v_probe_seat, 500);
     exception when others then

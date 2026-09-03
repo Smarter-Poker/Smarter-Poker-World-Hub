@@ -437,7 +437,12 @@ async function sectionHorse(db, op, query, requestId) {
     ),
     db
       .from('table_seats')
-      .select('table_id, seat_index, user_id, joined_at')
+      // The live seat table calls it `seat_number`. `seat_index` is the name
+      // ca_horse_fleet_state uses for the engine's own report of the same
+      // thing, and reading it here answered 42703 into a swallowed error, so
+      // the horse 360 would have shown no open seats for a seated horse.
+      // Caught by the phantom-column gate before it shipped.
+      .select('table_id, seat_number, user_id, joined_at')
       .eq('user_id', horseId)
       .is('left_at', null),
     db
@@ -502,7 +507,14 @@ async function sectionHorse(db, op, query, requestId) {
     state: stateRes.data || null,
     register: registerRes.data || null,
     memberships: shapeList(membersRes, membershipPage, memberships),
-    openSeats: seatsRes.data || [],
+    // Renamed on the way out so the panel reads one word for the seat,
+    // whichever table it came from.
+    openSeats: (seatsRes.data || []).map((row) => ({
+      table_id: row.table_id,
+      seat_index: row.seat_number,
+      user_id: row.user_id,
+      joined_at: row.joined_at,
+    })),
     // Lifetime, from player_stats. Named as lifetime because it is not a
     // session figure and a panel that implies otherwise is lying by omission.
     //
