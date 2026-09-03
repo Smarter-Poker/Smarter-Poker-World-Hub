@@ -282,6 +282,20 @@ Never revert without understanding the failure. Never push the same broken code 
 This catches 100% of the errors that would fail on Vercel.
 To skip for emergency hotfixes ONLY: `--skip-build` flag.
 
+### 2.1.5 Where CI runs (added 2026-09-03)
+
+Every CI job in this repo that can run on a self-hosted runner does:
+`runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}`, and `CI_RUNNER` is set to
+`estate-linux`. World Hub's runners are `estate-wh-3..10` on the Hetzner box
+`estate-ci-3` (cpx41, dedicated to this repo; Club Arena has `estate-ci-1/2`),
+plus `estate-wh-1/2` on `estate-ci-1` as overflow. The box is provisioned by
+Club Arena's `scripts/ci/provision-ci-box.sh` (8 GB swap, nightly GC, a node
+heap cap of 6 GB here because `next build` needs ~5 GB, Playwright system
+deps). Unsetting the variable puts every job back on GitHub's pool instantly.
+Measured before the switch: World Hub was 10,299 hosted minutes on
+2026-09-01 (~$53), 75% of it E2E Tests, Global Footer E2E, this gate and
+Supabase Invariants.
+
 ### 2.2 GitHub Actions Safety Gate
 
 `.github/workflows/build-safety-gate.yml` runs on every push to main:
@@ -690,26 +704,38 @@ The platform is mid-migration (Phase 2 of `smarter-poker-optimization-plan.md`).
 Until Phase 2A.4 closes, the 40 jobs currently in `vercel.json` stay there,
 but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
 
-### 11.1 Where scheduled jobs live
+### 11.1 Where scheduled jobs live (rewritten 2026-09-03 - the old table said the workers repo did not exist)
 
-| Layer              | Path / URL                                               | Purpose                                  |
-|--------------------|----------------------------------------------------------|------------------------------------------|
-| **Scheduler**      | `scripts/openclaw-cron-dispatcher.py` (deployed to Hetzner `openclaw-dispatcher` VM — systemd `openclaw.service`) | Decides when a job fires |
-| **Handler (now)**  | `pages/api/cron/<name>.js` in this repo                  | Does the work (will move to `workers` repo in Phase 2B) |
-| **Handler (later)**| `smarter-poker-workers` repo (Phase 2B, not yet created) | Will replace monolith cron routes        |
-| **Auth**           | `Authorization: Bearer $CRON_SECRET` on every call       | Same secret, all tiers                   |
+| Layer | Where | Purpose |
+|---|---|---|
+| **Scheduler** | `scripts/openclaw-cron-dispatcher.py`, ONE copy, on the Hetzner `openclaw-dispatcher` VM (systemd `openclaw.service`). `deploy-openclaw.yml` redeploys it on every merge that touches the file. | Decides when a job fires. **There is exactly one.** A second, stale copy was found running on the engine box on 2026-09-03 firing 8,871 calls a day and executing 3,080 jobs twice; it was stopped, disabled and moved to `/opt/_retired/`. If you ever see two dispatchers, the one that is not on `openclaw-dispatcher` is the wrong one. |
+| **Handler, workers VM** (46 of 86 jobs) | `smarter-poker-workers` repo, `src/routes/<name>.ts`, running on the `workers-dispatcher` VM. A path is routed there when it appears in the dispatcher's `WORKERS_PREFERRED` map. `auto-deploy-workers.yml` deploys every merge to `main` (build on the VM, revision-verified). | Does the work, off Vercel. |
+| **Handler, World Hub** (20 jobs) | `pages/api/cron/<name>.js` in this repo, behind `Authorization: Bearer $CRON_SECRET`. Runs on Vercel, so it is subject to PostgREST's 8s `service_role` statement timeout - a handler that needs longer than that belongs on the workers VM or inside Postgres. | Does the work on Vercel. |
+| **Handler, local script** (video library, cardplayer) | `SCRIPT_JOBS` in the dispatcher: Python run on the dispatcher host itself (`SP_ENABLE_SCRIPT_JOBS=1`, scripts deployed to `/opt/openclaw/`). | Scrapers that are not HTTP. |
+| **pg_cron** (existing jobs only) | `cron.job` inside Postgres, e.g. `refresh-player-stats-hourly`. No new ones (11.3), but the ones that exist are the single scheduler for their work: **do not add an HTTP twin in the dispatcher.** `player-stats-refresh` was scheduled in both places for months; the HTTP copy could never finish (26h window vs 8s cap) and was removed 2026-09-03. | Work that must run inside the database. |
+| **Auth** | `Authorization: Bearer $CRON_SECRET` on every HTTP call, both targets. | Same secret, all tiers. |
+
+The dispatcher has per-job client timeouts (`JOB_TIMEOUTS`; default 120s). A
+client timeout is not a cancel - the worker finishes anyway - so a job that
+legitimately takes longer gets the time it takes, or the journal reports a
+failure for work that succeeded. The journal on the VM
+(`journalctl -u openclaw`) is the source of truth for whether a job runs; read
+it before believing a dashboard.
 
 ### 11.2 How to add a new scheduled job
 
-1. Add the handler under `pages/api/cron/<name>.js` following the existing
-   pattern (check `Authorization` header against `process.env.CRON_SECRET`,
-   use `src/lib/supabaseServerClient.js`).
-2. Add the schedule entry to `scripts/openclaw-cron-dispatcher.py` — cron
-   expression + URL path + human-readable name. Commit to main.
-3. Deploy the dispatcher to Hetzner: `bash scripts/deploy-openclaw.sh`
-   (script scp's the updated Python file, restarts systemd, and tails
-   `journalctl -u openclaw` to verify the new job registered).
-4. Watch one fire-cycle in production before considering the job shipped.
+1. Write the handler where it belongs (table above). If it can exceed 8s of
+   database time, it goes in `smarter-poker-workers`, not here.
+2. Add the schedule entry to `scripts/openclaw-cron-dispatcher.py` - cron
+   expression + URL path + a comment saying what it does. If the handler is
+   on the workers VM, add the path to `WORKERS_PREFERRED` in the same commit.
+   Avoid `minute=0` / `*/15` for anything database-heavy; the quarter-hour is
+   where every job already piles up (spin-sweep moved to `7,22,37,52` for
+   exactly that reason).
+3. Merge. `deploy-openclaw.yml` deploys the dispatcher; `auto-deploy-workers.yml`
+   deploys a workers handler. Nothing here is run from the Mac.
+4. Verify by reading `journalctl -u openclaw` on the VM for the first fire,
+   not by assuming.
 
 ### 11.3 What is BANNED
 
