@@ -23,7 +23,6 @@ on:
     # that never merges.
     # Skipped here because its checks are all about source. This is the expensive one — four jobs including tsc and a dozen node scripts.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: ['main']
 
@@ -727,7 +726,8 @@ jobs:
       # ═══════════════════════════════════════════════════════════════
       # CHECK 18: Nothing but the sanctioned safety net may invoke a
       # Vercel deploy (issue #653). Ported from Club Arena, with the one
-      # exception (club-arena-scheduled-deploy.yml owns the deploy hook)
+      # exception is retired with the Club Arena sync (2026-09-03): nothing
+      # calls the deploy hook now, so check-no-vercel-deploy has no allowlist
       # written into the script. A rule in a document loses to a script
       # with a plausible filename; this makes the rule executable.
       # ═══════════════════════════════════════════════════════════════
@@ -878,7 +878,7 @@ jobs:
           # this allowlist entry retires with it, exactly as §11.4 required.
           # Do not re-add either: Open Claw owns the digest now, and a second
           # scheduler at the same instant mails the subscriber list twice.
-          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry agent-autopilot publish-watchdog"
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry agent-autopilot publish-watchdog"
           SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
             if grep -qE '^\s*-?\s*cron:' "$wf"; then
               basename "$wf" .yml

@@ -1,2 +1,0 @@
-const l=new Set(["PGRST001","PGRST002","PGRST003"]),c=[300,1200,3e3];function R(e){return new Promise(n=>setTimeout(n,e))}async function E(e,n,i){var a;let s=i;for(let r=0;r<c.length;r++){await R(c[r]+Math.random()*250);const u=typeof Request<"u"&&e instanceof Request?e.clone():e;let t;try{t=await globalThis.fetch(u,n)}catch{continue}if(s=t,t.status!==503)return t;let o;try{o=(a=await t.clone().json())==null?void 0:a.code}catch{return t}if(typeof o!="string"||!l.has(o))return t}return s}export{E as retryPgrst503};
-//# sourceMappingURL=pgrstRetryFetch-DbKk1nmL-v6.js.map

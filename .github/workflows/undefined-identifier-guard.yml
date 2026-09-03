@@ -26,7 +26,6 @@ on:
     # that never merges.
     # Skipped here because it scans hand-written source; minified output is not that.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 

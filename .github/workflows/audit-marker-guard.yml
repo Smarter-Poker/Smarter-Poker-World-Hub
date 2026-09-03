@@ -25,7 +25,6 @@ on:
     # that never merges.
     # Skipped here because audit markers live in source, not in a build artefact.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 

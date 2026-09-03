@@ -17,7 +17,6 @@ on:
     # that never merges.
     # Skipped here because the bundle is produced by a fresh build + rsync --delete, so it cannot contain a conflict marker.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 # A newer push supersedes an older run. Without this, a burst of merges

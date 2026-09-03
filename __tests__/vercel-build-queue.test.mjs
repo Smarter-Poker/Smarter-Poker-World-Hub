@@ -81,11 +81,15 @@ describe('agent branch previews never take a build slot', () => {
     assert.equal(runGate({ env: PRODUCTION, changedFile: 'pages/index.js' }), 1);
   });
 
-  test('THE ONE THAT MATTERS: a Club Arena sync on main still builds', () => {
+  // The Club Arena sync is gone (2026-09-03): it publishes to its own origin
+  // and this repo carries one rewrite, so no Club Arena release changes a file
+  // here and none needs a Vercel build. What still matters is that a real
+  // change to THIS repo on main always builds.
+  test('THE ONE THAT MATTERS: a change on main still builds', () => {
     assert.equal(
-      runGate({ env: PRODUCTION, changedFile: 'public/hub/club-arena/build-info.json' }),
+      runGate({ env: PRODUCTION, changedFile: 'next.config.js' }),
       1,
-      'the club-arena sync build was skipped — every Club Arena release would stop shipping'
+      'a production change was skipped — the World Hub would stop shipping'
     );
   });
 

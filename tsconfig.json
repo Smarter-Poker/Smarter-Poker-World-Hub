@@ -37,7 +37,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "public/hub/club-arena",
     "node_modules",
     "scratch"
   ]

@@ -1,2 +1,0 @@
-function a(t){const{sitOutSince:n,isTournament:o}=t;if(o||!n||!Number.isFinite(n))return null;const u=(t.now??Date.now())-n;return u<-12e4?null:Math.max(0,3e5-Math.max(0,u))}function e(t){const n=Math.max(0,Math.floor(t/1e3)),o=Math.floor(n/60),r=n%60;return`${o}:${String(r).padStart(2,"0")}`}function s(t,n="Sitting Out"){return t===null?n:t<=0?`${n}. Seat At Risk`:`${n}. Up To ${e(t)}`}const i=60*1e3;function l(t){return t!==null&&t<=i}export{s as a,e as f,l as i,a as s};
-//# sourceMappingURL=sitOutDeadline-DTXNG7SV-v6.js.map
