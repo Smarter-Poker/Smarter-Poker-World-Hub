@@ -369,6 +369,9 @@ git add -A 2>/dev/null || true
 # ── 0.5-PROTECTED: PROTECTED FILE ZONE ENFORCEMENT ──
 # Club Arena compiled output is a PROTECTED ZONE. Only agents whose commit
 # message contains "club-arena" or "Club Arena" may modify these files.
+# HISTORIC (2026-09-03): public/hub/club-arena/ no longer exists in this repo -
+# Club Arena publishes to its own origin. The zone check below is harmless and
+# is kept so a re-created copy would still be caught.
 # All other agents must NOT touch public/hub/club-arena/ to prevent
 # accidental overwrites during rebase/merge that break the Vite SPA.
 PROTECTED_ZONE_FILES=$(git diff --cached --name-only 2>/dev/null | grep '^public/hub/club-arena/' || true)

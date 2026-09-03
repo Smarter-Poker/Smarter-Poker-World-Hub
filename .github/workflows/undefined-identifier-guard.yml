@@ -26,7 +26,6 @@ on:
     # that never merges.
     # Skipped here because it scans hand-written source; minified output is not that.
     paths-ignore:
-      - 'public/hub/club-arena/**'
   pull_request:
     branches: [main]
 
@@ -39,7 +38,7 @@ jobs:
     # Named for the same reason as no-conflict-markers.yml: a bare `check` job
     # produces a context that collides with every other bare `check` job.
     name: No New Undefined Identifiers
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 

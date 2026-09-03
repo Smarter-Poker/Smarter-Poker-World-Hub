@@ -27,7 +27,6 @@ on:
     # that never merges.
     # Skipped here because a "revert" in generated output is meaningless and false-positives on every rebuild.
     paths-ignore:
-      - 'public/hub/club-arena/**'
 
 concurrency:
   group: silent-revert-${{ github.ref }}
@@ -35,7 +34,7 @@ concurrency:
 
 jobs:
   detect:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Checkout with full history
         uses: actions/checkout@v4

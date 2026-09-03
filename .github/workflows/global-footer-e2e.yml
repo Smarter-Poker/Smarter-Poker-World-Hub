@@ -14,7 +14,7 @@ concurrency:
 jobs:
   footer:
     name: Chromium and WebKit footer contract
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
 
     steps:
@@ -30,7 +30,8 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Install Chromium and WebKit
-        run: npx playwright install --with-deps chromium webkit
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
 
       - name: Build production application
         run: npm run build -- --webpack

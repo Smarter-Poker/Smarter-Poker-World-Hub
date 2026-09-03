@@ -43,7 +43,7 @@ jobs:
     # Named explicitly: a bare `check` job produces a status context that
     # collides with every other bare `check` job in this repo.
     name: No New Silent Writes
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4

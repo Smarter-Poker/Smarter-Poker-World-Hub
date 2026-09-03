@@ -24,7 +24,8 @@
 # Legacy one-off scripts, logs, SQL moved from root
 # Local deployment logs and temporary files
 # Logs
-# NEVER manually add files to public/hub/club-arena/.
+# Club Arena moved to its own origin on 2026-09-03; public/hub/club-arena/ no
+# longer exists here. Nothing may re-create it (tests/club-arena-is-a-rewrite).
 # Next.js build artifacts
 # Poker Brain dev assets (reference screenshots, debug crops)
 # Python bytecode
@@ -93,8 +94,6 @@ node_modules
 npm-debug.log*
 pnpm-debug.log*
 pokerbrain-assets/
-public/hub/club-arena/assets/*.css.map
-public/hub/club-arena/assets/*.js.map
 public/sw.js
 public/sw.js.map
 public/workbox-*.js

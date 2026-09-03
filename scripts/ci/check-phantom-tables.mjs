@@ -39,7 +39,7 @@
  *      a table — and the call is frequently split across lines, so a naive
  *      same-line regex misses it.
  *   3. OTHER SUPABASE PROJECTS.  `pages/api/mlb/**` reads the separate
- *      `mlb-analytics-engine` project (agg_*, dim_*, fact_*, raw_*, pred_*).
+ *      a retired external project's tables (removed 2026-09-03).
  *      Those tables are real, just not in this database.
  *
  * USAGE
@@ -71,7 +71,7 @@ const FOREIGN_PROJECT_PATHS = [
 ];
 
 // Client identifiers that hold a connection to a DIFFERENT Supabase project.
-// Path-based exclusion alone is too brittle: pages/api/cron/mlb-hr-cache-refresh.js
+// Path-based exclusion alone is too brittle: a since-deleted cron handler
 // lives outside pages/api/mlb/** but calls `mlbDb.from('agg_pitcher')` on a
 // client from getMlbSupabase(). Matching the RECEIVER is what actually
 // distinguishes "different database" from "missing table".

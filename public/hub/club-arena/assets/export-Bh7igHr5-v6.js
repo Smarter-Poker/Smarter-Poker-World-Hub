@@ -1,3 +1,0 @@
-function i(t,e){const o=URL.createObjectURL(t),n=document.createElement("a");n.href=o,n.download=e,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(o)}function l(t){let e=String(t??"");return/^[\t\r ]*[=+\-@]/.test(e)&&(e=`'${e}`),/[",\r\n]/.test(e)?`"${e.replace(/"/g,'""')}"`:e}function u(t,e){if(t.length===0)return"";const o=e||Object.keys(t[0]).map(c=>({key:c,label:c})),n=o.map(c=>l(c.label)).join(","),r=t.map(c=>o.map(s=>l(c[s.key])).join(","));return[n,...r].join(`\r
-`)}function a(t,e,o){if(t.length===0)return;const n=u(t,o),r=new Blob(["\uFEFF",n],{type:"text/csv;charset=utf-8;"});i(r,e)}export{a as e};
-//# sourceMappingURL=export-Bh7igHr5-v6.js.map

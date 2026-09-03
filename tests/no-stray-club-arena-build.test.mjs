@@ -91,7 +91,7 @@ test('no Club Arena build is tracked at the repo root', () => {
         [],
         `A Club Arena build has been committed to the repo root again (${offenders.length} files).\n` +
             `Next.js does not serve the repo root, so none of it is reachable — it belongs in\n` +
-            `public/hub/club-arena/, which is what scripts/sync-club-arena.sh writes to.\n` +
+            `the Club Arena repo, which publishes it to its own origin (2026-09-03).\n` +
             `First 20:\n  ${offenders.slice(0, 20).join('\n  ')}`
     );
 });
@@ -102,7 +102,12 @@ test('the World Hub still serves its own public assets', () => {
     // actually serves at /assets, /images, /cards, /videos.
     const files = trackedFiles();
     assert.ok(files);
-    for (const dir of ['public/assets', 'public/images', 'public/hub/club-arena/assets']) {
+    // public/hub/club-arena/assets was the third entry here until 2026-09-03.
+    // Club Arena publishes to its own origin now and this repo carries one
+    // rewrite instead of the bundle, so its absence is the correct state -
+    // tests/club-arena-is-a-rewrite.test.mjs asserts it is GONE. The World
+    // Hub's own public/ directories are what this check still protects.
+    for (const dir of ['public/assets', 'public/images']) {
         assert.ok(
             files.some((f) => f.startsWith(dir + '/')),
             `${dir} has no tracked files — the root cleanup went too far`

@@ -3,7 +3,7 @@
 -- Applied to prod via Supabase MCP 2026-07-21.
 
 -- 1. Covering indexes for the 4 unindexed foreign keys (perf advisor).
-CREATE INDEX IF NOT EXISTS idx_agg_team_team_id ON public.agg_team (team_id);
+-- (an index on a table retired 2026-09-03 was removed from this file)
 CREATE INDEX IF NOT EXISTS idx_commander_home_join_attempts_group_id ON public.commander_home_join_attempts (group_id);
 CREATE INDEX IF NOT EXISTS idx_live_ban_audit_banned_by ON public.live_ban_audit (banned_by);
 CREATE INDEX IF NOT EXISTS idx_trivia_question_reports_user_id ON public.trivia_question_reports (user_id);
