@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { openPageOverlay } from '../../src/stores/pageOverlayStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 
 const CATEGORIES = [
@@ -423,8 +424,19 @@ export default function PokerPagesPage() {
                             <span>Friends</span>
                         </a>
                     </Link>
+                    {/* Alerts opens the full-screen popup, not a page (Dan,
+                        2026-09-02: "SO YOU STAY ON THE PAGE YOU WERE ON").
+                        Still a real link, so a modified click opens the route
+                        in a new tab. */}
                     <Link href="/hub/notifications" legacyBehavior>
-                        <a className="nav-item">
+                        <a
+                            className="nav-item"
+                            onClick={(e) => {
+                                if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                                e.preventDefault();
+                                openPageOverlay('notifications');
+                            }}
+                        >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
                             <span>Alerts</span>
                         </a>

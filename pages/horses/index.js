@@ -487,12 +487,43 @@ export default function HorsesAdmin() {
   // ═══════════════════════════════════════════════════════════════════════════
   // CORE DATA
   // ═══════════════════════════════════════════════════════════════════════════
+  /**
+   * Every content_authors row, in pages, so the roster cannot be silently
+   * truncated as the fleet grows. Returns the same shape the caller had
+   * before: `{ data, error }`.
+   */
+  const fetchAllAuthors = useCallback(async () => {
+    const PAGE = 500;
+    const rows = [];
+    for (let from = 0; ; from += PAGE) {
+      const res = await supabase
+        .from('content_authors')
+        .select('*')
+        .order('name')
+        .order('id')
+        .range(from, from + PAGE - 1);
+      // A failed page is NOT an empty roster. Surface it rather than
+      // returning the partial list as though it were whole.
+      if (res.error) return { data: null, error: res.error };
+      rows.push(...(res.data || []));
+      if (!res.data || res.data.length < PAGE) break;
+      if (from > 100000) break; // runaway guard
+    }
+    return { data: rows, error: null };
+  }, []);
+
   const loadData = useCallback(async () => {
     // Every one of these used to be destructured as `{ data }` only, so a failed
     // query was indistinguishable from an empty table and silently fell through
     // to hardcoded demo personas.
+    // PAGED, because PostgREST caps an unbounded read and a capped read of a
+    // roster is indistinguishable from a smaller roster. On 2026-09-02 the
+    // fleet crossed 1,000 rows, which is exactly where that ceiling sits: an
+    // unbounded `select('*')` would have started dropping horses off the end
+    // of the stable with no error to notice. Same reason `.range()` is used on
+    // every other growing table in this estate.
     const [authorsRes, settingsRes, runsRes] = await Promise.all([
-      supabase.from('content_authors').select('*').order('name'),
+      fetchAllAuthors(),
       supabase.from('content_settings').select('*').limit(1).maybeSingle(),
       supabase.from('pipeline_runs').select('*').order('started_at', { ascending: false }).limit(10),
     ]);
@@ -506,7 +537,7 @@ export default function HorsesAdmin() {
     }
     if (settingsRes.data) setSettings((prev) => ({ ...prev, ...settingsRes.data }));
     setPipelineRuns(runsRes.data || []);
-  }, []);
+  }, [fetchAllAuthors]);
 
   const loadPromoCodes = useCallback(async () => {
     setPromoLoading(true);
@@ -1822,7 +1853,22 @@ export default function HorsesAdmin() {
     });
   }, [personas, searchTerm, filter]);
 
-  const activeCount = useMemo(() => personas.filter((p) => p.is_active).length, [personas]);
+  /**
+   * A HORSE IS A POKER PROFILE, NOT A CONTENT_AUTHORS ROW (2026-09-02).
+   *
+   * These two populations are not the same and the stable panel was counting
+   * the wrong one. `content_authors` also holds 39 social-only personas from
+   * 2026-03-10 that carry no `profile_id`: they post, but they have no wallet,
+   * no club membership and cannot be dealt a hand. Counting them as horses
+   * overstates the fleet, and the Grinder tab underneath reads "the same
+   * horses, second job" - a persona with no profile has no second job.
+   *
+   * The roster LIST still shows everything, so a social-only persona stays
+   * visible and manageable. Only the counts are narrowed to actual horses.
+   */
+  const horses = useMemo(() => personas.filter((p) => p.profile_id), [personas]);
+  const activeCount = useMemo(() => horses.filter((p) => p.is_active).length, [horses]);
+  const socialOnlyCount = useMemo(() => personas.length - horses.length, [personas, horses]);
   const totalPages = Math.max(1, Math.ceil(filteredPersonas.length / HORSES_PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
   const pagedPersonas = filteredPersonas.slice(safePage * HORSES_PER_PAGE, (safePage + 1) * HORSES_PER_PAGE);
@@ -2057,7 +2103,7 @@ export default function HorsesAdmin() {
               <div className={styles.stableHeader}>
                 <div className={styles.stableStats}>
                   <div className={styles.statBox}>
-                    <span className={styles.statNumber}>{num(personas.length, '0')}</span>
+                    <span className={styles.statNumber}>{num(horses.length, '0')}</span>
                     <span className={styles.statLabel}>Total Horses</span>
                   </div>
                   <div className={`${styles.statBox} ${styles.activeBox}`}>
@@ -2065,9 +2111,15 @@ export default function HorsesAdmin() {
                     <span className={styles.statLabel}>Active</span>
                   </div>
                   <div className={`${styles.statBox} ${styles.inactiveBox}`}>
-                    <span className={styles.statNumber}>{num(personas.length - activeCount, '0')}</span>
+                    <span className={styles.statNumber}>{num(horses.length - activeCount, '0')}</span>
                     <span className={styles.statLabel}>Resting</span>
                   </div>
+                  {socialOnlyCount > 0 && (
+                    <div className={styles.statBox}>
+                      <span className={styles.statNumber}>{num(socialOnlyCount, '0')}</span>
+                      <span className={styles.statLabel}>Social Only (No Poker Profile)</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.stableControls}>
@@ -2765,7 +2817,7 @@ export default function HorsesAdmin() {
                   <div className={styles.statsOverview}>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(personas.length, '0')}</span>
-                      <span className={styles.statLabel}>Total Horses</span>
+                      <span className={styles.statLabel}>Total Authors</span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber}>{num(analyticsData?.activeHorses ?? activeCount)}</span>

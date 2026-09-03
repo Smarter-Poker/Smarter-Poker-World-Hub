@@ -13,6 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, getAccessToken, useRequireAuth } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import { openPageOverlay } from '../../../../src/stores/pageOverlayStore';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -166,7 +167,29 @@ export default function PlayerProfilePage() {
     { href: hasClubPage ? `/hub/social-media?viewPage=${hasClubPage}` : '/hub/social-media?createPage=true', label: hasClubPage ? 'Club Page' : 'Create Club Page', icon: Globe },
     { href: '/hub/commander/history', label: 'Session History', icon: History },
     { href: '/hub/commander/rewards', label: 'Rewards & Comps', icon: Gift },
-    { href: '/hub/commander/notifications', label: 'Notifications', icon: Bell },
+    /**
+     * NOTIFICATIONS OPENS A POPUP, NOT A PAGE (Dan, 2026-09-02): "IT SHOULD
+     * CREATE A 'FULL SCREEN POP UP' SO YOU STAY ON THE PAGE YOU WERE ON...
+     * THIS SHOULD WORK LIKE THIS INSIDE THE WORLD HUB, CLUB ARENA AND CLUB
+     * COMMANDER PAGES."
+     *
+     * It opens the CANONICAL feed (/hub/notifications), not the Commander-only
+     * page this entry used to push to. Two reasons, and the second is not a
+     * preference:
+     *
+     *   1. Dan, 2026-08-25: "we need ONE DISPLAY." Commander notifications are
+     *      the same player's notifications.
+     *   2. pages/hub/commander/notifications/index.js reads
+     *      /api/commander/notifications/my, /[id] and /mark-all-read — and
+     *      pages/api/commander/ in this repo contains only home-games/ and
+     *      tournaments/. Those three endpoints do not exist here, so that page
+     *      has been rendering a permanent empty state. Pointing this entry at
+     *      a working feed fixes a dead surface as well as the popup.
+     *
+     * The Commander page and its missing API are left in place and raised as
+     * follow-up work rather than deleted here — see the changelog entry.
+     */
+    { href: '/hub/notifications', overlay: 'notifications', label: 'Notifications', icon: Bell },
     { href: '/hub/commander/profile/settings', label: 'Settings', icon: Settings }
   ];
 
@@ -339,10 +362,10 @@ export default function PlayerProfilePage() {
           <section>
             <h2 className="font-bold text-white mb-3 uppercase tracking-wide text-sm">Quick Links</h2>
             <div className="cmd-panel overflow-hidden p-0">
-              {menuItems.map(({ href, label, icon: Icon }, index) => (
+              {menuItems.map(({ href, label, overlay, icon: Icon }, index) => (
                 <button
                   key={href}
-                  onClick={() => router.push(href)}
+                  onClick={() => (overlay ? openPageOverlay(overlay) : router.push(href))}
                   className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${index < menuItems.length - 1 ? 'border-b border-[#4A5E78]' : ''
                     }`}
                 >

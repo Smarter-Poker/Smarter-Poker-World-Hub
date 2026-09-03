@@ -55,19 +55,75 @@ const VALID_DIAMOND_PACKAGES = {
 // Max units of a single diamond package per checkout.
 const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
 
+// DR8 / D16 (Diamond Accounting Standard, Lane D): the price oracle belongs in
+// the database, not in this file. `diamond_packages` was seeded from the
+// constant above and is now the source of truth; the constant stays as the
+// fallback so a database blip cannot take the store offline, and so the two can
+// be compared. The settle RPC files a DR8 warning incident whenever a purchase
+// row disagrees with the table, which is how a drift between these two would be
+// found rather than guessed at.
+const PACKAGE_CACHE_MS = 60000;
+let _packageCache = { at: 0, packages: null };
+
+async function loadDiamondPackages() {
+    const now = Date.now();
+    if (_packageCache.packages && (now - _packageCache.at) < PACKAGE_CACHE_MS) {
+        return _packageCache.packages;
+    }
+    try {
+        const { data, error } = await getSupabase()
+            .from('diamond_packages')
+            .select('package_key, display_name, diamonds, bonus_diamonds, price_usd, active')
+            .eq('active', true);
+        if (error) throw error;
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('diamond_packages returned no active rows');
+        }
+        const packages = Object.create(null);
+        for (const row of data) {
+            const key = String(row?.package_key || '');
+            const diamonds = Number(row?.diamonds);
+            const bonus = Number(row?.bonus_diamonds ?? 0);
+            const price = Number(row?.price_usd);
+            // A malformed row is not a reason to sell at the wrong price. One
+            // bad row discards the whole table and falls back to the constant.
+            if (!key
+                || !Number.isInteger(diamonds) || diamonds <= 0
+                || !Number.isInteger(bonus) || bonus < 0
+                || !Number.isFinite(price) || price <= 0) {
+                throw new Error(`diamond_packages row "${key || 'unnamed'}" is not usable`);
+            }
+            packages[key] = {
+                diamonds,
+                price,
+                bonus,
+                name: String(row?.display_name || key),
+            };
+        }
+        _packageCache = { at: now, packages };
+        return packages;
+    } catch (err) {
+        console.warn('[Checkout] diamond_packages unavailable, using the built-in catalog:', err?.message || err);
+        return VALID_DIAMOND_PACKAGES;
+    }
+}
+
 /**
  * Resolve a client cart item to a server-side diamond package.
  * Accepts either the raw catalog id ('micro') or the cart-scoped id
  * ('diamond-micro') that the store UI generates. Returns null when unknown.
- * The returned object carries SERVER prices/amounts only.
+ * The returned object carries SERVER prices/amounts only, from `catalog`,
+ * which is the database table when it is readable and VALID_DIAMOND_PACKAGES
+ * when it is not.
  */
-function resolveDiamondPackage(item) {
+function resolveDiamondPackage(item, catalog) {
+    const source = catalog || VALID_DIAMOND_PACKAGES;
     const raw = item?.packageId ?? item?.id;
     if (typeof raw !== 'string' || !raw) return null;
     // hasOwnProperty guards against inherited keys ('constructor', '__proto__')
-    const has = (k) => Object.prototype.hasOwnProperty.call(VALID_DIAMOND_PACKAGES, k);
+    const has = (k) => Object.prototype.hasOwnProperty.call(source, k);
     const key = has(raw) ? raw : raw.replace(/^diamond-/, '');
-    return has(key) ? { key, ...VALID_DIAMOND_PACKAGES[key] } : null;
+    return has(key) ? { key, ...source[key] } : null;
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -222,9 +278,10 @@ function normalizeRedemptionIntent(type, raw) {
  */
 async function prepareCheckout(type, items) {
     if (type === 'diamonds') {
+        const catalog = await loadDiamondPackages();
         const resolvedPackages = [];
         for (const clientItem of items) {
-            const serverPackage = resolveDiamondPackage(clientItem);
+            const serverPackage = resolveDiamondPackage(clientItem, catalog);
             if (!serverPackage) {
                 throw new CheckoutInputError(
                     'INVALID_PACKAGE',

@@ -27,6 +27,7 @@ import { getAuthUser } from '../../lib/authUtils';
 import { T } from '../sandbox/paTokens';
 import { homeGamePageUrl } from '../../lib/home-games/urls';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
+import { openPageOverlay } from '../../stores/pageOverlayStore';
 import { applyWorldMenuDeck, getMenuConfigForPath } from '../../config/hamburgerMenus';
 import {
   sanitizeFallbackMenuConfig,
@@ -53,6 +54,25 @@ const HARD_NAV_PREFIXES = ['/hub/club-arena', '/hub/commander'];
 const needsHardNav = (item) =>
   !!item?.hardNav ||
   (typeof item?.href === 'string' && HARD_NAV_PREFIXES.some((p) => item.href.startsWith(p)));
+
+/**
+ * Notifications is a popup, not a destination. Matches the bare route and any
+ * filtered variant (`/hub/notifications?filter=mentions`), and nothing else —
+ * `/hub/settings/notifications` is a real settings page and must keep
+ * navigating.
+ */
+const isNotificationsHref = (href) =>
+  typeof href === 'string' &&
+  (href === '/hub/notifications' || href.startsWith('/hub/notifications?'));
+
+/** A click the browser has already promised to handle its own way. */
+const isModifiedActivation = (e) =>
+  !!e?.defaultPrevented ||
+  (typeof e?.button === 'number' && e.button !== 0) ||
+  !!e?.metaKey ||
+  !!e?.ctrlKey ||
+  !!e?.shiftKey ||
+  !!e?.altKey;
 
 const lsGet = (key, fallback) => {
   try {
@@ -574,6 +594,26 @@ function HamburgerMenuContent({
         return;
       }
       if (disabled) { e.preventDefault(); return; }
+      /**
+       * NOTIFICATIONS OPENS A POPUP (Dan, 2026-09-02): "IT SHOULDN'T OPEN TO
+       * ITS OWN PAGE, IT SHOULD CREATE A 'FULL SCREEN POP UP' SO YOU STAY ON
+       * THE PAGE YOU WERE ON." Intercepted here, in the shared row handler, so
+       * every notifications entry in every menu config behaves the same — there
+       * are four of them across two menus (All / Mentions / Friend Requests /
+       * the world-menu row), and pinning the behaviour to one of them is how
+       * the header and the footer ended up disagreeing in the first place.
+       *
+       * The filtered variants keep their query string, so "Mentions" opens the
+       * popup already filtered. A modified click still loads the page in a new
+       * tab, which is why this runs only for a plain left click.
+       */
+      if (isNotificationsHref(item.href) && !isModifiedActivation(e)) {
+        e.preventDefault();
+        openPageOverlay('notifications', { url: item.href });
+        rememberRecent(item);
+        onClose?.();
+        return;
+      }
       const activation = beginNavigation(e, item);
       if (!activation.allow || activation.modified) return;
       if (item.onClick) item.onClick();

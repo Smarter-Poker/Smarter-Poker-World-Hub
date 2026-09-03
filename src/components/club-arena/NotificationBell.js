@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
+import { openPageOverlay } from '../../stores/pageOverlayStore';
 import Link from 'next/link';
 
 const FB = {
@@ -189,9 +190,29 @@ export default function NotificationBell({ userId }) {
 
           {/* Footer */}
           <div style={{ padding: '8px 16px', borderTop: `1px solid ${FB.border}`, textAlign: 'center' }}>
+            {/* Opens the full-screen popup rather than navigating (Dan,
+                2026-09-02: "SO YOU STAY ON THE PAGE YOU WERE ON"). Kept as a
+                link so a modified click still opens the route in a new tab.
+                The dropdown closes first — leaving a 320px panel floating over
+                a full-screen popup is not a state anybody asked for. */}
             <Link
               href="/hub/notifications"
               style={{ color: FB.primary, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+              onClick={(e) => {
+                if (
+                  e.defaultPrevented ||
+                  e.button !== 0 ||
+                  e.metaKey ||
+                  e.ctrlKey ||
+                  e.shiftKey ||
+                  e.altKey
+                ) {
+                  return;
+                }
+                e.preventDefault();
+                setOpen(false);
+                openPageOverlay('notifications');
+              }}
             >
               View All Notifications
             </Link>
