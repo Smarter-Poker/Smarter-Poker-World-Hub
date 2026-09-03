@@ -736,6 +736,10 @@
     {
       "source": "/api/commander/:path*",
       "destination": "https://commander.smarter.poker/api/:path*"
+    },
+    {
+      "source": "/images/commander/:path*",
+      "destination": "https://commander.smarter.poker/images/commander/:path*"
     }
   ]
 }
