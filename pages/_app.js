@@ -8,6 +8,7 @@
 import '../src/lib/server-stability'; // Server-side crash prevention (dev mode only)
 import '../src/lib/hmr-reconnect-guard'; // Client-side HMR death loop prevention (dev mode only)
 import '../src/index.css';
+import * as Sentry from '@sentry/nextjs';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';
 import '../src/styles/worlds/club-arena.css';
@@ -1126,10 +1127,17 @@ export default function App({ Component, pageProps }) {
 // Report Web Vitals to Sentry for performance monitoring
 export function reportWebVitals({ id, name, label, value }) {
   try {
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.metrics?.distribution(name, value, {
-        tags: { id, label },
-        unit: name === 'CLS' ? 'none' : 'millisecond',
+    // 2026-09-04: this read `window.Sentry.metrics`, which is doubly dead -
+    // @sentry/nextjs v10 does not define window.Sentry, and the metrics API it
+    // called was removed from the SDK. Every web vital went nowhere. A
+    // breadcrumb is a stable v10 API and attaches the vitals to whatever error
+    // follows them, which is when they are actually worth reading.
+    if (typeof window !== 'undefined') {
+      Sentry.addBreadcrumb({
+        category: 'web-vital',
+        level: name === 'CLS' && value > 0.25 ? 'warning' : 'info',
+        message: `${name} ${Math.round(value * 1000) / 1000}`,
+        data: { id, name, label, value, unit: name === 'CLS' ? 'none' : 'millisecond' },
       });
     }
     // Also log to console in development

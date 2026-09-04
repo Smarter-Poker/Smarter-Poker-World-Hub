@@ -59,7 +59,11 @@ if (SENTRY_DSN) {
       'Invariant: attempted to hard navigate to the same URL',
       // SWC/Terser minifier mangling — TDZ errors from variable name collisions
       // Covers: "D is not defined", "user is not defined", "isPoker is not defined"
-      /^ReferenceError: \w+ is not defined$/,
+      // 2026-09-04: the blanket /^ReferenceError: \w+ is not defined$/ used to
+      // sit here. It discarded EVERY ReferenceError in the app - which is the
+      // exact error class minification produces, so the workaround for
+      // unreadable stack traces was to throw the traces away. The six NAMED
+      // stale-chunk identifiers below are the real noise and they stay.
       /Cannot access '\w+' before initialization/,
       // Stale chunk errors — users with cached old JS bundles referencing
       // functions that no longer exist after a deploy
@@ -89,13 +93,18 @@ if (SENTRY_DSN) {
         if ('name' in error && String(error.name) === 'AbortError') return null;
         if ('message' in error) {
           const msg = String(error.message);
-          if (msg.includes('signal is aborted') || msg.includes('aborted')) return null;
+          // Narrowed 2026-09-04: the bare `includes('aborted')` also matched
+          // messages like "payment aborted". AbortError is caught by name above.
+          if (msg.includes('signal is aborted') || msg.includes('The operation was aborted')) return null;
           if (msg.includes('Internal error')) return null;
           if (msg.includes('Invariant: attempted to hard navigate')) return null;
           // SWC/Terser TDZ: "Cannot access 'X' before initialization"
           if (/Cannot access '\w+' before initialization/.test(msg)) return null;
-          // ReferenceError from minified/stale bundles: "X is not defined"
-          if (msg.includes('is not defined')) return null;
+          // 2026-09-04: `msg.includes('is not defined')` used to be here and
+          // was broader still than the regex above - any message CONTAINING
+          // the phrase was dropped. A genuine ReferenceError is a genuine bug
+          // and now reaches Sentry; the named stale-chunk identifiers in
+          // ignoreErrors continue to be filtered by name.
           // Next.js static props prefetch failures
           if (msg.includes('Failed to load static props')) return null;
         }

@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const YOUTUBE_ORIGINS = Object.freeze([
@@ -59,19 +60,10 @@ async function reportFailureToServer(videoId, errorCode, surface) {
 // ── Sentry Telemetry (Improvement #4) ─────────────────────────────────────────
 function reportToSentry(videoId, errorCode, surface) {
     if (typeof window === 'undefined') return;
-    // Check for Sentry global (lazy — doesn't import the SDK directly)
-    const Sentry = window.__SENTRY__;
-    if (!Sentry?.captureMessage) {
-        // Fallback: try window.Sentry (standard browser SDK global)
-        if (window.Sentry?.captureMessage) {
-            window.Sentry.captureMessage(`YouTube embed error ${errorCode}`, {
-                level: 'warning',
-                tags: { surface, errorCode: String(errorCode) },
-                extra: { videoId, errorCode, surface, url: `https://www.youtube.com/watch?v=${videoId}` },
-            });
-        }
-        return;
-    }
+    // 2026-09-04: this used to read window.__SENTRY__ (a version/stack carrier
+    // in v8+, with no captureMessage on it) and fall back to window.Sentry
+    // (never defined by @sentry/nextjs). Both branches were dead, so no
+    // YouTube embed failure was ever reported.
     Sentry.captureMessage(`YouTube embed error ${errorCode}`, {
         level: 'warning',
         tags: { surface, errorCode: String(errorCode) },
