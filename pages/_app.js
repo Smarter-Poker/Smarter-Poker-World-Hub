@@ -830,6 +830,15 @@ export default function App({ Component, pageProps }) {
 
   // Two legacy settings surfaces intentionally suppress platform chrome when
   // embedded. Evaluate after hydration so server and first client render agree.
+  // 2026-09-04: notice a revoked session. PostgREST checks signatures, not
+  // session rows, so a session deleted behind the user keeps answering 200
+  // here for seven days. See src/lib/sessionLiveness.js.
+  useEffect(() => {
+    import('../src/lib/sessionLiveness')
+      .then((m) => m.installSessionLivenessWatch())
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     try {
       setIsEmbedded(window.self !== window.top);
