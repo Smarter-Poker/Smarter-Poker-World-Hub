@@ -7,10 +7,12 @@
  * renders one fixed footer plus one clearance spacer.
  *
  * POSITION CONTRACT: the footer is welded to the viewport bottom. It never
- * auto-hides, translates, animates, or becomes horizontally scrollable.
+ * animates and never becomes horizontally scrollable. It translates on the Y
+ * axis for exactly one reason: the Facebook reading behaviour described below,
+ * which every footer has. No other movement is permitted.
  */
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -81,20 +83,178 @@ export const BOTTOM_NAV_Z = 900;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
 export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
 
+/**
+ * THE FOOTER GETS OUT OF THE WAY WHILE YOU READ (Dan, 2026-09-04, binding).
+ *
+ * Dan, verbatim: "the footer on social media needs to disappear when you
+ * scroll up and reappear when you scroll down like it does on facebook. it
+ * needs to be real time instant change." Then, once he had it: "any other
+ * pages that you can 'scroll up to see more' need this same disappearing
+ * footer functionality... implement this everywhere its needed."
+ *
+ * So it is EVERY world, and the fallback footer too. It shipped for a day as
+ * an opt-in `hideOnScroll` flag on one world; the flag survives only as an
+ * explicit `false` escape hatch, and no footer sets it.
+ *
+ * "Everywhere it's needed" is self-limiting and needs no route list: a page
+ * that does not scroll never fires a scroll event, so its footer never moves.
+ *
+ * That is Facebook's rule exactly: a swipe up (reading further down the page)
+ * drops the bar; a swipe back down brings it straight back. This replaces the
+ * older blanket "never auto-hides" clause of the position contract, which was
+ * written to stop the bar coming UNSTUCK from the viewport on iOS — a
+ * different failure. Everything that clause was defending is still defended:
+ * the bar stays `position: fixed` at `bottom: 0`, it is never a scroller, and
+ * the clearance spacer never moves, so no content reflows when it goes.
+ *
+ * "REAL TIME INSTANT" IS PART OF THE REQUIREMENT, NOT A DETAIL. There is no
+ * transition, no easing and no timer anywhere in this path — the transform is
+ * applied on the animation frame that follows the scroll event that caused it,
+ * which is the same frame the browser was going to paint anyway. Do not add a
+ * `transition` here to make it "smoother": smooth is the thing Dan rejected.
+ */
+const HIDE_ON_SCROLL_THRESHOLD = 4;
+
+const isDocumentScroller = (source) =>
+  !source ||
+  source === window ||
+  source === document ||
+  source === document.documentElement ||
+  source === document.body;
+
+const scrollTopOf = (source) => {
+  if (typeof window === 'undefined') return 0;
+  if (isDocumentScroller(source)) {
+    return (
+      window.scrollY ||
+      document.documentElement?.scrollTop ||
+      document.body?.scrollTop ||
+      0
+    );
+  }
+  return source.scrollTop || 0;
+};
+
+const scrollLimitOf = (source) => {
+  if (typeof window === 'undefined') return 0;
+  if (isDocumentScroller(source)) {
+    const doc = document.documentElement;
+    return doc ? Math.max(0, doc.scrollHeight - window.innerHeight) : 0;
+  }
+  return Math.max(0, (source.scrollHeight || 0) - (source.clientHeight || 0));
+};
+
+function useHideOnScroll(enabled, resetKey) {
+  const [hidden, setHidden] = useState(false);
+  const reveal = useCallback(() => setHidden(false), []);
+
+  // A route change always hands the reader a fresh screen, and the bar belongs
+  // on it. Without this, arriving at a new page from a scrolled one inherits
+  // the hidden state and the footer looks broken until the reader scrolls.
+  useEffect(() => {
+    setHidden(false);
+  }, [resetKey]);
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') {
+      setHidden(false);
+      return undefined;
+    }
+
+    // Not every hub page scrolls the document. Several put the scroll on an
+    // inner panel, and a scroll event on an element does not bubble — so this
+    // listens on the CAPTURE phase at the document, which sees a scroll from
+    // any scroller on the page, and tracks each one's position separately so
+    // switching between two panels cannot read as a jump.
+    const travel = new Map();
+    let frame = 0;
+    let pending = null;
+
+    const settle = () => {
+      frame = 0;
+      const source = pending;
+      pending = null;
+
+      const y = scrollTopOf(source);
+      const state = travel.get(source);
+      if (!state) {
+        travel.set(source, { last: y, anchor: y, direction: 0 });
+        return;
+      }
+
+      const direction = y > state.last ? 1 : y < state.last ? -1 : 0;
+      if (direction !== 0 && direction !== state.direction) {
+        // Where the current run of travel in one direction began. Measuring
+        // the threshold from here rather than from the previous event means a
+        // single fast flick still flips immediately, while sub-pixel jitter
+        // inside a momentum scroll cannot rattle the bar open and shut.
+        state.anchor = state.last;
+        state.direction = direction;
+      }
+      const anchor = state.anchor;
+      state.last = y;
+
+      // At the top of the page the bar is always present.
+      if (y <= 0) {
+        setHidden(false);
+        return;
+      }
+      // Rubber-band overscroll past the end is not a reader travelling further
+      // down, so it must not hide anything.
+      if (y >= scrollLimitOf(source)) return;
+
+      if (direction === 1 && y - anchor > HIDE_ON_SCROLL_THRESHOLD) setHidden(true);
+      else if (direction === -1 && anchor - y > HIDE_ON_SCROLL_THRESHOLD) setHidden(false);
+    };
+
+    const onScroll = (event) => {
+      pending = event?.target || null;
+      if (frame) return;
+      frame = window.requestAnimationFrame(settle);
+    };
+
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      travel.clear();
+    };
+  }, [enabled]);
+
+  return { hidden: enabled && hidden, reveal };
+}
+
 const artworkDisplayBounds = (artwork) =>
   artwork.cropToContentBounds !== false && artwork.contentBounds
     ? artwork.contentBounds
     : { x: 0, y: 0, width: artwork.width, height: artwork.height };
 
-const artworkStageStyle = (artwork) => {
-  const display = artworkDisplayBounds(artwork);
-  return {
-    width: `min(100%, ${display.width}px)`,
-    maxWidth: '100%',
-    aspectRatio: `${display.width} / ${display.height}`,
-    flex: '0 0 auto',
-  };
-};
+/**
+ * CLUB ARENA'S FOOTER IS THE GOLD STANDARD (Dan, 2026-09-04, binding).
+ *
+ * Dan, verbatim: "the footer inside the club arena is perfect, by size height
+ * and length an how it fits perfectly edge to edge. i need you to replicate
+ * this size, and placement on every footer, using this as the GOLD STANDARD on
+ * how footers are supposed to look and fit."
+ *
+ * This value IS Club Arena's, copied from `--bottom-nav-height` in
+ * src/styles/globals.css of that repo. Keep the two in step: if one moves, the
+ * estate stops looking like one product, which is the entire complaint.
+ *
+ * These stages used to size themselves by `aspect-ratio` off each world's
+ * measured frame instead, which meant fourteen different footer heights that
+ * all grew without limit on a desktop — 174px of social-media footer against
+ * Club Arena's 132px on the same 1140px screen, and worse the wider the
+ * window. One clamped height, full bleed, is what makes them match.
+ */
+export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 13.72vw, 132px)';
+
+const artworkStageStyle = () => ({
+  width: '100%',
+  maxWidth: '100%',
+  height: FOOTER_ARTWORK_HEIGHT,
+  flex: '0 0 auto',
+});
 
 const artworkImageStyle = (artwork) => {
   const display = artworkDisplayBounds(artwork);
@@ -103,6 +263,17 @@ const artworkImageStyle = (artwork) => {
     top: `${(-display.y / display.height) * 100}%`,
     width: `${(artwork.width / display.width) * 100}%`,
     height: `${(artwork.height / display.height) * 100}%`,
+    // THE GLOBAL `img, video { max-width: 100% }` RESET BREAKS THIS CROP.
+    // Every width above is deliberately LARGER than the stage — the stage is
+    // the measured frame, the image is the whole source canvas, and the
+    // overflow is the margin being cropped away. The reset clamped that width
+    // back to 100%, which left `object-fit: contain` letterboxing the artwork
+    // inside its own box: the frame rendered ~2.5% small, ~4px low, and the
+    // measured crop no longer lined up with the stage — a black strip down the
+    // right edge and a shaved, misaligned bottom bevel. Opting out of the
+    // reset is what makes the arithmetic above mean what it says.
+    maxWidth: 'none',
+    maxHeight: 'none',
   };
 };
 
@@ -132,7 +303,7 @@ export const BottomNavSpacer = ({ config = null }) => {
         flexShrink: 0,
       }}
     >
-      <div style={artworkStageStyle(artwork)} />
+      <div style={artworkStageStyle()} />
     </div>
   );
 };
@@ -274,7 +445,7 @@ const activeDestination = (items, currentLocation) => {
   return winner?.href || items[0]?.href;
 };
 
-function ArtworkBottomNav({ footer, activeHref, warm }) {
+function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, reveal }) {
   const artwork = footer.artwork;
   const items = footer.items || [];
   const bounds = artwork.contentBounds || {
@@ -297,6 +468,12 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
       data-footer-artwork={artwork.src}
       data-footer-artwork-sha256={artwork.sha256}
       data-footer-cropped={artwork.contentBounds && artwork.cropToContentBounds !== false ? 'true' : 'false'}
+      data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
+      data-footer-hidden={hidden ? 'true' : 'false'}
+      // Keyboard focus has no scroll direction to read, so tabbing into a
+      // footer that scroll has parked off-screen would move focus somewhere
+      // invisible. Reaching it brings it back.
+      onFocusCapture={reveal}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -313,7 +490,9 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
         zIndex: BOTTOM_NAV_Z,
         padding: 0,
         background: 'transparent',
-        transform: 'none',
+        // Its own height, straight down, and nothing else. See
+        // useHideOnScroll: no transition, by requirement.
+        transform: hidden ? 'translateY(100%)' : 'none',
         translate: 'none',
         transition: 'none',
         animation: 'none',
@@ -327,7 +506,7 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
         data-footer-source-width={artwork.width}
         data-footer-source-height={artwork.height}
         style={{
-          ...artworkStageStyle(artwork),
+          ...artworkStageStyle(),
           position: 'relative',
           minWidth: 0,
           overflow: 'hidden',
@@ -351,7 +530,11 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
             position: 'absolute',
             ...artworkImageStyle(artwork),
             display: 'block',
-            objectFit: 'contain',
+            // Club Arena's artwork has no object-fit at all, which is `fill`:
+            // the frame is stretched to the footer box. `contain` would
+            // letterbox it back inside its own aspect and reintroduce exactly
+            // the dead strips this pass exists to remove.
+            objectFit: 'fill',
             userSelect: 'none',
             pointerEvents: 'none',
           }}
@@ -411,10 +594,10 @@ function ArtworkBottomNav({ footer, activeHref, warm }) {
               .bn-artwork-nav, .bn-artwork-hit-zone { transition: none !important; }
             }
             html {
-              scroll-padding-bottom: calc(min(${((displayBounds.height / displayBounds.width) * 100).toFixed(4)}vw, ${displayBounds.height}px) + 16px + env(safe-area-inset-bottom, 0px));
+              scroll-padding-bottom: calc(${FOOTER_ARTWORK_HEIGHT} + 16px + env(safe-area-inset-bottom, 0px));
             }
             :root {
-              --active-world-footer-height: min(${((displayBounds.height / displayBounds.width) * 100).toFixed(4)}vw, ${displayBounds.height}px);
+              --active-world-footer-height: ${FOOTER_ARTWORK_HEIGHT};
             }
           `,
         }}
@@ -433,6 +616,9 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const base = THEMES[resolvedTheme] || THEMES.light;
   const c = { ...base, active: footer.accent || base.active };
   const activeHref = useMemo(() => activeDestination(items, path), [items, path]);
+  // Every footer hides while you read (Dan, 2026-09-04). `hideOnScroll: false`
+  // is the only way out and nothing sets it.
+  const { hidden, reveal } = useHideOnScroll(footer.hideOnScroll !== false, path);
 
   const warm = useCallback(
     (href) => {
@@ -453,16 +639,24 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
         footer={footer}
         activeHref={activeHref}
         warm={warm}
+        hidden={hidden}
+        reveal={reveal}
       />
     );
   }
 
+  // The plain footer is the legacy fallback ("global") on pages no world owns.
+  // It reads while you scroll like any other page, so it hides like any other
+  // footer; the weld underneath it is identical to the artwork nav's.
   return (
     <nav
       aria-label={`${footer.label} footer`}
       className="bn-nav"
       data-global-bottom-nav="true"
       data-footer-world={footer.id}
+      data-footer-hide-on-scroll={footer.hideOnScroll === false ? 'false' : 'true'}
+      data-footer-hidden={hidden ? 'true' : 'false'}
+      onFocusCapture={reveal}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -483,7 +677,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
         paddingBottom: noSafeArea ? 0 : 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
-        transform: 'none',
+        transform: hidden ? 'translateY(100%)' : 'none',
         translate: 'none',
         transition: 'none',
         animation: 'none',

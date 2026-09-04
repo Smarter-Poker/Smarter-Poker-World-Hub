@@ -1364,7 +1364,28 @@ export function SharedPostCreator({
   // If context is 'social-pages', use the authorOverride
   // If context is 'social-media', use club page override IF active, otherwise standard user
   // Home group mode takes priority over club mode in social-media context
-  let postingAs = { name: user?.name, avatar: user?.avatar };
+  /**
+   * THE COMPOSER SHOWS YOUR PROFILE PICTURE, NOT YOUR GAME AVATAR
+   * (Dan, 2026-09-04: "ITS SHOWING MY PROFILE PIC EVERYWHERE CORRECTLY EXCEPT
+   * FOR NEXT TO THE 'WHATS ON YOUR MIND'. ITS DISPLAYING MY AVATAR AND NOT MY
+   * PROFILE PIC.")
+   *
+   * `useAvatar()` is the ARENA avatar — the preset or AI-generated character a
+   * player wears at the table. It only falls back to the profile upload when a
+   * player has never chosen one, so reading it FIRST meant anyone who had
+   * picked a character got that character here and their real photograph
+   * everywhere else: the header, the stories rail, the post that this composer
+   * was about to publish, and the "Posting As" chip eighteen pixels above it.
+   *
+   * profiles.avatar_url wins. The context is kept only as the fallback, and
+   * only for the shape it returns when there is no character to speak of, so a
+   * profile photo uploaded in this session still paints before `user` refetches.
+   */
+  const profilePhoto =
+    user?.avatar ||
+    (contextAvatar?.type === 'profile_upload' ? contextAvatar.imageUrl : null);
+
+  let postingAs = { name: user?.name, avatar: profilePhoto };
 
   if (context === 'social-pages' && authorOverride) {
     postingAs = { name: authorOverride.name, avatar: authorOverride.avatar_url };
@@ -1517,7 +1538,7 @@ export function SharedPostCreator({
                     e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <Avatar src={contextAvatar?.imageUrl || user?.avatar} name={user?.name} size={36} />
+                <Avatar src={profilePhoto} name={user?.name} size={36} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                     {user?.name || 'You'}
@@ -1696,7 +1717,7 @@ export function SharedPostCreator({
           </Link>
         ) : (
           <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
-            <Avatar src={contextAvatar?.imageUrl || user?.avatar} name={user?.name} size={40} />
+            <Avatar src={profilePhoto} name={user?.name} size={40} />
           </Link>
         )}
         <div style={{ flex: 1, position: 'relative' }}>
